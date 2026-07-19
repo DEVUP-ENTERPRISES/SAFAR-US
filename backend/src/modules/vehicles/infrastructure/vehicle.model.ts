@@ -20,6 +20,7 @@ export interface SeasonalRule {
 export interface VehicleDoc {
   _id: string;
   hostId: string;
+  hostIsSuperhost: boolean;
   fleetId?: string;
   make: string;
   model: string;
@@ -41,6 +42,9 @@ export interface VehicleDoc {
   };
   features: string[];
   photos: VehiclePhoto[];
+  addOns: { code: string; label: string; priceType: 'per_trip' | 'per_day'; amount: number }[];
+  tripRules: string[];
+  mileageLimit: { perDayKm: number; overageFeePerKm: number }; // perDayKm 0 = unlimited
   location: {
     type: 'Point';
     coordinates: [number, number];
@@ -92,6 +96,7 @@ const schema = new Schema<VehicleDoc>(
   {
     _id: { type: String, default: () => uuid() },
     hostId: { type: String, required: true },
+    hostIsSuperhost: { type: Boolean, default: false },
     fleetId: { type: String },
     make: { type: String, required: true },
     model: { type: String, required: true },
@@ -115,6 +120,15 @@ const schema = new Schema<VehicleDoc>(
     photos: {
       type: [{ url: String, key: String, isCover: Boolean }],
       default: [],
+    },
+    addOns: {
+      type: [{ code: String, label: String, priceType: { type: String, enum: ['per_trip', 'per_day'] }, amount: Number }],
+      default: [],
+    },
+    tripRules: { type: [String], default: [] },
+    mileageLimit: {
+      perDayKm: { type: Number, default: 0 },
+      overageFeePerKm: { type: Number, default: 0 },
     },
     location: {
       type: { type: String, enum: ['Point'], default: 'Point' },
@@ -144,7 +158,7 @@ const schema = new Schema<VehicleDoc>(
     },
     pricing: {
       dailyPrice: { type: Number, required: true },
-      currency: { type: String, default: 'INR' },
+      currency: { type: String, default: 'USD' },
       cleaningFee: { type: Number, default: 0 },
       weekendMultiplierBps: { type: Number, default: 10000 },
       weeklyDiscountBps: { type: Number, default: 0 },

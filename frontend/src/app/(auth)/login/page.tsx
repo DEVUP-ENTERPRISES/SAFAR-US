@@ -14,14 +14,15 @@ import { ApiError } from '@/lib/api/types';
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
   password: z.string().min(1, 'Password is required'),
+  mfaToken: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const login = useLogin();
-  const { register, handleSubmit, formState } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-  });
+  const { register, handleSubmit, formState } = useForm<FormValues>({ resolver: zodResolver(schema) });
+
+  const mfaRequired = login.error instanceof ApiError && login.error.code === 'MFA_REQUIRED';
 
   return (
     <div className="mx-auto max-w-md py-8">
@@ -38,19 +39,25 @@ export default function LoginPage() {
               <Input id="password" type="password" autoComplete="current-password" {...register('password')} />
             </Field>
 
-            {login.isError && (
+            {mfaRequired && (
+              <Field label="Two-factor code" htmlFor="mfa" hint="Enter the 6-digit code from your authenticator app.">
+                <Input id="mfa" inputMode="numeric" maxLength={6} placeholder="123456" {...register('mfaToken')} />
+              </Field>
+            )}
+
+            {login.isError && !mfaRequired && (
               <p role="alert" className="text-sm text-destructive">
                 {login.error instanceof ApiError ? login.error.message : 'Login failed'}
               </p>
             )}
 
             <Button type="submit" className="w-full" loading={login.isPending}>
-              Log in
+              {mfaRequired ? 'Verify & log in' : 'Log in'}
             </Button>
           </form>
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            New to KIEDO?{' '}
+            New to CATO?{' '}
             <Link href="/register" className="font-medium text-primary hover:underline">
               Create an account
             </Link>

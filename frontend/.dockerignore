@@ -1,0 +1,17 @@
+# Secrets must never enter the build context — COPY . . would otherwise bake
+# them into an image layer, where they persist even if deleted later.
+.env
+.env.*
+!.env.example
+
+node_modules
+.next
+out
+coverage
+.git
+.gitignore
+*.log
+npm-debug.log*
+Dockerfile
+.dockerignore
+README.md

@@ -48,7 +48,7 @@ export default function WishlistPage() {
   return (
     <AuthGuard>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">Saved cars</h1>
+        <h1 className="display text-display-sm">Saved cars</h1>
         <Saved />
       </div>
     </AuthGuard>

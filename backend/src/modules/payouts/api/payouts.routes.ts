@@ -18,6 +18,16 @@ router.get(
   }),
 );
 
+/** Host cashes out all scheduled earnings instantly (for a fee). */
+router.post(
+  '/instant',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const host = await hostService.requireHostForUser(req.principal!.userId);
+    sendSuccess(res, await payoutService.instantPayout(host._id));
+  }),
+);
+
 /** Finance triggers a payout run for a host. */
 router.post(
   '/run/:hostId',

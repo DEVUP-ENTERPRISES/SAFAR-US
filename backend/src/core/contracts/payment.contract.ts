@@ -10,6 +10,7 @@ export interface ChargeBookingInput {
   hostEarnings: Money;
   commission: Money;
   tax: Money;
+  walletApplied?: number; // minor units funded from wallet → card charges the remainder
   idempotencyKey: string;
 }
 

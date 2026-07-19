@@ -19,6 +19,11 @@ export interface BookingDoc {
     base: MoneyField;
     cleaningFee: MoneyField;
     discount: MoneyField;
+    addOnsTotal?: MoneyField;
+    delivery?: MoneyField;
+    protection?: MoneyField;
+    protectionPlan?: string;
+    selectedAddOns?: { code: string; label: string; amount: MoneyField }[];
     subtotal: MoneyField;
     commission: MoneyField;
     tax: MoneyField;
@@ -27,16 +32,27 @@ export interface BookingDoc {
     currency: string;
   };
   cancellationPolicy: 'flexible' | 'moderate' | 'strict';
+  /** Where the host delivers the car, when the guest requested delivery. */
+  delivery?: { mode: 'airport' | 'home' | 'hotel' | 'business'; address: string; lat?: number; lng?: number };
+  /**
+   * Extra people approved to drive on this trip. They must be added before the
+   * trip so they're covered by the protection plan; they cannot pick up or drop
+   * off the car (only the primary guest can), matching Turo's rule.
+   */
+  additionalDrivers?: { name: string; licenseNumber?: string; addedAt: Date }[];
   status: BookingStatus;
   statusHistory: { from: BookingStatus | null; to: BookingStatus; at: Date; by: string; reason?: string }[];
   holdId?: string;
   paymentId?: string;
   couponCode?: string;
+  orgId?: string;
+  costCenterId?: string;
   instantBook: boolean;
   approvalDeadline?: Date;
   cancellation?: { by: string; at: Date; reason: string; refund: MoneyField };
   tripId?: string;
   idempotencyKey?: string;
+  reminderSentAt?: Date;
   version: number;
   createdAt: Date;
   updatedAt: Date;
@@ -61,14 +77,43 @@ const schema = new Schema<BookingDoc>(
       base: moneySchema,
       cleaningFee: moneySchema,
       discount: moneySchema,
+      addOnsTotal: moneySchema,
+      delivery: moneySchema,
+      protection: moneySchema,
+      protectionPlan: String,
+      selectedAddOns: [{ code: String, label: String, amount: moneySchema }],
       subtotal: moneySchema,
       commission: moneySchema,
       tax: moneySchema,
       hostEarnings: moneySchema,
       total: moneySchema,
       currency: String,
+      // Why this booking was priced the way it was. Mongoose strips anything
+      // not declared here, so omitting these silently discarded the pricing
+      // rationale the moment a quote became a booking — leaving support unable
+      // to explain a rate, and no record that surge was ever disclosed.
+      commissionBps: Number,
+      commissionSource: String,
+      surgeDays: Number,
+      surgeSource: String,
+      memberSavings: moneySchema,
+      memberPlan: String,
     },
     cancellationPolicy: { type: String, default: 'moderate' },
+    delivery: {
+      type: {
+        _id: false,
+        mode: { type: String, enum: ['airport', 'home', 'hotel', 'business'] },
+        address: String,
+        lat: Number,
+        lng: Number,
+      },
+      default: undefined,
+    },
+    additionalDrivers: {
+      type: [{ _id: false, name: String, licenseNumber: String, addedAt: Date }],
+      default: [],
+    },
     status: { type: String, required: true },
     statusHistory: [
       {
@@ -82,6 +127,8 @@ const schema = new Schema<BookingDoc>(
     holdId: String,
     paymentId: String,
     couponCode: String,
+    orgId: String,
+    costCenterId: String,
     instantBook: { type: Boolean, default: false },
     approvalDeadline: Date,
     cancellation: {
@@ -92,6 +139,7 @@ const schema = new Schema<BookingDoc>(
     },
     tripId: String,
     idempotencyKey: String,
+    reminderSentAt: Date,
     version: { type: Number, default: 0 },
     deletedAt: { type: Date, default: null },
   },

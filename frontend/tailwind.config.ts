@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * KIEDO design system. Tokens are CSS-variable driven (see globals.css) so
+ * CATO design system. Tokens are CSS-variable driven (see globals.css) so
  * light/dark is a class swap and the palette is centrally controlled.
  */
 const config: Config = {
@@ -38,10 +38,19 @@ const config: Config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      fontSize: {
+        // Marketing display scale — fluid, so it reads big on desktop
+        // without blowing out on mobile.
+        'display-sm': ['clamp(2rem,1.4rem + 2.6vw,2.75rem)', { lineHeight: '1.15', letterSpacing: '-0.03em' }],
+        'display': ['clamp(2.5rem,1.6rem + 4vw,4rem)', { lineHeight: '1.1', letterSpacing: '-0.035em' }],
+        'display-lg': ['clamp(3rem,1.8rem + 5.5vw,5.25rem)', { lineHeight: '1.05', letterSpacing: '-0.04em' }],
+      },
       boxShadow: {
         soft: '0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 3px 0 rgb(0 0 0 / 0.06)',
         card: '0 2px 8px -2px rgb(0 0 0 / 0.08), 0 6px 20px -4px rgb(0 0 0 / 0.08)',
         lift: '0 10px 30px -8px rgb(0 0 0 / 0.18)',
+        // Deep, layered elevation for the hero search widget & modals.
+        float: '0 4px 6px -1px rgb(0 0 0 / 0.04), 0 12px 24px -6px rgb(0 0 0 / 0.12), 0 32px 64px -16px rgb(0 0 0 / 0.18)',
         glow: '0 0 0 3px hsl(var(--primary) / 0.15)',
       },
       keyframes: {

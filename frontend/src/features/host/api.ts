@@ -11,6 +11,7 @@ export interface HostProfile {
   taxInfo?: Record<string, unknown>;
   bankingDetails?: Record<string, unknown>;
   verificationStatus: string;
+  isSuperhost?: boolean;
   ratingAvg: number;
   totalTrips: number;
 }
@@ -24,6 +25,34 @@ export interface EarningsDashboard {
   completedTrips: number;
   monthly: { month: string; amount: number }[];
 }
+
+export interface Payout {
+  _id: string;
+  amount: number;
+  currency: string;
+  status: 'scheduled' | 'paid' | 'failed';
+  instant?: boolean;
+  scheduledFor: string;
+  paidAt?: string;
+  createdAt: string;
+}
+
+export interface InstantPayoutResult {
+  paidCount: number;
+  gross: number;
+  fee: number;
+  net: number;
+}
+
+/** Must match the backend's storage.gateway UploadCategory exactly. */
+export type UploadCategory =
+  | 'vehicle_photo'
+  | 'trip_photo'
+  | 'avatar'
+  | 'registration'
+  | 'insurance'
+  | 'kyc'
+  | 'claim';
 
 export interface UploadTarget {
   key: string;
@@ -49,6 +78,32 @@ export interface FleetDashboard {
   revenue: number;
 }
 
+export interface VehiclePnl {
+  vehicleId: string;
+  label: string;
+  trips: number;
+  grossRevenue: number;
+  commission: number;
+  hostEarnings: number;
+  maintenanceCost: number;
+  netProfit: number;
+}
+
+export interface FleetProfitability {
+  fleetId: string;
+  name: string;
+  currency: string;
+  totals: {
+    grossRevenue: number;
+    commission: number;
+    hostEarnings: number;
+    maintenanceCost: number;
+    netProfit: number;
+    marginBps: number;
+  };
+  vehicles: VehiclePnl[];
+}
+
 export interface MaintenanceRecord {
   _id: string;
   vehicleId: string;
@@ -65,12 +120,16 @@ export const hostApi = {
 
   earnings: () => api.get<EarningsDashboard>('/earnings/dashboard'),
 
-  uploadUrls: (category: string, count = 1) =>
-    api.post<UploadTarget[]>('/media/upload-urls', { category, count, contentType: 'image/jpeg' }),
+  payouts: () => api.get<Payout[]>('/payouts/me'),
+  instantPayout: () => api.post<InstantPayoutResult>('/payouts/instant'),
+
+  uploadUrls: (category: UploadCategory, count = 1, contentType = 'image/jpeg') =>
+    api.post<UploadTarget[]>('/media/upload-urls', { category, count, contentType }),
 
   fleets: () => api.get<Fleet[]>('/fleets'),
   createFleet: (name: string, region?: string) => api.post<Fleet>('/fleets', { name, region }),
   fleetDashboard: (id: string) => api.get<FleetDashboard>(`/fleets/${id}/dashboard`),
+  fleetProfitability: (id: string) => api.get<FleetProfitability>(`/fleets/${id}/profitability`),
   assignToFleet: (fleetId: string, vehicleId: string) =>
     api.post<{ assigned: boolean }>(`/fleets/${fleetId}/vehicles`, { vehicleId }),
 

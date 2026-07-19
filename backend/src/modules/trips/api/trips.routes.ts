@@ -1,10 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { tripService } from '../application/trip.service';
+import { hostTripsService } from '../../bookings/application/host-trips.service';
+import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
+import { tripCarbon } from '../../../shared/utils/carbon';
 
 const router = Router();
 
@@ -37,11 +40,50 @@ router.post(
   }),
 );
 
+// ── Host trip screens ─────────────────────────────────────────────────
+
+/** BOOKED tab: upcoming + active trips for the host. */
+router.get(
+  '/host/booked',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await hostTripsService.booked(req.principal!.userId));
+  }),
+);
+
+/** HISTORY tab: completed + cancelled trips. */
+router.get(
+  '/host/history',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await hostTripsService.history(req.principal!.userId));
+  }),
+);
+
+/** One trip, fully joined (guest, vehicle, mileage, check-in state). */
+router.get(
+  '/host/booking/:bookingId',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const trip = await hostTripsService.one(req.principal!.userId, req.params.bookingId);
+    sendSuccess(res, trip, trip ? 200 : 404);
+  }),
+);
+
 router.get(
   '/:id',
   authenticate,
   asyncHandler(async (req, res) => {
-    sendSuccess(res, await tripService.get(req.params.id));
+    const trip = await tripService.get(req.params.id);
+    // Attach carbon footprint + EV savings (needs the vehicle's fuel type).
+    let carbon = null;
+    try {
+      const v = await vehicleService.getById(trip.vehicleId);
+      carbon = tripCarbon(trip.distanceKm ?? 0, v.fuelType);
+    } catch {
+      /* vehicle gone — omit carbon */
+    }
+    sendSuccess(res, { ...trip, carbon });
   }),
 );
 
@@ -62,6 +104,81 @@ router.post(
   asyncHandler(async (req, res) => {
     const trip = await tripService.complete(req.principal!.userId, req.params.id, req.body);
     sendSuccess(res, trip);
+  }),
+);
+
+router.post(
+  '/:id/checkin',
+  authenticate,
+  validate({ body: z.object({ method: z.enum(['contactless', 'in_person']).default('contactless') }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripService.checkIn(req.principal!.userId, req.params.id, req.body.method));
+  }),
+);
+
+router.post(
+  '/:id/damage',
+  authenticate,
+  validate({
+    body: z.object({ description: z.string().min(1).max(1000), photos: z.array(z.string().url()).default([]) }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await tripService.reportDamage(req.principal!.userId, req.params.id, req.body.description, req.body.photos),
+    );
+  }),
+);
+
+router.post(
+  '/:id/sos',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    await tripService.raiseSos(req.principal!.userId, req.params.id);
+    sendSuccess(res, { alerted: true });
+  }),
+);
+
+/** Host confirms the guest's driver's licence (gates the protection plan). */
+router.post(
+  '/:id/confirm-license',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripService.confirmLicense(req.principal!.userId, req.params.id));
+  }),
+);
+
+/** Record the start odometer/fuel at handover. */
+router.post(
+  '/:id/handover',
+  authenticate,
+  validate({
+    body: z.object({
+      odometerStart: z.number().int().min(0),
+      fuelStart: z.number().min(0).max(100).optional(),
+      notes: z.string().max(500).optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripService.startHandover(req.principal!.userId, req.params.id, req.body));
+  }),
+);
+
+/** Condition photos: `pre` at check-in, `post` at checkout. */
+router.post(
+  '/:id/photos',
+  authenticate,
+  validate({
+    body: z.object({
+      phase: z.enum(['pre', 'post']),
+      photos: z.array(z.object({ url: z.string().min(1), key: z.string().optional() })).min(1),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await tripService.addPhotos(req.principal!.userId, req.params.id, req.body.phase, req.body.photos),
+    );
   }),
 );
 

@@ -20,9 +20,12 @@ export class EarningsService {
   async dashboard(hostId: string): Promise<EarningsDashboard> {
     const account = Account.hostPayable(hostId);
     const [lifetimeEarnings, currentBalance, monthly, payouts] = await Promise.all([
-      ledgerService.sumCredits(account),
-      ledgerService.balance(account),
-      ledgerService.monthlyCredits(account),
+      // host_payable is DEBIT-normal: a booking debits it, a payout credits it.
+      // Reading it with sumCredits/balance reported $0 lifetime and a NEGATIVE
+      // balance to every host.
+      ledgerService.sumDebits(account),
+      ledgerService.debitBalance(account),
+      ledgerService.monthlyDebits(account),
       payoutService.listForHost(hostId),
     ]);
 
@@ -32,7 +35,7 @@ export class EarningsService {
       .reduce((s, p) => s + p.amount, 0);
 
     return {
-      currency: 'INR',
+      currency: 'USD',
       lifetimeEarnings,
       currentBalance,
       paidOut,

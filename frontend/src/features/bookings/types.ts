@@ -5,12 +5,23 @@ export interface PriceBreakdown {
   base: Money;
   cleaningFee: Money;
   discount: Money;
+  addOnsTotal: Money;
+  delivery: Money;
+  protection: Money;
+  protectionPlan: string;
+  selectedAddOns: { code: string; label: string; amount: Money }[];
   subtotal: Money;
   commission: Money;
   tax: Money;
   hostEarnings: Money;
   total: Money;
   currency: string;
+  commissionBps?: number;
+  commissionSource?: string;
+  surgeDays?: number;
+  surgeSource?: string;
+  memberSavings?: Money;
+  memberPlan?: string;
 }
 
 export type BookingStatus =
@@ -25,6 +36,8 @@ export type BookingStatus =
   | 'disputed';
 
 export interface Booking {
+  delivery?: { mode: string; address: string };
+  additionalDrivers?: { name: string; licenseNumber?: string; addedAt: string }[];
   _id: string;
   code: string;
   guestId: string;
@@ -34,7 +47,17 @@ export interface Booking {
   priceBreakdown: PriceBreakdown;
   status: BookingStatus;
   instantBook: boolean;
+  tripId?: string;
   createdAt: string;
+}
+
+export type DeliveryMode = 'airport' | 'home' | 'hotel' | 'business';
+
+export interface DeliveryRequest {
+  mode: DeliveryMode;
+  address: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface QuoteInput {
@@ -42,4 +65,8 @@ export interface QuoteInput {
   start: string;
   end: string;
   couponCode?: string;
+  addOnCodes?: string[];
+  protectionPlan?: string;
+  useWallet?: boolean;
+  delivery?: DeliveryRequest;
 }

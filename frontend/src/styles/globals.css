@@ -9,7 +9,7 @@
   --subtle: 210 40% 98%;
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
-  --primary: 160 84% 39%; /* KIEDO emerald */
+  --primary: 160 84% 39%; /* CATO emerald */
   --primary-foreground: 0 0% 100%;
   --primary-soft: 160 60% 96%;
   --secondary: 210 40% 96%;
@@ -26,6 +26,10 @@
   --input: 214 32% 91%;
   --ring: 160 84% 39%;
   --radius: 0.85rem;
+
+  /* Ink scale — used for high-contrast marketing surfaces */
+  --ink: 224 47% 7%;
+  --ink-foreground: 0 0% 100%;
 }
 
 /* ── Design tokens (dark) ────────────────────────────────────────────── */
@@ -51,6 +55,9 @@
   --border: 217 33% 18%;
   --input: 217 33% 20%;
   --ring: 158 74% 44%;
+
+  --ink: 222 44% 9%;
+  --ink-foreground: 210 40% 98%;
 }
 
 * {
@@ -67,6 +74,13 @@ body {
   font-feature-settings: 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Display headings: tight, confident, marketing-grade. */
+.display {
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  font-weight: 800;
 }
 
 /* ── Reusable design utilities ───────────────────────────────────────── */
@@ -90,6 +104,50 @@ body {
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* Cinematic hero backdrop: layered radial mesh, no external assets. */
+  .hero-mesh {
+    background-color: hsl(var(--ink));
+    background-image:
+      radial-gradient(ellipse 80% 60% at 15% 0%, hsl(160 84% 39% / 0.35), transparent 60%),
+      radial-gradient(ellipse 70% 60% at 85% 15%, hsl(185 80% 45% / 0.28), transparent 60%),
+      radial-gradient(ellipse 90% 70% at 50% 110%, hsl(170 70% 35% / 0.30), transparent 65%);
+  }
+
+  /* Fine grain so large flat areas don't band. */
+  .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Image scrim so white text stays legible over photography. */
+  .scrim {
+    background-image: linear-gradient(
+      to top,
+      hsl(224 47% 5% / 0.85) 0%,
+      hsl(224 47% 5% / 0.35) 45%,
+      transparent 100%
+    );
+  }
+
+  .ring-ink {
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.06);
+  }
+
+  /* Escape the page container for full-bleed marketing sections without
+     refactoring every route's layout. */
+  .full-bleed {
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
   }
 }
 

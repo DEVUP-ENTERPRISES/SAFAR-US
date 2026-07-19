@@ -1,5 +1,5 @@
 import { PaymentModel, type PaymentDoc } from '../infrastructure/payment.model';
-import { paymentGateway } from '../infrastructure/mock.gateway';
+import { paymentGateway } from '../infrastructure/gateway.provider';
 import { ledgerService } from './ledger.service';
 import { Account } from '../domain/ledger.accounts';
 import { NotFoundError, ConflictError } from '../../../core/errors/app-error';
@@ -36,8 +36,10 @@ export class PaymentService implements IPaymentContract {
       };
     }
 
+    // Wallet funds part of the total; the card charges only the remainder.
+    const cardAmount = Math.max(0, input.total.amount - (input.walletApplied ?? 0));
     const intent = await paymentGateway.createIntent({
-      amount: input.total,
+      amount: { amount: cardAmount, currency: input.total.currency },
       userId: input.guestId,
       capture: input.capture,
       idempotencyKey: input.idempotencyKey,

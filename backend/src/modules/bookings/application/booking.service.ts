@@ -5,6 +5,7 @@ import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { availabilityService } from '../../availability/application/availability.service';
 import { pricingService } from '../../pricing/application/pricing.service';
 import { paymentService } from '../../payments/application/payment.service';
+import { walletService } from '../../wallet/application/wallet.service';
 import { couponService } from '../../coupons/application/coupon.service';
 import { hostService } from '../../hosts/application/host.service';
 import { NotFoundError, ConflictError, ForbiddenError, ValidationError } from '../../../core/errors/app-error';
@@ -19,13 +20,27 @@ import type { CreateBookingDto } from '../dto/booking.schemas';
 const APPROVAL_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export class BookingService {
-  async quote(dto: CreateBookingDto): Promise<PriceBreakdown> {
+  async quote(dto: CreateBookingDto, guestId?: string): Promise<PriceBreakdown> {
     const { start, end } = this.parsePeriod(dto.start, dto.end);
     await this.assertBookableWindow(dto.vehicleId, start, end);
-    return pricingService.quote({ vehicleId: dto.vehicleId, start, end, couponCode: dto.couponCode });
+    return pricingService.quote({
+      vehicleId: dto.vehicleId,
+      start,
+      end,
+      couponCode: dto.couponCode,
+      addOnCodes: dto.addOnCodes,
+      protectionPlan: dto.protectionPlan,
+      delivery: dto.delivery,
+      guestId, // membership benefits apply to the price the guest is shown
+    });
   }
 
-  async create(guestId: string, dto: CreateBookingDto, idempotencyKey?: string): Promise<BookingDoc> {
+  async create(
+    guestId: string,
+    dto: CreateBookingDto,
+    idempotencyKey?: string,
+    corp?: { orgId: string; costCenterId?: string },
+  ): Promise<BookingDoc> {
     if (idempotencyKey) {
       const existing = await BookingModel.findOne({ idempotencyKey }).lean<BookingDoc>();
       if (existing) return existing;
@@ -48,7 +63,19 @@ export class BookingService {
       start,
       end,
       couponCode: dto.couponCode,
+      addOnCodes: dto.addOnCodes,
+      protectionPlan: dto.protectionPlan,
+      delivery: dto.delivery,
+      guestId, // the price they're charged must match the price they were quoted
     });
+
+    // Pay-with-wallet: apply available balance, card charges the remainder.
+    // Supported on instant bookings (captured immediately).
+    let walletApplied = 0;
+    if (dto.useWallet && vehicle.instantBook) {
+      const balance = await walletService.balance(guestId);
+      walletApplied = Math.min(balance, breakdown.total.amount);
+    }
 
     // Reserve the slot BEFORE talking to the gateway (prevents double-booking
     // during the payment round-trip). Roll back on any downstream failure.
@@ -63,10 +90,21 @@ export class BookingService {
         capture: vehicle.instantBook,
         total: breakdown.total,
         hostEarnings: breakdown.hostEarnings,
-        commission: breakdown.commission,
+        // Protection accrues to the platform, so it rides in the commission leg
+        // — keeps the ledger balanced: total = hostEarnings + commission + tax.
+        commission: {
+          amount: breakdown.commission.amount + breakdown.protection.amount,
+          currency: breakdown.currency,
+        },
         tax: breakdown.tax,
+        walletApplied,
         idempotencyKey: idempotencyKey ?? bookingId,
       });
+
+      // Deduct the wallet portion (only after the card charge succeeded).
+      if (walletApplied > 0) {
+        await walletService.spend(guestId, walletApplied, 'booking', bookingId);
+      }
 
       const status: BookingStatus = vehicle.instantBook ? 'paid' : 'pending_approval';
       const now = new Date();
@@ -80,11 +118,14 @@ export class BookingService {
         period: { start, end },
         priceBreakdown: breakdown,
         cancellationPolicy: vehicle.cancellationPolicy,
+        delivery: dto.delivery, // where the host brings the car, if requested
         status,
         statusHistory: [{ from: null, to: status, at: now, by: guestId }],
         holdId,
         paymentId: charge.paymentId,
         couponCode: dto.couponCode,
+        orgId: corp?.orgId,
+        costCenterId: corp?.costCenterId,
         instantBook: vehicle.instantBook,
         approvalDeadline: vehicle.instantBook
           ? undefined
@@ -185,6 +226,63 @@ export class BookingService {
     return this.getDoc(bookingId);
   }
 
+  /** Extend an active booking to a later end date (availability + charge). */
+  async requestExtension(userId: string, bookingId: string, newEndIso: string): Promise<BookingDoc> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can extend');
+    if (!['paid', 'in_progress'].includes(booking.status)) {
+      throw new ConflictError('Only active bookings can be extended', 'INVALID_STATE');
+    }
+    const newEnd = new Date(newEndIso);
+    if (isNaN(newEnd.getTime()) || newEnd <= booking.period.end) {
+      throw new ValidationError('New end must be after the current end');
+    }
+    // Extra days start the day after the current end.
+    const extraStart = new Date(booking.period.end.getTime() + 86_400_000);
+    if (!(await availabilityService.isAvailable(booking.vehicleId, extraStart, newEnd))) {
+      throw new ConflictError('Vehicle is not available for the extended dates', 'NOT_AVAILABLE');
+    }
+
+    const extra = await pricingService.quote({ vehicleId: booking.vehicleId, start: extraStart, end: newEnd });
+    const holdId = await availabilityService.placeHold(booking.vehicleId, extraStart, newEnd);
+    try {
+      await paymentService.chargeForBooking({
+        bookingId,
+        guestId: booking.guestId,
+        hostId: booking.hostId,
+        capture: true,
+        total: extra.total,
+        hostEarnings: extra.hostEarnings,
+        commission: extra.commission,
+        tax: extra.tax,
+        idempotencyKey: `${bookingId}-ext-${newEnd.getTime()}`,
+      });
+      await availabilityService.confirmHold(holdId, bookingId);
+
+      // Roll the extra into the booking totals (immutable-style accumulation).
+      const pb = booking.priceBreakdown;
+      await BookingModel.updateOne(
+        { _id: bookingId },
+        {
+          $set: {
+            'period.end': newEnd,
+            'priceBreakdown.total.amount': pb.total.amount + extra.total.amount,
+            'priceBreakdown.hostEarnings.amount': pb.hostEarnings.amount + extra.hostEarnings.amount,
+            'priceBreakdown.commission.amount': pb.commission.amount + extra.commission.amount,
+            'priceBreakdown.tax.amount': pb.tax.amount + extra.tax.amount,
+            'priceBreakdown.days': pb.days + extra.days,
+          },
+          $push: { statusHistory: { from: booking.status, to: booking.status, at: new Date(), by: userId, reason: `Extended to ${newEnd.toISOString()}` } },
+        },
+      );
+      emit(EVENTS.BOOKING_EXTENDED, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId, newEnd });
+      return this.getDoc(bookingId);
+    } catch (err) {
+      await availabilityService.releaseHold(holdId);
+      throw err;
+    }
+  }
+
   async get(principal: Principal, bookingId: string): Promise<BookingDoc> {
     const booking = await this.getDoc(bookingId);
     const isParticipant =
@@ -245,6 +343,156 @@ export class BookingService {
     await BookingModel.updateOne({ _id: bookingId }, { tripId });
   }
 
+  // ── Admin ──────────────────────────────────────────────────────────
+  async adminList(opts: { status?: string; limit?: number; skip?: number }): Promise<{
+    items: BookingDoc[];
+    total: number;
+  }> {
+    const limit = Math.min(opts.limit ?? 20, 50);
+    const filter: Record<string, unknown> = { deletedAt: null };
+    if (opts.status) filter.status = opts.status;
+    const [items, total] = await Promise.all([
+      BookingModel.find(filter).sort({ createdAt: -1 }).skip(opts.skip ?? 0).limit(limit).lean<BookingDoc[]>(),
+      BookingModel.countDocuments(filter),
+    ]);
+    return { items, total };
+  }
+
+  /** Admin intervention: force-cancel with a full refund + audit reason. */
+  async adminCancel(actorId: string, bookingId: string, reason: string): Promise<BookingDoc> {
+    const booking = await this.getDoc(bookingId);
+    if (!['pending_approval', 'confirmed', 'paid'].includes(booking.status)) {
+      throw new ConflictError('Booking cannot be cancelled in its current state', 'INVALID_STATE');
+    }
+    const total = booking.priceBreakdown.total;
+    let refund = { amount: 0, currency: total.currency };
+    if (booking.status === 'paid' || booking.status === 'confirmed') {
+      refund = { ...total }; // admin cancellation = full refund
+      if (refund.amount > 0) await paymentService.refundBooking(bookingId, refund, reason);
+    } else {
+      await paymentService.cancelAuthorization(bookingId);
+    }
+    await availabilityService.releaseBooking(bookingId);
+    if (booking.holdId) await availabilityService.releaseHold(booking.holdId);
+    await BookingModel.updateOne(
+      { _id: bookingId },
+      { cancellation: { by: actorId, at: new Date(), reason: `[admin] ${reason}`, refund } },
+    );
+    await this.transition(booking, 'cancelled', actorId, `[admin] ${reason}`);
+    emit(EVENTS.BOOKING_CANCELLED, bookingId, {
+      bookingId,
+      guestId: booking.guestId,
+      hostId: booking.hostId,
+      refund,
+    });
+    return this.getDoc(bookingId);
+  }
+
+  async count(filter: Record<string, unknown> = {}): Promise<number> {
+    return BookingModel.countDocuments({ deletedAt: null, ...filter });
+  }
+
+  /** All bookings billed to an org within a period (consolidated invoicing). */
+  async orgBookings(orgId: string, from?: Date, to?: Date): Promise<BookingDoc[]> {
+    const filter: Record<string, unknown> = { orgId, deletedAt: null };
+    if (from || to) {
+      const range: Record<string, Date> = {};
+      if (from) range.$gte = from;
+      if (to) range.$lte = to;
+      filter.createdAt = range;
+    }
+    return BookingModel.find(filter).sort({ createdAt: -1 }).lean<BookingDoc[]>();
+  }
+
+  /** Cron: remind guests of trips starting within 24h (once). */
+  async remindUpcoming(): Promise<number> {
+    const now = new Date();
+    const soon = new Date(now.getTime() + 24 * 3_600_000);
+    const due = await BookingModel.find({
+      status: 'paid',
+      'period.start': { $gte: now, $lte: soon },
+      reminderSentAt: { $exists: false },
+    }).lean<BookingDoc[]>();
+    for (const b of due) {
+      emit(EVENTS.BOOKING_REMINDER, b._id, { bookingId: b._id, guestId: b.guestId, start: b.period.start });
+      await BookingModel.updateOne({ _id: b._id }, { reminderSentAt: new Date() });
+    }
+    return due.length;
+  }
+
+  /** Gross Merchandise Value = sum of totals for paid+completed bookings. */
+  async gmv(): Promise<number> {
+    const [row] = await BookingModel.aggregate<{ total: number }>([
+      { $match: { status: { $in: ['paid', 'in_progress', 'completed'] } } },
+      { $group: { _id: null, total: { $sum: '$priceBreakdown.total.amount' } } },
+    ]).exec();
+    return row?.total ?? 0;
+  }
+
+  /** Daily bookings + GMV for the last N days (analytics chart). */
+  async dailySeries(days = 14): Promise<{ day: string; bookings: number; gmv: number }[]> {
+    const since = new Date(Date.now() - days * 86_400_000);
+    const rows = await BookingModel.aggregate<{ _id: string; bookings: number; gmv: number }>([
+      { $match: { createdAt: { $gte: since } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          bookings: { $sum: 1 },
+          gmv: {
+            $sum: {
+              $cond: [
+                { $in: ['$status', ['paid', 'in_progress', 'completed']] },
+                '$priceBreakdown.total.amount',
+                0,
+              ],
+            },
+          },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]).exec();
+    return rows.map((r) => ({ day: r._id, bookings: r.bookings, gmv: r.gmv }));
+  }
+
+  async statusBreakdown(): Promise<{ status: string; count: number }[]> {
+    const rows = await BookingModel.aggregate<{ _id: string; count: number }>([
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]).exec();
+    return rows.map((r) => ({ status: r._id, count: r.count }));
+  }
+
+  /** Per-vehicle completed-booking economics (fleet P&L). */
+  async earningsByVehicle(
+    vehicleIds: string[],
+  ): Promise<Record<string, { trips: number; gross: number; commission: number; tax: number; hostEarnings: number }>> {
+    if (vehicleIds.length === 0) return {};
+    const rows = await BookingModel.aggregate<{
+      _id: string;
+      trips: number;
+      gross: number;
+      commission: number;
+      tax: number;
+      hostEarnings: number;
+    }>([
+      { $match: { vehicleId: { $in: vehicleIds }, status: 'completed' } },
+      {
+        $group: {
+          _id: '$vehicleId',
+          trips: { $sum: 1 },
+          gross: { $sum: '$priceBreakdown.total.amount' },
+          commission: { $sum: '$priceBreakdown.commission.amount' },
+          tax: { $sum: '$priceBreakdown.tax.amount' },
+          hostEarnings: { $sum: '$priceBreakdown.hostEarnings.amount' },
+        },
+      },
+    ]).exec();
+    const map: Record<string, { trips: number; gross: number; commission: number; tax: number; hostEarnings: number }> = {};
+    for (const r of rows) {
+      map[r._id] = { trips: r.trips, gross: r.gross, commission: r.commission, tax: r.tax, hostEarnings: r.hostEarnings };
+    }
+    return map;
+  }
+
   /** Aggregated completed-trip stats for a set of vehicles (fleet analytics). */
   async completedStatsForVehicles(
     vehicleIds: string[],
@@ -267,6 +515,38 @@ export class BookingService {
     const b = await BookingModel.findOne({ _id: bookingId, deletedAt: null }).lean<BookingDoc>();
     if (!b) throw new NotFoundError('Booking');
     return b;
+  }
+
+  /**
+   * Add an approved driver to the trip. Only the guest can, and only before the
+   * trip ends — a driver added after the fact wouldn't have been covered.
+   * Capped so the field can't be used to store arbitrary data.
+   */
+  async addDriver(
+    userId: string,
+    bookingId: string,
+    driver: { name: string; licenseNumber?: string },
+  ): Promise<BookingDoc> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can add drivers');
+    if (['completed', 'cancelled'].includes(booking.status)) {
+      throw new ConflictError('Cannot add drivers to a finished trip', 'INVALID_STATE');
+    }
+    if ((booking.additionalDrivers?.length ?? 0) >= 5) {
+      throw new ConflictError('Maximum of 5 additional drivers', 'TOO_MANY_DRIVERS');
+    }
+    await BookingModel.updateOne(
+      { _id: bookingId },
+      { $push: { additionalDrivers: { ...driver, addedAt: new Date() } } },
+    );
+    return this.getDoc(bookingId);
+  }
+
+  async removeDriver(userId: string, bookingId: string, name: string): Promise<BookingDoc> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can remove drivers');
+    await BookingModel.updateOne({ _id: bookingId }, { $pull: { additionalDrivers: { name } } });
+    return this.getDoc(bookingId);
   }
 
   private async transition(

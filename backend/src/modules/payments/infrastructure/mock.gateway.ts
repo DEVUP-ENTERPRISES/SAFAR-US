@@ -39,5 +39,3 @@ export class MockGateway implements PaymentGateway {
     return { status: 'cancelled' };
   }
 }
-
-export const paymentGateway: PaymentGateway = new MockGateway();

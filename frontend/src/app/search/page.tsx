@@ -2,20 +2,25 @@
 
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { SlidersHorizontal, X } from 'lucide-react';
+import { SlidersHorizontal, X, Map as MapIcon, CalendarDays, Zap, MapPin, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { Chip } from '@/components/ui/chip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
 import { useVehicleSearch } from '@/features/vehicles/hooks';
+import { LocationSearch } from '@/features/maps/components/location-search';
+import { MapPanel } from '@/features/maps/components/map-panel';
 import type { SearchParams, SortKey } from '@/features/vehicles/types';
 
 const CITIES: Record<string, { lng: number; lat: number }> = {
-  Bangalore: { lng: 77.5946, lat: 12.9716 },
-  Mumbai: { lng: 72.8777, lat: 19.076 },
-  Delhi: { lng: 77.209, lat: 28.6139 },
+  'New York': { lng: -74.006, lat: 40.7128 },
+  'Los Angeles': { lng: -118.2437, lat: 34.0522 },
+  'San Francisco': { lng: -122.4194, lat: 37.7749 },
+  Chicago: { lng: -87.6298, lat: 41.8781 },
+  Miami: { lng: -80.1918, lat: 25.7617 },
+  Austin: { lng: -97.7431, lat: 30.2672 },
 };
 const CATEGORIES = ['economy', 'luxury', 'suv', 'van', 'sports', 'ev'];
 const SORTS: { key: SortKey; label: string }[] = [
@@ -28,7 +33,7 @@ const SORTS: { key: SortKey; label: string }[] = [
 
 function SearchInner() {
   const qp = useSearchParams();
-  const [city, setCity] = useState(qp.get('city') && CITIES[qp.get('city')!] ? qp.get('city')! : 'Bangalore');
+  const [city, setCity] = useState(qp.get('city') && CITIES[qp.get('city')!] ? qp.get('city')! : 'New York');
   const [category, setCategory] = useState(qp.get('category') ?? '');
   const [fuelType, setFuelType] = useState('');
   const [transmission, setTransmission] = useState('');
@@ -39,10 +44,22 @@ function SearchInner() {
   const [ratingMin, setRatingMin] = useState(0);
   const [sort, setSort] = useState<SortKey>('relevance');
   const [showFilters, setShowFilters] = useState(true);
+  const [center, setCenter] = useState<{ lat: number; lng: number; label: string } | null>(null);
+  const [showMap, setShowMap] = useState(false);
+
+  // Dates come from the hero search widget — they drive availability filtering
+  // server-side, so a car that's already booked never appears.
+  const start = qp.get('start') ?? undefined;
+  const end = qp.get('end') ?? undefined;
+
+  const coords = center ? { lat: center.lat, lng: center.lng } : CITIES[city];
+  const areaLabel = center ? center.label : city;
 
   const params: SearchParams = {
-    ...CITIES[city],
+    ...coords,
     radiusKm: 50,
+    start,
+    end,
     category: category || undefined,
     fuelType: (fuelType as SearchParams['fuelType']) || undefined,
     transmission: (transmission as SearchParams['transmission']) || undefined,
@@ -63,99 +80,182 @@ function SearchInner() {
     setDelivery(false); setSeatsMin(''); setPriceMax(''); setRatingMin(0);
   };
 
+  const dateLabel =
+    start && end
+      ? `${new Date(start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${new Date(end).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+      : null;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Cars in {city}</h1>
-          <p className="text-sm text-muted-foreground">
-            {isFetching ? 'Searching…' : `${data?.length ?? 0} cars available`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            {Object.keys(CITIES).map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            {SORTS.map((s) => (
-              <option key={s.key} value={s.key}>{s.label}</option>
-            ))}
-          </select>
-          <Button variant="outline" size="sm" onClick={() => setShowFilters((s) => !s)}>
-            <SlidersHorizontal className="h-4 w-4" /> Filters{activeCount > 0 ? ` (${activeCount})` : ''}
-          </Button>
+      {/* Title */}
+      <div>
+        <h1 className="display text-display-sm">Cars in {areaLabel}</h1>
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-muted-foreground">
+          <span>{isFetching ? 'Searching…' : `${data?.length ?? 0} cars available`}</span>
+          {dateLabel && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-0.5 text-xs font-medium text-foreground">
+              <CalendarDays className="h-3.5 w-3.5" /> {dateLabel}
+            </span>
+          )}
+        </p>
+      </div>
+
+      {/* Sticky toolbar */}
+      {/* Sticky toolbar */}
+      <div className="sticky top-20 z-20 -mx-4 border-y border-border/40 bg-background/80 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="w-full sm:w-auto flex-1 max-w-sm">
+            <LocationSearch onPick={setCenter} placeholder="Search a city or place…" />
+          </div>
+          
+          <div className="relative group w-[calc(50%-0.375rem)] sm:w-auto">
+            <select 
+              value={city} 
+              onChange={(e) => { setCity(e.target.value); setCenter(null); }} 
+              className="appearance-none h-10 w-full rounded-full border border-border/50 bg-card/50 px-4 pr-10 text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all group-hover:bg-accent cursor-pointer"
+            >
+              {Object.keys(CITIES).map((c) => <option key={c}>{c}</option>)}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground group-hover:text-foreground">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+          </div>
+
+          <div className="relative group w-[calc(50%-0.375rem)] sm:w-auto">
+            <select 
+              value={sort} 
+              onChange={(e) => setSort(e.target.value as SortKey)} 
+              className="appearance-none h-10 w-full rounded-full border border-border/50 bg-card/50 px-4 pr-10 text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all group-hover:bg-accent cursor-pointer"
+            >
+              {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground group-hover:text-foreground">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+          </div>
+
+          <div className="flex w-full sm:w-auto gap-3">
+            <Button 
+              variant={showFilters ? 'secondary' : 'outline'} 
+              className="flex-1 sm:flex-none rounded-full h-10 px-4 transition-all duration-300 hover:shadow-soft" 
+              onClick={() => setShowFilters((s) => !s)}
+            >
+              <SlidersHorizontal className="h-4 w-4 mr-2" /> 
+              Filters {activeCount > 0 && <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">{activeCount}</span>}
+            </Button>
+            
+            <Button 
+              variant={showMap ? 'secondary' : 'outline'} 
+              className="flex-1 sm:flex-none rounded-full h-10 px-4 transition-all duration-300 hover:shadow-soft lg:hidden" 
+              onClick={() => setShowMap((s) => !s)}
+            >
+              <MapIcon className="h-4 w-4 mr-2" /> {showMap ? 'List' : 'Map'}
+            </Button>
+            <Button 
+              variant={showMap ? 'secondary' : 'outline'} 
+              className="hidden lg:flex flex-1 sm:flex-none rounded-full h-10 px-4 transition-all duration-300 hover:shadow-soft" 
+              onClick={() => setShowMap((s) => !s)}
+            >
+              <MapIcon className="h-4 w-4 mr-2" /> Map
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Filters panel */}
       {showFilters && (
-        <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-soft animate-scale-in">
-          <div>
-            <p className="mb-2 text-sm font-medium">Category</p>
-            <div className="hide-scrollbar flex gap-2 overflow-x-auto">
-              {CATEGORIES.map((c) => (
-                <Chip key={c} active={category === c} onClick={() => setCategory(category === c ? '' : c)} className="capitalize">
-                  {c}
-                </Chip>
-              ))}
+        <div className="overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card to-background p-4 sm:p-6 shadow-float animate-slide-up ring-1 ring-inset ring-white/5">
+          <div className="grid gap-6 sm:gap-8 lg:grid-cols-12">
+            
+            {/* Category */}
+            <div className="lg:col-span-12">
+              <h3 className="mb-3 sm:mb-4 flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary"></span> Category
+              </h3>
+              <div className="hide-scrollbar flex gap-2 sm:gap-2.5 overflow-x-auto pb-1">
+                {CATEGORIES.map((c) => (
+                  <Chip 
+                    key={c} 
+                    active={category === c} 
+                    onClick={() => setCategory(category === c ? '' : c)} 
+                    className="capitalize px-4 py-1.5 sm:px-5 sm:py-2 hover:scale-105 active:scale-95 shrink-0"
+                  >
+                    {c}
+                  </Chip>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <p className="mb-2 text-sm font-medium">Fuel</p>
+            <div className="h-px bg-border/40 lg:col-span-12" />
+
+            {/* Core Specs */}
+            <div className="lg:col-span-4 space-y-3 sm:space-y-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500"></span> Powertrain
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {['petrol', 'diesel', 'hybrid', 'ev'].map((f) => (
-                  <Chip key={f} active={fuelType === f} onClick={() => setFuelType(fuelType === f ? '' : f)} className="capitalize">{f}</Chip>
+                  <Chip key={f} active={fuelType === f} onClick={() => setFuelType(fuelType === f ? '' : f)} className="capitalize shrink-0">{f}</Chip>
                 ))}
               </div>
             </div>
-            <div>
-              <p className="mb-2 text-sm font-medium">Transmission</p>
+
+            <div className="lg:col-span-4 space-y-3 sm:space-y-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-500"></span> Transmission
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {['automatic', 'manual'].map((t) => (
-                  <Chip key={t} active={transmission === t} onClick={() => setTransmission(transmission === t ? '' : t)} className="capitalize">{t}</Chip>
+                  <Chip key={t} active={transmission === t} onClick={() => setTransmission(transmission === t ? '' : t)} className="capitalize shrink-0">{t}</Chip>
                 ))}
               </div>
             </div>
-            <div>
-              <p className="mb-2 text-sm font-medium">Min seats</p>
-              <Input type="number" value={seatsMin} onChange={(e) => setSeatsMin(e.target.value)} placeholder="Any" />
-            </div>
-            <div>
-              <p className="mb-2 text-sm font-medium">Max ₹/day</p>
-              <Input type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Any" />
-            </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Chip active={instantBook} onClick={() => setInstantBook((v) => !v)}>⚡ Instant book</Chip>
-            <Chip active={delivery} onClick={() => setDelivery((v) => !v)}>Delivery available</Chip>
-            <Chip active={ratingMin === 4} onClick={() => setRatingMin(ratingMin === 4 ? 0 : 4)}>★ 4.0+</Chip>
-            {activeCount > 0 && (
-              <button onClick={clear} className="ml-auto flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-                <X className="h-3.5 w-3.5" /> Clear all
-              </button>
-            )}
+            <div className="lg:col-span-4 space-y-3 sm:space-y-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-orange-500"></span> Limits
+              </h3>
+              <div className="flex gap-2 sm:gap-3">
+                <div className="flex-1 flex items-center gap-2 rounded-md border border-border/50 bg-background/50 px-3 h-9 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
+                  <span className="text-muted-foreground text-xs font-medium shrink-0">Seats+</span>
+                  <input type="number" value={seatsMin} onChange={(e) => setSeatsMin(e.target.value)} placeholder="Any" className="flex-1 bg-transparent outline-none text-sm min-w-0" />
+                </div>
+                <div className="flex-1 flex items-center gap-2 rounded-md border border-border/50 bg-background/50 px-3 h-9 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
+                  <span className="text-muted-foreground text-xs font-medium shrink-0">Max $</span>
+                  <input type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Any" className="flex-1 bg-transparent outline-none text-sm min-w-0" />
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-border/40 lg:col-span-12" />
+
+            {/* Quick Filters */}
+            <div className="lg:col-span-12 flex flex-wrap items-center gap-2 sm:gap-3">
+              <Chip active={instantBook} onClick={() => setInstantBook((v) => !v)} className="shrink-0 ring-1 ring-yellow-500/20 data-[active=true]:bg-yellow-500/10 data-[active=true]:text-yellow-500 data-[active=true]:border-yellow-500/50">
+                <Zap className="h-3.5 w-3.5 mr-1" /> Instant book
+              </Chip>
+              <Chip active={delivery} onClick={() => setDelivery((v) => !v)} className="shrink-0">
+                <MapPin className="h-3.5 w-3.5 mr-1" /> Delivery available
+              </Chip>
+              <Chip active={ratingMin === 4} onClick={() => setRatingMin(ratingMin === 4 ? 0 : 4)} className="shrink-0 ring-1 ring-amber-500/20 data-[active=true]:bg-amber-500/10 data-[active=true]:text-amber-500 data-[active=true]:border-amber-500/50">
+                <Star className="h-3.5 w-3.5 mr-1" /> 4.0+ Rated
+              </Chip>
+              
+              {activeCount > 0 && (
+                <button onClick={clear} className="ml-auto flex items-center gap-1.5 text-sm font-medium text-destructive hover:text-destructive/80 transition-colors bg-destructive/10 px-4 py-2 rounded-full shrink-0">
+                  <X className="h-4 w-4" /> Clear filters
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       {/* Results */}
       {isLoading && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 pb-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-72 w-full" />
+            <Skeleton key={i} className="h-80 w-full rounded-3xl" />
           ))}
         </div>
       )}
@@ -164,11 +264,32 @@ function SearchInner() {
         <EmptyState title="No cars match your filters" description="Try widening your search or clearing filters." action={<Button variant="outline" onClick={clear}>Clear filters</Button>} />
       )}
       {data && data.length > 0 && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {data.map((v) => (
-            <VehicleCard key={v._id} vehicle={v} />
-          ))}
-        </div>
+        showMap ? (
+          <div className="flex flex-col lg:grid gap-6 lg:grid-cols-[1fr_400px] xl:grid-cols-[1.5fr_500px]">
+            <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pb-4">
+              {data.map((v) => (
+                <VehicleCard key={v._id} vehicle={v} />
+              ))}
+            </div>
+            {/* On mobile, when map is open, we show only the map and a horizontal scroll of cards overlaying it, or just the map */}
+            <div className="sticky top-[140px] h-[calc(100vh-160px)] rounded-3xl overflow-hidden border border-border/40 shadow-lg">
+              <MapPanel lat={coords.lat} lng={coords.lng} label={areaLabel} count={data.length} vehicles={data} />
+              <div className="absolute bottom-6 left-0 right-0 lg:hidden flex overflow-x-auto gap-4 px-4 pb-2 hide-scrollbar snap-x snap-mandatory">
+                {data.map((v) => (
+                  <div key={v._id} className="w-[85vw] max-w-[320px] shrink-0 snap-center">
+                    <VehicleCard vehicle={v} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 pb-6">
+            {data.map((v) => (
+              <VehicleCard key={v._id} vehicle={v} />
+            ))}
+          </div>
+        )
       )}
     </div>
   );

@@ -39,6 +39,21 @@ export const createVehicleSchema = z.object({
     .optional(),
   features: z.array(z.string()).default([]),
   photos: z.array(photoSchema).default([]),
+  addOns: z
+    .array(z.object({
+      code: z.string(),
+      label: z.string(),
+      priceType: z.enum(['per_trip', 'per_day']),
+      amount: z.number().int().min(0),
+    }))
+    .default([]),
+  tripRules: z.array(z.string()).default([]),
+  mileageLimit: z
+    .object({
+      perDayKm: z.number().int().min(0).default(0),
+      overageFeePerKm: z.number().int().min(0).default(0),
+    })
+    .optional(),
   location: z.object({
     lng: z.number().min(-180).max(180),
     lat: z.number().min(-90).max(90),
@@ -56,7 +71,7 @@ export const createVehicleSchema = z.object({
   }),
   pricing: z.object({
     dailyPrice: z.number().int().positive(),
-    currency: z.string().length(3).default('INR'),
+    currency: z.string().length(3).default('USD'),
     cleaningFee: z.number().int().min(0).default(0),
     weekendMultiplierBps: z.number().int().min(10000).default(10000),
     weeklyDiscountBps: z.number().int().min(0).max(9000).default(0),

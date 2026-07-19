@@ -11,4 +11,5 @@ export const bookingApi = {
   confirm: (id: string) => api.post<Booking>(`/bookings/${id}/confirm`),
   decline: (id: string) => api.post<Booking>(`/bookings/${id}/decline`),
   cancel: (id: string, reason: string) => api.post<Booking>(`/bookings/${id}/cancel`, { reason }),
+  extend: (id: string, newEnd: string) => api.post<Booking>(`/bookings/${id}/extend`, { newEnd }),
 };

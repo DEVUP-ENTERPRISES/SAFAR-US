@@ -23,6 +23,89 @@ export const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),
 
   CORS_ORIGINS: z.string().default('*'),
+
+  // ── Optional integrations: real adapters activate when these are set ──
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+
+  AWS_REGION: z.string().optional(),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  S3_BUCKET: z.string().optional(),
+  S3_PUBLIC_BASE_URL: z.string().optional(), // e.g. https://cdn.cato.com or the bucket URL
+
+  GOOGLE_MAPS_API_KEY: z.string().optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+
+  // ── Bootstrap super-admin (seeded on boot if set) ──
+  ADMIN_EMAIL: z.string().email().optional(),
+  ADMIN_PASSWORD: z.string().min(8).optional(),
+  ADMIN_NAME: z.string().optional(),
+});
+
+/**
+ * Production-only guard rails.
+ *
+ * The base schema is deliberately permissive so local dev is frictionless — but
+ * those same defaults are dangerous in production: CORS_ORIGINS defaults to '*'
+ * (any site can call the API with a user's credentials) and a short dev secret
+ * satisfies min(16). Rather than trust a deploy checklist, production refuses to
+ * boot when it is misconfigured. A crash at deploy is recoverable; a wide-open
+ * API discovered later is not.
+ */
+const PROD_MIN_SECRET = 32;
+
+export const envSchemaWithProdGuards = envSchema.superRefine((env, ctx) => {
+  if (env.NODE_ENV !== 'production') return;
+
+  const fail = (path: string, message: string) =>
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
+
+  // 1. Wildcard CORS in production would let any origin make credentialed calls.
+  if (env.CORS_ORIGINS.includes('*')) {
+    fail('CORS_ORIGINS', 'must list explicit origins in production — "*" is not allowed');
+  }
+
+  // 2. Secrets must be long, and must not be the values shipped in .env.example.
+  const weak = /^(change[-_ ]?me|secret|password|dev|test|example|placeholder)/i;
+  for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const) {
+    const v = env[key];
+    if (v.length < PROD_MIN_SECRET) {
+      fail(key, `must be at least ${PROD_MIN_SECRET} characters in production`);
+    }
+    if (weak.test(v)) fail(key, 'looks like a placeholder — generate a real random secret');
+  }
+
+  // 3. Reusing one secret for both tokens means a leaked access token can be
+  //    replayed as a refresh token.
+  if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
+    fail('JWT_REFRESH_SECRET', 'must differ from JWT_ACCESS_SECRET');
+  }
+
+  // 4. A seeded admin with a weak password is a permanent back door.
+  if (env.ADMIN_PASSWORD && (env.ADMIN_PASSWORD.length < 12 || weak.test(env.ADMIN_PASSWORD))) {
+    fail('ADMIN_PASSWORD', 'must be at least 12 characters and not a placeholder in production');
+  }
+
+  // 5. Half-configured S3 silently degrades to mock storage, so uploads "work"
+  //    in prod but every photo URL is a dead placeholder.
+  const s3 = [env.AWS_ACCESS_KEY_ID, env.AWS_SECRET_ACCESS_KEY, env.S3_BUCKET];
+  if (s3.some(Boolean) && !s3.every(Boolean)) {
+    fail('S3_BUCKET', 'AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and S3_BUCKET must all be set together');
+  }
+
+  // 6. Placeholder AWS credentials are worse than none: they are truthy, so a
+  //    naive check switches on the real S3 client and every upload fails auth.
+  //    In production, refuse rather than fall back to mock (which would serve
+  //    dead placeholder image URLs to real users).
+  if (s3.every(Boolean)) {
+    if ((env.AWS_ACCESS_KEY_ID ?? '').trim().length < 16) {
+      fail('AWS_ACCESS_KEY_ID', 'looks like a placeholder — real AWS access key IDs are 20 characters');
+    }
+    if ((env.AWS_SECRET_ACCESS_KEY ?? '').trim().length < 32) {
+      fail('AWS_SECRET_ACCESS_KEY', 'looks like a placeholder — real AWS secret keys are 40 characters');
+    }
+  }
 });
 
 export type Env = z.infer<typeof envSchema>;

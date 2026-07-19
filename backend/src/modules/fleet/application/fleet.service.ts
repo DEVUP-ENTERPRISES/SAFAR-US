@@ -3,6 +3,7 @@ import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { AvailabilityModel } from '../../availability/infrastructure/availability.model';
 import { hostService } from '../../hosts/application/host.service';
 import { bookingService } from '../../bookings/application/booking.service';
+import { maintenanceService } from '../../maintenance/application/maintenance.service';
 import { ForbiddenError, NotFoundError } from '../../../core/errors/app-error';
 
 export interface FleetDashboard {
@@ -14,6 +15,32 @@ export interface FleetDashboard {
   avgRating: number;
   occupancyPct: number; // next 30 days
   revenue: number; // lifetime host earnings across fleet vehicles
+}
+
+export interface VehiclePnl {
+  vehicleId: string;
+  label: string;
+  trips: number;
+  grossRevenue: number;
+  commission: number;
+  hostEarnings: number;
+  maintenanceCost: number;
+  netProfit: number;
+}
+
+export interface FleetProfitability {
+  fleetId: string;
+  name: string;
+  currency: string;
+  totals: {
+    grossRevenue: number;
+    commission: number;
+    hostEarnings: number;
+    maintenanceCost: number;
+    netProfit: number;
+    marginBps: number;
+  };
+  vehicles: VehiclePnl[];
 }
 
 export class FleetService {
@@ -74,6 +101,56 @@ export class FleetService {
       avgRating,
       occupancyPct,
       revenue: stats.revenue,
+    };
+  }
+
+  /**
+   * Fleet profitability (P&L): host earnings − maintenance cost = net profit,
+   * with a per-vehicle breakdown. All figures in minor units (cents).
+   */
+  async profitability(userId: string, fleetId: string): Promise<FleetProfitability> {
+    const fleet = await this.getOwned(userId, fleetId);
+    const vehicles = await VehicleModel.find({ fleetId, deletedAt: null }).lean();
+    const vehicleIds = vehicles.map((v) => v._id);
+
+    const [earnings, costs] = await Promise.all([
+      bookingService.earningsByVehicle(vehicleIds),
+      maintenanceService.costByVehicles(vehicleIds),
+    ]);
+
+    const perVehicle = vehicles.map((v) => {
+      const e = earnings[v._id] ?? { trips: 0, gross: 0, commission: 0, tax: 0, hostEarnings: 0 };
+      const maintenanceCost = costs[v._id] ?? 0;
+      const net = e.hostEarnings - maintenanceCost;
+      return {
+        vehicleId: v._id,
+        label: `${v.make} ${v.model}`,
+        trips: e.trips,
+        grossRevenue: e.gross,
+        commission: e.commission,
+        hostEarnings: e.hostEarnings,
+        maintenanceCost,
+        netProfit: net,
+      };
+    });
+
+    const sum = (k: keyof (typeof perVehicle)[number]) =>
+      perVehicle.reduce((acc, p) => acc + (p[k] as number), 0);
+
+    const grossRevenue = sum('grossRevenue');
+    const commission = sum('commission');
+    const hostEarnings = sum('hostEarnings');
+    const maintenanceCost = sum('maintenanceCost');
+    const netProfit = hostEarnings - maintenanceCost;
+    // Net margin vs gross revenue (basis points; 10000 = 100%).
+    const marginBps = grossRevenue > 0 ? Math.round((netProfit / grossRevenue) * 10000) : 0;
+
+    return {
+      fleetId: fleet._id,
+      name: fleet.name,
+      currency: 'USD',
+      totals: { grossRevenue, commission, hostEarnings, maintenanceCost, netProfit, marginBps },
+      vehicles: perVehicle.sort((a, b) => b.netProfit - a.netProfit),
     };
   }
 

@@ -1,4 +1,5 @@
 import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
+import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { availabilityService } from '../../availability/application/availability.service';
 
 export type SortKey = 'relevance' | 'price_asc' | 'price_desc' | 'rating' | 'trending' | 'newest';
@@ -89,8 +90,108 @@ export class SearchService {
       results = available;
     }
 
-    results = this.applySort(results, q.sort ?? 'relevance').slice(0, limit);
-    return results;
+    const sort = q.sort ?? 'relevance';
+    results = this.applySort(results, sort);
+    // Superhost ranking boost (stable) — surfaces top hosts on the default views.
+    if (['relevance', 'trending', 'rating'].includes(sort)) {
+      results = [...results].sort((a, b) => Number(!!b.hostIsSuperhost) - Number(!!a.hostIsSuperhost));
+    }
+    return results.slice(0, limit);
+  }
+
+  /**
+   * "For You" — personalized recommendations derived from the user's own
+   * booking history. We build a lightweight taste profile (preferred
+   * categories, body types, price band, and last city) and score fresh,
+   * available candidates by affinity to it. No external LLM: the signal is
+   * the user's real behaviour, so it is explainable and privacy-preserving.
+   * Cold-start (no history) gracefully falls back to top-rated nearby cars.
+   */
+  async recommendFor(userId: string, limit = 12): Promise<VehicleDoc[]> {
+    const past = await BookingModel.find({ guestId: userId })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .select('vehicleId')
+      .lean<{ vehicleId: string }[]>();
+
+    const bookedIds = [...new Set(past.map((b) => b.vehicleId))];
+    const bookedVehicles = bookedIds.length
+      ? await VehicleModel.find({ _id: { $in: bookedIds } }).lean<VehicleDoc[]>()
+      : [];
+
+    // Build the taste profile from previously booked vehicles.
+    const catWeight = new Map<string, number>();
+    const bodyWeight = new Map<string, number>();
+    let priceSum = 0;
+    let priceN = 0;
+    let anchor: [number, number] | undefined;
+    for (const v of bookedVehicles) {
+      if (v.category) catWeight.set(v.category, (catWeight.get(v.category) ?? 0) + 1);
+      if (v.bodyType) bodyWeight.set(v.bodyType, (bodyWeight.get(v.bodyType) ?? 0) + 1);
+      if (v.pricing?.dailyPrice) { priceSum += v.pricing.dailyPrice; priceN += 1; }
+      if (!anchor && (v.location as any)?.coordinates) {
+        anchor = (v.location as any).coordinates as [number, number];
+      }
+    }
+    const avgPrice = priceN ? priceSum / priceN : 0;
+
+    // Candidate pool: listed/verified vehicles the user hasn't booked, near
+    // their last city when known (else global top-rated for cold-start).
+    const filter: Record<string, unknown> = {
+      status: 'listed',
+      verificationStatus: 'verified',
+      deletedAt: null,
+      _id: { $nin: bookedIds },
+    };
+    if (anchor) {
+      filter.location = {
+        $near: {
+          $geometry: { type: 'Point', coordinates: anchor },
+          $maxDistance: 60 * 1000,
+        },
+      };
+    }
+    const pool = await VehicleModel.find(filter).limit(120).lean<VehicleDoc[]>();
+
+    if (!bookedVehicles.length) {
+      // Cold start: rating + superhost, capped.
+      return pool
+        .sort(
+          (a, b) =>
+            Number(!!b.hostIsSuperhost) - Number(!!a.hostIsSuperhost) ||
+            b.ratingAvg - a.ratingAvg ||
+            b.totalTrips - a.totalTrips,
+        )
+        .slice(0, limit);
+    }
+
+    const scored = pool
+      .map((v) => ({ v, s: this.affinityScore(v, catWeight, bodyWeight, avgPrice) }))
+      .sort((a, b) => b.s - a.s)
+      .slice(0, limit)
+      .map((x) => x.v);
+    return scored;
+  }
+
+  private affinityScore(
+    v: VehicleDoc,
+    catWeight: Map<string, number>,
+    bodyWeight: Map<string, number>,
+    avgPrice: number,
+  ): number {
+    let score = 0;
+    if (v.category && catWeight.has(v.category)) score += 3 * catWeight.get(v.category)!;
+    if (v.bodyType && bodyWeight.has(v.bodyType)) score += 2 * bodyWeight.get(v.bodyType)!;
+    // Price proximity: full credit at the user's average, decaying with distance.
+    if (avgPrice > 0 && v.pricing?.dailyPrice) {
+      const rel = Math.abs(v.pricing.dailyPrice - avgPrice) / avgPrice;
+      score += Math.max(0, 2 - rel * 2);
+    }
+    // Quality signals so we never recommend a great-fit-but-bad car.
+    score += (v.ratingAvg || 0) * 0.5;
+    if (v.hostIsSuperhost) score += 1;
+    score += Math.min(v.totalTrips || 0, 20) * 0.02;
+    return score;
   }
 
   private applySort(items: VehicleDoc[], sort: SortKey): VehicleDoc[] {

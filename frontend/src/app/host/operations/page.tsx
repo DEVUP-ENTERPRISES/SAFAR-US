@@ -117,7 +117,7 @@ export default function OperationsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Operations</h1>
+        <h1 className="display text-display-sm">Operations</h1>
         <p className="text-muted-foreground">Approve trip requests and manage vehicle maintenance.</p>
       </div>
       <section className="space-y-3">

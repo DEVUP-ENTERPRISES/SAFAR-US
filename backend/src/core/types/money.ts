@@ -3,11 +3,11 @@
  * Never a float. All arithmetic stays in integers to avoid rounding drift.
  */
 export interface Money {
-  amount: number; // minor units, e.g. 150000 = ₹1,500.00
-  currency: string; // ISO 4217, e.g. "INR"
+  amount: number; // minor units (cents), e.g. 6500 = $65.00
+  currency: string; // ISO 4217, e.g. "USD"
 }
 
-export const DEFAULT_CURRENCY = 'INR';
+export const DEFAULT_CURRENCY = 'USD';
 
 export function money(amount: number, currency: string = DEFAULT_CURRENCY): Money {
   return { amount: Math.round(amount), currency };

@@ -1,16 +1,27 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { storageGateway } from '../../../infrastructure/storage/mock.storage';
+import { storageGateway } from '../../../infrastructure/storage/storage.provider';
+import { config } from '../../../config';
+import {
+  UPLOAD_CATEGORIES,
+  ALLOWED_CONTENT_TYPES,
+  isPrivateCategory,
+  parseKey,
+  PRIVATE_CATEGORY_PERMISSION,
+} from '../../../infrastructure/storage/storage.gateway';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { validate } from '../../../shared/middleware/validate';
+import { ForbiddenError, ValidationError } from '../../../core/errors/app-error';
 import { sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 
+// Categories and content types come from the storage contract — so adding a new
+// upload surface can't silently 400 because two lists drifted apart.
 const uploadUrlSchema = z.object({
-  category: z.enum(['vehicle_photo', 'registration', 'insurance', 'kyc', 'claim']),
-  contentType: z.string().default('image/jpeg'),
+  category: z.enum(UPLOAD_CATEGORIES),
+  contentType: z.enum(ALLOWED_CONTENT_TYPES).default('image/jpeg'),
   count: z.number().int().min(1).max(20).default(1),
 });
 
@@ -32,5 +43,51 @@ router.post(
     sendSuccess(res, targets);
   }),
 );
+
+/**
+ * Authorized read for a PRIVATE object (KYC, licence, insurance, claim). Returns
+ * a short-lived presigned GET — never a durable public URL — and only to the
+ * document's owner or to staff with the category's review permission. This is
+ * what keeps a driver's licence from being reachable by anyone with the link
+ * once the bucket sits behind a public CDN.
+ */
+router.get(
+  '/download',
+  authenticate,
+  validate({ query: z.object({ key: z.string().min(3).max(512) }) }),
+  asyncHandler(async (req, res) => {
+    const key = String(req.query.key);
+    const parsed = parseKey(key);
+    if (!parsed) throw new ValidationError('Malformed object key');
+
+    // Public categories don't need this endpoint — but if asked, only gate that
+    // it's a real key; the CDN already serves them.
+    if (isPrivateCategory(parsed.category)) {
+      const isOwner = parsed.ownerId === req.principal!.userId;
+      const needed = PRIVATE_CATEGORY_PERMISSION[parsed.category];
+      const isStaff =
+        req.principal!.permissions.includes('*') ||
+        (!!needed && req.principal!.permissions.includes(needed));
+      if (!isOwner && !isStaff) {
+        throw new ForbiddenError('You are not allowed to view this document');
+      }
+    }
+
+    const url = await storageGateway.createDownloadUrl(key);
+    sendSuccess(res, { url, expiresInSeconds: 120 });
+  }),
+);
+
+/**
+ * Dev-only sink for the mock storage gateway's presigned PUT. It accepts the
+ * bytes and throws them away — its whole job is to let the client run the exact
+ * same upload path locally as it will against S3. Never mounted when real AWS
+ * credentials are configured.
+ */
+if (!config.aws.enabled) {
+  router.put('/mock-upload/*', (_req, res) => {
+    res.status(200).end();
+  });
+}
 
 export const mediaRoutes = router;

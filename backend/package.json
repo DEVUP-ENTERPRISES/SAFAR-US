@@ -18,7 +18,11 @@
     "seed": "ts-node src/database/seeders/index.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1079.0",
+    "@aws-sdk/s3-request-presigner": "^3.1079.0",
+    "@socket.io/redis-adapter": "^8.3.0",
     "argon2": "^0.41.1",
+    "bullmq": "^5.79.2",
     "compression": "^1.7.5",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -31,6 +35,8 @@
     "pino": "^9.6.0",
     "pino-http": "^10.4.0",
     "rate-limit-redis": "^4.2.0",
+    "socket.io": "^4.8.3",
+    "stripe": "^22.3.0",
     "uuid": "^11.0.5",
     "zod": "^3.24.1"
   },

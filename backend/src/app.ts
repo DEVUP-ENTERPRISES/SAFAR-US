@@ -29,16 +29,27 @@ export function createApp(): Express {
   // 2. security headers
   app.use(helmet());
 
-  // 3. cors
+  // 3. cors — reflect allowed origins (or any origin when '*' configured).
+  const allowAllOrigins = config.cors.origins.some((o) => o === '*' || o.includes('*'));
   app.use(
     cors({
-      origin: config.cors.origins.includes('*') ? true : config.cors.origins,
+      origin(origin, cb) {
+        // No Origin header (same-origin, curl, server-to-server) → allow.
+        if (!origin || allowAllOrigins || config.cors.origins.includes(origin)) {
+          return cb(null, true);
+        }
+        return cb(null, false);
+      },
       credentials: true,
     }),
   );
 
   // 4. compression
   app.use(compression());
+
+  // 4b. Stripe webhook needs the RAW body for signature verification, so
+  //     capture it before JSON parsing runs on that exact path.
+  app.use(`${config.app.apiPrefix}/payments/webhooks/stripe`, express.raw({ type: '*/*' }));
 
   // 5. body parsing (uploads go to S3 via signed URLs, so bodies stay small)
   app.use(express.json({ limit: '1mb' }));

@@ -1,5 +1,5 @@
 {
-  "name": "kiedo-web",
+  "name": "cato-web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -19,6 +19,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
+    "socket.io-client": "^4.8.3",
     "tailwind-merge": "^2.6.0",
     "zod": "^3.24.1",
     "zustand": "^5.0.3"

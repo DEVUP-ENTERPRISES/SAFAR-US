@@ -31,9 +31,15 @@ export default function FleetPage() {
     enabled: !!selected,
   });
 
+  const pnl = useQuery({
+    queryKey: ['fleet-pnl', selected],
+    queryFn: () => hostApi.fleetProfitability(selected!),
+    enabled: !!selected,
+  });
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Fleet management</h1>
+      <h1 className="display text-display-sm">Fleet management</h1>
 
       <Card>
         <CardHeader><CardTitle>Create a fleet</CardTitle></CardHeader>
@@ -70,7 +76,60 @@ export default function FleetPage() {
             <Metric label="Listed" value={String(dashboard.data.listedVehicles)} />
             <Metric label="Occupancy" value={`${dashboard.data.occupancyPct}%`} />
             <Metric label="Trips" value={String(dashboard.data.totalTrips)} />
-            <Metric label="Revenue" value={formatMoney({ amount: dashboard.data.revenue, currency: 'INR' })} />
+            <Metric label="Revenue" value={formatMoney({ amount: dashboard.data.revenue, currency: 'USD' })} />
+          </CardContent>
+        </Card>
+      )}
+
+      {selected && pnl.data && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Profitability (P&amp;L)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              <Metric label="Gross revenue" value={usd(pnl.data.totals.grossRevenue)} />
+              <Metric label="Platform commission" value={`−${usd(pnl.data.totals.commission)}`} />
+              <Metric label="Host earnings" value={usd(pnl.data.totals.hostEarnings)} />
+              <Metric label="Maintenance cost" value={`−${usd(pnl.data.totals.maintenanceCost)}`} />
+              <Metric
+                label={`Net profit · ${(pnl.data.totals.marginBps / 100).toFixed(1)}% margin`}
+                value={usd(pnl.data.totals.netProfit)}
+                highlight={pnl.data.totals.netProfit >= 0 ? 'pos' : 'neg'}
+              />
+            </div>
+
+            {pnl.data.vehicles.length > 0 && (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-muted-foreground">
+                      <th className="px-3 py-2 font-medium">Vehicle</th>
+                      <th className="px-3 py-2 font-medium">Trips</th>
+                      <th className="px-3 py-2 font-medium">Host earnings</th>
+                      <th className="px-3 py-2 font-medium">Maintenance</th>
+                      <th className="px-3 py-2 text-right font-medium">Net profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pnl.data.vehicles.map((v) => (
+                      <tr key={v.vehicleId} className="border-b border-border last:border-0">
+                        <td className="px-3 py-2 font-medium">{v.label}</td>
+                        <td className="px-3 py-2">{v.trips}</td>
+                        <td className="px-3 py-2">{usd(v.hostEarnings)}</td>
+                        <td className="px-3 py-2 text-muted-foreground">−{usd(v.maintenanceCost)}</td>
+                        <td className={`px-3 py-2 text-right font-semibold ${v.netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                          {usd(v.netProfit)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Net profit = host earnings (after platform commission) − maintenance costs. Based on completed trips.
+            </p>
           </CardContent>
         </Card>
       )}
@@ -78,11 +137,16 @@ export default function FleetPage() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function usd(amount: number): string {
+  return formatMoney({ amount, currency: 'USD' });
+}
+
+function Metric({ label, value, highlight }: { label: string; value: string; highlight?: 'pos' | 'neg' }) {
+  const color = highlight === 'pos' ? 'text-success' : highlight === 'neg' ? 'text-destructive' : '';
   return (
     <div>
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="text-lg font-bold">{value}</p>
+      <p className={`text-lg font-bold ${color}`}>{value}</p>
     </div>
   );
 }

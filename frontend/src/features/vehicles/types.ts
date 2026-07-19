@@ -7,6 +7,7 @@ export interface VehiclePhoto {
 export interface Vehicle {
   _id: string;
   hostId: string;
+  hostIsSuperhost?: boolean;
   fleetId?: string;
   make: string;
   model: string;
@@ -22,6 +23,9 @@ export interface Vehicle {
   specs?: { doors?: number; color?: string; mileageKm?: number };
   features: string[];
   photos: VehiclePhoto[];
+  addOns?: { code: string; label: string; priceType: 'per_trip' | 'per_day'; amount: number }[];
+  tripRules?: string[];
+  mileageLimit?: { perDayKm: number; overageFeePerKm: number };
   location: { coordinates: [number, number]; address: string; city: string };
   listing: {
     title: string;

@@ -8,7 +8,9 @@ export const Account = {
   platformRevenue: () => 'platform_revenue',
   platformTax: () => 'platform_tax',
   promoExpense: () => 'promo_expense',
+  claimsExpense: () => 'claims_expense', // what the platform/insurer pays out on claims
   depositHeld: () => 'deposit_held',
+  cardFunding: () => 'card_funding', // external card inflow contra-account (wallet top-ups)
   userWallet: (userId: string) => `user_wallet:${userId}`,
   hostPayable: (hostId: string) => `host_payable:${hostId}`,
 };

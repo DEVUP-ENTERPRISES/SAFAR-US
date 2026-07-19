@@ -59,9 +59,53 @@ export class HostService {
     return host?.verificationStatus === 'verified';
   }
 
+  /**
+   * Superhost program: auto-award when a host clears the quality bar, and
+   * denormalize the flag onto their vehicles so search can boost + badge them
+   * without a join.
+   */
+  async recomputeSuperhost(hostId: string): Promise<boolean> {
+    const host = await HostModel.findOne({ _id: hostId }).lean<HostDoc>();
+    if (!host) return false;
+    const qualifies =
+      host.verificationStatus === 'verified' && host.ratingAvg >= 4.8 && host.ratingCount >= 3;
+    if (qualifies !== host.isSuperhost) {
+      await HostModel.updateOne({ _id: hostId }, { isSuperhost: qualifies });
+      const { VehicleModel } = await import('../../vehicles/infrastructure/vehicle.model');
+      await VehicleModel.updateMany({ hostId }, { hostIsSuperhost: qualifies });
+    }
+    return qualifies;
+  }
+
   async verify(hostId: string): Promise<void> {
     const res = await HostModel.updateOne({ _id: hostId }, { verificationStatus: 'verified' });
     if (res.matchedCount === 0) throw new NotFoundError('Host');
+  }
+
+  // ── Admin ──────────────────────────────────────────────────────────
+  async setVerification(hostId: string, status: 'pending' | 'verified' | 'rejected'): Promise<HostDoc> {
+    const res = await HostModel.updateOne({ _id: hostId }, { verificationStatus: status });
+    if (res.matchedCount === 0) throw new NotFoundError('Host');
+    return this.getById(hostId);
+  }
+
+  async adminList(opts: { q?: string; status?: string; limit?: number; skip?: number }): Promise<{
+    items: HostDoc[];
+    total: number;
+  }> {
+    const limit = Math.min(opts.limit ?? 20, 50);
+    const filter: Record<string, unknown> = { deletedAt: null };
+    if (opts.status) filter.verificationStatus = opts.status;
+    if (opts.q) filter.displayName = new RegExp(opts.q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const [items, total] = await Promise.all([
+      HostModel.find(filter).sort({ createdAt: -1 }).skip(opts.skip ?? 0).limit(limit).lean<HostDoc[]>(),
+      HostModel.countDocuments(filter),
+    ]);
+    return { items, total };
+  }
+
+  async count(filter: Record<string, unknown> = {}): Promise<number> {
+    return HostModel.countDocuments({ deletedAt: null, ...filter });
   }
 }
 

@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { tokenStore } from '@/lib/api/token-store';
+import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { useSessionBootstrap } from '@/features/auth/hooks';
 import { useAuthStore } from '@/features/auth/store';
 
@@ -39,7 +40,9 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <AuthBootstrap>{children}</AuthBootstrap>
+        <ConfirmProvider>
+          <AuthBootstrap>{children}</AuthBootstrap>
+        </ConfirmProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

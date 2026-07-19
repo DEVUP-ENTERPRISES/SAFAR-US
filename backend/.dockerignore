@@ -1,0 +1,16 @@
+# Secrets must never enter the build context — a COPY . . would otherwise bake
+# real credentials into an image layer, where they survive even if deleted later.
+.env
+.env.*
+!.env.example
+
+node_modules
+dist
+coverage
+.git
+.gitignore
+*.log
+npm-debug.log*
+Dockerfile
+.dockerignore
+README.md

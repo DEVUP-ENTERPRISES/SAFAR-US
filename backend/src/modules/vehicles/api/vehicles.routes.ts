@@ -36,6 +36,33 @@ router.get(
   }),
 );
 
+// Smart Price AI — market-based daily price suggestion for hosts.
+router.get(
+  '/price-suggestion',
+  authenticate,
+  validate({
+    query: z.object({
+      lng: z.coerce.number(),
+      lat: z.coerce.number(),
+      category: z.string(),
+      fuelType: z.string().optional(),
+      radiusKm: z.coerce.number().optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await vehicleService.priceSuggestion({
+        lng: Number(req.query.lng),
+        lat: Number(req.query.lat),
+        category: String(req.query.category),
+        fuelType: req.query.fuelType as string | undefined,
+        radiusKm: req.query.radiusKm ? Number(req.query.radiusKm) : undefined,
+      }),
+    );
+  }),
+);
+
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {

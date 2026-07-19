@@ -65,7 +65,7 @@ export default function HostProfilePage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Host profile</h1>
+      <h1 className="display text-display-sm">Host profile</h1>
 
       <Card>
         <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
@@ -86,7 +86,7 @@ export default function HostProfilePage() {
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Field label="Legal name"><Input value={form.legalName} onChange={f('legalName')} /></Field>
           <Field label="Registration number"><Input value={form.registrationNumber} onChange={f('registrationNumber')} /></Field>
-          <Field label="Tax ID (GSTIN/PAN)" className="sm:col-span-2"><Input value={form.taxId} onChange={f('taxId')} /></Field>
+          <Field label="Tax ID (EIN / SSN)" className="sm:col-span-2"><Input value={form.taxId} onChange={f('taxId')} /></Field>
         </CardContent>
       </Card>
 
@@ -95,7 +95,7 @@ export default function HostProfilePage() {
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Field label="Account holder"><Input value={form.accountHolder} onChange={f('accountHolder')} /></Field>
           <Field label="Bank name"><Input value={form.bankName} onChange={f('bankName')} /></Field>
-          <Field label="IFSC / Routing"><Input value={form.ifscOrRouting} onChange={f('ifscOrRouting')} /></Field>
+          <Field label="Routing number"><Input value={form.ifscOrRouting} onChange={f('ifscOrRouting')} /></Field>
           <Field label="Account (last 4)" hint="Store only masked digits"><Input value={form.accountNumberMasked} onChange={f('accountNumberMasked')} /></Field>
         </CardContent>
       </Card>

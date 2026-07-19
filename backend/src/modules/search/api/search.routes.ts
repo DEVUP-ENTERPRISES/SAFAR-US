@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { searchService } from '../application/search.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { validate } from '../../../shared/middleware/validate';
+import { authenticate } from '../../../shared/middleware/authenticate';
 import { sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
@@ -34,6 +35,18 @@ router.get(
   validate({ query: searchSchema }),
   asyncHandler(async (req, res) => {
     const results = await searchService.searchVehicles(req.query as never);
+    sendSuccess(res, results, 200, { count: results.length });
+  }),
+);
+
+/** "For You" — personalized picks from the signed-in user's booking history. */
+router.get(
+  '/recommendations',
+  authenticate,
+  validate({ query: z.object({ limit: z.coerce.number().int().positive().max(30).optional() }) }),
+  asyncHandler(async (req, res) => {
+    const limit = req.query.limit ? Number(req.query.limit) : 12;
+    const results = await searchService.recommendFor(req.principal!.userId, limit);
     sendSuccess(res, results, 200, { count: results.length });
   }),
 );

@@ -13,6 +13,12 @@ export class UsersController {
       phone: user.phone,
       firstName: user.firstName,
       lastName: user.lastName,
+      avatarUrl: user.avatarUrl,
+      dateOfBirth: user.dateOfBirth,
+      addresses: user.addresses ?? [],
+      emergencyContacts: user.emergencyContacts ?? [],
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
       roles: user.roles,
       status: user.status,
     });

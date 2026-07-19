@@ -15,6 +15,9 @@ export interface CreateVehicleInput {
   specs?: { doors?: number; color?: string; mileageKm?: number };
   features: string[];
   photos: { url: string; key?: string; isCover?: boolean }[];
+  addOns?: { code: string; label: string; priceType: 'per_trip' | 'per_day'; amount: number }[];
+  tripRules?: string[];
+  mileageLimit?: { perDayKm: number; overageFeePerKm: number };
   location: { lng: number; lat: number; address: string; city: string };
   listing: {
     title: string;
@@ -51,6 +54,8 @@ export const vehicleApi = {
       params as unknown as Record<string, string | number | boolean | undefined>,
       false,
     ),
+  recommendations: (limit = 12) =>
+    api.get<Vehicle[]>('/search/recommendations', { limit }),
   getById: (id: string) => api.get<Vehicle>(`/vehicles/${id}`, undefined, false),
   myVehicles: () => api.get<Vehicle[]>('/vehicles/me/list'),
   create: (input: CreateVehicleInput) => api.post<Vehicle>('/vehicles', input),
@@ -60,6 +65,11 @@ export const vehicleApi = {
   addPhotos: (id: string, photos: { url: string; key?: string }[]) =>
     api.post<Vehicle>(`/vehicles/${id}/photos`, { photos }),
   verifyVin: (id: string, vin: string) => api.post<Vehicle>(`/vehicles/${id}/verify-vin`, { vin }),
+  priceSuggestion: (p: { lng: number; lat: number; category: string; fuelType?: string }) =>
+    api.get<{ suggested: number; median: number; p25: number; p75: number; sampleSize: number; demand: string; currency: string }>(
+      '/vehicles/price-suggestion',
+      p as unknown as Record<string, string | number | boolean | undefined>,
+    ),
   getCalendar: (id: string, from?: string, to?: string) =>
     api.get<CalendarEntry[]>(`/vehicles/${id}/availability`, { from, to }, false),
   setAvailability: (id: string, start: string, end: string, action: 'block' | 'unblock') =>

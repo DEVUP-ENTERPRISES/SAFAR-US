@@ -3,6 +3,11 @@ import { EVENTS } from '../core/events/event-names';
 import { notificationService } from '../modules/notifications/application/notification.service';
 import { payoutService } from '../modules/payouts/application/payout.service';
 import { hostService } from '../modules/hosts/application/host.service';
+import { realtimeEmitter, RT } from '../realtime/emitter';
+import { rewardsService } from '../modules/rewards/application/rewards.service';
+import { referralService } from '../modules/referral/application/referral.service';
+import { bookingService } from '../modules/bookings/application/booking.service';
+import { favoritesService } from '../modules/favorites/application/favorites.service';
 import { logger } from '../infrastructure/logging/logger';
 
 /**
@@ -51,6 +56,59 @@ export function registerEventSubscribers(): void {
       body: 'Your trip is booked. Have a great ride!',
       data: { bookingId: p.bookingId },
     });
+    // Live push to any connected devices of the guest.
+    realtimeEmitter.toUser(p.guestId, RT.BOOKING_UPDATE, { bookingId: p.bookingId, status: 'paid' });
+    realtimeEmitter.toBooking(p.bookingId, RT.BOOKING_UPDATE, { bookingId: p.bookingId, status: 'paid' });
+  });
+
+  // Realtime trip status pushes.
+  eventBus.subscribe(EVENTS.TRIP_STARTED, async (e) => {
+    const p = e.payload as { tripId: string; bookingId: string };
+    realtimeEmitter.toBooking(p.bookingId, RT.TRIP_STATUS, { tripId: p.tripId, status: 'active' });
+  });
+  eventBus.subscribe(EVENTS.TRIP_COMPLETED, async (e) => {
+    const p = e.payload as { tripId: string; bookingId: string };
+    realtimeEmitter.toBooking(p.bookingId, RT.TRIP_STATUS, { tripId: p.tripId, status: 'completed' });
+  });
+
+  // Chat: notify (and live-push) the recipient when a message arrives.
+  eventBus.subscribe(EVENTS.CHAT_MESSAGE_SENT, async (e) => {
+    const p = e.payload as { bookingId: string; recipientUserId: string; preview: string; senderId: string };
+    if (!p.recipientUserId) return;
+    await notificationService.send({
+      userId: p.recipientUserId,
+      templateKey: 'chat.message',
+      title: 'New message',
+      body: p.preview || 'You have a new message',
+      data: { bookingId: p.bookingId },
+    });
+    realtimeEmitter.toUser(p.recipientUserId, RT.NOTIFICATION, {
+      kind: 'chat',
+      bookingId: p.bookingId,
+    });
+  });
+
+  // Trip reminder (from the scheduled job).
+  eventBus.subscribe(EVENTS.BOOKING_REMINDER, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string };
+    await notificationService.send({
+      userId: p.guestId,
+      templateKey: 'booking.reminder',
+      title: 'Your trip is coming up',
+      body: 'Your CATO trip starts soon. Tap to view details.',
+      data: { bookingId: p.bookingId },
+    });
+  });
+
+  // Emergency SOS → alert the other party + support in realtime.
+  eventBus.subscribe(EVENTS.TRIP_SOS, async (e) => {
+    const p = e.payload as { tripId: string; bookingId: string; byUserId: string };
+    realtimeEmitter.toBooking(p.bookingId, RT.TRIP_ALERT, {
+      kind: 'sos',
+      tripId: p.tripId,
+      at: new Date().toISOString(),
+    });
+    logger.warn({ tripId: p.tripId, by: p.byUserId }, '🚨 SOS raised on trip');
   });
 
   eventBus.subscribe(EVENTS.BOOKING_CANCELLED, async (e) => {
@@ -76,13 +134,59 @@ export function registerEventSubscribers(): void {
   eventBus.subscribe(EVENTS.BOOKING_COMPLETED, async (e) => {
     const p = e.payload as { bookingId: string; guestId: string; hostId: string };
     await payoutService.scheduleForBooking(p.bookingId);
+
+    // CATO Rewards: 1 point per $1 spent (× tier multiplier), idempotent per booking.
+    try {
+      const booking = await bookingService.getDoc(p.bookingId);
+      const basePoints = Math.floor(booking.priceBreakdown.total.amount / 100);
+      await rewardsService.award(p.guestId, basePoints, 'earn', 'booking', p.bookingId, `Trip ${booking.code}`);
+    } catch (err) {
+      logger.warn({ err, bookingId: p.bookingId }, 'reward award failed');
+    }
+    // Referral: convert on the referee's first completed trip (both parties rewarded).
+    await referralService.convert(p.guestId).catch(() => undefined);
+
     await notificationService.send({
       userId: p.guestId,
       templateKey: 'trip.completed',
       title: 'Trip completed',
-      body: 'Thanks for riding with TURA! Leave a review.',
+      body: 'Thanks for riding with CATO! You earned points — leave a review.',
       data: { bookingId: p.bookingId },
     });
+    realtimeEmitter.toUser(p.guestId, RT.NOTIFICATION, { kind: 'rewards', bookingId: p.bookingId });
+  });
+
+  // Price-drop alert → notify everyone who wishlisted this car.
+  eventBus.subscribe(EVENTS.VEHICLE_PRICE_DROPPED, async (e) => {
+    const p = e.payload as { vehicleId: string; oldPrice: number; newPrice: number; title: string; currency: string };
+    const wishlisters = await favoritesService.wishlistersOf(p.vehicleId);
+    const drop = ((p.oldPrice - p.newPrice) / 100).toFixed(0);
+    for (const userId of wishlisters) {
+      await notificationService.send({
+        userId,
+        templateKey: 'wishlist.price_drop',
+        title: 'Price drop on a saved car! 📉',
+        body: `${p.title} dropped by $${drop}/day — book before it's gone.`,
+        data: { vehicleId: p.vehicleId },
+      });
+      realtimeEmitter.toUser(userId, RT.NOTIFICATION, { kind: 'price_drop', vehicleId: p.vehicleId });
+    }
+    if (wishlisters.length) logger.info({ vehicleId: p.vehicleId, wishlisters: wishlisters.length }, '📉 price-drop alerts sent');
+  });
+
+  // Back-in-stock: a saved car became listed/available again.
+  eventBus.subscribe(EVENTS.VEHICLE_LISTED, async (e) => {
+    const p = e.payload as { vehicleId: string };
+    const wishlisters = await favoritesService.wishlistersOf(p.vehicleId);
+    for (const userId of wishlisters) {
+      await notificationService.send({
+        userId,
+        templateKey: 'wishlist.available',
+        title: 'A saved car is now available! ✅',
+        body: 'One of your wishlisted cars is back and ready to book.',
+        data: { vehicleId: p.vehicleId },
+      });
+    }
   });
 
   logger.info('Event subscribers registered');

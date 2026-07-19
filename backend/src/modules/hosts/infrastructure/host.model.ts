@@ -16,7 +16,7 @@ export interface HostDoc {
     supportEmail?: string;
   };
   taxInfo?: {
-    taxId?: string; // GSTIN / EIN / PAN
+    taxId?: string; // US: EIN / SSN (tax identification)
     country?: string;
     businessTax?: boolean;
   };
@@ -29,6 +29,7 @@ export interface HostDoc {
     verified?: boolean;
   };
   verificationStatus: 'pending' | 'verified' | 'rejected';
+  isSuperhost: boolean;
   ratingAvg: number;
   ratingCount: number;
   totalTrips: number;
@@ -70,6 +71,7 @@ const schema = new Schema<HostDoc>(
       default: 'pending',
       enum: ['pending', 'verified', 'rejected'],
     },
+    isSuperhost: { type: Boolean, default: false },
     ratingAvg: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
     totalTrips: { type: Number, default: 0 },

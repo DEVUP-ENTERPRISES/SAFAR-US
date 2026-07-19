@@ -44,4 +44,12 @@ router.get(
   }),
 );
 
+router.get(
+  '/:id/profitability',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await fleetService.profitability(req.principal!.userId, req.params.id));
+  }),
+);
+
 export const fleetRoutes = router;

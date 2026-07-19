@@ -74,13 +74,55 @@ export class LedgerService {
     return LedgerModel.find({ account }).sort({ postedAt: -1 }).limit(limit).lean().exec();
   }
 
-  /** Total credited to an account over all time (e.g. lifetime host earnings). */
+  /** Total credited to an account over all time. */
   async sumCredits(account: string): Promise<number> {
     const [row] = await LedgerModel.aggregate<{ total: number }>([
       { $match: { account, direction: 'credit' } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ]).exec();
     return row?.total ?? 0;
+  }
+
+  /**
+   * Total debited to an account over all time.
+   *
+   * IMPORTANT — account normality in this ledger:
+   *   user_wallet   is CREDIT-normal (a top-up credits it; spending debits it)
+   *   host_payable  is DEBIT-normal  (a booking debits it; a payout credits it)
+   *   platform_revenue / platform_tax are DEBIT-normal (commission debits them)
+   *
+   * So "how much has this host earned" is the sum of DEBITS, not credits, and
+   * "how much do we still owe them" is debits − credits. Reading these with
+   * sumCredits()/balance() returns 0 and a negative number respectively.
+   */
+  async sumDebits(account: string): Promise<number> {
+    const [row] = await LedgerModel.aggregate<{ total: number }>([
+      { $match: { account, direction: 'debit' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]).exec();
+    return row?.total ?? 0;
+  }
+
+  /** Accrued-minus-settled for a DEBIT-normal account (host payable, revenue). */
+  async debitBalance(account: string): Promise<number> {
+    const [debit, credit] = await Promise.all([this.sumDebits(account), this.sumCredits(account)]);
+    return debit - credit;
+  }
+
+  /** Monthly debited totals for a DEBIT-normal account (host earnings charts). */
+  async monthlyDebits(account: string, months = 6): Promise<{ month: string; amount: number }[]> {
+    const rows = await LedgerModel.aggregate<{ _id: string; amount: number }>([
+      { $match: { account, direction: 'debit' } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$postedAt' } },
+          amount: { $sum: '$amount' },
+        },
+      },
+      { $sort: { _id: -1 } },
+      { $limit: months },
+    ]).exec();
+    return rows.map((r) => ({ month: r._id, amount: r.amount })).reverse();
   }
 
   /** Monthly credited totals (for revenue charts). Returns last N months. */

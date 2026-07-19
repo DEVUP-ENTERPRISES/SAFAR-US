@@ -36,3 +36,12 @@ export function useTrending(lng: number, lat: number) {
     queryFn: () => vehicleApi.search({ lng, lat, radiusKm: 60, sort: 'trending', limit: 8 }),
   });
 }
+
+/** "For You" — personalized picks from the signed-in user's booking history. */
+export function useRecommendations(enabled: boolean) {
+  return useQuery({
+    queryKey: ['recommendations'],
+    queryFn: () => vehicleApi.recommendations(8),
+    enabled,
+  });
+}

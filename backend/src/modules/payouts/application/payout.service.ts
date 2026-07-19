@@ -5,9 +5,10 @@ import { Account } from '../../payments/domain/ledger.accounts';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
-/** Payout hold window (protects against disputes/chargebacks). */
-const PAYOUT_HOLD_MS = 24 * 60 * 60 * 1000;
+// Hold window and instant-payout fee come from PlatformConfig — finance tunes
+// them from the admin panel, no deploy.
 
 export class PayoutService {
   /** Called on BOOKING_COMPLETED: schedule the host's earnings for payout. */
@@ -15,6 +16,7 @@ export class PayoutService {
     const booking = await bookingService.getDoc(bookingId);
     const existing = await PayoutModel.findOne({ bookingId }).lean();
     if (existing) return; // idempotent
+    const cfg = await platformConfigService.get();
 
     await PayoutModel.create({
       hostId: booking.hostId,
@@ -22,10 +24,47 @@ export class PayoutService {
       amount: booking.priceBreakdown.hostEarnings.amount,
       currency: booking.priceBreakdown.currency,
       status: 'scheduled',
-      scheduledFor: new Date(Date.now() + PAYOUT_HOLD_MS),
+      scheduledFor: new Date(Date.now() + cfg.payout.holdHours * 3_600_000),
     });
     emit(EVENTS.PAYOUT_SCHEDULED, bookingId, { bookingId, hostId: booking.hostId });
     logger.info({ bookingId, hostId: booking.hostId }, 'Payout scheduled');
+  }
+
+  /**
+   * Instant payout: a host cashes out ALL scheduled earnings immediately
+   * (bypassing the hold window) for a small fee. Fee accrues to the platform.
+   */
+  async instantPayout(hostId: string): Promise<{ paidCount: number; gross: number; fee: number; net: number }> {
+    const due = await PayoutModel.find({ hostId, status: 'scheduled' });
+    const gross = due.reduce((s, p) => s + p.amount, 0);
+    if (gross <= 0) return { paidCount: 0, gross: 0, fee: 0, net: 0 };
+
+    const cfg = await platformConfigService.get();
+    const fee = Math.max(
+      cfg.payout.instantFeeMinCents,
+      Math.round((gross * cfg.payout.instantFeeBps) / 10000),
+    );
+    const net = gross - fee;
+
+    const txnId = await ledgerService.post({
+      refType: 'instant_payout',
+      refId: hostId,
+      currency: 'USD',
+      description: `Instant payout to host ${hostId} (fee ${fee})`,
+      legs: [
+        { account: Account.hostPayable(hostId), direction: 'credit', amount: gross },
+        { account: Account.gatewayClearing(), direction: 'debit', amount: net },
+        { account: Account.platformRevenue(), direction: 'debit', amount: fee },
+      ],
+    });
+
+    const now = new Date();
+    await PayoutModel.updateMany(
+      { _id: { $in: due.map((p) => p._id) } },
+      { status: 'paid', paidAt: now, ledgerTxnId: txnId, instant: true },
+    );
+    logger.info({ hostId, gross, fee, net }, '⚡ instant payout executed');
+    return { paidCount: due.length, gross, fee, net };
   }
 
   /** Execute all due scheduled payouts for a host (finance-triggered / cron). */
@@ -60,6 +99,22 @@ export class PayoutService {
 
   async listForHost(hostId: string): Promise<PayoutDoc[]> {
     return PayoutModel.find({ hostId }).sort({ createdAt: -1 }).limit(100).lean<PayoutDoc[]>();
+  }
+
+  /** Cron entry: run payouts for every host with due scheduled payouts. */
+  async runAllDue(): Promise<{ hosts: number; paid: number; amount: number }> {
+    const groups = await PayoutModel.aggregate<{ _id: string }>([
+      { $match: { status: 'scheduled', scheduledFor: { $lte: new Date() } } },
+      { $group: { _id: '$hostId' } },
+    ]).exec();
+    let paid = 0;
+    let amount = 0;
+    for (const g of groups) {
+      const r = await this.runForHost(g._id);
+      paid += r.paid;
+      amount += r.amount;
+    }
+    return { hosts: groups.length, paid, amount };
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 
-const KEY = 'kiedo.recentlyViewed';
+const KEY = 'cato.recentlyViewed';
 const MAX = 12;
 
 /** Client-side recently-viewed vehicle ids (privacy-friendly, no backend). */

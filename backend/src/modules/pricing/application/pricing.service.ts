@@ -1,12 +1,16 @@
 import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
-import { NotFoundError } from '../../../core/errors/app-error';
+import { NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { money, zeroMoney, addMoney, subMoney, applyBps, sumMoney } from '../../../core/types/money';
 import type { IPricingContract, QuoteInput, PriceBreakdown } from '../../../core/contracts/pricing.contract';
 import { couponService } from '../../coupons/application/coupon.service';
+import { getProtectionPlan } from '../domain/protection-plans';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { surgeService } from './surge.service';
+import { subscriptionService } from '../../subscriptions/application/subscription.service';
 
-/** Platform economics (would live in settings/feature-flags in prod). */
-const COMMISSION_BPS = 2000; // 20% platform take from host portion
-const TAX_BPS = 1800; // 18% GST on commission
+// Platform economics are NOT constants — commission, tax and protection pricing
+// are resolved live from PlatformConfig + CommissionRules so finance can retune
+// the marketplace from the admin panel without a deploy.
 const EARLY_BIRD_MIN_DAYS_AHEAD = 30;
 const LAST_MINUTE_MAX_HOURS_AHEAD = 48;
 
@@ -36,9 +40,19 @@ export class PricingService implements IPricingContract {
     const currency = v.pricing.currency;
     const daily = v.pricing.dailyPrice;
 
-    // ── Per-day base: weekend + seasonal multipliers applied per calendar day.
+    // Membership (CATO Plus) benefits — resolved once, applied throughout.
+    const member = input.guestId
+      ? await subscriptionService.benefitsFor(input.guestId)
+      : { bookingDiscountBps: 0, waiveSurge: false, rewardsMultiplierBps: 10000 };
+    const memberSub = input.guestId ? await subscriptionService.activeFor(input.guestId) : null;
+
+    // ── Per-day base: weekend + seasonal + SURGE, applied per calendar day.
+    // Surge is date-scoped (a holiday weekend, a sold-out city), so it must be
+    // resolved per day — not once for the whole trip.
     let baseAmount = 0;
     let days = 0;
+    let surgeDays = 0;
+    let surgeSource = 'none';
     const d = new Date(
       Date.UTC(input.start.getUTCFullYear(), input.start.getUTCMonth(), input.start.getUTCDate()),
     );
@@ -51,7 +65,22 @@ export class PricingService implements IPricingContract {
       const weekendMult = isWeekend ? v.pricing.weekendMultiplierBps : 10000;
       const seasonalBps = seasonalMultiplierFor(d, v.pricing.seasonalRules);
       const seasonalMult = seasonalBps > 0 ? seasonalBps : 10000;
-      baseAmount += Math.round((daily * weekendMult * seasonalMult) / 10000 / 10000);
+
+      const surge = await surgeService.resolve({
+        city: v.location?.city,
+        category: v.category,
+        day: new Date(d),
+      });
+      // CATO Plus members never pay surge.
+      const surgeMult = member.waiveSurge ? 10000 : surge.multiplierBps;
+      if (surgeMult > 10000) {
+        surgeDays++;
+        surgeSource = surge.source;
+      }
+
+      baseAmount += Math.round(
+        (daily * weekendMult * seasonalMult * surgeMult) / 10000 / 10000 / 10000,
+      );
       days++;
       d.setUTCDate(d.getUTCDate() + 1);
     }
@@ -78,6 +107,14 @@ export class PricingService implements IPricingContract {
       discount = addMoney(discount, applyBps(base, v.pricing.promoDiscountBps));
     }
 
+    // ── Membership discount (CATO Plus). Tracked separately so we can show the
+    // guest exactly what their membership saved them on this trip.
+    let memberSavings = zeroMoney(currency);
+    if (member.bookingDiscountBps > 0) {
+      memberSavings = applyBps(base, member.bookingDiscountBps);
+      discount = addMoney(discount, memberSavings);
+    }
+
     // ── Coupon (stacks last).
     if (input.couponCode) {
       const afterOthers = subMoney(base, discount);
@@ -89,17 +126,78 @@ export class PricingService implements IPricingContract {
     if (discount.amount > base.amount) discount = { ...base };
 
     const cleaningFee = money(v.pricing.cleaningFee, currency);
-    const subtotal = addMoney(subMoney(base, discount), cleaningFee);
 
-    const commission = applyBps(subtotal, COMMISSION_BPS);
-    const tax = applyBps(commission, TAX_BPS);
+    // ── Add-ons (host-defined extras the guest selected).
+    const selectedAddOns = (v.addOns ?? [])
+      .filter((a) => (input.addOnCodes ?? []).includes(a.code))
+      .map((a) => ({
+        code: a.code,
+        label: a.label,
+        amount: money(a.priceType === 'per_day' ? a.amount * days : a.amount, currency),
+      }));
+    const addOnsTotal = sumMoney(selectedAddOns.map((a) => a.amount), currency);
+
+    // ── Delivery: the host brings the car to the guest for a flat fee. Only
+    // valid if the vehicle actually offers that delivery mode — otherwise a
+    // guest could conjure a $0 (or any) delivery the host never agreed to.
+    let delivery = zeroMoney(currency);
+    if (input.delivery) {
+      const d = v.listing?.delivery;
+      const offered = !!d && !!d[input.delivery.mode];
+      if (!offered) {
+        throw new ValidationError(`This car does not offer ${input.delivery.mode} delivery`);
+      }
+      delivery = money(d.fee, currency);
+    }
+
+    // ── Protection plan (priced from live config, not a code constant).
+    // A member's included tier is free; anything above it they still pay for.
+    const plan = await getProtectionPlan(input.protectionPlan);
+    const includedFree = !!member.freeProtectionCode && member.freeProtectionCode === plan.code;
+    const protection = includedFree ? zeroMoney(currency) : money(plan.pricePerDay * days, currency);
+    if (includedFree) {
+      memberSavings = addMoney(memberSavings, money(plan.pricePerDay * days, currency));
+    }
+
+    // Host-side subtotal (rental + cleaning + add-ons + delivery) → commission is
+    // taken on this. Delivery is the host's labour, so it earns like host income.
+    const subtotal = addMoney(
+      addMoney(addMoney(subMoney(base, discount), cleaningFee), addOnsTotal),
+      delivery,
+    );
+
+    // ── Commission: resolved per booking from the rule engine. A luxury car, a
+    // superhost, or a negotiated fleet host can each carry a different rate.
+    const cfg = await platformConfigService.get();
+    const resolved = await platformConfigService.resolveCommission({
+      hostId: v.hostId,
+      category: v.category,
+      hostTier: v.hostIsSuperhost ? 'superhost' : undefined,
+    });
+
+    const commission = applyBps(subtotal, resolved.bps);
+    const tax = applyBps(commission, cfg.tax.bps);
     const hostEarnings = subMoney(subMoney(subtotal, commission), tax);
-    const total = subtotal;
 
+    // Guest pays host-side + protection (protection accrues to platform/insurer).
+    const total = addMoney(subtotal, protection);
+
+    // Balance guard on the host-side split (protection handled separately at charge).
     const recomposed = sumMoney([hostEarnings, commission, tax], currency);
-    if (recomposed.amount !== total.amount) hostEarnings.amount += total.amount - recomposed.amount;
+    if (recomposed.amount !== subtotal.amount) hostEarnings.amount += subtotal.amount - recomposed.amount;
 
-    return { days, base, cleaningFee, discount, subtotal, commission, tax, hostEarnings, total, currency };
+    return {
+      days, base, cleaningFee, discount, addOnsTotal, delivery, protection,
+      protectionPlan: plan.code, selectedAddOns,
+      subtotal, commission, tax, hostEarnings, total, currency,
+      // Which rate applied and why — makes every quote explainable in support.
+      commissionBps: resolved.bps,
+      commissionSource: resolved.source,
+      surgeDays,
+      surgeSource,
+      memberSavings,
+      memberPlan: memberSub?.planCode,
+    };
   }
 }
 

@@ -4,8 +4,8 @@
  * to an httpOnly cookie via a Next route handler — the client API here is
  * designed so only this file changes.)
  */
-const ACCESS_KEY = 'kiedo.access';
-const REFRESH_KEY = 'kiedo.refresh';
+const ACCESS_KEY = 'cato.access';
+const REFRESH_KEY = 'cato.refresh';
 
 let accessTokenMemory: string | null = null;
 

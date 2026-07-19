@@ -8,6 +8,7 @@ export interface PayoutDoc {
   amount: number;
   currency: string;
   status: 'scheduled' | 'paid' | 'failed';
+  instant?: boolean;
   ledgerTxnId?: string;
   scheduledFor: Date;
   paidAt?: Date;
@@ -23,6 +24,7 @@ const schema = new Schema<PayoutDoc>(
     amount: { type: Number, required: true },
     currency: { type: String, required: true },
     status: { type: String, default: 'scheduled', enum: ['scheduled', 'paid', 'failed'] },
+    instant: { type: Boolean, default: false },
     ledgerTxnId: String,
     scheduledFor: { type: Date, required: true },
     paidAt: Date,

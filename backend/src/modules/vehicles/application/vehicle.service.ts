@@ -27,6 +27,9 @@ export class VehicleService implements IVehicleContract {
       specs: dto.specs ?? {},
       features: dto.features,
       photos: dto.photos,
+      addOns: dto.addOns ?? [],
+      tripRules: dto.tripRules ?? [],
+      mileageLimit: dto.mileageLimit ?? { perDayKm: 0, overageFeePerKm: 0 },
       location: {
         type: 'Point',
         coordinates: [dto.location.lng, dto.location.lat],
@@ -86,8 +89,19 @@ export class VehicleService implements IVehicleContract {
   ): Promise<VehicleDoc> {
     const vehicle = await this.getById(vehicleId);
     await this.assertOwner(userId, vehicle);
+    const oldPrice = vehicle.pricing.dailyPrice;
     const merged = { ...vehicle.pricing, ...patch };
     await VehicleModel.updateOne({ _id: vehicleId }, { pricing: merged });
+    // Price-drop alert for wishlisters.
+    if (typeof merged.dailyPrice === 'number' && merged.dailyPrice < oldPrice) {
+      emit(EVENTS.VEHICLE_PRICE_DROPPED, vehicleId, {
+        vehicleId,
+        oldPrice,
+        newPrice: merged.dailyPrice,
+        title: `${vehicle.make} ${vehicle.model}`,
+        currency: vehicle.pricing.currency,
+      });
+    }
     return this.getById(vehicleId);
   }
 
@@ -146,6 +160,92 @@ export class VehicleService implements IVehicleContract {
     const vehicle = await this.getById(vehicleId);
     await this.assertOwner(userId, vehicle);
     await VehicleModel.updateOne({ _id: vehicleId }, { status: 'delisted' });
+  }
+
+  // ── Admin ──────────────────────────────────────────────────────────
+  /** Admin approve (list), suspend (pause), or reject a vehicle. */
+  async adminSetStatus(
+    vehicleId: string,
+    action: 'approve' | 'suspend' | 'reject',
+  ): Promise<VehicleDoc> {
+    await this.getById(vehicleId);
+    const update =
+      action === 'approve'
+        ? { status: 'listed', verificationStatus: 'verified' }
+        : action === 'suspend'
+          ? { status: 'paused' }
+          : { status: 'draft', verificationStatus: 'rejected' };
+    await VehicleModel.updateOne({ _id: vehicleId }, update);
+    return this.getById(vehicleId);
+  }
+
+  async adminList(opts: {
+    q?: string;
+    status?: string;
+    verification?: string;
+    limit?: number;
+    skip?: number;
+  }): Promise<{ items: VehicleDoc[]; total: number }> {
+    const limit = Math.min(opts.limit ?? 20, 50);
+    const filter: Record<string, unknown> = { deletedAt: null };
+    if (opts.status) filter.status = opts.status;
+    if (opts.verification) filter.verificationStatus = opts.verification;
+    if (opts.q) {
+      const rx = new RegExp(opts.q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [{ make: rx }, { model: rx }, { 'listing.title': rx }, { registrationNumber: rx }];
+    }
+    const [items, total] = await Promise.all([
+      VehicleModel.find(filter).sort({ createdAt: -1 }).skip(opts.skip ?? 0).limit(limit).lean<VehicleDoc[]>(),
+      VehicleModel.countDocuments(filter),
+    ]);
+    return { items, total };
+  }
+
+  async count(filter: Record<string, unknown> = {}): Promise<number> {
+    return VehicleModel.countDocuments({ deletedAt: null, ...filter });
+  }
+
+  /**
+   * Smart Price AI: suggest a daily price from live local comparables
+   * (same category, listed & verified, within radius). Returns the market
+   * median plus a competitive band and a demand signal.
+   */
+  async priceSuggestion(input: {
+    lng: number; lat: number; category: string; fuelType?: string; radiusKm?: number;
+  }): Promise<{
+    suggested: number; median: number; p25: number; p75: number; sampleSize: number;
+    demand: 'low' | 'balanced' | 'high'; currency: string;
+  }> {
+    const radiusMeters = (input.radiusKm ?? 25) * 1000;
+    const filter: Record<string, unknown> = {
+      status: 'listed', verificationStatus: 'verified', deletedAt: null,
+      category: input.category,
+      location: { $near: { $geometry: { type: 'Point', coordinates: [input.lng, input.lat] }, $maxDistance: radiusMeters } },
+    };
+    if (input.fuelType) filter.fuelType = input.fuelType;
+    const comps = await VehicleModel.find(filter).limit(100).select('pricing.dailyPrice totalTrips').lean();
+
+    const prices = comps.map((c) => c.pricing.dailyPrice).filter((p) => p > 0).sort((a, b) => a - b);
+    const CATEGORY_FALLBACK: Record<string, number> = {
+      economy: 4500, suv: 8000, luxury: 15000, van: 9000, sports: 20000, ev: 9500,
+    };
+    if (prices.length < 3) {
+      const base = CATEGORY_FALLBACK[input.category] ?? 6000;
+      return { suggested: base, median: base, p25: base, p75: base, sampleSize: prices.length, demand: 'balanced', currency: 'USD' };
+    }
+    const at = (q: number) => prices[Math.min(prices.length - 1, Math.floor(q * prices.length))];
+    const median = at(0.5);
+    const p25 = at(0.25);
+    const p75 = at(0.75);
+    // Demand signal from average trips of comps.
+    const avgTrips = comps.reduce((s, c) => s + (c.totalTrips ?? 0), 0) / comps.length;
+    const demand = avgTrips > 8 ? 'high' : avgTrips < 2 ? 'low' : 'balanced';
+    // Suggest slightly under median to win bookings, nudged by demand.
+    const factor = demand === 'high' ? 1.05 : demand === 'low' ? 0.92 : 0.98;
+    return {
+      suggested: Math.round(median * factor),
+      median, p25, p75, sampleSize: prices.length, demand, currency: 'USD',
+    };
   }
 
   // ── Contract implementation ──────────────────────────────────────────

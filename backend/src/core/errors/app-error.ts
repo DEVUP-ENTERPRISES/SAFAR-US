@@ -66,3 +66,9 @@ export class TooManyRequestsError extends AppError {
     super({ code: 'RATE_LIMITED', message, httpStatus: 429 });
   }
 }
+
+export class ExternalServiceError extends AppError {
+  constructor(message = 'An upstream service failed') {
+    super({ code: 'EXTERNAL_SERVICE_ERROR', message, httpStatus: 502 });
+  }
+}

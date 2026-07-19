@@ -10,9 +10,19 @@ export interface TripDoc {
   guestId: string;
   hostId: string;
   status: TripStatus;
+  checkin?: { at: Date; method: 'contactless' | 'in_person' };
+  /** Host confirmed the guest's driver's licence at handover. */
+  licenseConfirmed?: boolean;
+  licenseConfirmedAt?: Date;
+  /** Condition photos. `phase` splits pre-trip (check-in) from post-trip (checkout). */
+  photos: { url: string; key?: string; phase: 'pre' | 'post'; byUserId: string; at: Date }[];
+  /** Charged to the guest for driving past the included mileage. */
+  mileageOverage?: { km: number; amountCents: number; chargedAt: Date };
   handover: { at: Date; odometerStart?: number; fuelStart?: number; notes?: string };
   return?: { at: Date; odometerEnd?: number; fuelEnd?: number; notes?: string };
   liveLocation?: { type: 'Point'; coordinates: [number, number]; updatedAt: Date };
+  damageReports: { description: string; photos: string[]; byUserId: string; at: Date }[];
+  sosEvents: { byUserId: string; at: Date }[];
   distanceKm: number;
   createdAt: Date;
   updatedAt: Date;
@@ -26,11 +36,30 @@ const schema = new Schema<TripDoc>(
     guestId: { type: String, required: true },
     hostId: { type: String, required: true },
     status: { type: String, default: 'active', enum: ['active', 'completed', 'disputed'] },
+    checkin: {
+      at: Date,
+      method: { type: String, enum: ['contactless', 'in_person'] },
+    },
+    licenseConfirmed: { type: Boolean, default: false },
+    licenseConfirmedAt: Date,
+    photos: {
+      type: [{ _id: false, url: String, key: String, phase: { type: String, enum: ['pre', 'post'] }, byUserId: String, at: Date }],
+      default: [],
+    },
+    mileageOverage: { km: Number, amountCents: Number, chargedAt: Date },
     handover: {
       at: Date,
       odometerStart: Number,
       fuelStart: Number,
       notes: String,
+    },
+    damageReports: {
+      type: [{ description: String, photos: [String], byUserId: String, at: Date }],
+      default: [],
+    },
+    sosEvents: {
+      type: [{ byUserId: String, at: Date }],
+      default: [],
     },
     return: {
       at: Date,

@@ -7,6 +7,7 @@ export const ROLES = {
   GUEST: 'guest',
   HOST: 'host',
   SUPPORT: 'support',
+  MODERATOR: 'moderator',
   FINANCE: 'finance',
   OPS: 'ops',
   SUPER_ADMIN: 'super_admin',
@@ -18,26 +19,48 @@ export const PERMISSIONS = {
   BOOKING_CREATE: 'booking:create',
   BOOKING_CANCEL_OWN: 'booking:cancel:own',
   BOOKING_READ_ANY: 'booking:read:any',
+  BOOKING_MANAGE: 'booking:manage',
   VEHICLE_CREATE: 'vehicle:create',
   VEHICLE_UPDATE_OWN: 'vehicle:update:own',
   VEHICLE_VERIFY: 'vehicle:verify',
-  PAYMENT_REFUND: 'payment:refund',
+  HOST_MANAGE: 'host:manage',
   USER_READ_ANY: 'user:read:any',
+  USER_MANAGE: 'user:manage',
+  KYC_REVIEW: 'kyc:review',
+  PAYMENT_REFUND: 'payment:refund',
+  CLAIM_MANAGE: 'claim:manage',
+  TICKET_MANAGE: 'ticket:manage',
+  ADMIN_READ: 'admin:read',
+  ANALYTICS_READ: 'analytics:read',
+  /**
+   * Mutating platform-wide configuration (feature flags, kill switches).
+   * Deliberately NOT bundled into admin:read — every staff role holds that, so
+   * guarding a write with it would let a support agent flip flags for everyone.
+   */
+  PLATFORM_MANAGE: 'platform:manage',
   ALL: '*',
 } as const;
 
+const P = PERMISSIONS;
+
 export const ROLE_PERMISSIONS: Record<RoleName, string[]> = {
-  [ROLES.GUEST]: [PERMISSIONS.BOOKING_CREATE, PERMISSIONS.BOOKING_CANCEL_OWN],
-  [ROLES.HOST]: [
-    PERMISSIONS.BOOKING_CREATE,
-    PERMISSIONS.BOOKING_CANCEL_OWN,
-    PERMISSIONS.VEHICLE_CREATE,
-    PERMISSIONS.VEHICLE_UPDATE_OWN,
+  [ROLES.GUEST]: [P.BOOKING_CREATE, P.BOOKING_CANCEL_OWN],
+  [ROLES.HOST]: [P.BOOKING_CREATE, P.BOOKING_CANCEL_OWN, P.VEHICLE_CREATE, P.VEHICLE_UPDATE_OWN],
+  [ROLES.SUPPORT]: [P.ADMIN_READ, P.TICKET_MANAGE, P.BOOKING_READ_ANY, P.USER_READ_ANY, P.CLAIM_MANAGE],
+  [ROLES.MODERATOR]: [P.ADMIN_READ, P.USER_MANAGE, P.USER_READ_ANY, P.BOOKING_READ_ANY],
+  [ROLES.FINANCE]: [P.ADMIN_READ, P.ANALYTICS_READ, P.PAYMENT_REFUND, P.BOOKING_MANAGE, P.BOOKING_READ_ANY],
+  [ROLES.OPS]: [
+    P.ADMIN_READ,
+    P.ANALYTICS_READ,
+    P.VEHICLE_VERIFY,
+    P.HOST_MANAGE,
+    P.USER_MANAGE,
+    P.USER_READ_ANY,
+    P.KYC_REVIEW,
+    P.CLAIM_MANAGE,
+    P.BOOKING_READ_ANY,
   ],
-  [ROLES.SUPPORT]: [PERMISSIONS.BOOKING_READ_ANY, PERMISSIONS.USER_READ_ANY],
-  [ROLES.FINANCE]: [PERMISSIONS.PAYMENT_REFUND, PERMISSIONS.BOOKING_READ_ANY],
-  [ROLES.OPS]: [PERMISSIONS.VEHICLE_VERIFY, PERMISSIONS.BOOKING_READ_ANY],
-  [ROLES.SUPER_ADMIN]: [PERMISSIONS.ALL],
+  [ROLES.SUPER_ADMIN]: [P.ALL],
 };
 
 /** Resolve the union of permissions for a set of roles. */

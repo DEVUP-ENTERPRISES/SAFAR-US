@@ -15,6 +15,24 @@ export interface AuthResult {
   tokens: TokenPair;
 }
 
+export interface Address {
+  id: string;
+  label: string;
+  line1: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  isDefault: boolean;
+}
+
+export interface EmergencyContact {
+  id: string;
+  name: string;
+  phone: string;
+  relation?: string;
+}
+
 /** Full profile from GET /users/me. */
 export interface Me {
   id: string;
@@ -22,6 +40,12 @@ export interface Me {
   phone?: string;
   firstName?: string;
   lastName?: string;
+  avatarUrl?: string;
+  dateOfBirth?: string;
+  addresses: Address[];
+  emergencyContacts: EmergencyContact[];
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
   roles: string[];
   status: string;
 }
@@ -31,9 +55,11 @@ export interface RegisterInput {
   password: string;
   firstName?: string;
   lastName?: string;
+  referralCode?: string;
 }
 
 export interface LoginInput {
   email: string;
   password: string;
+  mfaToken?: string;
 }

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
-import { Check, ImagePlus, Loader2, X } from 'lucide-react';
+import { Check, ImagePlus, Loader2, X, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,9 +16,12 @@ import { hostApi } from '@/features/host/api';
 const STEPS = ['Basics', 'Details', 'Photos', 'Pricing', 'Delivery', 'Review'];
 
 const CITIES: Record<string, { lng: number; lat: number }> = {
-  Bangalore: { lng: 77.5946, lat: 12.9716 },
-  Mumbai: { lng: 72.8777, lat: 19.076 },
-  Delhi: { lng: 77.209, lat: 28.6139 },
+  'New York': { lng: -74.006, lat: 40.7128 },
+  'Los Angeles': { lng: -118.2437, lat: 34.0522 },
+  'San Francisco': { lng: -122.4194, lat: 37.7749 },
+  Chicago: { lng: -87.6298, lat: 41.8781 },
+  Miami: { lng: -80.1918, lat: 25.7617 },
+  Austin: { lng: -97.7431, lat: 30.2672 },
 };
 
 interface Draft {
@@ -40,7 +43,7 @@ interface Draft {
   description: string;
   instantBook: boolean;
   cancellationPolicy: 'flexible' | 'moderate' | 'strict';
-  dailyPrice: number; // rupees
+  dailyPrice: number; // USD/day
   cleaningFee: number;
   weekendPct: number; // % premium
   weeklyDiscountPct: number;
@@ -48,16 +51,29 @@ interface Draft {
   earlyBirdPct: number;
   lastMinutePct: number;
   delivery: { airport: boolean; home: boolean; hotel: boolean; business: boolean; radiusKm: number; fee: number };
+  addOnCodes: string[];
+  tripRules: string;
+  mileagePerDay: number;
+  mileageOverage: number;
 }
+
+// Preset extras a host can offer (guest selects at checkout).
+const ADDON_PRESETS: Record<string, { label: string; priceType: 'per_trip' | 'per_day'; amount: number }> = {
+  child_seat: { label: 'Child seat', priceType: 'per_trip', amount: 15 },
+  additional_driver: { label: 'Additional driver', priceType: 'per_day', amount: 10 },
+  prepaid_fuel: { label: 'Prepaid fuel', priceType: 'per_trip', amount: 40 },
+  unlimited_miles: { label: 'Unlimited miles', priceType: 'per_day', amount: 12 },
+};
 
 const initial: Draft = {
   make: '', model: '', year: 2022, category: 'economy', bodyType: 'sedan',
   transmission: 'automatic', fuelType: 'petrol', seats: 5,
-  city: 'Bangalore', address: '', color: '', doors: 4, features: '',
+  city: 'New York', address: '', color: '', doors: 4, features: '',
   photos: [], title: '', description: '', instantBook: true, cancellationPolicy: 'moderate',
-  dailyPrice: 2500, cleaningFee: 200, weekendPct: 20, weeklyDiscountPct: 10, monthlyDiscountPct: 20,
+  dailyPrice: 65, cleaningFee: 25, weekendPct: 20, weeklyDiscountPct: 10, monthlyDiscountPct: 20,
   earlyBirdPct: 5, lastMinutePct: 0,
   delivery: { airport: false, home: false, hotel: false, business: false, radiusKm: 0, fee: 0 },
+  addOnCodes: [], tripRules: '', mileagePerDay: 0, mileageOverage: 0,
 };
 
 export default function NewListingPage() {
@@ -70,6 +86,11 @@ export default function NewListingPage() {
     mutationFn: () => hostApi.uploadUrls('vehicle_photo', 1),
     onSuccess: (targets) =>
       set('photos', [...d.photos, { url: targets[0].publicUrl, key: targets[0].key }]),
+  });
+
+  const smartPrice = useMutation({
+    mutationFn: () => vehicleApi.priceSuggestion({ ...CITIES[d.city], category: d.category, fuelType: d.fuelType }),
+    onSuccess: (s) => set('dailyPrice', Math.round(s.suggested / 100)),
   });
 
   const create = useMutation({
@@ -90,9 +111,17 @@ export default function NewListingPage() {
           cancellationPolicy: d.cancellationPolicy,
           delivery: d.delivery,
         },
+        addOns: d.addOnCodes.map((code) => ({
+          code,
+          label: ADDON_PRESETS[code].label,
+          priceType: ADDON_PRESETS[code].priceType,
+          amount: Math.round(ADDON_PRESETS[code].amount * 100),
+        })),
+        tripRules: d.tripRules.split('\n').map((r) => r.trim()).filter(Boolean),
+        mileageLimit: { perDayKm: Number(d.mileagePerDay), overageFeePerKm: Math.round(d.mileageOverage * 100) },
         pricing: {
           dailyPrice: Math.round(d.dailyPrice * 100),
-          currency: 'INR',
+          currency: 'USD',
           cleaningFee: Math.round(d.cleaningFee * 100),
           weekendMultiplierBps: 10000 + Math.round(d.weekendPct * 100),
           weeklyDiscountBps: Math.round(d.weeklyDiscountPct * 100),
@@ -115,7 +144,7 @@ export default function NewListingPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">List your vehicle</h1>
+      <h1 className="display text-display-sm">List your vehicle</h1>
 
       {/* Stepper */}
       <div className="flex items-center gap-2">
@@ -197,8 +226,24 @@ export default function NewListingPage() {
 
           {step === 3 && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Daily price (₹)"><Input type="number" value={d.dailyPrice} onChange={(e) => set('dailyPrice', Number(e.target.value))} /></Field>
-              <Field label="Cleaning fee (₹)"><Input type="number" value={d.cleaningFee} onChange={(e) => set('cleaningFee', Number(e.target.value))} /></Field>
+              <div className="sm:col-span-2">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="font-medium">Smart Price AI</span>
+                    {smartPrice.data && (
+                      <span className="text-muted-foreground">
+                        Market median ${(smartPrice.data.median / 100).toFixed(0)} · {smartPrice.data.demand} demand · {smartPrice.data.sampleSize} comps
+                      </span>
+                    )}
+                  </div>
+                  <Button size="sm" variant="outline" loading={smartPrice.isPending} onClick={() => smartPrice.mutate()}>
+                    {smartPrice.data ? `Apply $${(smartPrice.data.suggested / 100).toFixed(0)}` : 'Suggest a price'}
+                  </Button>
+                </div>
+              </div>
+              <Field label="Daily price ($)"><Input type="number" value={d.dailyPrice} onChange={(e) => set('dailyPrice', Number(e.target.value))} /></Field>
+              <Field label="Cleaning fee ($)"><Input type="number" value={d.cleaningFee} onChange={(e) => set('cleaningFee', Number(e.target.value))} /></Field>
               <Field label="Weekend premium (%)"><Input type="number" value={d.weekendPct} onChange={(e) => set('weekendPct', Number(e.target.value))} /></Field>
               <Field label="Weekly discount (%)"><Input type="number" value={d.weeklyDiscountPct} onChange={(e) => set('weeklyDiscountPct', Number(e.target.value))} /></Field>
               <Field label="Monthly discount (%)"><Input type="number" value={d.monthlyDiscountPct} onChange={(e) => set('monthlyDiscountPct', Number(e.target.value))} /></Field>
@@ -221,7 +266,35 @@ export default function NewListingPage() {
               ))}
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Delivery radius (km)"><Input type="number" value={d.delivery.radiusKm} onChange={(e) => set('delivery', { ...d.delivery, radiusKm: Number(e.target.value) })} /></Field>
-                <Field label="Delivery fee (₹)"><Input type="number" value={d.delivery.fee} onChange={(e) => set('delivery', { ...d.delivery, fee: Number(e.target.value) })} /></Field>
+                <Field label="Delivery fee ($)"><Input type="number" value={d.delivery.fee} onChange={(e) => set('delivery', { ...d.delivery, fee: Number(e.target.value) })} /></Field>
+              </div>
+
+              <div className="border-t border-border pt-3">
+                <p className="mb-2 text-sm font-medium">Extras you offer</p>
+                <div className="space-y-1.5">
+                  {Object.entries(ADDON_PRESETS).map(([code, a]) => (
+                    <label key={code} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={d.addOnCodes.includes(code)}
+                          onChange={() => set('addOnCodes', d.addOnCodes.includes(code) ? d.addOnCodes.filter((c) => c !== code) : [...d.addOnCodes, code])}
+                          className="h-4 w-4 accent-[hsl(var(--primary))]"
+                        />
+                        {a.label}
+                      </span>
+                      <span className="text-muted-foreground">${a.amount}{a.priceType === 'per_day' ? '/day' : '/trip'}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4 border-t border-border pt-3 sm:grid-cols-2">
+                <Field label="Mileage limit (km/day, 0 = unlimited)"><Input type="number" value={d.mileagePerDay} onChange={(e) => set('mileagePerDay', Number(e.target.value))} /></Field>
+                <Field label="Overage fee ($/km)"><Input type="number" step="0.01" value={d.mileageOverage} onChange={(e) => set('mileageOverage', Number(e.target.value))} /></Field>
+                <Field label="Trip rules (one per line)" className="sm:col-span-2">
+                  <textarea value={d.tripRules} onChange={(e) => set('tripRules', e.target.value)} rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="No smoking&#10;Pets allowed with deposit" />
+                </Field>
               </div>
             </div>
           )}
@@ -232,7 +305,7 @@ export default function NewListingPage() {
               <Row label="Category" value={d.category} />
               <Row label="Location" value={`${d.address || '—'}, ${d.city}`} />
               <Row label="Photos" value={`${d.photos.length}`} />
-              <Row label="Daily price" value={`₹${d.dailyPrice}`} />
+              <Row label="Daily price" value={`$${d.dailyPrice}`} />
               <Row label="Instant book" value={d.instantBook ? 'Yes' : 'No'} />
               {create.isError && (
                 <p className="text-destructive">

@@ -27,7 +27,7 @@ const schema = new Schema<CouponDoc>(
     type: { type: String, enum: ['percent', 'fixed'], required: true },
     valueBps: { type: Number, default: 0 },
     amount: { type: Number, default: 0 },
-    currency: { type: String, default: 'INR' },
+    currency: { type: String, default: 'USD' },
     minSpend: { type: Number, default: 0 },
     maxRedemptions: { type: Number, default: 1_000_000 },
     redeemedCount: { type: Number, default: 0 },

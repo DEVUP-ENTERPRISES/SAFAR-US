@@ -36,7 +36,10 @@ export class ReviewService {
       comment,
     });
 
-    if (isGuest) await this.recomputeAggregates(booking.vehicleId, booking.hostId);
+    if (isGuest) {
+      await this.recomputeAggregates(booking.vehicleId, booking.hostId);
+      await hostService.recomputeSuperhost(booking.hostId);
+    }
     emit(EVENTS.REVIEW_POSTED, review._id, { bookingId, subjectId, rating });
     return review.toObject();
   }

@@ -6,7 +6,7 @@ export interface FleetDoc {
   hostId: string;
   name: string;
   region?: string;
-  group?: string; // arbitrary grouping label (e.g. "Airport fleet")
+  group?: string; // Optional field for grouping fleets
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;

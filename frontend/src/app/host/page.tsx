@@ -1,116 +1,140 @@
 'use client';
 
 import Link from 'next/link';
-import { Plus, Car, Wallet, TrendingUp, Star } from 'lucide-react';
+import { Plus, Car, Wallet, TrendingUp, Star, Award } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatTile } from '@/components/ui/stat-tile';
+import { EmptyState } from '@/components/ui/states';
 import { formatMoney } from '@/lib/utils/format';
 import { useHostMe, useEarnings } from '@/features/host/hooks';
 import { useMyVehicles } from '@/features/vehicles/hooks';
-
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-4 pt-6">
-        <span className="flex h-11 w-11 items-center justify-center rounded-md bg-primary/10 text-primary">
-          {icon}
-        </span>
-        <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="text-xl font-bold">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function HostDashboardPage() {
   const host = useHostMe();
   const earnings = useEarnings();
   const vehicles = useMyVehicles(true);
-  const cur = earnings.data?.currency ?? 'INR';
+  const cur = earnings.data?.currency ?? 'USD';
+  const money = (v: number) => formatMoney({ amount: v, currency: cur });
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{host.data?.displayName}</h1>
-          <div className="mt-1 flex items-center gap-2">
-            <Badge tone={host.data?.verificationStatus === 'verified' ? 'success' : 'warning'}>
-              {host.data?.verificationStatus ?? '—'}
-            </Badge>
-            <span className="text-sm text-muted-foreground">Host dashboard</span>
-          </div>
-        </div>
-        <Link href="/host/listings/new">
-          <Button>
-            <Plus className="h-4 w-4" /> Add vehicle
-          </Button>
-        </Link>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Host"
+        title={host.data?.displayName ?? 'Host dashboard'}
+        description="Your listings, earnings and trip activity at a glance."
+        actions={
+          <>
+            {host.data && (
+              <Badge tone={host.data.verificationStatus === 'verified' ? 'success' : 'warning'}>
+                {host.data.verificationStatus}
+              </Badge>
+            )}
+            {host.data?.isSuperhost && (
+              <Badge tone="default">
+                <Award className="mr-1 h-3 w-3" /> Superhost
+              </Badge>
+            )}
+            <Link href="/host/listings/new">
+              <Button>
+                <Plus className="h-4 w-4" /> Add vehicle
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       {earnings.isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full" />
+            <Skeleton key={i} className="h-36 w-full rounded-2xl" />
           ))}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat
+          <StatTile
+            tone="primary"
             icon={<TrendingUp className="h-5 w-5" />}
             label="Lifetime earnings"
-            value={formatMoney({ amount: earnings.data?.lifetimeEarnings ?? 0, currency: cur })}
+            value={money(earnings.data?.lifetimeEarnings ?? 0)}
+            href="/host/earnings"
           />
-          <Stat
+          <StatTile
+            tone="success"
             icon={<Wallet className="h-5 w-5" />}
             label="Available balance"
-            value={formatMoney({ amount: earnings.data?.currentBalance ?? 0, currency: cur })}
+            value={money(earnings.data?.currentBalance ?? 0)}
+            href="/host/earnings"
           />
-          <Stat icon={<Car className="h-5 w-5" />} label="Completed trips" value={String(earnings.data?.completedTrips ?? 0)} />
-          <Stat icon={<Star className="h-5 w-5" />} label="Rating" value={host.data?.ratingAvg ? String(host.data.ratingAvg) : '—'} />
+          <StatTile
+            icon={<Car className="h-5 w-5" />}
+            label="Completed trips"
+            value={earnings.data?.completedTrips ?? 0}
+          />
+          <StatTile
+            icon={<Star className="h-5 w-5" />}
+            label="Rating"
+            value={host.data?.ratingAvg ? host.data.ratingAvg.toFixed(1) : '—'}
+            sub={host.data?.totalTrips ? `${host.data.totalTrips} trips hosted` : 'No trips yet'}
+          />
         </div>
       )}
 
-      <div>
-        <h2 className="mb-3 font-semibold">Your listings</h2>
-        {vehicles.isLoading && <Skeleton className="h-24 w-full" />}
+      {/* Listings */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Your listings</h2>
+          {vehicles.data && vehicles.data.length > 0 && (
+            <Link href="/host/listings" className="text-sm font-medium text-primary hover:underline">
+              View all →
+            </Link>
+          )}
+        </div>
+
+        {vehicles.isLoading && <Skeleton className="h-32 w-full rounded-2xl" />}
+
         {vehicles.data && vehicles.data.length === 0 && (
-          <Card>
-            <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-              <p className="text-muted-foreground">No vehicles yet. List your first one to start earning.</p>
+          <EmptyState
+            icon={<Car className="h-10 w-10" />}
+            title="No vehicles yet"
+            description="List your first car to start earning."
+            action={
               <Link href="/host/listings/new">
                 <Button>
                   <Plus className="h-4 w-4" /> Add vehicle
                 </Button>
               </Link>
-            </CardContent>
-          </Card>
+            }
+          />
         )}
+
         {vehicles.data && vehicles.data.length > 0 && (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {vehicles.data.slice(0, 6).map((v) => (
-              <Link key={v._id} href={`/host/listings/${v._id}`}>
-                <Card className="transition-shadow hover:shadow-md">
-                  <CardContent className="flex items-center justify-between pt-6">
-                    <div>
-                      <p className="font-medium">
+              <Link key={v._id} href={`/host/listings/${v._id}`} className="group block">
+                <Card className="rounded-[2rem] shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300 group-hover:-translate-y-1 group-hover:border-primary/40 group-hover:shadow-[0_12px_48px_-12px_rgba(0,0,0,0.12)]">
+                  <CardContent className="flex items-center justify-between gap-4 p-6">
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-bold tracking-tight transition-colors group-hover:text-primary">
                         {v.make} {v.model}
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency })}/day
+                      <p className="mt-1 text-[15px] font-medium text-muted-foreground">
+                        {formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency })} <span className="text-sm opacity-70">/ day</span>
                       </p>
                     </div>
-                    <Badge tone={v.status === 'listed' ? 'success' : 'muted'}>{v.status}</Badge>
+                    <Badge tone={v.status === 'listed' ? 'success' : 'muted'} className="px-3 py-1 text-xs uppercase tracking-wider">
+                      {v.status}
+                    </Badge>
                   </CardContent>
                 </Card>
               </Link>
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }
