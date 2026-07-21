@@ -8,6 +8,7 @@ import {
 import { useAuthStore } from '@/features/auth/store';
 import { useLogout } from '@/features/auth/hooks';
 import { cn } from '@/lib/utils/cn';
+import { adminPath } from '@/lib/admin-path';
 
 const ADMIN_ROLES = ['support', 'moderator', 'finance', 'ops', 'super_admin'];
 
@@ -109,7 +110,7 @@ export function UserMenu() {
             </Link>
             {isStaff && (
               <Link
-                href="/admin"
+                href={adminPath()}
                 onClick={() => setOpen(false)}
                 role="menuitem"
                 className="flex items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-accent"

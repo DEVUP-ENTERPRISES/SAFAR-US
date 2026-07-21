@@ -15,6 +15,7 @@ import { StatTile } from '@/components/ui/stat-tile';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi, type CommissionRule, type CommissionScope } from '@/features/admin/api';
+import { adminPath } from '@/lib/admin-path';
 
 const SCOPES: { key: CommissionScope; label: string; hint: string }[] = [
   { key: 'global', label: 'Global', hint: 'Every booking' },
@@ -172,7 +173,7 @@ export default function AdminCommissionPage() {
           label="Default take rate"
           value={cfg ? pct(cfg.commission.defaultBps) : '—'}
           sub="When no rule matches"
-          href="/admin/economics"
+          href={adminPath('economics')}
         />
         <StatTile
           icon={<Percent className="h-5 w-5" />}

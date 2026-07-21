@@ -11,6 +11,19 @@ export const envSchema = z.object({
   API_PREFIX: z.string().default('/api/v1'),
   APP_NAME: z.string().default('TURA'),
 
+  /**
+   * Secret base path for the admin console, e.g. `ctrl-0986-cato-admin`.
+   * Keeping the console off the guessable /admin removes it from the bulk
+   * credential-stuffing and scanner traffic that hits every /admin on the
+   * internet. It is obscurity, NOT access control — RBAC still guards every
+   * route — but it meaningfully cuts noise and drive-by attempts.
+   */
+  ADMIN_SLUG: z
+    .string()
+    .min(3)
+    .regex(/^[a-z0-9-]+$/, 'ADMIN_SLUG must be lowercase letters, digits and dashes')
+    .default('admin'),
+
   MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
   REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
 

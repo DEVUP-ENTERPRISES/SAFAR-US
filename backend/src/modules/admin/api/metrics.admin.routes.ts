@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { adminMetricsService } from '../application/admin-metrics.service';
-import { bookingService } from '../../bookings/application/booking.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { sendSuccess } from '../../../shared/http/api-response';
@@ -15,13 +14,15 @@ router.get(
   }),
 );
 
-/** Time-series analytics for the dashboard chart. */
+/** Trend, demand mix and conversion for the Analytics view. */
 router.get(
   '/analytics',
   authorize('analytics:read'),
   asyncHandler(async (req, res) => {
-    const days = req.query.days ? Number(req.query.days) : 14;
-    sendSuccess(res, await bookingService.dailySeries(days));
+    const raw = Number(req.query.days);
+    // Clamp: an unbounded window lets one query scan the whole booking history.
+    const days = Number.isFinite(raw) ? Math.min(Math.max(Math.trunc(raw), 1), 180) : 30;
+    sendSuccess(res, await adminMetricsService.analytics(days));
   }),
 );
 

@@ -1,7 +1,7 @@
 {
   "name": "tura-backend",
   "version": "0.1.0",
-  "description": "TURA — Mobility Operating System (modular monolith)",
+  "description": "TURA \u2014 Mobility Operating System (modular monolith)",
   "main": "dist/main.js",
   "type": "commonjs",
   "engines": {
@@ -15,7 +15,8 @@
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "jest",
-    "seed": "ts-node src/database/seeders/index.ts"
+    "seed": "ts-node src/database/seeders/index.ts",
+    "admin:routes": "node scripts/admin-routes.js --write"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1079.0",

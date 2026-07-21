@@ -41,6 +41,11 @@ export const config = Object.freeze({
   env: env.NODE_ENV,
   isProd: env.NODE_ENV === 'production',
   isDev: env.NODE_ENV === 'development',
+  adminPanel: {
+    /** Secret base path for the console; every admin route is `/{slug}/...`. */
+    slug: env.ADMIN_SLUG,
+    basePath: `/${env.ADMIN_SLUG}`,
+  },
   app: {
     name: env.APP_NAME,
     port: env.PORT,

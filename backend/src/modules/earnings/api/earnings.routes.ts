@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { earningsService } from '../application/earnings.service';
+import { hostAnalyticsService } from '../application/host-analytics.service';
 import { hostService } from '../../hosts/application/host.service';
 import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
@@ -15,6 +16,15 @@ router.get(
   asyncHandler(async (req, res) => {
     const host = await hostService.requireHostForUser(req.principal!.userId);
     sendSuccess(res, await earningsService.dashboard(host._id));
+  }),
+);
+
+/** Performance analytics: earnings trend, per-vehicle revenue, occupancy, acceptance. */
+router.get(
+  '/performance',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await hostAnalyticsService.performance(req.principal!.userId));
   }),
 );
 

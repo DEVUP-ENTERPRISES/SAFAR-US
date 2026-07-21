@@ -451,7 +451,63 @@ export class BookingService {
       },
       { $sort: { _id: 1 } },
     ]).exec();
-    return rows.map((r) => ({ day: r._id, bookings: r.bookings, gmv: r.gmv }));
+    // A day with no bookings produces no group, so the raw aggregate silently
+    // omits it — the chart would then draw a quiet day adjacent to a busy one
+    // as if they were consecutive. Fill the calendar so the axis tells the truth.
+    const found = new Map(rows.map((r) => [r._id, r]));
+    const series: { day: string; bookings: number; gmv: number }[] = [];
+    for (let i = days - 1; i >= 0; i -= 1) {
+      const day = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10);
+      const hit = found.get(day);
+      series.push({ day, bookings: hit?.bookings ?? 0, gmv: hit?.gmv ?? 0 });
+    }
+    return series;
+  }
+
+  /**
+   * Where demand actually is. Bookings don't carry a city or category of their
+   * own — those live on the vehicle — so this joins through to the listing
+   * rather than denormalising fields that could drift out of sync.
+   */
+  async demandBreakdown(
+    days = 30,
+  ): Promise<{ cities: { key: string; trips: number; gmv: number }[]; categories: { key: string; trips: number; gmv: number }[] }> {
+    const since = new Date(Date.now() - days * 86_400_000);
+    const stage = (key: string) => [
+      { $match: { createdAt: { $gte: since } } },
+      {
+        $lookup: {
+          from: 'vehicles', localField: 'vehicleId', foreignField: '_id', as: 'v',
+        },
+      },
+      { $unwind: '$v' },
+      {
+        $group: {
+          _id: { $ifNull: [`$v.${key}`, 'unknown'] },
+          trips: { $sum: 1 },
+          gmv: {
+            $sum: {
+              $cond: [
+                { $in: ['$status', ['paid', 'in_progress', 'completed']] },
+                '$priceBreakdown.total.amount',
+                0,
+              ],
+            },
+          },
+        },
+      },
+      { $sort: { trips: -1 as const } },
+      { $limit: 8 },
+    ];
+
+    const [cities, categories] = await Promise.all([
+      BookingModel.aggregate<{ _id: string; trips: number; gmv: number }>(stage('location.city')).exec(),
+      BookingModel.aggregate<{ _id: string; trips: number; gmv: number }>(stage('category')).exec(),
+    ]);
+
+    const shape = (rows: { _id: string; trips: number; gmv: number }[]) =>
+      rows.map((r) => ({ key: r._id || 'unknown', trips: r.trips, gmv: r.gmv }));
+    return { cities: shape(cities), categories: shape(categories) };
   }
 
   async statusBreakdown(): Promise<{ status: string; count: number }[]> {

@@ -113,11 +113,22 @@ export interface MaintenanceRecord {
   notes?: string;
 }
 
+export interface HostPerformance {
+  currency: string;
+  earningsByMonth: { month: string; amount: number }[];
+  perVehicle: { vehicleId: string; label: string; trips: number; revenue: number }[];
+  occupancyPct: number;
+  acceptanceRate: number;
+  completedTrips: number;
+  cancelledByHost: number;
+}
+
 export const hostApi = {
   me: () => api.get<HostProfile>('/hosts/me'),
   onboard: (displayName: string, bio?: string) => api.post<HostProfile>('/hosts/onboard', { displayName, bio }),
   updateProfile: (patch: Partial<HostProfile>) => api.patch<HostProfile>('/hosts/me', patch),
 
+  performance: () => api.get<HostPerformance>('/earnings/performance'),
   earnings: () => api.get<EarningsDashboard>('/earnings/dashboard'),
 
   payouts: () => api.get<Payout[]>('/payouts/me'),

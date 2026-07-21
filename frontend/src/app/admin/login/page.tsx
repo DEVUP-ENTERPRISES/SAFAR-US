@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { useLogin, ADMIN_ROLES } from '@/features/auth/hooks';
 import { ApiError } from '@/lib/api/types';
+import { adminPath } from '@/lib/admin-path';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -18,7 +19,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function AdminLoginPage() {
-  const login = useLogin({ redirectTo: '/admin', requireAnyRole: ADMIN_ROLES, portalLabel: 'admin' });
+  const login = useLogin({ redirectTo: adminPath(), requireAnyRole: ADMIN_ROLES, portalLabel: 'admin' });
   const { register, handleSubmit, formState } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   return (

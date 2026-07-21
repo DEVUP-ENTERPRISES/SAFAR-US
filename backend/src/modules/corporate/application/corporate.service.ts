@@ -210,16 +210,49 @@ export class CorporateService {
     totalTrips: number;
     totalSpend: number;
     currency: string;
+    /** Spend trend + composition for the analytics charts. */
+    spendByMonth: { month: string; amount: number }[];
+    spendByCostCenter: { label: string; value: number }[];
   }> {
     const ctx = await this.context(userId);
-    const [members, costCenters, pending, bookings] = await Promise.all([
+    const [members, costCenters, pending, bookings, ccDocs] = await Promise.all([
       MemberModel.countDocuments({ orgId: ctx.org._id, status: { $ne: 'removed' } }),
       CostCenterModel.countDocuments({ orgId: ctx.org._id }),
       RequestModel.countDocuments({ orgId: ctx.org._id, status: 'pending' }),
       bookingService.orgBookings(ctx.org._id),
+      CostCenterModel.find({ orgId: ctx.org._id }).lean<{ _id: string; name: string }[]>(),
     ]);
     const billable = bookings.filter((b) => ['paid', 'in_progress', 'completed'].includes(b.status));
     const totalSpend = billable.reduce((s, b) => s + b.priceBreakdown.total.amount, 0);
+
+    // Monthly spend, zero-filled across the last 6 months so the line has no gaps.
+    const monthMap = new Map<string, number>();
+    for (const b of billable) {
+      const k = new Date(b.createdAt).toISOString().slice(0, 7);
+      monthMap.set(k, (monthMap.get(k) ?? 0) + b.priceBreakdown.total.amount);
+    }
+    const spendByMonth: { month: string; amount: number }[] = [];
+    const d = new Date();
+    d.setMonth(d.getMonth() - 5);
+    d.setDate(1);
+    for (let i = 0; i < 6; i++) {
+      const k = d.toISOString().slice(0, 7);
+      spendByMonth.push({ month: k, amount: monthMap.get(k) ?? 0 });
+      d.setMonth(d.getMonth() + 1);
+    }
+
+    // Spend by cost center (the donut). Bookings carry `corp.costCenterId`.
+    const ccName = new Map(ccDocs.map((c) => [c._id, c.name]));
+    const ccMap = new Map<string, number>();
+    for (const b of billable) {
+      // costCenterId is a top-level booking field, not nested under `corp`.
+      const id = (b as unknown as { costCenterId?: string }).costCenterId ?? 'unassigned';
+      ccMap.set(id, (ccMap.get(id) ?? 0) + b.priceBreakdown.total.amount);
+    }
+    const spendByCostCenter = [...ccMap.entries()]
+      .map(([id, value]) => ({ label: id === 'unassigned' ? 'Unassigned' : ccName.get(id) ?? id, value }))
+      .sort((a, b) => b.value - a.value);
+
     return {
       org: ctx.org,
       role: ctx.membership.role,
@@ -229,6 +262,8 @@ export class CorporateService {
       totalTrips: billable.length,
       totalSpend,
       currency: 'USD',
+      spendByMonth,
+      spendByCostCenter,
     };
   }
 

@@ -3,9 +3,7 @@ import { Outfit } from 'next/font/google';
 import '@/styles/globals.css';
 import { config } from '@/lib/config';
 import { Providers } from './providers';
-import { Navbar } from '@/components/layout/navbar';
-import { Footer } from '@/components/layout/footer';
-import { CompareBar } from '@/features/vehicles/components/compare-bar';
+import { AppChrome } from '@/components/layout/app-chrome';
 
 const fontSans = Outfit({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
 
@@ -32,10 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning className={fontSans.variable}>
       <body className="flex min-h-screen flex-col font-sans antialiased overflow-x-hidden">
         <Providers>
-          <Navbar />
-          <main className="mx-auto w-full max-w-7xl flex-1 px-4 pt-24 pb-8 sm:px-6">{children}</main>
-          <Footer />
-          <CompareBar />
+          {/* Consumer chrome for the marketplace; the admin console supplies
+              its own shell (see AppChrome). */}
+          <AppChrome>{children}</AppChrome>
         </Providers>
       </body>
     </html>

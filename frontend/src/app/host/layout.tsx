@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ApiError } from '@/lib/api/types';
-import { useHostMe, useOnboardHost } from '@/features/host/hooks';
+import { ErrorState } from '@/components/ui/states';
+import { useHostMe, useOnboardHost, isNotAHost } from '@/features/host/hooks';
 import { HostSidebar } from '@/features/host/components/host-sidebar';
 
 function HostShell({ children }: { children: ReactNode }) {
@@ -18,10 +18,28 @@ function HostShell({ children }: { children: ReactNode }) {
   const onboard = useOnboardHost();
   const [displayName, setDisplayName] = useState('');
 
-  if (hostQuery.isLoading) return <Skeleton className="h-64 w-full" />;
+  const notAHost = isNotAHost(hostQuery.error);
 
-  // Not a host yet → onboarding.
-  if (hostQuery.isError && hostQuery.error instanceof ApiError && hostQuery.error.status === 404) {
+  // Still deciding. `isPending` covers the first load; `isFetching` covers a
+  // revalidation after a cached error — without it, React Query reports the old
+  // error instantly and an existing host sees the signup screen flash.
+  if (hostQuery.isPending || (hostQuery.isError && hostQuery.isFetching)) {
+    return <Skeleton className="h-64 w-full" />;
+  }
+
+  // A real failure (network / 5xx / expired session) is NOT "you're not a host".
+  // Say so and offer a retry instead of rendering an empty dashboard.
+  if (hostQuery.isError && !notAHost) {
+    return (
+      <ErrorState
+        message="Couldn't load your host profile. Check your connection and try again."
+        retry={() => hostQuery.refetch()}
+      />
+    );
+  }
+
+  // Confirmed not a host → onboarding.
+  if (notAHost) {
     return (
       <div className="mx-auto grid max-w-5xl items-center gap-10 py-8 lg:grid-cols-2">
         {/* Pitch */}

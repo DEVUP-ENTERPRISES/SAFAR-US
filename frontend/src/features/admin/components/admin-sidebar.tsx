@@ -4,10 +4,11 @@ import { type ComponentType } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Users, BadgeCheck, Car, CalendarCheck, ShieldAlert, LifeBuoy,
-  ScanFace, Flag, ScrollText, LayoutGrid, Shield, Percent, SlidersHorizontal, TrendingUp, Star,
+  ScanFace, Flag, ScrollText, LayoutGrid, Shield, Percent, SlidersHorizontal, TrendingUp, Star, Layers, Building2, Banknote, Route,
 } from 'lucide-react';
 import { PanelSidebar, type PanelNavItem } from '@/components/layout/panel-sidebar';
 import { adminApi, type AdminNavItem } from '@/features/admin/api';
+import { adminPath } from '@/lib/admin-path';
 
 // Map backend slugs → icons (backend owns the routes; UI owns the icons).
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
@@ -25,6 +26,11 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   surge: TrendingUp,
   memberships: Star,
   'feature-flags': Flag,
+  fleets: Layers,
+  corporate: Building2,
+  payouts: Banknote,
+  reviews: Star,
+  trips: Route,
   audit: ScrollText,
 };
 
@@ -60,7 +66,7 @@ export function AdminSidebar() {
       items={items}
       icons={ICONS}
       fallbackIcon={LayoutGrid}
-      exactPaths={['/admin']}
+      exactPaths={[adminPath()]}
     />
   );
 }

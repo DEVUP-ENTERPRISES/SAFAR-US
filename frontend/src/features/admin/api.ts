@@ -101,6 +101,42 @@ export interface FinanceReport {
   };
 }
 
+export interface AdminAnalytics {
+  days: number;
+  currency: string;
+  series: { day: string; bookings: number; gmv: number }[];
+  signups: { day: string; signups: number }[];
+  cities: { key: string; trips: number; gmv: number }[];
+  categories: { key: string; trips: number; gmv: number }[];
+  byStatus: { status: string; count: number }[];
+  totals: {
+    bookings: number; gmv: number; signups: number; aov: number;
+    completionRate: number; cancellationRate: number;
+  };
+}
+
+// ── Cross-tenant management ──────────────────────────────────────────
+export interface AdminFleet {
+  _id: string; name: string; region: string | null;
+  hostId: string; hostName: string; vehicles: number; createdAt: string;
+}
+export interface AdminOrg {
+  _id: string; name: string; billingEmail: string; domain: string | null;
+  status: 'active' | 'suspended'; members: number; trips: number;
+  totalSpend: number; createdAt: string;
+}
+export interface AdminReview {
+  _id: string; direction: string; rating: number; comment: string;
+  status: 'published' | 'hidden'; authorId: string; subjectId: string; createdAt: string;
+}
+export interface AdminPayouts {
+  rows: {
+    _id: string; hostId: string; hostName: string; amount: number; currency: string;
+    status: string; instant: boolean; scheduledFor: string; paidAt: string | null;
+  }[];
+  totals: { scheduled: number; paid: number };
+}
+
 export const adminApi = {
   nav: () => api.get<AdminNavItem[]>('/admin/nav'),
   metrics: () => api.get<AdminMetrics>('/admin/metrics'),
@@ -132,7 +168,7 @@ export const adminApi = {
   escalateTicket: (id: string) => api.post(`/admin/tickets/${id}/escalate`),
   resolveTicket: (id: string) => api.post(`/admin/tickets/${id}/resolve`),
 
-  analytics: (days = 14) => api.get<{ day: string; bookings: number; gmv: number }[]>('/admin/analytics', { days }),
+  analytics: (days = 30) => api.get<AdminAnalytics>('/admin/analytics', { days }),
 
   // NOTE: the flag's `_id` IS its key (see feature-flag.model.ts) — there is no
   // separate `key` field. Typing it stops us reading `f.key` and rendering undefined.
@@ -179,6 +215,24 @@ export const adminApi = {
     api.post(`/admin/claims/${id}/settle`, b),
 
   finance: (months = 6) => api.get<FinanceReport>('/admin/finance', { months }),
+
+
+  // Fleets
+  fleets: (search?: string) => api.get<AdminFleet[]>('/admin/fleets', search ? { search } : undefined),
+
+  // Corporate accounts
+  orgs: (status?: string) => api.get<AdminOrg[]>('/admin/corporate/orgs', status ? { status } : undefined),
+  setOrgStatus: (id: string, status: 'active' | 'suspended') =>
+    api.post(`/admin/corporate/orgs/${id}/status`, { status }),
+
+  // Reviews moderation
+  reviews: (q: { status?: string; minRating?: number } = {}) => api.get<AdminReview[]>('/admin/reviews', q),
+  setReviewStatus: (id: string, status: 'published' | 'hidden') =>
+    api.post(`/admin/reviews/${id}/status`, { status }),
+
+  // Payouts
+  payoutQueue: (status?: string) => api.get<AdminPayouts>('/admin/payouts', status ? { status } : undefined),
+  runDuePayouts: () => api.post<{ hosts: number; paid: number; amount: number }>('/admin/payouts/run-due'),
 
   featureFlags: () => api.get<FeatureFlag[]>('/admin/feature-flags'),
   saveFlag: (key: string, body: { enabled?: boolean; description?: string; rollout?: { percentage?: number } }) =>

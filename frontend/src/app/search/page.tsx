@@ -108,36 +108,36 @@ function SearchInner() {
             <LocationSearch onPick={setCenter} placeholder="Search a city or place…" />
           </div>
           
-          <div className="relative group w-[calc(50%-0.375rem)] sm:w-auto">
+          <div className="relative group w-[calc(50%-0.375rem)] sm:w-auto shrink-0">
             <select 
               value={city} 
               onChange={(e) => { setCity(e.target.value); setCenter(null); }} 
-              className="appearance-none h-10 w-full rounded-full border border-border/50 bg-card/50 px-4 pr-10 text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all group-hover:bg-accent cursor-pointer"
+              className="appearance-none h-11 w-full rounded-full border border-border/60 bg-card px-5 pr-10 text-sm font-medium focus:border-foreground focus:ring-1 focus:ring-foreground focus:outline-none transition-all hover:border-border cursor-pointer shadow-none"
             >
               {Object.keys(CITIES).map((c) => <option key={c}>{c}</option>)}
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground group-hover:text-foreground">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-muted-foreground group-hover:text-foreground">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
             </div>
           </div>
 
-          <div className="relative group w-[calc(50%-0.375rem)] sm:w-auto">
+          <div className="relative group w-[calc(50%-0.375rem)] sm:w-auto shrink-0">
             <select 
               value={sort} 
               onChange={(e) => setSort(e.target.value as SortKey)} 
-              className="appearance-none h-10 w-full rounded-full border border-border/50 bg-card/50 px-4 pr-10 text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all group-hover:bg-accent cursor-pointer"
+              className="appearance-none h-11 w-full rounded-full border border-border/60 bg-card px-5 pr-10 text-sm font-medium focus:border-foreground focus:ring-1 focus:ring-foreground focus:outline-none transition-all hover:border-border cursor-pointer shadow-none"
             >
               {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground group-hover:text-foreground">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-muted-foreground group-hover:text-foreground">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
             </div>
           </div>
 
-          <div className="flex w-full sm:w-auto gap-3">
+          <div className="flex w-full sm:w-auto gap-3 shrink-0">
             <Button 
               variant={showFilters ? 'secondary' : 'outline'} 
-              className="flex-1 sm:flex-none rounded-full h-10 px-4 transition-all duration-300 hover:shadow-soft" 
+              className="flex-1 sm:flex-none rounded-full h-11 px-6 transition-all duration-300 hover:bg-accent border-border/60 hover:border-border font-medium text-sm" 
               onClick={() => setShowFilters((s) => !s)}
             >
               <SlidersHorizontal className="h-4 w-4 mr-2" /> 
@@ -146,14 +146,14 @@ function SearchInner() {
             
             <Button 
               variant={showMap ? 'secondary' : 'outline'} 
-              className="flex-1 sm:flex-none rounded-full h-10 px-4 transition-all duration-300 hover:shadow-soft lg:hidden" 
+              className="flex-1 sm:flex-none rounded-full h-11 px-6 transition-all duration-300 hover:bg-accent border-border/60 hover:border-border font-medium text-sm lg:hidden" 
               onClick={() => setShowMap((s) => !s)}
             >
               <MapIcon className="h-4 w-4 mr-2" /> {showMap ? 'List' : 'Map'}
             </Button>
             <Button 
               variant={showMap ? 'secondary' : 'outline'} 
-              className="hidden lg:flex flex-1 sm:flex-none rounded-full h-10 px-4 transition-all duration-300 hover:shadow-soft" 
+              className="hidden lg:flex flex-1 sm:flex-none rounded-full h-11 px-6 transition-all duration-300 hover:bg-accent border-border/60 hover:border-border font-medium text-sm" 
               onClick={() => setShowMap((s) => !s)}
             >
               <MapIcon className="h-4 w-4 mr-2" /> Map

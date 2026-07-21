@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { mapsApi } from '../api';
 
 /** Location autocomplete backed by /maps/autocomplete (Google when configured). */
@@ -36,16 +35,16 @@ export function LocationSearch({ onPick, placeholder = 'Search a city or place' 
 
   return (
     <div ref={ref} className="relative flex-1">
-      <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3">
-        <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <Input
+      <div className="flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 h-11 focus-within:border-foreground focus-within:ring-1 focus-within:ring-foreground transition-all hover:border-border">
+        <MapPin className="h-5 w-5 shrink-0 text-muted-foreground" />
+        <input
           value={q}
           onChange={(e) => { setQ(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           placeholder={placeholder}
-          className="border-0 px-0 focus-visible:ring-0"
+          className="flex-1 border-0 bg-transparent px-2 text-sm focus:outline-none placeholder:text-muted-foreground"
         />
-        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
       </div>
       {open && suggestions.data && suggestions.data.length > 0 && (
         <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border border-border bg-card shadow-lift">

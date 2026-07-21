@@ -15,6 +15,7 @@ import { StatTile } from '@/components/ui/stat-tile';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi, type SurgeRule, type SurgeScope } from '@/features/admin/api';
+import { adminPath } from '@/lib/admin-path';
 
 const CITIES = ['New York', 'Los Angeles', 'San Francisco', 'Chicago', 'Miami', 'Austin'];
 const SCOPES: { key: SurgeScope; label: string }[] = [
@@ -156,7 +157,7 @@ export default function AdminSurgePage() {
           label="Surge ceiling"
           value={cfg ? x(cfg.surge.maxMultiplierBps) : '—'}
           sub={cfg?.surge.enabled ? (cfg.surge.autoEnabled ? 'Auto-surge on' : 'Manual rules only') : 'Surge disabled'}
-          href="/admin/economics"
+          href={adminPath('economics')}
         />
       </div>
 

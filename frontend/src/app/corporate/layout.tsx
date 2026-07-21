@@ -10,21 +10,44 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/states';
 import { corporateApi } from '@/features/corporate/api';
 import { CorporateSidebar } from '@/features/corporate/components/corporate-sidebar';
 
 function CorporateShell({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
-  const me = useQuery({ queryKey: ['corp-me'], queryFn: () => corporateApi.me(), retry: false });
+  const me = useQuery({
+    queryKey: ['corp-me'],
+    queryFn: () => corporateApi.me(),
+    // The API answers "no org" with an explicit null, so any *error* is a
+    // transport/auth problem, not an answer — retry rather than conclude.
+    retry: 2,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
   const [form, setForm] = useState({ name: '', billingEmail: '', domain: '' });
   const create = useMutation({
     mutationFn: () => corporateApi.createOrg(form.name, form.billingEmail, form.domain || undefined),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['corp-me'] }),
+    onSuccess: (org) => {
+      qc.setQueryData(['corp-me'], org);
+      qc.invalidateQueries({ queryKey: ['corp-me'] });
+    },
   });
 
-  if (me.isLoading) return <Skeleton className="h-72 w-full" />;
+  if (me.isPending || (me.isError && me.isFetching)) return <Skeleton className="h-72 w-full" />;
 
-  // No org yet → onboarding.
+  // A failed request is NOT "you have no organization". Showing the setup form
+  // here would invite an existing corporate admin to create a DUPLICATE org.
+  if (me.isError) {
+    return (
+      <ErrorState
+        message="Couldn't load your organization. Check your connection and try again."
+        retry={() => me.refetch()}
+      />
+    );
+  }
+
+  // Confirmed no org (the API returned null) → onboarding.
   if (!me.data) {
     return (
       <Card className="mx-auto max-w-md">

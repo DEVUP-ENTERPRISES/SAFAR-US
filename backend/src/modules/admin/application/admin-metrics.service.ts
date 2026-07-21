@@ -60,6 +60,59 @@ export class AdminMetricsService {
       revenue: { platform: platformRevenue, currency: 'USD' },
     };
   }
+
+  /**
+   * The Analytics view. Deliberately a superset of the dashboard's single
+   * chart: trend, where demand sits, and how bookings convert — everything
+   * aggregated live, nothing precomputed or stored.
+   */
+  async analytics(days = 30): Promise<AdminAnalytics> {
+    const [series, signups, demand, byStatus] = await Promise.all([
+      bookingService.dailySeries(days),
+      userRepository.dailySignups(days),
+      bookingService.demandBreakdown(days),
+      bookingService.statusBreakdown(),
+    ]);
+
+    const bookings = series.reduce((a, d) => a + d.bookings, 0);
+    const gmv = series.reduce((a, d) => a + d.gmv, 0);
+    const completed = byStatus.find((s) => s.status === 'completed')?.count ?? 0;
+    const cancelled = byStatus.find((s) => s.status === 'cancelled')?.count ?? 0;
+    const allTime = byStatus.reduce((a, s) => a + s.count, 0);
+
+    return {
+      days,
+      currency: 'USD',
+      series,
+      signups,
+      cities: demand.cities,
+      categories: demand.categories,
+      byStatus,
+      totals: {
+        bookings,
+        gmv,
+        signups: signups.reduce((a, d) => a + d.signups, 0),
+        // Average order value over the window — 0 rather than NaN when quiet.
+        aov: bookings > 0 ? Math.round(gmv / bookings) : 0,
+        completionRate: allTime > 0 ? completed / allTime : 0,
+        cancellationRate: allTime > 0 ? cancelled / allTime : 0,
+      },
+    };
+  }
+}
+
+export interface AdminAnalytics {
+  days: number;
+  currency: string;
+  series: { day: string; bookings: number; gmv: number }[];
+  signups: { day: string; signups: number }[];
+  cities: { key: string; trips: number; gmv: number }[];
+  categories: { key: string; trips: number; gmv: number }[];
+  byStatus: { status: string; count: number }[];
+  totals: {
+    bookings: number; gmv: number; signups: number; aov: number;
+    completionRate: number; cancellationRate: number;
+  };
 }
 
 export const adminMetricsService = new AdminMetricsService();

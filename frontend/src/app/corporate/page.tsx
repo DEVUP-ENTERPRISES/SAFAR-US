@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Users, Wallet, Car, CheckSquare, TrendingUp } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
+import { BarChart, Donut } from '@/components/ui/charts';
 import { formatMoney } from '@/lib/utils/format';
 import { corporateApi } from '@/features/corporate/api';
 
@@ -58,6 +59,29 @@ export default function CorporateDashboard() {
         <StatTile icon={<Wallet className="h-5 w-5" />} label="Cost centers" value={data.costCenters} href="/corporate/cost-centers" />
       </div>
 
+      {/* Spend analytics — real data from billable bookings. */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="rounded-2xl shadow-soft">
+          <CardHeader><CardTitle>Spend — last 6 months</CardTitle></CardHeader>
+          <CardContent>
+            <BarChart
+              data={(data.spendByMonth ?? []).map((d) => ({ label: monthLabel(d.month), value: d.amount }))}
+              currency={data.currency}
+            />
+          </CardContent>
+        </Card>
+        <Card className="rounded-2xl shadow-soft">
+          <CardHeader><CardTitle>Spend by cost center</CardTitle></CardHeader>
+          <CardContent>
+            {data.spendByCostCenter?.length ? (
+              <Donut data={data.spendByCostCenter} currency={data.currency} />
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">No spend yet.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="rounded-2xl shadow-soft">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
           <div className="flex items-center gap-3">
@@ -76,3 +100,8 @@ export default function CorporateDashboard() {
     </div>
   );
 }
+
+const monthLabel = (m: string) => {
+  const mm = Number(m.split('-')[1]);
+  return ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][mm] ?? m;
+};

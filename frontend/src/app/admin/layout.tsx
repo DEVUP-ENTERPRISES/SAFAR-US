@@ -9,25 +9,46 @@ import { ErrorState } from '@/components/ui/states';
 import { ApiError } from '@/lib/api/types';
 import { adminApi } from '@/features/admin/api';
 import { AdminSidebar } from '@/features/admin/components/admin-sidebar';
+import { AdminTopbar } from '@/features/admin/components/admin-topbar';
+import { adminPath } from '@/lib/admin-path';
 
 function AdminShell({ children }: { children: ReactNode }) {
   // Access is proven by the server: if /admin/metrics 403s, block the panel.
-  const gate = useQuery({ queryKey: ['admin-gate'], queryFn: () => adminApi.metrics(), retry: false });
+  // Only 401/403 is an answer about access — anything else is a transport
+  // failure and must not masquerade as "you're not allowed in".
+  const isDenied = (e: unknown) =>
+    e instanceof ApiError && (e.status === 401 || e.status === 403);
 
-  if (gate.isLoading) return <Skeleton className="h-96 w-full" />;
+  const gate = useQuery({
+    queryKey: ['admin-gate'],
+    queryFn: () => adminApi.metrics(),
+    retry: (count, error) => !isDenied(error) && count < 2,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  if (gate.isPending || (gate.isError && gate.isFetching)) return <Skeleton className="h-96 w-full" />;
+
   if (gate.isError) {
-    const denied = gate.error instanceof ApiError && (gate.error.status === 403 || gate.error.status === 401);
+    const denied = isDenied(gate.error);
     return (
       <ErrorState
-        message={denied ? 'You do not have access to the admin panel.' : 'Could not load the admin panel.'}
+        message={
+          denied
+            ? 'You do not have access to the admin panel.'
+            : "Couldn't load the admin panel. Check your connection and try again."
+        }
+        // A denial isn't retryable; a transport failure is.
+        retry={denied ? undefined : () => gate.refetch()}
       />
     );
   }
 
   return (
-    <div className="flex gap-8">
+    <div className="flex min-h-[calc(100vh-3.5rem)]">
       <AdminSidebar />
-      <div className="min-w-0 flex-1">{children}</div>
+      {/* Full width — operator tables need the room the consumer container denies. */}
+      <main className="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-6">{children}</main>
     </div>
   );
 }
@@ -35,10 +56,15 @@ function AdminShell({ children }: { children: ReactNode }) {
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   // The admin login page is public — everything else requires an admin session.
-  if (pathname === '/admin/login') return <>{children}</>;
+  if (pathname === adminPath('login')) {
+    return <div className="flex min-h-screen items-center justify-center px-4">{children}</div>;
+  }
   return (
-    <AuthGuard loginPath="/admin/login">
-      <AdminShell>{children}</AdminShell>
+    <AuthGuard loginPath={adminPath('login')}>
+      <div className="flex min-h-screen flex-col bg-subtle/40">
+        <AdminTopbar />
+        <AdminShell>{children}</AdminShell>
+      </div>
     </AuthGuard>
   );
 }

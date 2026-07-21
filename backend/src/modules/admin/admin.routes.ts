@@ -12,6 +12,7 @@ import { supportAdminRoutes } from './api/support.admin.routes';
 import { platformAdminRoutes } from './api/platform.admin.routes';
 import { kycAdminRoutes } from './api/kyc.admin.routes';
 import { navAdminRoutes } from './api/nav.admin.routes';
+import { oversightAdminRoutes } from './api/oversight.admin.routes';
 import { platformConfigAdminRoutes } from '../platform-config/api/platform-config.admin.routes';
 import { growthAdminRoutes } from '../platform-config/api/growth.admin.routes';
 
@@ -39,6 +40,7 @@ export function buildAdminRouter(): Router {
   admin.use(kycAdminRoutes);
   admin.use(platformConfigAdminRoutes);
   admin.use(growthAdminRoutes);
+  admin.use(oversightAdminRoutes);
 
   return admin;
 }

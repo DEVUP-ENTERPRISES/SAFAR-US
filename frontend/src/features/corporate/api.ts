@@ -13,6 +13,8 @@ export interface TripRequest {
 export interface CorpDashboard {
   org: Org; role: string; members: number; costCenters: number;
   pendingApprovals: number; totalTrips: number; totalSpend: number; currency: string;
+  spendByMonth: { month: string; amount: number }[];
+  spendByCostCenter: { label: string; value: number }[];
 }
 export interface Invoice {
   lines: { bookingCode: string; date: string; costCenter: string; amount: number; status: string }[];

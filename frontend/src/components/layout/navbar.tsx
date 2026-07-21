@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Search, Menu, X, Car, Info, HelpCircle, FileText, ShieldCheck, Wrench, Calculator } from 'lucide-react';
 import { config } from '@/lib/config';
 import { useAuthStore } from '@/features/auth/store';
+import { useIsHost } from '@/features/host/hooks';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { ThemeToggle } from './theme-toggle';
@@ -16,6 +17,7 @@ export function Navbar() {
   const { status } = useAuthStore();
   const pathname = usePathname();
   const authed = status === 'authenticated';
+  const isHost = useIsHost();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Close mobile menu on route change
@@ -80,7 +82,8 @@ export function Navbar() {
             href="/host"
             className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
           >
-            Become a host
+            {/* Don't invite an existing host to "become" one. */}
+            {isHost ? 'Host dashboard' : 'Become a host'}
           </Link>
 
           <div className="hidden sm:flex items-center justify-center h-8 w-8 rounded-full hover:bg-accent transition-colors ml-1">
@@ -148,7 +151,7 @@ export function Navbar() {
               <nav className="px-2 space-y-1">
                 <Link href="/host" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
                   <Car className="h-5 w-5 text-muted-foreground" />
-                  Become a host
+                  {isHost ? 'Host dashboard' : 'Become a host'}
                 </Link>
                 <Link href="/about" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
                   <Info className="h-5 w-5 text-muted-foreground" />

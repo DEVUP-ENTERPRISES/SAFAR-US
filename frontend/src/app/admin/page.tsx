@@ -9,6 +9,7 @@ import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart } from '@/components/ui/charts';
 import { formatMoney } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
+import { adminPath } from '@/lib/admin-path';
 
 export default function AdminDashboard() {
   const { data, isLoading } = useQuery({ queryKey: ['admin-metrics'], queryFn: () => adminApi.metrics(), refetchInterval: 30_000 });
@@ -46,8 +47,8 @@ export default function AdminDashboard() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatTile tone="primary" icon={<TrendingUp className="h-5 w-5" />} label="GMV" value={formatMoney({ amount: data.bookings.gmv, currency: cur })} sub={`${data.bookings.total} bookings`} />
           <StatTile tone="primary" icon={<Wallet className="h-5 w-5" />} label="Platform revenue" value={formatMoney({ amount: data.revenue.platform, currency: cur })} sub="Commission + protection" />
-          <StatTile icon={<Users className="h-5 w-5" />} label="Users" value={data.users.total.toLocaleString()} href="/admin/users" sub={`+${data.users.newThisWeek} this week`} />
-          <StatTile icon={<Car className="h-5 w-5" />} label="Vehicles listed" value={data.vehicles.listed.toLocaleString()} href="/admin/vehicles" sub={`${data.vehicles.pendingVerification} pending verification`} />
+          <StatTile icon={<Users className="h-5 w-5" />} label="Users" value={data.users.total.toLocaleString()} href={adminPath('users')} sub={`+${data.users.newThisWeek} this week`} />
+          <StatTile icon={<Car className="h-5 w-5" />} label="Vehicles listed" value={data.vehicles.listed.toLocaleString()} href={adminPath('vehicles')} sub={`${data.vehicles.pendingVerification} pending verification`} />
         </div>
       </section>
 
@@ -55,10 +56,10 @@ export default function AdminDashboard() {
       <section className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Action queues</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatTile tone={data.hosts.pending ? 'warning' : 'default'} emphasis={data.hosts.pending > 0} icon={<BadgeCheck className="h-5 w-5" />} label="Hosts pending" value={data.hosts.pending} href="/admin/hosts?status=pending" />
-          <StatTile tone={data.vehicles.pendingVerification ? 'warning' : 'default'} emphasis={data.vehicles.pendingVerification > 0} icon={<Car className="h-5 w-5" />} label="Vehicles to verify" value={data.vehicles.pendingVerification} href="/admin/vehicles?verification=pending" />
-          <StatTile tone={data.claims.open ? 'destructive' : 'default'} emphasis={data.claims.open > 0} icon={<ShieldAlert className="h-5 w-5" />} label="Open claims" value={data.claims.open} href="/admin/claims" />
-          <StatTile tone={data.tickets.open ? 'destructive' : 'default'} emphasis={data.tickets.open > 0} icon={<LifeBuoy className="h-5 w-5" />} label="Open tickets" value={data.tickets.open} href="/admin/support" />
+          <StatTile tone={data.hosts.pending ? 'warning' : 'default'} emphasis={data.hosts.pending > 0} icon={<BadgeCheck className="h-5 w-5" />} label="Hosts pending" value={data.hosts.pending} href={adminPath('hosts?status=pending')} />
+          <StatTile tone={data.vehicles.pendingVerification ? 'warning' : 'default'} emphasis={data.vehicles.pendingVerification > 0} icon={<Car className="h-5 w-5" />} label="Vehicles to verify" value={data.vehicles.pendingVerification} href={adminPath('vehicles?verification=pending')} />
+          <StatTile tone={data.claims.open ? 'destructive' : 'default'} emphasis={data.claims.open > 0} icon={<ShieldAlert className="h-5 w-5" />} label="Open claims" value={data.claims.open} href={adminPath('claims')} />
+          <StatTile tone={data.tickets.open ? 'destructive' : 'default'} emphasis={data.tickets.open > 0} icon={<LifeBuoy className="h-5 w-5" />} label="Open tickets" value={data.tickets.open} href={adminPath('support')} />
         </div>
       </section>
 
@@ -69,9 +70,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <BarChart
-              data={(analytics.data ?? [])
-                .filter((d) => d?.day)
-                .map((d) => ({ label: d.day.slice(5), value: d.bookings }))}
+              data={(analytics.data?.series ?? []).map((d) => ({ label: d.day.slice(5), value: d.bookings }))}
               height={180}
             />
           </CardContent>

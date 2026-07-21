@@ -12,6 +12,7 @@ import { SearchWidget, CITY_COORDS, CITIES } from '@/features/vehicles/component
 import { CategoryCarousel } from '@/features/vehicles/components/category-carousel';
 import { useTrending, useRecommendations } from '@/features/vehicles/hooks';
 import { useAuthStore } from '@/features/auth/store';
+import { useIsHost } from '@/features/host/hooks';
 
 
 const STEPS = [
@@ -24,6 +25,7 @@ export default function HomePage() {
   const [city, setCity] = useState('New York');
   const trending = useTrending(CITY_COORDS[city].lng, CITY_COORDS[city].lat);
   const user = useAuthStore((s) => s.user);
+  const isHost = useIsHost();
   const forYou = useRecommendations(!!user);
 
   return (
@@ -207,19 +209,32 @@ export default function HomePage() {
 
         {/* ── Host CTA ───────────────────────────────────────────────── */}
         <section className="relative isolate grain overflow-hidden rounded-3xl hero-mesh px-8 py-16 sm:px-16 sm:py-20">
+          {/* An existing host shouldn't be pitched on hosting — send them to
+              their dashboard instead. */}
           <div className="max-w-xl">
             <h2 className="display text-display text-white">
-              Your car can pay
-              <br />
-              <span className="text-white/60">for itself.</span>
+              {isHost ? (
+                <>
+                  Your fleet,
+                  <br />
+                  <span className="text-white/60">at a glance.</span>
+                </>
+              ) : (
+                <>
+                  Your car can pay
+                  <br />
+                  <span className="text-white/60">for itself.</span>
+                </>
+              )}
             </h2>
             <p className="mt-5 text-lg text-white/70">
-              List in minutes, set your own price, and get paid out — instantly, if you want it.
-              You stay in control of your calendar.
+              {isHost
+                ? 'Check today’s trips, cash out your earnings, and keep your calendar up to date.'
+                : 'List in minutes, set your own price, and get paid out — instantly, if you want it. You stay in control of your calendar.'}
             </p>
-            <Link href="/host" className="mt-8 inline-block">
+            <Link href={isHost ? '/host/trips' : '/host'} className="mt-8 inline-block">
               <Button size="lg" variant="secondary" className="rounded-full px-7">
-                Start hosting <ArrowRight className="h-4 w-4" />
+                {isHost ? 'Go to your dashboard' : 'Start hosting'} <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>

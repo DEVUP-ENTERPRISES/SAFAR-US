@@ -69,6 +69,23 @@ export class UserRepository {
   async countCreatedSince(date: Date): Promise<number> {
     return UserModel.countDocuments({ deletedAt: null, createdAt: { $gte: date } });
   }
+
+  /** Signups per calendar day, gap-filled so a quiet day still plots as zero. */
+  async dailySignups(days = 30): Promise<{ day: string; signups: number }[]> {
+    const since = new Date(Date.now() - days * 86_400_000);
+    const rows = await UserModel.aggregate<{ _id: string; signups: number }>([
+      { $match: { deletedAt: null, createdAt: { $gte: since } } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, signups: { $sum: 1 } } },
+    ]).exec();
+
+    const found = new Map(rows.map((r) => [r._id, r.signups]));
+    const series: { day: string; signups: number }[] = [];
+    for (let i = days - 1; i >= 0; i -= 1) {
+      const day = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10);
+      series.push({ day, signups: found.get(day) ?? 0 });
+    }
+    return series;
+  }
 }
 
 function escapeRegex(s: string): string {

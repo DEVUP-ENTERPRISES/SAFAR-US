@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Gauge, Fuel, MapPin, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList } from 'lucide-react';
+import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -166,7 +166,7 @@ export default function VehicleDetailPage() {
             {v.make} {v.model} {v.year}
           </h1>
           <div className="mt-2.5 flex items-center gap-2 text-[17px] font-medium text-foreground">
-            <span className="text-muted-foreground">{v.year} {v.trim || 'LE'}</span>
+            <span className="capitalize text-muted-foreground">{v.bodyType} · {v.transmission}</span>
             <span className="text-muted-foreground">·</span>
             <span className="flex items-center gap-1">
               <span>{v.ratingAvg.toFixed(1)}</span>
