@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Check, ImagePlus, Loader2, X, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils/cn';
 import { ApiError } from '@/lib/api/types';
 import { vehicleApi, type CreateVehicleInput } from '@/features/vehicles/api';
 import { hostApi } from '@/features/host/api';
+import { useToast } from '@/components/ui/toast';
 import { LocationSearch } from '@/features/maps/components/location-search';
 
 const STEPS = ['Basics', 'Details', 'Photos', 'Pricing', 'Delivery', 'Review'];
@@ -73,14 +74,52 @@ const initial: Draft = {
 export default function NewListingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  const notify = useToast();
   const [d, setD] = useState<Draft>(initial);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((p) => ({ ...p, [k]: v }));
 
-  const addPhoto = useMutation({
-    mutationFn: () => hostApi.uploadUrls('vehicle_photo', 1),
-    onSuccess: (targets) =>
-      set('photos', [...d.photos, { url: targets[0].publicUrl, key: targets[0].key }]),
-  });
+  // The server owns the photo minimum; the wizard must not disagree with it.
+  const reqs = useQuery({ queryKey: ['listing-requirements'], queryFn: () => vehicleApi.requirements() });
+  const minPhotos = reqs.data?.minPhotos ?? 4;
+
+  /**
+   * Presign → PUT the bytes → keep the public URL. The previous version only
+   * presigned and stored the URL, so the grid filled with addresses for objects
+   * that were never uploaded and every tile rendered as a broken image.
+   */
+  const [uploading, setUploading] = useState(false);
+  const addPhotos = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      const list = Array.from(files);
+      const targets = await hostApi.uploadUrls('vehicle_photo', list.length, list[0].type || 'image/jpeg');
+      await Promise.all(
+        list.map(async (f, i) => {
+          const res = await fetch(targets[i].uploadUrl, {
+            method: 'PUT',
+            body: f,
+            headers: { 'Content-Type': f.type || 'application/octet-stream' },
+          });
+          // fetch resolves on 4xx/5xx — without this a rejected upload would be
+          // recorded as a photo.
+          if (!res.ok) throw new Error(`Storage rejected the upload (${res.status}).`);
+        }),
+      );
+      setD((prev) => ({
+        ...prev,
+        photos: [...prev.photos, ...targets.map((t) => ({ url: t.publicUrl, key: t.key }))],
+      }));
+    } catch (err) {
+      notify({
+        tone: 'error',
+        title: 'Photo upload failed',
+        description: err instanceof Error ? err.message : 'Please try again.',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const smartPrice = useMutation({
     mutationFn: () => vehicleApi.priceSuggestion({ lng: d.lng!, lat: d.lat!, category: d.category, fuelType: d.fuelType }),
@@ -132,7 +171,7 @@ export default function NewListingPage() {
 
   const canNext = () => {
     if (step === 0) return d.make && d.model;
-    if (step === 2) return d.photos.length > 0;
+    if (step === 2) return d.photos.length >= minPhotos;
     return true;
   };
 
@@ -210,7 +249,16 @@ export default function NewListingPage() {
 
           {step === 2 && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Add photos of your vehicle. First photo is the cover.</p>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Add photos of your vehicle. The first photo is the cover guests see in search.
+                </p>
+                <p className={`mt-1 text-sm font-medium ${d.photos.length >= minPhotos ? 'text-success' : 'text-warning'}`}>
+                  {d.photos.length >= minPhotos
+                    ? `${d.photos.length} photos added`
+                    : `${d.photos.length} of ${minPhotos} required photos added`}
+                </p>
+              </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {d.photos.map((p, i) => (
                   <div key={i} className="group relative aspect-[4/3] overflow-hidden rounded-md border border-border">
@@ -225,14 +273,18 @@ export default function NewListingPage() {
                     {i === 0 && <span className="absolute bottom-1 left-1 rounded bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">Cover</span>}
                   </div>
                 ))}
-                <button
-                  onClick={() => addPhoto.mutate()}
-                  disabled={addPhoto.isPending}
-                  className="flex aspect-[4/3] flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary"
-                >
-                  {addPhoto.isPending ? <Loader2 className="h-6 w-6 animate-spin" /> : <ImagePlus className="h-6 w-6" />}
-                  <span className="text-xs">Add photo</span>
-                </button>
+                <label className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }}
+                  />
+                  {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <ImagePlus className="h-6 w-6" />}
+                  <span className="text-xs">{uploading ? 'Uploading…' : 'Add photo'}</span>
+                </label>
               </div>
             </div>
           )}
