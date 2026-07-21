@@ -4,6 +4,18 @@ import { useQuery } from '@tanstack/react-query';
 import { vehicleApi } from './api';
 import type { SearchParams } from './types';
 
+/**
+ * Live marketplace facets. Long staleTime: supply shifts slowly, and this is
+ * fetched by the homepage, the search widget and the filters alike.
+ */
+export function useFacets(city?: string) {
+  return useQuery({
+    queryKey: ['facets', city ?? null],
+    queryFn: () => vehicleApi.facets(city),
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useVehicleSearch(params: SearchParams | null) {
   return useQuery({
     queryKey: ['search', params],
@@ -30,10 +42,13 @@ export function useMyVehicles(enabled: boolean) {
 }
 
 /** Trending near a location (sorted by trips/rating server-side). */
-export function useTrending(lng: number, lat: number) {
+export function useTrending(lng?: number, lat?: number) {
   return useQuery({
-    queryKey: ['trending', lng, lat],
-    queryFn: () => vehicleApi.search({ lng, lat, radiusKm: 60, sort: 'trending', limit: 8 }),
+    queryKey: ['trending', lng ?? null, lat ?? null],
+    queryFn: () => vehicleApi.search({ lng: lng!, lat: lat!, radiusKm: 60, sort: 'trending', limit: 8 }),
+    // The origin comes from live facets, so it is undefined on first paint —
+    // firing then would search 0,0 (the Atlantic) and render an empty state.
+    enabled: lng !== undefined && lat !== undefined,
   });
 }
 

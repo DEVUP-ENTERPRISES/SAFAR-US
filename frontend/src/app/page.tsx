@@ -8,9 +8,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
-import { SearchWidget, CITY_COORDS, CITIES } from '@/features/vehicles/components/search-widget';
+import { SearchWidget } from '@/features/vehicles/components/search-widget';
 import { CategoryCarousel } from '@/features/vehicles/components/category-carousel';
-import { useTrending, useRecommendations } from '@/features/vehicles/hooks';
+import { useTrending, useRecommendations, useFacets } from '@/features/vehicles/hooks';
 import { useAuthStore } from '@/features/auth/store';
 import { useIsHost } from '@/features/host/hooks';
 
@@ -22,11 +22,17 @@ const STEPS = [
 ];
 
 export default function HomePage() {
-  const [city, setCity] = useState('New York');
-  const trending = useTrending(CITY_COORDS[city].lng, CITY_COORDS[city].lat);
+  // Cities, categories and the trust numbers all come from live supply.
+  const facets = useFacets();
+  const cities = facets.data?.cities ?? [];
+  const [picked, setCity] = useState('');
+  const active = cities.find((c) => c.city === picked) ?? cities[0];
+  const city = active?.city ?? '';
+  const trending = useTrending(active?.lng, active?.lat);
   const user = useAuthStore((s) => s.user);
   const isHost = useIsHost();
   const forYou = useRecommendations(!!user);
+  const stats = facets.data?.stats;
 
   return (
     <div className="-mt-24">
@@ -57,15 +63,25 @@ export default function HomePage() {
 
           {/* Trust strip */}
           <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-white/60">
-            <span className="flex items-center gap-2">
-              <Star className="h-4 w-4 fill-white/70 text-white/70" /> 4.9 average trip rating
-            </span>
-            <span className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4" /> Every host verified
-            </span>
-            <span className="flex items-center gap-2">
-              <Zap className="h-4 w-4" /> Instant Book available
-            </span>
+            {stats && stats.ratingAvg !== null && (
+              <span className="flex items-center gap-2">
+                <Star className="h-4 w-4 fill-white/70 text-white/70" />
+                {stats.ratingAvg} average from {stats.ratingCount.toLocaleString()} trip
+                {stats.ratingCount === 1 ? '' : 's'}
+              </span>
+            )}
+            {!!stats?.verifiedHosts && (
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" /> {stats.verifiedHosts.toLocaleString()} verified host
+                {stats.verifiedHosts === 1 ? '' : 's'}
+              </span>
+            )}
+            {!!stats?.instantBook && (
+              <span className="flex items-center gap-2">
+                <Zap className="h-4 w-4" /> {stats.instantBook.toLocaleString()} car
+                {stats.instantBook === 1 ? '' : 's'} on Instant Book
+              </span>
+            )}
           </div>
         </div>
       </section>
@@ -107,17 +123,18 @@ export default function HomePage() {
               <p className="mt-2 text-muted-foreground">The most-booked cars near you right now.</p>
             </div>
             <div className="hide-scrollbar flex gap-2 overflow-x-auto">
-              {CITIES.map((c) => (
+              {cities.map((c) => (
                 <button
-                  key={c}
-                  onClick={() => setCity(c)}
+                  key={c.city}
+                  onClick={() => setCity(c.city)}
                   className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-                    c === city
+                    c.city === city
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-border bg-card hover:border-primary/40'
                   }`}
                 >
-                  {c}
+                  {c.city}
+                  <span className="ml-1.5 text-xs opacity-60">{c.vehicles}</span>
                 </button>
               ))}
             </div>

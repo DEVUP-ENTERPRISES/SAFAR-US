@@ -4,17 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, CalendarDays, Search } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { useFacets } from '@/features/vehicles/hooks';
 
-export const CITY_COORDS: Record<string, { lng: number; lat: number }> = {
-  'New York': { lng: -74.006, lat: 40.7128 },
-  'Los Angeles': { lng: -118.2437, lat: 34.0522 },
-  'San Francisco': { lng: -122.4194, lat: 37.7749 },
-  Chicago: { lng: -87.6298, lat: 41.8781 },
-  Miami: { lng: -80.1918, lat: 25.7617 },
-  Austin: { lng: -97.7431, lat: 30.2672 },
-};
-
-export const CITIES = Object.keys(CITY_COORDS);
 
 function addDays(n: number): string {
   const d = new Date();
@@ -29,12 +20,18 @@ function addDays(n: number): string {
  */
 export function SearchWidget({ variant = 'hero' }: { variant?: 'hero' | 'inline' }) {
   const router = useRouter();
-  const [city, setCity] = useState('New York');
+  // Cities come from live supply, so a host listing somewhere new is findable
+  // the moment their car is verified — no code change, no hardcoded list.
+  const facets = useFacets();
+  const cities = facets.data?.cities ?? [];
+  const [city, setCity] = useState('');
+  const selected = city || cities[0]?.city || '';
   const [start, setStart] = useState(addDays(3));
   const [end, setEnd] = useState(addDays(6));
 
   const submit = () => {
-    const qs = new URLSearchParams({ city, start, end });
+    if (!selected) return;
+    const qs = new URLSearchParams({ city: selected, start, end });
     router.push(`/search?${qs.toString()}`);
   };
 
@@ -49,13 +46,19 @@ export function SearchWidget({ variant = 'hero' }: { variant?: 'hero' | 'inline'
     >
       <Segment icon={<MapPin className="h-4 w-4" />} label="Where">
         <select
-          value={city}
+          value={selected}
           onChange={(e) => setCity(e.target.value)}
-          className="w-full bg-transparent text-sm font-medium focus:outline-none"
+          disabled={cities.length === 0}
+          className="w-full bg-transparent text-sm font-medium focus:outline-none disabled:opacity-60"
           aria-label="City"
         >
-          {CITIES.map((c) => (
-            <option key={c}>{c}</option>
+          {cities.length === 0 && (
+            <option>{facets.isPending ? 'Loading cities…' : 'No cities available yet'}</option>
+          )}
+          {cities.map((c) => (
+            <option key={c.city} value={c.city}>
+              {c.city} ({c.vehicles})
+            </option>
           ))}
         </select>
       </Segment>
@@ -88,7 +91,8 @@ export function SearchWidget({ variant = 'hero' }: { variant?: 'hero' | 'inline'
 
       <button
         onClick={submit}
-        className="mt-2 sm:mt-0 flex h-12 w-full sm:w-auto shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-6 font-semibold text-primary-foreground transition-all hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        disabled={!selected}
+        className="disabled:cursor-not-allowed disabled:opacity-50 mt-2 sm:mt-0 flex h-12 w-full sm:w-auto shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-6 font-semibold text-primary-foreground transition-all hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         <Search className="h-5 w-5" />
         <span>Search</span>

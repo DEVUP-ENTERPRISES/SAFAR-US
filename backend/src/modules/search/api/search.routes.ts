@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { searchService } from '../application/search.service';
+import { facetsService } from '../application/facets.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { validate } from '../../../shared/middleware/validate';
 import { authenticate } from '../../../shared/middleware/authenticate';
@@ -48,6 +49,21 @@ router.get(
     const limit = req.query.limit ? Number(req.query.limit) : 12;
     const results = await searchService.recommendFor(req.principal!.userId, limit);
     sendSuccess(res, results, 200, { count: results.length });
+  }),
+);
+
+/**
+ * Public marketplace facets — the real cities, categories and trust numbers.
+ * Public and hit on every homepage load, so it carries a short cache header;
+ * supply moves on the order of minutes, not seconds.
+ */
+router.get(
+  '/facets',
+  validate({ query: z.object({ city: z.string().max(80).optional() }) }),
+  asyncHandler(async (req, res) => {
+    const facets = await facetsService.marketplace(req.query.city as string | undefined);
+    res.set('Cache-Control', 'public, max-age=60');
+    sendSuccess(res, facets);
   }),
 );
 

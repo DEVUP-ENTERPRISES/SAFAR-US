@@ -12,17 +12,9 @@ import { cn } from '@/lib/utils/cn';
 import { ApiError } from '@/lib/api/types';
 import { vehicleApi, type CreateVehicleInput } from '@/features/vehicles/api';
 import { hostApi } from '@/features/host/api';
+import { LocationSearch } from '@/features/maps/components/location-search';
 
 const STEPS = ['Basics', 'Details', 'Photos', 'Pricing', 'Delivery', 'Review'];
-
-const CITIES: Record<string, { lng: number; lat: number }> = {
-  'New York': { lng: -74.006, lat: 40.7128 },
-  'Los Angeles': { lng: -118.2437, lat: 34.0522 },
-  'San Francisco': { lng: -122.4194, lat: 37.7749 },
-  Chicago: { lng: -87.6298, lat: 41.8781 },
-  Miami: { lng: -80.1918, lat: 25.7617 },
-  Austin: { lng: -97.7431, lat: 30.2672 },
-};
 
 interface Draft {
   make: string;
@@ -35,6 +27,8 @@ interface Draft {
   seats: number;
   city: string;
   address: string;
+  lng: number | null;
+  lat: number | null;
   color: string;
   doors: number;
   features: string;
@@ -68,7 +62,7 @@ const ADDON_PRESETS: Record<string, { label: string; priceType: 'per_trip' | 'pe
 const initial: Draft = {
   make: '', model: '', year: 2022, category: 'economy', bodyType: 'sedan',
   transmission: 'automatic', fuelType: 'petrol', seats: 5,
-  city: 'New York', address: '', color: '', doors: 4, features: '',
+  city: '', address: '', lng: null, lat: null, color: '', doors: 4, features: '',
   photos: [], title: '', description: '', instantBook: true, cancellationPolicy: 'moderate',
   dailyPrice: 65, cleaningFee: 25, weekendPct: 20, weeklyDiscountPct: 10, monthlyDiscountPct: 20,
   earlyBirdPct: 5, lastMinutePct: 0,
@@ -89,7 +83,7 @@ export default function NewListingPage() {
   });
 
   const smartPrice = useMutation({
-    mutationFn: () => vehicleApi.priceSuggestion({ ...CITIES[d.city], category: d.category, fuelType: d.fuelType }),
+    mutationFn: () => vehicleApi.priceSuggestion({ lng: d.lng!, lat: d.lat!, category: d.category, fuelType: d.fuelType }),
     onSuccess: (s) => set('dailyPrice', Math.round(s.suggested / 100)),
   });
 
@@ -101,7 +95,7 @@ export default function NewListingPage() {
         specs: { color: d.color, doors: Number(d.doors) },
         features: d.features.split(',').map((f) => f.trim()).filter(Boolean),
         photos: d.photos,
-        location: { ...CITIES[d.city], address: d.address, city: d.city },
+        location: { lng: d.lng!, lat: d.lat!, address: d.address, city: d.city },
         listing: {
           title: d.title || `${d.make} ${d.model} ${d.year}`,
           description: d.description,
@@ -183,8 +177,27 @@ export default function NewListingPage() {
 
           {step === 1 && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <SelectField label="City" value={d.city} onChange={(v) => set('city', v)} options={Object.keys(CITIES)} />
-              <Field label="Pickup address" className="sm:col-span-2"><Input value={d.address} onChange={(e) => set('address', e.target.value)} placeholder="MG Road, near metro" /></Field>
+              <Field
+                label="Where guests pick it up"
+                className="sm:col-span-2"
+                hint={d.city ? `Listed in ${d.city}` : 'Search any address — you are not limited to a fixed list of cities.'}
+              >
+                <LocationSearch
+                  placeholder="Start typing an address or city"
+                  onPick={(loc) => {
+                    setD((prev) => ({
+                      ...prev,
+                      lat: loc.lat,
+                      lng: loc.lng,
+                      city: loc.city || prev.city,
+                      address: loc.label,
+                    }));
+                  }}
+                />
+              </Field>
+              <Field label="Pickup notes" className="sm:col-span-2" hint="Optional — where exactly to meet, parking, gate codes">
+                <Input value={d.address} onChange={(e) => set('address', e.target.value)} placeholder="Garage level 2, spot 14" />
+              </Field>
               <Field label="Color"><Input value={d.color} onChange={(e) => set('color', e.target.value)} /></Field>
               <Field label="Doors"><Input type="number" value={d.doors} onChange={(e) => set('doors', Number(e.target.value))} /></Field>
               <Field label="Features (comma separated)" className="sm:col-span-2"><Input value={d.features} onChange={(e) => set('features', e.target.value)} placeholder="gps, bluetooth, sunroof" /></Field>

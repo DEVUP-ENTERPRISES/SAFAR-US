@@ -9,20 +9,11 @@ import { Chip } from '@/components/ui/chip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
-import { useVehicleSearch } from '@/features/vehicles/hooks';
+import { useVehicleSearch, useFacets } from '@/features/vehicles/hooks';
 import { LocationSearch } from '@/features/maps/components/location-search';
 import { MapPanel } from '@/features/maps/components/map-panel';
 import type { SearchParams, SortKey } from '@/features/vehicles/types';
 
-const CITIES: Record<string, { lng: number; lat: number }> = {
-  'New York': { lng: -74.006, lat: 40.7128 },
-  'Los Angeles': { lng: -118.2437, lat: 34.0522 },
-  'San Francisco': { lng: -122.4194, lat: 37.7749 },
-  Chicago: { lng: -87.6298, lat: 41.8781 },
-  Miami: { lng: -80.1918, lat: 25.7617 },
-  Austin: { lng: -97.7431, lat: 30.2672 },
-};
-const CATEGORIES = ['economy', 'luxury', 'suv', 'van', 'sports', 'ev'];
 const SORTS: { key: SortKey; label: string }[] = [
   { key: 'relevance', label: 'Relevance' },
   { key: 'price_asc', label: 'Price ↑' },
@@ -33,7 +24,13 @@ const SORTS: { key: SortKey; label: string }[] = [
 
 function SearchInner() {
   const qp = useSearchParams();
-  const [city, setCity] = useState(qp.get('city') && CITIES[qp.get('city')!] ? qp.get('city')! : 'New York');
+  // Cities and categories mirror live supply — see /search/facets.
+  const facets = useFacets();
+  const cities = facets.data?.cities ?? [];
+  const categories = facets.data?.categories ?? [];
+  const [cityChoice, setCity] = useState(qp.get('city') ?? '');
+  const activeCity = cities.find((c) => c.city === cityChoice) ?? cities[0];
+  const city = activeCity?.city ?? cityChoice;
   const [category, setCategory] = useState(qp.get('category') ?? '');
   const [fuelType, setFuelType] = useState('');
   const [transmission, setTransmission] = useState('');
@@ -52,10 +49,17 @@ function SearchInner() {
   const start = qp.get('start') ?? undefined;
   const end = qp.get('end') ?? undefined;
 
-  const coords = center ? { lat: center.lat, lng: center.lng } : CITIES[city];
+  const coords = center
+    ? { lat: center.lat, lng: center.lng }
+    : activeCity
+      ? { lat: activeCity.lat, lng: activeCity.lng }
+      : undefined;
   const areaLabel = center ? center.label : city;
 
-  const params: SearchParams = {
+  // No origin yet (facets still loading, or the marketplace has no supply) —
+  // pass null so the query stays idle rather than searching 0,0.
+  const params: SearchParams | null = coords
+    ? {
     ...coords,
     radiusKm: 50,
     start,
@@ -70,7 +74,8 @@ function SearchInner() {
     ratingMin: ratingMin || undefined,
     sort,
     limit: 24,
-  };
+      }
+    : null;
 
   const { data, isLoading, isError, refetch, isFetching } = useVehicleSearch(params);
 
@@ -114,7 +119,8 @@ function SearchInner() {
               onChange={(e) => { setCity(e.target.value); setCenter(null); }} 
               className="appearance-none h-11 w-full rounded-full border border-border/60 bg-card px-5 pr-10 text-sm font-medium focus:border-foreground focus:ring-1 focus:ring-foreground focus:outline-none transition-all hover:border-border cursor-pointer shadow-none"
             >
-              {Object.keys(CITIES).map((c) => <option key={c}>{c}</option>)}
+              {cities.length === 0 && <option>{facets.isPending ? 'Loading…' : 'No cities yet'}</option>}
+              {cities.map((c) => <option key={c.city} value={c.city}>{c.city} ({c.vehicles})</option>)}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-muted-foreground group-hover:text-foreground">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -173,14 +179,18 @@ function SearchInner() {
                 <span className="h-1.5 w-1.5 rounded-full bg-primary"></span> Category
               </h3>
               <div className="hide-scrollbar flex gap-2 sm:gap-2.5 overflow-x-auto pb-1">
-                {CATEGORIES.map((c) => (
-                  <Chip 
-                    key={c} 
-                    active={category === c} 
-                    onClick={() => setCategory(category === c ? '' : c)} 
+                {categories.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No categories available yet.</p>
+                )}
+                {categories.map((c) => (
+                  <Chip
+                    key={c.category}
+                    active={category === c.category}
+                    onClick={() => setCategory(category === c.category ? '' : c.category)}
                     className="capitalize px-4 py-1.5 sm:px-5 sm:py-2 hover:scale-105 active:scale-95 shrink-0"
                   >
-                    {c}
+                    {c.category}
+                    <span className="ml-1.5 opacity-60">{c.vehicles}</span>
                   </Chip>
                 ))}
               </div>
@@ -273,7 +283,7 @@ function SearchInner() {
             </div>
             {/* On mobile, when map is open, we show only the map and a horizontal scroll of cards overlaying it, or just the map */}
             <div className="sticky top-[140px] h-[calc(100vh-160px)] rounded-3xl overflow-hidden border border-border/40 shadow-lg">
-              <MapPanel lat={coords.lat} lng={coords.lng} label={areaLabel} count={data.length} vehicles={data} />
+              <MapPanel lat={coords!.lat} lng={coords!.lng} label={areaLabel} count={data.length} vehicles={data} />
               <div className="absolute bottom-6 left-0 right-0 lg:hidden flex overflow-x-auto gap-4 px-4 pb-2 hide-scrollbar snap-x snap-mandatory">
                 {data.map((v) => (
                   <div key={v._id} className="w-[85vw] max-w-[320px] shrink-0 snap-center">

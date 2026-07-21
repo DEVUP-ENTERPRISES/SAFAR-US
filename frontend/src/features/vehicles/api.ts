@@ -47,7 +47,26 @@ export interface CalendarEntry {
   bookingId?: string;
 }
 
+export interface CityFacet {
+  city: string; vehicles: number; lng: number; lat: number; fromPrice: number;
+}
+export interface CategoryFacet {
+  category: string; vehicles: number; fromPrice: number;
+}
+export interface MarketplaceFacets {
+  currency: string;
+  cities: CityFacet[];
+  categories: CategoryFacet[];
+  stats: {
+    vehicles: number; verifiedHosts: number;
+    ratingAvg: number | null; ratingCount: number; instantBook: number;
+  };
+}
+
 export const vehicleApi = {
+  /** Real cities/categories/trust numbers — nothing about supply is hardcoded. */
+  facets: (city?: string) =>
+    api.get<MarketplaceFacets>('/search/facets', city ? { city } : undefined, false),
   search: (params: SearchParams) =>
     api.get<Vehicle[]>(
       '/search/vehicles',

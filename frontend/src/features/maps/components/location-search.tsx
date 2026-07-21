@@ -7,7 +7,7 @@ import { mapsApi } from '../api';
 
 /** Location autocomplete backed by /maps/autocomplete (Google when configured). */
 export function LocationSearch({ onPick, placeholder = 'Search a city or place' }: {
-  onPick: (loc: { lat: number; lng: number; label: string }) => void;
+  onPick: (loc: { lat: number; lng: number; label: string; city: string }) => void;
   placeholder?: string;
 }) {
   const [q, setQ] = useState('');
@@ -30,7 +30,7 @@ export function LocationSearch({ onPick, placeholder = 'Search a city or place' 
     setQ(description);
     setOpen(false);
     const [geo] = await mapsApi.geocode(description);
-    if (geo) onPick({ lat: geo.lat, lng: geo.lng, label: geo.formatted });
+    if (geo) onPick({ lat: geo.lat, lng: geo.lng, label: geo.formatted, city: geo.city });
   };
 
   return (

@@ -5,6 +5,9 @@ export interface GeoResult {
   lat: number;
   lng: number;
   formatted: string;
+  /** Structured locality — what a listing stores as its city, and what the
+   *  marketplace facets group by. Empty when the provider can't resolve one. */
+  city: string;
 }
 export interface Suggestion {
   description: string;
@@ -24,11 +27,18 @@ class GoogleMapsProvider implements MapsProvider {
   async geocode(query: string): Promise<GeoResult[]> {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${this.key}`;
     const res = await fetch(url);
-    const json = (await res.json()) as { results?: { geometry: { location: { lat: number; lng: number } }; formatted_address: string }[] };
+    const json = (await res.json()) as {
+      results?: {
+        geometry: { location: { lat: number; lng: number } };
+        formatted_address: string;
+        address_components?: { long_name: string; types: string[] }[];
+      }[];
+    };
     return (json.results ?? []).map((r) => ({
       lat: r.geometry.location.lat,
       lng: r.geometry.location.lng,
       formatted: r.formatted_address,
+      city: pickCity(r.address_components ?? []),
     }));
   }
 
@@ -47,15 +57,29 @@ class GoogleMapsProvider implements MapsProvider {
   }
 }
 
+/**
+ * Google returns a component list, not a city. Prefer the locality; fall back
+ * through the administrative levels so a listing outside an incorporated city
+ * still lands in a sensible bucket rather than an empty one.
+ */
+function pickCity(components: { long_name: string; types: string[] }[]): string {
+  const ORDER = ['locality', 'postal_town', 'sublocality', 'administrative_area_level_2', 'administrative_area_level_1'];
+  for (const type of ORDER) {
+    const hit = components.find((c) => c.types.includes(type));
+    if (hit) return hit.long_name;
+  }
+  return '';
+}
+
 /** Offline stub: a few known metros so map search works without a key. */
 const CITY_INDEX: Record<string, GeoResult> = {
-  'new york': { lat: 40.7128, lng: -74.006, formatted: 'New York, NY, USA' },
-  'los angeles': { lat: 34.0522, lng: -118.2437, formatted: 'Los Angeles, CA, USA' },
-  'san francisco': { lat: 37.7749, lng: -122.4194, formatted: 'San Francisco, CA, USA' },
-  chicago: { lat: 41.8781, lng: -87.6298, formatted: 'Chicago, IL, USA' },
-  miami: { lat: 25.7617, lng: -80.1918, formatted: 'Miami, FL, USA' },
-  austin: { lat: 30.2672, lng: -97.7431, formatted: 'Austin, TX, USA' },
-  seattle: { lat: 47.6062, lng: -122.3321, formatted: 'Seattle, WA, USA' },
+  'new york': { city: 'New York', lat: 40.7128, lng: -74.006, formatted: 'New York, NY, USA' },
+  'los angeles': { city: 'Los Angeles', lat: 34.0522, lng: -118.2437, formatted: 'Los Angeles, CA, USA' },
+  'san francisco': { city: 'San Francisco', lat: 37.7749, lng: -122.4194, formatted: 'San Francisco, CA, USA' },
+  chicago: { city: 'Chicago', lat: 41.8781, lng: -87.6298, formatted: 'Chicago, IL, USA' },
+  miami: { city: 'Miami', lat: 25.7617, lng: -80.1918, formatted: 'Miami, FL, USA' },
+  austin: { city: 'Austin', lat: 30.2672, lng: -97.7431, formatted: 'Austin, TX, USA' },
+  seattle: { city: 'Seattle', lat: 47.6062, lng: -122.3321, formatted: 'Seattle, WA, USA' },
 };
 
 class StubMapsProvider implements MapsProvider {

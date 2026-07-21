@@ -16,8 +16,8 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi, type SurgeRule, type SurgeScope } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
+import { useFacets } from '@/features/vehicles/hooks';
 
-const CITIES = ['New York', 'Los Angeles', 'San Francisco', 'Chicago', 'Miami', 'Austin'];
 const SCOPES: { key: SurgeScope; label: string }[] = [
   { key: 'global', label: 'Everywhere' },
   { key: 'city', label: 'City' },
@@ -34,15 +34,21 @@ export default function AdminSurgePage() {
   const rules = useQuery({ queryKey: ['surge-rules'], queryFn: () => adminApi.surgeRules() });
   const config = useQuery({ queryKey: ['platform-config'], queryFn: () => adminApi.config() });
 
-  const [city, setCity] = useState('New York');
+  // Surge only means something where there is supply, so the city list is the
+  // marketplace's real one rather than a fixed roster that drifts out of date.
+  const facets = useFacets();
+  const cities = facets.data?.cities.map((c) => c.city) ?? [];
+  const [cityChoice, setCity] = useState('');
+  const city = cityChoice || cities[0] || '';
   const occupancy = useQuery({
     queryKey: ['occupancy', city],
     queryFn: () => adminApi.occupancy(city),
+    enabled: !!city,
     refetchInterval: 60_000,
   });
 
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ name: '', scope: 'city' as SurgeScope, city: 'New York', category: '', mult: '1.25' });
+  const [form, setForm] = useState({ name: '', scope: 'city' as SurgeScope, city: '', category: '', mult: '1.25' });
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['surge-rules'] });
@@ -54,7 +60,7 @@ export default function AdminSurgePage() {
       adminApi.createSurgeRule({
         name: form.name.trim(),
         scope: form.scope,
-        city: form.scope === 'city' || form.scope === 'cityCategory' ? form.city : undefined,
+        city: form.scope === 'city' || form.scope === 'cityCategory' ? (form.city || city) : undefined,
         category: form.scope === 'category' || form.scope === 'cityCategory' ? form.category.trim() : undefined,
         multiplierBps: Math.round(Number(form.mult) * 10000),
       }),
@@ -162,7 +168,7 @@ export default function AdminSurgePage() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {CITIES.map((c) => (
+        {cities.map((c) => (
           <button
             key={c}
             onClick={() => setCity(c)}
@@ -189,10 +195,10 @@ export default function AdminSurgePage() {
               </select>
             </Field>
             <Field label="City">
-              <select disabled={form.scope === 'global' || form.scope === 'category'} value={form.city}
+              <select disabled={form.scope === 'global' || form.scope === 'category'} value={form.city || city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm disabled:opacity-50">
-                {CITIES.map((c) => <option key={c}>{c}</option>)}
+                {cities.map((c) => <option key={c}>{c}</option>)}
               </select>
             </Field>
             <Field label="Category">

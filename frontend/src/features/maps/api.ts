@@ -1,6 +1,6 @@
 import { api } from '@/lib/api/client';
 
-export interface GeoResult { lat: number; lng: number; formatted: string }
+export interface GeoResult { lat: number; lng: number; formatted: string; city: string }
 export interface Suggestion { description: string; placeId?: string }
 
 export const mapsApi = {
