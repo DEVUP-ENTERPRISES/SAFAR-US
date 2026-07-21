@@ -50,7 +50,7 @@ export function Row({
   title: ReactNode;
   subtitle?: ReactNode;
   value?: ReactNode;
-  action?: { label: string; onClick?: () => void; href?: string };
+  action?: { label: string; onClick?: () => void; href?: string; disabled?: boolean };
   href?: string;
   onClick?: () => void;
   danger?: boolean;
@@ -90,7 +90,11 @@ export function Row({
               e.stopPropagation();
               action.onClick?.();
             }}
-            className="shrink-0 text-xs font-bold uppercase tracking-wide text-primary hover:underline"
+            disabled={action.disabled}
+            className={cn(
+              'shrink-0 text-xs font-bold uppercase tracking-wide text-primary hover:underline',
+              action.disabled && 'cursor-not-allowed text-muted-foreground no-underline hover:no-underline',
+            )}
           >
             {action.label}
           </button>

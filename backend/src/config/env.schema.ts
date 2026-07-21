@@ -9,6 +9,12 @@ export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
   API_PREFIX: z.string().default('/api/v1'),
+  /**
+   * Absolute, publicly reachable base of this API (no trailing slash), e.g.
+   * https://api.cato.com. Used to build media URLs that resolve from a browser
+   * when no CDN is configured. Defaults to localhost for development.
+   */
+  PUBLIC_API_URL: z.string().url().optional(),
   APP_NAME: z.string().default('TURA'),
 
   /**

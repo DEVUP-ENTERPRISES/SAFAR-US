@@ -82,7 +82,71 @@ export const createVehicleSchema = z.object({
   }),
 });
 
-export const updateVehicleSchema = createVehicleSchema.partial();
+/**
+ * A PATCH body — every field optional, all the way down.
+ *
+ * `createVehicleSchema.partial()` is NOT this: it only relaxes the top level,
+ * so a patch of `{ listing: { title } }` still demanded the rest of `listing`
+ * and, worse, zod filled the omitted keys with their creation defaults. Merging
+ * that into the stored document silently reset the host's Instant Book,
+ * cancellation policy and delivery settings every time they renamed a listing.
+ *
+ * Defined explicitly (no defaults anywhere) so an absent key stays absent and
+ * the service's merge only ever touches what the host actually sent.
+ */
+export const updateVehicleSchema = z
+  .object({
+    make: z.string().min(1).max(60),
+    model: z.string().min(1).max(60),
+    year: z.number().int().min(1900).max(new Date().getFullYear() + 1),
+    bodyType: z.string().min(1).max(40),
+    category: z.string().min(1).max(40),
+    transmission: z.enum(['manual', 'automatic']),
+    fuelType: z.enum(['petrol', 'diesel', 'hybrid', 'ev']),
+    seats: z.number().int().min(1).max(20),
+    features: z.array(z.string()),
+    tripRules: z.array(z.string()),
+    mileageLimit: z
+      .object({
+        perDayKm: z.number().int().min(0),
+        overageFeePerKm: z.number().int().min(0),
+      })
+      .partial(),
+    location: z
+      .object({
+        lng: z.number().min(-180).max(180),
+        lat: z.number().min(-90).max(90),
+        address: z.string(),
+        city: z.string(),
+      })
+      // Coordinates are a pair: half of one is not a location.
+      .partial()
+      .refine(
+        (l) => (l.lng === undefined) === (l.lat === undefined),
+        { message: 'lng and lat must be provided together' },
+      ),
+    listing: z
+      .object({
+        title: z.string().min(3).max(120),
+        description: z.string().max(2000),
+        instantBook: z.boolean(),
+        minTripHours: z.number().int().min(1),
+        maxTripHours: z.number().int().min(1),
+        cancellationPolicy: z.enum(['flexible', 'moderate', 'strict']),
+        delivery: z
+          .object({
+            airport: z.boolean(),
+            home: z.boolean(),
+            hotel: z.boolean(),
+            business: z.boolean(),
+            radiusKm: z.number().min(0),
+            fee: z.number().int().min(0),
+          })
+          .partial(),
+      })
+      .partial(),
+  })
+  .partial();
 
 export const pricingSchema = z.object({
   dailyPrice: z.number().int().positive().optional(),

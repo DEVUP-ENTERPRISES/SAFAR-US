@@ -83,6 +83,15 @@ export const vehicleApi = {
     api.raw<Vehicle>(`/vehicles/${id}/pricing`, { method: 'PUT', body: patch }).then((r) => r.data),
   addPhotos: (id: string, photos: { url: string; key?: string }[]) =>
     api.post<Vehicle>(`/vehicles/${id}/photos`, { photos }),
+  removePhoto: (id: string, key: string) =>
+    api.raw<Vehicle>(`/vehicles/${id}/photos`, { method: 'DELETE', body: { key } }).then((r) => r.data),
+  setCoverPhoto: (id: string, key: string) =>
+    api.raw<Vehicle>(`/vehicles/${id}/photos/cover`, { method: 'PUT', body: { key } }).then((r) => r.data),
+  update: (id: string, patch: Record<string, unknown>) =>
+    api.raw<Vehicle>(`/vehicles/${id}`, { method: 'PATCH', body: patch }).then((r) => r.data),
+  delist: (id: string) =>
+    api.raw<{ delisted: boolean }>(`/vehicles/${id}`, { method: 'DELETE' }).then((r) => r.data),
+  requirements: () => api.get<{ minPhotos: number }>('/vehicles/requirements', undefined, false),
   verifyVin: (id: string, vin: string) => api.post<Vehicle>(`/vehicles/${id}/verify-vin`, { vin }),
   priceSuggestion: (p: { lng: number; lat: number; category: string; fuelType?: string }) =>
     api.get<{ suggested: number; median: number; p25: number; p75: number; sampleSize: number; demand: string; currency: string }>(

@@ -9,6 +9,13 @@ import type {
 } from '../../../core/contracts/vehicle.contract';
 import type { CreateVehicleDto } from '../dto/vehicle.schemas';
 
+/**
+ * Minimum photos before a listing can be submitted for verification. Turo
+ * requires a comparable set; below this, ops cannot judge condition and guests
+ * will not book. Enforced on submit and on photo removal for live listings.
+ */
+export const MIN_LISTING_PHOTOS = 4;
+
 export class VehicleService implements IVehicleContract {
   async create(userId: string, dto: CreateVehicleDto): Promise<VehicleDoc> {
     const host = await hostService.requireHostForUser(userId);
@@ -66,16 +73,40 @@ export class VehicleService implements IVehicleContract {
     await this.assertOwner(userId, vehicle);
 
     const update: Record<string, unknown> = {};
-    if (patch.listing) update.listing = { ...vehicle.listing, ...patch.listing };
+
+    if (patch.listing) {
+      // `delivery` is a nested object: a shallow spread would replace the whole
+      // block, so toggling one delivery mode would clear the others.
+      const { delivery, ...listingRest } = patch.listing;
+      update.listing = {
+        ...vehicle.listing,
+        ...listingRest,
+        ...(delivery ? { delivery: { ...vehicle.listing?.delivery, ...delivery } } : {}),
+      };
+    }
     if (patch.pricing) update.pricing = { ...vehicle.pricing, ...patch.pricing };
     if (patch.features) update.features = patch.features;
+    if (patch.tripRules) update.tripRules = patch.tripRules;
+    if (patch.mileageLimit) {
+      update.mileageLimit = { ...vehicle.mileageLimit, ...patch.mileageLimit };
+    }
     if (patch.location) {
+      // Coordinates arrive as a pair or not at all (enforced by the schema);
+      // keep the stored point when the patch only renames the address.
+      const hasPoint = patch.location.lng !== undefined && patch.location.lat !== undefined;
       update.location = {
         type: 'Point',
-        coordinates: [patch.location.lng, patch.location.lat],
+        coordinates: hasPoint
+          ? [patch.location.lng, patch.location.lat]
+          : vehicle.location.coordinates,
         address: patch.location.address ?? vehicle.location.address,
         city: patch.location.city ?? vehicle.location.city,
       };
+    }
+
+    // Plain scalars the host can correct on an existing listing.
+    for (const k of ['make', 'model', 'year', 'bodyType', 'category', 'transmission', 'fuelType', 'seats'] as const) {
+      if (patch[k] !== undefined) update[k] = patch[k];
     }
     await VehicleModel.updateOne({ _id: vehicleId }, update);
     return this.getById(vehicleId);
@@ -120,6 +151,47 @@ export class VehicleService implements IVehicleContract {
     return this.getById(vehicleId);
   }
 
+  /**
+   * Remove one photo. A live listing may not drop below the minimum — that
+   * would leave a bookable car the guest cannot see.
+   */
+  async removePhoto(userId: string, vehicleId: string, key: string): Promise<VehicleDoc> {
+    const vehicle = await this.getById(vehicleId);
+    await this.assertOwner(userId, vehicle);
+
+    const photos = vehicle.photos ?? [];
+    const target = photos.find((p) => p.key === key);
+    if (!target) throw new NotFoundError('Photo not found on this listing');
+
+    const remaining = photos.filter((p) => p.key !== key);
+    if (vehicle.status === 'listed' && remaining.length < MIN_LISTING_PHOTOS) {
+      throw new ConflictError(
+        `A listed car must keep at least ${MIN_LISTING_PHOTOS} photos. Unlist it first, or add another photo.`,
+        'PHOTOS_REQUIRED',
+      );
+    }
+    // Deleting the cover promotes the next photo, so a listing is never
+    // left with photos but no cover to render.
+    if (target.isCover && remaining[0]) remaining[0].isCover = true;
+
+    await VehicleModel.updateOne({ _id: vehicleId }, { photos: remaining });
+    return this.getById(vehicleId);
+  }
+
+  /** Promote one photo to cover — the image every search result renders. */
+  async setCoverPhoto(userId: string, vehicleId: string, key: string): Promise<VehicleDoc> {
+    const vehicle = await this.getById(vehicleId);
+    await this.assertOwner(userId, vehicle);
+
+    const photos = vehicle.photos ?? [];
+    if (!photos.some((p) => p.key === key)) {
+      throw new NotFoundError('Photo not found on this listing');
+    }
+    const next = photos.map((p) => ({ ...p, isCover: p.key === key }));
+    await VehicleModel.updateOne({ _id: vehicleId }, { photos: next });
+    return this.getById(vehicleId);
+  }
+
   /** VIN verification (mock: accepts a well-formed VIN; real impl calls a VIN API). */
   async verifyVin(userId: string, vehicleId: string, vin: string): Promise<VehicleDoc> {
     const vehicle = await this.getById(vehicleId);
@@ -136,6 +208,16 @@ export class VehicleService implements IVehicleContract {
     await this.assertOwner(userId, vehicle);
     if (vehicle.status !== 'draft') {
       throw new ConflictError('Only drafts can be submitted', 'INVALID_STATE');
+    }
+
+    // Photos are not optional. A listing with no photos cannot be verified by
+    // ops and would never book, so it must not be able to enter the queue.
+    const photos = vehicle.photos?.length ?? 0;
+    if (photos < MIN_LISTING_PHOTOS) {
+      throw new ConflictError(
+        `Add at least ${MIN_LISTING_PHOTOS} photos before submitting (you have ${photos}).`,
+        'PHOTOS_REQUIRED',
+      );
     }
     await VehicleModel.updateOne(
       { _id: vehicleId },

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { vehicleService } from '../application/vehicle.service';
+import { vehicleService, MIN_LISTING_PHOTOS } from '../application/vehicle.service';
 import { availabilityService } from '../../availability/application/availability.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
@@ -37,6 +37,14 @@ router.get(
 );
 
 // Smart Price AI — market-based daily price suggestion for hosts.
+/** Listing requirements the UI enforces client-side — single source of truth. */
+router.get(
+  '/requirements',
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, { minPhotos: MIN_LISTING_PHOTOS });
+  }),
+);
+
 router.get(
   '/price-suggestion',
   authenticate,
@@ -122,6 +130,33 @@ router.post(
   validate({ body: photosSchema }),
   asyncHandler(async (req, res) => {
     const v = await vehicleService.addPhotos(req.principal!.userId, req.params.id, req.body.photos);
+    sendSuccess(res, v);
+  }),
+);
+
+/**
+ * Photo keys are opaque paths containing slashes, so they travel in the body
+ * rather than the URL — a path segment would need double-encoding and breaks
+ * behind proxies that normalise %2F.
+ */
+router.delete(
+  '/:id/photos',
+  authenticate,
+  authorize('vehicle:update:own'),
+  validate({ body: z.object({ key: z.string().min(3).max(512) }) }),
+  asyncHandler(async (req, res) => {
+    const v = await vehicleService.removePhoto(req.principal!.userId, req.params.id, req.body.key);
+    sendSuccess(res, v);
+  }),
+);
+
+router.put(
+  '/:id/photos/cover',
+  authenticate,
+  authorize('vehicle:update:own'),
+  validate({ body: z.object({ key: z.string().min(3).max(512) }) }),
+  asyncHandler(async (req, res) => {
+    const v = await vehicleService.setCoverPhoto(req.principal!.userId, req.params.id, req.body.key);
     sendSuccess(res, v);
   }),
 );

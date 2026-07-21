@@ -79,6 +79,36 @@ router.get(
 );
 
 /**
+ * Public read for PUBLIC media (listing photos, avatars, trip photos).
+ *
+ * Deliberately unauthenticated — these are marketplace content, shown to logged
+ * out shoppers. It exists so the bucket can keep Block Public Access ON and
+ * still serve images: we sign the read here and redirect. Private categories are
+ * refused outright; they must go through /media/download, which checks identity.
+ *
+ * Once a CDN is configured, upload targets point straight at it and this route
+ * stops being hit for new media.
+ */
+router.get(
+  '/view',
+  validate({ query: z.object({ key: z.string().min(3).max(512) }) }),
+  asyncHandler(async (req, res) => {
+    const key = String(req.query.key);
+    const parsed = parseKey(key);
+    if (!parsed) throw new ValidationError('Malformed object key');
+    if (isPrivateCategory(parsed.category)) {
+      throw new ForbiddenError('This document is not public');
+    }
+
+    const url = await storageGateway.createDownloadUrl(key);
+    // Cache below the signature's own lifetime so a cached redirect can never
+    // outlive the URL it points at.
+    res.set('Cache-Control', 'public, max-age=60');
+    res.redirect(302, url);
+  }),
+);
+
+/**
  * Dev-only sink for the mock storage gateway's presigned PUT. It accepts the
  * bytes and throws them away — its whole job is to let the client run the exact
  * same upload path locally as it will against S3. Never mounted when real AWS

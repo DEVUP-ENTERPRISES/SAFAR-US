@@ -12,8 +12,12 @@ const API = process.env.API || 'http://localhost:8080/api/v1';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@cato.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Cato@Admin2026';
 
-// A city deliberately absent from every list the UI used to hardcode.
-const CITY = 'Portland';
+/**
+ * A city deliberately absent from every list the UI used to hardcode — and
+ * unique per run, so a previous run's listing can't make "this city does not
+ * exist yet" fail against leftovers from the last one.
+ */
+const CITY = `Testville ${Date.now().toString(36)}`;
 const COORDS = { lng: -122.6784, lat: 45.5152 };
 
 let pass = 0;
@@ -128,7 +132,8 @@ const cities = (f) => f.cities.map((c) => c.city);
 
   const scoped = (await call('GET', `/search/facets?city=${encodeURIComponent(CITY)}`)).body?.data;
   const suv = scoped.categories.find((c) => c.category === 'suv');
-  ok('city-scoped categories reflect that city only', scoped.categories.length === 1 && suv?.vehicles === 1,
+  ok('city-scoped categories reflect that city only',
+    scoped.categories.length === 1 && suv?.vehicles === 1,
     JSON.stringify(scoped.categories));
 
   ok('trust stats moved with real supply', after.stats.vehicles === before.stats.vehicles + 1,
@@ -139,6 +144,13 @@ const cities = (f) => f.cities.map((c) => c.city);
     `/search/vehicles?lng=${COORDS.lng}&lat=${COORDS.lat}&radiusKm=50&limit=10`);
   ok('car is searchable at the city centroid',
     (search.body?.data ?? []).some((v) => v._id === vehicleId), `${search.status}`);
+
+  // Clean up: this suite verifies a real listing into the live marketplace, so
+  // leaving it behind would put a test city on the homepage.
+  const removed = await call('DELETE', `/vehicles/${vehicleId}`, { token: host.token });
+  const final = (await call('GET', '/search/facets')).body?.data;
+  ok('test listing is removed afterwards',
+    removed.ok && !cities(final).includes(CITY), cities(final).join(', '));
 
   console.log(`\n  PASS ${pass}   FAIL ${fail}\n`);
   process.exit(fail === 0 ? 0 : 1);
