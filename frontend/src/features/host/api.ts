@@ -5,6 +5,11 @@ export interface HostProfile {
   userId: string;
   displayName: string;
   bio?: string;
+  avatarUrl?: string;
+  avatarKey?: string;
+  languages?: string[];
+  city?: string;
+  work?: string;
   hostType: 'individual' | 'business';
   isFleetOwner: boolean;
   businessProfile?: Record<string, string | undefined>;
@@ -14,6 +19,26 @@ export interface HostProfile {
   isSuperhost?: boolean;
   ratingAvg: number;
   totalTrips: number;
+}
+
+/** The public view of a host — every figure computed from real activity. */
+export interface HostPublicProfile {
+  _id: string;
+  displayName: string;
+  bio: string | null;
+  avatarUrl: string | null;
+  city: string | null;
+  work: string | null;
+  languages: string[];
+  joinedAt: string;
+  isSuperhost: boolean;
+  ratingAvg: number | null;
+  ratingCount: number;
+  totalTrips: number;
+  listedVehicles: number;
+  responseRatePct: number | null;
+  responseTimeMinutes: number | null;
+  verifications: { email: boolean; phone: boolean; identity: boolean };
 }
 
 export interface EarningsDashboard {
@@ -127,6 +152,9 @@ export const hostApi = {
   me: () => api.get<HostProfile>('/hosts/me'),
   onboard: (displayName: string, bio?: string) => api.post<HostProfile>('/hosts/onboard', { displayName, bio }),
   updateProfile: (patch: Partial<HostProfile>) => api.patch<HostProfile>('/hosts/me', patch),
+  /** Public profile of any host — no auth, shoppers browse before signing up. */
+  publicProfile: (hostId: string) =>
+    api.get<HostPublicProfile>(`/hosts/${hostId}/public`, undefined, false),
 
   performance: () => api.get<HostPerformance>('/earnings/performance'),
   earnings: () => api.get<EarningsDashboard>('/earnings/dashboard'),

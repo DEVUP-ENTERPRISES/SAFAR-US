@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useHostMe, useUpdateHostProfile } from '@/features/host/hooks';
+import { AvatarUpload } from '@/components/ui/avatar-upload';
 
 export default function HostProfilePage() {
   const { data, isLoading } = useHostMe();
@@ -15,6 +16,11 @@ export default function HostProfilePage() {
   const [form, setForm] = useState({
     displayName: '',
     bio: '',
+    avatarUrl: '',
+    avatarKey: '',
+    city: '',
+    work: '',
+    languages: '',
     hostType: 'individual' as 'individual' | 'business',
     legalName: '',
     registrationNumber: '',
@@ -31,6 +37,11 @@ export default function HostProfilePage() {
         ...f,
         displayName: data.displayName ?? '',
         bio: data.bio ?? '',
+        avatarUrl: (data.avatarUrl as string) ?? '',
+        avatarKey: (data.avatarKey as string) ?? '',
+        city: (data.city as string) ?? '',
+        work: (data.work as string) ?? '',
+        languages: ((data.languages as string[]) ?? []).join(', '),
         hostType: data.hostType ?? 'individual',
         legalName: (data.businessProfile?.legalName as string) ?? '',
         registrationNumber: (data.businessProfile?.registrationNumber as string) ?? '',
@@ -49,6 +60,12 @@ export default function HostProfilePage() {
     update.mutate({
       displayName: form.displayName,
       bio: form.bio,
+      // Empty strings clear the field; undefined would leave the old value.
+      avatarUrl: form.avatarUrl || undefined,
+      avatarKey: form.avatarKey || undefined,
+      city: form.city,
+      work: form.work,
+      languages: form.languages.split(',').map((l) => l.trim()).filter(Boolean),
       hostType: form.hostType,
       businessProfile: { legalName: form.legalName, registrationNumber: form.registrationNumber },
       taxInfo: { taxId: form.taxId },
@@ -68,16 +85,52 @@ export default function HostProfilePage() {
       <h1 className="display text-display-sm">Host profile</h1>
 
       <Card>
-        <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Display name"><Input value={form.displayName} onChange={f('displayName')} /></Field>
-          <Field label="Host type">
-            <select value={form.hostType} onChange={(e) => setForm({ ...form, hostType: e.target.value as 'individual' | 'business' })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-              <option value="individual">Individual</option>
-              <option value="business">Business</option>
-            </select>
-          </Field>
-          <Field label="Bio" className="sm:col-span-2"><Input value={form.bio} onChange={f('bio')} /></Field>
+        <CardHeader>
+          <CardTitle>Public profile</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            This is what guests see on your listings and on your profile page.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <AvatarUpload
+            url={form.avatarUrl || null}
+            name={form.displayName}
+            onChange={(next) =>
+              setForm((prev) => ({
+                ...prev,
+                avatarUrl: next?.url ?? '',
+                avatarKey: next?.key ?? '',
+              }))
+            }
+          />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Display name"><Input value={form.displayName} onChange={f('displayName')} /></Field>
+            <Field label="Host type">
+              <select value={form.hostType} onChange={(e) => setForm({ ...form, hostType: e.target.value as 'individual' | 'business' })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                <option value="individual">Individual</option>
+                <option value="business">Business</option>
+              </select>
+            </Field>
+            <Field label="Lives in" hint="City guests will see, e.g. Brooklyn, NY">
+              <Input value={form.city} onChange={f('city')} placeholder="Brooklyn, NY" />
+            </Field>
+            <Field label="Work" hint="Optional">
+              <Input value={form.work} onChange={f('work')} placeholder="Photographer" />
+            </Field>
+            <Field label="Languages spoken" className="sm:col-span-2" hint="Comma separated">
+              <Input value={form.languages} onChange={f('languages')} placeholder="English, Spanish" />
+            </Field>
+            <Field label="About you" className="sm:col-span-2" hint="A short intro builds trust — why you host, what you love to drive">
+              <textarea
+                value={form.bio}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                rows={4}
+                maxLength={500}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </Field>
+          </div>
         </CardContent>
       </Card>
 

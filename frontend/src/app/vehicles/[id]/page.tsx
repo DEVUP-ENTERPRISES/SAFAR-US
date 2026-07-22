@@ -11,6 +11,7 @@ import { Rating } from '@/components/ui/rating';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { formatMoney } from '@/lib/utils/format';
+import { HostProfileCard } from '@/features/host/components/host-profile-card';
 import { cn } from '@/lib/utils/cn';
 import { api } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/types';
@@ -255,20 +256,7 @@ export default function VehicleDetailPage() {
 
           <div className="pt-8">
             <h2 className="mb-4 text-2xl font-bold tracking-tight">Hosted by</h2>
-            <div className="flex items-center gap-4">
-              <div className="relative h-16 w-16 shrink-0 rounded-full bg-muted overflow-hidden">
-                <div className="flex h-full w-full items-center justify-center brand-gradient text-xl font-bold text-white/80">
-                  U
-                </div>
-                <div className="absolute -bottom-1 inset-x-0 mx-auto w-max rounded-full bg-background px-1.5 py-0.5 text-[11px] font-bold shadow-sm">
-                  5.0 <span className="text-[#635BFF]">★</span>
-                </div>
-              </div>
-              <div>
-                <p className="text-xl font-bold">Ruslan</p>
-                <p className="mt-0.5 text-[15px] text-muted-foreground">13 trips · Joined May 2026</p>
-              </div>
-            </div>
+            <HostProfileCard hostId={v.hostId} />
           </div>
         </div>
 

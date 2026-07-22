@@ -43,20 +43,20 @@ function HostShell({ children }: { children: ReactNode }) {
     return (
       <div className="mx-auto grid max-w-5xl items-center gap-10 py-8 lg:grid-cols-2">
         {/* Pitch */}
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
-            <Store className="h-3.5 w-3.5 text-primary" /> Hosting on CATO
+        <div className="space-y-6">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary">
+            <Store className="h-4 w-4" /> Hosting on CATO
           </span>
-          <h1 className="display mt-5 text-display">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05]">
             Your car can pay
             <br />
-            <span className="text-muted-foreground">for itself.</span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-muted-foreground to-muted-foreground/40">for itself.</span>
           </h1>
-          <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
+          <p className="max-w-md text-xl leading-relaxed text-muted-foreground font-medium">
             List in minutes, set your own price, and keep control of your calendar. Set-up takes
             about a minute.
           </p>
-          <ul className="mt-7 space-y-3">
+          <ul className="space-y-4 pt-4">
             {[
               'You set the price — or let Smart Price do it for you',
               'Cash out instantly, or on the standard payout schedule',
@@ -71,7 +71,7 @@ function HostShell({ children }: { children: ReactNode }) {
         </div>
 
         {/* Form */}
-        <Card className="rounded-2xl shadow-float">
+        <Card className="rounded-[2.5rem] shadow-soft bg-card/80 backdrop-blur border-border/50">
           <CardHeader>
             <CardTitle>Become a CATO host</CardTitle>
           </CardHeader>

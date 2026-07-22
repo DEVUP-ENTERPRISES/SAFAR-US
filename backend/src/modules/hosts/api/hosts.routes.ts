@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { hostService } from '../application/host.service';
+import { hostProfileService } from '../application/host-profile.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
@@ -40,6 +41,11 @@ router.get(
 const profileSchema = z.object({
   displayName: z.string().min(2).max(80).optional(),
   bio: z.string().max(500).optional(),
+  avatarUrl: z.string().url().max(700).optional(),
+  avatarKey: z.string().max(512).optional(),
+  languages: z.array(z.string().min(2).max(40)).max(10).optional(),
+  city: z.string().max(80).optional(),
+  work: z.string().max(80).optional(),
   hostType: z.enum(['individual', 'business']).optional(),
   isFleetOwner: z.boolean().optional(),
   businessProfile: z
@@ -75,6 +81,25 @@ router.patch(
   asyncHandler(async (req, res) => {
     const host = await hostService.updateProfile(req.principal!.userId, req.body);
     sendSuccess(res, host);
+  }),
+);
+
+/**
+ * Public host profile — what a guest sees on a listing and on /hosts/:id.
+ * Unauthenticated on purpose: shoppers compare hosts before signing up.
+ */
+router.get(
+  '/:id/public',
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await hostProfileService.publicProfile(req.params.id));
+  }),
+);
+
+/** A host's bookable cars, for their public profile. Listed + verified only. */
+router.get(
+  '/:id/vehicles',
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await hostProfileService.publicVehicles(req.params.id));
   }),
 );
 

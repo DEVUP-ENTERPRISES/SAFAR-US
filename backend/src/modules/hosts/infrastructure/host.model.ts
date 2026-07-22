@@ -6,6 +6,12 @@ export interface HostDoc {
   userId: string;
   displayName: string;
   bio?: string;
+  /** Public profile — what a guest sees before trusting someone with a trip. */
+  avatarUrl?: string;
+  avatarKey?: string;
+  languages?: string[];
+  city?: string;
+  work?: string;
   hostType: 'individual' | 'business';
   isFleetOwner: boolean;
   businessProfile?: {
@@ -44,6 +50,11 @@ const schema = new Schema<HostDoc>(
     userId: { type: String, required: true },
     displayName: { type: String, required: true },
     bio: String,
+    avatarUrl: String,
+    avatarKey: String,
+    languages: { type: [String], default: [] },
+    city: String,
+    work: String,
     hostType: { type: String, enum: ['individual', 'business'], default: 'individual' },
     isFleetOwner: { type: Boolean, default: false },
     businessProfile: {

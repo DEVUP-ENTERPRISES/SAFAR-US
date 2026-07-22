@@ -37,6 +37,11 @@ export class HostService {
     const keys: (keyof HostDoc)[] = [
       'displayName',
       'bio',
+      'avatarUrl',
+      'avatarKey',
+      'languages',
+      'city',
+      'work',
       'hostType',
       'isFleetOwner',
       'businessProfile',

@@ -12,7 +12,9 @@ import { Badge } from '@/components/ui/badge';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/utils/format';
+import { PageHeader } from '@/components/ui/page-header';
 import { accountApi } from '@/features/account/api';
+import { AvatarUpload } from '@/components/ui/avatar-upload';
 
 function Account() {
   const qc = useQueryClient();
@@ -22,16 +24,20 @@ function Account() {
   const sessions = useQuery({ queryKey: ['sessions'], queryFn: () => accountApi.sessions() });
   const refreshMe = () => qc.invalidateQueries({ queryKey: ['me'] });
 
-  const [profile, setProfile] = useState({ firstName: '', lastName: '', phone: '', dateOfBirth: '' });
+  const [profile, setProfile] = useState({ firstName: '', lastName: '', phone: '', dateOfBirth: '', avatarUrl: '' });
   useEffect(() => {
     if (me.data) setProfile({
-      firstName: me.data.firstName ?? '', lastName: me.data.lastName ?? '',
+      firstName: me.data.firstName ?? '', lastName: me.data.lastName ?? '', avatarUrl: me.data.avatarUrl ?? '',
       phone: me.data.phone ?? '', dateOfBirth: me.data.dateOfBirth ?? '',
     });
   }, [me.data]);
 
   const saveProfile = useMutation({
-    mutationFn: () => accountApi.updateProfile({ ...profile, dateOfBirth: profile.dateOfBirth || undefined }),
+    mutationFn: () => accountApi.updateProfile({
+      ...profile,
+      dateOfBirth: profile.dateOfBirth || undefined,
+      avatarUrl: profile.avatarUrl || undefined,
+    }),
     onSuccess: refreshMe,
   });
   const submitKyc = useMutation({ mutationFn: () => accountApi.kycSubmit(), onSuccess: () => qc.invalidateQueries({ queryKey: ['kyc-status'] }) });
@@ -77,8 +83,11 @@ function Account() {
   const kycTone = kyc.data?.status === 'approved' ? 'success' : kyc.data?.status === 'rejected' ? 'destructive' : 'warning';
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="display text-display-sm">Account</h1>
+    <div className="mx-auto max-w-4xl space-y-10 sm:space-y-12 pb-24 px-4 sm:px-0">
+      <PageHeader 
+        title="Account Settings" 
+        description="Manage your profile, identity verification, and payment methods."
+      />
 
       {/* Identity verification */}
       <Card>
@@ -99,8 +108,14 @@ function Account() {
 
       {/* Profile */}
       <Card>
-        <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardHeader><CardTitle className="text-2xl">Profile details</CardTitle></CardHeader>
+        <CardContent className="space-y-6">
+          <AvatarUpload
+            url={profile.avatarUrl || null}
+            name={profile.firstName || me.data.email}
+            onChange={(next) => setProfile((prev) => ({ ...prev, avatarUrl: next?.url ?? '' }))}
+          />
+          <div className="grid gap-6 sm:grid-cols-2">
           <Field label="First name"><Input value={profile.firstName} onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} /></Field>
           <Field label="Last name"><Input value={profile.lastName} onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} /></Field>
           <Field label="Phone"><Input value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="+1 555 000 1234" /></Field>
@@ -110,18 +125,19 @@ function Account() {
             <Button loading={saveProfile.isPending} onClick={() => saveProfile.mutate()}>Save profile</Button>
             {saveProfile.isSuccess && <span className="text-sm text-success">Saved ✓</span>}
           </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Saved addresses */}
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> Saved addresses</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
+        <CardHeader><CardTitle className="flex items-center gap-2 text-2xl"><MapPin className="h-6 w-6 text-primary" /> Saved addresses</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
           {me.data.addresses.map((a) => (
-            <div key={a.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div key={a.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl bg-muted/30 p-5 gap-4">
               <div>
-                <p className="text-sm font-medium">{a.label} {a.isDefault && <Badge tone="success" className="ml-1">Default</Badge>}</p>
-                <p className="text-xs text-muted-foreground">{a.line1}, {a.city} {a.state} {a.zip}</p>
+                <p className="text-base font-bold">{a.label} {a.isDefault && <Badge tone="success" className="ml-2">Default</Badge>}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{a.line1}, {a.city} {a.state} {a.zip}</p>
               </div>
               <div className="flex gap-1">
                 {!a.isDefault && <Button size="sm" variant="ghost" onClick={() => defaultAddress.mutate(a.id)}>Set default</Button>}
