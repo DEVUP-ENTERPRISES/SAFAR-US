@@ -65,6 +65,7 @@ export const createVehicleSchema = z.object({
     description: z.string().max(2000).default(''),
     instantBook: z.boolean().default(false),
     minTripHours: z.number().int().min(1).default(24),
+    turnaroundDays: z.number().int().min(0).max(7).default(0),
     maxTripHours: z.number().int().min(1).default(24 * 30),
     cancellationPolicy: z.enum(['flexible', 'moderate', 'strict']).default('moderate'),
     delivery: deliverySchema,
@@ -132,6 +133,7 @@ export const updateVehicleSchema = z
         instantBook: z.boolean(),
         minTripHours: z.number().int().min(1),
         maxTripHours: z.number().int().min(1),
+        turnaroundDays: z.number().int().min(0).max(7),
         cancellationPolicy: z.enum(['flexible', 'moderate', 'strict']),
         delivery: z
           .object({

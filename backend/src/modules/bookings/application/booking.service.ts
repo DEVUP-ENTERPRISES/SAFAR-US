@@ -1,6 +1,7 @@
 import { BookingModel, type BookingDoc } from '../infrastructure/booking.model';
 import { canTransition, type BookingStatus } from '../domain/booking-status';
 import { computeRefund } from '../domain/cancellation-policy';
+import { verifyPriceLock, issuePriceLock, type PriceLock } from '../../pricing/domain/price-lock';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { availabilityService } from '../../availability/application/availability.service';
 import { eligibilityService } from './eligibility.service';
@@ -25,9 +26,24 @@ const VERIFICATION_WINDOW_MS = 72 * 60 * 60 * 1000;
 
 export class BookingService {
   async quote(dto: CreateBookingDto, guestId?: string): Promise<PriceBreakdown> {
+    return (await this.quoteWithLock(dto, guestId)).breakdown;
+  }
+
+  /**
+   * Quote, plus a signed promise of that price.
+   *
+   * The lock is issued here rather than in the route so it is signed over the
+   * same PARSED dates `create()` will later compare against. Signing the raw
+   * request values instead makes every genuine lock fail verification, because
+   * parsePeriod normalises them.
+   */
+  async quoteWithLock(
+    dto: CreateBookingDto,
+    guestId?: string,
+  ): Promise<{ breakdown: PriceBreakdown; priceLock?: PriceLock }> {
     const { start, end } = this.parsePeriod(dto.start, dto.end);
     await this.assertBookableWindow(dto.vehicleId, start, end);
-    return pricingService.quote({
+    const breakdown = await pricingService.quote({
       vehicleId: dto.vehicleId,
       start,
       end,
@@ -37,6 +53,12 @@ export class BookingService {
       delivery: dto.delivery,
       guestId, // membership benefits apply to the price the guest is shown
     });
+
+    // Anonymous callers get a price but no lock — a lock is bound to a guest.
+    const priceLock = guestId
+      ? issuePriceLock({ vehicleId: dto.vehicleId, guestId, start, end, breakdown })
+      : undefined;
+    return { breakdown, priceLock };
   }
 
   async create(
@@ -114,6 +136,40 @@ export class BookingService {
       delivery: dto.delivery,
       guestId, // the price they're charged must match the price they were quoted
     });
+
+    // Honour the quoted price.
+    //
+    // Recomputing here is correct — the guest must not be able to name their
+    // own price — but a *cheaper* recomputation is fine, and a dearer one is
+    // not: it means something moved (surge, a seasonal rule, an expired coupon)
+    // between the screen and this call, and the guest never agreed to it.
+    if (dto.priceLock) {
+      const check = verifyPriceLock(dto.priceLock, {
+        vehicleId: dto.vehicleId,
+        guestId,
+        start,
+        end,
+      });
+      if (!check.ok && check.reason === 'mismatch') {
+        // The lock is genuine but describes a different booking — either the
+        // dates moved after quoting, or a cheap lock is being replayed on
+        // expensive dates. Both need a fresh quote; neither is charged.
+        throw new ConflictError(
+          'These dates no longer match your quote. Please review the price.',
+          'PRICE_LOCK_STALE',
+        );
+      }
+      if (!check.ok && check.reason !== 'expired') {
+        // Forged or malformed — not an honest client.
+        throw new ForbiddenError('This quote is not valid for this booking.');
+      }
+      if (check.ok && breakdown.total.amount > dto.priceLock.total) {
+        throw new ConflictError(
+          'The price changed while you were booking. Please review the new total.',
+          'PRICE_CHANGED',
+        );
+      }
+    }
 
     // Pay-with-wallet: apply available balance, card charges the remainder.
     // Supported on instant bookings (captured immediately).

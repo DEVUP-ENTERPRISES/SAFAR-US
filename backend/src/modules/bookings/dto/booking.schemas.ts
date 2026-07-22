@@ -19,8 +19,22 @@ export const quoteSchema = z.object({
   delivery: deliverySchema.optional(),
 });
 
+/** The signed quote returned by POST /bookings/quote. */
+export const priceLockSchema = z.object({
+  vehicleId: z.string(),
+  guestId: z.string(),
+  start: z.string(),
+  end: z.string(),
+  total: z.number().int(),
+  currency: z.string(),
+  expiresAt: z.number(),
+  signature: z.string(),
+});
+
 export const createBookingSchema = quoteSchema.extend({
   useWallet: z.boolean().optional(),
+  /** Optional so existing clients keep working; when present it is enforced. */
+  priceLock: priceLockSchema.optional(),
 });
 
 export const cancelSchema = z.object({

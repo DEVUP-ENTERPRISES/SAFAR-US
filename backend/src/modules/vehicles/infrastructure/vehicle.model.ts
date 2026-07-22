@@ -56,6 +56,11 @@ export interface VehicleDoc {
     description: string;
     instantBook: boolean;
     minTripHours: number;
+    /**
+     * Days kept free after a trip ends, for cleaning, refuelling or servicing.
+     * 0 means back-to-back trips are welcome.
+     */
+    turnaroundDays?: number;
     maxTripHours: number;
     cancellationPolicy: 'flexible' | 'moderate' | 'strict';
     delivery: {
@@ -141,6 +146,7 @@ const schema = new Schema<VehicleDoc>(
       description: { type: String, default: '' },
       instantBook: { type: Boolean, default: false },
       minTripHours: { type: Number, default: 24 },
+      turnaroundDays: { type: Number, default: 0, min: 0, max: 7 },
       maxTripHours: { type: Number, default: 24 * 30 },
       cancellationPolicy: {
         type: String,

@@ -1,3 +1,4 @@
+import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { AvailabilityModel } from '../infrastructure/availability.model';
 import { ConflictError } from '../../../core/errors/app-error';
 import { randomId } from '../../../shared/utils/uuid';
@@ -17,7 +18,22 @@ function dayKeys(start: Date, end: Date): string[] {
   return keys;
 }
 
+function addDays(d: Date, n: number): Date {
+  const out = new Date(d);
+  out.setUTCDate(out.getUTCDate() + n);
+  return out;
+}
+
 export class AvailabilityService implements IAvailabilityContract {
+  /** Cached per call chain; a config read per availability check is wasteful. */
+  private async turnaroundDays(vehicleId: string): Promise<number> {
+    const v = await VehicleModel.findOne(
+      { _id: vehicleId },
+      { 'listing.turnaroundDays': 1 },
+    ).lean();
+    return Math.max(0, Math.min(7, v?.listing?.turnaroundDays ?? 0));
+  }
+
   /**
    * Is the range free?
    *
@@ -32,7 +48,12 @@ export class AvailabilityService implements IAvailabilityContract {
     end: Date,
     excludeHoldId?: string,
   ): Promise<boolean> {
-    const keys = dayKeys(start, end);
+    // Widen the window by the host's turnaround so a new trip cannot start
+    // inside the gap they keep for cleaning and servicing. Checked here rather
+    // than written into the calendar so a host can change the setting without
+    // rewriting every future day.
+    const turnaround = await this.turnaroundDays(vehicleId);
+    const keys = turnaround > 0 ? dayKeys(addDays(start, -turnaround), addDays(end, turnaround)) : dayKeys(start, end);
     const now = new Date();
     const blocking = await AvailabilityModel.findOne({
       vehicleId,

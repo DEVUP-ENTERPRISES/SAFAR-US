@@ -27,8 +27,18 @@ router.post(
   validate({ body: quoteSchema }),
   asyncHandler(async (req, res) => {
     // Pass the caller so CATO Plus benefits are reflected in the quoted price.
-    const breakdown = await bookingService.quote(req.body, req.principal!.userId);
-    sendSuccess(res, breakdown);
+    // The lock is a signed promise that this is the price they will be charged:
+    // without it, a surge rule activating between "see price" and "confirm"
+    // silently charges more than the screen showed.
+    const { breakdown, priceLock } = await bookingService.quoteWithLock(
+      req.body,
+      req.principal!.userId,
+    );
+    sendSuccess(res, {
+      ...breakdown,
+      priceLock,
+      lockExpiresAt: priceLock ? new Date(priceLock.expiresAt) : undefined,
+    });
   }),
 );
 
