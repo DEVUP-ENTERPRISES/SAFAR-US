@@ -7,6 +7,10 @@ export interface AuditInput {
   resourceType?: string;
   resourceId?: string;
   ip?: string;
+  userAgent?: string;
+  before?: Record<string, unknown>;
+  after?: Record<string, unknown>;
+  reason?: string;
   status: number;
   correlationId?: string;
 }
@@ -15,6 +19,14 @@ export class AuditService {
   async record(input: AuditInput): Promise<void> {
     // Fire-and-forget; auditing must never break the request path.
     AuditLogModel.create({ ...input, at: new Date() }).catch(() => undefined);
+  }
+
+  /** Everything ever done TO one resource — the object's own history. */
+  async forResource(resourceType: string, resourceId: string, limit = 100): Promise<AuditLogDoc[]> {
+    return AuditLogModel.find({ resourceType, resourceId })
+      .sort({ at: -1 })
+      .limit(limit)
+      .lean<AuditLogDoc[]>();
   }
 
   async query(opts: { actorId?: string; action?: string; limit?: number; skip?: number }): Promise<{

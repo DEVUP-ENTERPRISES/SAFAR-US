@@ -52,6 +52,8 @@ export interface UserDoc {
   statusChangedAt?: Date;
   statusChangedBy?: string;
   closedAt?: Date;
+  /** Set when identifiers were destroyed under a data-rights request. */
+  erasedAt?: Date;
   /** Formal warnings issued from claim settlements. Three strikes → review. */
   warnings?: { reason: string; at: Date; by: string; claimId?: string }[];
   /** Device tokens for push. Cleared when a provider reports one dead. */
@@ -110,6 +112,7 @@ const userSchema = new Schema<UserDoc>(
     statusChangedAt: Date,
     statusChangedBy: String,
     closedAt: Date,
+    erasedAt: Date,
     pushTokens: { type: [String], default: [] },
     locale: { type: String, default: 'en-US' },
     timezone: { type: String, default: 'UTC' },

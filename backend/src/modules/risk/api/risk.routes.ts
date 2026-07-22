@@ -4,12 +4,21 @@ import { riskService, type DenyType } from '../application/risk.service';
 import { trustScoreService } from '../application/trust-score.service';
 import { userRepository } from '../../users/infrastructure/user.repository';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
+import { auditLog } from '../../../shared/middleware/audit-log';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
+
+/**
+ * These routes live outside the /admin router, so they do not inherit its
+ * audit middleware — every privileged action here would otherwise be
+ * completely unlogged. Applied explicitly rather than moved, because the
+ * member-facing routes in this file must stay reachable without admin scope.
+ */
+router.use(auditLog('risk'));
 
 /**
  * My trust score.

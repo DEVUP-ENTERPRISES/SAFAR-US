@@ -15,6 +15,7 @@ import { reviewsRoutes } from './modules/reviews/api/reviews.routes';
 import { notificationsRoutes } from './modules/notifications/api/notifications.routes';
 import { mediaRoutes } from './modules/media/api/media.routes';
 import { riskRoutes } from './modules/risk/api/risk.routes';
+import { complianceRoutes } from './modules/compliance/api/compliance.routes';
 import { documentsRoutes } from './modules/documents/api/documents.routes';
 import { earningsRoutes } from './modules/earnings/api/earnings.routes';
 import { fleetRoutes } from './modules/fleet/api/fleet.routes';
@@ -55,6 +56,7 @@ export function buildApiRouter(): Router {
   api.use('/media', mediaRoutes);
   // Mounted at the root: it serves both /trust/me and /admin/risk/*.
   api.use('/', riskRoutes);
+  api.use('/', complianceRoutes);
   api.use('/documents', documentsRoutes);
   api.use('/earnings', earningsRoutes);
   api.use('/fleets', fleetRoutes);
