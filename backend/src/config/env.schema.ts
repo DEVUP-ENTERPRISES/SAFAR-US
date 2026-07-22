@@ -57,6 +57,18 @@ export const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
 
   // ── Bootstrap super-admin (seeded on boot if set) ──
+  // ── Notification channels ──────────────────────────────────────────
+  // Each is optional; a channel with no credentials logs loudly instead of
+  // silently pretending to deliver. Production without email + SMS is an
+  // error at boot, not a surprise in week one.
+  EMAIL_API_URL: z.string().url().optional(),
+  EMAIL_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
+  SMS_ACCOUNT_SID: z.string().optional(),
+  SMS_AUTH_TOKEN: z.string().optional(),
+  SMS_FROM: z.string().optional(),
+  FCM_SERVER_KEY: z.string().optional(),
+
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().min(8).optional(),
   ADMIN_NAME: z.string().optional(),

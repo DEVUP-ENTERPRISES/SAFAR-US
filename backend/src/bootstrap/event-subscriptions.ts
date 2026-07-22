@@ -22,10 +22,12 @@ export function registerEventSubscribers(): void {
     title: string,
     body: string,
     data: Record<string, unknown>,
+    priority: 'critical' | 'high' | 'normal' | 'low' = 'normal',
+    deepLink?: string,
   ) => {
     try {
       const host = await hostService.getById(hostId);
-      await notificationService.send({ userId: host.userId, templateKey, title, body, data });
+      await notificationService.send({ userId: host.userId, templateKey, title, body, data, priority, deepLink });
     } catch (err) {
       logger.warn({ err, hostId }, 'notify host failed');
     }
@@ -35,15 +37,25 @@ export function registerEventSubscribers(): void {
     const p = e.payload as { bookingId: string; guestId: string; hostId: string; instantBook: boolean };
     await notificationService.send({
       userId: p.guestId,
+      priority: 'high',
+      deepLink: `/bookings/${p.bookingId}`,
       templateKey: 'booking.created',
       title: 'Booking requested',
       body: p.instantBook ? 'Your booking is confirmed!' : 'Waiting for host approval.',
       data: { bookingId: p.bookingId },
     });
     if (!p.instantBook) {
-      await notifyHost(p.hostId, 'booking.request', 'New booking request', 'A guest wants to book your car.', {
-        bookingId: p.bookingId,
-      });
+      // Critical: this is the message whose absence silently expires bookings.
+      // It has to leave the app — push, SMS and email.
+      await notifyHost(
+        p.hostId,
+        'booking.request',
+        'New booking request',
+        'A guest wants to book your car. You have 24 hours to respond.',
+        { bookingId: p.bookingId },
+        'critical',
+        `/host/trips?booking=${p.bookingId}`,
+      );
     }
   });
 
@@ -51,6 +63,8 @@ export function registerEventSubscribers(): void {
     const p = e.payload as { bookingId: string; guestId: string; hostId: string };
     await notificationService.send({
       userId: p.guestId,
+      priority: 'critical',
+      deepLink: `/bookings/${p.bookingId}`,
       templateKey: 'booking.confirmed',
       title: 'Booking confirmed',
       body: 'Your trip is booked. Have a great ride!',
@@ -93,6 +107,8 @@ export function registerEventSubscribers(): void {
     const p = e.payload as { bookingId: string; guestId: string };
     await notificationService.send({
       userId: p.guestId,
+      priority: 'critical',
+      deepLink: `/bookings/${p.bookingId}`,
       templateKey: 'booking.reminder',
       title: 'Your trip is coming up',
       body: 'Your CATO trip starts soon. Tap to view details.',
@@ -115,6 +131,8 @@ export function registerEventSubscribers(): void {
     const p = e.payload as { bookingId: string; guestId: string; hostId: string; refund: { amount: number } };
     await notificationService.send({
       userId: p.guestId,
+      priority: 'critical',
+      deepLink: `/bookings/${p.bookingId}`,
       templateKey: 'booking.cancelled',
       title: 'Booking cancelled',
       body: `Your booking was cancelled. Refund: ${(p.refund?.amount ?? 0) / 100}.`,
@@ -204,6 +222,7 @@ export function registerEventSubscribers(): void {
         logger.info({ userId: p.userId, promoted }, 'released bookings held for verification');
         await notificationService.send({
           userId: p.userId,
+              priority: 'critical',
           templateKey: 'booking.verification_cleared',
           title: 'You’re verified ✅',
           body: `Your licence checked out. ${promoted} booking${promoted === 1 ? ' is' : 's are'} moving forward.`,

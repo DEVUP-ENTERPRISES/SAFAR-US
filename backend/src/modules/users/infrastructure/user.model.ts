@@ -41,6 +41,12 @@ export interface UserDoc {
   status: 'active' | 'suspended' | 'banned';
   /** Formal warnings issued from claim settlements. Three strikes → review. */
   warnings?: { reason: string; at: Date; by: string; claimId?: string }[];
+  /** Device tokens for push. Cleared when a provider reports one dead. */
+  pushTokens?: string[];
+  /** en-US | en-CA | fr-CA. Québec French is a legal requirement, not a nicety. */
+  locale?: string;
+  /** IANA zone — quiet hours are local to the recipient, not the server. */
+  timezone?: string;
   emailVerified: boolean;
   phoneVerified: boolean;
   createdAt: Date;
@@ -83,6 +89,9 @@ const userSchema = new Schema<UserDoc>(
       default: [],
     },
     status: { type: String, default: 'active', enum: ['active', 'suspended', 'banned'] },
+    pushTokens: { type: [String], default: [] },
+    locale: { type: String, default: 'en-US' },
+    timezone: { type: String, default: 'UTC' },
     emailVerified: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },

@@ -93,6 +93,18 @@ export const config = Object.freeze({
     // like real ones (AWS key IDs are 20 chars, secrets 40) before trusting them.
     enabled: isUsableAwsCreds(env.AWS_ACCESS_KEY_ID, env.AWS_SECRET_ACCESS_KEY, env.S3_BUCKET),
   },
+  notifications: {
+    emailApiUrl: env.EMAIL_API_URL,
+    emailApiKey: env.EMAIL_API_KEY,
+    emailFrom: env.EMAIL_FROM,
+    emailEnabled: !!(env.EMAIL_API_URL && env.EMAIL_API_KEY && env.EMAIL_FROM),
+    smsAccountSid: env.SMS_ACCOUNT_SID,
+    smsAuthToken: env.SMS_AUTH_TOKEN,
+    smsFrom: env.SMS_FROM,
+    smsEnabled: !!(env.SMS_ACCOUNT_SID && env.SMS_AUTH_TOKEN && env.SMS_FROM),
+    fcmServerKey: env.FCM_SERVER_KEY,
+    pushEnabled: !!env.FCM_SERVER_KEY,
+  },
   maps: {
     googleKey: env.GOOGLE_MAPS_API_KEY,
     enabled: !!env.GOOGLE_MAPS_API_KEY,

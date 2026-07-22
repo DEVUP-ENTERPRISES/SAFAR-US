@@ -9,6 +9,18 @@ export interface NotificationDoc {
   title: string;
   body: string;
   data: Record<string, unknown>;
+  priority?: 'critical' | 'high' | 'normal' | 'low';
+  /** Where tapping this lands — never the app home. */
+  deepLink?: string;
+  /** One row per channel attempt: the delivery log an operator reads. */
+  attempts?: {
+    channel: string;
+    at: Date;
+    ok: boolean;
+    providerId?: string;
+    error?: string;
+  }[];
+  delivery?: { suppressed?: string };
   status: 'queued' | 'sent' | 'read' | 'failed';
   readAt?: Date;
   createdAt: Date;
@@ -24,6 +36,13 @@ const schema = new Schema<NotificationDoc>(
     title: { type: String, default: '' },
     body: { type: String, default: '' },
     data: { type: Schema.Types.Mixed, default: {} },
+    priority: { type: String, default: 'normal', enum: ['critical', 'high', 'normal', 'low'] },
+    deepLink: String,
+    attempts: {
+      type: [{ channel: String, at: Date, ok: Boolean, providerId: String, error: String }],
+      default: [],
+    },
+    delivery: { suppressed: String },
     status: { type: String, default: 'queued', enum: ['queued', 'sent', 'read', 'failed'] },
     readAt: Date,
   },
