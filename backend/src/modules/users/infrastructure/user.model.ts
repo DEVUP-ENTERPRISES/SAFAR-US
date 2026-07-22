@@ -38,7 +38,20 @@ export interface UserDoc {
   emergencyContacts: EmergencyContact[];
   roles: string[];
   mfa?: { enabled: boolean; secret?: string; pendingSecret?: string; enabledAt?: Date };
-  status: 'active' | 'suspended' | 'banned';
+  /**
+   * Account lifecycle.
+   *   active         normal service
+   *   restricted     can browse and manage existing trips, cannot book new ones
+   *   under_review   a risk decision is with a human; booking paused, not punished
+   *   suspended      access withdrawn, reversible
+   *   banned         permanent
+   *   closed         member asked to leave; PII minimised, ledger retained
+   */
+  status: 'active' | 'restricted' | 'under_review' | 'suspended' | 'banned' | 'closed';
+  statusReason?: string;
+  statusChangedAt?: Date;
+  statusChangedBy?: string;
+  closedAt?: Date;
   /** Formal warnings issued from claim settlements. Three strikes → review. */
   warnings?: { reason: string; at: Date; by: string; claimId?: string }[];
   /** Device tokens for push. Cleared when a provider reports one dead. */
@@ -88,7 +101,15 @@ const userSchema = new Schema<UserDoc>(
       type: [{ _id: false, reason: String, at: Date, by: String, claimId: String }],
       default: [],
     },
-    status: { type: String, default: 'active', enum: ['active', 'suspended', 'banned'] },
+    status: {
+      type: String,
+      default: 'active',
+      enum: ['active', 'restricted', 'under_review', 'suspended', 'banned', 'closed'],
+    },
+    statusReason: String,
+    statusChangedAt: Date,
+    statusChangedBy: String,
+    closedAt: Date,
     pushTokens: { type: [String], default: [] },
     locale: { type: String, default: 'en-US' },
     timezone: { type: String, default: 'UTC' },

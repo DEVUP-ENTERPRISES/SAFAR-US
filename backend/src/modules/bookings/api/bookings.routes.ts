@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { bookingService } from '../application/booking.service';
 import { eligibilityService } from '../application/eligibility.service';
+import { riskService } from '../../risk/application/risk.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
@@ -41,6 +42,20 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     const tripEnd = req.query.end ? new Date(String(req.query.end)) : undefined;
+    // Register the device here too. The booking call is far too late to start
+    // learning which accounts share a handset — by then the ring has already
+    // been built and only the last account looks suspicious.
+    void riskService.touchDevice({
+      userId: req.principal!.userId,
+      context: 'login',
+      deviceFingerprint: req.device?.fingerprint,
+      ip: req.device?.ip,
+      userAgent: req.device?.userAgent,
+      platform: req.device?.platform,
+      emulator: req.device?.emulator,
+      rooted: req.device?.rooted,
+    });
+
     const result = await eligibilityService.evaluate(
       req.principal!.userId,
       tripEnd && !Number.isNaN(tripEnd.getTime()) ? tripEnd : undefined,
@@ -59,7 +74,13 @@ router.post(
   validate({ body: createBookingSchema }),
   asyncHandler(async (req, res) => {
     const idempotencyKey = req.header('idempotency-key');
-    const booking = await bookingService.create(req.principal!.userId, req.body, idempotencyKey);
+    const booking = await bookingService.create(
+      req.principal!.userId,
+      req.body,
+      idempotencyKey,
+      undefined,
+      { ...req.device, deviceFingerprint: req.device?.fingerprint },
+    );
     sendCreated(res, booking);
   }),
 );

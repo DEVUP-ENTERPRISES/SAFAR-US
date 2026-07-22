@@ -4,6 +4,8 @@ import { computeRefund } from '../domain/cancellation-policy';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { availabilityService } from '../../availability/application/availability.service';
 import { eligibilityService } from './eligibility.service';
+import { riskService } from '../../risk/application/risk.service';
+import { userRepository } from '../../users/infrastructure/user.repository';
 import { pricingService } from '../../pricing/application/pricing.service';
 import { paymentService } from '../../payments/application/payment.service';
 import { walletService } from '../../wallet/application/wallet.service';
@@ -42,6 +44,15 @@ export class BookingService {
     dto: CreateBookingDto,
     idempotencyKey?: string,
     corp?: { orgId: string; costCenterId?: string },
+    ctx?: {
+      deviceFingerprint?: string;
+      ip?: string;
+      userAgent?: string;
+      platform?: string;
+      emulator?: boolean;
+      rooted?: boolean;
+      vpn?: boolean;
+    },
   ): Promise<BookingDoc> {
     if (idempotencyKey) {
       const existing = await BookingModel.findOne({ idempotencyKey }).lean<BookingDoc>();
@@ -68,6 +79,29 @@ export class BookingService {
     const eligibility = await eligibilityService.evaluate(guestId, end);
     if (!eligibility.canRequest) {
       throw new ForbiddenError('This account cannot book. Contact support.');
+    }
+
+    // Risk is assessed per attempt, not per account: the same person on a
+    // known device at home is a different proposition from that person on a
+    // fresh emulator behind a datacenter IP.
+    const risk = await riskService.evaluate({
+      userId: guestId,
+      context: 'booking',
+      ...(ctx ?? {}),
+    });
+    if (risk.action === 'deny') {
+      // Deliberately vague. Telling someone which signal caught them is free
+      // tuning feedback for the next attempt.
+      throw new ForbiddenError('We could not complete this booking. Contact support.');
+    }
+    if (risk.action === 'review') {
+      await userRepository.setStatus(guestId, 'under_review', {
+        reason: `Risk review (score ${risk.score}) at booking`,
+        by: 'system',
+      });
+      throw new ForbiddenError(
+        'We need to check a few things before confirming this booking. We will be in touch shortly.',
+      );
     }
 
     const breakdown = await pricingService.quote({

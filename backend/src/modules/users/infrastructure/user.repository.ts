@@ -1,3 +1,4 @@
+import type { AccountStatus } from '../domain/account-status';
 import { UserModel, type UserDoc } from './user.model';
 import { cursorFilter, decodeCursor, toPage } from '../../../shared/utils/pagination';
 import type { Page } from '../../../core/types/common';
@@ -58,8 +59,21 @@ export class UserRepository {
     return toPage(rows, limit);
   }
 
-  async setStatus(userId: string, status: 'active' | 'suspended' | 'banned'): Promise<void> {
-    await UserModel.updateOne({ _id: userId }, { status });
+  async setStatus(
+    userId: string,
+    status: AccountStatus,
+    opts: { reason?: string; by?: string } = {},
+  ): Promise<void> {
+    await UserModel.updateOne(
+      { _id: userId },
+      {
+        status,
+        statusReason: opts.reason,
+        statusChangedAt: new Date(),
+        statusChangedBy: opts.by,
+        ...(status === 'closed' ? { closedAt: new Date() } : {}),
+      },
+    );
   }
 
   async count(filter: Record<string, unknown> = {}): Promise<number> {

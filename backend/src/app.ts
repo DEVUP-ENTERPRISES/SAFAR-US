@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import { config } from './config';
 import { logger } from './infrastructure/logging/logger';
 import { requestContext } from './shared/middleware/request-context';
+import { deviceContext } from './shared/middleware/device-context';
 import { errorHandler } from './shared/middleware/error-handler';
 import { notFound } from './shared/middleware/not-found';
 import { buildApiRouter } from './routes';
@@ -27,6 +28,7 @@ export function createApp(): Express {
   app.use(requestContext);
 
   // 2. security headers
+  app.use(deviceContext);
   app.use(helmet());
 
   // 3. cors — reflect allowed origins (or any origin when '*' configured).

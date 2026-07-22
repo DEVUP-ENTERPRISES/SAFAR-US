@@ -8,7 +8,9 @@ export type EligibilityBlocker =
   | 'identity_not_submitted'
   | 'identity_pending'
   | 'identity_rejected'
-  | 'licence_expired';
+  | 'licence_expired'
+  | 'under_review'
+  | 'restricted';
 
 export interface Eligibility {
   /** May the guest have a car handed to them? */
@@ -29,6 +31,8 @@ export const BLOCKER_COPY: Record<EligibilityBlocker, string> = {
   identity_pending: 'We’re reviewing your licence — usually under 2 hours.',
   identity_rejected: 'Your licence could not be verified. Please resubmit.',
   licence_expired: 'Your licence expires before this trip ends.',
+  under_review: 'We’re reviewing your account. This usually takes a few hours.',
+  restricted: 'Your account is limited. Contact support to lift this.',
 };
 
 /**
@@ -54,7 +58,12 @@ export class EligibilityService {
 
     const blockers: EligibilityBlocker[] = [];
 
-    if (!user || user.status !== 'active') blockers.push('account_suspended');
+    // Distinguish "we are looking at you" from "you are banned": the copy,
+    // the appeal path and the support queue are all different.
+    if (!user) blockers.push('account_suspended');
+    else if (user.status === 'under_review') blockers.push('under_review');
+    else if (user.status === 'restricted') blockers.push('restricted');
+    else if (user.status !== 'active') blockers.push('account_suspended');
     if (user && !user.emailVerified) blockers.push('email_unverified');
     if (user && !user.phoneVerified) blockers.push('phone_unverified');
 
@@ -69,7 +78,12 @@ export class EligibilityService {
       }
     }
 
-    const suspended = blockers.includes('account_suspended');
+    // Only a hard-stopped account is refused outright. Someone under review
+    // keeps their existing trips and can still talk to support.
+    const suspended =
+      blockers.includes('account_suspended') ||
+      blockers.includes('under_review') ||
+      blockers.includes('restricted');
 
     return {
       eligible: blockers.length === 0,
