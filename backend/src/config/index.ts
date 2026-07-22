@@ -94,10 +94,22 @@ export const config = Object.freeze({
     enabled: isUsableAwsCreds(env.AWS_ACCESS_KEY_ID, env.AWS_SECRET_ACCESS_KEY, env.S3_BUCKET),
   },
   notifications: {
+    smtpHost: env.SMTP_HOST,
+    smtpPort: env.SMTP_PORT ?? 587,
+    smtpUser: env.SMTP_USER,
+    smtpPass: env.SMTP_PASS,
+    // Port 465 is implicit TLS; 587 upgrades via STARTTLS. Infer when unset so
+    // a correct port with a missing flag still connects.
+    smtpSecure: env.SMTP_SECURE ?? (env.SMTP_PORT === 465),
+    smtpEnabled: !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS && env.EMAIL_FROM),
     emailApiUrl: env.EMAIL_API_URL,
     emailApiKey: env.EMAIL_API_KEY,
     emailFrom: env.EMAIL_FROM,
-    emailEnabled: !!(env.EMAIL_API_URL && env.EMAIL_API_KEY && env.EMAIL_FROM),
+    emailApiEnabled: !!(env.EMAIL_API_URL && env.EMAIL_API_KEY && env.EMAIL_FROM),
+    emailEnabled: !!(
+      env.EMAIL_FROM &&
+      ((env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS) || (env.EMAIL_API_URL && env.EMAIL_API_KEY))
+    ),
     smsAccountSid: env.SMS_ACCOUNT_SID,
     smsAuthToken: env.SMS_AUTH_TOKEN,
     smsFrom: env.SMS_FROM,

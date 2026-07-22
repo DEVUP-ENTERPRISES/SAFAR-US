@@ -5,6 +5,16 @@ import { z } from 'zod';
  * Parsed & validated once at boot. If anything is missing/malformed,
  * the process refuses to start (fail fast, never at 3am under load).
  */
+/**
+ * Treat an empty env var as unset.
+ *
+ * A documented-but-blank line (`EMAIL_API_URL=`) is the normal way to ship a
+ * .env template. Without this, an empty string reaches `.url()` and the whole
+ * process refuses to boot over a variable the operator deliberately left off.
+ */
+const optional = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), schema.optional());
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
@@ -61,13 +71,22 @@ export const envSchema = z.object({
   // Each is optional; a channel with no credentials logs loudly instead of
   // silently pretending to deliver. Production without email + SMS is an
   // error at boot, not a surprise in week one.
-  EMAIL_API_URL: z.string().url().optional(),
-  EMAIL_API_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().optional(),
-  SMS_ACCOUNT_SID: z.string().optional(),
-  SMS_AUTH_TOKEN: z.string().optional(),
-  SMS_FROM: z.string().optional(),
-  FCM_SERVER_KEY: z.string().optional(),
+  // Email — either SMTP (any mailbox provider) or a transactional HTTP API.
+  // SMTP wins when both are set, since it is the more explicit choice.
+  SMTP_HOST: optional(z.string()),
+  SMTP_PORT: optional(z.coerce.number().int().positive().max(65535)),
+  SMTP_USER: optional(z.string()),
+  SMTP_PASS: optional(z.string()),
+  /** true for port 465 (implicit TLS). Leave false for 587 STARTTLS. */
+  SMTP_SECURE: optional(z.coerce.boolean()),
+  EMAIL_API_URL: optional(z.string().url()),
+  EMAIL_API_KEY: optional(z.string()),
+  /** Envelope sender, e.g. "CATO <no-reply@cato.com>". Required either way. */
+  EMAIL_FROM: optional(z.string()),
+  SMS_ACCOUNT_SID: optional(z.string()),
+  SMS_AUTH_TOKEN: optional(z.string()),
+  SMS_FROM: optional(z.string()),
+  FCM_SERVER_KEY: optional(z.string()),
 
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().min(8).optional(),

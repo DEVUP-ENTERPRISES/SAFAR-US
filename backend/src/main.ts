@@ -9,6 +9,7 @@ import { registerEventSubscribers } from './bootstrap/event-subscriptions';
 import { seedAdmin } from './bootstrap/seed-admin';
 import { initRealtime } from './realtime';
 import { initJobs } from './jobs';
+import { verifyChannels } from './modules/notifications/infrastructure/channel.providers';
 import { isRedisHealthy } from './infrastructure/cache/redis.client';
 
 /**
@@ -43,6 +44,8 @@ async function bootstrap(): Promise<void> {
   // Background jobs need Redis (BullMQ). Skip gracefully in dev without Redis.
   if (isRedisHealthy()) {
     await initJobs().catch((err) => logger.error({ err: err.message }, 'jobs init failed'));
+    // Non-blocking: a mail server being slow must not delay accepting traffic.
+    void verifyChannels();
   } else {
     logger.warn('⚠️  Redis unavailable — background jobs (BullMQ) disabled');
   }

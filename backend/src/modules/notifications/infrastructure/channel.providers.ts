@@ -1,3 +1,4 @@
+import nodemailer, { type Transporter } from 'nodemailer';
 import { config } from '../../../config';
 import { logger } from '../../../infrastructure/logging/logger';
 import type { ChannelProvider, DeliveryRequest, DeliveryResult } from '../domain/notification-channel';
@@ -34,7 +35,8 @@ class LoggingProvider implements ChannelProvider {
   }
 }
 
-class SmtpEmailProvider implements ChannelProvider {
+/** Transactional email over an HTTP API (Resend, Postmark, SendGrid, …). */
+class HttpEmailProvider implements ChannelProvider {
   readonly channel = 'email' as const;
   readonly enabled = true;
 
@@ -68,6 +70,96 @@ class SmtpEmailProvider implements ChannelProvider {
       return { ok: false, error: (err as Error).message, retryable: true };
     }
   }
+}
+
+/**
+ * Email over SMTP — any mailbox provider: Gmail, Zoho, Fastmail, SES SMTP,
+ * a self-hosted Postfix.
+ *
+ * The transport is created once and reused: opening a TLS connection per
+ * message is slow and gets an account rate-limited quickly. Nodemailer pools
+ * connections and serialises sends over them.
+ */
+class SmtpEmailProvider implements ChannelProvider {
+  readonly channel = 'email' as const;
+  readonly enabled = true;
+  private transport: Transporter | null = null;
+
+  private get mailer(): Transporter {
+    if (!this.transport) {
+      this.transport = nodemailer.createTransport({
+        host: config.notifications.smtpHost!,
+        port: config.notifications.smtpPort,
+        secure: config.notifications.smtpSecure,
+        auth: {
+          user: config.notifications.smtpUser!,
+          pass: config.notifications.smtpPass!,
+        },
+        pool: true,
+        maxConnections: 3,
+        // A mail server that hangs must not hold a notification worker open.
+        connectionTimeout: 10_000,
+        greetingTimeout: 10_000,
+        socketTimeout: 20_000,
+      });
+    }
+    return this.transport;
+  }
+
+  async send(req: DeliveryRequest): Promise<DeliveryResult> {
+    if (!req.target.email) {
+      return { ok: false, error: 'no_email_on_account', retryable: false };
+    }
+    try {
+      const info = await this.mailer.sendMail({
+        from: config.notifications.emailFrom,
+        to: req.target.email,
+        subject: req.title,
+        text: req.deepLink ? `${req.body}\n\n${absolute(req.deepLink)}` : req.body,
+        html: renderHtml(req),
+      });
+      return { ok: true, providerId: info.messageId };
+    } catch (err) {
+      const e = err as { responseCode?: number; message?: string };
+      // 5xx SMTP replies are permanent (bad mailbox, blocked sender); 4xx are
+      // transient (greylisting, rate limit) and worth another attempt.
+      const permanent = typeof e.responseCode === 'number' && e.responseCode >= 500;
+      return { ok: false, error: e.message ?? 'smtp_send_failed', retryable: !permanent };
+    }
+  }
+
+  /** Called at boot so a wrong password surfaces then, not on first booking. */
+  async verify(): Promise<void> {
+    await this.mailer.verify();
+  }
+}
+
+/** Relative deep links need the site origin to be clickable in an inbox. */
+function absolute(deepLink: string): string {
+  if (/^https?:\/\//.test(deepLink)) return deepLink;
+  const base = (config.cors.origins[0] ?? '').replace(/\/+$/, '');
+  return `${base}${deepLink.startsWith('/') ? '' : '/'}${deepLink}`;
+}
+
+/**
+ * A plain, legible HTML email. Deliberately minimal: inbox clients strip most
+ * CSS, and a booking notification's job is to be read and acted on, not admired.
+ */
+function renderHtml(req: DeliveryRequest): string {
+  const esc = (v: string) =>
+    v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const link = req.deepLink ? absolute(req.deepLink) : null;
+  return [
+    '<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;',
+    'max-width:520px;margin:0 auto;padding:24px;color:#12161c;line-height:1.6">',
+    `<h1 style="font-size:20px;margin:0 0 12px">${esc(req.title)}</h1>`,
+    `<p style="margin:0 0 20px;color:#46535b">${esc(req.body)}</p>`,
+    link
+      ? `<a href="${esc(link)}" style="display:inline-block;background:#0f9d6a;color:#fff;` +
+        'text-decoration:none;padding:11px 20px;border-radius:8px;font-weight:600">View details</a>'
+      : '',
+    '</div>',
+  ].join('');
 }
 
 class SmsProvider implements ChannelProvider {
@@ -147,19 +239,40 @@ class FcmPushProvider implements ChannelProvider {
 const n = config.notifications;
 
 export const channelProviders: Record<'push' | 'email' | 'sms', ChannelProvider> = {
-  email: n.emailEnabled ? new SmtpEmailProvider() : new LoggingProvider('email'),
+  // SMTP wins when both are configured — it is the more explicit choice.
+  email: n.smtpEnabled
+    ? new SmtpEmailProvider()
+    : n.emailApiEnabled
+      ? new HttpEmailProvider()
+      : new LoggingProvider('email'),
   sms: n.smsEnabled ? new SmsProvider() : new LoggingProvider('sms'),
   push: n.pushEnabled ? new FcmPushProvider() : new LoggingProvider('push'),
 };
 
 logger.info(
   {
-    email: n.emailEnabled ? 'live' : 'not configured',
+    email: n.smtpEnabled ? `SMTP ${n.smtpHost}:${n.smtpPort}` : n.emailApiEnabled ? 'HTTP API' : 'not configured',
     sms: n.smsEnabled ? 'live' : 'not configured',
     push: n.pushEnabled ? 'live' : 'not configured',
   },
   '🔔 Notification channels',
 );
+
+/**
+ * Prove the SMTP credentials at boot rather than on the first booking. A wrong
+ * password should be a startup line, not a host who never heard about a trip.
+ */
+export async function verifyChannels(): Promise<void> {
+  const email = channelProviders.email;
+  if (email instanceof SmtpEmailProvider) {
+    try {
+      await email.verify();
+      logger.info('✅ SMTP credentials verified');
+    } catch (err) {
+      logger.error({ err: (err as Error).message }, '❌ SMTP credentials rejected — email will not send');
+    }
+  }
+}
 
 if (config.env === 'production' && !(n.emailEnabled && n.smsEnabled)) {
   logger.error(
