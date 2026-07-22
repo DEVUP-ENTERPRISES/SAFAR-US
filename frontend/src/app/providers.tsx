@@ -46,12 +46,20 @@ function createQueryClient(notify: (t: { tone: 'error'; title: string; descripti
       onError: (error, _vars, _ctx, mutation) => {
         // A page that surfaces its own error inline can opt out.
         if (mutation.meta?.silentError) return;
-        const message =
+        // A validation failure carries a per-field `details` list. Showing only
+        // `message` collapsed every one of them into "Validation failed", which
+        // tells the user nothing about what to fix.
+        let message =
           error instanceof ApiError
             ? error.message
             : error instanceof Error
               ? error.message
               : 'Something went wrong.';
+        if (error instanceof ApiError && error.details?.length) {
+          message = error.details
+            .map((d) => (d.field ? `${d.field}: ${d.issue}` : d.issue))
+            .join(' · ');
+        }
         notify({ tone: 'error', title: "That didn't go through", description: message });
       },
     }),

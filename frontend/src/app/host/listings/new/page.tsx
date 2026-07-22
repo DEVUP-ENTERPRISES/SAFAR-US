@@ -27,7 +27,8 @@ interface Draft {
   fuelType: 'petrol' | 'diesel' | 'hybrid' | 'ev';
   seats: number;
   city: string;
-  address: string;
+  address: string;      // geocoded, from the location picker
+  pickupNotes: string;  // host's free text: gate codes, which bay, etc.
   lng: number | null;
   lat: number | null;
   color: string;
@@ -63,7 +64,7 @@ const ADDON_PRESETS: Record<string, { label: string; priceType: 'per_trip' | 'pe
 const initial: Draft = {
   make: '', model: '', year: 2022, category: 'economy', bodyType: 'sedan',
   transmission: 'automatic', fuelType: 'petrol', seats: 5,
-  city: '', address: '', lng: null, lat: null, color: '', doors: 4, features: '',
+  city: '', address: '', pickupNotes: '', lng: null, lat: null, color: '', doors: 4, features: '',
   photos: [], title: '', description: '', instantBook: true, cancellationPolicy: 'moderate',
   dailyPrice: 65, cleaningFee: 25, weekendPct: 20, weeklyDiscountPct: 10, monthlyDiscountPct: 20,
   earlyBirdPct: 5, lastMinutePct: 0,
@@ -134,7 +135,12 @@ export default function NewListingPage() {
         specs: { color: d.color, doors: Number(d.doors) },
         features: d.features.split(',').map((f) => f.trim()).filter(Boolean),
         photos: d.photos,
-        location: { lng: d.lng!, lat: d.lat!, address: d.address, city: d.city },
+        location: {
+          lng: d.lng!,
+          lat: d.lat!,
+          address: [d.address, d.pickupNotes].filter(Boolean).join(' — '),
+          city: d.city,
+        },
         listing: {
           title: d.title || `${d.make} ${d.model} ${d.year}`,
           description: d.description,
@@ -169,11 +175,53 @@ export default function NewListingPage() {
     onSuccess: (v) => router.push(`/host/listings/${v._id}`),
   });
 
-  const canNext = () => {
-    if (step === 0) return d.make && d.model;
-    if (step === 2) return d.photos.length >= minPhotos;
-    return true;
+  /**
+   * What each step requires, named per field.
+   *
+   * The wizard used to gate only make/model and photo count, so a host could
+   * reach Review without ever picking a location and the create call came back
+   * with a bare "Validation failed" — no indication of which field, six steps
+   * from where the mistake was made. Requirements are checked on the step that
+   * owns them and the offending input is marked there.
+   */
+  const stepErrors = (forStep: number): Record<string, string> => {
+    const e: Record<string, string> = {};
+    if (forStep === 0) {
+      if (!d.make.trim()) e.make = 'Required';
+      if (!d.model.trim()) e.model = 'Required';
+      const year = Number(d.year);
+      if (!year || year < 1900 || year > new Date().getFullYear() + 1) e.year = 'Enter a valid year';
+      if (!Number(d.seats) || Number(d.seats) < 1) e.seats = 'At least 1 seat';
+    }
+    if (forStep === 1) {
+      // A listing with no coordinates cannot be searched, so this is the one
+      // field a host must not be able to skip past.
+      if (d.lng === null || d.lat === null) e.location = 'Pick a pickup location from the suggestions';
+      else if (!d.city.trim()) e.location = 'That address has no city — pick a more specific one';
+    }
+    if (forStep === 2) {
+      if (d.photos.length < minPhotos) {
+        e.photos = `Add ${minPhotos - d.photos.length} more photo${minPhotos - d.photos.length === 1 ? '' : 's'}`;
+      }
+    }
+    if (forStep === 3) {
+      if (!Number(d.dailyPrice) || Number(d.dailyPrice) <= 0) e.dailyPrice = 'Set a daily price';
+      if (Number(d.cleaningFee) < 0) e.cleaningFee = 'Cannot be negative';
+    }
+    if (forStep === 4) {
+      const anyDelivery = d.delivery.airport || d.delivery.home || d.delivery.hotel || d.delivery.business;
+      if (anyDelivery && Number(d.delivery.radiusKm) <= 0) e.radiusKm = 'Set how far you will deliver';
+    }
+    return e;
   };
+
+  const errors = stepErrors(step);
+  const canNext = () => Object.keys(errors).length === 0;
+
+  /** Every unmet requirement across the whole wizard — shown on Review. */
+  const allBlockers = [0, 1, 2, 3, 4].flatMap((i) =>
+    Object.entries(stepErrors(i)).map(([field, msg]) => ({ step: i, field, msg })),
+  );
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -203,10 +251,10 @@ export default function NewListingPage() {
         <CardContent className="space-y-4 pt-6">
           {step === 0 && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Make"><Input value={d.make} onChange={(e) => set('make', e.target.value)} placeholder="Toyota" /></Field>
-              <Field label="Model"><Input value={d.model} onChange={(e) => set('model', e.target.value)} placeholder="Camry" /></Field>
-              <Field label="Year"><Input type="number" value={d.year} onChange={(e) => set('year', Number(e.target.value))} /></Field>
-              <Field label="Seats"><Input type="number" value={d.seats} onChange={(e) => set('seats', Number(e.target.value))} /></Field>
+              <Field label="Make *" error={errors.make}><Input value={d.make} onChange={(e) => set('make', e.target.value)} placeholder="Toyota" /></Field>
+              <Field label="Model *" error={errors.model}><Input value={d.model} onChange={(e) => set('model', e.target.value)} placeholder="Camry" /></Field>
+              <Field label="Year *" error={errors.year}><Input type="number" value={d.year} onChange={(e) => set('year', Number(e.target.value))} /></Field>
+              <Field label="Seats *" error={errors.seats}><Input type="number" value={d.seats} onChange={(e) => set('seats', Number(e.target.value))} /></Field>
               <SelectField label="Category" value={d.category} onChange={(v) => set('category', v)} options={['economy', 'luxury', 'suv', 'van', 'sports', 'ev']} />
               <SelectField label="Body type" value={d.bodyType} onChange={(v) => set('bodyType', v)} options={['sedan', 'suv', 'hatchback', 'coupe', 'van', 'truck']} />
               <SelectField label="Transmission" value={d.transmission} onChange={(v) => set('transmission', v as Draft['transmission'])} options={['automatic', 'manual']} />
@@ -217,8 +265,9 @@ export default function NewListingPage() {
           {step === 1 && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
-                label="Where guests pick it up"
+                label="Where guests pick it up *"
                 className="sm:col-span-2"
+                error={errors.location}
                 hint={d.city ? `Listed in ${d.city}` : 'Search any address — you are not limited to a fixed list of cities.'}
               >
                 <LocationSearch
@@ -235,7 +284,7 @@ export default function NewListingPage() {
                 />
               </Field>
               <Field label="Pickup notes" className="sm:col-span-2" hint="Optional — where exactly to meet, parking, gate codes">
-                <Input value={d.address} onChange={(e) => set('address', e.target.value)} placeholder="Garage level 2, spot 14" />
+                <Input value={d.pickupNotes} onChange={(e) => set('pickupNotes', e.target.value)} placeholder="Garage level 2, spot 14" />
               </Field>
               <Field label="Color"><Input value={d.color} onChange={(e) => set('color', e.target.value)} /></Field>
               <Field label="Doors"><Input type="number" value={d.doors} onChange={(e) => set('doors', Number(e.target.value))} /></Field>
@@ -253,10 +302,10 @@ export default function NewListingPage() {
                 <p className="text-sm text-muted-foreground">
                   Add photos of your vehicle. The first photo is the cover guests see in search.
                 </p>
-                <p className={`mt-1 text-sm font-medium ${d.photos.length >= minPhotos ? 'text-success' : 'text-warning'}`}>
+                <p className={`mt-1 text-sm font-medium ${d.photos.length >= minPhotos ? 'text-success' : 'text-destructive'}`}>
                   {d.photos.length >= minPhotos
                     ? `${d.photos.length} photos added`
-                    : `${d.photos.length} of ${minPhotos} required photos added`}
+                    : `${d.photos.length} of ${minPhotos} required photos added — ${errors.photos}`}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -307,8 +356,8 @@ export default function NewListingPage() {
                   </Button>
                 </div>
               </div>
-              <Field label="Daily price ($)"><Input type="number" value={d.dailyPrice} onChange={(e) => set('dailyPrice', Number(e.target.value))} /></Field>
-              <Field label="Cleaning fee ($)"><Input type="number" value={d.cleaningFee} onChange={(e) => set('cleaningFee', Number(e.target.value))} /></Field>
+              <Field label="Daily price ($) *" error={errors.dailyPrice}><Input type="number" value={d.dailyPrice} onChange={(e) => set('dailyPrice', Number(e.target.value))} /></Field>
+              <Field label="Cleaning fee ($)" error={errors.cleaningFee}><Input type="number" value={d.cleaningFee} onChange={(e) => set('cleaningFee', Number(e.target.value))} /></Field>
               <Field label="Weekend premium (%)"><Input type="number" value={d.weekendPct} onChange={(e) => set('weekendPct', Number(e.target.value))} /></Field>
               <Field label="Weekly discount (%)"><Input type="number" value={d.weeklyDiscountPct} onChange={(e) => set('weeklyDiscountPct', Number(e.target.value))} /></Field>
               <Field label="Monthly discount (%)"><Input type="number" value={d.monthlyDiscountPct} onChange={(e) => set('monthlyDiscountPct', Number(e.target.value))} /></Field>
@@ -330,7 +379,7 @@ export default function NewListingPage() {
                 </label>
               ))}
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Delivery radius (km)"><Input type="number" value={d.delivery.radiusKm} onChange={(e) => set('delivery', { ...d.delivery, radiusKm: Number(e.target.value) })} /></Field>
+                <Field label="Delivery radius (km)" error={errors.radiusKm}><Input type="number" value={d.delivery.radiusKm} onChange={(e) => set('delivery', { ...d.delivery, radiusKm: Number(e.target.value) })} /></Field>
                 <Field label="Delivery fee ($)"><Input type="number" value={d.delivery.fee} onChange={(e) => set('delivery', { ...d.delivery, fee: Number(e.target.value) })} /></Field>
               </div>
 
@@ -368,15 +417,53 @@ export default function NewListingPage() {
             <div className="space-y-2 text-sm">
               <Row label="Vehicle" value={`${d.make} ${d.model} ${d.year}`} />
               <Row label="Category" value={d.category} />
-              <Row label="Location" value={`${d.address || '—'}, ${d.city}`} />
+              <Row label="Location" value={d.city ? `${d.address || d.city} · ${d.city}` : 'Not set'} />
               <Row label="Photos" value={`${d.photos.length}`} />
               <Row label="Daily price" value={`$${d.dailyPrice}`} />
               <Row label="Instant book" value={d.instantBook ? 'Yes' : 'No'} />
-              {create.isError && (
-                <p className="text-destructive">
-                  {create.error instanceof ApiError ? create.error.message : 'Failed to create listing'}
-                </p>
+              {/* Anything still missing, with a link back to the step that owns it. */}
+              {allBlockers.length > 0 && (
+                <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+                  <p className="font-semibold text-destructive">
+                    {allBlockers.length} thing{allBlockers.length === 1 ? '' : 's'} still needed
+                  </p>
+                  <ul className="mt-1.5 space-y-1">
+                    {allBlockers.map((b) => (
+                      <li key={`${b.step}-${b.field}`}>
+                        <button
+                          onClick={() => setStep(b.step)}
+                          className="text-left text-destructive hover:underline"
+                        >
+                          {STEPS[b.step]}: {b.msg}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
+
+              {/* The server's own rejection, field by field. It returns a details
+                  list; showing only `message` reduced every failure to the
+                  useless "Validation failed". */}
+              {create.isError && (
+                <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+                  <p className="font-semibold text-destructive">
+                    {create.error instanceof ApiError ? create.error.message : 'Failed to create listing'}
+                  </p>
+                  {create.error instanceof ApiError && !!create.error.details?.length && (
+                    <ul className="mt-1.5 list-inside list-disc space-y-0.5 text-destructive">
+                      {create.error.details.map((det, i) => (
+                        <li key={i}>
+                          {det.field ? <span className="font-mono">{det.field}</span> : null}
+                          {det.field ? ' — ' : ''}
+                          {det.issue}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
               <p className="pt-2 text-muted-foreground">
                 Your listing will be created as a draft. Submit it for verification to go live.
               </p>
@@ -394,7 +481,11 @@ export default function NewListingPage() {
             Continue
           </Button>
         ) : (
-          <Button loading={create.isPending} onClick={() => create.mutate()}>
+          <Button
+            loading={create.isPending}
+            disabled={allBlockers.length > 0}
+            onClick={() => create.mutate()}
+          >
             Create listing
           </Button>
         )}

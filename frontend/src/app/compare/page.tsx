@@ -41,40 +41,60 @@ function CompareInner() {
   ];
 
   return (
-    <div className="space-y-5">
-      <h1 className="display text-display-sm">Compare cars</h1>
-      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-soft">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Feature</th>
-              {cars.map((c) => (
-                <th key={c._id} className="px-4 py-3 text-left align-top">
-                  <div className="flex items-start justify-between gap-2">
-                    <Link href={`/vehicles/${c._id}`} className="font-semibold hover:text-primary">{c.make} {c.model}</Link>
-                    <button onClick={() => remove(c._id)} className="text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>
-                  </div>
+    <div className="space-y-6">
+      <h1 className="display text-3xl sm:text-4xl font-extrabold tracking-tight">Compare cars</h1>
+      
+      {/* Scrollable table container */}
+      <div className="relative rounded-2xl border border-border bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+        <div className="overflow-x-auto hide-scrollbar">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="sticky left-0 z-20 bg-card/95 backdrop-blur px-4 py-4 sm:px-6 font-semibold text-foreground border-r border-border min-w-[140px] shadow-[4px_0_12px_rgb(0,0,0,0.02)]">
+                  Feature
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.label} className="border-b border-border last:border-0">
-                <td className="px-4 py-3 font-medium text-muted-foreground">{row.label}</td>
-                {cars.map((c) => <td key={c._id} className="px-4 py-3">{row.get(c)}</td>)}
+                {cars.map((c) => (
+                  <th key={c._id} className="px-5 py-4 align-top min-w-[200px]">
+                    <div className="flex items-start justify-between gap-3">
+                      <Link href={`/vehicles/${c._id}`} className="font-bold text-base hover:text-primary transition-colors leading-tight">
+                        {c.make} <br className="hidden sm:block" /><span className="font-medium text-muted-foreground">{c.model}</span>
+                      </Link>
+                      <button onClick={() => remove(c._id)} className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </th>
+                ))}
               </tr>
-            ))}
-            <tr>
-              <td className="px-4 py-3" />
-              {cars.map((c) => (
-                <td key={c._id} className="px-4 py-3">
-                  <Link href={`/vehicles/${c._id}`}><Button size="sm" className="w-full">Book</Button></Link>
-                </td>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map((row) => (
+                <tr key={row.label} className="group hover:bg-muted/20 transition-colors">
+                  <td className="sticky left-0 z-20 bg-card/95 backdrop-blur px-4 py-4 sm:px-6 font-medium text-muted-foreground border-r border-border group-hover:bg-muted/40 shadow-[4px_0_12px_rgb(0,0,0,0.02)]">
+                    {row.label}
+                  </td>
+                  {cars.map((c) => (
+                    <td key={c._id} className="px-5 py-4 text-foreground font-medium">
+                      {row.get(c)}
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          </tbody>
-        </table>
+              <tr className="bg-muted/10">
+                <td className="sticky left-0 z-20 bg-card/95 backdrop-blur px-4 py-5 sm:px-6 border-r border-border shadow-[4px_0_12px_rgb(0,0,0,0.02)]" />
+                {cars.map((c) => (
+                  <td key={c._id} className="px-5 py-5">
+                    <Link href={`/vehicles/${c._id}`}>
+                      <Button size="lg" className="w-full font-bold shadow-md hover:shadow-lg transition-all rounded-xl">
+                        Book this car
+                      </Button>
+                    </Link>
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

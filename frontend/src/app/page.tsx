@@ -40,17 +40,17 @@ export default function HomePage() {
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-24 sm:px-6 sm:pb-24 sm:pt-32">
           <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold tracking-wide text-white/90 backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5" /> The Mobility Operating System
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-bold tracking-widest uppercase text-white/95 backdrop-blur-md shadow-soft">
+              <Sparkles className="h-4 w-4" /> The Mobility Operating System
             </span>
 
-            <h1 className="display mt-6 text-display-lg text-white drop-shadow-sm">
+            <h1 className="mt-8 text-[3rem] leading-[1.05] tracking-tighter sm:text-[4.5rem] lg:text-[5.5rem] font-black text-white drop-shadow-md">
               Skip the counter.
               <br />
-              <span className="text-white/70">Drive something better.</span>
+              <span className="text-white/80 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">Drive something better.</span>
             </h1>
 
-            <p className="mt-8 max-w-xl text-lg sm:text-xl font-medium leading-relaxed text-white/80 drop-shadow-sm">
+            <p className="mt-8 max-w-xl text-lg sm:text-2xl font-medium leading-relaxed text-white/80 drop-shadow-sm">
               Book the perfect car from trusted local hosts — from everyday commuters to the one
               you&apos;ve always wanted to drive. Delivered to your door.
             </p>
@@ -175,13 +175,13 @@ export default function HomePage() {
         </section>
 
         {/* ── How it works ───────────────────────────────────────────── */}
-        <section className="space-y-10 relative isolate">
+        <section className="space-y-12 sm:space-y-16 relative isolate pt-10">
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-60 pointer-events-none blur-3xl"></div>
           <div className="text-center sm:text-left">
-            <h2 className="display text-display-sm bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/60 inline-block">How CATO works</h2>
-            <p className="mt-3 text-muted-foreground text-lg max-w-xl">Three steps. No counter, no queue, no paperwork.</p>
+            <h2 className="text-4xl sm:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 inline-block">How CATO works</h2>
+            <p className="mt-4 text-muted-foreground text-lg sm:text-xl font-medium max-w-xl">Three steps. No counter, no queue, no paperwork.</p>
           </div>
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 sm:gap-10 md:grid-cols-3">
             {STEPS.map((s, i) => (
               <div
                 key={s.title}

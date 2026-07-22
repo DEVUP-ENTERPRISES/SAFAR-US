@@ -170,15 +170,13 @@ function SearchInner() {
 
       {/* Filters panel */}
       {showFilters && (
-        <div className="overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card to-background p-4 sm:p-6 shadow-float animate-slide-up ring-1 ring-inset ring-white/5">
-          <div className="grid gap-6 sm:gap-8 lg:grid-cols-12">
+        <div className="overflow-hidden border-t border-border bg-card p-6 sm:p-8 animate-slide-up shadow-sm mb-6 rounded-b-2xl">
+          <div className="grid gap-10 md:grid-cols-12 max-w-7xl mx-auto">
             
             {/* Category */}
-            <div className="lg:col-span-12">
-              <h3 className="mb-3 sm:mb-4 flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary"></span> Category
-              </h3>
-              <div className="hide-scrollbar flex gap-2 sm:gap-2.5 overflow-x-auto pb-1">
+            <div className="md:col-span-12">
+              <h3 className="mb-4 text-base font-semibold text-foreground">Category</h3>
+              <div className="hide-scrollbar flex gap-3 overflow-x-auto pb-2">
                 {categories.length === 0 && (
                   <p className="text-sm text-muted-foreground">No categories available yet.</p>
                 )}
@@ -187,73 +185,67 @@ function SearchInner() {
                     key={c.category}
                     active={category === c.category}
                     onClick={() => setCategory(category === c.category ? '' : c.category)}
-                    className="capitalize px-4 py-1.5 sm:px-5 sm:py-2 hover:scale-105 active:scale-95 shrink-0"
+                    className="capitalize px-5 py-2.5 hover:scale-105 active:scale-95 shrink-0 text-sm font-medium"
                   >
                     {c.category}
-                    <span className="ml-1.5 opacity-60">{c.vehicles}</span>
+                    <span className="ml-1.5 opacity-60 font-normal">{c.vehicles}</span>
                   </Chip>
                 ))}
               </div>
             </div>
 
-            <div className="h-px bg-border/40 lg:col-span-12" />
+            <div className="h-px bg-border/60 md:col-span-12" />
 
             {/* Core Specs */}
-            <div className="lg:col-span-4 space-y-3 sm:space-y-4">
-              <h3 className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-500"></span> Powertrain
-              </h3>
-              <div className="flex flex-wrap gap-2">
+            <div className="md:col-span-4 space-y-4">
+              <h3 className="text-base font-semibold text-foreground">Powertrain</h3>
+              <div className="flex flex-wrap gap-3">
                 {['petrol', 'diesel', 'hybrid', 'ev'].map((f) => (
-                  <Chip key={f} active={fuelType === f} onClick={() => setFuelType(fuelType === f ? '' : f)} className="capitalize shrink-0">{f}</Chip>
+                  <Chip key={f} active={fuelType === f} onClick={() => setFuelType(fuelType === f ? '' : f)} className="capitalize shrink-0 px-4 py-2 font-medium">{f}</Chip>
                 ))}
               </div>
             </div>
 
-            <div className="lg:col-span-4 space-y-3 sm:space-y-4">
-              <h3 className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
-                <span className="h-1.5 w-1.5 rounded-full bg-purple-500"></span> Transmission
-              </h3>
-              <div className="flex flex-wrap gap-2">
+            <div className="md:col-span-4 space-y-4">
+              <h3 className="text-base font-semibold text-foreground">Transmission</h3>
+              <div className="flex flex-wrap gap-3">
                 {['automatic', 'manual'].map((t) => (
-                  <Chip key={t} active={transmission === t} onClick={() => setTransmission(transmission === t ? '' : t)} className="capitalize shrink-0">{t}</Chip>
+                  <Chip key={t} active={transmission === t} onClick={() => setTransmission(transmission === t ? '' : t)} className="capitalize shrink-0 px-4 py-2 font-medium">{t}</Chip>
                 ))}
               </div>
             </div>
 
-            <div className="lg:col-span-4 space-y-3 sm:space-y-4">
-              <h3 className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
-                <span className="h-1.5 w-1.5 rounded-full bg-orange-500"></span> Limits
-              </h3>
-              <div className="flex gap-2 sm:gap-3">
-                <div className="flex-1 flex items-center gap-2 rounded-md border border-border/50 bg-background/50 px-3 h-9 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
-                  <span className="text-muted-foreground text-xs font-medium shrink-0">Seats+</span>
+            <div className="md:col-span-4 space-y-4">
+              <h3 className="text-base font-semibold text-foreground">Limits</h3>
+              <div className="flex gap-3">
+                <div className="flex-1 flex items-center gap-2 rounded-xl border border-border/80 bg-background px-4 h-11 focus-within:ring-2 focus-within:ring-foreground focus-within:border-foreground transition-all">
+                  <span className="text-muted-foreground text-sm font-medium shrink-0">Seats+</span>
                   <input type="number" value={seatsMin} onChange={(e) => setSeatsMin(e.target.value)} placeholder="Any" className="flex-1 bg-transparent outline-none text-sm min-w-0" />
                 </div>
-                <div className="flex-1 flex items-center gap-2 rounded-md border border-border/50 bg-background/50 px-3 h-9 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
-                  <span className="text-muted-foreground text-xs font-medium shrink-0">Max $</span>
+                <div className="flex-1 flex items-center gap-2 rounded-xl border border-border/80 bg-background px-4 h-11 focus-within:ring-2 focus-within:ring-foreground focus-within:border-foreground transition-all">
+                  <span className="text-muted-foreground text-sm font-medium shrink-0">Max $</span>
                   <input type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Any" className="flex-1 bg-transparent outline-none text-sm min-w-0" />
                 </div>
               </div>
             </div>
 
-            <div className="h-px bg-border/40 lg:col-span-12" />
+            <div className="h-px bg-border/60 md:col-span-12" />
 
             {/* Quick Filters */}
-            <div className="lg:col-span-12 flex flex-wrap items-center gap-2 sm:gap-3">
-              <Chip active={instantBook} onClick={() => setInstantBook((v) => !v)} className="shrink-0 ring-1 ring-yellow-500/20 data-[active=true]:bg-yellow-500/10 data-[active=true]:text-yellow-500 data-[active=true]:border-yellow-500/50">
-                <Zap className="h-3.5 w-3.5 mr-1" /> Instant book
+            <div className="md:col-span-12 flex flex-wrap items-center gap-3">
+              <Chip active={instantBook} onClick={() => setInstantBook((v) => !v)} className="shrink-0 px-4 py-2 ring-1 ring-yellow-500/20 data-[active=true]:bg-yellow-500/10 data-[active=true]:text-yellow-600 data-[active=true]:border-yellow-500/50">
+                <Zap className="h-4 w-4 mr-1.5" /> Instant book
               </Chip>
-              <Chip active={delivery} onClick={() => setDelivery((v) => !v)} className="shrink-0">
-                <MapPin className="h-3.5 w-3.5 mr-1" /> Delivery available
+              <Chip active={delivery} onClick={() => setDelivery((v) => !v)} className="shrink-0 px-4 py-2">
+                <MapPin className="h-4 w-4 mr-1.5" /> Delivery available
               </Chip>
-              <Chip active={ratingMin === 4} onClick={() => setRatingMin(ratingMin === 4 ? 0 : 4)} className="shrink-0 ring-1 ring-amber-500/20 data-[active=true]:bg-amber-500/10 data-[active=true]:text-amber-500 data-[active=true]:border-amber-500/50">
-                <Star className="h-3.5 w-3.5 mr-1" /> 4.0+ Rated
+              <Chip active={ratingMin === 4} onClick={() => setRatingMin(ratingMin === 4 ? 0 : 4)} className="shrink-0 px-4 py-2 ring-1 ring-amber-500/20 data-[active=true]:bg-amber-500/10 data-[active=true]:text-amber-600 data-[active=true]:border-amber-500/50">
+                <Star className="h-4 w-4 mr-1.5" /> 4.0+ Rated
               </Chip>
               
               {activeCount > 0 && (
-                <button onClick={clear} className="ml-auto flex items-center gap-1.5 text-sm font-medium text-destructive hover:text-destructive/80 transition-colors bg-destructive/10 px-4 py-2 rounded-full shrink-0">
-                  <X className="h-4 w-4" /> Clear filters
+                <button onClick={clear} className="ml-auto flex items-center gap-1.5 text-sm font-semibold text-destructive hover:text-destructive/80 transition-colors px-4 py-2 rounded-full shrink-0">
+                  <X className="h-4 w-4" /> Clear all
                 </button>
               )}
             </div>
