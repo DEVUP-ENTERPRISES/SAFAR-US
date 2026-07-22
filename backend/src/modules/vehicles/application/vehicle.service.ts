@@ -341,6 +341,7 @@ export class VehicleService implements IVehicleContract {
       minTripHours: v.listing.minTripHours,
       maxTripHours: v.listing.maxTripHours,
       currency: v.pricing.currency,
+      dailyPrice: v.pricing.dailyPrice, // deposit is sized off this
       bookable: v.status === 'listed' && v.verificationStatus === 'verified',
     };
   }

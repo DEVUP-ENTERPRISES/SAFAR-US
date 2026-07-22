@@ -21,7 +21,8 @@ export interface IntentResult {
 
 export interface PaymentGateway {
   createIntent(input: CreateIntentInput): Promise<IntentResult>;
-  capture(intentId: string): Promise<{ status: 'succeeded' }>;
+    /** `amountCents` captures less than was authorised (deposit settlement). */
+  capture(intentId: string, amountCents?: number): Promise<{ status: 'succeeded' }>;
   refund(intentId: string, amount: Money, idempotencyKey: string): Promise<{ refundId: string }>;
   cancel(intentId: string): Promise<{ status: 'cancelled' }>;
 }

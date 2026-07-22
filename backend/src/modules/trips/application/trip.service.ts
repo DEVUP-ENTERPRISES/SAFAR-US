@@ -1,5 +1,7 @@
 import { TripModel, type TripDoc } from '../infrastructure/trip.model';
 import { bookingService } from '../../bookings/application/booking.service';
+import { depositService } from '../../payments/application/deposit.service';
+import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
 import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
@@ -24,6 +26,22 @@ export class TripService {
     }
     const existing = await TripModel.findOne({ bookingId }).lean();
     if (existing) throw new ConflictError('Trip already started', 'TRIP_EXISTS');
+
+    // The deposit is authorised at handover, not at booking: a card
+    // authorisation only lives about a week, so one taken when a trip was
+    // booked 40 days out would have expired by the day it mattered.
+    if (await depositService.isEnabled()) {
+      const held = await depositService.forBooking(bookingId);
+      if (!held) {
+        const vehicle = await vehicleService.getForBooking(booking.vehicleId);
+        await depositService.authorize({
+          bookingId,
+          userId: booking.guestId,
+          dailyPrice: vehicle.dailyPrice,
+          currency: booking.priceBreakdown.total.currency,
+        });
+      }
+    }
 
     const trip = await TripModel.create({
       bookingId,
@@ -80,6 +98,12 @@ export class TripService {
       },
     );
     await bookingService.markCompleted(trip.bookingId);
+
+    // The deposit is not released here. The host gets an inspection window to
+    // report damage first; the auto-release job frees it when that window
+    // closes with no claim. Releasing on return would leave a host who finds a
+    // scratch an hour later with nothing to settle against.
+
     emit(EVENTS.TRIP_COMPLETED, tripId, {
       tripId,
       bookingId: trip.bookingId,

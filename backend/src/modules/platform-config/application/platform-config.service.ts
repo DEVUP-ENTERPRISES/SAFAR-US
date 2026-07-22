@@ -63,6 +63,14 @@ export class PlatformConfigService {
   private withDefaults(doc: Partial<PlatformConfigDoc>): PlatformConfigDoc {
     return {
       ...doc,
+      deposit: {
+        enabled: true,
+        minCents: 25000,
+        maxCents: 100000,
+        multiplierBps: 20000,
+        autoReleaseHours: 24,
+        ...(doc.deposit ?? {}),
+      },
       commission: { defaultBps: 2000, minBps: 0, maxBps: 4000, ...(doc.commission ?? {}) },
       tax: { bps: 0, ...(doc.tax ?? {}) },
       payout: { holdHours: 24, instantFeeBps: 150, instantFeeMinCents: 50, ...(doc.payout ?? {}) },

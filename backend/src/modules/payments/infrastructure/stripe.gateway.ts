@@ -46,8 +46,16 @@ export class StripeGateway implements PaymentGateway {
     }
   }
 
-  async capture(intentId: string): Promise<{ status: 'succeeded' }> {
-    await this.stripe.paymentIntents.capture(intentId);
+  /**
+   * Capture an authorisation, optionally for less than the amount held.
+   * Partial capture is what settles a damage claim against a deposit: take the
+   * assessed amount, and the remainder is released by the issuer automatically.
+   */
+  async capture(intentId: string, amountCents?: number): Promise<{ status: 'succeeded' }> {
+    await this.stripe.paymentIntents.capture(
+      intentId,
+      amountCents !== undefined ? { amount_to_capture: amountCents } : undefined,
+    );
     return { status: 'succeeded' };
   }
 

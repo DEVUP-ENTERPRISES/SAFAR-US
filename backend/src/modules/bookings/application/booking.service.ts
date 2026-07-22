@@ -825,7 +825,8 @@ export class BookingService {
     }
   }
 
-  private async isHostOwner(userId: string, hostId: string): Promise<boolean> {
+  /** Public: other modules gate participant-only reads on this. */
+  async isHostOwner(userId: string, hostId: string): Promise<boolean> {
     const host = await hostService.getByUserId(userId);
     return !!host && host._id === hostId;
   }

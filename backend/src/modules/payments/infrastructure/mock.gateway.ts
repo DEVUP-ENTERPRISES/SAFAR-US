@@ -20,7 +20,7 @@ export class MockGateway implements PaymentGateway {
     return { intentId, clientSecret: `${intentId}_secret`, status: status as IntentResult['status'] };
   }
 
-  async capture(intentId: string): Promise<{ status: 'succeeded' }> {
+  async capture(intentId: string, _amountCents?: number): Promise<{ status: 'succeeded' }> {
     const i = this.intents.get(intentId);
     if (i) {
       i.status = 'succeeded';

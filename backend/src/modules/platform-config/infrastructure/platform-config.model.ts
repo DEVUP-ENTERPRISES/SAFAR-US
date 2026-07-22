@@ -7,6 +7,21 @@ import { Schema, model } from 'mongoose';
  */
 export interface PlatformConfigDoc {
   _id: string; // always 'platform'
+  /**
+   * Security deposit — an authorisation held against the guest's card for the
+   * trip, captured only against evidenced damage and voided otherwise.
+   */
+  deposit: {
+    enabled: boolean;
+    /** Floor, in minor units, regardless of how cheap the car is. */
+    minCents: number;
+    /** Ceiling, so a supercar doesn't authorise someone's whole limit. */
+    maxCents: number;
+    /** Deposit = dailyPrice × this ÷ 10000, clamped to the band above. */
+    multiplierBps: number;
+    /** Hours after trip end before an unclaimed deposit is auto-released. */
+    autoReleaseHours: number;
+  };
   commission: {
     /** Fallback take rate when no CommissionRule matches. Basis points. */
     defaultBps: number;
@@ -64,6 +79,13 @@ export interface PlatformConfigDoc {
 const schema = new Schema<PlatformConfigDoc>(
   {
     _id: { type: String, default: 'platform' },
+    deposit: {
+      enabled: { type: Boolean, default: true },
+      minCents: { type: Number, default: 25000 },   // $250 floor
+      maxCents: { type: Number, default: 100000 },  // $1,000 ceiling
+      multiplierBps: { type: Number, default: 20000 }, // 2x the daily rate
+      autoReleaseHours: { type: Number, default: 24 },
+    },
     commission: {
       defaultBps: { type: Number, default: 2000 }, // 20%
       minBps: { type: Number, default: 0 },

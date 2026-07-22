@@ -7,6 +7,8 @@ export interface VehicleForBooking {
   minTripHours: number;
   maxTripHours: number;
   currency: string;
+  /** Minor units — the security deposit is sized off this. */
+  dailyPrice: number;
   bookable: boolean;
 }
 

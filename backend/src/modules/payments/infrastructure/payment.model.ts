@@ -26,6 +26,9 @@ export interface PaymentDoc {
   refundedAmount: number;
   status: PaymentStatus;
   ledgerTxnId?: string;
+  /** Why a deposit was released or captured, and when — dispute evidence. */
+  releasedReason?: string;
+  releasedAt?: Date;
   idempotencyKey?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -49,6 +52,8 @@ const schema = new Schema<PaymentDoc>(
     refundedAmount: { type: Number, default: 0 },
     status: { type: String, required: true },
     ledgerTxnId: String,
+    releasedReason: String,
+    releasedAt: Date,
     idempotencyKey: String,
     deletedAt: { type: Date, default: null },
   },
