@@ -18,12 +18,26 @@ function dayKeys(start: Date, end: Date): string[] {
 }
 
 export class AvailabilityService implements IAvailabilityContract {
-  async isAvailable(vehicleId: string, start: Date, end: Date): Promise<boolean> {
+  /**
+   * Is the range free?
+   *
+   * `excludeHoldId` lets a caller ignore a hold it already owns. Re-checking
+   * availability for a booking that is itself holding the slot would otherwise
+   * always answer "taken" — which is how a booking waiting on identity
+   * verification got cancelled at the moment it should have been released.
+   */
+  async isAvailable(
+    vehicleId: string,
+    start: Date,
+    end: Date,
+    excludeHoldId?: string,
+  ): Promise<boolean> {
     const keys = dayKeys(start, end);
     const now = new Date();
     const blocking = await AvailabilityModel.findOne({
       vehicleId,
       dayKey: { $in: keys },
+      ...(excludeHoldId ? { holdId: { $ne: excludeHoldId } } : {}),
       $or: [
         { state: { $in: ['blocked', 'booked'] } },
         { state: 'held', holdExpiresAt: { $gt: now } },

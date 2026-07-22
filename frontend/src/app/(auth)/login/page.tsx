@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
@@ -25,13 +24,15 @@ export default function LoginPage() {
   const mfaRequired = login.error instanceof ApiError && login.error.code === 'MFA_REQUIRED';
 
   return (
-    <div className="mx-auto max-w-md py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Welcome back</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit((v) => login.mutate(v))} className="space-y-4">
+    <div className="w-full">
+      <div className="mb-10 text-center lg:text-left">
+        <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-foreground">Welcome back</h2>
+        <p className="mt-3 text-lg font-medium text-muted-foreground">
+          Enter your details to sign in to your account.
+        </p>
+      </div>
+      
+      <form onSubmit={handleSubmit((v) => login.mutate(v))} className="space-y-6">
             <Field label="Email" htmlFor="email" error={formState.errors.email?.message}>
               <Input id="email" type="email" autoComplete="email" {...register('email')} />
             </Field>
@@ -56,14 +57,12 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-4 text-center text-sm text-muted-foreground">
+          <p className="mt-8 text-center text-base font-medium text-muted-foreground">
             New to CATO?{' '}
-            <Link href="/register" className="font-medium text-primary hover:underline">
+            <Link href="/register" className="font-bold text-primary hover:underline">
               Create an account
             </Link>
           </p>
-        </CardContent>
-      </Card>
     </div>
   );
 }

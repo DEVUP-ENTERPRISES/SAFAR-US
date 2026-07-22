@@ -3,6 +3,7 @@ import { canTransition, type BookingStatus } from '../domain/booking-status';
 import { computeRefund } from '../domain/cancellation-policy';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { availabilityService } from '../../availability/application/availability.service';
+import { eligibilityService } from './eligibility.service';
 import { pricingService } from '../../pricing/application/pricing.service';
 import { paymentService } from '../../payments/application/payment.service';
 import { walletService } from '../../wallet/application/wallet.service';
@@ -18,6 +19,7 @@ import type { PriceBreakdown } from '../../../core/contracts/pricing.contract';
 import type { CreateBookingDto } from '../dto/booking.schemas';
 
 const APPROVAL_WINDOW_MS = 24 * 60 * 60 * 1000;
+const VERIFICATION_WINDOW_MS = 72 * 60 * 60 * 1000;
 
 export class BookingService {
   async quote(dto: CreateBookingDto, guestId?: string): Promise<PriceBreakdown> {
@@ -58,6 +60,16 @@ export class BookingService {
       throw new ConflictError('Vehicle is not available for the selected dates', 'NOT_AVAILABLE');
     }
 
+    // Identity gate. A suspended account cannot request at all; an unverified
+    // one may request — so their check runs alongside the host's decision
+    // rather than after it — but nothing is captured and no key changes hands
+    // until it clears. See eligibility.service for why this is an insurance
+    // requirement, not just a fraud control.
+    const eligibility = await eligibilityService.evaluate(guestId, end);
+    if (!eligibility.canRequest) {
+      throw new ForbiddenError('This account cannot book. Contact support.');
+    }
+
     const breakdown = await pricingService.quote({
       vehicleId: dto.vehicleId,
       start,
@@ -72,7 +84,7 @@ export class BookingService {
     // Pay-with-wallet: apply available balance, card charges the remainder.
     // Supported on instant bookings (captured immediately).
     let walletApplied = 0;
-    if (dto.useWallet && vehicle.instantBook) {
+    if (dto.useWallet && vehicle.instantBook && eligibility.eligible) {
       const balance = await walletService.balance(guestId);
       walletApplied = Math.min(balance, breakdown.total.amount);
     }
@@ -87,7 +99,9 @@ export class BookingService {
         bookingId,
         guestId,
         hostId: vehicle.hostId,
-        capture: vehicle.instantBook,
+        // Instant Book still means instant *for a verified guest*. An
+        // unverified one is authorised only; capture happens when they clear.
+        capture: vehicle.instantBook && eligibility.eligible,
         total: breakdown.total,
         hostEarnings: breakdown.hostEarnings,
         // Protection accrues to the platform, so it rides in the commission leg
@@ -106,7 +120,11 @@ export class BookingService {
         await walletService.spend(guestId, walletApplied, 'booking', bookingId);
       }
 
-      const status: BookingStatus = vehicle.instantBook ? 'paid' : 'pending_approval';
+      const status: BookingStatus = !eligibility.eligible
+        ? 'pending_verification'
+        : vehicle.instantBook
+          ? 'paid'
+          : 'pending_approval';
       const now = new Date();
 
       const booking = await BookingModel.create({
@@ -127,13 +145,14 @@ export class BookingService {
         orgId: corp?.orgId,
         costCenterId: corp?.costCenterId,
         instantBook: vehicle.instantBook,
+        verificationBlockers: eligibility.blockers,
         approvalDeadline: vehicle.instantBook
           ? undefined
           : new Date(Math.min(start.getTime(), now.getTime() + APPROVAL_WINDOW_MS)),
         idempotencyKey,
       });
 
-      if (vehicle.instantBook) {
+      if (status === 'paid') {
         await availabilityService.confirmHold(holdId, bookingId);
       }
       if (dto.couponCode) await couponService.redeem(dto.couponCode);
@@ -143,8 +162,9 @@ export class BookingService {
         guestId,
         hostId: vehicle.hostId,
         instantBook: vehicle.instantBook,
+        verificationBlockers: eligibility.blockers,
       });
-      if (vehicle.instantBook) {
+      if (status === 'paid') {
         emit(EVENTS.BOOKING_CONFIRMED, bookingId, { bookingId, guestId, hostId: vehicle.hostId });
       }
 
@@ -153,6 +173,112 @@ export class BookingService {
       await availabilityService.releaseHold(holdId);
       throw err;
     }
+  }
+
+  /**
+   * A guest cleared identity — move every request that was waiting on them.
+   *
+   * Called from the KYC decision handler. Each held booking goes wherever it
+   * would have gone had the guest been verified when they asked: straight to
+   * `paid` for an Instant Book car (capturing the authorisation taken at
+   * request time), or into the host's queue otherwise.
+   */
+  async onGuestVerified(guestId: string): Promise<number> {
+    const held = await BookingModel.find({
+      guestId,
+      status: 'pending_verification',
+    }).lean<BookingDoc[]>();
+
+    let promoted = 0;
+    for (const booking of held) {
+      // Re-check rather than trust the caller: this booking's own end date may
+      // be past the licence expiry even though the licence is approved.
+      const eligibility = await eligibilityService.evaluate(guestId, booking.period.end);
+      if (!eligibility.eligible) continue;
+
+      // The trip may have started while they were being reviewed.
+      if (booking.period.start.getTime() < Date.now()) {
+        await this.systemCancel(booking._id, 'Verification completed after the trip start time');
+        continue;
+      }
+      // Someone else may have taken the dates.
+      // Ignore this booking's own hold — it has been sitting on the slot the
+      // whole time it was waiting for us.
+      const free = await availabilityService.isAvailable(
+        booking.vehicleId,
+        booking.period.start,
+        booking.period.end,
+        booking.holdId,
+      );
+      if (!free) {
+        await this.systemCancel(booking._id, 'The dates were taken while we verified your licence');
+        continue;
+      }
+
+      const doc = await this.getDoc(booking._id);
+      if (booking.instantBook) {
+        await paymentService.captureBooking(booking._id);
+        await availabilityService.confirmHold(booking.holdId!, booking._id);
+        await this.transition(doc, 'paid', guestId, 'Identity verified');
+        emit(EVENTS.BOOKING_CONFIRMED, booking._id, {
+          bookingId: booking._id,
+          guestId,
+          hostId: booking.hostId,
+        });
+      } else {
+        await BookingModel.updateOne(
+          { _id: booking._id },
+          {
+            approvalDeadline: new Date(
+              Math.min(booking.period.start.getTime(), Date.now() + APPROVAL_WINDOW_MS),
+            ),
+          },
+        );
+        await this.transition(doc, 'pending_approval', guestId, 'Identity verified');
+      }
+      await BookingModel.updateOne({ _id: booking._id }, { verificationBlockers: [] });
+      promoted += 1;
+    }
+    return promoted;
+  }
+
+  /**
+   * The platform ends a booking through no fault of either party — failed
+   * verification, lost dates, payment failure, a declared disaster. Always a
+   * full refund and never a host penalty.
+   */
+  async systemCancel(bookingId: string, reason: string): Promise<void> {
+    const booking = await this.getDoc(bookingId);
+    if (!canTransition(booking.status, 'cancelled_system')) return;
+
+    const total = booking.priceBreakdown.total;
+    let refund = { amount: 0, currency: total.currency };
+    if (booking.status === 'paid' || booking.status === 'confirmed') {
+      refund = { ...total };
+      await paymentService.refundBooking(bookingId, refund, reason);
+    } else {
+      await paymentService.cancelAuthorization(bookingId);
+    }
+
+    await availabilityService.releaseBooking(bookingId);
+    if (booking.holdId) await availabilityService.releaseHold(booking.holdId);
+    await BookingModel.updateOne(
+      { _id: bookingId },
+      { cancellation: { by: 'system', role: 'system', at: new Date(), reason, refund } },
+    );
+    await this.transition(booking, 'cancelled_system', 'system', reason);
+    emit(EVENTS.BOOKING_CANCELLED, bookingId, {
+      bookingId,
+      guestId: booking.guestId,
+      hostId: booking.hostId,
+      cancelledBy: 'system',
+      refund,
+    });
+  }
+
+  /** Bookings parked waiting on this guest's identity check. */
+  async listHeldForVerification(guestId: string): Promise<BookingDoc[]> {
+    return BookingModel.find({ guestId, status: 'pending_verification' }).lean<BookingDoc[]>();
   }
 
   /** Host approves a request-to-book booking. */
@@ -190,18 +316,27 @@ export class BookingService {
     const isAdmin = principal.permissions.includes('booking:read:any') || principal.permissions.includes('*');
     if (!isGuest && !isHost && !isAdmin) throw new ForbiddenError('Cannot cancel this booking');
 
-    if (!['pending_approval', 'confirmed', 'paid'].includes(booking.status)) {
+    if (!['pending_verification', 'pending_approval', 'confirmed', 'paid'].includes(booking.status)) {
       throw new ConflictError('Booking cannot be cancelled in its current state', 'INVALID_STATE');
     }
+
+    // Who ended it decides the refund, the host penalty, and whether Trust &
+    // Safety cares. A single `cancelled` made those three indistinguishable.
+    const actor: BookingStatus = isHost
+      ? 'cancelled_host'
+      : isGuest
+        ? 'cancelled_guest'
+        : 'cancelled_system';
 
     const total = booking.priceBreakdown.total;
     let refund = { amount: 0, currency: total.currency };
 
     if (booking.status === 'paid' || booking.status === 'confirmed') {
-      // Host cancellation → full guest refund; guest cancellation → policy.
-      refund = isHost
-        ? { ...total }
-        : computeRefund(booking.cancellationPolicy, total, booking.period.start);
+      // Host and admin cancellations refund in full — the guest did nothing
+      // wrong and is being stranded. Only a guest cancellation is policy-bound.
+      refund = isGuest
+        ? computeRefund(booking.cancellationPolicy, total, booking.period.start)
+        : { ...total };
       if (refund.amount > 0) {
         await paymentService.refundBooking(bookingId, refund, reason);
       }
@@ -214,13 +349,22 @@ export class BookingService {
 
     await BookingModel.updateOne(
       { _id: bookingId },
-      { cancellation: { by: principal.userId, at: new Date(), reason, refund } },
+      {
+        cancellation: {
+          by: principal.userId,
+          role: isHost ? 'host' : isGuest ? 'guest' : 'admin',
+          at: new Date(),
+          reason,
+          refund,
+        },
+      },
     );
-    await this.transition(booking, 'cancelled', principal.userId, reason);
+    await this.transition(booking, actor, principal.userId, reason);
     emit(EVENTS.BOOKING_CANCELLED, bookingId, {
       bookingId,
       guestId: booking.guestId,
       hostId: booking.hostId,
+      cancelledBy: isHost ? 'host' : isGuest ? 'guest' : 'system',
       refund,
     });
     return this.getDoc(bookingId);
@@ -311,11 +455,24 @@ export class BookingService {
     return toPage(rows, limit);
   }
 
-  /** Cron: expire request-to-book bookings the host never acted on. */
+  /**
+   * Cron: expire requests nobody acted on.
+   *
+   * Two clocks. A host has 24h to answer a request (`approvalDeadline`). A
+   * guest has 72h to clear identity — longer, because a manual document review
+   * can legitimately take a day, and their money is only authorised, not taken.
+   */
   async expirePending(): Promise<number> {
+    const now = new Date();
+    const verificationCutoff = new Date(now.getTime() - VERIFICATION_WINDOW_MS);
     const due = await BookingModel.find({
-      status: 'pending_approval',
-      approvalDeadline: { $lte: new Date() },
+      $or: [
+        { status: 'pending_approval', approvalDeadline: { $lte: now } },
+        { status: 'pending_verification', createdAt: { $lte: verificationCutoff } },
+        // A held request whose trip has already started is dead regardless of
+        // which clock it was on — nobody can take a car they missed.
+        { status: 'pending_verification', 'period.start': { $lte: now } },
+      ],
     }).lean<BookingDoc[]>();
     for (const b of due) {
       await paymentService.cancelAuthorization(b._id);
@@ -361,7 +518,7 @@ export class BookingService {
   /** Admin intervention: force-cancel with a full refund + audit reason. */
   async adminCancel(actorId: string, bookingId: string, reason: string): Promise<BookingDoc> {
     const booking = await this.getDoc(bookingId);
-    if (!['pending_approval', 'confirmed', 'paid'].includes(booking.status)) {
+    if (!['pending_verification', 'pending_approval', 'confirmed', 'paid'].includes(booking.status)) {
       throw new ConflictError('Booking cannot be cancelled in its current state', 'INVALID_STATE');
     }
     const total = booking.priceBreakdown.total;
@@ -376,9 +533,17 @@ export class BookingService {
     if (booking.holdId) await availabilityService.releaseHold(booking.holdId);
     await BookingModel.updateOne(
       { _id: bookingId },
-      { cancellation: { by: actorId, at: new Date(), reason: `[admin] ${reason}`, refund } },
+      {
+        cancellation: {
+          by: actorId,
+          role: 'admin',
+          at: new Date(),
+          reason: `[admin] ${reason}`,
+          refund,
+        },
+      },
     );
-    await this.transition(booking, 'cancelled', actorId, `[admin] ${reason}`);
+    await this.transition(booking, 'cancelled_system', actorId, `[admin] ${reason}`);
     emit(EVENTS.BOOKING_CANCELLED, bookingId, {
       bookingId,
       guestId: booking.guestId,

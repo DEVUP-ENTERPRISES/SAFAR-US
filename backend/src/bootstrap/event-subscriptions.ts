@@ -189,5 +189,47 @@ export function registerEventSubscribers(): void {
     }
   });
 
+  /**
+   * Identity cleared → release every booking that was waiting on it.
+   *
+   * Guests can request while unverified so their check runs alongside the
+   * host's decision instead of after it. This is the seam that closes that
+   * loop: without it, a verified guest's requests would sit held forever.
+   */
+  eventBus.subscribe(EVENTS.KYC_APPROVED, async (e) => {
+    const p = e.payload as { userId: string };
+    try {
+      const promoted = await bookingService.onGuestVerified(p.userId);
+      if (promoted > 0) {
+        logger.info({ userId: p.userId, promoted }, 'released bookings held for verification');
+        await notificationService.send({
+          userId: p.userId,
+          templateKey: 'booking.verification_cleared',
+          title: 'You’re verified ✅',
+          body: `Your licence checked out. ${promoted} booking${promoted === 1 ? ' is' : 's are'} moving forward.`,
+          data: { promoted },
+        });
+      }
+    } catch (err) {
+      logger.error({ err, userId: p.userId }, 'failed to release held bookings after KYC approval');
+    }
+  });
+
+  /** Identity rejected → the held requests cannot proceed. Release the money. */
+  eventBus.subscribe(EVENTS.KYC_REJECTED, async (e) => {
+    const p = e.payload as { userId: string };
+    try {
+      const held = await bookingService.listHeldForVerification(p.userId);
+      for (const b of held) {
+        await bookingService.systemCancel(b._id, 'Identity verification was not successful');
+      }
+      if (held.length > 0) {
+        logger.info({ userId: p.userId, cancelled: held.length }, 'cancelled bookings after KYC rejection');
+      }
+    } catch (err) {
+      logger.error({ err, userId: p.userId }, 'failed to cancel held bookings after KYC rejection');
+    }
+  });
+
   logger.info('Event subscribers registered');
 }

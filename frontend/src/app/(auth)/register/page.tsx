@@ -7,7 +7,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Gift } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
@@ -32,21 +31,24 @@ function RegisterInner() {
   const referralCode = watch('referralCode');
 
   return (
-    <div className="mx-auto max-w-md py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create your account</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {referralCode && (
-            <div className="mb-4 flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
-              <Gift className="h-4 w-4" /> Referral <b>{referralCode}</b> applied — you&apos;ll get welcome credit!
-            </div>
-          )}
-          <form onSubmit={handleSubmit((v) => registerMutation.mutate(v))} className="space-y-4">
-            <Field label="First name" htmlFor="firstName" error={formState.errors.firstName?.message}>
-              <Input id="firstName" autoComplete="given-name" {...register('firstName')} />
-            </Field>
+    <div className="w-full">
+      <div className="mb-10 text-center lg:text-left">
+        <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-foreground">Create your account</h2>
+        <p className="mt-3 text-lg font-medium text-muted-foreground">
+          Join CATO today and start driving.
+        </p>
+      </div>
+
+      {referralCode && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl bg-primary/10 p-4 text-base font-medium text-primary">
+          <Gift className="h-5 w-5" /> Referral <b className="text-lg">{referralCode}</b> applied — you&apos;ll get welcome credit!
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit((v) => registerMutation.mutate(v))} className="space-y-6">
+        <Field label="First name" htmlFor="firstName" error={formState.errors.firstName?.message}>
+          <Input id="firstName" autoComplete="given-name" {...register('firstName')} />
+        </Field>
             <Field label="Email" htmlFor="email" error={formState.errors.email?.message}>
               <Input id="email" type="email" autoComplete="email" {...register('email')} />
             </Field>
@@ -68,12 +70,10 @@ function RegisterInner() {
             </Button>
           </form>
 
-          <p className="mt-4 text-center text-sm text-muted-foreground">
+          <p className="mt-8 text-center text-base font-medium text-muted-foreground">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-primary hover:underline">Log in</Link>
+            <Link href="/login" className="font-bold text-primary hover:underline">Log in</Link>
           </p>
-        </CardContent>
-      </Card>
     </div>
   );
 }

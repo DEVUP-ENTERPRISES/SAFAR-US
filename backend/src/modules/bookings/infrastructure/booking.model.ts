@@ -42,6 +42,8 @@ export interface BookingDoc {
   additionalDrivers?: { name: string; licenseNumber?: string; addedAt: Date }[];
   status: BookingStatus;
   statusHistory: { from: BookingStatus | null; to: BookingStatus; at: Date; by: string; reason?: string }[];
+  /** Why this booking is held at pending_verification, for the guest's UI. */
+  verificationBlockers?: string[];
   holdId?: string;
   paymentId?: string;
   couponCode?: string;
@@ -49,7 +51,7 @@ export interface BookingDoc {
   costCenterId?: string;
   instantBook: boolean;
   approvalDeadline?: Date;
-  cancellation?: { by: string; at: Date; reason: string; refund: MoneyField };
+  cancellation?: { by: string; role?: 'guest' | 'host' | 'admin' | 'system'; at: Date; reason: string; refund: MoneyField };
   tripId?: string;
   idempotencyKey?: string;
   reminderSentAt?: Date;
@@ -124,6 +126,7 @@ const schema = new Schema<BookingDoc>(
         reason: String,
       },
     ],
+    verificationBlockers: { type: [String], default: [] },
     holdId: String,
     paymentId: String,
     couponCode: String,
@@ -133,6 +136,7 @@ const schema = new Schema<BookingDoc>(
     approvalDeadline: Date,
     cancellation: {
       by: String,
+      role: { type: String, enum: ['guest', 'host', 'admin', 'system'] },
       at: Date,
       reason: String,
       refund: moneySchema,

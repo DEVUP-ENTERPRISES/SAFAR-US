@@ -18,8 +18,9 @@ import { adminPath } from '@/lib/admin-path';
 export function AppChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? '';
   const isConsole = pathname.startsWith(adminPath());
+  const isAuth = pathname === '/login' || pathname === '/register';
 
-  if (isConsole) return <>{children}</>;
+  if (isConsole || isAuth) return <>{children}</>;
 
   return (
     <>

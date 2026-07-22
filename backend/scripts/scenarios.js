@@ -61,13 +61,55 @@ const days = (n) => new Date(Date.now() + (RUN_OFFSET + n) * 86_400_000).toISOSt
 /** Real calendar dates, for the few scenarios that must test the past. */
 const rawDays = (n) => new Date(Date.now() + n * 86_400_000).toISOString();
 
-async function newUser(prefix) {
+/**
+ * A test guest who has cleared identity.
+ *
+ * Booking now requires a verified guest (email, phone, approved licence) —
+ * without this, every guest here lands in `pending_verification` and the
+ * booking scenarios below test the gate instead of what they mean to test.
+ * The gate itself has its own suite: scripts/eligibility-e2e.js.
+ */
+async function newUser(prefix, { verified = true } = {}) {
   const email = `${prefix}${Date.now()}${Math.floor(Math.random() * 1e4)}@test.com`;
   await call('POST', '/auth/register', {
     body: { email, password: 'Test@1234', firstName: prefix, lastName: 'Tester' },
   });
   const r = await call('POST', '/auth/login', { body: { email, password: 'Test@1234' } });
-  return { email, token: r.body?.data?.tokens?.accessToken, id: r.body?.data?.user?.id };
+  const user = { email, token: r.body?.data?.tokens?.accessToken, id: r.body?.data?.user?.id };
+  if (verified && user.id) await markVerified(user.id);
+  return user;
+}
+
+/** Stamp the verification a real guest would earn, straight into the store. */
+async function markVerified(userId) {
+  const db = await mongo();
+  await db.collection('users').updateOne(
+    { _id: userId },
+    { $set: { emailVerified: true, phoneVerified: true } },
+  );
+  await db.collection('kycs').updateOne(
+    { userId },
+    {
+      $set: { status: 'approved', level: 'full', updatedAt: new Date() },
+      $setOnInsert: { _id: `kyc_${userId}`, documents: [], createdAt: new Date() },
+    },
+    { upsert: true },
+  );
+}
+
+let _db = null;
+async function mongo() {
+  if (_db) return _db;
+  const nodePath = require('path');
+  const nodeFs = require('fs');
+  const mongoose = require('mongoose');
+  const uri = nodeFs
+    .readFileSync(nodePath.join(__dirname, '..', '.env'), 'utf8')
+    .match(/^MONGO_URI=(.+)$/m)[1]
+    .trim();
+  await mongoose.connect(uri);
+  _db = mongoose.connection;
+  return _db;
 }
 
 function book(token, vehicleId, start, end, extra = {}) {

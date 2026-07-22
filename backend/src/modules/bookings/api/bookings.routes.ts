@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { bookingService } from '../application/booking.service';
+import { eligibilityService } from '../application/eligibility.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
@@ -27,6 +28,27 @@ router.post(
     // Pass the caller so CATO Plus benefits are reflected in the quoted price.
     const breakdown = await bookingService.quote(req.body, req.principal!.userId);
     sendSuccess(res, breakdown);
+  }),
+);
+
+/**
+ * What (if anything) stands between this guest and a car. Drives the booking
+ * screen's checklist, so a guest learns they need a licence before they pick
+ * dates rather than after they have committed.
+ */
+router.get(
+  '/eligibility',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const tripEnd = req.query.end ? new Date(String(req.query.end)) : undefined;
+    const result = await eligibilityService.evaluate(
+      req.principal!.userId,
+      tripEnd && !Number.isNaN(tripEnd.getTime()) ? tripEnd : undefined,
+    );
+    sendSuccess(res, {
+      ...result,
+      messages: eligibilityService.describe(result.blockers),
+    });
   }),
 );
 
