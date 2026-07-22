@@ -144,6 +144,16 @@ async function uploadPhoto(token, vehicleId) {
     `${img.status}`,
   );
 
+  // helmet's default `same-origin` CORP makes the browser refuse to paint an
+  // image served from the API origin into the web app. curl never sees it, so
+  // assert the header explicitly rather than trusting the 200 above.
+  const redirect = await fetch(v.photos[0].url, { redirect: 'manual' });
+  ok(
+    'photo is embeddable cross-origin (CORP header)',
+    redirect.headers.get('cross-origin-resource-policy') === 'cross-origin',
+    String(redirect.headers.get('cross-origin-resource-policy')),
+  );
+
   s = await call('POST', `/vehicles/${id}/submit`, { token });
   ok(`submit allowed with ${minPhotos} photos`, s.ok, `${s.status}`);
 

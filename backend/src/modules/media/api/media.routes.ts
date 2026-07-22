@@ -104,6 +104,12 @@ router.get(
     // Cache below the signature's own lifetime so a cached redirect can never
     // outlive the URL it points at.
     res.set('Cache-Control', 'public, max-age=60');
+    // helmet defaults every response to `same-origin`, which makes the browser
+    // refuse to paint this image into the web app (it is served from the API
+    // origin, not the site's). These objects are public marketplace content and
+    // are meant to be embedded, so relax it for this route only — the global
+    // default stays strict for everything else.
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.redirect(302, url);
   }),
 );
