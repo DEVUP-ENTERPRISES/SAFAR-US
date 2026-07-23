@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Search, Menu, X, Car, Info, HelpCircle, FileText, ShieldCheck, Wrench, Calculator } from 'lucide-react';
 import { config } from '@/lib/config';
+import { CatoMark } from '@/components/layout/cato-mark';
 import { useAuthStore } from '@/features/auth/store';
 import { useIsHost } from '@/features/host/hooks';
 import { Button } from '@/components/ui/button';
@@ -191,17 +192,3 @@ export function Navbar() {
 }
 
 /** Minimal road/motion mark — reads as a brand, not a stock car icon. */
-function CatoMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-      <path
-        d="M4 17c3-8 13-8 16 0"
-        stroke="white"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-      <circle cx="8" cy="17" r="2.1" fill="white" />
-      <circle cx="16" cy="17" r="2.1" fill="white" fillOpacity="0.6" />
-    </svg>
-  );
-}
