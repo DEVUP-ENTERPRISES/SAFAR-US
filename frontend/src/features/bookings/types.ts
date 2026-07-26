@@ -1,4 +1,5 @@
 import type { Money } from '@/lib/api/types';
+export type { Money };
 
 export interface PriceBreakdown {
   days: number;

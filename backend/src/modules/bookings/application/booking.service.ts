@@ -18,6 +18,7 @@ import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { decodeCursor, cursorFilter, toPage } from '../../../shared/utils/pagination';
 import type { Page, Principal } from '../../../core/types/common';
+import type { Money } from '../../../core/types/money';
 import type { PriceBreakdown } from '../../../core/contracts/pricing.contract';
 import type { CreateBookingDto } from '../dto/booking.schemas';
 
@@ -461,6 +462,109 @@ export class BookingService {
   }
 
   /** Extend an active booking to a later end date (availability + charge). */
+  /**
+   * What a cancellation would refund, right now, without cancelling.
+   *
+   * Turo shows the exact figure before you commit; "your refund depends on the
+   * policy" is not good enough at the moment a guest is deciding whether to
+   * eat a loss. Read-only and deterministic — the same call a second later
+   * only changes once a policy threshold is crossed.
+   */
+  async cancellationPreview(
+    principal: Principal,
+    bookingId: string,
+  ): Promise<{
+    total: Money;
+    refund: Money;
+    nonRefundable: Money;
+    policy: 'flexible' | 'moderate' | 'strict';
+    fullRefundUntil: string | null;
+    isFullRefund: boolean;
+    cancellable: boolean;
+  }> {
+    const booking = await this.getDoc(bookingId);
+    const isGuest = booking.guestId === principal.userId;
+    const isHost = await this.isHostOwner(principal.userId, booking.hostId);
+    const isAdmin =
+      principal.permissions.includes('booking:read:any') || principal.permissions.includes('*');
+    if (!isGuest && !isHost && !isAdmin) throw new ForbiddenError('Cannot view this booking');
+
+    const total = booking.priceBreakdown.total;
+    const cancellable = ['pending_verification', 'pending_approval', 'confirmed', 'paid'].includes(
+      booking.status,
+    );
+
+    // A host or admin cancellation is always a full refund — only a guest
+    // cancellation is policy-bound, so that is what the preview reflects for a
+    // guest. For a host viewing, show the full refund the guest would receive.
+    const refund =
+      isGuest && (booking.status === 'paid' || booking.status === 'confirmed')
+        ? computeRefund(booking.cancellationPolicy, total, booking.period.start)
+        : { ...total };
+
+    const hoursFull = { flexible: 24, moderate: 48, strict: 168 }[booking.cancellationPolicy];
+    const fullRefundUntil = new Date(
+      booking.period.start.getTime() - hoursFull * 3_600_000,
+    );
+
+    return {
+      total,
+      refund,
+      nonRefundable: { amount: total.amount - refund.amount, currency: total.currency },
+      policy: booking.cancellationPolicy,
+      // Null once the window has already passed — there is no future moment
+      // that still earns a full refund.
+      fullRefundUntil: fullRefundUntil.getTime() > Date.now() ? fullRefundUntil.toISOString() : null,
+      isFullRefund: refund.amount === total.amount,
+      cancellable,
+    };
+  }
+
+  /**
+   * What extending to a new end date would cost, and whether it is even
+   * possible, without charging anything.
+   *
+   * Mirrors the arithmetic of requestExtension exactly so the number shown is
+   * the number charged — same extra-day window, same pricing call.
+   */
+  async extensionPreview(
+    userId: string,
+    bookingId: string,
+    newEndIso: string,
+  ): Promise<{
+    available: boolean;
+    reason?: string;
+    extraCost?: Money;
+    newEnd: string;
+  }> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can extend');
+
+    const newEnd = new Date(newEndIso);
+    if (isNaN(newEnd.getTime()) || newEnd <= booking.period.end) {
+      return { available: false, reason: 'Pick a date after your current trip end.', newEnd: newEndIso };
+    }
+    if (!['paid', 'in_progress'].includes(booking.status)) {
+      return { available: false, reason: 'Only an active trip can be extended.', newEnd: newEndIso };
+    }
+
+    const extraStart = new Date(booking.period.end.getTime() + 86_400_000);
+    if (!(await availabilityService.isAvailable(booking.vehicleId, extraStart, newEnd))) {
+      return {
+        available: false,
+        reason: 'The car is already booked for those extra days.',
+        newEnd: newEnd.toISOString(),
+      };
+    }
+
+    const extra = await pricingService.quote({
+      vehicleId: booking.vehicleId,
+      start: extraStart,
+      end: newEnd,
+    });
+    return { available: true, extraCost: extra.total, newEnd: newEnd.toISOString() };
+  }
+
   async requestExtension(userId: string, bookingId: string, newEndIso: string): Promise<BookingDoc> {
     const booking = await this.getDoc(bookingId);
     if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can extend');

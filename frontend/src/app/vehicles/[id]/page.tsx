@@ -53,6 +53,7 @@ export default function VehicleDetailPage() {
   const [payWithWallet, setPayWithWallet] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState<'airport' | 'home' | 'hotel' | 'business' | ''>('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [couponCode, setCouponCode] = useState('');
   const quote = useQuote();
   const createBooking = useCreateBooking();
 
@@ -85,6 +86,10 @@ export default function VehicleDetailPage() {
     vehicleId: id,
     start: iso(start),
     end: iso(end),
+    // Trimmed, and omitted when blank — an empty string is not "no coupon" to
+    // the validator. The server is the one that decides if it's valid; a bad
+    // code surfaces as a quote error, not a silent no-op.
+    couponCode: couponCode.trim() || undefined,
     addOnCodes,
     protectionPlan,
     useWallet: payWithWallet && !!v?.listing.instantBook,
@@ -469,6 +474,30 @@ export default function VehicleDetailPage() {
                 ))}
               </div>
             )}
+
+            {/* Promo code — validated and redeemed server-side; the discount it
+                yields shows in the breakdown below, and a bad code fails the quote. */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Promo code</label>
+              <div className="flex gap-2">
+                <Input
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="Optional"
+                  className="h-10"
+                />
+                <Button
+                  variant="outline"
+                  className="shrink-0"
+                  type="button"
+                  disabled={!canQuote || !couponCode.trim()}
+                  loading={quote.isPending}
+                  onClick={runQuote}
+                >
+                  Apply
+                </Button>
+              </div>
+            </div>
 
             <Button variant="outline" className="w-full" disabled={!canQuote} loading={quote.isPending} onClick={runQuote}>
               Get price

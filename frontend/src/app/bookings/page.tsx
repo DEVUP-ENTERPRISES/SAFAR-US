@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ function BookingsList() {
   const { data, isLoading, isError, refetch } = useMyBookings('guest');
   const cancel = useCancelBooking();
   const [extendId, setExtendId] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState<string | null>(null);
   const [newEnd, setNewEnd] = useState('');
   const startTrip = useMutation({
     mutationFn: (bookingId: string) => tripApi.start(bookingId),
@@ -32,6 +33,14 @@ function BookingsList() {
   const extend = useMutation({
     mutationFn: (id: string) => bookingApi.extend(id, new Date(newEnd).toISOString()),
     onSuccess: () => { setExtendId(null); setNewEnd(''); qc.invalidateQueries({ queryKey: ['bookings'] }); },
+  });
+  // Live cost of the chosen extension — so the guest sees the added charge and
+  // whether the dates are even free before anything is captured.
+  const extPreview = useQuery({
+    queryKey: ['extension-preview', extendId, newEnd],
+    queryFn: () => bookingApi.extensionPreview(extendId!, new Date(newEnd).toISOString()),
+    enabled: !!extendId && !!newEnd,
+    retry: false,
   });
 
   if (isLoading)
@@ -96,12 +105,46 @@ function BookingsList() {
                     variant="ghost"
                     size="sm"
                     className="text-destructive"
-                    loading={cancel.isPending}
+                    loading={cancel.isPending || previewing === b._id}
                     onClick={async () => {
+                      // Fetch the exact refund first, the way Turo does — a
+                      // guest deciding whether to eat a loss deserves the real
+                      // number, not "it depends on the policy".
+                      setPreviewing(b._id);
+                      let desc: ReactNode =
+                        'This cannot be undone — you would need to rebook.';
+                      try {
+                        const p = await bookingApi.cancellationPreview(b._id);
+                        const policyLabel = { flexible: 'Flexible', moderate: 'Moderate', strict: 'Strict' }[p.policy];
+                        desc = (
+                          <span className="block space-y-1.5">
+                            <span className="block">
+                              You paid <b>{formatMoney(p.total)}</b>.{' '}
+                              {p.isFullRefund ? (
+                                <>You’ll be refunded the <b>full {formatMoney(p.refund)}</b>.</>
+                              ) : p.refund.amount > 0 ? (
+                                <>You’ll be refunded <b>{formatMoney(p.refund)}</b> — {formatMoney(p.nonRefundable)} is non-refundable under this host’s {policyLabel.toLowerCase()} policy.</>
+                              ) : (
+                                <>This is <b>non-refundable</b> under this host’s {policyLabel.toLowerCase()} policy.</>
+                              )}
+                            </span>
+                            {p.fullRefundUntil && !p.isFullRefund && (
+                              <span className="block text-xs text-muted-foreground">
+                                A full refund was available until {new Date(p.fullRefundUntil).toLocaleString()}.
+                              </span>
+                            )}
+                            <span className="block text-xs text-muted-foreground">This cannot be undone — you would need to rebook.</span>
+                          </span>
+                        );
+                      } catch {
+                        /* fall back to the generic copy if the preview fails */
+                      } finally {
+                        setPreviewing(null);
+                      }
+
                       const { ok, reason } = await confirm({
                         title: `Cancel trip ${b.code}?`,
-                        description:
-                          'Your refund depends on the host’s cancellation policy. This cannot be undone — you would need to rebook.',
+                        description: desc,
                         confirmLabel: 'Cancel trip',
                         tone: 'destructive',
                         reason: { label: 'Reason for cancelling', placeholder: 'e.g. Plans changed', required: true },
@@ -119,11 +162,41 @@ function BookingsList() {
             <div className="flex flex-wrap items-end gap-2 border-t border-border p-4">
               <div className="flex-1">
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">New end date/time</label>
-                <Input type="datetime-local" value={newEnd} onChange={(e) => setNewEnd(e.target.value)} />
+                <Input type="datetime-local" value={newEnd} min={b.period.end.slice(0, 16)} onChange={(e) => setNewEnd(e.target.value)} />
               </div>
-              <Button size="sm" disabled={!newEnd} loading={extend.isPending} onClick={() => extend.mutate(b._id)}>
+              <Button
+                size="sm"
+                disabled={!newEnd || !extPreview.data?.available}
+                loading={extend.isPending}
+                onClick={async () => {
+                  const p = extPreview.data;
+                  if (!p?.available || !p.extraCost) return;
+                  const { ok } = await confirm({
+                    title: 'Extend this trip?',
+                    description: (
+                      <span>
+                        Extending to {new Date(p.newEnd).toLocaleString()} adds{' '}
+                        <b>{formatMoney(p.extraCost)}</b>, charged now.
+                      </span>
+                    ),
+                    confirmLabel: `Pay ${formatMoney(p.extraCost)} & extend`,
+                  });
+                  if (ok) extend.mutate(b._id);
+                }}
+              >
                 Confirm extension
               </Button>
+              {newEnd && extPreview.isFetching && (
+                <p className="w-full text-xs text-muted-foreground">Checking availability &amp; price…</p>
+              )}
+              {newEnd && extPreview.data && !extPreview.data.available && (
+                <p className="w-full text-sm text-destructive">{extPreview.data.reason}</p>
+              )}
+              {newEnd && extPreview.data?.available && extPreview.data.extraCost && (
+                <p className="w-full text-sm">
+                  Adds <b>{formatMoney(extPreview.data.extraCost)}</b> for the extra days.
+                </p>
+              )}
               {extend.isError && (
                 <p className="w-full text-sm text-destructive">
                   {extend.error instanceof ApiError ? extend.error.message : 'Extension failed'}

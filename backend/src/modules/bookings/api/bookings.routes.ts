@@ -136,6 +136,35 @@ router.post(
   }),
 );
 
+/**
+ * The exact refund a cancellation would produce right now — shown before the
+ * guest commits, the way Turo does. Read-only; changes nothing.
+ */
+router.get(
+  '/:id/cancellation-preview',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.cancellationPreview(req.principal!, req.params.id));
+  }),
+);
+
+/** The exact added cost of extending to a date, before charging. */
+router.get(
+  '/:id/extension-preview',
+  authenticate,
+  validate({ query: z.object({ newEnd: z.string() }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await bookingService.extensionPreview(
+        req.principal!.userId,
+        req.params.id,
+        String(req.query.newEnd),
+      ),
+    );
+  }),
+);
+
 router.post(
   '/:id/cancel',
   authenticate,

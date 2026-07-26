@@ -14,6 +14,7 @@ import { formatDate } from '@/lib/utils/format';
 import { tripApi } from '@/features/trips/api';
 import { useTrip, useCheckIn, useCompleteTrip, useSos } from '@/features/trips/hooks';
 import { ChatPanel } from '@/features/messaging/chat-panel';
+import { DriverManager } from '@/features/bookings/components/driver-manager';
 
 function TripDashboard() {
   const { id } = useParams<{ id: string }>();
@@ -98,6 +99,9 @@ function TripDashboard() {
             </CardContent>
           </Card>
         )}
+
+        {/* Additional drivers — only listed people are covered to drive */}
+        <DriverManager bookingId={trip.bookingId} />
 
         {/* Damage reporting */}
         <Card>
