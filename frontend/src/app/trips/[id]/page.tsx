@@ -15,6 +15,7 @@ import { tripApi } from '@/features/trips/api';
 import { useTrip, useCheckIn, useCompleteTrip, useSos } from '@/features/trips/hooks';
 import { ChatPanel } from '@/features/messaging/chat-panel';
 import { DriverManager } from '@/features/bookings/components/driver-manager';
+import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
 
 function TripDashboard() {
   const { id } = useParams<{ id: string }>();
@@ -98,6 +99,14 @@ function TripDashboard() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {/* Pickup inspection — the condition baseline; editable while active */}
+        <InspectionPhotos trip={trip} phase="pre" editable={trip.status === 'active'} />
+
+        {/* Return inspection — only meaningful once the car is being handed back */}
+        {(trip.status === 'active' || (trip.photos ?? []).some((p) => p.phase === 'post')) && (
+          <InspectionPhotos trip={trip} phase="post" editable={trip.status === 'active'} />
         )}
 
         {/* Additional drivers — only listed people are covered to drive */}

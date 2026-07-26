@@ -11,6 +11,8 @@ export interface Trip {
   handover: { at: string; odometerStart?: number; fuelStart?: number };
   return?: { at: string; odometerEnd?: number; fuelEnd?: number };
   liveLocation?: { coordinates: [number, number]; updatedAt: string };
+  /** Condition photos. `pre` = pickup, `post` = return — the damage baseline. */
+  photos?: { url: string; key?: string; phase: 'pre' | 'post'; byUserId: string; at: string }[];
   damageReports: { description: string; photos: string[]; at: string }[];
   distanceKm: number;
   carbon?: {
@@ -31,6 +33,8 @@ export const tripApi = {
     api.post<Trip>(`/trips/${id}/checkin`, { method }),
   complete: (id: string, odometerEnd?: number, fuelEnd?: number) =>
     api.post<Trip>(`/trips/${id}/complete`, { odometerEnd, fuelEnd }),
+  addPhotos: (id: string, phase: 'pre' | 'post', photos: { url: string; key?: string }[]) =>
+    api.post<Trip>(`/trips/${id}/photos`, { phase, photos }),
   reportDamage: (id: string, description: string, photos: string[]) =>
     api.post<Trip>(`/trips/${id}/damage`, { description, photos }),
   sos: (id: string) => api.post<{ alerted: boolean }>(`/trips/${id}/sos`),
