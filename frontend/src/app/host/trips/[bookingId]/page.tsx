@@ -12,6 +12,8 @@ import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { SectionLabel, RowGroup, Row, ActionSheet, Tabs } from '@/components/ui/rows';
+import { ReviewPrompt } from '@/features/reviews/components/review-prompt';
+import { FileDamageClaim } from '@/features/claims/components/file-damage-claim';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { hostTripsApi } from '@/features/host/trips.api';
@@ -242,6 +244,14 @@ export default function HostTripDetailPage() {
             />
             <Row title="Licence plate number" value={t.vehicle.plate ?? '—'} />
           </RowGroup>
+
+          {/* Post-trip: rate the guest, and file a damage claim if needed */}
+          {finished && t.tripId && (
+            <div className="mt-6 space-y-4">
+              <ReviewPrompt bookingId={t.bookingId} role="host" subjectName={t.guest.name} />
+              <FileDamageClaim bookingId={t.bookingId} tripId={t.tripId} currency={cur} />
+            </div>
+          )}
         </div>
       )}
 

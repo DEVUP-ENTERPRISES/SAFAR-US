@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { AuthGuard } from '@/components/layout/auth-guard';
-import { formatMoney, formatDateRange } from '@/lib/utils/format';
+import { formatMoney, formatDateRange, formatDate } from '@/lib/utils/format';
 import { bookingApi } from '@/features/bookings/api';
+import { vehicleApi } from '@/features/vehicles/api';
+import { config } from '@/lib/config';
 
 function Line({ label, value, muted, strong }: { label: string; value: string; muted?: boolean; strong?: boolean }) {
   return (
@@ -27,11 +29,21 @@ function Receipt() {
     queryFn: () => bookingApi.getById(id),
   });
 
+  // The car — for the receipt line and the guest's records. Best-effort: a
+  // receipt still renders if the listing was later delisted.
+  const vehicle = useQuery({
+    queryKey: ['vehicle', b?.vehicleId],
+    queryFn: () => vehicleApi.getById(b!.vehicleId),
+    enabled: !!b?.vehicleId,
+  });
+
   if (isLoading) return <Skeleton className="h-[70vh] w-full rounded-2xl" />;
   if (isError || !b) return <ErrorState message="Booking not found." />;
 
   const pb = b.priceBreakdown;
   const cur = pb.currency;
+  const v = vehicle.data;
+  const paid = ['paid', 'confirmed', 'in_progress', 'completed'].includes(b.status);
   const m = (v: { amount: number; currency: string } | undefined) =>
     v ? formatMoney(v) : formatMoney({ amount: 0, currency: cur });
 
@@ -58,7 +70,13 @@ function Receipt() {
               {b.status.replace(/_/g, ' ')}
             </span>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">{formatDateRange(b.period.start, b.period.end)}</p>
+          {v && (
+            <p className="mt-2 text-sm font-medium">
+              {v.make} {v.model} {v.year}
+            </p>
+          )}
+          <p className="mt-0.5 text-sm text-muted-foreground">{formatDateRange(b.period.start, b.period.end)}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Issued {formatDate(b.createdAt)}</p>
         </div>
 
         {/* Itemised — every line comes from the price stored at booking time. */}
@@ -79,8 +97,13 @@ function Receipt() {
             )}
           </div>
 
+          {/* Subtotal and tax as their own lines, so the itemisation actually
+              adds up to the total — a receipt whose lines don't sum reads as
+              broken, however correct the total is. */}
           <div className="py-2">
-            <Line label="Total paid" value={m(pb.total)} strong />
+            {pb.subtotal?.amount > 0 && <Line label="Subtotal" value={m(pb.subtotal)} muted />}
+            {pb.tax?.amount > 0 && <Line label="Tax" value={m(pb.tax)} muted />}
+            <Line label={paid ? 'Total paid' : 'Total due'} value={m(pb.total)} strong />
           </div>
         </div>
 
@@ -94,6 +117,16 @@ function Receipt() {
             <p className="mt-1">Prices shown are what you were quoted and charged — CATO does not change a price after booking.</p>
           </div>
         )}
+
+        {/* Issuer footer — a receipt is a financial document; it says who
+            issued it. Any security deposit is authorised separately and is not
+            part of this charge. */}
+        <div className="border-t border-border px-6 py-4 text-xs text-muted-foreground">
+          <p>
+            Issued by {config.appName}. Any refundable security deposit is authorised separately and is
+            not included in this total.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -44,6 +44,12 @@ export class ReviewService {
     return review.toObject();
   }
 
+  /** Both directions of review on one booking — so each party's UI can tell
+   *  whether they have reviewed yet, and whether the other side has. */
+  async listForBooking(bookingId: string): Promise<ReviewDoc[]> {
+    return ReviewModel.find({ bookingId, deletedAt: null }).lean<ReviewDoc[]>();
+  }
+
   async listForSubject(subjectId: string): Promise<ReviewDoc[]> {
     return ReviewModel.find({ subjectId, status: 'published', deletedAt: null })
       .sort({ createdAt: -1 })

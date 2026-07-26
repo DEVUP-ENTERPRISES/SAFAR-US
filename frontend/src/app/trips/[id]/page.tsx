@@ -16,6 +16,7 @@ import { useTrip, useCheckIn, useCompleteTrip, useSos } from '@/features/trips/h
 import { ChatPanel } from '@/features/messaging/chat-panel';
 import { DriverManager } from '@/features/bookings/components/driver-manager';
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
+import { ReviewPrompt } from '@/features/reviews/components/review-prompt';
 
 function TripDashboard() {
   const { id } = useParams<{ id: string }>();
@@ -80,6 +81,11 @@ function TripDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Review prompt — appears once the trip is done */}
+        {trip.status === 'completed' && (
+          <ReviewPrompt bookingId={trip.bookingId} role="guest" />
+        )}
 
         {/* Actions */}
         {trip.status === 'active' && (

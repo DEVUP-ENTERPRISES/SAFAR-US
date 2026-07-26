@@ -37,4 +37,13 @@ router.get(
   }),
 );
 
+/** Reviews on one booking — drives the "leave a review" prompt for each party. */
+router.get(
+  '/booking/:bookingId',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await reviewService.listForBooking(req.params.bookingId));
+  }),
+);
+
 export const reviewsRoutes = router;
