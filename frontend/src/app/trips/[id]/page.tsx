@@ -29,6 +29,8 @@ function TripDashboard() {
   if (isLoading) return <Skeleton className="h-[70vh] w-full" />;
   if (isError || !trip) return <ErrorState message="Trip not found." retry={() => refetch()} />;
 
+  const returnPhotoCount = (trip.photos ?? []).filter((p) => p.phase === 'post').length;
+
   const loc = trip.liveLocation;
 
   return (
@@ -97,7 +99,12 @@ function TripDashboard() {
                   <KeyRound className="h-4 w-4" /> Contactless check-in
                 </Button>
               )}
-              <Button loading={complete.isPending} onClick={() => complete.mutate()}>
+              <Button
+                loading={complete.isPending}
+                disabled={returnPhotoCount < 2}
+                title={returnPhotoCount < 2 ? 'Add at least 2 return photos first' : undefined}
+                onClick={() => complete.mutate()}
+              >
                 <CheckCircle2 className="h-4 w-4" /> Complete trip
               </Button>
               <Button variant="destructive" loading={sos.isPending} onClick={() => sos.mutate()}>

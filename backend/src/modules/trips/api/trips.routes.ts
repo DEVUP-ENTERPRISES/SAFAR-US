@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { tripService } from '../application/trip.service';
+import { tripService, MIN_RETURN_PHOTOS } from '../application/trip.service';
 import { hostTripsService } from '../../bookings/application/host-trips.service';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
@@ -10,6 +10,14 @@ import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import { tripCarbon } from '../../../shared/utils/carbon';
 
 const router = Router();
+
+/** Client-side rules the trip UI enforces — single source of truth. */
+router.get(
+  '/requirements',
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, { minReturnPhotos: MIN_RETURN_PHOTOS });
+  }),
+);
 
 const startSchema = z.object({
   bookingId: z.string().min(1),
@@ -181,5 +189,6 @@ router.post(
     );
   }),
 );
+
 
 export const tripsRoutes = router;

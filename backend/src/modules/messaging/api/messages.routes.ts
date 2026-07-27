@@ -8,6 +8,14 @@ import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 
+router.get(
+  '/unread-count',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await messageService.unreadCount(req.principal!.userId));
+  }),
+);
+
 const sendSchema = z.object({
   body: z.string().max(2000).default(''),
   attachments: z
@@ -46,5 +54,6 @@ router.post(
     sendSuccess(res, { read: true });
   }),
 );
+
 
 export const messagesRoutes = router;

@@ -36,6 +36,14 @@ interface ProtectionPlan {
   pricePerDay: number;
 }
 
+const CANCELLATION_TERMS: Record<string, { title: string; detail: string }> = {
+  // Mirrors the server's refund rules (cancellation-policy.ts): the same
+  // thresholds a cancellation is actually settled against.
+  flexible: { title: 'Flexible', detail: 'Full refund if you cancel more than 24 hours before the trip starts; 50% after that.' },
+  moderate: { title: 'Moderate', detail: 'Full refund if you cancel more than 48 hours before the trip starts; 50% after that.' },
+  strict: { title: 'Strict', detail: 'Full refund only if you cancel more than 7 days before the trip starts; non-refundable after that.' },
+};
+
 export default function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -221,8 +229,8 @@ export default function VehicleDetailPage() {
             <div className="flex gap-4">
               <span className="mt-0.5 shrink-0"><Check className="h-6 w-6 stroke-[1.5]" /></span>
               <div>
-                <p className="text-[17px] font-medium">Free cancellation</p>
-                <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">Full refund within 24 hours of booking. More flexible options available at checkout.</p>
+                <p className="text-[17px] font-medium capitalize">{CANCELLATION_TERMS[v.listing.cancellationPolicy]?.title ?? v.listing.cancellationPolicy}</p>
+                <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{CANCELLATION_TERMS[v.listing.cancellationPolicy]?.detail}</p>
               </div>
             </div>
           </div>

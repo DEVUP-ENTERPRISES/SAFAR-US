@@ -10,6 +10,9 @@ import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
 
+/** Minimum return-condition photos before a trip can be completed. */
+export const MIN_RETURN_PHOTOS = 2;
+
 export class TripService {
   /** Start the trip (handover). Booking must be paid. */
   async start(
@@ -78,6 +81,18 @@ export class TripService {
       throw new ForbiddenError('Not a participant of this trip');
     }
     if (trip.status !== 'active') throw new ConflictError('Trip is not active', 'INVALID_STATE');
+
+    // Return photos are required to complete. They are the condition record the
+    // deposit and any damage claim are judged against; letting a trip close
+    // without them means a later dispute has no evidence either way. The guest
+    // is prompted to take them on the trip screen before this button enables.
+    const returnPhotos = (trip.photos ?? []).filter((p) => p.phase === 'post').length;
+    if (returnPhotos < MIN_RETURN_PHOTOS) {
+      throw new ConflictError(
+        `Add at least ${MIN_RETURN_PHOTOS} return photos before ending the trip (you have ${returnPhotos}).`,
+        'RETURN_PHOTOS_REQUIRED',
+      );
+    }
 
     const distanceKm =
       ret.odometerEnd != null && trip.handover.odometerStart != null

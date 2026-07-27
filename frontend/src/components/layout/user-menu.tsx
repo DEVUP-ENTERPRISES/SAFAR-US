@@ -6,6 +6,7 @@ import {
   Car, LogOut, Wallet, Gift, User, LifeBuoy, Shield, Building2, Heart, ChevronDown,
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store';
+import { useUnreadMessages } from '@/features/messaging/hooks';
 import { useLogout } from '@/features/auth/hooks';
 import { cn } from '@/lib/utils/cn';
 import { adminPath } from '@/lib/admin-path';
@@ -40,6 +41,7 @@ export function UserMenu() {
   const name = user?.email?.split('@')[0] ?? 'Account';
   const initial = name.slice(0, 1).toUpperCase();
   const isStaff = user?.roles.some((r) => ADMIN_ROLES.includes(r));
+  const unread = useUnreadMessages(!!user).data?.count ?? 0;
 
   const items = [
     { href: '/bookings', label: 'My trips', icon: Car },
@@ -56,13 +58,17 @@ export function UserMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label={unread > 0 ? `Account — ${unread} unread messages` : 'Account'}
         className={cn(
-          'flex items-center gap-2 rounded-full border border-border bg-card py-1 pl-1 pr-2.5',
+          'relative flex items-center gap-2 rounded-full border border-border bg-card py-1 pl-1 pr-2.5',
           'shadow-soft transition-all hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         )}
       >
-        <span className="grid h-7 w-7 place-items-center rounded-full brand-gradient text-xs font-bold text-white">
+        <span className="relative grid h-7 w-7 place-items-center rounded-full brand-gradient text-xs font-bold text-white">
           {initial}
+          {unread > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary" />
+          )}
         </span>
         <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} />
       </button>
@@ -87,6 +93,11 @@ export function UserMenu() {
                 className="flex items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-accent"
               >
                 <it.icon className="h-4 w-4 text-muted-foreground" /> {it.label}
+                {it.href === '/bookings' && unread > 0 && (
+                  <span className="ml-auto grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
               </Link>
             ))}
           </div>

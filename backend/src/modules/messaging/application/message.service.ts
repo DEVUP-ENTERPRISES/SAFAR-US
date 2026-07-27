@@ -1,3 +1,4 @@
+import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { MessageModel, type MessageDoc } from '../infrastructure/message.model';
 import { bookingService } from '../../bookings/application/booking.service';
 import { hostService } from '../../hosts/application/host.service';
@@ -58,6 +59,27 @@ export class MessageService {
       { bookingId, readBy: { $ne: userId } },
       { $addToSet: { readBy: userId } },
     );
+  }
+
+  /**
+   * Total unread messages for a user across all their trips — drives the nav
+   * badge. Unread = a message the user did not send and has not read, in a
+   * booking they are part of.
+   */
+  async unreadCount(userId: string): Promise<{ count: number }> {
+    const host = await hostService.getByUserId(userId).catch(() => null);
+    const bookings = await BookingModel.find(
+      { $or: [{ guestId: userId }, ...(host ? [{ hostId: host._id }] : [])] },
+      { _id: 1 },
+    ).lean<{ _id: string }[]>();
+    const ids = bookings.map((b) => b._id);
+    if (ids.length === 0) return { count: 0 };
+    const count = await MessageModel.countDocuments({
+      bookingId: { $in: ids },
+      senderId: { $ne: userId },
+      readBy: { $ne: userId },
+    });
+    return { count };
   }
 
   /** Public participant check for the realtime gateway (throws if not allowed). */

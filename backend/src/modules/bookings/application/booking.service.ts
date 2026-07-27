@@ -481,6 +481,8 @@ export class BookingService {
     fullRefundUntil: string | null;
     isFullRefund: boolean;
     cancellable: boolean;
+    /** For a host viewer: what cancelling costs them, beyond the guest refund. */
+    hostPenalty?: { affectsStanding: boolean; note: string };
   }> {
     const booking = await this.getDoc(bookingId);
     const isGuest = booking.guestId === principal.userId;
@@ -517,6 +519,16 @@ export class BookingService {
       fullRefundUntil: fullRefundUntil.getTime() > Date.now() ? fullRefundUntil.toISOString() : null,
       isFullRefund: refund.amount === total.amount,
       cancellable,
+      // A host cancelling a confirmed trip strands a guest — the platform's
+      // most damaging event — so it always carries a standing penalty. Shown
+      // to the host before they commit, the way Turo warns hosts hard.
+      hostPenalty:
+        isHost && ['confirmed', 'paid'].includes(booking.status)
+          ? {
+              affectsStanding: true,
+              note: 'Cancelling a confirmed trip lowers your acceptance rate and can cost your All-Star status. Repeated host cancellations lead to review.',
+            }
+          : undefined,
     };
   }
 

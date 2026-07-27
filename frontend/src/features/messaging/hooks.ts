@@ -14,6 +14,17 @@ export interface Message {
   createdAt: string;
 }
 
+/** Total unread messages across all the user's trips — for the nav badge. */
+export function useUnreadMessages(enabled: boolean) {
+  return useQuery({
+    queryKey: ['messages-unread'],
+    queryFn: () => api.get<{ count: number }>('/messages/unread-count'),
+    enabled,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+  });
+}
+
 export function useMessages(bookingId: string) {
   const query = useQuery({
     queryKey: ['messages', bookingId],

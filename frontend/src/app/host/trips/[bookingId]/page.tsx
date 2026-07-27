@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -15,6 +15,7 @@ import { SectionLabel, RowGroup, Row, ActionSheet, Tabs } from '@/components/ui/
 import { ReviewPrompt } from '@/features/reviews/components/review-prompt';
 import { FileDamageClaim } from '@/features/claims/components/file-damage-claim';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { bookingApi } from '@/features/bookings/api';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { hostTripsApi } from '@/features/host/trips.api';
 import { TripMessages } from '@/features/host/components/trip-messages';
@@ -58,6 +59,37 @@ export default function HostTripDetailPage() {
       router.push('/host/trips');
     },
   });
+
+  const cancelBooking = useMutation({
+    mutationFn: (reason: string) => bookingApi.cancel(t!.bookingId, reason),
+    onSuccess: () => { invalidate(); router.push('/host/trips'); },
+  });
+
+  const doHostCancel = async () => {
+    // Show the host exactly what cancelling costs — the guest's full refund
+    // and the standing penalty — before they commit. This is the marketplace's
+    // most damaging event, so it is deliberately heavy.
+    let desc: ReactNode = 'The guest is fully refunded and this counts against your standing.';
+    try {
+      const p = await bookingApi.cancellationPreview(t!.bookingId);
+      desc = (
+        <span className="block space-y-1.5">
+          <span className="block">The guest will be refunded <b>{formatMoney(p.refund)}</b> in full.</span>
+          {p.hostPenalty?.affectsStanding && (
+            <span className="block text-destructive">{p.hostPenalty.note}</span>
+          )}
+        </span>
+      );
+    } catch { /* fall back to generic copy */ }
+    const { ok, reason } = await confirm({
+      title: 'Cancel this booking?',
+      description: desc,
+      confirmLabel: 'Cancel booking',
+      tone: 'destructive',
+      reason: { label: 'Reason (shared with our team)', placeholder: 'e.g. Vehicle issue', required: true },
+    });
+    if (ok) cancelBooking.mutate(reason);
+  };
 
   if (isLoading) return <Skeleton className="h-[70vh] w-full rounded-2xl" />;
   if (isError || !t) return <ErrorState message="Trip not found." />;
@@ -369,6 +401,20 @@ export default function HostTripDetailPage() {
             </>
           )}
         </ActionSheet>
+      )}
+
+      {/* A host may cancel an upcoming trip, but it is costly and clearly framed. */}
+      {!finished && !started && tab === 'details' && (
+        <div className="mt-3">
+          <Button
+            variant="ghost"
+            className="w-full text-destructive"
+            loading={cancelBooking.isPending}
+            onClick={doHostCancel}
+          >
+            Cancel this booking
+          </Button>
+        </div>
       )}
     </div>
   );

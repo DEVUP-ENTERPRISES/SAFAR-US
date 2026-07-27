@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
 import { formatDate } from '@/lib/utils/format';
+import Link from 'next/link';
 import { claimsApi } from '@/features/claims/api';
 
 const TONE: Record<string, 'success' | 'warning' | 'destructive' | 'muted' | 'default'> = {
@@ -58,16 +59,18 @@ function Claims() {
       {list.data && list.data.length > 0 && (
         <div className="space-y-3">
           {list.data.map((c) => (
-            <Card key={c._id}>
-              <CardContent className="flex items-center justify-between pt-6">
-                <div>
-                  <p className="font-medium capitalize">{c.type} claim</p>
-                  <p className="line-clamp-1 max-w-md text-sm text-muted-foreground">{c.description}</p>
-                  <p className="text-xs text-muted-foreground">Filed {formatDate(c.createdAt)}</p>
-                </div>
-                <Badge tone={TONE[c.status] ?? 'muted'}>{c.status}</Badge>
-              </CardContent>
-            </Card>
+            <Link key={c._id} href={`/claims/${c._id}`} className="block">
+              <Card className="transition-colors hover:border-primary/40">
+                <CardContent className="flex items-center justify-between pt-6">
+                  <div>
+                    <p className="font-medium capitalize">{c.type} claim</p>
+                    <p className="line-clamp-1 max-w-md text-sm text-muted-foreground">{c.description}</p>
+                    <p className="text-xs text-muted-foreground">Filed {formatDate(c.createdAt)}</p>
+                  </div>
+                  <Badge tone={TONE[c.status] ?? 'muted'}>{c.status}</Badge>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

@@ -9,6 +9,7 @@ export interface CancellationPreview {
   fullRefundUntil: string | null;
   isFullRefund: boolean;
   cancellable: boolean;
+  hostPenalty?: { affectsStanding: boolean; note: string };
 }
 
 export interface ExtensionPreview {
