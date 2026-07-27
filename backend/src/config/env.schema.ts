@@ -56,6 +56,7 @@ export const envSchema = z.object({
   // ── Optional integrations: real adapters activate when these are set ──
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_IDENTITY_WEBHOOK_SECRET: optional(z.string()),
 
   AWS_REGION: z.string().optional(),
   AWS_ACCESS_KEY_ID: z.string().optional(),

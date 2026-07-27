@@ -10,6 +10,7 @@ export interface KycDoc {
   status: KycStatus;
   documents: { type: 'license' | 'passport' | 'national_id' | 'selfie'; url: string }[];
   provider?: string;
+  providerSessionId?: string;
   /** Read off the document. A licence that lapses mid-trip is not valid for
    *  that trip, so booking eligibility checks this against the trip end. */
   licenceExpiry?: Date;
@@ -32,6 +33,7 @@ const schema = new Schema<KycDoc>(
       default: [],
     },
     provider: String,
+    providerSessionId: String,
     licenceExpiry: Date,
     // Hashed, not stored in clear: it is only ever used to detect the same
     // licence being reused across accounts.

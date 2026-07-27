@@ -116,4 +116,24 @@ router.post(
   asyncHandler(async (req, res) => sendSuccess(res, await userService.disableMfa(req.principal!.userId, req.body.token))),
 );
 
+/** Register this device's push token so notifications reach the app. */
+router.post(
+  '/me/devices',
+  authenticate,
+  validate({ body: z.object({ token: z.string().min(10).max(4096) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await userService.registerDevice(req.principal!.userId, req.body.token));
+  }),
+);
+
+/** Unregister a device token (sign-out on a device, or opt-out). */
+router.delete(
+  '/me/devices',
+  authenticate,
+  validate({ body: z.object({ token: z.string().min(10).max(4096) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await userService.unregisterDevice(req.principal!.userId, req.body.token));
+  }),
+);
+
 export const usersRoutes = router;

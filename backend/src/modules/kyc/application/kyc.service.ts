@@ -1,7 +1,9 @@
 import { KycModel, type KycDoc } from '../infrastructure/kyc.model';
-import { NotFoundError } from '../../../core/errors/app-error';
+import { identityProvider, type IdentityResult, type IdentitySession } from '../infrastructure/identity.provider';
+import { NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
+import { logger } from '../../../infrastructure/logging/logger';
 
 export interface SubmitKycInput {
   level?: 'basic' | 'full';
@@ -25,6 +27,77 @@ export class KycService {
     ).lean<KycDoc>();
     emit(EVENTS.KYC_SUBMITTED, doc!._id, { userId });
     return doc!;
+  }
+
+  /**
+   * Start an automated identity check with the provider (Stripe Identity).
+   *
+   * Creates a session on the provider and marks the local record pending. The
+   * decision arrives asynchronously by webhook, so this returns only the
+   * client secret / URL the app needs to open the capture flow.
+   */
+  async startVerification(userId: string): Promise<IdentitySession> {
+    const session = await identityProvider.createSession(userId);
+    await KycModel.findOneAndUpdate(
+      { userId },
+      {
+        $set: { status: 'pending', provider: session.provider, providerSessionId: session.sessionId },
+        $setOnInsert: { userId, level: 'full' },
+      },
+      { upsert: true, setDefaultsOnInsert: true },
+    );
+    emit(EVENTS.KYC_SUBMITTED, userId, { userId });
+    return session;
+  }
+
+  /**
+   * Apply a provider decision to the local record.
+   *
+   * On approval the verified fields (name, licence expiry, hashed licence
+   * number) are persisted — the licence expiry is what booking eligibility
+   * checks against a trip's end date, and the hashed number is what the risk
+   * engine uses to catch the same licence on two accounts. Emits the same
+   * KYC_APPROVED/REJECTED events the manual path does, so held bookings are
+   * released (or cancelled) identically.
+   */
+  async applyProviderResult(userId: string, result: IdentityResult): Promise<void> {
+    if (result.status === 'pending') return;
+
+    const approved = result.status === 'verified';
+    await KycModel.updateOne(
+      { userId },
+      {
+        $set: {
+          status: approved ? 'approved' : 'rejected',
+          decisionAt: new Date(),
+          reviewedBy: 'provider',
+          rejectionReason: approved ? undefined : (result.reason ?? 'verification_failed'),
+          ...(result.licenceExpiry ? { licenceExpiry: new Date(result.licenceExpiry) } : {}),
+          ...(result.licenceNumberHash ? { licenceNumberHash: result.licenceNumberHash } : {}),
+        },
+      },
+    );
+    logger.info({ userId, status: result.status }, 'identity provider decision applied');
+    emit(approved ? EVENTS.KYC_APPROVED : EVENTS.KYC_REJECTED, userId, { userId });
+  }
+
+  /** Handle a provider webhook (raw body + signature). */
+  async handleWebhook(rawBody: Buffer, signature: string): Promise<void> {
+    const parsed = await identityProvider.parseEvent(rawBody, signature);
+    if (!parsed) return;
+    await this.applyProviderResult(parsed.userId, parsed.result);
+  }
+
+  /**
+   * Dev/test only: force a decision without a real provider webhook, so the
+   * automated flow can be exercised offline. Refuses when a live provider is
+   * configured — decisions must then come from the provider.
+   */
+  async forceDecision(userId: string, result: IdentityResult): Promise<void> {
+    if (identityProvider.kind !== 'stub') {
+      throw new ValidationError('A live identity provider is configured — decisions come from its webhook');
+    }
+    await this.applyProviderResult(userId, result);
   }
 
   async getStatus(userId: string): Promise<{ status: string; level?: string; reason?: string }> {

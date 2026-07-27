@@ -69,6 +69,24 @@ export class UserService {
   }
 
   // ── Two-factor authentication (TOTP) ─────────────────────────────────
+  /**
+   * Register a device's push token so notifications can reach it.
+   *
+   * Idempotent via $addToSet — the same device re-registering (app relaunch,
+   * token refresh) does not pile up duplicates. A dead token is pruned by the
+   * push provider when it reports the token invalid.
+   */
+  async registerDevice(userId: string, token: string): Promise<{ registered: boolean }> {
+    await UserModel.updateOne({ _id: userId }, { $addToSet: { pushTokens: token } });
+    return { registered: true };
+  }
+
+  /** Drop a token — sign-out on a device, or an explicit opt-out. */
+  async unregisterDevice(userId: string, token: string): Promise<{ removed: boolean }> {
+    const r = await UserModel.updateOne({ _id: userId }, { $pull: { pushTokens: token } });
+    return { removed: r.modifiedCount > 0 };
+  }
+
   async mfaStatus(userId: string): Promise<{ enabled: boolean }> {
     const user = await this.get(userId);
     return { enabled: !!user.mfa?.enabled };

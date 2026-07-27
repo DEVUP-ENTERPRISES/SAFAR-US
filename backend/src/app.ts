@@ -52,6 +52,7 @@ export function createApp(): Express {
   // 4b. Stripe webhook needs the RAW body for signature verification, so
   //     capture it before JSON parsing runs on that exact path.
   app.use(`${config.app.apiPrefix}/payments/webhooks/stripe`, express.raw({ type: '*/*' }));
+  app.use(`${config.app.apiPrefix}/kyc/webhook`, express.raw({ type: '*/*' }));
 
   // 5. body parsing (uploads go to S3 via signed URLs, so bodies stay small)
   app.use(express.json({ limit: '1mb' }));

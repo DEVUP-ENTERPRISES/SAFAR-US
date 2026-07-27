@@ -80,6 +80,12 @@ export const config = Object.freeze({
     webhookSecret: env.STRIPE_WEBHOOK_SECRET,
     enabled: !!env.STRIPE_SECRET_KEY,
   },
+  kyc: {
+    // Stripe Identity runs on the same secret key; it needs its own webhook
+    // signing secret. Live only when both the key and that secret are present.
+    identityWebhookSecret: env.STRIPE_IDENTITY_WEBHOOK_SECRET,
+    identityEnabled: !!env.STRIPE_SECRET_KEY && !!env.STRIPE_IDENTITY_WEBHOOK_SECRET,
+  },
   aws: {
     region: env.AWS_REGION,
     accessKeyId: env.AWS_ACCESS_KEY_ID,

@@ -8,6 +8,7 @@ import { verifyTotp } from '../../../shared/utils/totp';
 import { userRepository } from '../../users/infrastructure/user.repository';
 import { tokenService, type TokenPair } from './token.service';
 import { otpService } from './otp.service';
+import { channelProviders } from '../../notifications/infrastructure/channel.providers';
 import { sessionStore } from '../infrastructure/session.store';
 import type { RegisterDto, LoginDto } from '../dto/auth.schemas';
 
@@ -116,15 +117,34 @@ export class AuthService {
   /** Passwordless: send an email OTP. Returns the code in non-prod for testing. */
   async requestEmailOtp(email: string): Promise<{ sent: boolean; devCode?: string }> {
     const code = await otpService.request('login', email);
-    // Dispatch via the notification/email channel (logged in dev).
-    logger.info({ email, code: config.isProd ? '******' : code }, '📧 login OTP issued');
+    // Actually deliver it. The code was only ever logged before, so a real
+    // sign-in could not complete without reading the server logs.
+    const res = await channelProviders.email.send({
+      target: { userId: '', email },
+      templateKey: 'auth.otp',
+      title: `Your ${config.app.name} sign-in code`,
+      body: `Your code is ${code}. It expires in 10 minutes. If you didn't request it, ignore this email.`,
+    });
+    if (!res.ok && config.isProd) {
+      logger.error({ email, error: res.error }, 'login OTP email failed to send');
+    }
+    logger.info({ email, delivered: res.ok }, '📧 login OTP issued');
     return { sent: true, devCode: config.isProd ? undefined : code };
   }
 
-  /** Passwordless phone: send an SMS OTP (SMS provider is a stub in dev). */
+  /** Passwordless phone: send an SMS OTP. */
   async requestPhoneOtp(phone: string): Promise<{ sent: boolean; devCode?: string }> {
     const code = await otpService.request('phone', phone);
-    logger.info({ phone, code: config.isProd ? '******' : code }, '📱 phone OTP issued (SMS stub)');
+    const res = await channelProviders.sms.send({
+      target: { userId: '', phone },
+      templateKey: 'auth.otp',
+      title: `${config.app.name} code`,
+      body: `${code} is your verification code. Expires in 10 minutes.`,
+    });
+    if (!res.ok && config.isProd) {
+      logger.error({ phone, error: res.error }, 'phone OTP SMS failed to send');
+    }
+    logger.info({ phone, delivered: res.ok }, '📱 phone OTP issued');
     return { sent: true, devCode: config.isProd ? undefined : code };
   }
 
