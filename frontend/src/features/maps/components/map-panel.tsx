@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, AlertTriangle } from 'lucide-react';
-import { GOOGLE_MAPS_KEY } from '../api';
+import { GOOGLE_MAPS_KEY, MAPBOX_TOKEN } from '../api';
+import { MapboxPanel } from './mapbox-panel';
 import { loadGoogleMaps } from '../loader';
 import type { Vehicle } from '@/features/vehicles/types';
 
@@ -58,6 +59,11 @@ export function MapPanel({
   count: number;
   vehicles?: Vehicle[];
 }) {
+  // Mapbox is the primary map provider; Google is the alternate for when its
+  // key is set instead. Hooks below still run (rules of hooks) but do nothing
+  // without a Google key, so this early return is safe.
+  const useMapbox = !!MAPBOX_TOKEN;
+
   const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GMap | null>(null);
@@ -138,6 +144,10 @@ export function MapPanel({
 
     if (withCoords.length > 1) mapRef.current.fitBounds(bounds);
   }, [vehicles, active, router]);
+
+  if (useMapbox) {
+    return <MapboxPanel lat={lat} lng={lng} label={label} count={count} vehicles={vehicles} />;
+  }
 
   // ── No key, or the API failed to load: keep the layout, explain why. ──
   if (!GOOGLE_MAPS_KEY || error) {

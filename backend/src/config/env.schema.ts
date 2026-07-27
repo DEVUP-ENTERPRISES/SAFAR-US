@@ -64,6 +64,7 @@ export const envSchema = z.object({
   S3_BUCKET: z.string().optional(),
   S3_PUBLIC_BASE_URL: z.string().optional(), // e.g. https://cdn.cato.com or the bucket URL
 
+  MAPBOX_TOKEN: optional(z.string()),
   GOOGLE_MAPS_API_KEY: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
 

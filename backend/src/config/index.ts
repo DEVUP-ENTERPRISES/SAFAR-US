@@ -124,8 +124,11 @@ export const config = Object.freeze({
     pushEnabled: !!env.FCM_SERVER_KEY,
   },
   maps: {
+    mapboxToken: env.MAPBOX_TOKEN,
     googleKey: env.GOOGLE_MAPS_API_KEY,
-    enabled: !!env.GOOGLE_MAPS_API_KEY,
+    // Any geocoder configured (or the stub) means maps resolve — kept for the
+    // boot log and the frontend-key hints.
+    enabled: !!env.MAPBOX_TOKEN || !!env.GOOGLE_MAPS_API_KEY,
   },
   google: {
     clientId: env.GOOGLE_CLIENT_ID,
