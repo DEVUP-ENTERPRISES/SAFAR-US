@@ -646,6 +646,89 @@ export class BookingService {
     }
   }
 
+  /**
+   * What shortening a trip to an earlier end date refunds, before committing.
+   * Mirrors extensionPreview: the released tail is priced on its own — the same
+   * way the extra days are when extending — rather than re-quoting the whole
+   * trip, so a length discount isn't retroactively reshuffled.
+   */
+  async shortenPreview(
+    userId: string,
+    bookingId: string,
+    newEndIso: string,
+  ): Promise<{ available: boolean; reason?: string; refund?: Money; newEnd: string }> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can shorten');
+
+    const newEnd = new Date(newEndIso);
+    if (isNaN(newEnd.getTime()) || newEnd >= booking.period.end) {
+      return { available: false, reason: 'Pick a date before your current trip end.', newEnd: newEndIso };
+    }
+    if (booking.status !== 'paid') {
+      return { available: false, reason: 'Only a confirmed trip that has not started can be shortened.', newEnd: newEndIso };
+    }
+    if (booking.period.start <= new Date()) {
+      return { available: false, reason: 'The trip has already started and cannot be shortened.', newEnd: newEnd.toISOString() };
+    }
+    const vehicle = await vehicleService.getForBooking(booking.vehicleId);
+    if ((newEnd.getTime() - booking.period.start.getTime()) / 3_600_000 < vehicle.minTripHours) {
+      return { available: false, reason: `Trips on this car must be at least ${vehicle.minTripHours} hours.`, newEnd: newEnd.toISOString() };
+    }
+
+    const removedStart = new Date(newEnd.getTime() + 86_400_000);
+    const removed = await pricingService.quote({ vehicleId: booking.vehicleId, start: removedStart, end: booking.period.end });
+    return { available: true, refund: removed.total, newEnd: newEnd.toISOString() };
+  }
+
+  async requestShorten(userId: string, bookingId: string, newEndIso: string): Promise<BookingDoc> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can shorten');
+    if (booking.status !== 'paid') {
+      throw new ConflictError('Only a confirmed trip that has not started can be shortened', 'INVALID_STATE');
+    }
+    if (booking.period.start <= new Date()) {
+      throw new ConflictError('The trip has already started', 'INVALID_STATE');
+    }
+    const newEnd = new Date(newEndIso);
+    if (isNaN(newEnd.getTime()) || newEnd >= booking.period.end) {
+      throw new ValidationError('New end must be before the current end');
+    }
+    const vehicle = await vehicleService.getForBooking(booking.vehicleId);
+    if ((newEnd.getTime() - booking.period.start.getTime()) / 3_600_000 < vehicle.minTripHours) {
+      throw new ValidationError(`Minimum trip length is ${vehicle.minTripHours} hours`);
+    }
+
+    // Price only the released tail, refund it, and free those days for others.
+    const removedStart = new Date(newEnd.getTime() + 86_400_000);
+    const removed = await pricingService.quote({ vehicleId: booking.vehicleId, start: removedStart, end: booking.period.end });
+    if (removed.total.amount > 0) {
+      await paymentService.refundBooking(bookingId, removed.total, `Trip shortened to ${newEnd.toISOString()}`);
+    }
+    await availabilityService.releaseRange(bookingId, removedStart, booking.period.end);
+
+    // Roll the reduction into the booking totals so the host is paid for the
+    // days actually kept, not the ones given back.
+    const pb = booking.priceBreakdown;
+    await BookingModel.updateOne(
+      { _id: bookingId },
+      {
+        $set: {
+          'period.end': newEnd,
+          'priceBreakdown.total.amount': Math.max(0, pb.total.amount - removed.total.amount),
+          'priceBreakdown.hostEarnings.amount': Math.max(0, pb.hostEarnings.amount - removed.hostEarnings.amount),
+          'priceBreakdown.commission.amount': Math.max(0, pb.commission.amount - removed.commission.amount),
+          'priceBreakdown.tax.amount': Math.max(0, pb.tax.amount - removed.tax.amount),
+          'priceBreakdown.days': Math.max(1, pb.days - removed.days),
+        },
+        $push: {
+          statusHistory: { from: booking.status, to: booking.status, at: new Date(), by: userId, reason: `Shortened to ${newEnd.toISOString()}` },
+        },
+      },
+    );
+    emit(EVENTS.BOOKING_SHORTENED, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId, newEnd });
+    return this.getDoc(bookingId);
+  }
+
   async get(principal: Principal, bookingId: string): Promise<BookingDoc> {
     const booking = await this.getDoc(bookingId);
     const isParticipant =

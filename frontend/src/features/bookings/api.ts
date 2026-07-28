@@ -19,6 +19,13 @@ export interface ExtensionPreview {
   newEnd: string;
 }
 
+export interface ShortenPreview {
+  available: boolean;
+  reason?: string;
+  refund?: Money;
+  newEnd: string;
+}
+
 export const bookingApi = {
   quote: (input: QuoteInput) => api.post<PriceBreakdown>('/bookings/quote', input),
   create: (input: QuoteInput, idempotencyKey: string) =>
@@ -34,6 +41,9 @@ export const bookingApi = {
     api.get<ExtensionPreview>(`/bookings/${id}/extension-preview`, { newEnd }),
   cancel: (id: string, reason: string) => api.post<Booking>(`/bookings/${id}/cancel`, { reason }),
   extend: (id: string, newEnd: string) => api.post<Booking>(`/bookings/${id}/extend`, { newEnd }),
+  shortenPreview: (id: string, newEnd: string) =>
+    api.get<ShortenPreview>(`/bookings/${id}/shorten-preview`, { newEnd }),
+  shorten: (id: string, newEnd: string) => api.post<Booking>(`/bookings/${id}/shorten`, { newEnd }),
   addDriver: (id: string, name: string, licenseNumber?: string) =>
     api.post<Booking>(`/bookings/${id}/drivers`, { name, licenseNumber: licenseNumber || undefined }),
   removeDriver: (id: string, name: string) =>

@@ -190,6 +190,33 @@ router.post(
   }),
 );
 
+/** The exact refund for ending a confirmed trip earlier, before committing. */
+router.get(
+  '/:id/shorten-preview',
+  authenticate,
+  validate({ query: z.object({ newEnd: z.string() }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await bookingService.shortenPreview(req.principal!.userId, req.params.id, String(req.query.newEnd)),
+    );
+  }),
+);
+
+router.post(
+  '/:id/shorten',
+  authenticate,
+  validate({ body: extendSchema }),
+  asyncHandler(async (req, res) => {
+    const booking = await bookingService.requestShorten(
+      req.principal!.userId,
+      req.params.id,
+      new Date(req.body.newEnd).toISOString(),
+    );
+    sendSuccess(res, booking);
+  }),
+);
+
 /** Add an approved additional driver to the trip (must be before it ends). */
 router.post(
   '/:id/drivers',

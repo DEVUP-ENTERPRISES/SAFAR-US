@@ -119,6 +119,15 @@ export class AvailabilityService implements IAvailabilityContract {
     await AvailabilityModel.deleteMany({ bookingId });
   }
 
+  /**
+   * Free only part of a booking's days — used when a trip is shortened, so the
+   * released tail reopens for others while the days the guest keeps stay booked.
+   */
+  async releaseRange(bookingId: string, from: Date, to: Date): Promise<void> {
+    const keys = dayKeys(from, to);
+    await AvailabilityModel.deleteMany({ bookingId, dayKey: { $in: keys } });
+  }
+
   /** Host blocks a range (maintenance / personal use / blackout dates). */
   async block(vehicleId: string, start: Date, end: Date): Promise<void> {
     const keys = dayKeys(start, end);

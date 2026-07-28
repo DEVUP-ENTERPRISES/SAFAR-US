@@ -25,6 +25,7 @@ export const EVENTS = {
   BOOKING_COMPLETED: 'booking.completed',
   BOOKING_REMINDER: 'booking.reminder',
   BOOKING_EXTENDED: 'booking.extended',
+  BOOKING_SHORTENED: 'booking.shortened',
 
   TRIP_STARTED: 'trip.started',
   TRIP_COMPLETED: 'trip.completed',

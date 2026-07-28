@@ -24,8 +24,10 @@ function BookingsList() {
   const { data, isLoading, isError, refetch } = useMyBookings('guest');
   const cancel = useCancelBooking();
   const [extendId, setExtendId] = useState<string | null>(null);
+  const [shortenId, setShortenId] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState<string | null>(null);
   const [newEnd, setNewEnd] = useState('');
+  const [shortEnd, setShortEnd] = useState('');
   const startTrip = useMutation({
     mutationFn: (bookingId: string) => tripApi.start(bookingId),
     onSuccess: (trip) => router.push(`/trips/${trip._id}`),
@@ -40,6 +42,17 @@ function BookingsList() {
     queryKey: ['extension-preview', extendId, newEnd],
     queryFn: () => bookingApi.extensionPreview(extendId!, new Date(newEnd).toISOString()),
     enabled: !!extendId && !!newEnd,
+    retry: false,
+  });
+  const shorten = useMutation({
+    mutationFn: (id: string) => bookingApi.shorten(id, new Date(shortEnd).toISOString()),
+    onSuccess: () => { setShortenId(null); setShortEnd(''); qc.invalidateQueries({ queryKey: ['bookings'] }); },
+  });
+  // Live refund for ending earlier, before anything is committed.
+  const shortPreview = useQuery({
+    queryKey: ['shorten-preview', shortenId, shortEnd],
+    queryFn: () => bookingApi.shortenPreview(shortenId!, new Date(shortEnd).toISOString()),
+    enabled: !!shortenId && !!shortEnd,
     retry: false,
   });
 
@@ -91,8 +104,13 @@ function BookingsList() {
                   </Button>
                 )}
                 {['paid', 'in_progress'].includes(b.status) && (
-                  <Button size="sm" variant="outline" onClick={() => { setExtendId(extendId === b._id ? null : b._id); setNewEnd(''); }}>
+                  <Button size="sm" variant="outline" onClick={() => { setExtendId(extendId === b._id ? null : b._id); setNewEnd(''); setShortenId(null); }}>
                     Extend
+                  </Button>
+                )}
+                {b.status === 'paid' && (
+                  <Button size="sm" variant="outline" onClick={() => { setShortenId(shortenId === b._id ? null : b._id); setShortEnd(''); setExtendId(null); }}>
+                    Shorten
                   </Button>
                 )}
                 {['completed', 'cancelled'].includes(b.status) && (
@@ -200,6 +218,58 @@ function BookingsList() {
               {extend.isError && (
                 <p className="w-full text-sm text-destructive">
                   {extend.error instanceof ApiError ? extend.error.message : 'Extension failed'}
+                </p>
+              )}
+            </div>
+          )}
+          {shortenId === b._id && (
+            <div className="flex flex-wrap items-end gap-2 border-t border-border p-4">
+              <div className="flex-1">
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">New (earlier) end date/time</label>
+                <Input
+                  type="datetime-local"
+                  value={shortEnd}
+                  min={b.period.start.slice(0, 16)}
+                  max={b.period.end.slice(0, 16)}
+                  onChange={(e) => setShortEnd(e.target.value)}
+                />
+              </div>
+              <Button
+                size="sm"
+                disabled={!shortEnd || !shortPreview.data?.available}
+                loading={shorten.isPending}
+                onClick={async () => {
+                  const p = shortPreview.data;
+                  if (!p?.available || !p.refund) return;
+                  const { ok } = await confirm({
+                    title: 'End this trip earlier?',
+                    description: (
+                      <span>
+                        Ending on {new Date(p.newEnd).toLocaleString()} refunds{' '}
+                        <b>{formatMoney(p.refund)}</b> to your wallet, and the days you give back reopen for others.
+                      </span>
+                    ),
+                    confirmLabel: `Refund ${formatMoney(p.refund)} & shorten`,
+                  });
+                  if (ok) shorten.mutate(b._id);
+                }}
+              >
+                Confirm shorter trip
+              </Button>
+              {shortEnd && shortPreview.isFetching && (
+                <p className="w-full text-xs text-muted-foreground">Checking your refund…</p>
+              )}
+              {shortEnd && shortPreview.data && !shortPreview.data.available && (
+                <p className="w-full text-sm text-destructive">{shortPreview.data.reason}</p>
+              )}
+              {shortEnd && shortPreview.data?.available && shortPreview.data.refund && (
+                <p className="w-full text-sm">
+                  Refunds <b>{formatMoney(shortPreview.data.refund)}</b> for the days you give back.
+                </p>
+              )}
+              {shorten.isError && (
+                <p className="w-full text-sm text-destructive">
+                  {shorten.error instanceof ApiError ? shorten.error.message : 'Could not shorten the trip'}
                 </p>
               )}
             </div>
