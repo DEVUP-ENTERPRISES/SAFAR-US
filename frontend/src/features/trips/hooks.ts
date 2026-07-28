@@ -46,7 +46,12 @@ export function useCheckIn(id: string) {
   return useTripAction(id, () => tripApi.checkIn(id, 'contactless'));
 }
 export function useCompleteTrip(id: string) {
-  return useTripAction(id, () => tripApi.complete(id));
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (readings: { odometerEnd?: number; fuelEnd?: number } = {}) =>
+      tripApi.complete(id, readings.odometerEnd, readings.fuelEnd),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['trip', id] }),
+  });
 }
 export function useSos(id: string) {
   return useMutation({ mutationFn: () => tripApi.sos(id) });

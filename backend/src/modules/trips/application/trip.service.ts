@@ -152,10 +152,18 @@ export class TripService {
     if (perDayKm <= 0 || feePerKm <= 0) return null; // unlimited mileage
 
     const booking = await bookingService.getDoc(trip.bookingId);
-    const days = Math.max(
-      1,
-      Math.ceil((+new Date(booking.period.end) - +new Date(booking.period.start)) / 86_400_000),
-    );
+    // Included mileage must be measured against the exact number of days the
+    // guest was billed for — the same count the pricing engine used and stored
+    // on the booking. Recomputing it here with a different rule (e.g. ceil of
+    // the millisecond span) drifts from what they paid for and would charge
+    // overage a day early. Fall back to the span only for legacy bookings that
+    // predate a stored day count.
+    const days =
+      booking.priceBreakdown?.days ??
+      Math.max(
+        1,
+        Math.ceil((+new Date(booking.period.end) - +new Date(booking.period.start)) / 86_400_000),
+      );
     const includedKm = perDayKm * days;
     const overKm = Math.max(0, Math.round(distanceKm - includedKm));
     if (overKm <= 0) return null;

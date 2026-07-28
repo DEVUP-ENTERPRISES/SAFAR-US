@@ -33,6 +33,8 @@ export default function HostTripDetailPage() {
 
   const [odoStart, setOdoStart] = useState('');
   const [odoEnd, setOdoEnd] = useState('');
+  const [fuelStart, setFuelStart] = useState('');
+  const [fuelEnd, setFuelEnd] = useState('');
 
   const { data: t, isLoading, isError } = useQuery({
     queryKey: ['host-trip', bookingId],
@@ -49,11 +51,19 @@ export default function HostTripDetailPage() {
     onSuccess: invalidate,
   });
   const handover = useMutation({
-    mutationFn: () => hostTripsApi.handover(t!.tripId!, { odometerStart: Number(odoStart) }),
+    mutationFn: () =>
+      hostTripsApi.handover(t!.tripId!, {
+        odometerStart: Number(odoStart),
+        ...(fuelStart ? { fuelStart: Number(fuelStart) } : {}),
+      }),
     onSuccess: invalidate,
   });
   const complete = useMutation({
-    mutationFn: () => hostTripsApi.complete(t!.tripId!, { odometerEnd: Number(odoEnd) }),
+    mutationFn: () =>
+      hostTripsApi.complete(t!.tripId!, {
+        odometerEnd: Number(odoEnd),
+        ...(fuelEnd ? { fuelEnd: Number(fuelEnd) } : {}),
+      }),
     onSuccess: () => {
       invalidate();
       router.push('/host/trips');
@@ -346,15 +356,27 @@ export default function HostTripDetailPage() {
         >
           {started ? (
             <>
-              <Field label="Ending odometer (km)">
-                <Input
-                  type="number"
-                  min={0}
-                  value={odoEnd}
-                  onChange={(e) => setOdoEnd(e.target.value)}
-                  placeholder="e.g. 41250"
-                />
-              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Ending odometer (km)">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={odoEnd}
+                    onChange={(e) => setOdoEnd(e.target.value)}
+                    placeholder="e.g. 41250"
+                  />
+                </Field>
+                <Field label="Fuel level (%)">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={fuelEnd}
+                    onChange={(e) => setFuelEnd(e.target.value)}
+                    placeholder="e.g. 80"
+                  />
+                </Field>
+              </div>
               <Button size="lg" disabled={!odoEnd} loading={complete.isPending} onClick={doCheckout}>
                 Start checkout
               </Button>
@@ -371,15 +393,27 @@ export default function HostTripDetailPage() {
                   <IdCard className="h-4 w-4" /> Confirm guest&apos;s licence
                 </Button>
               )}
-              <Field label="Starting odometer (km)">
-                <Input
-                  type="number"
-                  min={0}
-                  value={odoStart}
-                  onChange={(e) => setOdoStart(e.target.value)}
-                  placeholder="e.g. 40100"
-                />
-              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Starting odometer (km)">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={odoStart}
+                    onChange={(e) => setOdoStart(e.target.value)}
+                    placeholder="e.g. 40100"
+                  />
+                </Field>
+                <Field label="Fuel level (%)">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={fuelStart}
+                    onChange={(e) => setFuelStart(e.target.value)}
+                    placeholder="e.g. 95"
+                  />
+                </Field>
+              </div>
               <Button
                 size="lg"
                 disabled={!t.licenseConfirmed || !odoStart || !t.tripId}

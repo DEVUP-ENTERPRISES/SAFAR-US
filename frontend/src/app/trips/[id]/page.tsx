@@ -25,6 +25,8 @@ function TripDashboard() {
   const complete = useCompleteTrip(id);
   const sos = useSos(id);
   const [damage, setDamage] = useState('');
+  const [odoEnd, setOdoEnd] = useState('');
+  const [fuelEnd, setFuelEnd] = useState('');
 
   if (isLoading) return <Skeleton className="h-[70vh] w-full" />;
   if (isError || !trip) return <ErrorState message="Trip not found." retry={() => refetch()} />;
@@ -93,23 +95,62 @@ function TripDashboard() {
         {trip.status === 'active' && (
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-base">Trip actions</CardTitle></CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
+            <CardContent className="space-y-4">
               {!trip.checkin && (
                 <Button variant="outline" loading={checkIn.isPending} onClick={() => checkIn.mutate()}>
                   <KeyRound className="h-4 w-4" /> Contactless check-in
                 </Button>
               )}
-              <Button
-                loading={complete.isPending}
-                disabled={returnPhotoCount < 2}
-                title={returnPhotoCount < 2 ? 'Add at least 2 return photos first' : undefined}
-                onClick={() => complete.mutate()}
-              >
-                <CheckCircle2 className="h-4 w-4" /> Complete trip
-              </Button>
-              <Button variant="destructive" loading={sos.isPending} onClick={() => sos.mutate()}>
-                <ShieldAlert className="h-4 w-4" /> Emergency SOS
-              </Button>
+
+              {/* Return readings: the odometer settles any mileage overage, the
+                  fuel level is recorded as part of the condition handover. */}
+              <div className="grid grid-cols-2 gap-3">
+                <label className="text-sm">
+                  <span className="mb-1 flex items-center gap-1 text-muted-foreground"><Gauge className="h-3.5 w-3.5" /> Ending odometer (km)</span>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={trip.handover.odometerStart ?? 0}
+                    value={odoEnd}
+                    onChange={(e) => setOdoEnd(e.target.value)}
+                    placeholder={trip.handover.odometerStart != null ? `≥ ${trip.handover.odometerStart}` : 'e.g. 41250'}
+                  />
+                </label>
+                <label className="text-sm">
+                  <span className="mb-1 flex items-center gap-1 text-muted-foreground"><Fuel className="h-3.5 w-3.5" /> Fuel level (%)</span>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={100}
+                    value={fuelEnd}
+                    onChange={(e) => setFuelEnd(e.target.value)}
+                    placeholder="e.g. 80"
+                  />
+                </label>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  loading={complete.isPending}
+                  disabled={returnPhotoCount < 2}
+                  title={returnPhotoCount < 2 ? 'Add at least 2 return photos first' : undefined}
+                  onClick={() =>
+                    complete.mutate({
+                      odometerEnd: odoEnd ? Number(odoEnd) : undefined,
+                      fuelEnd: fuelEnd ? Number(fuelEnd) : undefined,
+                    })
+                  }
+                >
+                  <CheckCircle2 className="h-4 w-4" /> Complete trip
+                </Button>
+                <Button variant="destructive" loading={sos.isPending} onClick={() => sos.mutate()}>
+                  <ShieldAlert className="h-4 w-4" /> Emergency SOS
+                </Button>
+              </div>
+              {returnPhotoCount < 2 && (
+                <p className="text-xs text-muted-foreground">Add at least 2 return photos below before you can complete the trip.</p>
+              )}
             </CardContent>
           </Card>
         )}
