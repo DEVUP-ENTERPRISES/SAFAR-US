@@ -90,6 +90,19 @@ export class BookingService {
     }
     this.assertDuration(start, end, vehicle.minTripHours, vehicle.maxTripHours);
 
+    // Advance notice: the host needs lead time before a trip can start. A start
+    // sooner than that is rejected — checked against wall-clock now, not the
+    // booking time, so a request that sat in a form for an hour is judged fresh.
+    if (vehicle.advanceNoticeHours > 0) {
+      const earliestStart = Date.now() + vehicle.advanceNoticeHours * 3_600_000;
+      if (start.getTime() < earliestStart) {
+        throw new ConflictError(
+          `This car needs at least ${vehicle.advanceNoticeHours} hours' notice before a trip starts.`,
+          'ADVANCE_NOTICE',
+        );
+      }
+    }
+
     if (!(await availabilityService.isAvailable(dto.vehicleId, start, end))) {
       throw new ConflictError('Vehicle is not available for the selected dates', 'NOT_AVAILABLE');
     }

@@ -134,6 +134,7 @@ export const updateVehicleSchema = z
         minTripHours: z.number().int().min(1),
         maxTripHours: z.number().int().min(1),
         turnaroundDays: z.number().int().min(0).max(7),
+        advanceNoticeHours: z.number().int().min(0).max(720),
         cancellationPolicy: z.enum(['flexible', 'moderate', 'strict']),
         delivery: z
           .object({

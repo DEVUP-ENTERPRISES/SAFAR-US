@@ -62,6 +62,12 @@ export interface VehicleDoc {
      */
     turnaroundDays?: number;
     maxTripHours: number;
+    /**
+     * Minimum lead time before a trip may start — a guest cannot book a car for
+     * sooner than this many hours from now. 0 means it can be booked to start
+     * immediately. Mirrors Turo's "advance notice".
+     */
+    advanceNoticeHours?: number;
     cancellationPolicy: 'flexible' | 'moderate' | 'strict';
     delivery: {
       airport: boolean;
@@ -148,6 +154,7 @@ const schema = new Schema<VehicleDoc>(
       minTripHours: { type: Number, default: 24 },
       turnaroundDays: { type: Number, default: 0, min: 0, max: 7 },
       maxTripHours: { type: Number, default: 24 * 30 },
+      advanceNoticeHours: { type: Number, default: 0, min: 0, max: 720 },
       cancellationPolicy: {
         type: String,
         enum: ['flexible', 'moderate', 'strict'],

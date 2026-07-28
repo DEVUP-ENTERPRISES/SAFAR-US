@@ -33,6 +33,8 @@ export interface Vehicle {
     instantBook: boolean;
     minTripHours: number;
     maxTripHours: number;
+    turnaroundDays?: number;
+    advanceNoticeHours?: number;
     cancellationPolicy: 'flexible' | 'moderate' | 'strict';
     delivery?: {
       airport: boolean;
@@ -50,8 +52,12 @@ export interface Vehicle {
     weekendMultiplierBps?: number;
     weeklyDiscountBps?: number;
     monthlyDiscountBps?: number;
+    earlyBirdBps?: number;
+    lastMinuteBps?: number;
     dynamicPricing?: boolean;
     promoActive?: boolean;
+    promoDiscountBps?: number;
+    seasonalRules?: { label: string; start: string; end: string; multiplierBps: number }[];
   };
   status: string;
   verificationStatus: string;

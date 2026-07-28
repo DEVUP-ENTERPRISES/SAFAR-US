@@ -49,21 +49,37 @@ export default function ManageListingPage() {
   const [vin, setVin] = useState('');
   const verifyVin = useMutation({ mutationFn: () => vehicleApi.verifyVin(id, vin), onSuccess: invalidate });
 
-  const [price, setPrice] = useState('');
-  const updatePrice = useMutation({
-    mutationFn: () => vehicleApi.updatePricing(id, { dailyPrice: Math.round(Number(price) * 100) }),
-    onSuccess: () => { invalidate(); setPrice(''); },
+  const updatePricingM = useMutation({
+    mutationFn: (patch: Record<string, unknown>) => vehicleApi.updatePricing(id, patch),
+    onSuccess: () => { invalidate(); notify({ tone: 'success', title: 'Pricing updated' }); },
   });
 
   const [block, setBlock] = useState({ start: '', end: '' });
+  const availability = useQuery({
+    queryKey: ['vehicle-availability', id],
+    queryFn: () =>
+      vehicleApi.getCalendar(
+        id,
+        new Date().toISOString(),
+        new Date(Date.now() + 90 * 86_400_000).toISOString(),
+      ),
+    enabled: panel === 'availability',
+  });
+  const invalidateAvail = () => {
+    invalidate();
+    qc.invalidateQueries({ queryKey: ['vehicle-availability', id] });
+  };
   const setAvail = useMutation({
-    mutationFn: (action: 'block' | 'unblock') =>
-      vehicleApi.setAvailability(id, new Date(block.start).toISOString(), new Date(block.end).toISOString(), action),
-    onSuccess: (_r, action) => {
-      invalidate();
+    mutationFn: ({ action, start, end }: { action: 'block' | 'unblock'; start: string; end: string }) =>
+      vehicleApi.setAvailability(id, new Date(start).toISOString(), new Date(end).toISOString(), action),
+    onSuccess: (_r, { action }) => {
+      invalidateAvail();
       notify({ tone: 'success', title: action === 'block' ? 'Dates blocked' : 'Dates reopened' });
     },
   });
+  const blockedRanges = groupRanges(
+    (availability.data ?? []).filter((d) => d.state === 'blocked').map((d) => d.dayKey).sort(),
+  );
 
   // Generic field editor — every listing attribute goes through PUT /vehicles/:id.
   const update = useMutation({
@@ -129,15 +145,6 @@ export default function ManageListingPage() {
   const photosNeeded = Math.max(0, minPhotos - photos.length);
   const canSubmit = v.status === 'draft' && photosNeeded === 0;
 
-  const savePrice = async () => {
-    const { ok } = await confirm({
-      title: `Change the daily price to $${Number(price).toFixed(2)}?`,
-      description: 'New quotes use this price immediately. Trips already booked keep the price they were quoted.',
-      confirmLabel: 'Save price',
-    });
-    if (ok) updatePrice.mutate();
-  };
-
   const doBlock = async () => {
     const { ok } = await confirm({
       title: 'Block these dates?',
@@ -145,7 +152,7 @@ export default function ManageListingPage() {
       confirmLabel: 'Block dates',
       tone: 'destructive',
     });
-    if (ok) setAvail.mutate('block');
+    if (ok) setAvail.mutate({ action: 'block', start: block.start, end: block.end });
   };
 
   const doSubmit = async () => {
@@ -261,19 +268,7 @@ export default function ManageListingPage() {
             onClick={() => toggle('pricing')}
           />
           {panel === 'pricing' && (
-            <div className="space-y-3 bg-subtle px-4 py-4">
-              <Field label="Daily price ($)">
-                <Input
-                  type="number"
-                  value={price}
-                  placeholder={String(v.pricing.dailyPrice / 100)}
-                  onChange={(e) => setPrice(e.target.value)}
-                />
-              </Field>
-              <Button size="sm" disabled={!price} loading={updatePrice.isPending} onClick={savePrice}>
-                Save price
-              </Button>
-            </div>
+            <PricingPanel vehicle={v} onSave={(patch) => updatePricingM.mutate(patch)} saving={updatePricingM.isPending} />
           )}
 
           <Row
@@ -465,10 +460,35 @@ export default function ManageListingPage() {
                   size="sm"
                   variant="outline"
                   disabled={!block.start || !block.end}
-                  onClick={() => setAvail.mutate('unblock')}
+                  onClick={() => setAvail.mutate({ action: 'unblock', start: block.start, end: block.end })}
                 >
                   Unblock
                 </Button>
+              </div>
+
+              {/* What's currently blocked, next 90 days — tap ✕ to reopen a window. */}
+              <div className="border-t border-border pt-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Currently blocked</p>
+                {availability.isLoading ? (
+                  <p className="text-xs text-muted-foreground">Loading…</p>
+                ) : blockedRanges.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No blocked dates in the next 90 days.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {blockedRanges.map((r) => (
+                      <span key={r.from} className="flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs">
+                        {fmtRange(r.from, r.to)}
+                        <button
+                          onClick={() => setAvail.mutate({ action: 'unblock', start: r.from, end: r.to })}
+                          aria-label="Reopen these dates"
+                          className="rounded-full text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -520,6 +540,28 @@ export default function ManageListingPage() {
  * previous version treated a rejected upload as success and attached a URL to
  * an object that was never stored — the photo then rendered broken.
  */
+/** Collapse a sorted list of YYYY-MM-DD day keys into contiguous ranges. */
+function groupRanges(days: string[]): { from: string; to: string }[] {
+  const out: { from: string; to: string }[] = [];
+  const nextDay = (d: string) => {
+    const t = new Date(d + 'T00:00:00Z');
+    t.setUTCDate(t.getUTCDate() + 1);
+    return t.toISOString().slice(0, 10);
+  };
+  for (const day of days) {
+    const last = out[out.length - 1];
+    if (last && nextDay(last.to) === day) last.to = day;
+    else out.push({ from: day, to: day });
+  }
+  return out;
+}
+
+/** "Mar 3" or "Mar 3 – Mar 7" for a blocked range chip. */
+function fmtRange(from: string, to: string): string {
+  const f = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  return from === to ? f(from) : `${f(from)} – ${f(to)}`;
+}
+
 async function putToStorage(uploadUrl: string, file: File): Promise<void> {
   const res = await fetch(uploadUrl, {
     method: 'PUT',
@@ -609,8 +651,14 @@ function LocationPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: 
 }
 
 function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: SaveFn; saving: boolean }) {
-  const [instantBook, setInstantBook] = useState(!!vehicle.listing?.instantBook);
-  const [policy, setPolicy] = useState(vehicle.listing?.cancellationPolicy ?? 'moderate');
+  const l = vehicle.listing;
+  const [instantBook, setInstantBook] = useState(!!l?.instantBook);
+  const [policy, setPolicy] = useState(l?.cancellationPolicy ?? 'moderate');
+  // Hours are stored; hosts think in days for trip length, hours for notice.
+  const [minDays, setMinDays] = useState(String(Math.max(1, Math.round((l?.minTripHours ?? 24) / 24))));
+  const [maxDays, setMaxDays] = useState(String(Math.max(1, Math.round((l?.maxTripHours ?? 720) / 24))));
+  const [turnaround, setTurnaround] = useState(String(l?.turnaroundDays ?? 0));
+  const [notice, setNotice] = useState(String(l?.advanceNoticeHours ?? 0));
 
   return (
     <div className="space-y-4 bg-subtle px-4 py-4">
@@ -629,6 +677,21 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
         />
       </label>
 
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Minimum trip (days)">
+          <Input type="number" min={1} value={minDays} onChange={(e) => setMinDays(e.target.value)} />
+        </Field>
+        <Field label="Maximum trip (days)">
+          <Input type="number" min={1} value={maxDays} onChange={(e) => setMaxDays(e.target.value)} />
+        </Field>
+        <Field label="Turnaround (days)" hint="Buffer kept free after each trip">
+          <Input type="number" min={0} max={7} value={turnaround} onChange={(e) => setTurnaround(e.target.value)} />
+        </Field>
+        <Field label="Advance notice (hours)" hint="Lead time before a trip can start">
+          <Input type="number" min={0} max={720} value={notice} onChange={(e) => setNotice(e.target.value)} />
+        </Field>
+      </div>
+
       <Field label="Cancellation policy">
         <select
           value={policy}
@@ -644,9 +707,133 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
       <Button
         size="sm"
         loading={saving}
-        onClick={() => onSave({ listing: { instantBook, cancellationPolicy: policy } })}
+        onClick={() =>
+          onSave({
+            listing: {
+              instantBook,
+              cancellationPolicy: policy,
+              minTripHours: Math.max(1, Number(minDays) || 1) * 24,
+              maxTripHours: Math.max(1, Number(maxDays) || 1) * 24,
+              turnaroundDays: Math.min(7, Math.max(0, Number(turnaround) || 0)),
+              advanceNoticeHours: Math.min(720, Math.max(0, Number(notice) || 0)),
+            },
+          })
+        }
       >
         Save trip preferences
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Everything that moves the price: the daily rate, the fixed fees, the weekend
+ * uplift, length-of-stay discounts, early-bird / last-minute nudges, and any
+ * number of dated seasonal rules. Percentages are shown to the host and stored
+ * as basis points (the engine's unit) so what they type is what a guest pays.
+ */
+function PricingPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: SaveFn; saving: boolean }) {
+  const p = vehicle.pricing;
+  const cur = p.currency;
+  const pctFromBps = (bps?: number) => String(bps ? Math.round(bps / 100) : 0);
+  const upliftFromBps = (bps?: number) => String(bps ? Math.round((bps - 10000) / 100) : 0);
+
+  const [daily, setDaily] = useState(String(p.dailyPrice / 100));
+  const [cleaning, setCleaning] = useState(String((p.cleaningFee ?? 0) / 100));
+  const [weekend, setWeekend] = useState(upliftFromBps(p.weekendMultiplierBps));
+  const [weekly, setWeekly] = useState(pctFromBps(p.weeklyDiscountBps));
+  const [monthly, setMonthly] = useState(pctFromBps(p.monthlyDiscountBps));
+  const [earlyBird, setEarlyBird] = useState(pctFromBps(p.earlyBirdBps));
+  const [lastMinute, setLastMinute] = useState(pctFromBps(p.lastMinuteBps));
+  const [rules, setRules] = useState(
+    (p.seasonalRules ?? []).map((r) => ({
+      label: r.label,
+      start: r.start.slice(0, 10),
+      end: r.end.slice(0, 10),
+      pct: String(Math.round(r.multiplierBps / 100)),
+    })),
+  );
+
+  const num = (s: string) => Number(s) || 0;
+  const addRule = () => setRules((rs) => [...rs, { label: '', start: '', end: '', pct: '150' }]);
+  const setRule = (i: number, patch: Partial<(typeof rules)[number]>) =>
+    setRules((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const removeRule = (i: number) => setRules((rs) => rs.filter((_, j) => j !== i));
+
+  const save = () =>
+    onSave({
+      dailyPrice: Math.round(num(daily) * 100),
+      cleaningFee: Math.round(num(cleaning) * 100),
+      weekendMultiplierBps: 10000 + Math.max(0, num(weekend)) * 100,
+      weeklyDiscountBps: Math.min(90, Math.max(0, num(weekly))) * 100,
+      monthlyDiscountBps: Math.min(90, Math.max(0, num(monthly))) * 100,
+      earlyBirdBps: Math.min(50, Math.max(0, num(earlyBird))) * 100,
+      lastMinuteBps: Math.min(50, Math.max(0, num(lastMinute))) * 100,
+      seasonalRules: rules
+        .filter((r) => r.label.trim() && r.start && r.end)
+        .map((r) => ({
+          label: r.label.trim(),
+          start: r.start,
+          end: r.end,
+          multiplierBps: Math.min(300, Math.max(10, num(r.pct))) * 100,
+        })),
+    });
+
+  return (
+    <div className="space-y-4 bg-subtle px-4 py-4">
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={`Daily price (${cur})`}>
+          <Input type="number" min={1} value={daily} onChange={(e) => setDaily(e.target.value)} />
+        </Field>
+        <Field label={`Cleaning fee (${cur})`}>
+          <Input type="number" min={0} value={cleaning} onChange={(e) => setCleaning(e.target.value)} />
+        </Field>
+        <Field label="Weekend uplift (%)" hint="Added Fri–Sun">
+          <Input type="number" min={0} value={weekend} onChange={(e) => setWeekend(e.target.value)} />
+        </Field>
+        <Field label="Weekly discount (%)" hint="7+ day trips">
+          <Input type="number" min={0} max={90} value={weekly} onChange={(e) => setWeekly(e.target.value)} />
+        </Field>
+        <Field label="Monthly discount (%)" hint="28+ day trips">
+          <Input type="number" min={0} max={90} value={monthly} onChange={(e) => setMonthly(e.target.value)} />
+        </Field>
+        <Field label="Early-bird (%)" hint="Booked well ahead">
+          <Input type="number" min={0} max={50} value={earlyBird} onChange={(e) => setEarlyBird(e.target.value)} />
+        </Field>
+        <Field label="Last-minute (%)" hint="Fills idle days">
+          <Input type="number" min={0} max={50} value={lastMinute} onChange={(e) => setLastMinute(e.target.value)} />
+        </Field>
+      </div>
+
+      {/* Seasonal rules */}
+      <div className="space-y-2 border-t border-border pt-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium">Seasonal pricing</p>
+          <button onClick={addRule} className="text-sm font-semibold text-primary hover:underline">+ Add rule</button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          A multiplier for a date range — 150% charges half again as much (peak), 80% takes a fifth off (low season).
+        </p>
+        {rules.length === 0 && <p className="text-xs text-muted-foreground">No seasonal rules yet.</p>}
+        {rules.map((r, i) => (
+          <div key={i} className="rounded-lg border border-border bg-card p-2.5">
+            <div className="flex items-center gap-2">
+              <Input value={r.label} placeholder="e.g. Holiday peak" onChange={(e) => setRule(i, { label: e.target.value })} />
+              <button onClick={() => removeRule(i)} aria-label="Remove rule" className="shrink-0 rounded-lg p-1.5 text-destructive hover:bg-destructive/10">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <Field label="From"><Input type="date" value={r.start} onChange={(e) => setRule(i, { start: e.target.value })} /></Field>
+              <Field label="To"><Input type="date" min={r.start || undefined} value={r.end} onChange={(e) => setRule(i, { end: e.target.value })} /></Field>
+              <Field label="Rate (%)"><Input type="number" min={10} max={300} value={r.pct} onChange={(e) => setRule(i, { pct: e.target.value })} /></Field>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <Button size="sm" loading={saving} disabled={!daily} onClick={save}>
+        Save pricing
       </Button>
     </div>
   );

@@ -6,6 +6,8 @@ export interface VehicleForBooking {
   cancellationPolicy: 'flexible' | 'moderate' | 'strict';
   minTripHours: number;
   maxTripHours: number;
+  /** Minimum lead time (hours) before a trip may start. 0 = bookable now. */
+  advanceNoticeHours: number;
   currency: string;
   /** Minor units — the security deposit is sized off this. */
   dailyPrice: number;
