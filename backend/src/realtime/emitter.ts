@@ -39,6 +39,7 @@ export const RT = {
   TRIP_STATUS: 'trip:status',
   TRIP_LOCATION: 'trip:location',
   CHAT_MESSAGE: 'chat:message',
+  CHAT_READ: 'chat:read',
   NOTIFICATION: 'notification',
   TRIP_ALERT: 'trip:alert',
 } as const;

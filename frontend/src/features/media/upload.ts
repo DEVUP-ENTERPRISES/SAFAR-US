@@ -4,6 +4,7 @@ import { api } from '@/lib/api/client';
 export type UploadCategory =
   | 'vehicle_photo'
   | 'trip_photo'
+  | 'message'
   | 'avatar'
   | 'registration'
   | 'insurance'

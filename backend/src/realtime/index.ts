@@ -97,12 +97,15 @@ export function initRealtime(httpServer: HttpServer): void {
       }
     });
 
-    // Chat within a booking conversation.
+    // Chat within a booking conversation — text and/or photo attachments.
     socket.on(
       'chat:message',
-      async (data: { bookingId: string; body: string }, ack?: (ok: boolean) => void) => {
+      async (
+        data: { bookingId: string; body: string; attachments?: { url: string; kind: 'image' | 'file'; name?: string }[] },
+        ack?: (ok: boolean) => void,
+      ) => {
         try {
-          const msg = await messageService.send(principal.userId, data.bookingId, data.body);
+          const msg = await messageService.send(principal.userId, data.bookingId, data.body, data.attachments ?? []);
           realtimeEmitter.toBooking(data.bookingId, RT.CHAT_MESSAGE, msg);
           ack?.(true);
         } catch {
@@ -110,6 +113,22 @@ export function initRealtime(httpServer: HttpServer): void {
         }
       },
     );
+
+    // Read receipts — mark the conversation read and tell the room so the other
+    // party's "Seen" updates without a refetch.
+    socket.on('chat:read', async (bookingId: string, ack?: (ok: boolean) => void) => {
+      try {
+        await messageService.markRead(principal.userId, bookingId);
+        realtimeEmitter.toBooking(bookingId, RT.CHAT_READ, {
+          bookingId,
+          userId: principal.userId,
+          at: new Date().toISOString(),
+        });
+        ack?.(true);
+      } catch {
+        ack?.(false);
+      }
+    });
 
     socket.on('disconnect', () => logger.debug({ userId: principal.userId }, 'socket disconnected'));
   });

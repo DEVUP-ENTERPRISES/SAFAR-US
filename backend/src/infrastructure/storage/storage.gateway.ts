@@ -13,6 +13,7 @@ export interface UploadTarget {
 export type UploadCategory =
   | 'vehicle_photo'
   | 'trip_photo' // pre/post condition photos on a trip
+  | 'message' // photo shared in a booking conversation
   | 'avatar'
   | 'registration'
   | 'insurance'
@@ -22,6 +23,7 @@ export type UploadCategory =
 export const UPLOAD_CATEGORIES = [
   'vehicle_photo',
   'trip_photo',
+  'message',
   'avatar',
   'registration',
   'insurance',

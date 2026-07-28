@@ -5,6 +5,10 @@ import { hostService } from '../../hosts/application/host.service';
 import { ForbiddenError, ValidationError } from '../../../core/errors/app-error';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
+import { realtimeEmitter, RT } from '../../../realtime/emitter';
+
+/** Reserved sender id for automated, system-authored conversation messages. */
+export const SYSTEM_SENDER = 'system';
 
 export interface Attachment {
   url: string;
@@ -48,6 +52,25 @@ export class MessageService {
     return message.toObject();
   }
 
+  /**
+   * Post an automated message into a booking's conversation — "Trip started",
+   * "Extended to …", and so on — so the thread reads as the running record of
+   * the trip. No sender authorisation (the system is always allowed) and it is
+   * broadcast to anyone watching the room so it appears live.
+   */
+  async system(bookingId: string, body: string): Promise<MessageDoc> {
+    const message = await MessageModel.create({
+      bookingId,
+      senderId: SYSTEM_SENDER,
+      body,
+      attachments: [],
+      readBy: [SYSTEM_SENDER],
+    });
+    const obj = message.toObject();
+    if (realtimeEmitter.isReady()) realtimeEmitter.toBooking(bookingId, RT.CHAT_MESSAGE, obj);
+    return obj;
+  }
+
   async list(userId: string, bookingId: string): Promise<MessageDoc[]> {
     await this.authorize(userId, bookingId);
     return MessageModel.find({ bookingId }).sort({ createdAt: 1 }).limit(200).lean<MessageDoc[]>();
@@ -76,7 +99,9 @@ export class MessageService {
     if (ids.length === 0) return { count: 0 };
     const count = await MessageModel.countDocuments({
       bookingId: { $in: ids },
-      senderId: { $ne: userId },
+      // System notes are informational, not a person awaiting a reply — they
+      // belong in the thread but must not light up the unread-messages badge.
+      senderId: { $nin: [userId, SYSTEM_SENDER] },
       readBy: { $ne: userId },
     });
     return { count };

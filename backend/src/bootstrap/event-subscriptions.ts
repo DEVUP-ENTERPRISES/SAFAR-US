@@ -9,7 +9,20 @@ import { referralService } from '../modules/referral/application/referral.servic
 import { bookingService } from '../modules/bookings/application/booking.service';
 import { favoritesService } from '../modules/favorites/application/favorites.service';
 import { savedSearchService } from '../modules/saved-search/application/saved-search.service';
+import { messageService } from '../modules/messaging/application/message.service';
 import { logger } from '../infrastructure/logging/logger';
+
+/** Best-effort system note into a booking conversation; never breaks the flow. */
+async function postSystemNote(bookingId: string, body: string): Promise<void> {
+  try {
+    await messageService.system(bookingId, body);
+  } catch (err) {
+    logger.warn({ err, bookingId }, 'system chat note failed');
+  }
+}
+
+const fmtDay = (d: Date | string) =>
+  new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 
 /**
  * Cross-module reactions wired in one place (each module's "manifest" of
@@ -249,6 +262,26 @@ export function registerEventSubscribers(): void {
     } catch (err) {
       logger.error({ err, userId: p.userId }, 'failed to cancel held bookings after KYC rejection');
     }
+  });
+
+  // ── System notes into the booking conversation ─────────────────────────
+  // The chat thread doubles as the trip's running record: the milestones that
+  // both parties care about are written into it as they happen.
+  eventBus.subscribe(EVENTS.TRIP_STARTED, async (e) => {
+    const p = e.payload as { bookingId: string };
+    await postSystemNote(p.bookingId, 'Trip started — the handover is complete and the car is on the road.');
+  });
+  eventBus.subscribe(EVENTS.TRIP_COMPLETED, async (e) => {
+    const p = e.payload as { bookingId: string };
+    await postSystemNote(p.bookingId, 'Trip completed — the car has been returned.');
+  });
+  eventBus.subscribe(EVENTS.BOOKING_EXTENDED, async (e) => {
+    const p = e.payload as { bookingId: string; newEnd: Date | string };
+    await postSystemNote(p.bookingId, `Trip extended — the new return date is ${fmtDay(p.newEnd)}.`);
+  });
+  eventBus.subscribe(EVENTS.BOOKING_SHORTENED, async (e) => {
+    const p = e.payload as { bookingId: string; newEnd: Date | string };
+    await postSystemNote(p.bookingId, `Trip shortened — the new return date is ${fmtDay(p.newEnd)}.`);
   });
 
   /** A newly listed car alerts everyone whose saved search it matches. */
