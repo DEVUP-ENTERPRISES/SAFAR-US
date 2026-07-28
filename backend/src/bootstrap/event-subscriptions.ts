@@ -8,6 +8,7 @@ import { rewardsService } from '../modules/rewards/application/rewards.service';
 import { referralService } from '../modules/referral/application/referral.service';
 import { bookingService } from '../modules/bookings/application/booking.service';
 import { favoritesService } from '../modules/favorites/application/favorites.service';
+import { savedSearchService } from '../modules/saved-search/application/saved-search.service';
 import { logger } from '../infrastructure/logging/logger';
 
 /**
@@ -247,6 +248,16 @@ export function registerEventSubscribers(): void {
       }
     } catch (err) {
       logger.error({ err, userId: p.userId }, 'failed to cancel held bookings after KYC rejection');
+    }
+  });
+
+  /** A newly listed car alerts everyone whose saved search it matches. */
+  eventBus.subscribe(EVENTS.VEHICLE_LISTED, async (e) => {
+    const p = e.payload as { vehicleId: string };
+    try {
+      await savedSearchService.notifyMatchesForVehicle(p.vehicleId);
+    } catch (err) {
+      logger.error({ err, vehicleId: p.vehicleId }, 'saved-search match run failed');
     }
   });
 

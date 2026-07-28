@@ -55,8 +55,14 @@ async function call(method, path, { token, body, key } = {}) {
  * days per second — wider than the ~310-day span this suite books across — so
  * even two runs one second apart land in non-overlapping windows. The modulo
  * keeps the dates sane; its wrap period (~2.6h) is far longer than any run.
+ *
+ * Because the suite books against a *shared* seed vehicle, it also wipes that
+ * vehicle's far-future calendar at startup (see purgeTestCalendar) — otherwise
+ * booked days left by earlier runs accumulate and a later run's window can land
+ * on one, failing with a spurious NOT_AVAILABLE. Override with RUN_OFFSET=<days>.
  */
-const RUN_OFFSET = 400 + ((Math.floor(Date.now() / 1000) * 320) % 3_000_000);
+const RUN_OFFSET =
+  Number(process.env.RUN_OFFSET) || 400 + ((Math.floor(Date.now() / 1000) * 320) % 3_000_000);
 const days = (n) => new Date(Date.now() + (RUN_OFFSET + n) * 86_400_000).toISOString();
 /** Real calendar dates, for the few scenarios that must test the past. */
 const rawDays = (n) => new Date(Date.now() + n * 86_400_000).toISOString();
@@ -95,6 +101,22 @@ async function markVerified(userId) {
     },
     { upsert: true },
   );
+}
+
+/**
+ * Wipe a test vehicle's *far-future* calendar so a run starts from a known-clear
+ * slate. Every scenario books ≥400 days out (RUN_OFFSET), so anything beyond a
+ * year on this vehicle can only be residue from earlier runs — real bookings
+ * live inside a normal horizon and are never touched. Without this, booked days
+ * accumulate across a session and later runs collide with them.
+ */
+async function purgeTestCalendar(vehicleId) {
+  const db = await mongo();
+  const cutoff = new Date(Date.now() + 367 * 86_400_000).toISOString().slice(0, 10);
+  const res = await db
+    .collection('availabilities')
+    .deleteMany({ vehicleId, dayKey: { $gt: cutoff } });
+  if (res.deletedCount) console.log(`  (cleared ${res.deletedCount} stale test days on the seed vehicle)\n`);
 }
 
 let _db = null;
@@ -138,6 +160,7 @@ function book(token, vehicleId, start, end, extra = {}) {
   if (!vehicles.length) throw new Error('no bookable vehicles found — seed data first');
   const V = vehicles[0]._id;
   console.log(`Using vehicle ${V} (${vehicles[0].make} ${vehicles[0].model})\n`);
+  await purgeTestCalendar(V);
 
   // ══ 1. DATE VALIDATION ═════════════════════════════════════════════
   section('Date validation');

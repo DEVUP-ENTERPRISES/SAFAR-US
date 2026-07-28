@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { SlidersHorizontal, X, Map as MapIcon, CalendarDays, Zap, MapPin, Star } from 'lucide-react';
+import { SlidersHorizontal, X, Map as MapIcon, CalendarDays, Zap, MapPin, Star, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { Chip } from '@/components/ui/chip';
@@ -10,6 +10,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
 import { useVehicleSearch, useFacets } from '@/features/vehicles/hooks';
+import { useMutation } from '@tanstack/react-query';
+import { savedSearchApi } from '@/features/saved-search/api';
+import { useAuthStore } from '@/features/auth/store';
 import { LocationSearch } from '@/features/maps/components/location-search';
 import { MapPanel } from '@/features/maps/components/map-panel';
 import type { SearchParams, SortKey } from '@/features/vehicles/types';
@@ -28,6 +31,8 @@ function SearchInner() {
   const facets = useFacets();
   const cities = facets.data?.cities ?? [];
   const categories = facets.data?.categories ?? [];
+  const status = useAuthStore((s) => s.status);
+  const saveSearch = useMutation({ mutationFn: savedSearchApi.create });
   const [cityChoice, setCity] = useState(qp.get('city') ?? '');
   const activeCity = cities.find((c) => c.city === cityChoice) ?? cities[0];
   const city = activeCity?.city ?? cityChoice;
@@ -94,7 +99,29 @@ function SearchInner() {
     <div className="space-y-6">
       {/* Title */}
       <div>
-        <h1 className="display text-display-sm">Cars in {areaLabel}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="display text-display-sm">Cars in {areaLabel}</h1>
+          {status === 'authenticated' && (
+            <Button
+              variant="outline"
+              size="sm"
+              loading={saveSearch.isPending}
+              onClick={() =>
+                saveSearch.mutate({
+                  city: city || undefined,
+                  category: category || undefined,
+                  fuelType: (fuelType || undefined) as never,
+                  transmission: (transmission || undefined) as never,
+                  seatsMin: seatsMin ? Number(seatsMin) : undefined,
+                  priceMaxCents: priceMax ? Number(priceMax) * 100 : undefined,
+                  instantBook: instantBook || undefined,
+                })
+              }
+            >
+              <Bell className="h-4 w-4" /> {saveSearch.isSuccess ? 'Saved — we’ll alert you' : 'Save search & alert me'}
+            </Button>
+          )}
+        </div>
         <p className="mt-2 flex flex-wrap items-center gap-2 text-muted-foreground">
           <span>{isFetching ? 'Searching…' : `${data?.length ?? 0} cars available`}</span>
           {dateLabel && (
