@@ -12,10 +12,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { formatDate } from '@/lib/utils/format';
 import { tripApi } from '@/features/trips/api';
-import { useTrip, useCheckIn, useCompleteTrip, useSos } from '@/features/trips/hooks';
+import { useTrip, useCheckIn, useCompleteTrip, useSos, useLocationStreaming } from '@/features/trips/hooks';
 import { ChatPanel } from '@/features/messaging/chat-panel';
 import { DriverManager } from '@/features/bookings/components/driver-manager';
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
+import { TripLiveMap } from '@/features/trips/components/trip-live-map';
 import { ReviewPrompt } from '@/features/reviews/components/review-prompt';
 
 function TripDashboard() {
@@ -27,6 +28,10 @@ function TripDashboard() {
   const [damage, setDamage] = useState('');
   const [odoEnd, setOdoEnd] = useState('');
   const [fuelEnd, setFuelEnd] = useState('');
+
+  // Stream this device's location while the trip is live (hook is a no-op until
+  // the trip loads and is active).
+  useLocationStreaming(id, trip?.status === 'active');
 
   if (isLoading) return <Skeleton className="h-[70vh] w-full" />;
   if (isError || !trip) return <ErrorState message="Trip not found." retry={() => refetch()} />;
@@ -72,19 +77,12 @@ function TripDashboard() {
           </Card>
         )}
 
-        {/* Map placeholder with live coords */}
-        <Card>
-          <CardContent className="p-0">
-            <div className="relative flex aspect-[16/7] items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-primary/10 to-accent">
-              <div className="text-center">
-                <MapPin className="mx-auto h-8 w-8 text-primary" />
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {loc ? `Live location · updated ${new Date(loc.updatedAt).toLocaleTimeString()}` : 'Waiting for live location…'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Live location — the guest's device streams its position while active */}
+        <TripLiveMap
+          tripId={id}
+          initial={loc ? { lng: loc.coordinates[0], lat: loc.coordinates[1], updatedAt: loc.updatedAt } : null}
+          height="18rem"
+        />
 
         {/* Review prompt — appears once the trip is done */}
         {trip.status === 'completed' && (

@@ -14,6 +14,7 @@ import { ErrorState } from '@/components/ui/states';
 import { SectionLabel, RowGroup, Row, ActionSheet, Tabs } from '@/components/ui/rows';
 import { ReviewPrompt } from '@/features/reviews/components/review-prompt';
 import { FileDamageClaim } from '@/features/claims/components/file-damage-claim';
+import { TripLiveMap } from '@/features/trips/components/trip-live-map';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { bookingApi } from '@/features/bookings/api';
 import { formatMoney, formatDate } from '@/lib/utils/format';
@@ -196,6 +197,14 @@ export default function HostTripDetailPage() {
               </p>
             </div>
           </div>
+
+          {/* Live location while the trip is in progress */}
+          {started && t.tripId && (
+            <>
+              <SectionLabel>Live location</SectionLabel>
+              <TripLiveMap tripId={t.tripId} height="14rem" />
+            </>
+          )}
 
           {/* Guest */}
           <SectionLabel>Your guest</SectionLabel>

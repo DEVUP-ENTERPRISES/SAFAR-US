@@ -33,6 +33,8 @@ export const tripApi = {
     api.post<Trip>(`/trips/${id}/checkin`, { method }),
   complete: (id: string, odometerEnd?: number, fuelEnd?: number) =>
     api.post<Trip>(`/trips/${id}/complete`, { odometerEnd, fuelEnd }),
+  updateLocation: (id: string, lng: number, lat: number) =>
+    api.post<{ updated: boolean }>(`/trips/${id}/location`, { lng, lat }),
   addPhotos: (id: string, phase: 'pre' | 'post', photos: { url: string; key?: string }[]) =>
     api.post<Trip>(`/trips/${id}/photos`, { phase, photos }),
   reportDamage: (id: string, description: string, photos: string[]) =>

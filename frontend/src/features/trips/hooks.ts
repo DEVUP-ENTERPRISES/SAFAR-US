@@ -56,3 +56,33 @@ export function useCompleteTrip(id: string) {
 export function useSos(id: string) {
   return useMutation({ mutationFn: () => tripApi.sos(id) });
 }
+
+/**
+ * Streams the guest's own device location to the trip while it's active, so the
+ * host can watch the car move in real time. Emits over the socket — that path
+ * both persists the fix and broadcasts it to everyone watching the trip room
+ * (the REST endpoint only persists). Uses the browser's geolocation watch,
+ * throttled to at most one update every 15s to spare battery and bandwidth, and
+ * stops the moment the trip is no longer active or the screen unmounts.
+ */
+export function useLocationStreaming(id: string, active: boolean) {
+  useEffect(() => {
+    if (!id || !active || typeof navigator === 'undefined' || !navigator.geolocation) return;
+    const socket = connectSocket();
+    socket.emit('trip:join', id, () => undefined);
+    let last = 0;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const now = Date.now();
+        if (now - last < 15_000) return;
+        last = now;
+        socket.emit('trip:location', { tripId: id, lng: pos.coords.longitude, lat: pos.coords.latitude });
+      },
+      () => {
+        /* permission denied / unavailable — the trip simply has no live location */
+      },
+      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 20_000 },
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [id, active]);
+}
