@@ -89,6 +89,8 @@ export const envSchema = z.object({
   SMS_AUTH_TOKEN: optional(z.string()),
   SMS_FROM: optional(z.string()),
   FCM_SERVER_KEY: optional(z.string()),
+  // Firebase service account JSON, base64-encoded — for the FCM HTTP v1 API.
+  FCM_SERVICE_ACCOUNT_BASE64: optional(z.string()),
 
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().min(8).optional(),

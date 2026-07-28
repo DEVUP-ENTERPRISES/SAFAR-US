@@ -1,4 +1,6 @@
 import nodemailer, { type Transporter } from 'nodemailer';
+import { createSign } from 'crypto';
+import { UserModel } from '../../users/infrastructure/user.model';
 import { config } from '../../../config';
 import { logger } from '../../../infrastructure/logging/logger';
 import type { ChannelProvider, DeliveryRequest, DeliveryResult } from '../domain/notification-channel';
@@ -202,38 +204,138 @@ class SmsProvider implements ChannelProvider {
   }
 }
 
-class FcmPushProvider implements ChannelProvider {
+/**
+ * Firebase Cloud Messaging over the HTTP v1 API.
+ *
+ * The legacy server-key endpoint (fcm.googleapis.com/fcm/send with an
+ * Authorization: key=... header) was shut down by Google in 2024, so v1 is the
+ * only path that works. v1 authenticates with a short-lived OAuth token minted
+ * from the service account — signed here with Node's crypto (RS256), exchanged
+ * for an access token, and cached until just before it expires, rather than
+ * pulling in the whole firebase-admin SDK for one call.
+ *
+ * v1 sends to one token per request, so a user's devices are fanned out in
+ * parallel and a token FCM reports as dead is pruned from the account — dead
+ * tokens accumulate forever otherwise and every send wastes a call on them.
+ */
+class FcmV1PushProvider implements ChannelProvider {
   readonly channel = 'push' as const;
   readonly enabled = true;
+  private token: { value: string; expiresAt: number } | null = null;
+
+  private get sa() {
+    return config.notifications.fcmServiceAccount!;
+  }
+
+  /** Mint (and cache) a Google OAuth2 access token for FCM. */
+  private async accessToken(): Promise<string> {
+    if (this.token && Date.now() < this.token.expiresAt - 60_000) return this.token.value;
+
+    const now = Math.floor(Date.now() / 1000);
+    const header = { alg: 'RS256', typ: 'JWT' };
+    const claims = {
+      iss: this.sa.clientEmail,
+      scope: 'https://www.googleapis.com/auth/firebase.messaging',
+      aud: this.sa.tokenUri,
+      iat: now,
+      exp: now + 3600,
+    };
+    const b64 = (o: object) =>
+      Buffer.from(JSON.stringify(o)).toString('base64url');
+    const signingInput = `${b64(header)}.${b64(claims)}`;
+    const signature = createSign('RSA-SHA256')
+      .update(signingInput)
+      .sign(this.sa.privateKey, 'base64url');
+    const jwt = `${signingInput}.${signature}`;
+
+    const res = await fetch(this.sa.tokenUri, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        assertion: jwt,
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(`FCM token exchange ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    }
+    const json = (await res.json()) as { access_token: string; expires_in: number };
+    this.token = { value: json.access_token, expiresAt: Date.now() + json.expires_in * 1000 };
+    return this.token.value;
+  }
 
   async send(req: DeliveryRequest): Promise<DeliveryResult> {
     const tokens = req.target.pushTokens ?? [];
     if (tokens.length === 0) {
       return { ok: false, error: 'no_device_registered', retryable: false };
     }
+
+    let accessToken: string;
     try {
-      const res = await fetch('https://fcm.googleapis.com/fcm/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `key=${config.notifications.fcmServerKey}`,
-        },
-        body: JSON.stringify({
-          registration_ids: tokens,
-          notification: { title: req.title, body: req.body },
-          // Deep link travels in data so the app opens the exact booking
-          // rather than the home screen.
-          data: { ...(req.data ?? {}), deepLink: req.deepLink ?? '', template: req.templateKey },
-        }),
-      });
-      if (!res.ok) {
-        return { ok: false, error: `push_${res.status}`, retryable: res.status >= 500 };
-      }
-      return { ok: true };
+      accessToken = await this.accessToken();
     } catch (err) {
       return { ok: false, error: (err as Error).message, retryable: true };
     }
+
+    const url = `https://fcm.googleapis.com/v1/projects/${this.sa.projectId}/messages:send`;
+    const dead: string[] = [];
+    let anyOk = false;
+
+    await Promise.all(
+      tokens.map(async (token) => {
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              message: {
+                token,
+                notification: { title: req.title, body: req.body },
+                // Deep link rides in data so a tap opens the exact screen.
+                data: {
+                  deepLink: req.deepLink ?? '',
+                  template: req.templateKey,
+                  ...stringifyData(req.data),
+                },
+              },
+            }),
+          });
+          if (res.ok) {
+            anyOk = true;
+            return;
+          }
+          // 404/UNREGISTERED or 400/INVALID_ARGUMENT = the token is dead.
+          if (res.status === 404 || res.status === 400) dead.push(token);
+        } catch {
+          /* network hiccup on one token — other tokens may still land */
+        }
+      }),
+    );
+
+    // Prune dead tokens so they don't waste future sends.
+    if (dead.length > 0 && req.target.userId) {
+      await UserModel.updateOne(
+        { _id: req.target.userId },
+        { $pull: { pushTokens: { $in: dead } } },
+      ).catch(() => undefined);
+    }
+
+    return anyOk
+      ? { ok: true }
+      : { ok: false, error: dead.length ? 'all_tokens_invalid' : 'push_send_failed', retryable: dead.length === 0 };
   }
+}
+
+/** FCM data payloads must be string→string; coerce anything else. */
+function stringifyData(data?: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(data ?? {})) {
+    out[k] = typeof v === 'string' ? v : JSON.stringify(v);
+  }
+  return out;
 }
 
 const n = config.notifications;
@@ -246,7 +348,7 @@ export const channelProviders: Record<'push' | 'email' | 'sms', ChannelProvider>
       ? new HttpEmailProvider()
       : new LoggingProvider('email'),
   sms: n.smsEnabled ? new SmsProvider() : new LoggingProvider('sms'),
-  push: n.pushEnabled ? new FcmPushProvider() : new LoggingProvider('push'),
+  push: n.pushEnabled ? new FcmV1PushProvider() : new LoggingProvider('push'),
 };
 
 logger.info(

@@ -8,9 +8,13 @@ import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { ToastProvider, useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/types';
 import { useSessionBootstrap } from '@/features/auth/hooks';
+import { usePushRegistration } from '@/features/push/use-push';
 import { useAuthStore } from '@/features/auth/store';
 
 function AuthBootstrap({ children }: { children: ReactNode }) {
+  // Registers this browser for push once signed in (no-op until permission is
+  // granted via the opt-in button; never nags on load).
+  usePushRegistration();
   const setStatus = useAuthStore((s) => s.setStatus);
   const { isError, isSuccess } = useSessionBootstrap();
 

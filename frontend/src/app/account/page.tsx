@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MapPin, Phone, Trash2, ShieldCheck, Monitor, Star, BadgeCheck, KeyRound, CreditCard } from 'lucide-react';
+import { MapPin, Phone, Trash2, ShieldCheck, Monitor, Star, BadgeCheck, KeyRound, CreditCard, Bell } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { enablePush } from '@/features/push/use-push';
+import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
@@ -71,6 +73,12 @@ function Account() {
   // Payment methods
   const cards = useQuery({ queryKey: ['payment-methods'], queryFn: () => accountApi.paymentMethods() });
   const [card, setCard] = useState({ brand: 'visa', last4: '', expMonth: 12, expYear: 2028 });
+  const notify = useToast();
+  const [enablingPush, setEnablingPush] = useState(false);
+  const onEnablePush = async () => {
+    setEnablingPush(true);
+    try { await enablePush(notify); } finally { setEnablingPush(false); }
+  };
   const addCard = useMutation({
     mutationFn: () => accountApi.savePaymentMethod(card),
     onSuccess: () => { setCard({ brand: 'visa', last4: '', expMonth: 12, expYear: 2028 }); qc.invalidateQueries({ queryKey: ['payment-methods'] }); },
@@ -204,6 +212,17 @@ function Account() {
               <Button loading={startMfa.isPending} onClick={() => startMfa.mutate()}>Set up 2FA</Button>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Push notifications */}
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5 text-primary" /> Push notifications</CardTitle></CardHeader>
+        <CardContent className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Get alerts on this device for booking updates, messages and trip reminders.
+          </p>
+          <Button variant="outline" loading={enablingPush} onClick={onEnablePush}>Enable on this device</Button>
         </CardContent>
       </Card>
 

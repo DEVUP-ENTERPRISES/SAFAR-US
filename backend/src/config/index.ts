@@ -37,6 +37,26 @@ function isUsableAwsCreds(keyId?: string, secret?: string, bucket?: string): boo
  * Frozen, typed configuration object consumed everywhere.
  * Grouped by concern so call sites read like `config.jwt.accessTtl`.
  */
+
+/** Decode + parse the base64 Firebase service account, or null if unset/bad. */
+function parseServiceAccount(b64?: string):
+  | { projectId: string; clientEmail: string; privateKey: string; tokenUri: string }
+  | null {
+  if (!b64) return null;
+  try {
+    const j = JSON.parse(Buffer.from(b64, 'base64').toString('utf8'));
+    if (!j.project_id || !j.client_email || !j.private_key) return null;
+    return {
+      projectId: j.project_id,
+      clientEmail: j.client_email,
+      privateKey: j.private_key,
+      tokenUri: j.token_uri ?? 'https://oauth2.googleapis.com/token',
+    };
+  } catch {
+    return null;
+  }
+}
+
 export const config = Object.freeze({
   env: env.NODE_ENV,
   isProd: env.NODE_ENV === 'production',
@@ -120,8 +140,12 @@ export const config = Object.freeze({
     smsAuthToken: env.SMS_AUTH_TOKEN,
     smsFrom: env.SMS_FROM,
     smsEnabled: !!(env.SMS_ACCOUNT_SID && env.SMS_AUTH_TOKEN && env.SMS_FROM),
+    // FCM HTTP v1: a service account, decoded from base64. The legacy server
+    // key (fcmServerKey) is retained only for backwards config; v1 is used when
+    // a service account is present, which is the only path Google still supports.
     fcmServerKey: env.FCM_SERVER_KEY,
-    pushEnabled: !!env.FCM_SERVER_KEY,
+    fcmServiceAccount: parseServiceAccount(env.FCM_SERVICE_ACCOUNT_BASE64),
+    pushEnabled: !!env.FCM_SERVICE_ACCOUNT_BASE64,
   },
   maps: {
     mapboxToken: env.MAPBOX_TOKEN,
