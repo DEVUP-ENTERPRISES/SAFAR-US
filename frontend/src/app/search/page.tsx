@@ -2,10 +2,15 @@
 
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { SlidersHorizontal, X, Map as MapIcon, CalendarDays, Zap, MapPin, Star, Bell } from 'lucide-react';
+import {
+  SlidersHorizontal, X, Map as MapIcon, CalendarDays, Zap, MapPin, Star, Bell,
+  LayoutGrid, Fuel, Cog, Gauge, Car, Gem, Wallet, Truck, Leaf, Users, DollarSign,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { Chip } from '@/components/ui/chip';
+import { cn } from '@/lib/utils/cn';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
@@ -24,6 +29,52 @@ const SORTS: { key: SortKey; label: string }[] = [
   { key: 'rating', label: 'Top rated' },
   { key: 'trending', label: 'Trending' },
 ];
+
+/** A little visual identity per category / powertrain, with a safe fallback. */
+const CATEGORY_ICON: Record<string, LucideIcon> = {
+  suv: Truck, ev: Zap, luxury: Gem, economy: Wallet, sedan: Car,
+  compact: Car, sports: Gauge, van: Users, truck: Truck, convertible: Car,
+};
+const FUEL_ICON: Record<string, LucideIcon> = { petrol: Fuel, diesel: Fuel, hybrid: Leaf, ev: Zap };
+
+/** A titled filter group with a subtle panel, so sections read as blocks. */
+function FilterGroup({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-border/60 bg-muted/20 p-4">
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+        <Icon className="h-4 w-4 text-primary" /> {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+/** Accent toggle for the popular filters — its own colour so it reads as special. */
+function ToggleTag({
+  active, onClick, icon: Icon, tone = 'primary', children,
+}: {
+  active: boolean; onClick: () => void; icon: LucideIcon;
+  tone?: 'primary' | 'amber'; children: React.ReactNode;
+}) {
+  const tones = {
+    primary: 'border-primary/40 bg-primary/10 text-primary',
+    amber: 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-500',
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-all active:scale-95',
+        active
+          ? cn(tones[tone], 'shadow-soft')
+          : 'border-border/70 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground',
+      )}
+    >
+      <Icon className="h-4 w-4" /> {children}
+    </button>
+  );
+}
 
 function SearchInner() {
   const qp = useSearchParams();
@@ -197,82 +248,100 @@ function SearchInner() {
 
       {/* Filters panel */}
       {showFilters && (
-        <div className="overflow-hidden border-t border-border bg-card p-6 sm:p-8 animate-slide-up shadow-sm mb-6 rounded-b-2xl">
-          <div className="grid gap-10 md:grid-cols-12 max-w-7xl mx-auto">
-            
+        <div className="animate-slide-up rounded-3xl border border-border/60 bg-card p-5 shadow-soft sm:p-7">
+          <div className="mx-auto grid max-w-6xl gap-6">
+
             {/* Category */}
-            <div className="md:col-span-12">
-              <h3 className="mb-4 text-base font-semibold text-foreground">Category</h3>
-              <div className="hide-scrollbar flex gap-3 overflow-x-auto pb-2">
-                {categories.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No categories available yet.</p>
-                )}
-                {categories.map((c) => (
-                  <Chip
-                    key={c.category}
-                    active={category === c.category}
-                    onClick={() => setCategory(category === c.category ? '' : c.category)}
-                    className="capitalize px-5 py-2.5 hover:scale-105 active:scale-95 shrink-0 text-sm font-medium"
-                  >
-                    {c.category}
-                    <span className="ml-1.5 opacity-60 font-normal">{c.vehicles}</span>
-                  </Chip>
-                ))}
-              </div>
-            </div>
-
-            <div className="h-px bg-border/60 md:col-span-12" />
-
-            {/* Core Specs */}
-            <div className="md:col-span-4 space-y-4">
-              <h3 className="text-base font-semibold text-foreground">Powertrain</h3>
-              <div className="flex flex-wrap gap-3">
-                {['petrol', 'diesel', 'hybrid', 'ev'].map((f) => (
-                  <Chip key={f} active={fuelType === f} onClick={() => setFuelType(fuelType === f ? '' : f)} className="capitalize shrink-0 px-4 py-2 font-medium">{f}</Chip>
-                ))}
-              </div>
-            </div>
-
-            <div className="md:col-span-4 space-y-4">
-              <h3 className="text-base font-semibold text-foreground">Transmission</h3>
-              <div className="flex flex-wrap gap-3">
-                {['automatic', 'manual'].map((t) => (
-                  <Chip key={t} active={transmission === t} onClick={() => setTransmission(transmission === t ? '' : t)} className="capitalize shrink-0 px-4 py-2 font-medium">{t}</Chip>
-                ))}
-              </div>
-            </div>
-
-            <div className="md:col-span-4 space-y-4">
-              <h3 className="text-base font-semibold text-foreground">Limits</h3>
-              <div className="flex gap-3">
-                <div className="flex-1 flex items-center gap-2 rounded-xl border border-border/80 bg-background px-4 h-11 focus-within:ring-2 focus-within:ring-foreground focus-within:border-foreground transition-all">
-                  <span className="text-muted-foreground text-sm font-medium shrink-0">Seats+</span>
-                  <input type="number" value={seatsMin} onChange={(e) => setSeatsMin(e.target.value)} placeholder="Any" className="flex-1 bg-transparent outline-none text-sm min-w-0" />
+            <section>
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                <LayoutGrid className="h-4 w-4 text-primary" /> Category
+              </h3>
+              {categories.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No categories available yet.</p>
+              ) : (
+                <div className="hide-scrollbar flex gap-2.5 overflow-x-auto pb-1">
+                  {categories.map((c) => {
+                    const Icon = CATEGORY_ICON[c.category.toLowerCase()] ?? Car;
+                    const on = category === c.category;
+                    return (
+                      <button
+                        key={c.category}
+                        type="button"
+                        onClick={() => setCategory(on ? '' : c.category)}
+                        className={cn(
+                          'inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-2xl border px-4 py-2.5 text-sm font-medium capitalize transition-all active:scale-95',
+                          on
+                            ? 'border-primary bg-primary text-primary-foreground shadow-soft'
+                            : 'border-border/70 bg-background text-foreground hover:border-primary/50 hover:bg-accent',
+                        )}
+                      >
+                        <Icon className={cn('h-4 w-4', !on && 'text-muted-foreground')} />
+                        {c.category}
+                        <span
+                          className={cn(
+                            'rounded-full px-1.5 py-px text-[11px] font-semibold tabular-nums',
+                            on ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground',
+                          )}
+                        >
+                          {c.vehicles}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="flex-1 flex items-center gap-2 rounded-xl border border-border/80 bg-background px-4 h-11 focus-within:ring-2 focus-within:ring-foreground focus-within:border-foreground transition-all">
-                  <span className="text-muted-foreground text-sm font-medium shrink-0">Max $</span>
-                  <input type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Any" className="flex-1 bg-transparent outline-none text-sm min-w-0" />
+              )}
+            </section>
+
+            {/* Spec groups */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <FilterGroup icon={Fuel} title="Powertrain">
+                <div className="flex flex-wrap gap-2">
+                  {['petrol', 'diesel', 'hybrid', 'ev'].map((f) => {
+                    const Icon = FUEL_ICON[f] ?? Fuel;
+                    return (
+                      <Chip key={f} active={fuelType === f} onClick={() => setFuelType(fuelType === f ? '' : f)} className="px-3.5 py-2 capitalize">
+                        <Icon className="h-3.5 w-3.5" /> {f}
+                      </Chip>
+                    );
+                  })}
                 </div>
-              </div>
+              </FilterGroup>
+
+              <FilterGroup icon={Cog} title="Transmission">
+                <div className="flex flex-wrap gap-2">
+                  {['automatic', 'manual'].map((t) => (
+                    <Chip key={t} active={transmission === t} onClick={() => setTransmission(transmission === t ? '' : t)} className="px-3.5 py-2 capitalize">{t}</Chip>
+                  ))}
+                </div>
+              </FilterGroup>
+
+              <FilterGroup icon={Gauge} title="Limits">
+                <div className="flex gap-2.5">
+                  <label className="flex h-11 flex-1 items-center gap-2 rounded-xl border border-border/70 bg-background px-3 transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+                    <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <input type="number" min={1} value={seatsMin} onChange={(e) => setSeatsMin(e.target.value)} placeholder="Seats" className="w-full min-w-0 bg-transparent text-sm outline-none" />
+                  </label>
+                  <label className="flex h-11 flex-1 items-center gap-2 rounded-xl border border-border/70 bg-background px-3 transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+                    <DollarSign className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <input type="number" min={0} value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Max/day" className="w-full min-w-0 bg-transparent text-sm outline-none" />
+                  </label>
+                </div>
+              </FilterGroup>
             </div>
 
-            <div className="h-px bg-border/60 md:col-span-12" />
+            {/* Popular toggles */}
+            <div className="flex flex-wrap items-center gap-2.5 border-t border-border/60 pt-5">
+              <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Popular</span>
+              <ToggleTag active={instantBook} onClick={() => setInstantBook((v) => !v)} icon={Zap} tone="amber">Instant Book</ToggleTag>
+              <ToggleTag active={delivery} onClick={() => setDelivery((v) => !v)} icon={MapPin} tone="primary">Delivery</ToggleTag>
+              <ToggleTag active={ratingMin === 4} onClick={() => setRatingMin(ratingMin === 4 ? 0 : 4)} icon={Star} tone="amber">4.0+ rated</ToggleTag>
 
-            {/* Quick Filters */}
-            <div className="md:col-span-12 flex flex-wrap items-center gap-3">
-              <Chip active={instantBook} onClick={() => setInstantBook((v) => !v)} className="shrink-0 px-4 py-2 ring-1 ring-yellow-500/20 data-[active=true]:bg-yellow-500/10 data-[active=true]:text-yellow-600 data-[active=true]:border-yellow-500/50">
-                <Zap className="h-4 w-4 mr-1.5" /> Instant book
-              </Chip>
-              <Chip active={delivery} onClick={() => setDelivery((v) => !v)} className="shrink-0 px-4 py-2">
-                <MapPin className="h-4 w-4 mr-1.5" /> Delivery available
-              </Chip>
-              <Chip active={ratingMin === 4} onClick={() => setRatingMin(ratingMin === 4 ? 0 : 4)} className="shrink-0 px-4 py-2 ring-1 ring-amber-500/20 data-[active=true]:bg-amber-500/10 data-[active=true]:text-amber-600 data-[active=true]:border-amber-500/50">
-                <Star className="h-4 w-4 mr-1.5" /> 4.0+ Rated
-              </Chip>
-              
               {activeCount > 0 && (
-                <button onClick={clear} className="ml-auto flex items-center gap-1.5 text-sm font-semibold text-destructive hover:text-destructive/80 transition-colors px-4 py-2 rounded-full shrink-0">
-                  <X className="h-4 w-4" /> Clear all
+                <button
+                  onClick={clear}
+                  className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-destructive"
+                >
+                  <X className="h-4 w-4" /> Clear all ({activeCount})
                 </button>
               )}
             </div>
