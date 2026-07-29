@@ -13,12 +13,14 @@ import { cn } from '@/lib/utils/cn';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
 import { NotificationBell } from './notification-bell';
+import { SearchBarFields } from '@/features/search/search-bar-fields';
 
 export function Navbar() {
   const { status } = useAuthStore();
   const pathname = usePathname();
   const authed = status === 'authenticated';
   const isHost = useIsHost();
+  const isSearch = pathname === '/search';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Close mobile menu on route change
@@ -38,7 +40,10 @@ export function Navbar() {
 
   return (
     <>
-      <header className="fixed top-4 inset-x-4 z-50 mx-auto max-w-6xl rounded-2xl border border-white/10 bg-background/60 backdrop-blur-2xl shadow-xl shadow-black/10 transition-all duration-300">
+      <header className={cn(
+        'fixed top-4 inset-x-4 z-50 mx-auto rounded-2xl border border-white/10 bg-background/60 backdrop-blur-2xl shadow-xl shadow-black/10 transition-all duration-300',
+        isSearch ? 'max-w-7xl' : 'max-w-6xl',
+      )}>
         <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
         {/* Left: Mobile Menu Toggle & Wordmark */}
         <div className="flex items-center gap-3">
@@ -58,8 +63,16 @@ export function Navbar() {
           </Link>
         </div>
 
-        {/* Compact search affordance */}
-        {pathname !== '/' && (
+        {/* On the search page the full Where / From / Until bar lives inline in
+            the navbar (desktop) — one integrated top bar, no separate box. */}
+        {isSearch && (
+          <div className="hidden min-w-0 flex-1 lg:block">
+            <SearchBarFields variant="nav" />
+          </div>
+        )}
+
+        {/* Compact search affordance elsewhere (not home, not the search page). */}
+        {pathname !== '/' && !isSearch && (
           <Link
             href="/search"
             className="hidden flex-1 items-center gap-2 rounded-full border border-border/50 bg-background/40 px-4 py-1.5 text-sm text-muted-foreground shadow-sm transition-all hover:bg-background/80 hover:shadow-md md:flex md:max-w-xs"
@@ -69,23 +82,26 @@ export function Navbar() {
           </Link>
         )}
 
-        <nav className="flex items-center gap-1 sm:gap-2">
-          <Link
-            href="/search"
-            className={cn(
-              'hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block',
-              pathname === '/search' && 'text-primary bg-primary/10',
-            )}
-          >
-            Explore
-          </Link>
-          <Link
-            href="/host"
-            className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
-          >
-            {/* Don't invite an existing host to "become" one. */}
-            {isHost ? 'Host dashboard' : 'Become a host'}
-          </Link>
+        <nav className={cn('flex shrink-0 items-center gap-1 sm:gap-2', isSearch && 'lg:ml-4')}>
+          {/* Explore and Host live in the avatar menu on the search page, so the
+              inline search bar has room to breathe. */}
+          {!isSearch && (
+            <>
+              <Link
+                href="/search"
+                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
+              >
+                Explore
+              </Link>
+              <Link
+                href="/host"
+                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
+              >
+                {/* Don't invite an existing host to "become" one. */}
+                {isHost ? 'Host dashboard' : 'Become a host'}
+              </Link>
+            </>
+          )}
 
           <div className="hidden sm:flex items-center justify-center h-8 w-8 rounded-full hover:bg-accent transition-colors ml-1">
             <ThemeToggle />

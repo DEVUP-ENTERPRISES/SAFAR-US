@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  SlidersHorizontal, X, Map as MapIcon, LayoutGrid, ChevronDown, Search, Zap, Star, Bell,
+  SlidersHorizontal, X, Map as MapIcon, LayoutGrid, ChevronDown, Zap, Star, Bell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,8 +14,9 @@ import { useVehicleSearch, useFacets } from '@/features/vehicles/hooks';
 import { useMutation } from '@tanstack/react-query';
 import { savedSearchApi } from '@/features/saved-search/api';
 import { useAuthStore } from '@/features/auth/store';
-import { LocationSearch } from '@/features/maps/components/location-search';
 import { MapPanel } from '@/features/maps/components/map-panel';
+import { SearchBarFields } from '@/features/search/search-bar-fields';
+import { useSearchBar, toIso } from '@/features/search/search-store';
 import { cn } from '@/lib/utils/cn';
 import type { SearchParams, SortKey } from '@/features/vehicles/types';
 
@@ -94,17 +95,25 @@ function SearchInner() {
   const status = useAuthStore((s) => s.status);
   const saveSearch = useMutation({ mutationFn: savedSearchApi.create });
 
-  const [cityChoice, setCity] = useState(qp.get('city') ?? '');
-  const activeCity = cities.find((c) => c.city === cityChoice) ?? cities[0];
-  const city = activeCity?.city ?? cityChoice;
-  const [center, setCenter] = useState<{ lat: number; lng: number; label: string } | null>(null);
+  // Where / From / Until / Age live in the shared store so the bar can render
+  // in the navbar (desktop) and here (mobile) and stay in sync.
+  const bar = useSearchBar();
+  const { center, fromDate, fromTime, untilDate, untilTime } = bar;
+  const activeCity = cities.find((c) => c.city === bar.city) ?? cities[0];
+  const city = activeCity?.city ?? bar.city;
 
-  // Dates + time, editable in the top bar.
-  const [fromDate, setFromDate] = useState((qp.get('start') ?? '').slice(0, 10));
-  const [fromTime, setFromTime] = useState('10:00');
-  const [untilDate, setUntilDate] = useState((qp.get('end') ?? '').slice(0, 10));
-  const [untilTime, setUntilTime] = useState('10:00');
-  const [age, setAge] = useState('30');
+  // Seed the bar from the URL once (deep links from the hero / saved searches).
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (seeded.current) return;
+    seeded.current = true;
+    bar.patch({
+      city: qp.get('city') ?? bar.city,
+      fromDate: (qp.get('start') ?? bar.fromDate).slice(0, 10),
+      untilDate: (qp.get('end') ?? bar.untilDate).slice(0, 10),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Filters
   const [category, setCategory] = useState(qp.get('category') ?? '');
@@ -122,8 +131,8 @@ function SearchInner() {
   const [sort, setSort] = useState<SortKey>('relevance');
   const [view, setView] = useState<'grid' | 'map'>('grid');
 
-  const startIso = fromDate ? new Date(`${fromDate}T${fromTime || '10:00'}`).toISOString() : undefined;
-  const endIso = untilDate ? new Date(`${untilDate}T${untilTime || '10:00'}`).toISOString() : undefined;
+  const startIso = toIso(fromDate, fromTime);
+  const endIso = toIso(untilDate, untilTime);
   const bothDates = !!(startIso && endIso);
   const days = bothDates ? Math.max(1, Math.ceil((+new Date(endIso!) - +new Date(startIso!)) / 86_400_000)) : undefined;
   const dateLabel =
@@ -171,63 +180,10 @@ function SearchInner() {
 
   return (
     <div className="space-y-5">
-      {/* ── Turo-style search bar ─────────────────────────────────────── */}
-      <div className="rounded-[1.75rem] border border-border bg-card p-2 shadow-sm">
-        <div className="flex flex-col gap-1 lg:flex-row lg:items-stretch lg:divide-x lg:divide-border">
-          {/* Where */}
-          <div className="min-w-0 flex-1 px-3 py-1.5">
-            <span className="block text-xs font-bold text-[#635BFF]">Where</span>
-            <div className="-ml-1">
-              <LocationSearch onPick={setCenter} placeholder={city || 'Anywhere'} />
-            </div>
-            {cities.length > 0 && (
-              <select
-                value={city}
-                onChange={(e) => { setCity(e.target.value); setCenter(null); }}
-                className="mt-0.5 w-full cursor-pointer bg-transparent text-sm text-muted-foreground outline-none"
-              >
-                {cities.map((c) => <option key={c.city} value={c.city}>{c.city} ({c.vehicles})</option>)}
-              </select>
-            )}
-          </div>
-
-          {/* From */}
-          <div className="flex gap-2 px-3 py-1.5">
-            <div>
-              <span className="block text-xs font-bold text-[#635BFF]">From</span>
-              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="bg-transparent text-sm font-medium outline-none" />
-            </div>
-            <div>
-              <span className="block text-xs font-medium text-transparent">·</span>
-              <input type="time" value={fromTime} onChange={(e) => setFromTime(e.target.value)} className="bg-transparent text-sm font-medium text-muted-foreground outline-none" />
-            </div>
-          </div>
-
-          {/* Until */}
-          <div className="flex gap-2 px-3 py-1.5">
-            <div>
-              <span className="block text-xs font-bold text-[#635BFF]">Until</span>
-              <input type="date" value={untilDate} min={fromDate || undefined} onChange={(e) => setUntilDate(e.target.value)} className="bg-transparent text-sm font-medium outline-none" />
-            </div>
-            <div>
-              <span className="block text-xs font-medium text-transparent">·</span>
-              <input type="time" value={untilTime} onChange={(e) => setUntilTime(e.target.value)} className="bg-transparent text-sm font-medium text-muted-foreground outline-none" />
-            </div>
-          </div>
-
-          {/* Age */}
-          <div className="px-3 py-1.5">
-            <span className="block text-xs font-bold text-[#635BFF]">Age</span>
-            <input type="number" min={18} max={99} value={age} onChange={(e) => setAge(e.target.value)} className="w-14 bg-transparent text-sm font-medium outline-none" />
-          </div>
-
-          {/* Search */}
-          <div className="flex items-center px-1">
-            <Button className="h-12 w-full gap-2 rounded-2xl px-6 lg:w-auto" onClick={() => refetch()}>
-              <Search className="h-4 w-4" /> Search
-            </Button>
-          </div>
-        </div>
+      {/* Search bar — desktop shows it inline in the navbar; mobile shows the
+          full box here. Same shared store drives both. */}
+      <div className="relative z-40 lg:hidden">
+        <SearchBarFields variant="bar" />
       </div>
 
       {/* ── Filter pills + view toggle ────────────────────────────────── */}
