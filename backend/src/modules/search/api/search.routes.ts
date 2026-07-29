@@ -19,6 +19,8 @@ const searchSchema = z.object({
   fuelType: z.enum(['petrol', 'diesel', 'hybrid', 'ev']).optional(),
   transmission: z.enum(['manual', 'automatic']).optional(),
   seatsMin: z.coerce.number().int().positive().optional(),
+  yearMin: z.coerce.number().int().min(1900).max(2100).optional(),
+  yearMax: z.coerce.number().int().min(1900).max(2100).optional(),
   priceMin: z.coerce.number().int().positive().optional(),
   priceMax: z.coerce.number().int().positive().optional(),
   instantBook: z.coerce.boolean().optional(),

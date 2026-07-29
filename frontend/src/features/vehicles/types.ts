@@ -78,6 +78,8 @@ export interface SearchParams {
   fuelType?: string;
   transmission?: string;
   seatsMin?: number;
+  yearMin?: number;
+  yearMax?: number;
   priceMin?: number;
   priceMax?: number;
   instantBook?: boolean;

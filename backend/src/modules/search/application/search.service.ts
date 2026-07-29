@@ -14,6 +14,8 @@ export interface SearchQuery {
   fuelType?: string;
   transmission?: string;
   seatsMin?: number;
+  yearMin?: number;
+  yearMax?: number;
   priceMin?: number;
   priceMax?: number;
   instantBook?: boolean;
@@ -53,6 +55,12 @@ export class SearchService {
     if (q.fuelType) filter.fuelType = q.fuelType;
     if (q.transmission) filter.transmission = q.transmission;
     if (q.seatsMin) filter.seats = { $gte: q.seatsMin };
+    if (q.yearMin || q.yearMax) {
+      const year: Record<string, number> = {};
+      if (q.yearMin) year.$gte = q.yearMin;
+      if (q.yearMax) year.$lte = q.yearMax;
+      filter.year = year;
+    }
     if (q.instantBook !== undefined) filter['listing.instantBook'] = q.instantBook;
     if (q.ratingMin) filter.ratingAvg = { $gte: q.ratingMin };
     if (q.delivery) {
