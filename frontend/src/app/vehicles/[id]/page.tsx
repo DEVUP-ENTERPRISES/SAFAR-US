@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList } from 'lucide-react';
+import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList, Sparkles, LifeBuoy, Headphones, CalendarCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { api } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/types';
 import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
+import { SimilarCars } from '@/features/vehicles/components/similar-cars';
 import { useRecentlyViewed } from '@/features/vehicles/recently-viewed';
 import { useQuote, useCreateBooking } from '@/features/bookings/hooks';
 import { useAuthStore } from '@/features/auth/store';
@@ -89,6 +90,19 @@ export default function VehicleDetailPage() {
     queryFn: () => vehicleApi.getCalendar(id),
     enabled: !!id,
   });
+  // Real market comparison for the "great deal" badge — the local median for
+  // this category, so the claim is earned rather than always shown.
+  const marketPrice = useQuery({
+    queryKey: ['price-suggestion', id],
+    queryFn: () =>
+      vehicleApi.priceSuggestion({
+        lng: v!.location.coordinates[0],
+        lat: v!.location.coordinates[1],
+        category: v!.category,
+        fuelType: v!.fuelType,
+      }),
+    enabled: !!v?.location?.coordinates,
+  });
 
   const selection = () => ({
     vehicleId: id,
@@ -128,6 +142,19 @@ export default function VehicleDetailPage() {
   const deliveryModes = delivery
     ? (['airport', 'home', 'hotel', 'business'] as const).filter((k) => delivery[k])
     : [];
+
+  // Trip length for the similar-cars totals and any length-of-trip messaging.
+  const days = start && end
+    ? Math.max(1, Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86_400_000))
+    : undefined;
+
+  // Real signals — no hardcoded claims.
+  const median = marketPrice.data?.median ?? 0;
+  const isGreatDeal = median > 0 && v.pricing.dailyPrice < median;
+  const dealPct = isGreatDeal ? Math.round(((median - v.pricing.dailyPrice) / median) * 100) : 0;
+  const weeklyPct = Math.round((v.pricing.weeklyDiscountBps ?? 0) / 100);
+  const monthlyPct = Math.round((v.pricing.monthlyDiscountBps ?? 0) / 100);
+  const mileage = v.mileageLimit;
 
   return (
     <div className="space-y-6 sm:space-y-10 pb-20">
@@ -198,11 +225,15 @@ export default function VehicleDetailPage() {
           <Spec icon={<Gauge className="h-4 w-4" />} label={v.transmission} />
         </div>
 
-        {/* Great deal callout */}
-        <div className="rounded-2xl bg-[#E5F9ED] p-4 text-[#0A472E] dark:bg-[#0A472E]/20 dark:text-[#E5F9ED]">
-          <p className="font-bold">Great deal!</p>
-          <p className="mt-0.5 text-[15px]">Priced lower than similar options for your trip.</p>
-        </div>
+        {/* Great deal — shown only when genuinely below the local median */}
+        {isGreatDeal && (
+          <div className="rounded-2xl bg-[#E5F9ED] p-4 text-[#0A472E] dark:bg-[#0A472E]/20 dark:text-[#E5F9ED]">
+            <p className="font-bold">Great deal!</p>
+            <p className="mt-0.5 text-[15px]">
+              About {dealPct}% below the typical {v.category} in {v.location.city || 'this area'}.
+            </p>
+          </div>
+        )}
 
         {/* Turo-style sections */}
         <div className="space-y-8 divide-y divide-border">
@@ -216,13 +247,25 @@ export default function VehicleDetailPage() {
             </div>
           </div>
 
-          <div className="pt-8">
-            <h2 className="mb-4 text-2xl font-bold tracking-tight">Trip Savings</h2>
-            <div className="flex items-center justify-between">
-              <p className="text-[17px] font-medium">1-week discount</p>
-              <p className="text-[17px] font-medium text-[#0A472E] dark:text-emerald-400">-$99</p>
+          {(weeklyPct > 0 || monthlyPct > 0) && (
+            <div className="pt-8">
+              <h2 className="mb-4 text-2xl font-bold tracking-tight">Trip savings</h2>
+              <div className="space-y-2">
+                {weeklyPct > 0 && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-[17px] font-medium">Weekly discount (7+ days)</p>
+                    <p className="text-[17px] font-medium text-[#0A472E] dark:text-emerald-400">−{weeklyPct}%</p>
+                  </div>
+                )}
+                {monthlyPct > 0 && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-[17px] font-medium">Monthly discount (28+ days)</p>
+                    <p className="text-[17px] font-medium text-[#0A472E] dark:text-emerald-400">−{monthlyPct}%</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="pt-8">
             <h2 className="mb-4 text-2xl font-bold tracking-tight">Cancellation policy</h2>
@@ -250,20 +293,42 @@ export default function VehicleDetailPage() {
             <h2 className="mb-4 text-2xl font-bold tracking-tight">Distance included</h2>
             <div className="flex gap-4">
               <span className="mt-0.5 shrink-0"><MileIcon className="h-6 w-6 stroke-[1.5]" /></span>
+              {mileage && mileage.perDayKm > 0 ? (
+                <div>
+                  <p className="text-[17px] font-medium">{mileage.perDayKm} km/day{days ? ` · ${mileage.perDayKm * days} km this trip` : ''}</p>
+                  <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">
+                    {formatMoney({ amount: mileage.overageFeePerKm, currency: v.pricing.currency })}/km for additional distance driven
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-[17px] font-medium">Unlimited distance</p>
+                  <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">Drive as far as you like — no mileage cap on this car.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-8">
+            <h2 className="mb-4 text-2xl font-bold tracking-tight">Insurance &amp; protection</h2>
+            <div className="flex gap-4">
+              <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 stroke-[1.5]" />
               <div>
-                <p className="text-[17px] font-medium">1,050 mi</p>
-                <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">$0.38/mi fee for additional miles driven</p>
+                <p className="text-[17px] font-medium">Every trip is insured</p>
+                <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">
+                  Choose your protection level at checkout. A refundable security deposit is authorised at pickup and released after the trip.
+                </p>
               </div>
             </div>
           </div>
 
           <div className="pt-8">
-            <h2 className="mb-4 text-2xl font-bold tracking-tight">Insurance & Protection</h2>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <ShieldCheck className="h-6 w-6 stroke-[1.5]" />
-                <p className="text-[17px] font-medium">Insurance via Travelers</p>
-              </div>
+            <h2 className="mb-4 text-2xl font-bold tracking-tight">Peace of mind</h2>
+            <div className="space-y-4">
+              <PeaceItem icon={<Sparkles className="h-6 w-6 stroke-[1.5]" />} title="No car wash necessary" detail="Just keep the car tidy and return it as you found it." />
+              <PeaceItem icon={<CalendarCheck className="h-6 w-6 stroke-[1.5]" />} title="Free cancellation" detail={CANCELLATION_TERMS[v.listing.cancellationPolicy]?.detail ?? 'Cancel per the host’s policy for a refund.'} />
+              <PeaceItem icon={<LifeBuoy className="h-6 w-6 stroke-[1.5]" />} title="Support when you need it" detail="Message your host in-app, and reach our team from your trip screen." />
+              <PeaceItem icon={<Headphones className="h-6 w-6 stroke-[1.5]" />} title="Two-way reviews" detail="Verified guests and hosts rate each trip, so you always know who you’re booking with." />
             </div>
           </div>
 
@@ -291,49 +356,43 @@ export default function VehicleDetailPage() {
           </div>
         )}
 
-        {/* Delivery & protection */}
+        {/* Cards section (Delivery, Protection, Mileage, Rules) */}
         <div className="grid gap-4 sm:grid-cols-2">
           {deliveryModes.length > 0 && (
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="p-6 sm:p-8">
                 <div className="flex items-center gap-2 font-medium"><Truck className="h-5 w-5 text-primary" /> Delivery</div>
                 <p className="mt-1 text-sm capitalize text-muted-foreground">{deliveryModes.join(', ')} · {formatMoney({ amount: delivery!.fee, currency: v.pricing.currency })}</p>
               </CardContent>
             </Card>
           )}
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-6 sm:p-8">
               <div className="flex items-center gap-2 font-medium"><ShieldCheck className="h-5 w-5 text-primary" /> Protection</div>
               <p className="mt-1 text-sm text-muted-foreground capitalize">{v.listing.cancellationPolicy} cancellation · insured trips</p>
             </CardContent>
           </Card>
+          {v.mileageLimit && v.mileageLimit.perDayKm > 0 && (
+            <Card>
+              <CardContent className="p-6 sm:p-8">
+                <div className="flex items-center gap-2 font-medium"><MileIcon className="h-5 w-5 text-primary" /> Mileage</div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {v.mileageLimit.perDayKm} km/day included · {formatMoney({ amount: v.mileageLimit.overageFeePerKm, currency: v.pricing.currency })}/km after
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          {v.tripRules && v.tripRules.length > 0 && (
+            <Card>
+              <CardContent className="p-6 sm:p-8">
+                <div className="flex items-center gap-2 font-medium"><ClipboardList className="h-5 w-5 text-primary" /> Trip rules</div>
+                <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
+                  {v.tripRules.map((r, i) => <li key={i}>• {r}</li>)}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
         </div>
-
-        {/* Trip rules & mileage */}
-        {(v.tripRules?.length || (v.mileageLimit && v.mileageLimit.perDayKm > 0)) && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {v.mileageLimit && v.mileageLimit.perDayKm > 0 && (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2 font-medium"><MileIcon className="h-5 w-5 text-primary" /> Mileage</div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {v.mileageLimit.perDayKm} km/day included · {formatMoney({ amount: v.mileageLimit.overageFeePerKm, currency: v.pricing.currency })}/km after
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-            {v.tripRules && v.tripRules.length > 0 && (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2 font-medium"><ClipboardList className="h-5 w-5 text-primary" /> Trip rules</div>
-                  <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
-                    {v.tripRules.map((r, i) => <li key={i}>• {r}</li>)}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
 
         {/* Availability calendar */}
         <div>
@@ -343,14 +402,23 @@ export default function VehicleDetailPage() {
 
         {/* Reviews */}
         <div>
-          <h2 className="mb-3 font-semibold">Reviews</h2>
+          <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 className="text-2xl font-bold tracking-tight">Reviews</h2>
+            {v.ratingCount > 0 && (
+              <span className="flex items-baseline gap-1.5 text-lg font-semibold">
+                <span>{v.ratingAvg.toFixed(2)}</span>
+                <span className="text-[#635BFF]">★</span>
+                <span className="text-sm font-normal text-muted-foreground">· {v.ratingCount} {v.ratingCount === 1 ? 'trip' : 'trips'}</span>
+              </span>
+            )}
+          </div>
           {reviews.isLoading ? (
             <Skeleton className="h-20 w-full" />
           ) : reviews.data && reviews.data.length > 0 ? (
             <div className="space-y-3">
               {reviews.data.slice(0, 5).map((r) => (
                 <Card key={r._id}>
-                  <CardContent className="pt-6">
+                  <CardContent className="p-6 sm:p-8">
                     <Rating value={r.rating} />
                     <p className="mt-2 text-sm">{r.comment}</p>
                   </CardContent>
@@ -598,7 +666,22 @@ export default function VehicleDetailPage() {
       </div>
     </div>
   </div>
+
+      {/* Similar cars — full-width strip under the two-column layout */}
+      <SimilarCars vehicleId={id} start={start || undefined} end={end || undefined} days={days} />
   </div>
+  );
+}
+
+function PeaceItem({ icon, title, detail }: { icon: React.ReactNode; title: string; detail: string }) {
+  return (
+    <div className="flex gap-4">
+      <span className="mt-0.5 shrink-0">{icon}</span>
+      <div>
+        <p className="text-[17px] font-medium">{title}</p>
+        <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{detail}</p>
+      </div>
+    </div>
   );
 }
 
@@ -639,7 +722,7 @@ function AvailabilityCalendar({ occupied }: { occupied: { dayKey: string; state:
 
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardContent className="p-6 sm:p-8">
         <p className="mb-3 text-sm font-medium">{monthLabel}</p>
         <div className="grid grid-cols-7 gap-1 text-center text-xs">
           {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
@@ -654,7 +737,7 @@ function AvailabilityCalendar({ occupied }: { occupied: { dayKey: string; state:
               <div
                 key={i}
                 className={cn(
-                  'flex h-9 items-center justify-center rounded-md',
+                  'flex h-9 w-9 mx-auto items-center justify-center rounded-full',
                   past && 'text-muted-foreground/40',
                   occupiedDay ? 'bg-muted text-muted-foreground line-through' : 'bg-primary/5 text-foreground',
                 )}

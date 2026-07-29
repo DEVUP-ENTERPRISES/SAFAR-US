@@ -100,6 +100,8 @@ export const vehicleApi = {
     ),
   getCalendar: (id: string, from?: string, to?: string) =>
     api.get<CalendarEntry[]>(`/vehicles/${id}/availability`, { from, to }, false),
+  similar: (id: string, start?: string, end?: string, limit = 8) =>
+    api.get<Vehicle[]>(`/vehicles/${id}/similar`, { start, end, limit }, false),
   setAvailability: (id: string, start: string, end: string, action: 'block' | 'unblock') =>
     api.raw<{ updated: boolean }>(`/vehicles/${id}/availability`, {
       method: 'PUT',

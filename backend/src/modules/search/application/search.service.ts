@@ -100,6 +100,57 @@ export class SearchService {
   }
 
   /**
+   * "Similar cars" for a vehicle's detail page — nearby, listed, verified cars
+   * other than this one, ranked same-category-first then by rating. When a date
+   * range is supplied, only cars actually free for those dates are returned, so
+   * the strip reads "similar cars for your dates" honestly.
+   */
+  async similarTo(
+    vehicleId: string,
+    opts: { start?: Date; end?: Date; limit?: number } = {},
+  ): Promise<VehicleDoc[]> {
+    const limit = Math.min(opts.limit ?? 8, 12);
+    const base = await VehicleModel.findOne({ _id: vehicleId }).lean<VehicleDoc>();
+    if (!base) return [];
+
+    const filter: Record<string, unknown> = {
+      _id: { $ne: vehicleId },
+      status: 'listed',
+      verificationStatus: 'verified',
+      deletedAt: null,
+    };
+    const coords = base.location?.coordinates;
+    if (coords && coords.length === 2) {
+      filter.location = {
+        $near: {
+          $geometry: { type: 'Point', coordinates: coords },
+          $maxDistance: 100_000, // 100 km — same metro
+        },
+      };
+    }
+
+    const candidates = await VehicleModel.find(filter).limit(limit * 4).lean<VehicleDoc[]>();
+
+    let pool = candidates;
+    if (opts.start && opts.end) {
+      const available: VehicleDoc[] = [];
+      for (const v of candidates) {
+        if (available.length >= limit * 2) break;
+        if (await availabilityService.isAvailable(v._id, opts.start, opts.end)) available.push(v);
+      }
+      pool = available;
+    }
+
+    // Same category first (the closest substitute), then better-rated.
+    pool = [...pool].sort(
+      (a, b) =>
+        Number(b.category === base.category) - Number(a.category === base.category) ||
+        (b.ratingAvg || 0) - (a.ratingAvg || 0),
+    );
+    return pool.slice(0, limit);
+  }
+
+  /**
    * "For You" — personalized recommendations derived from the user's own
    * booking history. We build a lightweight taste profile (preferred
    * categories, body types, price band, and last city) and score fresh,

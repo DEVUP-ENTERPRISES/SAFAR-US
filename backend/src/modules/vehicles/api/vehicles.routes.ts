@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { vehicleService, MIN_LISTING_PHOTOS } from '../application/vehicle.service';
 import { availabilityService } from '../../availability/application/availability.service';
+import { searchService } from '../../search/application/search.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
@@ -76,6 +77,18 @@ router.get(
   asyncHandler(async (req, res) => {
     const v = await vehicleService.getById(req.params.id);
     sendSuccess(res, v);
+  }),
+);
+
+/** Similar cars nearby — availability-aware when start/end are supplied. */
+router.get(
+  '/:id/similar',
+  validate({ query: z.object({ start: z.string().optional(), end: z.string().optional(), limit: z.coerce.number().int().min(1).max(12).optional() }) }),
+  asyncHandler(async (req, res) => {
+    const start = req.query.start ? new Date(String(req.query.start)) : undefined;
+    const end = req.query.end ? new Date(String(req.query.end)) : undefined;
+    const limit = req.query.limit ? Number(req.query.limit) : 8;
+    sendSuccess(res, await searchService.similarTo(req.params.id, { start, end, limit }));
   }),
 );
 
