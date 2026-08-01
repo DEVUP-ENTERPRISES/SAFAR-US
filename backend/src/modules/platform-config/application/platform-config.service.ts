@@ -73,6 +73,12 @@ export class PlatformConfigService {
       },
       commission: { defaultBps: 2000, minBps: 0, maxBps: 4000, ...(doc.commission ?? {}) },
       tax: { bps: 0, ...(doc.tax ?? {}) },
+      pricing: { earlyBirdMinDaysAhead: 30, lastMinuteMaxHoursAhead: 48, ...(doc.pricing ?? {}) },
+      cancellation: {
+        flexible: { fullBeforeHours: 24, partialBps: 5000, ...(doc.cancellation?.flexible ?? {}) },
+        moderate: { fullBeforeHours: 48, partialBps: 5000, ...(doc.cancellation?.moderate ?? {}) },
+        strict: { fullBeforeHours: 168, partialBps: 0, ...(doc.cancellation?.strict ?? {}) },
+      },
       payout: { holdHours: 24, instantFeeBps: 150, instantFeeMinCents: 50, ...(doc.payout ?? {}) },
       rewards: { pointValueCents: 5, pointsPerDollar: 1, ...(doc.rewards ?? {}) },
       referral: { referrerCreditCents: 2000, refereeCreditCents: 1000, ...(doc.referral ?? {}) },
@@ -118,9 +124,20 @@ export class PlatformConfigService {
       }
     }
 
+    // Shallow-merge each section over the current values, so a partial update
+    // (e.g. just commission.defaultBps) never drops its sibling fields.
+    const merged: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(patch)) {
+      const cur = (current as unknown as Record<string, unknown>)[k];
+      merged[k] =
+        v && typeof v === 'object' && !Array.isArray(v) && cur && typeof cur === 'object'
+          ? { ...(cur as object), ...(v as object) }
+          : v;
+    }
+
     const doc = await PlatformConfigModel.findByIdAndUpdate(
       'platform',
-      { $set: { ...patch, updatedBy: actorId } },
+      { $set: { ...merged, updatedBy: actorId } },
       { new: true, upsert: true },
     ).lean<PlatformConfigDoc>();
 

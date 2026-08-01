@@ -8,11 +8,9 @@ import { platformConfigService } from '../../platform-config/application/platfor
 import { surgeService } from './surge.service';
 import { subscriptionService } from '../../subscriptions/application/subscription.service';
 
-// Platform economics are NOT constants — commission, tax and protection pricing
-// are resolved live from PlatformConfig + CommissionRules so finance can retune
-// the marketplace from the admin panel without a deploy.
-const EARLY_BIRD_MIN_DAYS_AHEAD = 30;
-const LAST_MINUTE_MAX_HOURS_AHEAD = 48;
+// Platform economics are NOT constants — commission, tax, protection pricing and
+// the early-bird / last-minute windows are all resolved live from PlatformConfig
+// so finance can retune the marketplace from the admin panel without a deploy.
 
 function dateKey(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -39,6 +37,10 @@ export class PricingService implements IPricingContract {
 
     const currency = v.pricing.currency;
     const daily = v.pricing.dailyPrice;
+
+    // Live platform economics (commission, tax, and the early-bird / last-minute
+    // windows) — one read, used throughout.
+    const cfg = await platformConfigService.get();
 
     // Membership (CATO Plus) benefits — resolved once, applied throughout.
     const member = input.guestId
@@ -94,11 +96,11 @@ export class PricingService implements IPricingContract {
       discount = applyBps(base, v.pricing.weeklyDiscountBps);
     }
 
-    // ── Early-bird / last-minute (mutually exclusive).
+    // ── Early-bird / last-minute (mutually exclusive; windows from config).
     const hoursAhead = (input.start.getTime() - Date.now()) / 3_600_000;
-    if (hoursAhead >= EARLY_BIRD_MIN_DAYS_AHEAD * 24 && v.pricing.earlyBirdBps > 0) {
+    if (hoursAhead >= cfg.pricing.earlyBirdMinDaysAhead * 24 && v.pricing.earlyBirdBps > 0) {
       discount = addMoney(discount, applyBps(base, v.pricing.earlyBirdBps));
-    } else if (hoursAhead <= LAST_MINUTE_MAX_HOURS_AHEAD && v.pricing.lastMinuteBps > 0) {
+    } else if (hoursAhead <= cfg.pricing.lastMinuteMaxHoursAhead && v.pricing.lastMinuteBps > 0) {
       discount = addMoney(discount, applyBps(base, v.pricing.lastMinuteBps));
     }
 
@@ -168,7 +170,6 @@ export class PricingService implements IPricingContract {
 
     // ── Commission: resolved per booking from the rule engine. A luxury car, a
     // superhost, or a negotiated fleet host can each carry a different rate.
-    const cfg = await platformConfigService.get();
     const resolved = await platformConfigService.resolveCommission({
       hostId: v.hostId,
       category: v.category,

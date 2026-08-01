@@ -1,6 +1,7 @@
 import { BookingModel, type BookingDoc } from '../infrastructure/booking.model';
 import { canTransition, type BookingStatus } from '../domain/booking-status';
 import { computeRefund } from '../domain/cancellation-policy';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { verifyPriceLock, issuePriceLock, type PriceLock } from '../../pricing/domain/price-lock';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { availabilityService } from '../../availability/application/availability.service';
@@ -438,8 +439,9 @@ export class BookingService {
     if (booking.status === 'paid' || booking.status === 'confirmed') {
       // Host and admin cancellations refund in full — the guest did nothing
       // wrong and is being stranded. Only a guest cancellation is policy-bound.
+      const cancelCfg = (await platformConfigService.get()).cancellation;
       refund = isGuest
-        ? computeRefund(booking.cancellationPolicy, total, booking.period.start)
+        ? computeRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg)
         : { ...total };
       if (refund.amount > 0) {
         await paymentService.refundBooking(bookingId, refund, reason);
@@ -512,12 +514,13 @@ export class BookingService {
     // A host or admin cancellation is always a full refund — only a guest
     // cancellation is policy-bound, so that is what the preview reflects for a
     // guest. For a host viewing, show the full refund the guest would receive.
+    const cancelCfg = (await platformConfigService.get()).cancellation;
     const refund =
       isGuest && (booking.status === 'paid' || booking.status === 'confirmed')
-        ? computeRefund(booking.cancellationPolicy, total, booking.period.start)
+        ? computeRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg)
         : { ...total };
 
-    const hoursFull = { flexible: 24, moderate: 48, strict: 168 }[booking.cancellationPolicy];
+    const hoursFull = cancelCfg[booking.cancellationPolicy].fullBeforeHours;
     const fullRefundUntil = new Date(
       booking.period.start.getTime() - hoursFull * 3_600_000,
     );

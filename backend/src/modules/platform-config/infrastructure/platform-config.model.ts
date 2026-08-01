@@ -33,6 +33,19 @@ export interface PlatformConfigDoc {
     /** Applied to commission. US launch = 0. */
     bps: number;
   };
+  pricing: {
+    /** A trip starting at least this many days out earns the early-bird rate. */
+    earlyBirdMinDaysAhead: number;
+    /** A trip starting within this many hours counts as last-minute. */
+    lastMinuteMaxHoursAhead: number;
+  };
+  /** Refund rules per host cancellation policy — full refund if the guest
+   *  cancels at least `fullBeforeHours` before start, else `partialBps` of total. */
+  cancellation: {
+    flexible: { fullBeforeHours: number; partialBps: number };
+    moderate: { fullBeforeHours: number; partialBps: number };
+    strict: { fullBeforeHours: number; partialBps: number };
+  };
   payout: {
     /** Hold window before scheduled payouts are released. */
     holdHours: number;
@@ -93,6 +106,15 @@ const schema = new Schema<PlatformConfigDoc>(
     },
     tax: {
       bps: { type: Number, default: 0 },
+    },
+    pricing: {
+      earlyBirdMinDaysAhead: { type: Number, default: 30 },
+      lastMinuteMaxHoursAhead: { type: Number, default: 48 },
+    },
+    cancellation: {
+      flexible: { fullBeforeHours: { type: Number, default: 24 }, partialBps: { type: Number, default: 5000 } },
+      moderate: { fullBeforeHours: { type: Number, default: 48 }, partialBps: { type: Number, default: 5000 } },
+      strict: { fullBeforeHours: { type: Number, default: 168 }, partialBps: { type: Number, default: 0 } },
     },
     payout: {
       holdHours: { type: Number, default: 24 },

@@ -28,8 +28,52 @@ router.put(
   authorize('platform:manage'),
   validate({
     body: z.object({
+      deposit: z
+        .object({
+          enabled: z.boolean().optional(),
+          minCents: cents.optional(),
+          maxCents: cents.optional(),
+          multiplierBps: z.number().int().min(0).max(100000).optional(),
+          autoReleaseHours: z.number().int().min(0).max(720).optional(),
+        })
+        .optional(),
       commission: z.object({ defaultBps: bps.optional(), minBps: bps.optional(), maxBps: bps.optional() }).optional(),
       tax: z.object({ bps: bps.optional() }).optional(),
+      pricing: z
+        .object({
+          earlyBirdMinDaysAhead: z.number().int().min(0).max(365).optional(),
+          lastMinuteMaxHoursAhead: z.number().int().min(0).max(720).optional(),
+        })
+        .optional(),
+      cancellation: z
+        .object({
+          flexible: z.object({ fullBeforeHours: z.number().int().min(0).max(2160), partialBps: bps }).optional(),
+          moderate: z.object({ fullBeforeHours: z.number().int().min(0).max(2160), partialBps: bps }).optional(),
+          strict: z.object({ fullBeforeHours: z.number().int().min(0).max(2160), partialBps: bps }).optional(),
+        })
+        .optional(),
+      surge: z
+        .object({
+          enabled: z.boolean().optional(),
+          autoEnabled: z.boolean().optional(),
+          maxMultiplierBps: z.number().int().min(10000).max(50000).optional(),
+          occupancyThresholds: z
+            .array(z.object({ occupancyPct: z.number().min(0).max(100), multiplierBps: z.number().int().min(10000).max(50000) }))
+            .optional(),
+        })
+        .optional(),
+      support: z
+        .object({
+          slaHours: z
+            .object({
+              urgent: z.number().int().min(0).optional(),
+              high: z.number().int().min(0).optional(),
+              normal: z.number().int().min(0).optional(),
+              low: z.number().int().min(0).optional(),
+            })
+            .optional(),
+        })
+        .optional(),
       payout: z
         .object({
           holdHours: z.number().int().min(0).max(720).optional(),
