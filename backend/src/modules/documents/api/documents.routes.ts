@@ -32,9 +32,12 @@ router.get(
   '/',
   authenticate,
   asyncHandler(async (req, res) => {
-    const filter: Record<string, unknown> = { deletedAt: null };
-    if (req.query.vehicleId) filter.vehicleId = req.query.vehicleId;
-    else filter.ownerId = req.principal!.userId;
+    // Always scope to the caller's own documents. Previously a vehicleId in the
+    // query dropped the owner filter, so anyone could read another host's
+    // registration/insurance/KYC docs by passing a (public) vehicle id — an IDOR
+    // exposing private legal and identity records.
+    const filter: Record<string, unknown> = { deletedAt: null, ownerId: req.principal!.userId };
+    if (req.query.vehicleId) filter.vehicleId = String(req.query.vehicleId);
     const docs = await DocumentModel.find(filter).sort({ createdAt: -1 }).lean();
     sendSuccess(res, docs);
   }),

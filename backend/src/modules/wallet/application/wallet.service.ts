@@ -6,6 +6,7 @@ import { ConflictError, ValidationError } from '../../../core/errors/app-error';
 import { randomId } from '../../../shared/utils/uuid';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
+import { kv } from '../../../infrastructure/cache/kv-store';
 
 /**
  * The in-app wallet. Balance is DERIVED from the ledger (credit − debit on the
@@ -61,18 +62,29 @@ export class WalletService {
    */
   async spend(userId: string, amount: number, refType: string, refId: string): Promise<void> {
     if (amount <= 0) return;
-    const balance = await this.balance(userId);
-    if (amount > balance) throw new ConflictError('Insufficient wallet balance', 'INSUFFICIENT_WALLET');
-    await ledgerService.post({
-      refType,
-      refId,
-      currency: 'USD',
-      description: 'Paid with wallet',
-      legs: [
-        { account: Account.userWallet(userId), direction: 'debit', amount },
-        { account: Account.cardFunding(), direction: 'credit', amount },
-      ],
-    });
+
+    // Serialize per user: balance is read-then-written, so two concurrent
+    // spends (e.g. two bookings at once) could both pass the check and overdraw
+    // the wallet. A short per-user lock makes the read + post atomic.
+    const lockKey = `lock:wallet:${userId}`;
+    const locked = await kv().acquire(lockKey, 15);
+    if (!locked) throw new ConflictError('Another wallet transaction is in progress — please retry.', 'WALLET_BUSY');
+    try {
+      const balance = await this.balance(userId);
+      if (amount > balance) throw new ConflictError('Insufficient wallet balance', 'INSUFFICIENT_WALLET');
+      await ledgerService.post({
+        refType,
+        refId,
+        currency: 'USD',
+        description: 'Paid with wallet',
+        legs: [
+          { account: Account.userWallet(userId), direction: 'debit', amount },
+          { account: Account.cardFunding(), direction: 'credit', amount },
+        ],
+      });
+    } finally {
+      await kv().del(lockKey);
+    }
   }
 }
 

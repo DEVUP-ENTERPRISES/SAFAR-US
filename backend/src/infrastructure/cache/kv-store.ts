@@ -12,6 +12,8 @@ export interface KeyValueStore {
   get(key: string): Promise<string | null>;
   exists(key: string): Promise<boolean>;
   del(key: string): Promise<void>;
+  /** Atomic set-if-absent with TTL — the basis for a short-lived lock. */
+  acquire(key: string, ttlSeconds: number): Promise<boolean>;
 }
 
 /** Redis-backed implementation (production). */
@@ -30,6 +32,11 @@ export class RedisKvStore implements KeyValueStore {
   }
   async del(key: string): Promise<void> {
     await this.client.del(key);
+  }
+  async acquire(key: string, ttlSeconds: number): Promise<boolean> {
+    // SET key 1 EX ttl NX — atomic; returns 'OK' only if the key was absent.
+    const res = await this.client.set(key, '1', 'EX', ttlSeconds, 'NX');
+    return res === 'OK';
   }
 }
 
@@ -61,6 +68,11 @@ export class InMemoryKvStore implements KeyValueStore {
   }
   async del(key: string): Promise<void> {
     this.map.delete(key);
+  }
+  async acquire(key: string, ttlSeconds: number): Promise<boolean> {
+    if (await this.exists(key)) return false;
+    await this.set(key, '1', ttlSeconds);
+    return true;
   }
 }
 

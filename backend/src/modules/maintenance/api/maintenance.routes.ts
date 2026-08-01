@@ -49,7 +49,10 @@ router.post(
   '/:id/complete',
   authenticate,
   asyncHandler(async (req, res) => {
-    const r = await MaintenanceModel.updateOne({ _id: req.params.id }, { status: 'completed' });
+    // Scope to the caller's own host — otherwise any user could complete another
+    // host's maintenance record by id.
+    const host = await hostService.requireHostForUser(req.principal!.userId);
+    const r = await MaintenanceModel.updateOne({ _id: req.params.id, hostId: host._id }, { status: 'completed' });
     if (r.matchedCount === 0) throw new NotFoundError('Maintenance record');
     sendSuccess(res, { completed: true });
   }),
