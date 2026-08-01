@@ -18,6 +18,7 @@ import { ApiError } from '@/lib/api/types';
 import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
 import { SimilarCars } from '@/features/vehicles/components/similar-cars';
+import { usePlatformConfig, describeCancellation } from '@/features/platform/config';
 import { useRecentlyViewed } from '@/features/vehicles/recently-viewed';
 import { useQuote, useCreateBooking } from '@/features/bookings/hooks';
 import { useAuthStore } from '@/features/auth/store';
@@ -37,18 +38,12 @@ interface ProtectionPlan {
   pricePerDay: number;
 }
 
-const CANCELLATION_TERMS: Record<string, { title: string; detail: string }> = {
-  // Mirrors the server's refund rules (cancellation-policy.ts): the same
-  // thresholds a cancellation is actually settled against.
-  flexible: { title: 'Flexible', detail: 'Full refund if you cancel more than 24 hours before the trip starts; 50% after that.' },
-  moderate: { title: 'Moderate', detail: 'Full refund if you cancel more than 48 hours before the trip starts; 50% after that.' },
-  strict: { title: 'Strict', detail: 'Full refund only if you cancel more than 7 days before the trip starts; non-refundable after that.' },
-};
 
 export default function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: v, isLoading, isError } = useVehicle(id);
+  const platformCfg = usePlatformConfig();
   const status = useAuthStore((s) => s.status);
   const { track } = useRecentlyViewed();
 
@@ -155,6 +150,8 @@ export default function VehicleDetailPage() {
   const weeklyPct = Math.round((v.pricing.weeklyDiscountBps ?? 0) / 100);
   const monthlyPct = Math.round((v.pricing.monthlyDiscountBps ?? 0) / 100);
   const mileage = v.mileageLimit;
+  // Cancellation copy generated from live platform config — never hardcoded.
+  const cancelTerms = describeCancellation(v.listing.cancellationPolicy, platformCfg.data);
 
   return (
     <div className="space-y-6 sm:space-y-10 pb-20">
@@ -272,8 +269,8 @@ export default function VehicleDetailPage() {
             <div className="flex gap-4">
               <span className="mt-0.5 shrink-0"><Check className="h-6 w-6 stroke-[1.5]" /></span>
               <div>
-                <p className="text-[17px] font-medium capitalize">{CANCELLATION_TERMS[v.listing.cancellationPolicy]?.title ?? v.listing.cancellationPolicy}</p>
-                <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{CANCELLATION_TERMS[v.listing.cancellationPolicy]?.detail}</p>
+                <p className="text-[17px] font-medium capitalize">{cancelTerms.title}</p>
+                <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{cancelTerms.detail}</p>
               </div>
             </div>
           </div>
@@ -326,7 +323,7 @@ export default function VehicleDetailPage() {
             <h2 className="mb-4 text-2xl font-bold tracking-tight">Peace of mind</h2>
             <div className="space-y-4">
               <PeaceItem icon={<Sparkles className="h-6 w-6 stroke-[1.5]" />} title="No car wash necessary" detail="Just keep the car tidy and return it as you found it." />
-              <PeaceItem icon={<CalendarCheck className="h-6 w-6 stroke-[1.5]" />} title="Free cancellation" detail={CANCELLATION_TERMS[v.listing.cancellationPolicy]?.detail ?? 'Cancel per the host’s policy for a refund.'} />
+              <PeaceItem icon={<CalendarCheck className="h-6 w-6 stroke-[1.5]" />} title="Free cancellation" detail={cancelTerms.detail || 'Cancel per the host’s policy for a refund.'} />
               <PeaceItem icon={<LifeBuoy className="h-6 w-6 stroke-[1.5]" />} title="Support when you need it" detail="Message your host in-app, and reach our team from your trip screen." />
               <PeaceItem icon={<Headphones className="h-6 w-6 stroke-[1.5]" />} title="Two-way reviews" detail="Verified guests and hosts rate each trip, so you always know who you’re booking with." />
             </div>

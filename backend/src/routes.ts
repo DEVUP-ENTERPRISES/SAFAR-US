@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { systemRoutes } from './modules/system/system.routes';
+import { platformConfigPublicRoutes } from './modules/platform-config/api/platform-config.public.routes';
 import { authRoutes } from './modules/auth/api/auth.routes';
 import { usersRoutes } from './modules/users/api/users.routes';
 import { hostsRoutes } from './modules/hosts/api/hosts.routes';
@@ -41,6 +42,7 @@ export function buildApiRouter(): Router {
   const api = Router();
 
   api.use('/system', systemRoutes);
+  api.use('/platform', platformConfigPublicRoutes);
   api.use('/auth', authRoutes);
   api.use('/users', usersRoutes);
   api.use('/hosts', hostsRoutes);
