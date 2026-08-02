@@ -44,6 +44,9 @@ export interface BookingDoc {
   statusHistory: { from: BookingStatus | null; to: BookingStatus; at: Date; by: string; reason?: string }[];
   /** Post-trip incidental charges (fuel, cleaning, late return, tolls…). */
   incidentals?: { type: string; amount: number; note?: string; at: Date; by: string }[];
+  /** SHA-256 of the guest's pickup code — the host verifies it at handover to
+   *  prove the guest is physically present. Never stored in the clear. */
+  pickupCodeHash?: string;
   /** Why this booking is held at pending_verification, for the guest's UI. */
   verificationBlockers?: string[];
   holdId?: string;
@@ -134,6 +137,7 @@ const schema = new Schema<BookingDoc>(
       type: [{ _id: false, type: { type: String }, amount: Number, note: String, at: Date, by: String }],
       default: [],
     },
+    pickupCodeHash: String,
     verificationBlockers: { type: [String], default: [] },
     holdId: String,
     paymentId: String,

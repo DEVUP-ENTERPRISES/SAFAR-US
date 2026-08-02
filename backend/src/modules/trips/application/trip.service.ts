@@ -7,6 +7,7 @@ import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/veh
 import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
 import { NotFoundError, ConflictError, ForbiddenError } from '../../../core/errors/app-error';
+import type { Principal } from '../../../core/types/common';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
@@ -329,6 +330,24 @@ export class TripService {
       { arrayFilters: [{ 'open.status': 'open' }] },
     );
     emit(EVENTS.TRIP_INCIDENT_RESOLVED, tripId, { tripId, bookingId: trip.bookingId, byUserId: userId, note });
+    return this.getDoc(tripId);
+  }
+
+  /**
+   * Host verifies the guest's pickup code at handover — proof the guest is
+   * physically present with the car. A verification signal, recorded on the
+   * trip; a strong one because it can't be produced remotely.
+   */
+  async verifyPickup(principal: Principal, tripId: string, code: string): Promise<TripDoc> {
+    const trip = await this.getDoc(tripId);
+    const isAdmin = principal.permissions.includes('*') || principal.permissions.includes('booking:read:any');
+    if (!isAdmin && !(await this.isHost(principal.userId, trip.hostId))) {
+      throw new ForbiddenError('Only the host verifies pickup');
+    }
+    if (!(await bookingService.checkPickupCode(trip.bookingId, code))) {
+      throw new ConflictError('That pickup code is not correct', 'PICKUP_CODE_INVALID');
+    }
+    await TripModel.updateOne({ _id: tripId }, { pickupVerified: true, pickupVerifiedAt: new Date() });
     return this.getDoc(tripId);
   }
 

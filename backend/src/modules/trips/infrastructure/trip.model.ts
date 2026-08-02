@@ -28,6 +28,9 @@ export interface TripDoc {
    *  it is resolved, so no late/mileage/fuel charge lands during an emergency. */
   incidents: { type: string; status: 'open' | 'resolved'; note?: string; byUserId: string; at: Date; resolvedAt?: Date }[];
   pausedForIncident?: boolean;
+  /** The host verified the guest's pickup code at handover (physical presence). */
+  pickupVerified?: boolean;
+  pickupVerifiedAt?: Date;
   distanceKm: number;
   createdAt: Date;
   updatedAt: Date;
@@ -72,6 +75,8 @@ const schema = new Schema<TripDoc>(
       default: [],
     },
     pausedForIncident: { type: Boolean, default: false },
+    pickupVerified: { type: Boolean, default: false },
+    pickupVerifiedAt: Date,
     return: {
       at: Date,
       odometerEnd: Number,

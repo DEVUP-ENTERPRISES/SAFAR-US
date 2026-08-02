@@ -147,6 +147,16 @@ router.post(
   }),
 );
 
+/** Host verifies the guest's pickup code at handover. */
+router.post(
+  '/:id/verify-pickup',
+  authenticate,
+  validate({ body: z.object({ code: z.string().length(6) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripService.verifyPickup(req.principal!, req.params.id, req.body.code));
+  }),
+);
+
 /** Raise a structured emergency — pauses the trip until resolved. */
 router.post(
   '/:id/incident',

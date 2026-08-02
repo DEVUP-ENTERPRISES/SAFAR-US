@@ -1,3 +1,4 @@
+import { createHash, randomInt } from 'crypto';
 import { BookingModel, type BookingDoc } from '../infrastructure/booking.model';
 import { canTransition, type BookingStatus } from '../domain/booking-status';
 import { computeRefund } from '../domain/cancellation-policy';
@@ -573,6 +574,30 @@ export class BookingService {
     await this.transition(booking, 'cancelled_guest', principal.userId, 'Guest no-show — forfeit applied');
     emit(EVENTS.BOOKING_GUEST_NO_SHOW, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId });
     return this.getDoc(bookingId);
+  }
+
+  /**
+   * Issue the guest's pickup code — a 6-digit handshake the host verifies at
+   * handover to prove the guest is physically present with the car. Stored only
+   * as a SHA-256 hash; re-issuing rotates it.
+   */
+  async issuePickupCode(principal: Principal, bookingId: string): Promise<{ code: string }> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== principal.userId) throw new ForbiddenError('Only the guest holds the pickup code');
+    if (!['paid', 'confirmed', 'in_progress'].includes(booking.status)) {
+      throw new ConflictError('A pickup code applies only to a confirmed trip', 'INVALID_STATE');
+    }
+    const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    const hash = createHash('sha256').update(code).digest('hex');
+    await BookingModel.updateOne({ _id: bookingId }, { pickupCodeHash: hash });
+    return { code };
+  }
+
+  /** Verify a presented pickup code against a booking's stored hash. */
+  async checkPickupCode(bookingId: string, code: string): Promise<boolean> {
+    const booking = await this.getDoc(bookingId);
+    if (!booking.pickupCodeHash) return false;
+    return createHash('sha256').update(code).digest('hex') === booking.pickupCodeHash;
   }
 
   /**

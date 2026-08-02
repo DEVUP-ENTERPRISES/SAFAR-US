@@ -188,6 +188,15 @@ router.post(
   }),
 );
 
+/** Guest fetches (or rotates) their pickup code for the handover handshake. */
+router.post(
+  '/:id/pickup-code',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.issuePickupCode(req.principal!, req.params.id));
+  }),
+);
+
 /** Rebooking protection: similar cars free for the same dates when a host bailed. */
 router.get(
   '/:id/rebooking-options',
