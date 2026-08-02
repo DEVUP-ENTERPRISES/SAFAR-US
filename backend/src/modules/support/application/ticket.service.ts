@@ -1,5 +1,5 @@
 import { TicketModel, type TicketDoc, type TicketStatus } from '../infrastructure/ticket.model';
-import { NotFoundError, ForbiddenError } from '../../../core/errors/app-error';
+import { NotFoundError, ForbiddenError, ConflictError } from '../../../core/errors/app-error';
 import { realtimeEmitter } from '../../../realtime/emitter';
 import { notificationService } from '../../notifications/application/notification.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
@@ -50,11 +50,15 @@ export class TicketService {
     if (!opts.isAgent && ticket.userId !== authorId) throw new ForbiddenError('Not your ticket');
     const internal = opts.isAgent ? !!opts.internal : false;
 
+    // Stamp first response the first time an agent replies publicly — the basis
+    // for the first-response-time KPI.
+    const firstResponse = opts.isAgent && !internal && !ticket.firstRespondedAt ? { firstRespondedAt: new Date() } : {};
+
     await TicketModel.updateOne(
       { _id: ticketId },
       {
         $push: { messages: { authorId, body, internal, at: new Date() } },
-        $set: { status: opts.isAgent ? 'pending' : 'open' },
+        $set: { status: opts.isAgent ? 'pending' : 'open', ...firstResponse },
       },
     );
 
@@ -96,13 +100,69 @@ export class TicketService {
   }
 
   async escalate(ticketId: string): Promise<TicketDoc> {
-    await this.setStatus(ticketId, 'escalated', { priority: 'urgent' });
+    await this.setStatus(ticketId, 'escalated', { priority: 'urgent', wasEscalated: true });
     return this.getDoc(ticketId);
   }
 
   async resolve(ticketId: string): Promise<TicketDoc> {
     await this.setStatus(ticketId, 'resolved', { resolvedAt: new Date() });
     return this.getDoc(ticketId);
+  }
+
+  /** The requester rates support after their ticket is resolved (CSAT). */
+  async rateCsat(userId: string, ticketId: string, rating: number): Promise<TicketDoc> {
+    const ticket = await this.getDoc(ticketId);
+    if (ticket.userId !== userId) throw new ForbiddenError('Not your ticket');
+    if (!['resolved', 'closed'].includes(ticket.status)) {
+      throw new ConflictError('You can rate support once your ticket is resolved', 'NOT_RESOLVED');
+    }
+    await TicketModel.updateOne({ _id: ticketId }, { csat: Math.max(1, Math.min(5, Math.round(rating))) });
+    return this.getDoc(ticketId);
+  }
+
+  /**
+   * Support KPIs over a window: first-response time, resolution time, CSAT,
+   * ticket volume by status, and escalation rate — the numbers a support lead
+   * runs the queue on. All derived from real ticket timestamps.
+   */
+  async metrics(days = 30): Promise<{
+    windowDays: number;
+    volume: number;
+    byStatus: Record<string, number>;
+    firstResponseMinutes: number | null;
+    resolutionMinutes: number | null;
+    csatAvg: number | null;
+    csatCount: number;
+    escalationRatePct: number;
+  }> {
+    const since = new Date(Date.now() - days * 86_400_000);
+    const tickets = await TicketModel.find({ deletedAt: null, createdAt: { $gte: since } })
+      .select('status createdAt firstRespondedAt resolvedAt csat wasEscalated')
+      .lean<{ status: string; createdAt: Date; firstRespondedAt?: Date; resolvedAt?: Date; csat?: number; wasEscalated?: boolean }[]>();
+
+    const median = (xs: number[]): number | null => {
+      if (xs.length === 0) return null;
+      const s = [...xs].sort((a, b) => a - b);
+      const m = Math.floor(s.length / 2);
+      return Math.round(s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2);
+    };
+    const mins = (a: Date, b: Date) => (+new Date(b) - +new Date(a)) / 60_000;
+
+    const byStatus: Record<string, number> = {};
+    for (const t of tickets) byStatus[t.status] = (byStatus[t.status] ?? 0) + 1;
+    const csats = tickets.filter((t) => typeof t.csat === 'number').map((t) => t.csat as number);
+    const escalated = tickets.filter((t) => t.wasEscalated).length;
+
+    return {
+      windowDays: days,
+      volume: tickets.length,
+      byStatus,
+      firstResponseMinutes: median(tickets.filter((t) => t.firstRespondedAt).map((t) => mins(t.createdAt, t.firstRespondedAt!))),
+      resolutionMinutes: median(tickets.filter((t) => t.resolvedAt).map((t) => mins(t.createdAt, t.resolvedAt!))),
+      csatAvg: csats.length ? Math.round((csats.reduce((s, c) => s + c, 0) / csats.length) * 10) / 10 : null,
+      csatCount: csats.length,
+      escalationRatePct: tickets.length ? Math.round((escalated / tickets.length) * 100) : 0,
+    };
   }
 
   async count(filter: Record<string, unknown> = {}): Promise<number> {

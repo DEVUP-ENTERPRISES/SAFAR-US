@@ -52,4 +52,14 @@ router.post(
   }),
 );
 
+/** Requester rates support after their ticket is resolved (CSAT). */
+router.post(
+  '/tickets/:id/csat',
+  authenticate,
+  validate({ body: z.object({ rating: z.number().int().min(1).max(5) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await ticketService.rateCsat(req.principal!.userId, req.params.id, req.body.rating));
+  }),
+);
+
 export const supportRoutes = router;

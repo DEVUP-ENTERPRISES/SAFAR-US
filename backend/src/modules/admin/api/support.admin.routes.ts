@@ -31,6 +31,15 @@ router.get(
   }),
 );
 
+/** Support KPIs — first response / resolution time, CSAT, volume, escalation rate. */
+router.get(
+  '/tickets/metrics',
+  authorize('ticket:manage'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await ticketService.metrics(req.query.days ? Number(req.query.days) : 30));
+  }),
+);
+
 router.get(
   '/tickets/:id',
   authorize('ticket:manage'),

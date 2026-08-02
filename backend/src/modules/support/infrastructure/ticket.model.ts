@@ -23,7 +23,13 @@ export interface TicketDoc {
   relatedId?: string;
   messages: TicketMessage[];
   slaDueAt?: Date;
+  /** When an agent first replied — the basis for first-response-time. */
+  firstRespondedAt?: Date;
   resolvedAt?: Date;
+  /** Customer satisfaction, 1–5, captured after resolution. */
+  csat?: number;
+  /** Ever escalated (sticky, for the escalation-rate KPI). */
+  wasEscalated?: boolean;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -45,7 +51,10 @@ const schema = new Schema<TicketDoc>(
       default: [],
     },
     slaDueAt: Date,
+    firstRespondedAt: Date,
     resolvedAt: Date,
+    csat: { type: Number, min: 1, max: 5 },
+    wasEscalated: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true, _id: false },
