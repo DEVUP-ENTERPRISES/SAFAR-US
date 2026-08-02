@@ -1,5 +1,6 @@
 import { PayoutModel, type PayoutDoc } from '../infrastructure/payout.model';
 import { bookingService } from '../../bookings/application/booking.service';
+import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
 import { emit } from '../../../shared/events/event-bus';
@@ -18,13 +19,19 @@ export class PayoutService {
     if (existing) return; // idempotent
     const cfg = await platformConfigService.get();
 
+    // Reputation-scaled hold: a new host's earnings are held longer (fraud /
+    // chargeback protection); an established host is paid on the normal window.
+    const priorTrips = await BookingModel.countDocuments({ hostId: booking.hostId, status: 'completed' });
+    const extraHours = priorTrips < cfg.payoutTrust.newHostTripThreshold ? cfg.payoutTrust.newHostExtraHoldHours : 0;
+    const holdHours = cfg.payout.holdHours + extraHours;
+
     await PayoutModel.create({
       hostId: booking.hostId,
       bookingId,
       amount: booking.priceBreakdown.hostEarnings.amount,
       currency: booking.priceBreakdown.currency,
       status: 'scheduled',
-      scheduledFor: new Date(Date.now() + cfg.payout.holdHours * 3_600_000),
+      scheduledFor: new Date(Date.now() + holdHours * 3_600_000),
     });
     emit(EVENTS.PAYOUT_SCHEDULED, bookingId, { bookingId, hostId: booking.hostId });
     logger.info({ bookingId, hostId: booking.hostId }, 'Payout scheduled');

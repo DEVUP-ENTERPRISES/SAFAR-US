@@ -4,6 +4,7 @@ import { computeRefund } from '../domain/cancellation-policy';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { documentComplianceService } from '../../documents/application/document-compliance.service';
 import { searchService } from '../../search/application/search.service';
+import { trustScoreService } from '../../risk/application/trust-score.service';
 import type { VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
 import { verifyPriceLock, issuePriceLock, type PriceLock } from '../../pricing/domain/price-lock';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
@@ -196,10 +197,17 @@ export class BookingService {
       }
     }
 
+    // Trust gate on Instant Book: a brand-new guest (no reputation yet) does not
+    // get to skip host approval on an instant car — the booking falls back to a
+    // request the host approves, protecting hosts from unvetted instant trips.
+    // Proven guests instant-book as normal.
+    const trustPerks = await trustScoreService.perks(guestId);
+    const effectiveInstant = vehicle.instantBook && trustPerks.instantBookEligible;
+
     // Pay-with-wallet: apply available balance, card charges the remainder.
     // Supported on instant bookings (captured immediately).
     let walletApplied = 0;
-    if (dto.useWallet && vehicle.instantBook && eligibility.eligible) {
+    if (dto.useWallet && effectiveInstant && eligibility.eligible) {
       const balance = await walletService.balance(guestId);
       walletApplied = Math.min(balance, breakdown.total.amount);
     }
@@ -216,7 +224,7 @@ export class BookingService {
         hostId: vehicle.hostId,
         // Instant Book still means instant *for a verified guest*. An
         // unverified one is authorised only; capture happens when they clear.
-        capture: vehicle.instantBook && eligibility.eligible,
+        capture: effectiveInstant && eligibility.eligible,
         total: breakdown.total,
         hostEarnings: breakdown.hostEarnings,
         // Protection accrues to the platform, so it rides in the commission leg
@@ -237,7 +245,7 @@ export class BookingService {
 
       const status: BookingStatus = !eligibility.eligible
         ? 'pending_verification'
-        : vehicle.instantBook
+        : effectiveInstant
           ? 'paid'
           : 'pending_approval';
       const now = new Date();
@@ -259,9 +267,9 @@ export class BookingService {
         couponCode: dto.couponCode,
         orgId: corp?.orgId,
         costCenterId: corp?.costCenterId,
-        instantBook: vehicle.instantBook,
+        instantBook: effectiveInstant,
         verificationBlockers: eligibility.blockers,
-        approvalDeadline: vehicle.instantBook
+        approvalDeadline: effectiveInstant
           ? undefined
           : new Date(Math.min(start.getTime(), now.getTime() + APPROVAL_WINDOW_MS)),
         idempotencyKey,

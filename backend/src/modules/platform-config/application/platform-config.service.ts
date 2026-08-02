@@ -80,6 +80,10 @@ export class PlatformConfigService {
         strict: { fullBeforeHours: 168, partialBps: 0, ...(doc.cancellation?.strict ?? {}) },
       },
       noShow: { graceHours: 2, guestForfeitBps: 5000, ...(doc.noShow ?? {}) },
+      wallet: {
+        maxBalanceCentsByTier: { new: 50000, bronze: 200000, silver: 500000, gold: 1000000, ...(doc.wallet?.maxBalanceCentsByTier ?? {}) },
+      },
+      payoutTrust: { newHostTripThreshold: 3, newHostExtraHoldHours: 48, ...(doc.payoutTrust ?? {}) },
       incidentals: {
         fuelPerPercentCents: 300, cleaningCents: 7500, smokingCents: 25000, petCents: 10000, lateReturnPerHourCents: 2500,
         ...(doc.incidentals ?? {}),

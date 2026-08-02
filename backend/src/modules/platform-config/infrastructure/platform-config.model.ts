@@ -53,6 +53,16 @@ export interface PlatformConfigDoc {
     /** Fraction of the total the guest forfeits on a guest no-show (host keeps it). */
     guestForfeitBps: number;
   };
+  /** Wallet caps by trust tier (fraud / AML) and host-reputation payout holds. */
+  wallet: {
+    maxBalanceCentsByTier: { new: number; bronze: number; silver: number; gold: number };
+  };
+  payoutTrust: {
+    /** A host with fewer than this many completed trips is treated as new. */
+    newHostTripThreshold: number;
+    /** Extra hold hours applied to a new host's payouts. */
+    newHostExtraHoldHours: number;
+  };
   /** Post-trip incidental fee schedule (host-compensating), in minor units. */
   incidentals: {
     /** Charged per whole % of fuel returned below pickup level. */
@@ -136,6 +146,18 @@ const schema = new Schema<PlatformConfigDoc>(
     noShow: {
       graceHours: { type: Number, default: 2 },
       guestForfeitBps: { type: Number, default: 5000 },
+    },
+    wallet: {
+      maxBalanceCentsByTier: {
+        new: { type: Number, default: 50000 },
+        bronze: { type: Number, default: 200000 },
+        silver: { type: Number, default: 500000 },
+        gold: { type: Number, default: 1000000 },
+      },
+    },
+    payoutTrust: {
+      newHostTripThreshold: { type: Number, default: 3 },
+      newHostExtraHoldHours: { type: Number, default: 48 },
     },
     incidentals: {
       fuelPerPercentCents: { type: Number, default: 300 },

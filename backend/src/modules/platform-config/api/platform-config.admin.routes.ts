@@ -55,6 +55,19 @@ router.put(
       noShow: z
         .object({ graceHours: z.number().int().min(0).max(72).optional(), guestForfeitBps: bps.optional() })
         .optional(),
+      wallet: z
+        .object({
+          maxBalanceCentsByTier: z
+            .object({ new: cents.optional(), bronze: cents.optional(), silver: cents.optional(), gold: cents.optional() })
+            .optional(),
+        })
+        .optional(),
+      payoutTrust: z
+        .object({
+          newHostTripThreshold: z.number().int().min(0).max(100).optional(),
+          newHostExtraHoldHours: z.number().int().min(0).max(720).optional(),
+        })
+        .optional(),
       incidentals: z
         .object({
           fuelPerPercentCents: cents.optional(),

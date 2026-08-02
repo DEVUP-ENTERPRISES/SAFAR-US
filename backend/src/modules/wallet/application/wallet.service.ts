@@ -7,6 +7,8 @@ import { randomId } from '../../../shared/utils/uuid';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { kv } from '../../../infrastructure/cache/kv-store';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { trustScoreService } from '../../risk/application/trust-score.service';
 
 /**
  * The in-app wallet. Balance is DERIVED from the ledger (credit − debit on the
@@ -21,6 +23,20 @@ export class WalletService {
   /** Add funds via card. Mock gateway captures instantly in dev; Stripe in prod. */
   async topup(userId: string, amount: number): Promise<{ balance: number; paymentId: string }> {
     if (amount < 100) throw new ValidationError('Minimum top-up is $1.00');
+
+    // Trust-scaled balance cap: a brand-new account cannot warehouse large sums
+    // (money-laundering / stolen-card cash-out control); a proven member's cap is
+    // far higher. The limit rises as the member earns trust.
+    const cfg = await platformConfigService.get();
+    const { tier } = await trustScoreService.compute(userId);
+    const cap = cfg.wallet.maxBalanceCentsByTier[tier];
+    const current = await this.balance(userId);
+    if (current + amount > cap) {
+      throw new ValidationError(
+        `This top-up would exceed your wallet limit of ${(cap / 100).toFixed(0)}. Complete more trips to raise it.`,
+      );
+    }
+
     const idempotencyKey = `topup_${userId}_${randomId()}`;
     const intent = await paymentGateway.createIntent({
       amount: { amount, currency: 'USD' },
