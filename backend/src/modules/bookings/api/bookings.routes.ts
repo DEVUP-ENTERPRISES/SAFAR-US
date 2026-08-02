@@ -188,6 +188,24 @@ router.post(
   }),
 );
 
+/** Rebooking protection: similar cars free for the same dates when a host bailed. */
+router.get(
+  '/:id/rebooking-options',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.rebookingOptions(req.principal!, req.params.id));
+  }),
+);
+
+router.post(
+  '/:id/rebook',
+  authenticate,
+  validate({ body: z.object({ vehicleId: z.string().min(1) }) }),
+  asyncHandler(async (req, res) => {
+    sendCreated(res, await bookingService.rebook(req.principal!, req.params.id, req.body.vehicleId));
+  }),
+);
+
 /** Host (or ops) applies post-trip incidentals — cleaning, smoking, tolls, etc. */
 router.post(
   '/:id/incidentals',

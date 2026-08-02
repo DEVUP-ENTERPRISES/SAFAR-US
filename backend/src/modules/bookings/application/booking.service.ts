@@ -3,6 +3,8 @@ import { canTransition, type BookingStatus } from '../domain/booking-status';
 import { computeRefund } from '../domain/cancellation-policy';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { documentComplianceService } from '../../documents/application/document-compliance.service';
+import { searchService } from '../../search/application/search.service';
+import type { VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
 import { verifyPriceLock, issuePriceLock, type PriceLock } from '../../pricing/domain/price-lock';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { availabilityService } from '../../availability/application/availability.service';
@@ -481,6 +483,13 @@ export class BookingService {
       cancelledBy: isHost ? 'host' : isGuest ? 'guest' : 'system',
       refund,
     });
+    // A host cancel strands the guest — offer rebooking on a similar free car.
+    if (isHost) {
+      emit(EVENTS.BOOKING_REBOOKING_NEEDED, bookingId, {
+        bookingId, guestId: booking.guestId, vehicleId: booking.vehicleId,
+        start: booking.period.start, end: booking.period.end, reason: 'host_cancel',
+      });
+    }
     return this.getDoc(bookingId);
   }
 
@@ -556,6 +565,37 @@ export class BookingService {
     await this.transition(booking, 'cancelled_guest', principal.userId, 'Guest no-show — forfeit applied');
     emit(EVENTS.BOOKING_GUEST_NO_SHOW, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId });
     return this.getDoc(bookingId);
+  }
+
+  /**
+   * Rebooking protection — when the host cancels or no-shows, the guest is not
+   * left stranded: we surface similar cars actually free for their exact dates
+   * (same metro, same category first) and let them rebook in one tap.
+   */
+  async rebookingOptions(principal: Principal, bookingId: string): Promise<VehicleDoc[]> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== principal.userId) throw new ForbiddenError('Not your booking');
+    return searchService.similarTo(booking.vehicleId, {
+      start: booking.period.start,
+      end: booking.period.end,
+      limit: 6,
+    });
+  }
+
+  async rebook(principal: Principal, bookingId: string, vehicleId: string): Promise<BookingDoc> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== principal.userId) throw new ForbiddenError('Not your booking');
+    if (booking.status !== 'cancelled_host') {
+      throw new ConflictError('Rebooking is offered only when the host cancelled or no-showed', 'NOT_REBOOKABLE');
+    }
+    if (vehicleId === booking.vehicleId) {
+      throw new ValidationError('Pick a different car to rebook');
+    }
+    return this.create(
+      principal.userId,
+      { vehicleId, start: booking.period.start.toISOString(), end: booking.period.end.toISOString() } as CreateBookingDto,
+      `rebook_${bookingId}_${vehicleId}`,
+    );
   }
 
   /**

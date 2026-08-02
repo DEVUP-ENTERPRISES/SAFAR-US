@@ -189,6 +189,21 @@ export function registerEventSubscribers(): void {
     });
   });
 
+  // Host bailed (cancel/no-show) → nudge the stranded guest to rebook a similar
+  // free car for the same dates.
+  eventBus.subscribe(EVENTS.BOOKING_REBOOKING_NEEDED, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string };
+    await notificationService.send({
+      userId: p.guestId,
+      priority: 'high',
+      deepLink: `/bookings/${p.bookingId}/rebook`,
+      templateKey: 'booking.rebooking_available',
+      title: 'Rebook a similar car',
+      body: 'We found similar cars free for your exact dates — rebook in one tap.',
+      data: { bookingId: p.bookingId },
+    });
+  });
+
   eventBus.subscribe(EVENTS.TRIP_STARTED, async (e) => {
     const p = e.payload as { tripId: string; bookingId: string };
     logger.info({ tripId: p.tripId }, 'trip started');
