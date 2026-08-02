@@ -19,6 +19,8 @@ export interface NotificationDoc {
     ok: boolean;
     providerId?: string;
     error?: string;
+    /** False = permanent failure a retry worker must not re-attempt. */
+    retryable?: boolean;
   }[];
   delivery?: { suppressed?: string };
   status: 'queued' | 'sent' | 'read' | 'failed';
@@ -39,7 +41,7 @@ const schema = new Schema<NotificationDoc>(
     priority: { type: String, default: 'normal', enum: ['critical', 'high', 'normal', 'low'] },
     deepLink: String,
     attempts: {
-      type: [{ channel: String, at: Date, ok: Boolean, providerId: String, error: String }],
+      type: [{ channel: String, at: Date, ok: Boolean, providerId: String, error: String, retryable: Boolean }],
       default: [],
     },
     delivery: { suppressed: String },

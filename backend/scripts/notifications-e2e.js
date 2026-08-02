@@ -131,9 +131,9 @@ const settle = () => new Promise((r) => setTimeout(r, 1200));
   ok('each failure says why',
     (n.attempts ?? []).every((a) => typeof a.error === 'string' && a.error.length > 0),
     JSON.stringify((n.attempts ?? []).map((a) => a.error)));
-  ok('and is marked non-retryable — a missing provider will not fix itself',
-    (n.attempts ?? []).every((a) => a.error.includes('not_configured')),
-    JSON.stringify((n.attempts ?? []).map((a) => a.error)));
+  ok('and is marked non-retryable — a missing provider / device will not fix itself',
+    (n.attempts ?? []).every((a) => a.retryable === false),
+    JSON.stringify((n.attempts ?? []).map((a) => ({ error: a.error, retryable: a.retryable }))));
 
   section('Priority decides the fan-out');
   const lowId = `low_${Date.now()}`;

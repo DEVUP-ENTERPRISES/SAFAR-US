@@ -122,6 +122,9 @@ export class NotificationService {
                 ok: result.ok,
                 providerId: result.providerId,
                 error: result.error,
+                // Record whether a retry worker should ever re-attempt this — a
+                // missing provider or unregistered device is permanent.
+                retryable: result.ok ? undefined : result.retryable ?? true,
               },
             },
           },
