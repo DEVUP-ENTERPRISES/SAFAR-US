@@ -50,20 +50,4 @@ export const accountApi = {
   setDefaultPaymentMethod: (id: string) => api.post(`/payments/methods/${id}/default`),
 
   kycStatus: () => api.get<{ status: string; level?: string; reason?: string }>('/kyc/status'),
-  // Requests upload targets (S3 presigned in prod / mock in dev) then submits
-  // license + selfie for review. A real capture UI replaces this later.
-  kycSubmit: async () => {
-    const targets = await api.post<{ publicUrl: string; key: string }[]>('/media/upload-urls', {
-      category: 'kyc',
-      count: 2,
-      contentType: 'image/jpeg',
-    });
-    return api.post('/kyc/submit', {
-      level: 'full',
-      documents: [
-        { type: 'license', url: targets[0].publicUrl },
-        { type: 'selfie', url: targets[1].publicUrl },
-      ],
-    });
-  },
 };

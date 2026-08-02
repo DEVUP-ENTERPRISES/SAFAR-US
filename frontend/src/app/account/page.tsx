@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MapPin, Phone, Trash2, ShieldCheck, Monitor, Star, BadgeCheck, KeyRound, CreditCard, Bell } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
@@ -20,6 +21,7 @@ import { AvatarUpload } from '@/components/ui/avatar-upload';
 
 function Account() {
   const qc = useQueryClient();
+  const router = useRouter();
   const confirm = useConfirm();
   const me = useQuery({ queryKey: ['me'], queryFn: () => accountApi.me() });
   const kyc = useQuery({ queryKey: ['kyc-status'], queryFn: () => accountApi.kycStatus() });
@@ -42,7 +44,6 @@ function Account() {
     }),
     onSuccess: refreshMe,
   });
-  const submitKyc = useMutation({ mutationFn: () => accountApi.kycSubmit(), onSuccess: () => qc.invalidateQueries({ queryKey: ['kyc-status'] }) });
 
   const [addr, setAddr] = useState({ label: '', line1: '', city: '', state: '', zip: '' });
   const addAddress = useMutation({
@@ -106,9 +107,11 @@ function Account() {
             {kyc.data?.reason && <p className="mt-1 text-xs text-destructive">{kyc.data.reason}</p>}
             <p className="mt-1 text-sm text-muted-foreground">Driver license + selfie verification for booking trust.</p>
           </div>
-          {kyc.data?.status !== 'approved' && kyc.data?.status !== 'pending' && (
-            <Button loading={submitKyc.isPending} onClick={() => submitKyc.mutate()}>
-              <BadgeCheck className="h-4 w-4" /> Verify identity
+          {kyc.data?.status === 'pending' ? (
+            <Button variant="outline" onClick={() => router.push('/account/verify-identity')}>View status</Button>
+          ) : kyc.data?.status !== 'approved' && (
+            <Button onClick={() => router.push('/account/verify-identity')}>
+              <BadgeCheck className="h-4 w-4" /> {kyc.data?.status === 'rejected' ? 'Retry verification' : 'Verify identity'}
             </Button>
           )}
         </CardContent>
