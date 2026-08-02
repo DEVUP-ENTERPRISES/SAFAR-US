@@ -2,12 +2,14 @@ import { NotificationModel, type NotificationDoc } from '../infrastructure/notif
 import { UserModel } from '../../users/infrastructure/user.model';
 import { channelProviders } from '../infrastructure/channel.providers';
 import {
-  CHANNELS_BY_PRIORITY,
+  categoryFor,
+  resolveChannels,
   isQuietTime,
   respectsQuietHours,
   type Channel,
   type Priority,
 } from '../domain/notification-channel';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /**
@@ -33,12 +35,14 @@ export class NotificationService {
     data?: Record<string, unknown>;
   }): Promise<NotificationDoc> {
     const priority = input.priority ?? 'normal';
+    const category = categoryFor(input.templateKey);
 
     // The in-app record is the durable one: it is the feed, and it is the
     // delivery log every other channel reports back into.
     const notification = await NotificationModel.create({
       userId: input.userId,
       channel: input.channel ?? 'inapp',
+      category,
       priority,
       templateKey: input.templateKey,
       title: input.title,
@@ -50,7 +54,7 @@ export class NotificationService {
 
     // Fan out without blocking the caller — a booking must not fail because
     // an SMS provider is slow.
-    void this.fanOut(notification._id, input.userId, priority, {
+    void this.fanOut(notification._id, input.userId, priority, category, {
       templateKey: input.templateKey,
       title: input.title,
       body: input.body,
@@ -67,6 +71,7 @@ export class NotificationService {
     notificationId: string,
     userId: string,
     priority: Priority,
+    category: ReturnType<typeof categoryFor>,
     msg: {
       templateKey: string;
       title: string;
@@ -80,7 +85,9 @@ export class NotificationService {
       const user = await UserModel.findOne({ _id: userId }).lean();
       if (!user) return;
 
-      if (respectsQuietHours(priority) && isQuietTime(user.timezone)) {
+      const prefs = user.notificationPrefs ?? {};
+      // Quiet hours honour BOTH platform urgency rules and the user's own toggle.
+      if (respectsQuietHours(priority) && prefs.quietHours !== false && isQuietTime(user.timezone)) {
         await NotificationModel.updateOne(
           { _id: notificationId },
           { $set: { 'delivery.suppressed': 'quiet_hours' } },
@@ -88,9 +95,13 @@ export class NotificationService {
         return;
       }
 
-      const channels = (msg.only
+      // Channels = urgency ∩ admin routing matrix (category) ∩ user preferences.
+      const matrix = (await platformConfigService.get()).notifications.categoryChannels;
+      const channels = msg.only
         ? [msg.only]
-        : CHANNELS_BY_PRIORITY[priority].filter((c): c is Exclude<Channel, 'inapp'> => c !== 'inapp'));
+        : resolveChannels(priority, category, matrix, prefs).filter(
+            (c): c is Exclude<Channel, 'inapp'> => c !== 'inapp',
+          );
 
       const target = {
         userId,

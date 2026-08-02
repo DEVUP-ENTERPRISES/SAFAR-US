@@ -32,6 +32,37 @@ router.patch(
   }),
 );
 
+// ── Notification preferences ────────────────────────────────────────────
+const catBool = z.boolean();
+const notifPrefsSchema = z.object({
+  push: z.boolean().optional(),
+  email: z.boolean().optional(),
+  sms: z.boolean().optional(),
+  smsCriticalOnly: z.boolean().optional(),
+  quietHours: z.boolean().optional(),
+  categories: z
+    .object({ trips: catBool, messages: catBool, payments: catBool, promotions: catBool, reviews: catBool, account: catBool })
+    .partial()
+    .optional(),
+});
+
+router.get(
+  '/me/notification-preferences',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, (await userService.get(req.principal!.userId)).notificationPrefs ?? {});
+  }),
+);
+
+router.patch(
+  '/me/notification-preferences',
+  authenticate,
+  validate({ body: notifPrefsSchema }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await userService.updateNotificationPrefs(req.principal!.userId, req.body));
+  }),
+);
+
 // ── Saved addresses ─────────────────────────────────────────────────────
 const addressSchema = z.object({
   label: z.string().min(1).max(40),

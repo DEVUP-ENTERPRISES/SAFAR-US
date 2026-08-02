@@ -1,5 +1,67 @@
 export type Channel = 'push' | 'email' | 'sms' | 'inapp';
 
+/** User-facing grouping for per-category preferences and the admin routing matrix. */
+export type NotificationCategory = 'trips' | 'messages' | 'payments' | 'promotions' | 'reviews' | 'account';
+export const NOTIFICATION_CATEGORIES: NotificationCategory[] = ['trips', 'messages', 'payments', 'promotions', 'reviews', 'account'];
+
+/** Map a templateKey to its category — drives user toggles and the routing matrix. */
+export function categoryFor(templateKey: string): NotificationCategory {
+  const k = templateKey.toLowerCase();
+  if (k.includes('chat') || k.includes('message')) return 'messages';
+  if (k.includes('payout') || k.includes('payment') || k.includes('refund') || k.includes('wallet') || k.includes('earning') || k.includes('incidental') || k.includes('receipt') || k.includes('tax')) return 'payments';
+  if (k.includes('promo') || k.includes('referral') || k.includes('reengage') || k.includes('offer') || k.includes('reward')) return 'promotions';
+  if (k.includes('review')) return 'reviews';
+  if (k.includes('security') || k.includes('login') || k.includes('account') || k.includes('otp') || k.includes('verif')) return 'account';
+  return 'trips'; // booking.* / trip.* / vehicle.* — the transactional default
+}
+
+/** Per-category channel allow-list (the admin-editable routing matrix). inapp is always on. */
+export type CategoryChannelMatrix = Record<NotificationCategory, { push: boolean; email: boolean; sms: boolean }>;
+
+/** A user's notification preferences. Missing fields default to allowed. */
+export interface NotificationPrefs {
+  push?: boolean;
+  email?: boolean;
+  sms?: boolean;
+  /** SMS only for critical messages even when a category allows it. */
+  smsCriticalOnly?: boolean;
+  /** Respect 22:00–08:00 quiet hours for non-urgent messages. */
+  quietHours?: boolean;
+  /** Per-category master switch. */
+  categories?: Partial<Record<NotificationCategory, boolean>>;
+}
+
+/**
+ * Resolve the channels a message actually goes out on:
+ *   urgency (priority)  ∩  admin routing matrix (category)  ∩  user preferences.
+ * A critical message bypasses the user's opt-outs (a failed deposit or an
+ * emergency must reach them) but still honours the admin matrix. inapp is always
+ * included — it is the durable feed.
+ */
+export function resolveChannels(
+  priority: Priority,
+  category: NotificationCategory,
+  matrix: CategoryChannelMatrix,
+  prefs: NotificationPrefs = {},
+): Channel[] {
+  const byPriority = new Set(CHANNELS_BY_PRIORITY[priority]);
+  const allow = matrix[category] ?? { push: true, email: true, sms: true };
+  const critical = priority === 'critical';
+  const out: Channel[] = ['inapp'];
+
+  for (const ch of ['push', 'email', 'sms'] as const) {
+    if (!byPriority.has(ch)) continue; // urgency doesn't call for it
+    if (!allow[ch]) continue; // admin routes this category away from it
+    if (!critical) {
+      if (prefs[ch] === false) continue; // user turned the channel off
+      if (prefs.categories && prefs.categories[category] === false) continue; // user muted the category
+      if (ch === 'sms' && prefs.smsCriticalOnly) continue; // user: SMS for critical only
+    }
+    out.push(ch);
+  }
+  return out;
+}
+
 /** How urgent a message is — decides channels, retries and quiet hours. */
 export type Priority = 'critical' | 'high' | 'normal' | 'low';
 

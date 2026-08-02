@@ -58,6 +58,15 @@ export interface UserDoc {
   warnings?: { reason: string; at: Date; by: string; claimId?: string }[];
   /** Device tokens for push. Cleared when a provider reports one dead. */
   pushTokens?: string[];
+  /** Per-channel + per-category notification preferences. Missing = allowed. */
+  notificationPrefs?: {
+    push?: boolean;
+    email?: boolean;
+    sms?: boolean;
+    smsCriticalOnly?: boolean;
+    quietHours?: boolean;
+    categories?: { trips?: boolean; messages?: boolean; payments?: boolean; promotions?: boolean; reviews?: boolean; account?: boolean };
+  };
   /** en-US | en-CA | fr-CA. Québec French is a legal requirement, not a nicety. */
   locale?: string;
   /** IANA zone — quiet hours are local to the recipient, not the server. */
@@ -114,6 +123,21 @@ const userSchema = new Schema<UserDoc>(
     closedAt: Date,
     erasedAt: Date,
     pushTokens: { type: [String], default: [] },
+    notificationPrefs: {
+      push: { type: Boolean, default: true },
+      email: { type: Boolean, default: true },
+      sms: { type: Boolean, default: true },
+      smsCriticalOnly: { type: Boolean, default: true },
+      quietHours: { type: Boolean, default: true },
+      categories: {
+        trips: { type: Boolean, default: true },
+        messages: { type: Boolean, default: true },
+        payments: { type: Boolean, default: true },
+        promotions: { type: Boolean, default: true },
+        reviews: { type: Boolean, default: true },
+        account: { type: Boolean, default: true },
+      },
+    },
     locale: { type: String, default: 'en-US' },
     timezone: { type: String, default: 'UTC' },
     emailVerified: { type: Boolean, default: false },

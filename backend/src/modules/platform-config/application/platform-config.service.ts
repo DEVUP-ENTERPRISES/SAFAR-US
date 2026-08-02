@@ -80,6 +80,17 @@ export class PlatformConfigService {
         strict: { fullBeforeHours: 168, partialBps: 0, ...(doc.cancellation?.strict ?? {}) },
       },
       noShow: { graceHours: 2, guestForfeitBps: 5000, ...(doc.noShow ?? {}) },
+      notifications: {
+        categoryChannels: {
+          trips: { push: true, email: true, sms: true },
+          messages: { push: true, email: false, sms: false },
+          payments: { push: true, email: true, sms: false },
+          promotions: { push: true, email: true, sms: false },
+          reviews: { push: true, email: true, sms: false },
+          account: { push: true, email: true, sms: true },
+          ...(doc.notifications?.categoryChannels ?? {}),
+        },
+      },
       wallet: {
         maxBalanceCentsByTier: { new: 50000, bronze: 200000, silver: 500000, gold: 1000000, ...(doc.wallet?.maxBalanceCentsByTier ?? {}) },
       },

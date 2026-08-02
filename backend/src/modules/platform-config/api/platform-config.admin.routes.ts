@@ -55,6 +55,16 @@ router.put(
       noShow: z
         .object({ graceHours: z.number().int().min(0).max(72).optional(), guestForfeitBps: bps.optional() })
         .optional(),
+      notifications: z
+        .object({
+          categoryChannels: z
+            .record(
+              z.enum(['trips', 'messages', 'payments', 'promotions', 'reviews', 'account']),
+              z.object({ push: z.boolean(), email: z.boolean(), sms: z.boolean() }),
+            )
+            .optional(),
+        })
+        .optional(),
       wallet: z
         .object({
           maxBalanceCentsByTier: z

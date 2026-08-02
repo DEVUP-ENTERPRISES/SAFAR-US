@@ -5,6 +5,7 @@ export interface NotificationDoc {
   _id: string;
   userId: string;
   channel: 'push' | 'email' | 'sms' | 'inapp';
+  category?: string;
   templateKey: string;
   title: string;
   body: string;
@@ -34,6 +35,7 @@ const schema = new Schema<NotificationDoc>(
     _id: { type: String, default: () => uuid() },
     userId: { type: String, required: true },
     channel: { type: String, required: true, enum: ['push', 'email', 'sms', 'inapp'] },
+    category: { type: String },
     templateKey: { type: String, required: true },
     title: { type: String, default: '' },
     body: { type: String, default: '' },

@@ -53,6 +53,10 @@ export interface PlatformConfigDoc {
     /** Fraction of the total the guest forfeits on a guest no-show (host keeps it). */
     guestForfeitBps: number;
   };
+  /** Notification routing matrix: which channels each category may use. */
+  notifications: {
+    categoryChannels: Record<'trips' | 'messages' | 'payments' | 'promotions' | 'reviews' | 'account', { push: boolean; email: boolean; sms: boolean }>;
+  };
   /** Wallet caps by trust tier (fraud / AML) and host-reputation payout holds. */
   wallet: {
     maxBalanceCentsByTier: { new: number; bronze: number; silver: number; gold: number };
@@ -146,6 +150,16 @@ const schema = new Schema<PlatformConfigDoc>(
     noShow: {
       graceHours: { type: Number, default: 2 },
       guestForfeitBps: { type: Number, default: 5000 },
+    },
+    notifications: {
+      categoryChannels: {
+        trips: { push: { type: Boolean, default: true }, email: { type: Boolean, default: true }, sms: { type: Boolean, default: true } },
+        messages: { push: { type: Boolean, default: true }, email: { type: Boolean, default: false }, sms: { type: Boolean, default: false } },
+        payments: { push: { type: Boolean, default: true }, email: { type: Boolean, default: true }, sms: { type: Boolean, default: false } },
+        promotions: { push: { type: Boolean, default: true }, email: { type: Boolean, default: true }, sms: { type: Boolean, default: false } },
+        reviews: { push: { type: Boolean, default: true }, email: { type: Boolean, default: true }, sms: { type: Boolean, default: false } },
+        account: { push: { type: Boolean, default: true }, email: { type: Boolean, default: true }, sms: { type: Boolean, default: true } },
+      },
     },
     wallet: {
       maxBalanceCentsByTier: {

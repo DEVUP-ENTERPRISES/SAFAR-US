@@ -28,6 +28,27 @@ export class UserService {
     return this.get(userId);
   }
 
+  /** Per-channel / per-category notification preferences. Field-allowlisted. */
+  async updateNotificationPrefs(
+    userId: string,
+    patch: {
+      push?: boolean; email?: boolean; sms?: boolean; smsCriticalOnly?: boolean; quietHours?: boolean;
+      categories?: Partial<Record<'trips' | 'messages' | 'payments' | 'promotions' | 'reviews' | 'account', boolean>>;
+    },
+  ): Promise<UserDoc['notificationPrefs']> {
+    const set: Record<string, unknown> = {};
+    (['push', 'email', 'sms', 'smsCriticalOnly', 'quietHours'] as const).forEach((k) => {
+      if (patch[k] !== undefined) set[`notificationPrefs.${k}`] = patch[k];
+    });
+    if (patch.categories) {
+      for (const [cat, val] of Object.entries(patch.categories)) {
+        if (typeof val === 'boolean') set[`notificationPrefs.categories.${cat}`] = val;
+      }
+    }
+    if (Object.keys(set).length) await UserModel.updateOne({ _id: userId }, { $set: set });
+    return (await this.get(userId)).notificationPrefs;
+  }
+
   // ── Addresses ────────────────────────────────────────────────────────
   async addAddress(userId: string, addr: Omit<Address, 'id' | 'isDefault'> & { isDefault?: boolean }): Promise<UserDoc> {
     const user = await this.get(userId);
