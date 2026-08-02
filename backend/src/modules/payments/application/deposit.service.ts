@@ -2,6 +2,7 @@ import { PaymentModel } from '../infrastructure/payment.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { paymentGateway } from '../infrastructure/gateway.provider';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { trustScoreService } from '../../risk/application/trust-score.service';
 import { ledgerService } from './ledger.service';
 import { Account } from '../domain/ledger.accounts';
 import { ConflictError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
@@ -31,11 +32,24 @@ export class DepositService {
    * meaningful deterrence, and a ceiling so an expensive one does not
    * authorise someone's entire credit limit.
    */
-  async amountFor(dailyPrice: number, currency: string): Promise<Money> {
+  async amountFor(dailyPrice: number, currency: string, guestId?: string): Promise<Money> {
     const cfg = await platformConfigService.get();
     const scaled = Math.round((dailyPrice * cfg.deposit.multiplierBps) / 10000);
-    const clamped = Math.min(Math.max(scaled, cfg.deposit.minCents), cfg.deposit.maxCents);
-    return { amount: clamped, currency };
+    let amount = Math.min(Math.max(scaled, cfg.deposit.minCents), cfg.deposit.maxCents);
+
+    // Reputation actually does something: a proven guest carries a smaller hold,
+    // a Gold guest none at all. The discount is applied after the clamp so a
+    // trusted guest can legitimately drop below the floor the deterrence band
+    // sets for unproven ones — that is the reward. New/untrusted guests are
+    // unaffected (0% discount), so exposure on the risky end is never reduced.
+    if (guestId) {
+      const perks = await trustScoreService.perks(guestId);
+      if (perks.depositWaived || perks.depositDiscountPct >= 100) amount = 0;
+      else if (perks.depositDiscountPct > 0) {
+        amount = Math.round(amount * (1 - perks.depositDiscountPct / 100));
+      }
+    }
+    return { amount, currency };
   }
 
   async isEnabled(): Promise<boolean> {
@@ -67,7 +81,14 @@ export class DepositService {
       };
     }
 
-    const amount = await this.amountFor(input.dailyPrice, input.currency);
+    const amount = await this.amountFor(input.dailyPrice, input.currency, input.userId);
+
+    // A waived deposit (top-tier guest) holds nothing — there is no
+    // authorisation to place, and nothing to release later.
+    if (amount.amount <= 0) {
+      logger.info({ bookingId: input.bookingId, userId: input.userId }, 'deposit waived by trust tier');
+      return { placed: false, amount };
+    }
 
     const intent = await paymentGateway.createIntent({
       userId: input.userId,
