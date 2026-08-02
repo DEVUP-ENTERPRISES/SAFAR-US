@@ -209,6 +209,18 @@ export function registerEventSubscribers(): void {
     logger.info({ tripId: p.tripId }, 'trip started');
   });
 
+  // Emergency raised → alert both parties immediately (critical). The trip is
+  // already paused; ops watches TRIP_INCIDENT_RAISED for dispatch.
+  eventBus.subscribe(EVENTS.TRIP_INCIDENT_RAISED, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string; hostId: string; byUserId: string; type: string };
+    const body = `An emergency (${p.type}) was reported on an active trip. Our team has been alerted.`;
+    for (const userId of [p.guestId]) {
+      await notificationService.send({ userId, priority: 'critical', deepLink: `/trips`, templateKey: 'trip.incident', title: 'Emergency reported', body, data: { bookingId: p.bookingId, type: p.type } });
+    }
+    await notifyHost(p.hostId, 'trip.incident', 'Emergency reported on your car', body, { bookingId: p.bookingId, type: p.type });
+    logger.error({ bookingId: p.bookingId, type: p.type, by: p.byUserId }, 'TRIP INCIDENT RAISED');
+  });
+
   // Trip completion → schedule host payout after the hold window.
   eventBus.subscribe(EVENTS.BOOKING_COMPLETED, async (e) => {
     const p = e.payload as { bookingId: string; guestId: string; hostId: string };

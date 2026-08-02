@@ -147,6 +147,30 @@ router.post(
   }),
 );
 
+/** Raise a structured emergency — pauses the trip until resolved. */
+router.post(
+  '/:id/incident',
+  authenticate,
+  validate({
+    body: z.object({
+      type: z.enum(['accident', 'breakdown', 'medical', 'theft', 'unsafe']),
+      note: z.string().max(1000).optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripService.raiseIncident(req.principal!.userId, req.params.id, req.body.type, req.body.note));
+  }),
+);
+
+router.post(
+  '/:id/incident/resolve',
+  authenticate,
+  validate({ body: z.object({ note: z.string().max(1000).optional() }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripService.resolveIncident(req.principal!.userId, req.params.id, req.body.note));
+  }),
+);
+
 /** Host confirms the guest's driver's licence (gates the protection plan). */
 router.post(
   '/:id/confirm-license',

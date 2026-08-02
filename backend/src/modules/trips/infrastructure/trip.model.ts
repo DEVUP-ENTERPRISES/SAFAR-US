@@ -23,6 +23,11 @@ export interface TripDoc {
   liveLocation?: { type: 'Point'; coordinates: [number, number]; updatedAt: Date };
   damageReports: { description: string; photos: string[]; byUserId: string; at: Date }[];
   sosEvents: { byUserId: string; at: Date }[];
+  /** Structured emergencies — accident, breakdown, medical, theft, unsafe party.
+   *  An open incident pauses the trip: it cannot be completed (and billed) until
+   *  it is resolved, so no late/mileage/fuel charge lands during an emergency. */
+  incidents: { type: string; status: 'open' | 'resolved'; note?: string; byUserId: string; at: Date; resolvedAt?: Date }[];
+  pausedForIncident?: boolean;
   distanceKm: number;
   createdAt: Date;
   updatedAt: Date;
@@ -61,6 +66,12 @@ const schema = new Schema<TripDoc>(
       type: [{ byUserId: String, at: Date }],
       default: [],
     },
+    incidents: {
+      // `type: { type: String }` — the field is named "type" (Mongoose keyword).
+      type: [{ _id: false, type: { type: String }, status: String, note: String, byUserId: String, at: Date, resolvedAt: Date }],
+      default: [],
+    },
+    pausedForIncident: { type: Boolean, default: false },
     return: {
       at: Date,
       odometerEnd: Number,

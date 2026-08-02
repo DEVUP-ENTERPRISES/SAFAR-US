@@ -82,6 +82,9 @@ export class TripService {
       throw new ForbiddenError('Not a participant of this trip');
     }
     if (trip.status !== 'active') throw new ConflictError('Trip is not active', 'INVALID_STATE');
+    if (trip.pausedForIncident) {
+      throw new ConflictError('Resolve the open incident before completing the trip.', 'INCIDENT_OPEN');
+    }
 
     // Return photos are required to complete. They are the condition record the
     // deposit and any damage claim are judged against; letting a trip close
@@ -287,6 +290,46 @@ export class TripService {
       { $push: { sosEvents: { byUserId: userId, at: new Date() } } },
     );
     emit(EVENTS.TRIP_SOS, tripId, { tripId, bookingId: trip.bookingId, byUserId: userId });
+  }
+
+  /**
+   * Raise a structured emergency (accident / breakdown / medical / theft /
+   * unsafe party). Pauses the trip: it cannot be completed — and therefore
+   * cannot bill late/mileage/fuel — until the incident is resolved, so a real
+   * emergency is never turned into a charge. Escalated to both parties (and ops)
+   * via the event.
+   */
+  async raiseIncident(
+    userId: string,
+    tripId: string,
+    type: 'accident' | 'breakdown' | 'medical' | 'theft' | 'unsafe',
+    note?: string,
+  ): Promise<TripDoc> {
+    const trip = await this.getDoc(tripId);
+    if (!(await this.isParticipant(userId, tripId))) throw new ForbiddenError('Not a participant');
+    if (trip.status !== 'active') throw new ConflictError('Only an active trip can raise an incident', 'INVALID_STATE');
+    await TripModel.updateOne(
+      { _id: tripId },
+      {
+        pausedForIncident: true,
+        $push: { incidents: { type, status: 'open', note, byUserId: userId, at: new Date() } },
+      },
+    );
+    emit(EVENTS.TRIP_INCIDENT_RAISED, tripId, { tripId, bookingId: trip.bookingId, hostId: trip.hostId, guestId: trip.guestId, byUserId: userId, type });
+    return this.getDoc(tripId);
+  }
+
+  /** Resolve the open incident(s) and un-pause — the trip can complete again. */
+  async resolveIncident(userId: string, tripId: string, note?: string): Promise<TripDoc> {
+    const trip = await this.getDoc(tripId);
+    if (!(await this.isParticipant(userId, tripId))) throw new ForbiddenError('Not a participant');
+    await TripModel.updateOne(
+      { _id: tripId, 'incidents.status': 'open' },
+      { $set: { 'incidents.$[open].status': 'resolved', 'incidents.$[open].resolvedAt': new Date(), pausedForIncident: false } },
+      { arrayFilters: [{ 'open.status': 'open' }] },
+    );
+    emit(EVENTS.TRIP_INCIDENT_RESOLVED, tripId, { tripId, bookingId: trip.bookingId, byUserId: userId, note });
+    return this.getDoc(tripId);
   }
 
   private async getDoc(tripId: string): Promise<TripDoc> {

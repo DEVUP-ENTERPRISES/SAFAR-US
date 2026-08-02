@@ -45,6 +45,8 @@ export const EVENTS = {
   CHAT_MESSAGE_SENT: 'chat.message.sent',
   TRIP_LOCATION_UPDATED: 'trip.location.updated',
   TRIP_SOS: 'trip.sos',
+  TRIP_INCIDENT_RAISED: 'trip.incident.raised',
+  TRIP_INCIDENT_RESOLVED: 'trip.incident.resolved',
   TRIP_DAMAGE_REPORTED: 'trip.damage.reported',
   TRIP_CHECKED_IN: 'trip.checked_in',
 } as const;
