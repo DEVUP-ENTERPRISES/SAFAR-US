@@ -1,5 +1,6 @@
 import { TripModel, type TripDoc } from '../infrastructure/trip.model';
 import { bookingService } from '../../bookings/application/booking.service';
+import { incidentalsService } from '../../bookings/application/incidentals.service';
 import { depositService } from '../../payments/application/deposit.service';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
@@ -113,6 +114,15 @@ export class TripService {
       },
     );
     await bookingService.markCompleted(trip.bookingId);
+
+    // Auto fuel shortfall: the guest brought it back with less than they left
+    // with. Cleaning/smoking/tolls are host-reported through the incidentals
+    // endpoint; fuel is measured, so it charges itself.
+    try {
+      await incidentalsService.chargeFuelShortfall(trip.bookingId, trip.handover.fuelStart, ret.fuelEnd);
+    } catch (err) {
+      logger.warn({ err, bookingId: trip.bookingId }, 'fuel shortfall charge failed');
+    }
 
     // The deposit is not released here. The host gets an inspection window to
     // report damage first; the auto-release job frees it when that window

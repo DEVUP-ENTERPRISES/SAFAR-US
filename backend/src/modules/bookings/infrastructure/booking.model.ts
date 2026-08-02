@@ -42,6 +42,8 @@ export interface BookingDoc {
   additionalDrivers?: { name: string; licenseNumber?: string; addedAt: Date }[];
   status: BookingStatus;
   statusHistory: { from: BookingStatus | null; to: BookingStatus; at: Date; by: string; reason?: string }[];
+  /** Post-trip incidental charges (fuel, cleaning, late return, tolls…). */
+  incidentals?: { type: string; amount: number; note?: string; at: Date; by: string }[];
   /** Why this booking is held at pending_verification, for the guest's UI. */
   verificationBlockers?: string[];
   holdId?: string;
@@ -126,6 +128,12 @@ const schema = new Schema<BookingDoc>(
         reason: String,
       },
     ],
+    incidentals: {
+      // `type: { type: String }` — the field is literally named "type", which
+      // would otherwise be read as the Mongoose SchemaType keyword.
+      type: [{ _id: false, type: { type: String }, amount: Number, note: String, at: Date, by: String }],
+      default: [],
+    },
     verificationBlockers: { type: [String], default: [] },
     holdId: String,
     paymentId: String,

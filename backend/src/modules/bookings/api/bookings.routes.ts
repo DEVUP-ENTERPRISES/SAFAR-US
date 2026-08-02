@@ -2,7 +2,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { bookingService } from '../application/booking.service';
 import { eligibilityService } from '../application/eligibility.service';
+import { incidentalsService } from '../application/incidentals.service';
 import { riskService } from '../../risk/application/risk.service';
+import { ForbiddenError } from '../../../core/errors/app-error';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
@@ -183,6 +185,33 @@ router.post(
   validate({ body: z.object({ party: z.enum(['guest', 'host']) }) }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await bookingService.noShow(req.principal!, req.params.id, req.body.party));
+  }),
+);
+
+/** Host (or ops) applies post-trip incidentals — cleaning, smoking, tolls, etc. */
+router.post(
+  '/:id/incidentals',
+  authenticate,
+  validate({
+    body: z.object({
+      items: z
+        .array(
+          z.object({
+            type: z.enum(['fuel', 'cleaning', 'smoking', 'pet', 'late_return', 'toll', 'fine', 'other']),
+            amount: z.number().int().min(0).optional(),
+            qty: z.number().min(0).optional(),
+            note: z.string().max(300).optional(),
+          }),
+        )
+        .min(1),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    const booking = await bookingService.getDoc(req.params.id);
+    const isHost = await bookingService.isHostOwner(req.principal!.userId, booking.hostId);
+    const isAdmin = req.principal!.permissions.includes('*') || req.principal!.permissions.includes('booking:read:any');
+    if (!isHost && !isAdmin) throw new ForbiddenError('Only the host can apply incidentals');
+    sendSuccess(res, await incidentalsService.charge(req.params.id, req.body.items, req.principal!.userId));
   }),
 );
 
