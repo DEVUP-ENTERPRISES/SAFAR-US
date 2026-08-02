@@ -79,6 +79,11 @@ export class PlatformConfigService {
         moderate: { fullBeforeHours: 48, partialBps: 5000, ...(doc.cancellation?.moderate ?? {}) },
         strict: { fullBeforeHours: 168, partialBps: 0, ...(doc.cancellation?.strict ?? {}) },
       },
+      noShow: { graceHours: 2, guestForfeitBps: 5000, ...(doc.noShow ?? {}) },
+      incidentals: {
+        fuelPerPercentCents: 300, cleaningCents: 7500, smokingCents: 25000, petCents: 10000, lateReturnPerHourCents: 2500,
+        ...(doc.incidentals ?? {}),
+      },
       payout: { holdHours: 24, instantFeeBps: 150, instantFeeMinCents: 50, ...(doc.payout ?? {}) },
       rewards: { pointValueCents: 5, pointsPerDollar: 1, ...(doc.rewards ?? {}) },
       referral: { referrerCreditCents: 2000, refereeCreditCents: 1000, ...(doc.referral ?? {}) },

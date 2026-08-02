@@ -176,6 +176,16 @@ router.post(
   }),
 );
 
+/** Declare a no-show — host reports a guest no-show, guest reports a host one. */
+router.post(
+  '/:id/no-show',
+  authenticate,
+  validate({ body: z.object({ party: z.enum(['guest', 'host']) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.noShow(req.principal!, req.params.id, req.body.party));
+  }),
+);
+
 router.post(
   '/:id/extend',
   authenticate,

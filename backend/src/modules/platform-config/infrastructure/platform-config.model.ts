@@ -46,6 +46,23 @@ export interface PlatformConfigDoc {
     moderate: { fullBeforeHours: number; partialBps: number };
     strict: { fullBeforeHours: number; partialBps: number };
   };
+  /** No-show handling once the trip start passes without a handover. */
+  noShow: {
+    /** Hours after start before a no-show can be declared. */
+    graceHours: number;
+    /** Fraction of the total the guest forfeits on a guest no-show (host keeps it). */
+    guestForfeitBps: number;
+  };
+  /** Post-trip incidental fee schedule (host-compensating), in minor units. */
+  incidentals: {
+    /** Charged per whole % of fuel returned below pickup level. */
+    fuelPerPercentCents: number;
+    cleaningCents: number;
+    smokingCents: number;
+    petCents: number;
+    /** Extra late-return fee per hour past the grace window. */
+    lateReturnPerHourCents: number;
+  };
   payout: {
     /** Hold window before scheduled payouts are released. */
     holdHours: number;
@@ -115,6 +132,17 @@ const schema = new Schema<PlatformConfigDoc>(
       flexible: { fullBeforeHours: { type: Number, default: 24 }, partialBps: { type: Number, default: 5000 } },
       moderate: { fullBeforeHours: { type: Number, default: 48 }, partialBps: { type: Number, default: 5000 } },
       strict: { fullBeforeHours: { type: Number, default: 168 }, partialBps: { type: Number, default: 0 } },
+    },
+    noShow: {
+      graceHours: { type: Number, default: 2 },
+      guestForfeitBps: { type: Number, default: 5000 },
+    },
+    incidentals: {
+      fuelPerPercentCents: { type: Number, default: 300 },
+      cleaningCents: { type: Number, default: 7500 },
+      smokingCents: { type: Number, default: 25000 },
+      petCents: { type: Number, default: 10000 },
+      lateReturnPerHourCents: { type: Number, default: 2500 },
     },
     payout: {
       holdHours: { type: Number, default: 24 },

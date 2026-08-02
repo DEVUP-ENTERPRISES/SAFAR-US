@@ -484,7 +484,80 @@ export class BookingService {
     return this.getDoc(bookingId);
   }
 
-  /** Extend an active booking to a later end date (availability + charge). */
+  /**
+   * No-show: the start time + grace has passed and no handover happened.
+   *
+   * A guest no-show forfeits a configurable share (the host earns their part of
+   * it, paid through the normal payout pipeline); the rest is refunded. A host
+   * no-show is a full refund plus a rebooking offer for the stranded guest. Who
+   * may declare it is asymmetric — the host reports a guest no-show and vice
+   * versa — so neither side can self-serve a favourable outcome.
+   */
+  async noShow(principal: Principal, bookingId: string, party: 'guest' | 'host'): Promise<BookingDoc> {
+    const booking = await this.getDoc(bookingId);
+    const isHost = await this.isHostOwner(principal.userId, booking.hostId);
+    const isGuest = booking.guestId === principal.userId;
+    const isAdmin = principal.permissions.includes('*') || principal.permissions.includes('booking:read:any');
+    if (party === 'guest' && !(isHost || isAdmin)) throw new ForbiddenError('Only the host can report a guest no-show');
+    if (party === 'host' && !(isGuest || isAdmin)) throw new ForbiddenError('Only the guest can report a host no-show');
+
+    if (booking.status !== 'paid') {
+      throw new ConflictError('No-show applies only to a confirmed, paid trip that has not started', 'INVALID_STATE');
+    }
+    if (booking.tripId) throw new ConflictError('The trip has already started', 'INVALID_STATE');
+
+    const cfg = await platformConfigService.get();
+    const earliest = new Date(booking.period.start).getTime() + cfg.noShow.graceHours * 3_600_000;
+    if (Date.now() < earliest) {
+      throw new ConflictError(`Wait until ${cfg.noShow.graceHours}h after the start time to declare a no-show.`, 'TOO_EARLY');
+    }
+
+    const total = booking.priceBreakdown.total;
+
+    if (party === 'host') {
+      await paymentService.refundBooking(bookingId, total, 'Host no-show — full refund');
+      await availabilityService.releaseBooking(bookingId);
+      if (booking.holdId) await availabilityService.releaseHold(booking.holdId);
+      await BookingModel.updateOne(
+        { _id: bookingId },
+        { cancellation: { by: principal.userId, role: isGuest ? 'guest' : 'admin', at: new Date(), reason: 'Host no-show', refund: total } },
+      );
+      await this.transition(booking, 'cancelled_host', principal.userId, 'Host no-show');
+      emit(EVENTS.BOOKING_HOST_NO_SHOW, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId });
+      emit(EVENTS.BOOKING_REBOOKING_NEEDED, bookingId, {
+        bookingId, guestId: booking.guestId, vehicleId: booking.vehicleId,
+        start: booking.period.start, end: booking.period.end, reason: 'host_no_show',
+      });
+      return this.getDoc(bookingId);
+    }
+
+    // Guest no-show — forfeit a share, refund the rest, scale the host's earnings
+    // to their part of the forfeit (paid via the payout subscriber).
+    const forfeitBps = cfg.noShow.guestForfeitBps;
+    const refundAmount = Math.round((total.amount * (10000 - forfeitBps)) / 10000);
+    if (refundAmount > 0) {
+      await paymentService.refundBooking(bookingId, { amount: refundAmount, currency: total.currency }, 'Guest no-show — partial forfeit');
+    }
+    const pb = booking.priceBreakdown;
+    const scale = forfeitBps / 10000;
+    await BookingModel.updateOne(
+      { _id: bookingId },
+      {
+        $set: {
+          'priceBreakdown.total.amount': total.amount - refundAmount,
+          'priceBreakdown.hostEarnings.amount': Math.round(pb.hostEarnings.amount * scale),
+          'priceBreakdown.commission.amount': Math.round(pb.commission.amount * scale),
+          'priceBreakdown.tax.amount': Math.round(pb.tax.amount * scale),
+        },
+        cancellation: { by: principal.userId, role: isHost ? 'host' : 'admin', at: new Date(), reason: 'Guest no-show', refund: { amount: refundAmount, currency: total.currency } },
+      },
+    );
+    await availabilityService.releaseBooking(bookingId);
+    await this.transition(booking, 'cancelled_guest', principal.userId, 'Guest no-show — forfeit applied');
+    emit(EVENTS.BOOKING_GUEST_NO_SHOW, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId });
+    return this.getDoc(bookingId);
+  }
+
   /**
    * What a cancellation would refund, right now, without cancelling.
    *

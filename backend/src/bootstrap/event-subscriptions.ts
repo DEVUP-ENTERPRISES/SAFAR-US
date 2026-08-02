@@ -157,6 +157,38 @@ export function registerEventSubscribers(): void {
     });
   });
 
+  // Guest no-show → the host earns their share of the forfeit (payout), and the
+  // guest is told the outcome (the reliability hit lands via the cancelled_guest
+  // status the trust engine already reads).
+  eventBus.subscribe(EVENTS.BOOKING_GUEST_NO_SHOW, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string; hostId: string };
+    await payoutService.scheduleForBooking(p.bookingId);
+    await notificationService.send({
+      userId: p.guestId,
+      priority: 'high',
+      deepLink: `/bookings/${p.bookingId}`,
+      templateKey: 'booking.guest_no_show',
+      title: 'Trip marked as a no-show',
+      body: 'Your trip was recorded as a no-show. A share of the cost was retained per the no-show policy.',
+      data: { bookingId: p.bookingId },
+    });
+    await notifyHost(p.hostId, 'booking.guest_no_show', 'Guest no-show recorded', 'The guest did not show — you keep your share of the no-show fee.', { bookingId: p.bookingId });
+  });
+
+  // Host no-show → the stranded guest is refunded and nudged to rebook.
+  eventBus.subscribe(EVENTS.BOOKING_HOST_NO_SHOW, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string; hostId: string };
+    await notificationService.send({
+      userId: p.guestId,
+      priority: 'critical',
+      deepLink: `/bookings/${p.bookingId}`,
+      templateKey: 'booking.host_no_show',
+      title: 'Your host didn’t show — fully refunded',
+      body: 'You’ve been fully refunded. We’ve found similar cars for your dates.',
+      data: { bookingId: p.bookingId },
+    });
+  });
+
   eventBus.subscribe(EVENTS.TRIP_STARTED, async (e) => {
     const p = e.payload as { tripId: string; bookingId: string };
     logger.info({ tripId: p.tripId }, 'trip started');

@@ -52,6 +52,18 @@ router.put(
           strict: z.object({ fullBeforeHours: z.number().int().min(0).max(2160), partialBps: bps }).optional(),
         })
         .optional(),
+      noShow: z
+        .object({ graceHours: z.number().int().min(0).max(72).optional(), guestForfeitBps: bps.optional() })
+        .optional(),
+      incidentals: z
+        .object({
+          fuelPerPercentCents: cents.optional(),
+          cleaningCents: cents.optional(),
+          smokingCents: cents.optional(),
+          petCents: cents.optional(),
+          lateReturnPerHourCents: cents.optional(),
+        })
+        .optional(),
       surge: z
         .object({
           enabled: z.boolean().optional(),
