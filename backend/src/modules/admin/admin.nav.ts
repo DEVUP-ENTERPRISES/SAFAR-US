@@ -41,6 +41,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'bookings', path: A('bookings'), apiPath: '/admin/bookings', label: 'Booking Management', group: 'Operations', permission: 'admin:read' },
   { slug: 'claims', path: A('claims'), apiPath: '/admin/claims', label: 'Claims Management', group: 'Operations', permission: 'claim:manage' },
   { slug: 'support', path: A('support'), apiPath: '/admin/tickets', label: 'Support', group: 'Operations', permission: 'ticket:manage' },
+  { slug: 'kb', path: A('kb'), apiPath: '/admin/kb/articles', label: 'Knowledge Base', group: 'Operations', permission: 'ticket:manage' },
   { slug: 'reviews', path: A('reviews'), apiPath: '/admin/reviews', label: 'Reviews', group: 'Operations', permission: 'review:moderate' },
 
   { slug: 'corporate', path: A('corporate'), apiPath: '/admin/corporate/orgs', label: 'Corporate Accounts', group: 'Business', permission: 'corporate:manage' },

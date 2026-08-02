@@ -9,6 +9,7 @@ import { vehiclesAdminRoutes } from './api/vehicles.admin.routes';
 import { bookingsAdminRoutes } from './api/bookings.admin.routes';
 import { claimsAdminRoutes } from './api/claims.admin.routes';
 import { supportAdminRoutes } from './api/support.admin.routes';
+import { kbAdminRoutes } from './api/kb.admin.routes';
 import { platformAdminRoutes } from './api/platform.admin.routes';
 import { kycAdminRoutes } from './api/kyc.admin.routes';
 import { navAdminRoutes } from './api/nav.admin.routes';
@@ -36,6 +37,7 @@ export function buildAdminRouter(): Router {
   admin.use(bookingsAdminRoutes);
   admin.use(claimsAdminRoutes);
   admin.use(supportAdminRoutes);
+  admin.use(kbAdminRoutes);
   admin.use(platformAdminRoutes);
   admin.use(kycAdminRoutes);
   admin.use(platformConfigAdminRoutes);

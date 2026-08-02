@@ -26,6 +26,7 @@ import { favoritesRoutes } from './modules/favorites/api/favorites.routes';
 import { messagesRoutes } from './modules/messaging/api/messages.routes';
 import { claimsRoutes } from './modules/claims/api/claims.routes';
 import { supportRoutes } from './modules/support/api/support.routes';
+import { kbRoutes } from './modules/support/api/kb.routes';
 import { buildAdminRouter } from './modules/admin/admin.routes';
 import { featureFlagsRoutes } from './modules/feature-flags/api/feature-flags.routes';
 import { kycRoutes } from './modules/kyc/api/kyc.routes';
@@ -68,6 +69,7 @@ export function buildApiRouter(): Router {
   api.use('/favorites', favoritesRoutes);
   api.use('/messages', messagesRoutes);
   api.use('/claims', claimsRoutes);
+  api.use('/support/kb', kbRoutes);
   api.use('/support', supportRoutes);
   api.use('/kyc', kycRoutes);
   api.use('/maps', mapsRoutes);
