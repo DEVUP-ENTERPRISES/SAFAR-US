@@ -55,6 +55,14 @@ router.put(
       noShow: z
         .object({ graceHours: z.number().int().min(0).max(72).optional(), guestForfeitBps: bps.optional() })
         .optional(),
+      superhost: z
+        .object({
+          minTrips: z.number().int().min(0).max(1000).optional(),
+          minRatingAvg: z.number().min(0).max(5).optional(),
+          minRatingCount: z.number().int().min(0).max(1000).optional(),
+          maxCancellationRatePct: z.number().min(0).max(100).optional(),
+        })
+        .optional(),
       notifications: z
         .object({
           categoryChannels: z

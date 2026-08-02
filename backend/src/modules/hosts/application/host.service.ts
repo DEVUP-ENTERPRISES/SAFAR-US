@@ -72,8 +72,31 @@ export class HostService {
   async recomputeSuperhost(hostId: string): Promise<boolean> {
     const host = await HostModel.findOne({ _id: hostId }).lean<HostDoc>();
     if (!host) return false;
+
+    const { platformConfigService } = await import('../../platform-config/application/platform-config.service');
+    const bar = (await platformConfigService.get()).superhost;
+
+    // Cancellation rate: how often the host bails on a trip they committed to —
+    // the strongest negative signal a guest cares about.
+    const { BookingModel } = await import('../../bookings/infrastructure/booking.model');
+    const rows = await BookingModel.aggregate<{ _id: string; n: number }>([
+      { $match: { hostId, status: { $in: ['completed', 'cancelled_host'] } } },
+      { $group: { _id: '$status', n: { $sum: 1 } } },
+    ]).exec();
+    const completed = rows.find((r) => r._id === 'completed')?.n ?? 0;
+    const hostCancelled = rows.find((r) => r._id === 'cancelled_host')?.n ?? 0;
+    const settled = completed + hostCancelled;
+    const cancelRatePct = settled ? (hostCancelled / settled) * 100 : 0;
+
+    // Earned across the board — not a single generous rating. Every gate is
+    // admin-tunable so the program can be tightened as supply grows.
     const qualifies =
-      host.verificationStatus === 'verified' && host.ratingAvg >= 4.8 && host.ratingCount >= 3;
+      host.verificationStatus === 'verified' &&
+      (host.totalTrips ?? 0) >= bar.minTrips &&
+      host.ratingAvg >= bar.minRatingAvg &&
+      host.ratingCount >= bar.minRatingCount &&
+      cancelRatePct <= bar.maxCancellationRatePct;
+
     if (qualifies !== host.isSuperhost) {
       await HostModel.updateOne({ _id: hostId }, { isSuperhost: qualifies });
       const { VehicleModel } = await import('../../vehicles/infrastructure/vehicle.model');

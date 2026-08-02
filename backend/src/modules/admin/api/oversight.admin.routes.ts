@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { oversightService } from '../application/oversight.service';
 import { payoutService } from '../../payouts/application/payout.service';
 import { documentComplianceService } from '../../documents/application/document-compliance.service';
+import { maintenanceService } from '../../maintenance/application/maintenance.service';
+import { hostService } from '../../hosts/application/host.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
@@ -92,6 +94,24 @@ router.post(
   authorize('vehicle:verify'),
   asyncHandler(async (_req, res) => {
     sendSuccess(res, await documentComplianceService.sweep());
+  }),
+);
+
+/** Send maintenance-due reminders now. */
+router.post(
+  '/maintenance/run-reminders',
+  authorize('vehicle:verify'),
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, { reminded: await maintenanceService.remindDue() });
+  }),
+);
+
+/** Re-evaluate a host's All-Star (Superhost) status against the live bar. */
+router.post(
+  '/hosts/:id/recompute-superhost',
+  authorize('vehicle:verify'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, { superhost: await hostService.recomputeSuperhost(req.params.id) });
   }),
 );
 

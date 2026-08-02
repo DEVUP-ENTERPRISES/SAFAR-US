@@ -17,6 +17,7 @@ export class HostAnalyticsService {
     perVehicle: { vehicleId: string; label: string; trips: number; revenue: number }[];
     occupancyPct: number; // next 30 days across all listed vehicles
     acceptanceRate: number; // % of booking requests the host honoured
+    cancellationRatePct: number; // % of committed trips the host cancelled
     completedTrips: number;
     cancelledByHost: number;
   }> {
@@ -27,12 +28,13 @@ export class HostAnalyticsService {
     const vehicleIds = vehicles.map((v) => v._id);
     const label = new Map(vehicles.map((v) => [v._id, `${v.make} ${v.model}`]));
 
-    const [earningsByMonth, perVehicleAgg, occupancyPct, accept] = await Promise.all([
+    const [earningsByMonth, perVehicleAgg, occupancyPct, accept, cancel] = await Promise.all([
       // host_payable is debit-normal: earnings are the debits.
       ledgerService.monthlyDebits(Account.hostPayable(hostId), 6),
       this.perVehicleRevenue(vehicleIds),
       this.occupancy(vehicleIds),
       this.acceptance(hostId),
+      this.cancellation(hostId),
     ]);
 
     const perVehicle = perVehicleAgg
@@ -45,9 +47,22 @@ export class HostAnalyticsService {
       perVehicle,
       occupancyPct,
       acceptanceRate: accept.rate,
+      cancellationRatePct: cancel.rate,
       completedTrips: accept.completed,
-      cancelledByHost: accept.hostCancelled,
+      cancelledByHost: cancel.hostCancelled,
     };
+  }
+
+  /** Cancellation rate = trips the host cancelled after committing, vs settled. */
+  private async cancellation(hostId: string): Promise<{ rate: number; hostCancelled: number }> {
+    const rows = await BookingModel.aggregate<{ _id: string; n: number }>([
+      { $match: { hostId, status: { $in: ['completed', 'cancelled_host'] } } },
+      { $group: { _id: '$status', n: { $sum: 1 } } },
+    ]).exec();
+    const completed = rows.find((r) => r._id === 'completed')?.n ?? 0;
+    const hostCancelled = rows.find((r) => r._id === 'cancelled_host')?.n ?? 0;
+    const denom = completed + hostCancelled;
+    return { rate: denom ? Math.round((hostCancelled / denom) * 100) : 0, hostCancelled };
   }
 
   /** Revenue + trip count per vehicle, from bookings that generated income. */

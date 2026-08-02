@@ -80,6 +80,7 @@ export class PlatformConfigService {
         strict: { fullBeforeHours: 168, partialBps: 0, ...(doc.cancellation?.strict ?? {}) },
       },
       noShow: { graceHours: 2, guestForfeitBps: 5000, ...(doc.noShow ?? {}) },
+      superhost: { minTrips: 5, minRatingAvg: 4.8, minRatingCount: 3, maxCancellationRatePct: 5, ...(doc.superhost ?? {}) },
       notifications: {
         categoryChannels: {
           trips: { push: true, email: true, sms: true },

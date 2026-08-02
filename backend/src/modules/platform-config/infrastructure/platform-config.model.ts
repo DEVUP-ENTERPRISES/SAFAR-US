@@ -53,6 +53,13 @@ export interface PlatformConfigDoc {
     /** Fraction of the total the guest forfeits on a guest no-show (host keeps it). */
     guestForfeitBps: number;
   };
+  /** All-Star Host (superhost) qualification bar — earned, not granted. */
+  superhost: {
+    minTrips: number;
+    minRatingAvg: number;
+    minRatingCount: number;
+    maxCancellationRatePct: number;
+  };
   /** Notification routing matrix: which channels each category may use. */
   notifications: {
     categoryChannels: Record<'trips' | 'messages' | 'payments' | 'promotions' | 'reviews' | 'account', { push: boolean; email: boolean; sms: boolean }>;
@@ -150,6 +157,12 @@ const schema = new Schema<PlatformConfigDoc>(
     noShow: {
       graceHours: { type: Number, default: 2 },
       guestForfeitBps: { type: Number, default: 5000 },
+    },
+    superhost: {
+      minTrips: { type: Number, default: 5 },
+      minRatingAvg: { type: Number, default: 4.8 },
+      minRatingCount: { type: Number, default: 3 },
+      maxCancellationRatePct: { type: Number, default: 5 },
     },
     notifications: {
       categoryChannels: {

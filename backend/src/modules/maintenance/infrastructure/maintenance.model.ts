@@ -11,6 +11,7 @@ export interface MaintenanceDoc {
   cost?: number;
   notes?: string;
   status: 'scheduled' | 'in_progress' | 'completed';
+  reminded?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,6 +27,7 @@ const schema = new Schema<MaintenanceDoc>(
     cost: Number,
     notes: String,
     status: { type: String, enum: ['scheduled', 'in_progress', 'completed'], default: 'scheduled' },
+    reminded: { type: Boolean, default: false },
   },
   { timestamps: true, _id: false },
 );
