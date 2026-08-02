@@ -94,6 +94,10 @@ export interface VehicleDoc {
   };
   purposes: string[];
   status: VehicleStatus;
+  /** Paused automatically because a mandatory doc (insurance/registration)
+   *  lapsed. Distinguishes a compliance hold from a host-initiated pause so the
+   *  car is auto-relisted on renewal, not left down. */
+  complianceHold?: boolean;
   verificationStatus: VerificationStatus;
   ratingAvg: number;
   ratingCount: number;
@@ -188,6 +192,7 @@ const schema = new Schema<VehicleDoc>(
     },
     purposes: { type: [String], default: ['rent'] },
     status: { type: String, default: 'draft' },
+    complianceHold: { type: Boolean, default: false },
     verificationStatus: { type: String, default: 'unverified' },
     ratingAvg: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },

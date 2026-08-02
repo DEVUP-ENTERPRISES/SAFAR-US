@@ -2,6 +2,7 @@ import { BookingModel, type BookingDoc } from '../infrastructure/booking.model';
 import { canTransition, type BookingStatus } from '../domain/booking-status';
 import { computeRefund } from '../domain/cancellation-policy';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { documentComplianceService } from '../../documents/application/document-compliance.service';
 import { verifyPriceLock, issuePriceLock, type PriceLock } from '../../pricing/domain/price-lock';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { availabilityService } from '../../availability/application/availability.service';
@@ -86,6 +87,13 @@ export class BookingService {
     const { start, end } = this.parsePeriod(dto.start, dto.end);
     const vehicle = await vehicleService.getForBooking(dto.vehicleId);
     if (!vehicle.bookable) throw new ConflictError('Vehicle is not bookable', 'NOT_BOOKABLE');
+
+    // Legal gate: never let a paying trip start on a car whose insurance or
+    // registration has lapsed. The hourly compliance sweep pauses such cars, but
+    // this closes the window between a document expiring and the next sweep.
+    if (await documentComplianceService.hasExpiredMandatoryDoc(dto.vehicleId)) {
+      throw new ConflictError('This car is temporarily unavailable while its documents are renewed.', 'DOCS_EXPIRED');
+    }
     if (vehicle.hostId && guestId === (await this.hostUserId(vehicle.hostId))) {
       throw new ForbiddenError('You cannot book your own vehicle');
     }

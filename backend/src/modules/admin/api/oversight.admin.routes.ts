@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { oversightService } from '../application/oversight.service';
 import { payoutService } from '../../payouts/application/payout.service';
+import { documentComplianceService } from '../../documents/application/document-compliance.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
@@ -81,6 +82,16 @@ router.post(
   authorize('payout:manage'),
   asyncHandler(async (_req, res) => {
     sendSuccess(res, await payoutService.runAllDue());
+  }),
+);
+
+/** Force a document-compliance sweep now — pause cars with lapsed insurance/
+ *  registration and relist ones renewed since the last run. */
+router.post(
+  '/compliance/sweep',
+  authorize('vehicle:verify'),
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, await documentComplianceService.sweep());
   }),
 );
 

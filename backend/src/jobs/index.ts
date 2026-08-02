@@ -3,6 +3,7 @@ import { logger } from '../infrastructure/logging/logger';
 import { bookingService } from '../modules/bookings/application/booking.service';
 import { payoutService } from '../modules/payouts/application/payout.service';
 import { depositService } from '../modules/payments/application/deposit.service';
+import { documentComplianceService } from '../modules/documents/application/document-compliance.service';
 
 const QUEUE = 'cato-maintenance';
 
@@ -23,6 +24,7 @@ export async function initJobs(): Promise<void> {
   await queue.add('run-payouts', {}, { repeat: { every: 60 * 60_000 }, jobId: 'run-payouts' });
   await queue.add('trip-reminders', {}, { repeat: { every: 60 * 60_000 }, jobId: 'trip-reminders' });
   await queue.add('release-deposits', {}, { repeat: { every: 30 * 60_000 }, jobId: 'release-deposits' });
+  await queue.add('compliance-sweep', {}, { repeat: { every: 60 * 60_000 }, jobId: 'compliance-sweep' });
 
   makeWorker(QUEUE, async (job) => {
     switch (job.name) {
@@ -45,6 +47,11 @@ export async function initJobs(): Promise<void> {
         const n = await bookingService.remindUpcoming();
         if (n) logger.info({ n }, 'trip reminders sent');
         return { reminded: n };
+      }
+      case 'compliance-sweep': {
+        const r = await documentComplianceService.sweep();
+        if (r.paused || r.restored) logger.info(r, 'document compliance sweep');
+        return r;
       }
       default:
         return null;
