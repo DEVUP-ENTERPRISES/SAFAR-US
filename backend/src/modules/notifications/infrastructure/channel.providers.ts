@@ -173,8 +173,11 @@ class SmsProvider implements ChannelProvider {
       return { ok: false, error: 'no_phone_on_account', retryable: false };
     }
     try {
+      // Basic auth with an API key (SK…) + secret when configured, else the
+      // legacy Auth Token — resolved in config. The Account SID always stays in
+      // the URL path, since it (not the key) identifies the account.
       const auth = Buffer.from(
-        `${config.notifications.smsAccountSid}:${config.notifications.smsAuthToken}`,
+        `${config.notifications.smsAuthUser}:${config.notifications.smsAuthPass}`,
       ).toString('base64');
       const res = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${config.notifications.smsAccountSid}/Messages.json`,
@@ -354,7 +357,7 @@ export const channelProviders: Record<'push' | 'email' | 'sms', ChannelProvider>
 logger.info(
   {
     email: n.smtpEnabled ? `SMTP ${n.smtpHost}:${n.smtpPort}` : n.emailApiEnabled ? 'HTTP API' : 'not configured',
-    sms: n.smsEnabled ? 'live' : 'not configured',
+    sms: n.smsEnabled ? `live (${n.smsUsingApiKey ? 'API key' : 'auth token'})` : 'not configured',
     push: n.pushEnabled ? 'live' : 'not configured',
   },
   '🔔 Notification channels',

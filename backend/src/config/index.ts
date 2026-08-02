@@ -136,10 +136,19 @@ export const config = Object.freeze({
       env.EMAIL_FROM &&
       ((env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS) || (env.EMAIL_API_URL && env.EMAIL_API_KEY))
     ),
+    // Account SID identifies the account in the request URL (always required).
     smsAccountSid: env.SMS_ACCOUNT_SID,
-    smsAuthToken: env.SMS_AUTH_TOKEN,
+    // Basic-auth credentials: prefer a scoped, revocable API key (SK…) over the
+    // full-account Auth Token. Resolved once here so the provider stays dumb.
+    smsAuthUser: env.SMS_API_KEY_SID || env.SMS_ACCOUNT_SID,
+    smsAuthPass: env.SMS_API_KEY_SECRET || env.SMS_AUTH_TOKEN,
+    smsUsingApiKey: !!(env.SMS_API_KEY_SID && env.SMS_API_KEY_SECRET),
     smsFrom: env.SMS_FROM,
-    smsEnabled: !!(env.SMS_ACCOUNT_SID && env.SMS_AUTH_TOKEN && env.SMS_FROM),
+    smsEnabled: !!(
+      env.SMS_ACCOUNT_SID &&
+      env.SMS_FROM &&
+      ((env.SMS_API_KEY_SID && env.SMS_API_KEY_SECRET) || env.SMS_AUTH_TOKEN)
+    ),
     // FCM HTTP v1: a service account, decoded from base64. The legacy server
     // key (fcmServerKey) is retained only for backwards config; v1 is used when
     // a service account is present, which is the only path Google still supports.

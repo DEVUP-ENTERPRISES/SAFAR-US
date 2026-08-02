@@ -86,6 +86,14 @@ export const envSchema = z.object({
   /** Envelope sender, e.g. "CATO <no-reply@cato.com>". Required either way. */
   EMAIL_FROM: optional(z.string()),
   SMS_ACCOUNT_SID: optional(z.string()),
+  /**
+   * Twilio API key (SK…) + its secret — the recommended credentials: scoped to
+   * SMS and revocable without touching the account. The Account SID above is
+   * still required (it identifies the account in the request URL).
+   */
+  SMS_API_KEY_SID: optional(z.string()),
+  SMS_API_KEY_SECRET: optional(z.string()),
+  /** Legacy fallback — full-account Auth Token. Prefer an API key above. */
   SMS_AUTH_TOKEN: optional(z.string()),
   SMS_FROM: optional(z.string()),
   FCM_SERVER_KEY: optional(z.string()),
