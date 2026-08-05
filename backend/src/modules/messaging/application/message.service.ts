@@ -2,6 +2,9 @@ import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { MessageModel, type MessageDoc } from '../infrastructure/message.model';
 import { bookingService } from '../../bookings/application/booking.service';
 import { hostService } from '../../hosts/application/host.service';
+import { HostModel } from '../../hosts/infrastructure/host.model';
+import { UserModel } from '../../users/infrastructure/user.model';
+import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { ForbiddenError, ValidationError } from '../../../core/errors/app-error';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
@@ -107,6 +110,85 @@ export class MessageService {
     return { count };
   }
 
+  /**
+   * The user's inbox — one entry per booking they have a conversation on, newest
+   * first, with the counterpart, the car, a preview of the last message, and the
+   * unread count. Only bookings that actually have a message appear (an empty
+   * booking is not a conversation). Enrichment is batched, not per-row.
+   */
+  async conversations(userId: string): Promise<Conversation[]> {
+    const myHost = await hostService.getByUserId(userId).catch(() => null);
+    const bookings = await BookingModel.find({
+      $or: [{ guestId: userId }, ...(myHost ? [{ hostId: myHost._id }] : [])],
+    })
+      .select('_id guestId hostId vehicleId code status')
+      .lean<{ _id: string; guestId: string; hostId: string; vehicleId: string; code: string; status: string }[]>();
+    if (bookings.length === 0) return [];
+    const ids = bookings.map((b) => b._id);
+
+    const [lastAgg, unreadAgg] = await Promise.all([
+      MessageModel.aggregate<{ _id: string; body: string; senderId: string; at: Date; attachments: unknown[] }>([
+        { $match: { bookingId: { $in: ids } } },
+        { $sort: { createdAt: -1 } },
+        { $group: { _id: '$bookingId', body: { $first: '$body' }, senderId: { $first: '$senderId' }, at: { $first: '$createdAt' }, attachments: { $first: '$attachments' } } },
+      ]),
+      MessageModel.aggregate<{ _id: string; count: number }>([
+        { $match: { bookingId: { $in: ids }, senderId: { $nin: [userId, SYSTEM_SENDER] }, readBy: { $ne: userId } } },
+        { $group: { _id: '$bookingId', count: { $sum: 1 } } },
+      ]),
+    ]);
+    const lastByBooking = new Map(lastAgg.map((l) => [l._id, l]));
+    const unreadByBooking = new Map(unreadAgg.map((u) => [u._id, u.count]));
+
+    // Only bookings that actually have a message are conversations.
+    const active = bookings.filter((b) => lastByBooking.has(b._id));
+    if (active.length === 0) return [];
+
+    const hostIds = [...new Set(active.map((b) => b.hostId))];
+    const guestIds = [...new Set(active.map((b) => b.guestId))];
+    const vehicleIds = [...new Set(active.map((b) => b.vehicleId))];
+    const [hosts, guests, vehicles] = await Promise.all([
+      HostModel.find({ _id: { $in: hostIds } }).select('_id displayName avatarUrl').lean<{ _id: string; displayName: string; avatarUrl?: string }[]>(),
+      UserModel.find({ _id: { $in: guestIds } }).select('_id firstName avatarUrl').lean<{ _id: string; firstName?: string; avatarUrl?: string }[]>(),
+      VehicleModel.find({ _id: { $in: vehicleIds } }).select('_id make model year photos').lean<{ _id: string; make: string; model: string; year: number; photos?: { url: string }[] }[]>(),
+    ]);
+    const hostById = new Map(hosts.map((h) => [h._id, h]));
+    const guestById = new Map(guests.map((g) => [g._id, g]));
+    const vehicleById = new Map(vehicles.map((v) => [v._id, v]));
+
+    const rows = active.map((b): Conversation => {
+      const amGuest = b.guestId === userId;
+      const host = hostById.get(b.hostId);
+      const guest = guestById.get(b.guestId);
+      const v = vehicleById.get(b.vehicleId);
+      const last = lastByBooking.get(b._id)!;
+      const hasAttachment = Array.isArray(last.attachments) && last.attachments.length > 0;
+      return {
+        bookingId: b._id,
+        code: b.code,
+        tripStatus: b.status,
+        vehicle: { title: v ? `${v.year} ${v.make} ${v.model}` : 'Vehicle', photo: v?.photos?.[0]?.url },
+        counterpart: amGuest
+          ? { name: host?.displayName ?? 'Host', avatar: host?.avatarUrl }
+          : { name: guest?.firstName ?? 'Guest', avatar: guest?.avatarUrl },
+        last: {
+          preview: last.body?.trim() ? last.body.slice(0, 120) : hasAttachment ? '📷 Photo' : '',
+          at: last.at,
+          fromMe: last.senderId === userId,
+          system: last.senderId === SYSTEM_SENDER,
+        },
+        unread: unreadByBooking.get(b._id) ?? 0,
+      };
+    });
+    rows.sort((a, b) => +new Date(b.last.at) - +new Date(a.last.at));
+    return rows;
+  }
+
+  /** Read-only thread for admin/support investigating a dispute (no participant gate). */
+  async adminThread(bookingId: string): Promise<MessageDoc[]> {
+    return MessageModel.find({ bookingId }).sort({ createdAt: 1 }).limit(500).lean<MessageDoc[]>();
+  }
+
   /** Public participant check for the realtime gateway (throws if not allowed). */
   async assertAccess(userId: string, bookingId: string): Promise<void> {
     await this.authorize(userId, bookingId);
@@ -122,6 +204,17 @@ export class MessageService {
     const counterpartUserId = isGuest ? host?.userId ?? '' : booking.guestId;
     return { booking, counterpartUserId };
   }
+}
+
+/** One inbox row — a booking's conversation summarised for the message list. */
+export interface Conversation {
+  bookingId: string;
+  code: string;
+  tripStatus: string;
+  vehicle: { title: string; photo?: string };
+  counterpart: { name: string; avatar?: string };
+  last: { preview: string; at: Date; fromMe: boolean; system: boolean };
+  unread: number;
 }
 
 export const messageService = new MessageService();

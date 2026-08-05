@@ -8,6 +8,15 @@ import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 
+/** The user's inbox — every conversation across their trips, newest first. */
+router.get(
+  '/',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await messageService.conversations(req.principal!.userId));
+  }),
+);
+
 router.get(
   '/unread-count',
   authenticate,

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  Car, LogOut, Wallet, Gift, User, LifeBuoy, Shield, Building2, Heart, ChevronDown, Search, BookOpen } from 'lucide-react';
+  Car, LogOut, Wallet, Gift, User, LifeBuoy, Shield, Building2, Heart, ChevronDown, Search, BookOpen, MessageSquare } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store';
 import { useUnreadMessages } from '@/features/messaging/hooks';
 import { useLogout } from '@/features/auth/hooks';
@@ -44,6 +44,7 @@ export function UserMenu() {
 
   const items = [
     { href: '/bookings', label: 'My trips', icon: Car },
+    { href: '/messages', label: 'Messages', icon: MessageSquare },
     { href: '/wishlist', label: 'Saved cars', icon: Heart },
     { href: '/saved-searches', label: 'Saved searches', icon: Search },
     { href: '/wallet', label: 'Wallet', icon: Wallet },
@@ -94,7 +95,7 @@ export function UserMenu() {
                 className="flex items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-accent"
               >
                 <it.icon className="h-4 w-4 text-muted-foreground" /> {it.label}
-                {it.href === '/bookings' && unread > 0 && (
+                {it.href === '/messages' && unread > 0 && (
                   <span className="ml-auto grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
                     {unread > 9 ? '9+' : unread}
                   </span>

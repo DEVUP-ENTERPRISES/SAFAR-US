@@ -24,6 +24,28 @@ export interface Message {
 /** The reserved sender id the backend uses for automated notes. */
 export const SYSTEM_SENDER = 'system';
 
+/** One inbox row — a booking's conversation, summarised. */
+export interface Conversation {
+  bookingId: string;
+  code: string;
+  tripStatus: string;
+  vehicle: { title: string; photo?: string };
+  counterpart: { name: string; avatar?: string };
+  last: { preview: string; at: string; fromMe: boolean; system: boolean };
+  unread: number;
+}
+
+/** The user's inbox — every conversation across their trips, newest first. */
+export function useConversations(enabled = true) {
+  return useQuery({
+    queryKey: ['conversations'],
+    queryFn: () => api.get<Conversation[]>('/messages'),
+    enabled,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+  });
+}
+
 /** Total unread messages across all the user's trips — for the nav badge. */
 export function useUnreadMessages(enabled: boolean) {
   return useQuery({

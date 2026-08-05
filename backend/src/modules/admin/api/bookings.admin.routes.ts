@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { bookingService } from '../../bookings/application/booking.service';
+import { messageService } from '../../messaging/application/message.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
@@ -26,6 +27,15 @@ router.get(
   authorize('admin:read'),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await bookingService.getDoc(req.params.id));
+  }),
+);
+
+/** Read-only host↔guest thread for a booking — for investigating disputes. */
+router.get(
+  '/bookings/:id/messages',
+  authorize('booking:manage'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await messageService.adminThread(req.params.id));
   }),
 );
 
