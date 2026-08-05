@@ -50,4 +50,23 @@ export const accountApi = {
   setDefaultPaymentMethod: (id: string) => api.post(`/payments/methods/${id}/default`),
 
   kycStatus: () => api.get<{ status: string; level?: string; reason?: string }>('/kyc/status'),
+
+  // ── Notification preferences ──
+  notificationPrefs: () => api.get<NotificationPrefs>('/users/me/notification-preferences'),
+  updateNotificationPrefs: (patch: NotificationPrefs) =>
+    api.patch<NotificationPrefs>('/users/me/notification-preferences', patch),
 };
+
+/** The six topic buckets every notification maps to (mirrors the backend). */
+export const NOTIFICATION_CATEGORIES = ['trips', 'messages', 'payments', 'promotions', 'reviews', 'account'] as const;
+export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
+
+/** Opt-out model: a missing value means "allowed". */
+export interface NotificationPrefs {
+  push?: boolean;
+  email?: boolean;
+  sms?: boolean;
+  smsCriticalOnly?: boolean;
+  quietHours?: boolean;
+  categories?: Partial<Record<NotificationCategory, boolean>>;
+}

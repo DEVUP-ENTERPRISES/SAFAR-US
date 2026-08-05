@@ -218,14 +218,18 @@ function Account() {
         </CardContent>
       </Card>
 
-      {/* Push notifications */}
+      {/* Notifications */}
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5 text-primary" /> Push notifications</CardTitle></CardHeader>
-        <CardContent className="flex items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
-            Get alerts on this device for booking updates, messages and trip reminders.
-          </p>
-          <Button variant="outline" loading={enablingPush} onClick={onEnablePush}>Enable on this device</Button>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5 text-primary" /> Notifications</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">Get alerts on this device for booking updates, messages and trip reminders.</p>
+            <Button variant="outline" loading={enablingPush} onClick={onEnablePush}>Enable on this device</Button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+            <p className="text-sm text-muted-foreground">Choose channels and topics — push, email, SMS, quiet hours.</p>
+            <Button variant="outline" onClick={() => router.push('/account/notifications')}>Manage preferences</Button>
+          </div>
         </CardContent>
       </Card>
 
