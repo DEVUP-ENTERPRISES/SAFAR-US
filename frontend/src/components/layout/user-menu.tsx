@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  Car, LogOut, Wallet, Gift, User, LifeBuoy, Shield, Building2, Heart, ChevronDown, Search } from 'lucide-react';
+  Car, LogOut, Wallet, Gift, User, LifeBuoy, Shield, Building2, Heart, ChevronDown, Search, BookOpen } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store';
 import { useUnreadMessages } from '@/features/messaging/hooks';
 import { useLogout } from '@/features/auth/hooks';
@@ -49,6 +49,7 @@ export function UserMenu() {
     { href: '/wallet', label: 'Wallet', icon: Wallet },
     { href: '/rewards', label: 'Rewards', icon: Gift },
     { href: '/account', label: 'Account', icon: User },
+    { href: '/help', label: 'Help centre', icon: BookOpen },
     { href: '/support', label: 'Support', icon: LifeBuoy },
   ];
 

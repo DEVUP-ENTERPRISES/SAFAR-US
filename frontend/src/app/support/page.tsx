@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Send, Plus } from 'lucide-react';
+import Link from 'next/link';
+import { Send, Plus, BookOpen, ChevronRight } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,13 @@ function Support() {
         <h1 className="display text-display-sm">Support</h1>
         <Button onClick={() => { setCreating(true); setSelected(null); }}><Plus className="h-4 w-4" /> New ticket</Button>
       </div>
+
+      {/* Deflect to self-serve first — most questions are answered in the help centre. */}
+      <Link href="/help" className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3 transition-colors hover:bg-muted">
+        <BookOpen className="h-5 w-5 shrink-0 text-primary" />
+        <span className="text-sm"><span className="font-medium">Browse the help centre</span> — answers to common questions, no waiting.</span>
+        <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
+      </Link>
 
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-2">

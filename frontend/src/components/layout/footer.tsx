@@ -33,7 +33,8 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: 'Support',
     links: [
-      { label: 'Help center', href: '/support' },
+      { label: 'Help center', href: '/help' },
+      { label: 'Contact support', href: '/support' },
       { label: 'Claims', href: '/claims' },
       { label: 'My trips', href: '/bookings' },
       { label: 'Account', href: '/account' },
