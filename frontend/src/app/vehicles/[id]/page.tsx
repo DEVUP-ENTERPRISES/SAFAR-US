@@ -24,12 +24,18 @@ import { useQuote, useCreateBooking } from '@/features/bookings/hooks';
 import { useAuthStore } from '@/features/auth/store';
 import { walletApi } from '@/features/wallet/api';
 import { WishlistButton } from '@/features/favorites/wishlist-button';
+import { ShareButton } from '@/features/vehicles/components/share-button';
 
 interface Review {
   _id: string;
   rating: number;
   comment: string;
   createdAt: string;
+}
+interface RatingDistribution {
+  total: number;
+  avg: number;
+  counts: Record<'1' | '2' | '3' | '4' | '5', number>;
 }
 interface ProtectionPlan {
   code: string;
@@ -74,6 +80,11 @@ export default function VehicleDetailPage() {
   const reviews = useQuery({
     queryKey: ['reviews', v?.hostId],
     queryFn: () => api.get<Review[]>('/reviews', { subjectId: v!.hostId }, false),
+    enabled: !!v?.hostId,
+  });
+  const ratingBreakdown = useQuery({
+    queryKey: ['reviews-distribution', v?.hostId],
+    queryFn: () => api.get<RatingDistribution>('/reviews/distribution', { subjectId: v!.hostId }, false),
     enabled: !!v?.hostId,
   });
   const plans = useQuery({
@@ -189,6 +200,9 @@ export default function VehicleDetailPage() {
           </div>
 
           <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
+            <div className="bg-background/90 backdrop-blur-md rounded-full shadow-float hover:scale-105 transition-transform overflow-hidden">
+              <ShareButton title={`${v.year} ${v.make} ${v.model}`} />
+            </div>
             <div className="bg-background/90 backdrop-blur-md rounded-full shadow-float hover:scale-105 transition-transform overflow-hidden">
               <WishlistButton vehicleId={v._id} />
             </div>
@@ -409,6 +423,23 @@ export default function VehicleDetailPage() {
               </span>
             )}
           </div>
+          {ratingBreakdown.data && ratingBreakdown.data.total > 0 && (
+            <div className="mb-6 max-w-md space-y-1.5">
+              {([5, 4, 3, 2, 1] as const).map((star) => {
+                const n = ratingBreakdown.data!.counts[String(star) as '1' | '2' | '3' | '4' | '5'] ?? 0;
+                const pct = Math.round((n / ratingBreakdown.data!.total) * 100);
+                return (
+                  <div key={star} className="flex items-center gap-3 text-sm">
+                    <span className="w-10 shrink-0 text-muted-foreground">{star} ★</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-[#635BFF]" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="w-8 shrink-0 text-right tabular-nums text-muted-foreground">{n}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {reviews.isLoading ? (
             <Skeleton className="h-20 w-full" />
           ) : reviews.data && reviews.data.length > 0 ? (

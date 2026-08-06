@@ -37,6 +37,14 @@ router.get(
   }),
 );
 
+/** Star-rating breakdown for a subject — powers the reviews histogram. */
+router.get(
+  '/distribution',
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await reviewService.distribution(req.query.subjectId as string));
+  }),
+);
+
 /** Reviews on one booking — drives the "leave a review" prompt for each party. */
 router.get(
   '/booking/:bookingId',

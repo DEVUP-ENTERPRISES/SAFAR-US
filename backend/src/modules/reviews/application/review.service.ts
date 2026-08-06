@@ -57,6 +57,28 @@ export class ReviewService {
       .lean<ReviewDoc[]>();
   }
 
+  /**
+   * Star-rating breakdown for a subject — counts per star (1–5), total, and
+   * average — for the reviews histogram. Aggregated over ALL published reviews
+   * (not the capped list), so the bars reflect the full population.
+   */
+  async distribution(subjectId: string): Promise<{ total: number; avg: number; counts: Record<1 | 2 | 3 | 4 | 5, number> }> {
+    const rows = await ReviewModel.aggregate<{ _id: number; count: number }>([
+      { $match: { subjectId, status: 'published', deletedAt: null } },
+      { $group: { _id: '$rating', count: { $sum: 1 } } },
+    ]);
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<1 | 2 | 3 | 4 | 5, number>;
+    let total = 0;
+    let sum = 0;
+    for (const r of rows) {
+      const star = Math.max(1, Math.min(5, Math.round(r._id))) as 1 | 2 | 3 | 4 | 5;
+      counts[star] += r.count;
+      total += r.count;
+      sum += star * r.count;
+    }
+    return { total, avg: total ? Math.round((sum / total) * 100) / 100 : 0, counts };
+  }
+
   private async recomputeAggregates(vehicleId: string, hostId: string): Promise<void> {
     const [vehStats] = await ReviewModel.aggregate<{ avg: number; count: number }>([
       { $match: { vehicleId, status: 'published' } },
