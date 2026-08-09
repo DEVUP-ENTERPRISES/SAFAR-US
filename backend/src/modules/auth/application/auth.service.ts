@@ -10,6 +10,7 @@ import { tokenService, type TokenPair } from './token.service';
 import { otpService } from './otp.service';
 import { channelProviders } from '../../notifications/infrastructure/channel.providers';
 import { sessionStore } from '../infrastructure/session.store';
+import { isRedisHealthy } from '../../../infrastructure/cache/redis.client';
 import type { RegisterDto, LoginDto } from '../dto/auth.schemas';
 
 export interface AuthResult {
@@ -66,14 +67,20 @@ export class AuthService {
   async refresh(refreshToken: string): Promise<TokenPair> {
     const decoded = tokenService.verifyRefresh(refreshToken);
 
-    const storedJti = await sessionStore.getRefreshJti(decoded.sid);
-    if (!storedJti) throw new UnauthorizedError('Session expired or revoked');
+    // Replay detection needs the stored jti. During a Redis outage we can't read
+    // it, so rather than force a re-login we issue on the (verified, short-lived)
+    // refresh JWT and skip the reuse check — logged, and only for the outage.
+    if (isRedisHealthy()) {
+      const storedJti = await sessionStore.getRefreshJti(decoded.sid);
+      if (!storedJti) throw new UnauthorizedError('Session expired or revoked');
 
-    // Replay detection: a rotated-out refresh token is treated as theft →
-    // revoke the whole session.
-    if (storedJti !== decoded.jti) {
-      await sessionStore.revoke(decoded.sid);
-      throw new UnauthorizedError('Refresh token reuse detected — session revoked');
+      // A rotated-out refresh token is treated as theft → revoke the whole session.
+      if (storedJti !== decoded.jti) {
+        await sessionStore.revoke(decoded.sid);
+        throw new UnauthorizedError('Refresh token reuse detected — session revoked');
+      }
+    } else {
+      logger.warn({ sid: decoded.sid }, 'Refresh degraded — Redis unavailable; skipping reuse check');
     }
 
     const user = await userRepository.findById(decoded.sub);
