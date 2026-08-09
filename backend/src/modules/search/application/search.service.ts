@@ -1,4 +1,6 @@
 import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import type { PlatformConfigDoc } from '../../platform-config/infrastructure/platform-config.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { availabilityService } from '../../availability/application/availability.service';
 
@@ -224,8 +226,11 @@ export class SearchService {
         .slice(0, limit);
     }
 
+    // Ranking weights are a competitive lever (quality vs. proximity vs. new
+    // supply), so they come from PlatformConfig — one read for the whole pool.
+    const { search } = await platformConfigService.get();
     const scored = pool
-      .map((v) => ({ v, s: this.affinityScore(v, catWeight, bodyWeight, avgPrice) }))
+      .map((v) => ({ v, s: this.affinityScore(v, catWeight, bodyWeight, avgPrice, search.ranking) }))
       .sort((a, b) => b.s - a.s)
       .slice(0, limit)
       .map((x) => x.v);
@@ -237,19 +242,20 @@ export class SearchService {
     catWeight: Map<string, number>,
     bodyWeight: Map<string, number>,
     avgPrice: number,
+    w: PlatformConfigDoc['search']['ranking'],
   ): number {
     let score = 0;
-    if (v.category && catWeight.has(v.category)) score += 3 * catWeight.get(v.category)!;
-    if (v.bodyType && bodyWeight.has(v.bodyType)) score += 2 * bodyWeight.get(v.bodyType)!;
+    if (v.category && catWeight.has(v.category)) score += w.categoryMatch * catWeight.get(v.category)!;
+    if (v.bodyType && bodyWeight.has(v.bodyType)) score += w.bodyTypeMatch * bodyWeight.get(v.bodyType)!;
     // Price proximity: full credit at the user's average, decaying with distance.
     if (avgPrice > 0 && v.pricing?.dailyPrice) {
       const rel = Math.abs(v.pricing.dailyPrice - avgPrice) / avgPrice;
-      score += Math.max(0, 2 - rel * 2);
+      score += Math.max(0, w.priceProximity - rel * w.priceProximity);
     }
     // Quality signals so we never recommend a great-fit-but-bad car.
-    score += (v.ratingAvg || 0) * 0.5;
-    if (v.hostIsSuperhost) score += 1;
-    score += Math.min(v.totalTrips || 0, 20) * 0.02;
+    score += (v.ratingAvg || 0) * w.ratingWeight;
+    if (v.hostIsSuperhost) score += w.superhostBoost;
+    score += Math.min(v.totalTrips || 0, w.tripsCap) * w.tripsWeight;
     return score;
   }
 

@@ -28,8 +28,11 @@ import type { Money } from '../../../core/types/money';
 import type { PriceBreakdown } from '../../../core/contracts/pricing.contract';
 import type { CreateBookingDto } from '../dto/booking.schemas';
 
-const APPROVAL_WINDOW_MS = 24 * 60 * 60 * 1000;
-const VERIFICATION_WINDOW_MS = 72 * 60 * 60 * 1000;
+// The approval and verification windows are operational policy (they trade
+// conversion against inventory certainty), so they live in PlatformConfig.
+const HOUR_MS = 60 * 60 * 1000;
+const approvalWindowMs = async (): Promise<number> =>
+  (await platformConfigService.get()).booking.hostApprovalHours * HOUR_MS;
 
 export class BookingService {
   async quote(dto: CreateBookingDto, guestId?: string): Promise<PriceBreakdown> {
@@ -63,7 +66,14 @@ export class BookingService {
 
     // Anonymous callers get a price but no lock — a lock is bound to a guest.
     const priceLock = guestId
-      ? issuePriceLock({ vehicleId: dto.vehicleId, guestId, start, end, breakdown })
+      ? issuePriceLock({
+          vehicleId: dto.vehicleId,
+          guestId,
+          start,
+          end,
+          breakdown,
+          ttlMs: (await platformConfigService.get()).booking.priceLockMinutes * 60 * 1000,
+        })
       : undefined;
     return { breakdown, priceLock };
   }
@@ -272,7 +282,7 @@ export class BookingService {
         verificationBlockers: eligibility.blockers,
         approvalDeadline: effectiveInstant
           ? undefined
-          : new Date(Math.min(start.getTime(), now.getTime() + APPROVAL_WINDOW_MS)),
+          : new Date(Math.min(start.getTime(), now.getTime() + (await approvalWindowMs()))),
         idempotencyKey,
       });
 
@@ -348,7 +358,27 @@ export class BookingService {
       }
 
       const doc = await this.getDoc(booking._id);
-      if (booking.instantBook) {
+
+      /*
+       * Re-evaluate Instant Book now, rather than trusting the flag stored at
+       * creation.
+       *
+       * That flag was computed while the guest was still unverified, so their
+       * trust tier was 'new' and Instant Book was denied. Clearing verification
+       * is exactly what lifts the tier — so honouring the stale value would
+       * push the guest into manual host approval for a car the host had
+       * configured to book instantly, penalising precisely the people who did
+       * what we asked. The host's own setting still governs: a car that was
+       * never Instant Book stays on approval.
+       */
+      const vehicle = await vehicleService.getForBooking(booking.vehicleId).catch(() => null);
+      const perks = await trustScoreService.perks(guestId);
+      const instantNow = !!vehicle?.instantBook && perks.instantBookEligible;
+      if (instantNow !== booking.instantBook) {
+        await BookingModel.updateOne({ _id: booking._id }, { instantBook: instantNow });
+      }
+
+      if (instantNow) {
         await paymentService.captureBooking(booking._id);
         await availabilityService.confirmHold(booking.holdId!, booking._id);
         await this.transition(doc, 'paid', guestId, 'Identity verified');
@@ -362,7 +392,7 @@ export class BookingService {
           { _id: booking._id },
           {
             approvalDeadline: new Date(
-              Math.min(booking.period.start.getTime(), Date.now() + APPROVAL_WINDOW_MS),
+              Math.min(booking.period.start.getTime(), Date.now() + (await approvalWindowMs())),
             ),
           },
         );
@@ -931,7 +961,8 @@ export class BookingService {
    */
   async expirePending(): Promise<number> {
     const now = new Date();
-    const verificationCutoff = new Date(now.getTime() - VERIFICATION_WINDOW_MS);
+    const { booking: bookingCfg } = await platformConfigService.get();
+    const verificationCutoff = new Date(now.getTime() - bookingCfg.verificationGraceHours * HOUR_MS);
     const due = await BookingModel.find({
       $or: [
         { status: 'pending_approval', approvalDeadline: { $lte: now } },

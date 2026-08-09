@@ -118,6 +118,43 @@ export interface PlatformConfigDoc {
     pointValueCents: number;
     /** Points earned per whole dollar of booking subtotal. */
     pointsPerDollar: number;
+    /** Fewest points a member may redeem at once. */
+    minRedemptionPoints: number;
+    /**
+     * The loyalty ladder: lifetime-points threshold and earn rate per tier.
+     * Ordered lowest-first. Retuning this is how the programme is made more or
+     * less generous — previously it meant a deploy.
+     */
+    tiers: { key: string; label: string; min: number; earnMultiplierBps: number }[];
+  };
+  /**
+   * Booking lifecycle windows. How long a host has to answer, how long an
+   * unverified guest's booking is held, and how long a quoted price and a
+   * checkout hold survive — operational policy that trades conversion against
+   * inventory certainty, so ops owns it.
+   */
+  booking: {
+    hostApprovalHours: number;
+    verificationGraceHours: number;
+    checkoutHoldMinutes: number;
+    priceLockMinutes: number;
+  };
+  /**
+   * Search ranking weights. What the marketplace chooses to surface is a
+   * competitive lever, not an implementation detail — being able to retune it
+   * (favour quality vs. proximity vs. new supply) without a deploy is how a
+   * marketplace is actually run.
+   */
+  search: {
+    ranking: {
+      categoryMatch: number;
+      bodyTypeMatch: number;
+      priceProximity: number;
+      ratingWeight: number;
+      superhostBoost: number;
+      tripsWeight: number;
+      tripsCap: number;
+    };
   };
   referral: {
     referrerCreditCents: number;
@@ -255,6 +292,28 @@ const schema = new Schema<PlatformConfigDoc>(
     rewards: {
       pointValueCents: { type: Number, default: 5 },
       pointsPerDollar: { type: Number, default: 1 },
+      minRedemptionPoints: { type: Number, default: 100 },
+      tiers: {
+        type: [{ key: String, label: String, min: Number, earnMultiplierBps: Number }],
+        default: undefined, // absent → the service's default ladder applies
+      },
+    },
+    booking: {
+      hostApprovalHours: { type: Number, default: 24 },
+      verificationGraceHours: { type: Number, default: 72 },
+      checkoutHoldMinutes: { type: Number, default: 15 },
+      priceLockMinutes: { type: Number, default: 10 },
+    },
+    search: {
+      ranking: {
+        categoryMatch: { type: Number, default: 3 },
+        bodyTypeMatch: { type: Number, default: 2 },
+        priceProximity: { type: Number, default: 2 },
+        ratingWeight: { type: Number, default: 0.5 },
+        superhostBoost: { type: Number, default: 1 },
+        tripsWeight: { type: Number, default: 0.02 },
+        tripsCap: { type: Number, default: 20 },
+      },
     },
     referral: {
       referrerCreditCents: { type: Number, default: 2000 },

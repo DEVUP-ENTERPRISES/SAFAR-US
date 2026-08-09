@@ -56,6 +56,9 @@ export function issuePriceLock(input: {
   start: Date;
   end: Date;
   breakdown: PriceBreakdown;
+  /** How long the quote is honoured. Injected by the service from
+   *  PlatformConfig; the default keeps this function pure and testable. */
+  ttlMs?: number;
 }): PriceLock {
   const base = {
     vehicleId: input.vehicleId,
@@ -64,7 +67,7 @@ export function issuePriceLock(input: {
     end: input.end.toISOString(),
     total: input.breakdown.total.amount,
     currency: input.breakdown.total.currency,
-    expiresAt: Date.now() + PRICE_LOCK_TTL_MS,
+    expiresAt: Date.now() + (input.ttlMs ?? PRICE_LOCK_TTL_MS),
   };
   return { ...base, signature: sign(payload(base)) };
 }

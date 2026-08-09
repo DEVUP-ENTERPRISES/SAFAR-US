@@ -12,22 +12,39 @@ export interface Tier {
   perks: string[];
 }
 
-/** Loyalty tiers by lifetime points. Higher tiers earn faster + get perks. */
-export const TIERS: Tier[] = [
-  { key: 'bronze', label: 'Bronze', min: 0, earnMultiplierBps: 10000, perks: ['Earn 1 point per $1'] },
-  { key: 'silver', label: 'Silver', min: 500, earnMultiplierBps: 11000, perks: ['10% bonus points', 'Priority support'] },
-  { key: 'gold', label: 'Gold', min: 2000, earnMultiplierBps: 12500, perks: ['25% bonus points', 'Free cancellation window', 'Priority support'] },
-  { key: 'platinum', label: 'Platinum', min: 5000, earnMultiplierBps: 15000, perks: ['50% bonus points', 'Free delivery credits', 'Dedicated concierge'] },
-];
+/**
+ * Perk copy per tier. The thresholds and earn rates live in PlatformConfig
+ * (admin-tunable); this is the marketing text that goes with each rung.
+ */
+const TIER_PERKS: Record<string, string[]> = {
+  bronze: ['Earn 1 point per $1'],
+  silver: ['10% bonus points', 'Priority support'],
+  gold: ['25% bonus points', 'Free cancellation window', 'Priority support'],
+  platinum: ['50% bonus points', 'Free delivery credits', 'Dedicated concierge'],
+};
 
 // Point value now lives in PlatformConfig (admin-tunable).
 
 export class RewardsService {
-  tierFor(lifetime: number): Tier {
-    return [...TIERS].reverse().find((t) => lifetime >= t.min) ?? TIERS[0];
+  /**
+   * The ladder, from config. Thresholds and earn rates are admin-tunable (how
+   * generous the programme is); the perk copy stays in code because it is
+   * marketing text, not economics. Sorted defensively — an admin can add a tier
+   * out of order and the comparisons must still hold.
+   */
+  private async tiers(): Promise<Tier[]> {
+    const { rewards } = await platformConfigService.get();
+    return [...rewards.tiers]
+      .sort((a, b) => a.min - b.min)
+      .map((t) => ({ ...t, perks: TIER_PERKS[t.key] ?? [] }));
   }
-  nextTier(lifetime: number): Tier | null {
-    return TIERS.find((t) => t.min > lifetime) ?? null;
+
+  async tierFor(lifetime: number): Promise<Tier> {
+    const tiers = await this.tiers();
+    return [...tiers].reverse().find((t) => lifetime >= t.min) ?? tiers[0];
+  }
+  async nextTier(lifetime: number): Promise<Tier | null> {
+    return (await this.tiers()).find((t) => t.min > lifetime) ?? null;
   }
 
   async balance(userId: string): Promise<number> {
@@ -53,7 +70,7 @@ export class RewardsService {
       if (existing) return;
     }
     const lifetime = await this.lifetime(userId);
-    const tier = this.tierFor(lifetime);
+    const tier = await this.tierFor(lifetime);
     const points = Math.round((basePoints * tier.earnMultiplierBps) / 10000);
     await RewardEntryModel.create({ userId, points, type, refType, refId, description });
   }
@@ -95,19 +112,20 @@ export class RewardsService {
       this.lifetime(userId),
       RewardEntryModel.find({ userId }).sort({ createdAt: -1 }).limit(30).lean<RewardEntryDoc[]>(),
     ]);
-    const tier = this.tierFor(lifetime);
-    const next = this.nextTier(lifetime);
+    const tier = await this.tierFor(lifetime);
+    const next = await this.nextTier(lifetime);
     const cfg = await platformConfigService.get();
     return { balance, lifetime, tier, nextTier: next, toNext: next ? next.min - lifetime : 0, pointValueCents: cfg.rewards.pointValueCents, history };
   }
 
   /** Redeem points → wallet credit (double-entry: promo_expense → user_wallet). */
   async redeem(userId: string, points: number): Promise<{ redeemed: number; creditCents: number }> {
-    if (points < 100) throw new ValidationError('Minimum redemption is 100 points');
+    const cfg = await platformConfigService.get();
+    const min = cfg.rewards.minRedemptionPoints;
+    if (points < min) throw new ValidationError(`Minimum redemption is ${min} points`);
     const balance = await this.balance(userId);
     if (points > balance) throw new ConflictError('Not enough points', 'INSUFFICIENT_POINTS');
 
-    const cfg = await platformConfigService.get();
     const creditCents = points * cfg.rewards.pointValueCents;
     await ledgerService.post({
       refType: 'reward_redeem',

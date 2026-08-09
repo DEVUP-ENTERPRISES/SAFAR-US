@@ -169,8 +169,49 @@ router.put(
           instantFeeMinCents: cents.optional(),
         })
         .optional(),
+      booking: z
+        .object({
+          hostApprovalHours: z.number().min(1).max(168).optional(),
+          verificationGraceHours: z.number().min(1).max(336).optional(),
+          checkoutHoldMinutes: z.number().min(1).max(120).optional(),
+          priceLockMinutes: z.number().min(1).max(120).optional(),
+        })
+        .optional(),
+      search: z
+        .object({
+          ranking: z
+            .object({
+              categoryMatch: z.number().min(0).max(100).optional(),
+              bodyTypeMatch: z.number().min(0).max(100).optional(),
+              priceProximity: z.number().min(0).max(100).optional(),
+              ratingWeight: z.number().min(0).max(100).optional(),
+              superhostBoost: z.number().min(0).max(100).optional(),
+              tripsWeight: z.number().min(0).max(100).optional(),
+              tripsCap: z.number().int().min(0).max(10000).optional(),
+            })
+            .optional(),
+        })
+        .optional(),
       rewards: z
-        .object({ pointValueCents: cents.optional(), pointsPerDollar: z.number().int().min(0).optional() })
+        .object({
+          pointValueCents: cents.optional(),
+          pointsPerDollar: z.number().int().min(0).optional(),
+          minRedemptionPoints: z.number().int().min(1).max(1_000_000).optional(),
+          tiers: z
+            .array(
+              z.object({
+                key: z.string().min(2).max(32),
+                label: z.string().min(1).max(40),
+                min: z.number().int().min(0),
+                earnMultiplierBps: z.number().int().min(10000).max(50000),
+              }),
+            )
+            .min(1)
+            .max(10)
+            // A ladder must start at zero, or a brand-new member has no tier.
+            .refine((t) => t.some((x) => x.min === 0), 'One tier must start at 0 lifetime points')
+            .optional(),
+        })
         .optional(),
       referral: z
         .object({

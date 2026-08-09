@@ -3,8 +3,12 @@ import { AvailabilityModel } from '../infrastructure/availability.model';
 import { ConflictError } from '../../../core/errors/app-error';
 import { randomId } from '../../../shared/utils/uuid';
 import type { IAvailabilityContract } from '../../../core/contracts/availability.contract';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
-const HOLD_TTL_MS = 15 * 60 * 1000; // 15-minute checkout hold
+// How long a checkout hold survives is operational policy (it trades abandoned
+// carts against inventory being locked up), so it lives in PlatformConfig.
+const holdTtlMs = async (): Promise<number> =>
+  (await platformConfigService.get()).booking.checkoutHoldMinutes * 60 * 1000;
 
 /** Enumerate the UTC day keys occupied by a [start, end] rental (inclusive). */
 function dayKeys(start: Date, end: Date): string[] {
@@ -81,7 +85,7 @@ export class AvailabilityService implements IAvailabilityContract {
     });
 
     const holdId = randomId();
-    const expiresAt = new Date(Date.now() + HOLD_TTL_MS);
+    const expiresAt = new Date(Date.now() + (await holdTtlMs()));
     try {
       await AvailabilityModel.insertMany(
         keys.map((dayKey) => ({

@@ -11,6 +11,18 @@ import { EVENTS } from '../../../core/events/event-names';
 import { ValidationError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
 
+/**
+ * The default loyalty ladder. Lives here rather than in the rewards module so
+ * the config layer stays the single source of truth for platform economics —
+ * rewards reads whatever is configured, and this is only the starting point.
+ */
+export const DEFAULT_REWARD_TIERS = [
+  { key: 'bronze', label: 'Bronze', min: 0, earnMultiplierBps: 10000 },
+  { key: 'silver', label: 'Silver', min: 500, earnMultiplierBps: 11000 },
+  { key: 'gold', label: 'Gold', min: 2000, earnMultiplierBps: 12500 },
+  { key: 'platinum', label: 'Platinum', min: 5000, earnMultiplierBps: 15000 },
+];
+
 const CONFIG_KEY = 'platform:config';
 const RULES_KEY = 'platform:commission-rules';
 const TTL = 300; // 5 min — a safety net; writes invalidate immediately.
@@ -114,7 +126,34 @@ export class PlatformConfigService {
         ...(doc.incidentals ?? {}),
       },
       payout: { holdHours: 24, instantFeeBps: 150, instantFeeMinCents: 50, ...(doc.payout ?? {}) },
-      rewards: { pointValueCents: 5, pointsPerDollar: 1, ...(doc.rewards ?? {}) },
+      rewards: {
+        pointValueCents: 5,
+        pointsPerDollar: 1,
+        minRedemptionPoints: 100,
+        ...(doc.rewards ?? {}),
+        // An empty array would silently leave the programme with no ladder, so
+        // only a non-empty override replaces the default.
+        tiers: doc.rewards?.tiers?.length ? doc.rewards.tiers : DEFAULT_REWARD_TIERS,
+      },
+      booking: {
+        hostApprovalHours: 24,
+        verificationGraceHours: 72,
+        checkoutHoldMinutes: 15,
+        priceLockMinutes: 10,
+        ...(doc.booking ?? {}),
+      },
+      search: {
+        ranking: {
+          categoryMatch: 3,
+          bodyTypeMatch: 2,
+          priceProximity: 2,
+          ratingWeight: 0.5,
+          superhostBoost: 1,
+          tripsWeight: 0.02,
+          tripsCap: 20,
+          ...(doc.search?.ranking ?? {}),
+        },
+      },
       referral: { referrerCreditCents: 2000, refereeCreditCents: 1000, referrerPoints: 200, refereePoints: 100, ...(doc.referral ?? {}) },
       protection: doc.protection?.length
         ? doc.protection
