@@ -44,6 +44,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'kb', path: A('kb'), apiPath: '/admin/kb/articles', label: 'Knowledge Base', group: 'Operations', permission: 'ticket:manage' },
   { slug: 'reviews', path: A('reviews'), apiPath: '/admin/reviews', label: 'Reviews', group: 'Operations', permission: 'review:moderate' },
 
+  { slug: 'referrals', path: A('referrals'), apiPath: '/admin/referrals/stats', label: 'Referrals', group: 'Business', permission: 'admin:read' },
   { slug: 'corporate', path: A('corporate'), apiPath: '/admin/corporate/orgs', label: 'Corporate Accounts', group: 'Business', permission: 'corporate:manage' },
   { slug: 'payouts', path: A('payouts'), apiPath: '/admin/payouts', label: 'Payouts', group: 'Business', permission: 'payout:manage' },
 
@@ -51,6 +52,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'finance', path: A('finance'), apiPath: '/admin/finance', label: 'Finance', group: 'Revenue', permission: 'analytics:read' },
   { slug: 'economics', path: A('economics'), apiPath: '/admin/config', label: 'Platform Economics', group: 'Revenue', permission: 'admin:read' },
 
+  { slug: 'coupons', path: A('coupons'), apiPath: '/admin/coupons', label: 'Promo Codes', group: 'Revenue', permission: 'platform:manage' },
   { slug: 'surge', path: A('surge'), apiPath: '/admin/surge-rules', label: 'Surge Pricing', group: 'Revenue', permission: 'admin:read' },
   { slug: 'memberships', path: A('memberships'), apiPath: '/admin/subscription-plans', label: 'Memberships', group: 'Revenue', permission: 'admin:read' },
 

@@ -10,6 +10,8 @@ const router = Router();
 
 const bps = z.number().int().min(0).max(10000);
 const cents = z.number().int().min(0);
+const pct = z.number().int().min(0).max(100);
+const tier = z.enum(['new', 'bronze', 'silver', 'gold']);
 
 // ── Platform economics ────────────────────────────────────────────────
 
@@ -61,6 +63,49 @@ router.put(
           minRatingAvg: z.number().min(0).max(5).optional(),
           minRatingCount: z.number().int().min(0).max(1000).optional(),
           maxCancellationRatePct: z.number().min(0).max(100).optional(),
+        })
+        .optional(),
+      trust: z
+        .object({
+          tiers: z
+            .object({
+              gold: z.number().int().min(0).max(100).optional(),
+              silver: z.number().int().min(0).max(100).optional(),
+              bronze: z.number().int().min(0).max(100).optional(),
+            })
+            .optional(),
+          verificationPoints: z
+            .object({
+              email: z.number().int().min(0).max(100).optional(),
+              phone: z.number().int().min(0).max(100).optional(),
+              licence: z.number().int().min(0).max(100).optional(),
+            })
+            .optional(),
+          perks: z
+            .object({
+              depositDiscountPctByTier: z
+                .object({
+                  new: pct.optional(),
+                  bronze: pct.optional(),
+                  silver: pct.optional(),
+                  gold: pct.optional(),
+                })
+                .optional(),
+              instantBookMinTier: tier.optional(),
+              prioritySupportMinTier: tier.optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+      risk: z
+        .object({
+          bands: z
+            .object({
+              block: z.number().int().min(0).max(100).optional(),
+              high: z.number().int().min(0).max(100).optional(),
+              medium: z.number().int().min(0).max(100).optional(),
+            })
+            .optional(),
         })
         .optional(),
       notifications: z
@@ -128,7 +173,12 @@ router.put(
         .object({ pointValueCents: cents.optional(), pointsPerDollar: z.number().int().min(0).optional() })
         .optional(),
       referral: z
-        .object({ referrerCreditCents: cents.optional(), refereeCreditCents: cents.optional() })
+        .object({
+          referrerCreditCents: cents.optional(),
+          refereeCreditCents: cents.optional(),
+          referrerPoints: z.number().int().min(0).max(100000).optional(),
+          refereePoints: z.number().int().min(0).max(100000).optional(),
+        })
         .optional(),
       protection: z
         .array(

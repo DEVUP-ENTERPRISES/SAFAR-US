@@ -7,6 +7,7 @@ import { randomId } from '../../../shared/utils/uuid';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { kv } from '../../../infrastructure/cache/kv-store';
+import { logger } from '../../../infrastructure/logging/logger';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { trustScoreService } from '../../risk/application/trust-score.service';
 
@@ -101,6 +102,75 @@ export class WalletService {
     } finally {
       await kv().del(lockKey);
     }
+  }
+
+  // ── Admin / support ─────────────────────────────────────────────────
+
+  /**
+   * A goodwill credit or a correction, applied by staff.
+   *
+   * Support could previously do nothing about a wallet — no apology credit, no
+   * way to undo a bad charge — so the only remedy was a database edit. This
+   * posts a real double-entry pair instead: a credit is funded from
+   * `promo_expense` (the platform genuinely bears the cost, and it shows up in
+   * finance as marketing spend rather than appearing from nowhere), and a debit
+   * returns funds the same way. Every adjustment names the actor and a reason,
+   * so the ledger explains itself later.
+   *
+   * `amount` is signed: positive credits the member, negative claws back.
+   */
+  async adminAdjust(
+    userId: string,
+    amount: number,
+    opts: { actorId: string; reason: string },
+  ): Promise<{ balance: number }> {
+    if (!Number.isInteger(amount) || amount === 0) {
+      throw new ValidationError('Adjustment must be a non-zero whole number of cents');
+    }
+    const magnitude = Math.abs(amount);
+
+    // Share the spend lock: an adjustment races the same balance a booking reads.
+    const lockKey = `lock:wallet:${userId}`;
+    const locked = await kv().acquire(lockKey, 15);
+    if (!locked) throw new ConflictError('Another wallet transaction is in progress — please retry.', 'WALLET_BUSY');
+    try {
+      if (amount < 0) {
+        // Never let a correction push a member negative.
+        const balance = await this.balance(userId);
+        if (magnitude > balance) {
+          throw new ConflictError('Adjustment exceeds the current balance', 'INSUFFICIENT_WALLET');
+        }
+      }
+      const credit = amount > 0;
+      await ledgerService.post({
+        refType: 'wallet_adjustment',
+        refId: `${userId}:${Date.now()}`,
+        currency: 'USD',
+        description: `${credit ? 'Goodwill credit' : 'Correction'} by ${opts.actorId}: ${opts.reason}`,
+        legs: credit
+          ? [
+              { account: Account.promoExpense(), direction: 'debit', amount: magnitude },
+              { account: Account.userWallet(userId), direction: 'credit', amount: magnitude },
+            ]
+          : [
+              { account: Account.userWallet(userId), direction: 'debit', amount: magnitude },
+              { account: Account.promoExpense(), direction: 'credit', amount: magnitude },
+            ],
+      });
+      logger.info({ userId, amount, actorId: opts.actorId, reason: opts.reason }, 'wallet adjusted by staff');
+      return { balance: await this.balance(userId) };
+    } finally {
+      await kv().del(lockKey);
+    }
+  }
+
+  /** Balance plus recent movements — what support needs to answer "where did my money go?". */
+  async adminView(userId: string): Promise<{ userId: string; balance: number; entries: unknown[] }> {
+    const [balance, entries] = await Promise.all([
+      this.balance(userId),
+      ledgerService.entriesForAccount(Account.userWallet(userId), 50),
+    ]);
+    return { userId, balance, entries };
   }
 }
 

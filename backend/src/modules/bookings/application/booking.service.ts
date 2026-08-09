@@ -279,7 +279,15 @@ export class BookingService {
       if (status === 'paid') {
         await availabilityService.confirmHold(holdId, bookingId);
       }
-      if (dto.couponCode) await couponService.redeem(dto.couponCode);
+      // Records who redeemed what, on which booking — enforcing per-user limits
+      // and tracking campaign spend against its budget.
+      if (dto.couponCode) {
+        await couponService.redeem(dto.couponCode, {
+          userId: guestId,
+          bookingId,
+          discount: breakdown.discount,
+        });
+      }
 
       emit(EVENTS.BOOKING_CREATED, bookingId, {
         bookingId,

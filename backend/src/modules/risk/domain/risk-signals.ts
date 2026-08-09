@@ -129,10 +129,15 @@ export function applyFloors(band: RiskBand, signals: RiskSignal[]): RiskBand {
  *   high    manual review before a car is handed over
  *   block   refuse
  */
-export function bandFor(score: number): RiskBand {
-  if (score >= 90) return 'block';
-  if (score >= 60) return 'high';
-  if (score >= 30) return 'medium';
+export function bandFor(
+  score: number,
+  // Thresholds are admin policy (PlatformConfig.risk.bands) and are injected by
+  // the service. Defaults keep this function pure and independently testable.
+  bands: { block: number; high: number; medium: number } = { block: 90, high: 60, medium: 30 },
+): RiskBand {
+  if (score >= bands.block) return 'block';
+  if (score >= bands.high) return 'high';
+  if (score >= bands.medium) return 'medium';
   return 'low';
 }
 

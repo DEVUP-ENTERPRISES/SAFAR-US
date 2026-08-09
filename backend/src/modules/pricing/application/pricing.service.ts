@@ -120,7 +120,15 @@ export class PricingService implements IPricingContract {
     // ── Coupon (stacks last).
     if (input.couponCode) {
       const afterOthers = subMoney(base, discount);
-      const couponOff = await couponService.computeDiscount(input.couponCode, afterOthers);
+      // Full context so targeting rules (first-time guest, city, category, trip
+      // length, per-user limit) are judged at quote time, not just redemption —
+      // a guest must never be shown a discount that later disappears.
+      const couponOff = await couponService.computeDiscount(input.couponCode, afterOthers, {
+        userId: input.guestId,
+        city: v.location?.city,
+        category: v.category,
+        tripDays: days,
+      });
       discount = addMoney(discount, couponOff);
     }
 

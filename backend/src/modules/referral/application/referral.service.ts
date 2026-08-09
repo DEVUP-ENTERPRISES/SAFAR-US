@@ -6,9 +6,7 @@ import { platformConfigService } from '../../platform-config/application/platfor
 import { userRepository } from '../../users/infrastructure/user.repository';
 import { logger } from '../../../infrastructure/logging/logger';
 
-// Referral credits now live in PlatformConfig (admin-tunable, no deploy).
-const REFERRER_POINTS = 200;
-const REFEREE_POINTS = 100;
+// Referral credits AND bonus points live in PlatformConfig (admin-tunable, no deploy).
 
 export class ReferralService {
   /** Get (or lazily create) the user's referral code + stats. */
@@ -58,8 +56,8 @@ export class ReferralService {
     const cfg = await platformConfigService.get();
     await this.credit(conv.referrerId, cfg.referral.referrerCreditCents, `Referral reward (friend joined)`);
     await this.credit(conv.refereeId, cfg.referral.refereeCreditCents, `Welcome referral bonus`);
-    await rewardsService.award(conv.referrerId, REFERRER_POINTS, 'referral', 'referral', conv._id, 'Referral bonus points');
-    await rewardsService.award(conv.refereeId, REFEREE_POINTS, 'referral', 'referral', conv._id, 'Welcome bonus points');
+    await rewardsService.award(conv.referrerId, cfg.referral.referrerPoints, 'referral', 'referral', conv._id, 'Referral bonus points');
+    await rewardsService.award(conv.refereeId, cfg.referral.refereePoints, 'referral', 'referral', conv._id, 'Welcome bonus points');
     logger.info({ conversion: conv._id }, '🎉 referral converted — both rewarded');
   }
 

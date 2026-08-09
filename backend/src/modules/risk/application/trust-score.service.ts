@@ -4,6 +4,12 @@ import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { ReviewModel } from '../../reviews/infrastructure/review.model';
 import { riskService } from './risk.service';
 import { isCancelled } from '../../bookings/domain/booking-status';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
+
+/** Tier ordering, so a "minimum tier" perk gate is a comparison, not a list. */
+const TIER_RANK: Record<'new' | 'bronze' | 'silver' | 'gold', number> = {
+  new: 0, bronze: 1, silver: 2, gold: 3,
+};
 
 export interface TrustComponent {
   key: string;
@@ -36,6 +42,9 @@ export interface TrustScore {
  */
 export class TrustScoreService {
   async compute(userId: string): Promise<TrustScore> {
+    // Thresholds and weights are admin policy, not code constants — ops retunes
+    // them (looser during a growth push, tighter after a fraud wave) live.
+    const { trust } = await platformConfigService.get();
     const [user, kyc, bookings, reviews, riskEvents] = await Promise.all([
       UserModel.findOne({ _id: userId }).lean(),
       KycModel.findOne({ userId }).sort({ createdAt: -1 }).lean(),
@@ -49,14 +58,15 @@ export class TrustScoreService {
     // ── Verification: 30 ──────────────────────────────────────────────
     let verification = 0;
     const verifiedBits: string[] = [];
-    if (user?.emailVerified) { verification += 5; verifiedBits.push('email'); }
-    if (user?.phoneVerified) { verification += 10; verifiedBits.push('phone'); }
-    if (kyc?.status === 'approved') { verification += 15; verifiedBits.push('licence'); }
+    const vp = trust.verificationPoints;
+    if (user?.emailVerified) { verification += vp.email; verifiedBits.push('email'); }
+    if (user?.phoneVerified) { verification += vp.phone; verifiedBits.push('phone'); }
+    if (kyc?.status === 'approved') { verification += vp.licence; verifiedBits.push('licence'); }
     components.push({
       key: 'verification',
       label: 'Identity verified',
       points: verification,
-      max: 30,
+      max: vp.email + vp.phone + vp.licence,
       detail: verifiedBits.length ? `Verified: ${verifiedBits.join(', ')}` : 'Nothing verified yet',
     });
 
@@ -127,7 +137,13 @@ export class TrustScoreService {
 
     return {
       score,
-      tier: score >= 80 ? 'gold' : score >= 55 ? 'silver' : score >= 30 ? 'bronze' : 'new',
+      tier: score >= trust.tiers.gold
+        ? 'gold'
+        : score >= trust.tiers.silver
+          ? 'silver'
+          : score >= trust.tiers.bronze
+            ? 'bronze'
+            : 'new',
       components,
       nextSteps: this.nextSteps(components),
     };
@@ -159,12 +175,15 @@ export class TrustScoreService {
     instantBookEligible: boolean;
     prioritySupport: boolean;
   }> {
-    const { tier } = await this.compute(userId);
+    const [{ tier }, { trust }] = await Promise.all([this.compute(userId), platformConfigService.get()]);
+    const { depositDiscountPctByTier, instantBookMinTier, prioritySupportMinTier } = trust.perks;
+    const discountPct = depositDiscountPctByTier[tier] ?? 0;
     return {
-      depositWaived: tier === 'gold',
-      depositDiscountPct: tier === 'gold' ? 100 : tier === 'silver' ? 50 : 0,
-      instantBookEligible: tier !== 'new',
-      prioritySupport: tier === 'gold' || tier === 'silver',
+      // A full discount IS a waiver — deriving it keeps the two from disagreeing.
+      depositWaived: discountPct >= 100,
+      depositDiscountPct: discountPct,
+      instantBookEligible: TIER_RANK[tier] >= TIER_RANK[instantBookMinTier],
+      prioritySupport: TIER_RANK[tier] >= TIER_RANK[prioritySupportMinTier],
     };
   }
 }

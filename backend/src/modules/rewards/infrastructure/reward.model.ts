@@ -9,7 +9,7 @@ export interface RewardEntryDoc {
   _id: string;
   userId: string;
   points: number;
-  type: 'earn' | 'redeem' | 'bonus' | 'referral' | 'tier_bonus';
+  type: 'earn' | 'redeem' | 'bonus' | 'referral' | 'tier_bonus' | 'adjustment';
   refType: string;
   refId: string;
   description: string;

@@ -16,6 +16,7 @@ import {
   type RiskBand,
 } from '../domain/risk-signals';
 import { logger } from '../../../infrastructure/logging/logger';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
 export interface RiskContextInput {
   userId: string;
@@ -178,7 +179,8 @@ export class RiskService {
     // ── Score ────────────────────────────────────────────────────────
     const score = Math.min(100, found.reduce((sum, s) => sum + s.weight, 0));
     // Decisive signals set a floor the arithmetic cannot undercut.
-    const band = applyFloors(bandFor(score), found.map((s) => s.signal));
+    const { risk } = await platformConfigService.get();
+    const band = applyFloors(bandFor(score, risk.bands), found.map((s) => s.signal));
     const action = this.actionFor(band, input.context);
 
     const event = await RiskEventModel.create({

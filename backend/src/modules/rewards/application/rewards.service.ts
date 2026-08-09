@@ -58,6 +58,34 @@ export class RewardsService {
     await RewardEntryModel.create({ userId, points, type, refType, refId, description });
   }
 
+  /**
+   * A staff points adjustment — service recovery, or reversing abuse.
+   *
+   * Deliberately not `award()`: that one refuses non-positive values, scales by
+   * the member's tier multiplier, and dedupes by reference. A correction must
+   * be exact, may be negative, and must be repeatable. Clamped so a deduction
+   * cannot push a balance below zero.
+   */
+  async adminAdjust(userId: string, points: number, actorId: string, reason: string): Promise<void> {
+    if (!Number.isInteger(points) || points === 0) {
+      throw new ValidationError('Adjustment must be a non-zero whole number of points');
+    }
+    let delta = points;
+    if (delta < 0) {
+      const balance = await this.balance(userId);
+      if (Math.abs(delta) > balance) delta = -balance;
+      if (delta === 0) return;
+    }
+    await RewardEntryModel.create({
+      userId,
+      points: delta,
+      type: 'adjustment',
+      refType: 'admin',
+      refId: actorId,
+      description: `Staff adjustment by ${actorId}: ${reason}`,
+    });
+  }
+
   async summary(userId: string): Promise<{
     balance: number; lifetime: number; tier: Tier; nextTier: Tier | null; toNext: number;
     pointValueCents: number; history: RewardEntryDoc[];

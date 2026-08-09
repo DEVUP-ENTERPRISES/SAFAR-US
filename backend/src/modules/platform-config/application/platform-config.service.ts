@@ -81,6 +81,19 @@ export class PlatformConfigService {
       },
       noShow: { graceHours: 2, guestForfeitBps: 5000, ...(doc.noShow ?? {}) },
       superhost: { minTrips: 5, minRatingAvg: 4.8, minRatingCount: 3, maxCancellationRatePct: 5, ...(doc.superhost ?? {}) },
+      trust: {
+        tiers: { gold: 80, silver: 55, bronze: 30, ...(doc.trust?.tiers ?? {}) },
+        verificationPoints: { email: 5, phone: 10, licence: 15, ...(doc.trust?.verificationPoints ?? {}) },
+        perks: {
+          depositDiscountPctByTier: {
+            new: 0, bronze: 0, silver: 50, gold: 100,
+            ...(doc.trust?.perks?.depositDiscountPctByTier ?? {}),
+          },
+          instantBookMinTier: doc.trust?.perks?.instantBookMinTier ?? 'bronze',
+          prioritySupportMinTier: doc.trust?.perks?.prioritySupportMinTier ?? 'silver',
+        },
+      },
+      risk: { bands: { block: 90, high: 60, medium: 30, ...(doc.risk?.bands ?? {}) } },
       notifications: {
         categoryChannels: {
           trips: { push: true, email: true, sms: true },
@@ -102,7 +115,7 @@ export class PlatformConfigService {
       },
       payout: { holdHours: 24, instantFeeBps: 150, instantFeeMinCents: 50, ...(doc.payout ?? {}) },
       rewards: { pointValueCents: 5, pointsPerDollar: 1, ...(doc.rewards ?? {}) },
-      referral: { referrerCreditCents: 2000, refereeCreditCents: 1000, ...(doc.referral ?? {}) },
+      referral: { referrerCreditCents: 2000, refereeCreditCents: 1000, referrerPoints: 200, refereePoints: 100, ...(doc.referral ?? {}) },
       protection: doc.protection?.length
         ? doc.protection
         : [

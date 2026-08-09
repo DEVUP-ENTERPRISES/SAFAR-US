@@ -60,6 +60,28 @@ export interface PlatformConfigDoc {
     minRatingCount: number;
     maxCancellationRatePct: number;
   };
+  /**
+   * Guest trust engine. These thresholds decide who gets a deposit waived, who
+   * may instant-book, and who reaches priority support — pure business policy,
+   * so ops can retune it (e.g. loosen during a growth push, tighten after a
+   * fraud wave) without a deploy.
+   */
+  trust: {
+    /** Minimum score for each tier. Below `bronze` a member is 'new'. */
+    tiers: { gold: number; silver: number; bronze: number };
+    /** Points awarded for each verification step (30 available in total). */
+    verificationPoints: { email: number; phone: number; licence: number };
+    /** What each tier unlocks. */
+    perks: {
+      depositDiscountPctByTier: { new: number; bronze: number; silver: number; gold: number };
+      instantBookMinTier: 'new' | 'bronze' | 'silver' | 'gold';
+      prioritySupportMinTier: 'new' | 'bronze' | 'silver' | 'gold';
+    };
+  };
+  /** Risk engine: the score at which each enforcement band kicks in. */
+  risk: {
+    bands: { block: number; high: number; medium: number };
+  };
   /** Notification routing matrix: which channels each category may use. */
   notifications: {
     categoryChannels: Record<'trips' | 'messages' | 'payments' | 'promotions' | 'reviews' | 'account', { push: boolean; email: boolean; sms: boolean }>;
@@ -100,6 +122,9 @@ export interface PlatformConfigDoc {
   referral: {
     referrerCreditCents: number;
     refereeCreditCents: number;
+    /** Loyalty points awarded on top of the cash credit. */
+    referrerPoints: number;
+    refereePoints: number;
   };
   protection: {
     /** Per-day price of each protection tier, in cents. */
@@ -164,6 +189,35 @@ const schema = new Schema<PlatformConfigDoc>(
       minRatingCount: { type: Number, default: 3 },
       maxCancellationRatePct: { type: Number, default: 5 },
     },
+    trust: {
+      tiers: {
+        gold: { type: Number, default: 80 },
+        silver: { type: Number, default: 55 },
+        bronze: { type: Number, default: 30 },
+      },
+      verificationPoints: {
+        email: { type: Number, default: 5 },
+        phone: { type: Number, default: 10 },
+        licence: { type: Number, default: 15 },
+      },
+      perks: {
+        depositDiscountPctByTier: {
+          new: { type: Number, default: 0 },
+          bronze: { type: Number, default: 0 },
+          silver: { type: Number, default: 50 },
+          gold: { type: Number, default: 100 },
+        },
+        instantBookMinTier: { type: String, default: 'bronze' },
+        prioritySupportMinTier: { type: String, default: 'silver' },
+      },
+    },
+    risk: {
+      bands: {
+        block: { type: Number, default: 90 },
+        high: { type: Number, default: 60 },
+        medium: { type: Number, default: 30 },
+      },
+    },
     notifications: {
       categoryChannels: {
         trips: { push: { type: Boolean, default: true }, email: { type: Boolean, default: true }, sms: { type: Boolean, default: true } },
@@ -205,6 +259,8 @@ const schema = new Schema<PlatformConfigDoc>(
     referral: {
       referrerCreditCents: { type: Number, default: 2000 },
       refereeCreditCents: { type: Number, default: 1000 },
+      referrerPoints: { type: Number, default: 200 },
+      refereePoints: { type: Number, default: 100 },
     },
     protection: {
       type: [
