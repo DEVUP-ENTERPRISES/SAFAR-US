@@ -20,6 +20,7 @@ export const EVENTS = {
 
   BOOKING_CREATED: 'booking.created',
   BOOKING_CONFIRMED: 'booking.confirmed',
+  BOOKING_DECLINED: 'booking.declined',
   BOOKING_CANCELLED: 'booking.cancelled',
   BOOKING_EXPIRED: 'booking.expired',
   BOOKING_COMPLETED: 'booking.completed',

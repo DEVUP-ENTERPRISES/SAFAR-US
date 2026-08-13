@@ -24,6 +24,10 @@ async function postSystemNote(bookingId: string, body: string): Promise<void> {
 const fmtDay = (d: Date | string) =>
   new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 
+/** Minor units → a properly formatted amount for message copy ("$28.39"). */
+const formatAmount = (minorUnits: number, currency = 'USD'): string =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(minorUnits / 100);
+
 /**
  * Cross-module reactions wired in one place (each module's "manifest" of
  * subscriptions). Publishers never know who listens; this is the seam that
@@ -89,6 +93,65 @@ export function registerEventSubscribers(): void {
     realtimeEmitter.toBooking(p.bookingId, RT.BOOKING_UPDATE, { bookingId: p.bookingId, status: 'paid' });
   });
 
+  /*
+   * A request that ends in "no" must say so.
+   *
+   * Declines and lapsed requests both quietly void the guest's authorisation
+   * and release the dates — but neither told the guest anything, so their
+   * screen kept showing "waiting for the host" while nothing was coming. Both
+   * are critical: the guest has to know they need to book something else, and
+   * that they have not been charged.
+   *
+   * The deep link goes to search rather than the dead booking — at the moment
+   * someone learns their trip fell through, the useful next screen is other
+   * cars for the same dates, not the request that failed.
+   */
+  eventBus.subscribe(EVENTS.BOOKING_DECLINED, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string };
+    await notificationService.send({
+      userId: p.guestId,
+      priority: 'critical',
+      deepLink: '/search',
+      templateKey: 'booking.declined',
+      title: 'Your request wasn’t accepted',
+      body: 'The host couldn’t take this trip. You haven’t been charged — here are other cars for your dates.',
+      data: { bookingId: p.bookingId },
+    });
+    realtimeEmitter.toUser(p.guestId, RT.BOOKING_UPDATE, { bookingId: p.bookingId, status: 'declined' });
+    realtimeEmitter.toBooking(p.bookingId, RT.BOOKING_UPDATE, { bookingId: p.bookingId, status: 'declined' });
+  });
+
+  eventBus.subscribe(EVENTS.BOOKING_EXPIRED, async (e) => {
+    const p = e.payload as { bookingId: string; guestId?: string; hostId?: string; reason?: string };
+    if (!p.guestId) return; // older payloads carried only the id
+
+    const verification = p.reason === 'verification';
+    await notificationService.send({
+      userId: p.guestId,
+      priority: 'critical',
+      deepLink: verification ? '/account/verify-identity' : '/search',
+      templateKey: 'booking.expired',
+      title: verification ? 'Your booking expired — verification incomplete' : 'Your request expired',
+      body: verification
+        ? 'We couldn’t confirm your identity in time, so the dates were released. You haven’t been charged — finish verifying and book again.'
+        : 'The host didn’t respond in time, so we released your request. You haven’t been charged — here are other cars for your dates.',
+      data: { bookingId: p.bookingId },
+    });
+    realtimeEmitter.toUser(p.guestId, RT.BOOKING_UPDATE, { bookingId: p.bookingId, status: 'expired' });
+
+    // A missed request is a host problem too — an unanswered booking is lost
+    // income and counts against their responsiveness.
+    if (p.hostId && !verification) {
+      await notifyHost(
+        p.hostId,
+        'booking.expired',
+        'You missed a booking request',
+        'A request expired before you answered. Responding faster keeps your listing competitive.',
+        { bookingId: p.bookingId },
+      );
+    }
+  });
+
   // Realtime trip status pushes.
   eventBus.subscribe(EVENTS.TRIP_STARTED, async (e) => {
     const p = e.payload as { tripId: string; bookingId: string };
@@ -142,14 +205,22 @@ export function registerEventSubscribers(): void {
   });
 
   eventBus.subscribe(EVENTS.BOOKING_CANCELLED, async (e) => {
-    const p = e.payload as { bookingId: string; guestId: string; hostId: string; refund: { amount: number } };
+    const p = e.payload as {
+      bookingId: string; guestId: string; hostId: string;
+      refund: { amount: number; currency?: string };
+    };
+    const refunded = p.refund?.amount ?? 0;
     await notificationService.send({
       userId: p.guestId,
       priority: 'critical',
       deepLink: `/bookings/${p.bookingId}`,
       templateKey: 'booking.cancelled',
       title: 'Booking cancelled',
-      body: `Your booking was cancelled. Refund: ${(p.refund?.amount ?? 0) / 100}.`,
+      // Money is in minor units: dividing by 100 alone rendered "Refund: 28.4"
+      // (and occasionally a float artefact) with no currency at all.
+      body: refunded > 0
+        ? `Your booking was cancelled. We're refunding ${formatAmount(refunded, p.refund?.currency)}.`
+        : 'Your booking was cancelled. No refund was due under the cancellation policy.',
       data: { bookingId: p.bookingId },
     });
     await notifyHost(p.hostId, 'booking.cancelled', 'Booking cancelled', 'A booking was cancelled.', {

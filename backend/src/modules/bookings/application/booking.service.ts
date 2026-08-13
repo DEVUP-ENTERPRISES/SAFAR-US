@@ -467,6 +467,15 @@ export class BookingService {
     await paymentService.cancelAuthorization(bookingId);
     await availabilityService.releaseHold(booking.holdId!);
     await this.transition(booking, 'declined', userId, 'Host declined');
+    // The guest is waiting on this answer — a decline that tells nobody leaves
+    // them staring at "awaiting host" while their authorisation is quietly
+    // released.
+    emit(EVENTS.BOOKING_DECLINED, bookingId, {
+      bookingId,
+      guestId: booking.guestId,
+      hostId: booking.hostId,
+      vehicleId: booking.vehicleId,
+    });
     return this.getDoc(bookingId);
   }
 
@@ -977,7 +986,15 @@ export class BookingService {
       if (b.holdId) await availabilityService.releaseHold(b.holdId);
       const doc = await this.getDoc(b._id);
       await this.transition(doc, 'expired', 'system', 'Approval window elapsed');
-      emit(EVENTS.BOOKING_EXPIRED, b._id, { bookingId: b._id });
+      // Carry the parties, so the guest can actually be told their request
+      // lapsed rather than discovering it on their next visit.
+      emit(EVENTS.BOOKING_EXPIRED, b._id, {
+        bookingId: b._id,
+        guestId: b.guestId,
+        hostId: b.hostId,
+        vehicleId: b.vehicleId,
+        reason: b.status === 'pending_verification' ? 'verification' : 'no_response',
+      });
     }
     return due.length;
   }

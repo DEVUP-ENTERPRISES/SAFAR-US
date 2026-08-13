@@ -5,6 +5,7 @@ import { payoutService } from '../../payouts/application/payout.service';
 import { documentComplianceService } from '../../documents/application/document-compliance.service';
 import { maintenanceService } from '../../maintenance/application/maintenance.service';
 import { hostService } from '../../hosts/application/host.service';
+import { bookingService } from '../../bookings/application/booking.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
@@ -103,6 +104,21 @@ router.post(
   authorize('vehicle:verify'),
   asyncHandler(async (_req, res) => {
     sendSuccess(res, { reminded: await maintenanceService.remindDue() });
+  }),
+);
+
+/**
+ * Run the booking-expiry sweep now.
+ *
+ * It is scheduled every 5 minutes, but a stuck request holds a guest's card
+ * authorisation and a host's calendar — ops needs to be able to clear it
+ * immediately rather than wait for the next tick.
+ */
+router.post(
+  '/bookings/run-expiry',
+  authorize('booking:manage'),
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, { expired: await bookingService.expirePending() });
   }),
 );
 
