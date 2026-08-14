@@ -4,6 +4,7 @@ import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { logger } from '../../../infrastructure/logging/logger';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
 export interface CreateClaimInput {
   type: 'damage' | 'insurance' | 'dispute';
@@ -18,6 +19,44 @@ export interface CreateClaimInput {
 export class ClaimService {
   async create(claimantId: string, input: CreateClaimInput): Promise<ClaimDoc> {
     const now = new Date();
+
+    /*
+     * A finished trip must actually finish.
+     *
+     * Damage claimed days after a car was handed back is the loudest complaint
+     * in this market: the guest has no way to disprove it and no idea when they
+     * are safe from being charged. So a damage claim has a deadline, and it has
+     * to be argued against photographs rather than memory.
+     *
+     * Only damage claims are gated. An insurance matter or a payment dispute
+     * can legitimately surface much later and has nothing to do with the car's
+     * condition at handover.
+     */
+    if (input.type === 'damage' && input.bookingId) {
+      const cfg = (await platformConfigService.get()).claims;
+      const { BookingModel } = await import('../../bookings/infrastructure/booking.model');
+      const booking = await BookingModel.findOne({ _id: input.bookingId })
+        .select('period status')
+        .lean<{ period: { end: Date }; status: string } | null>();
+
+      if (booking) {
+        const deadline = new Date(booking.period.end).getTime() + cfg.filingWindowHours * 3_600_000;
+        if (now.getTime() > deadline) {
+          throw new ConflictError(
+            `Damage must be reported within ${cfg.filingWindowHours}h of the trip ending. This trip is closed.`,
+            'CLAIM_WINDOW_CLOSED',
+          );
+        }
+      }
+
+      if (cfg.requireEvidence && !(input.evidence ?? []).some((e) => e.kind === 'image')) {
+        throw new ConflictError(
+          'A damage claim needs at least one photo. Photos taken at handover are what make a claim resolvable.',
+          'EVIDENCE_REQUIRED',
+        );
+      }
+    }
+
     const claim = await ClaimModel.create({
       ...input,
       claimantId,
@@ -26,6 +65,48 @@ export class ClaimService {
       timeline: [{ status: 'opened', at: now, by: claimantId, note: 'Claim filed' }],
     });
     return claim.toObject();
+  }
+
+  /**
+   * When does this trip stop being able to cost the guest anything?
+   *
+   * The point of a filing deadline is only felt if the guest can see it. This
+   * answers "am I done?" in a date — and once it passes, says so plainly.
+   */
+  async settlementStatus(bookingId: string): Promise<{
+    closesAt: Date | null;
+    closed: boolean;
+    hoursRemaining: number | null;
+    openClaims: number;
+  }> {
+    const cfg = (await platformConfigService.get()).claims;
+    const { BookingModel } = await import('../../bookings/infrastructure/booking.model');
+    const booking = await BookingModel.findOne({ _id: bookingId })
+      .select('period status')
+      .lean<{ period: { end: Date }; status: string } | null>();
+    if (!booking) throw new NotFoundError('Booking');
+
+    const openClaims = await ClaimModel.countDocuments({
+      bookingId,
+      deletedAt: null,
+      status: { $nin: ['settled', 'rejected', 'closed'] },
+    });
+
+    // The clock only starts once the trip has actually ended.
+    if (booking.status !== 'completed') {
+      return { closesAt: null, closed: false, hoursRemaining: null, openClaims };
+    }
+
+    const closesAt = new Date(new Date(booking.period.end).getTime() + cfg.filingWindowHours * 3_600_000);
+    const msLeft = closesAt.getTime() - Date.now();
+    return {
+      closesAt,
+      // An open claim keeps the trip live regardless of the clock — it is being
+      // argued, and saying "closed" while money is still in dispute would be a lie.
+      closed: msLeft <= 0 && openClaims === 0,
+      hoursRemaining: msLeft > 0 ? Math.ceil(msLeft / 3_600_000) : 0,
+      openClaims,
+    };
   }
 
   async getForUser(userId: string, claimId: string): Promise<ClaimDoc> {

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Calendar, MapPin, MessageSquare, Receipt, Car, ShieldCheck, XCircle,
+  ArrowLeft, Calendar, MapPin, MessageSquare, Receipt, Car, ShieldCheck, XCircle, Lock,
 } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,8 +16,10 @@ import { ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { formatMoney, formatDate } from '@/lib/utils/format';
+import { cn } from '@/lib/utils/cn';
 import { ChatPanel } from '@/features/messaging/chat-panel';
 import { bookingApi } from '@/features/bookings/api';
+import { claimsApi } from '@/features/claims/api';
 import { vehicleApi } from '@/features/vehicles/api';
 import { ApiError } from '@/lib/api/types';
 
@@ -50,6 +52,16 @@ function BookingDetail({ id }: { id: string }) {
     queryKey: ['vehicle', booking.data?.vehicleId],
     queryFn: () => vehicleApi.getById(booking.data!.vehicleId),
     enabled: !!booking.data?.vehicleId,
+  });
+
+  // After a trip ends there is a window in which damage can still be claimed.
+  // Guests deserve to know when that shuts — it is the difference between
+  // "probably fine" and "this trip can no longer cost me anything".
+  const settlement = useQuery({
+    queryKey: ['settlement', id],
+    queryFn: () => claimsApi.settlement(id),
+    enabled: booking.data?.status === 'completed',
+    retry: false,
   });
 
   const cancel = useMutation({
@@ -167,6 +179,31 @@ function BookingDetail({ id }: { id: string }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* The close-out promise, in a date. */}
+      {b.status === 'completed' && settlement.data && (
+        <Card className={settlement.data.closed ? 'border-success/40 bg-success/5' : undefined}>
+          <CardContent className="flex items-start gap-3 py-5">
+            <Lock className={cn('mt-0.5 h-5 w-5 shrink-0', settlement.data.closed ? 'text-success' : 'text-muted-foreground')} />
+            <div>
+              <p className="font-semibold">
+                {settlement.data.closed
+                  ? 'This trip is closed'
+                  : settlement.data.openClaims > 0
+                    ? 'A claim is being reviewed'
+                    : 'Final checks'}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {settlement.data.closed
+                  ? 'No further charges can be made for this trip. You’re done.'
+                  : settlement.data.openClaims > 0
+                    ? 'We’ll let you know the outcome. Nothing is charged until it’s resolved.'
+                    : `Your host has ${settlement.data.hoursRemaining}h left to report any damage. After that, this trip can’t be charged again.`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Talk to the host — the thing that was missing entirely. */}
       {canChat && (

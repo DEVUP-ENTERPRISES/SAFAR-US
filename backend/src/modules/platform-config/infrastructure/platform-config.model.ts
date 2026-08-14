@@ -75,6 +75,22 @@ export interface PlatformConfigDoc {
       graceWindowDays: number;
     };
   };
+  /**
+   * Damage-claim window — the promise that a finished trip stays finished.
+   *
+   * The loudest complaint in peer-to-peer car sharing is a damage charge that
+   * lands days after a car was handed back clean, with the guest having no way
+   * to disprove it. A hard deadline makes the trip financially closeable: after
+   * it passes, nobody can come back for money. Requiring return photos to file
+   * means a claim is always argued against evidence taken at handover, not
+   * memory.
+   */
+  claims: {
+    /** Hours after the trip ends in which a damage claim may be filed. */
+    filingWindowHours: number;
+    /** Refuse a damage claim with no photographic evidence. */
+    requireEvidence: boolean;
+  };
   /** No-show handling once the trip start passes without a handover. */
   noShow: {
     /** Hours after start before a no-show can be declared. */
@@ -257,6 +273,10 @@ const schema = new Schema<PlatformConfigDoc>(
         graceCancellations: { type: Number, default: 1 },
         graceWindowDays: { type: Number, default: 365 },
       },
+    },
+    claims: {
+      filingWindowHours: { type: Number, default: 72 },
+      requireEvidence: { type: Boolean, default: true },
     },
     noShow: {
       graceHours: { type: Number, default: 2 },

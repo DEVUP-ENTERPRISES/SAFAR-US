@@ -74,6 +74,12 @@ router.put(
             .optional(),
         })
         .optional(),
+      claims: z
+        .object({
+          filingWindowHours: z.number().int().min(1).max(720).optional(),
+          requireEvidence: z.boolean().optional(),
+        })
+        .optional(),
       superhost: z
         .object({
           minTrips: z.number().int().min(0).max(1000).optional(),

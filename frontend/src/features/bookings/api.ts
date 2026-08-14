@@ -1,5 +1,6 @@
 import { api } from '@/lib/api/client';
 import type { Booking, PriceBreakdown, QuoteInput, Money } from './types';
+import type { Vehicle } from '@/features/vehicles/types';
 
 export interface CancellationPreview {
   total: Money;
@@ -48,4 +49,30 @@ export const bookingApi = {
     api.post<Booking>(`/bookings/${id}/drivers`, { name, licenseNumber: licenseNumber || undefined }),
   removeDriver: (id: string, name: string) =>
     api.raw<Booking>(`/bookings/${id}/drivers/${encodeURIComponent(name)}`, { method: 'DELETE' }).then((r) => r.data),
+
+  /** Replacement cars after a host cancellation, each priced net of the guarantee. */
+  rebookingOptions: (id: string) => api.get<RebookingOptions>(`/bookings/${id}/rebooking-options`),
+  rebook: (id: string, vehicleId: string) => api.post<Booking>(`/bookings/${id}/rebook`, { vehicleId }),
 };
+
+export interface RebookingOption {
+  vehicle: Vehicle;
+  total: Money;
+  /** How much dearer than the original booking, in minor units. */
+  difference: number;
+  /** What the guarantee absorbs of that difference. */
+  covered: number;
+  youPay: Money;
+  fullyCovered: boolean;
+}
+
+export interface RebookingOptions {
+  originalTotal: Money;
+  protection: {
+    enabled: boolean;
+    coverageBps: number;
+    maxCoverageCents: number;
+    expiresAt: string | null;
+  };
+  options: RebookingOption[];
+}

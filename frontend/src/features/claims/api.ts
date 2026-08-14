@@ -22,4 +22,15 @@ export const claimsApi = {
     amountClaimed?: number;
     evidence?: { url: string; kind: 'image' | 'file' }[];
   }) => api.post<Claim>('/claims', input),
+
+  /** When this trip stops being able to cost the guest anything. */
+  settlement: (bookingId: string) => api.get<Settlement>(`/claims/settlement/${bookingId}`),
 };
+
+export interface Settlement {
+  /** Null until the trip has actually ended — the clock starts at return. */
+  closesAt: string | null;
+  closed: boolean;
+  hoursRemaining: number | null;
+  openClaims: number;
+}

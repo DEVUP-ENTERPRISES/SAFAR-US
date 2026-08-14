@@ -37,6 +37,18 @@ router.get(
   }),
 );
 
+/**
+ * "Is this trip finished with me?" — when the damage window closes, and whether
+ * anything is still outstanding. Placed above /:id so the literal path wins.
+ */
+router.get(
+  '/settlement/:bookingId',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await claimService.settlementStatus(req.params.bookingId));
+  }),
+);
+
 router.get(
   '/:id',
   authenticate,
