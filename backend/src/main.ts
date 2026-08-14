@@ -6,6 +6,7 @@ import { connectMongo, disconnectMongo } from './infrastructure/database/mongoos
 import { redis, connectRedis, disconnectRedis } from './infrastructure/cache/redis.client';
 import { setKvStore, RedisKvStore, InMemoryKvStore } from './infrastructure/cache/kv-store';
 import { registerEventSubscribers } from './bootstrap/event-subscriptions';
+import { installCrashHandlers } from './infrastructure/observability/error-reporter';
 import { seedAdmin } from './bootstrap/seed-admin';
 import { initRealtime } from './realtime';
 import { initJobs } from './jobs';
@@ -22,6 +23,8 @@ import { isRedisHealthy } from './infrastructure/cache/redis.client';
  * mandatory for multi-instance correctness.
  */
 async function bootstrap(): Promise<void> {
+  // First thing: a crash during boot is exactly when you most need it recorded.
+  installCrashHandlers();
   await connectMongo();
 
   try {

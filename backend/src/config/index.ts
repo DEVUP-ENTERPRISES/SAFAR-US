@@ -106,6 +106,11 @@ export const config = Object.freeze({
     identityWebhookSecret: env.STRIPE_IDENTITY_WEBHOOK_SECRET,
     identityEnabled: !!env.STRIPE_SECRET_KEY && !!env.STRIPE_IDENTITY_WEBHOOK_SECRET,
   },
+  observability: {
+    sentryDsn: env.SENTRY_DSN,
+    /** Shown against each event so a regression can be traced to a deploy. */
+    release: env.RELEASE ?? 'dev',
+  },
   aws: {
     region: env.AWS_REGION,
     accessKeyId: env.AWS_ACCESS_KEY_ID,

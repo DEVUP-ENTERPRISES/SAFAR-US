@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import mongoose from 'mongoose';
 import { AppError } from '../../core/errors/app-error';
-import { logger } from '../../infrastructure/logging/logger';
+import { reportError } from '../../infrastructure/observability/error-reporter';
 
 /**
  * The single place errors become HTTP responses. Recognizes domain errors,
@@ -48,8 +48,15 @@ export function errorHandler(
     return;
   }
 
-  // Unknown / unexpected → log full detail, return generic 500
-  logger.error({ err, requestId, path: req.path }, 'Unhandled error');
+  // Unknown / unexpected → report and log full detail, return a generic 500.
+  // Only genuinely unexpected errors are reported: AppError and ZodError are
+  // handled outcomes above, and paging on them would bury the real failures.
+  reportError(err, {
+    requestId,
+    path: req.path,
+    method: req.method,
+    userId: req.principal?.userId,
+  });
   res.status(500).json({
     success: false,
     error: { code: 'INTERNAL_ERROR', message: 'Something went wrong', requestId },

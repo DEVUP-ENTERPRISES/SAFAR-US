@@ -85,6 +85,10 @@ export const envSchema = z.object({
   EMAIL_API_KEY: optional(z.string()),
   /** Envelope sender, e.g. "CATO <no-reply@cato.com>". Required either way. */
   EMAIL_FROM: optional(z.string()),
+  /** Sentry DSN. Absent = errors are logged locally only. */
+  SENTRY_DSN: optional(z.string()),
+  /** Release identifier shown against each event (e.g. a git SHA). */
+  RELEASE: optional(z.string()),
   SMS_ACCOUNT_SID: optional(z.string()),
   /**
    * Twilio API key (SK…) + its secret — the recommended credentials: scoped to
