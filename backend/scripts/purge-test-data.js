@@ -9,9 +9,15 @@
  * Deliberately NOT destructive by default: run with --dry (the default) to see
  * exactly what would go, and --confirm to actually delete.
  *
- *   node scripts/purge-test-data.js            # report only
- *   node scripts/purge-test-data.js --confirm  # actually delete
+ *   node scripts/purge-test-data.js              # report only
+ *   node scripts/purge-test-data.js --confirm    # wipe all transactional data
  *   node scripts/purge-test-data.js --confirm --keep-catalog
+ *   node scripts/purge-test-data.js --confirm --test-only
+ *
+ * `--test-only` removes ONLY accounts the e2e suites created (@test.com) and
+ * everything belonging to them. Run it after a test run: the suites register a
+ * user before they can fail, so even an aborted run leaves an account behind,
+ * and those accumulate into a fake-looking admin panel.
  *
  * `--keep-catalog` preserves hosts and vehicles, so you keep a browsable
  * catalogue to develop against while still wiping bookings, money and users.
@@ -21,6 +27,10 @@ const fs = require('fs');
 
 const CONFIRM = process.argv.includes('--confirm');
 const KEEP_CATALOG = process.argv.includes('--keep-catalog');
+const TEST_ONLY = process.argv.includes('--test-only');
+
+/** How the e2e suites name the accounts they create. */
+const TEST_EMAIL = /@test\.com$/i;
 const mongoUri = () => fs.readFileSync(path.join(__dirname, '..', '.env'), 'utf8').match(/^MONGO_URI=(.+)$/m)[1].trim();
 
 /**
@@ -82,7 +92,49 @@ const CATALOG = ['vehicles', 'hosts'];
 
   const adminEmail = (fs.readFileSync(path.join(__dirname, '..', '.env'), 'utf8').match(/^ADMIN_EMAIL=(.+)$/m) || [])[1]?.trim();
 
-  console.log(`\n${CONFIRM ? 'PURGING' : 'DRY RUN — nothing will be deleted'}\n`);
+  console.log(
+    `\n${CONFIRM ? 'PURGING' : 'DRY RUN — nothing will be deleted'}${TEST_ONLY ? ' (test accounts only)' : ''}\n`,
+  );
+
+  if (TEST_ONLY) {
+    const testUsers = await db
+      .collection('users')
+      .find({ email: TEST_EMAIL }, { projection: { _id: 1 } })
+      .toArray();
+    const ids = testUsers.map((u) => u._id);
+    console.log(`  ${String(ids.length).padStart(6)}  users (@test.com)`);
+
+    if (ids.length === 0) {
+      console.log('\n  Nothing to clean.\n');
+      await mongoose.disconnect();
+      return;
+    }
+
+    // Everything those accounts own, by whichever field references them.
+    const owned = [
+      ['bookings', 'guestId'], ['kycs', 'userId'], ['notifications', 'userId'],
+      ['riskevents', 'userId'], ['devices', 'userId'], ['rewardentries', 'userId'],
+      ['favorites', 'userId'], ['savedsearches', 'userId'], ['tickets', 'userId'],
+      ['paymentmethods', 'userId'], ['usersubscriptions', 'userId'],
+      ['referralcodes', 'userId'], ['messages', 'senderId'],
+    ];
+
+    let n = ids.length;
+    for (const [col, field] of owned) {
+      if (!(await db.listCollections({ name: col }).hasNext())) continue;
+      const count = await db.collection(col).countDocuments({ [field]: { $in: ids } });
+      if (count === 0) continue;
+      n += count;
+      console.log(`  ${String(count).padStart(6)}  ${col}`);
+      if (CONFIRM) await db.collection(col).deleteMany({ [field]: { $in: ids } });
+    }
+    if (CONFIRM) await db.collection('users').deleteMany({ _id: { $in: ids } });
+
+    console.log(`\n  ${CONFIRM ? 'Deleted' : 'Would delete'}: ${n} documents`);
+    console.log(CONFIRM ? '\n  Done.\n' : '\n  Re-run with --confirm to delete.\n');
+    await mongoose.disconnect();
+    return;
+  }
 
   const targets = [...PURGE, ...(KEEP_CATALOG ? [] : CATALOG)];
   let total = 0;
