@@ -18,6 +18,10 @@ import { paymentService } from '../../payments/application/payment.service';
 import { walletService } from '../../wallet/application/wallet.service';
 import { couponService } from '../../coupons/application/coupon.service';
 import { hostService } from '../../hosts/application/host.service';
+import { ledgerService } from '../../payments/application/ledger.service';
+import { Account } from '../../payments/domain/ledger.accounts';
+import { notificationService } from '../../notifications/application/notification.service';
+import { logger } from '../../../infrastructure/logging/logger';
 import { NotFoundError, ConflictError, ForbiddenError, ValidationError } from '../../../core/errors/app-error';
 import { uuid, randomId } from '../../../shared/utils/uuid';
 import { emit } from '../../../shared/events/event-bus';
@@ -31,6 +35,10 @@ import type { CreateBookingDto } from '../dto/booking.schemas';
 // The approval and verification windows are operational policy (they trade
 // conversion against inventory certainty), so they live in PlatformConfig.
 const HOUR_MS = 60 * 60 * 1000;
+
+/** Minor units → readable currency for guest- and host-facing copy. */
+const formatMinor = (minorUnits: number, currency = 'USD'): string =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(minorUnits / 100);
 const approvalWindowMs = async (): Promise<number> =>
   (await platformConfigService.get()).booking.hostApprovalHours * HOUR_MS;
 
@@ -539,8 +547,12 @@ export class BookingService {
       cancelledBy: isHost ? 'host' : isGuest ? 'guest' : 'system',
       refund,
     });
-    // A host cancel strands the guest — offer rebooking on a similar free car.
+    // A host cancel strands the guest — offer rebooking on a similar free car,
+    // and make the cancellation cost the host something.
     if (isHost) {
+      await this.chargeHostCancellationPenalty(booking).catch((err) =>
+        logger.warn({ err, bookingId }, 'host cancellation penalty failed'),
+      );
       emit(EVENTS.BOOKING_REBOOKING_NEEDED, bookingId, {
         bookingId, guestId: booking.guestId, vehicleId: booking.vehicleId,
         start: booking.period.start, end: booking.period.end, reason: 'host_cancel',
@@ -652,16 +664,102 @@ export class BookingService {
    * left stranded: we surface similar cars actually free for their exact dates
    * (same metro, same category first) and let them rebook in one tap.
    */
-  async rebookingOptions(principal: Principal, bookingId: string): Promise<VehicleDoc[]> {
+  /**
+   * Replacement cars for a stranded guest, each priced and showing exactly what
+   * the guarantee covers.
+   *
+   * The guest is deciding under stress, so "similar cars" alone is not enough —
+   * they need to see, per car, what they would actually pay after the
+   * guarantee. Quoting each option is a handful of reads and turns the promise
+   * into a number before they commit.
+   */
+  async rebookingOptions(
+    principal: Principal,
+    bookingId: string,
+  ): Promise<{
+    originalTotal: Money;
+    protection: { enabled: boolean; coverageBps: number; maxCoverageCents: number; expiresAt: Date | null };
+    options: {
+      vehicle: VehicleDoc;
+      total: Money;
+      difference: number;
+      covered: number;
+      youPay: Money;
+      fullyCovered: boolean;
+    }[];
+  }> {
     const booking = await this.getDoc(bookingId);
     if (booking.guestId !== principal.userId) throw new ForbiddenError('Not your booking');
-    return searchService.similarTo(booking.vehicleId, {
+
+    const { rebookingProtection: cfg } = await platformConfigService.get();
+    const vehicles = await searchService.similarTo(booking.vehicleId, {
       start: booking.period.start,
       end: booking.period.end,
       limit: 6,
     });
+
+    const originalTotal = booking.priceBreakdown.total;
+    const cancelledAt = booking.cancellation?.at ?? booking.updatedAt;
+    const expiresAt = cfg.enabled
+      ? new Date(new Date(cancelledAt).getTime() + cfg.windowHours * 3_600_000)
+      : null;
+    const stillCovered = cfg.enabled && !!expiresAt && expiresAt.getTime() > Date.now();
+
+    const options = [];
+    for (const vehicle of vehicles) {
+      const quote = await pricingService
+        .quote({
+          vehicleId: vehicle._id,
+          start: booking.period.start,
+          end: booking.period.end,
+          guestId: booking.guestId,
+        })
+        .catch(() => null);
+      if (!quote) continue;
+
+      const difference = Math.max(0, quote.total.amount - originalTotal.amount);
+      const covered = stillCovered
+        ? Math.min(Math.floor((difference * cfg.coverageBps) / 10000), cfg.maxCoverageCents)
+        : 0;
+      options.push({
+        vehicle,
+        total: quote.total,
+        difference,
+        covered,
+        youPay: { amount: quote.total.amount - covered, currency: quote.total.currency },
+        fullyCovered: difference > 0 && covered >= difference,
+      });
+    }
+
+    // Cheapest out-of-pocket first — what the guest actually cares about.
+    options.sort((a, b) => a.youPay.amount - b.youPay.amount);
+
+    return {
+      originalTotal,
+      protection: {
+        enabled: stillCovered,
+        coverageBps: cfg.coverageBps,
+        maxCoverageCents: cfg.maxCoverageCents,
+        expiresAt,
+      },
+      options,
+    };
   }
 
+  /**
+   * Rebook a stranded guest onto another car — at the price they originally
+   * agreed.
+   *
+   * A host cancelling almost always forces the guest into last-minute pricing
+   * for the same dates, so a plain refund still leaves them out of pocket for
+   * someone else's failure. The guarantee closes that gap: the platform pays
+   * the difference (capped, and only inside the window), the guest keeps their
+   * original price, and the host who caused it has already been penalised.
+   *
+   * The credit lands in the guest's wallet rather than reducing the charge, so
+   * the new booking prices normally — the host of the replacement car is paid
+   * in full and never subsidises another host's cancellation.
+   */
   async rebook(principal: Principal, bookingId: string, vehicleId: string): Promise<BookingDoc> {
     const booking = await this.getDoc(bookingId);
     if (booking.guestId !== principal.userId) throw new ForbiddenError('Not your booking');
@@ -671,11 +769,140 @@ export class BookingService {
     if (vehicleId === booking.vehicleId) {
       throw new ValidationError('Pick a different car to rebook');
     }
-    return this.create(
+
+    const replacement = await this.create(
       principal.userId,
       { vehicleId, start: booking.period.start.toISOString(), end: booking.period.end.toISOString() } as CreateBookingDto,
       `rebook_${bookingId}_${vehicleId}`,
     );
+
+    const covered = await this.applyRebookingProtection(booking, replacement).catch((err) => {
+      // The guest already has a car; a failure here must not undo that.
+      logger.error({ err, bookingId, replacementId: replacement._id }, 'rebooking protection failed');
+      return 0;
+    });
+
+    return covered > 0 ? this.getDoc(replacement._id) : replacement;
+  }
+
+  /**
+   * Pay the price difference on a guarantee-covered rebooking.
+   *
+   * Returns what was covered, in minor units (0 when nothing was owed).
+   */
+  private async applyRebookingProtection(original: BookingDoc, replacement: BookingDoc): Promise<number> {
+    const { rebookingProtection: cfg } = await platformConfigService.get();
+    if (!cfg.enabled) return 0;
+
+    // The promise has a shelf life — otherwise a guest could sit on a cancelled
+    // booking for weeks and claim the gap once prices had moved for other reasons.
+    const cancelledAt = original.cancellation?.at ?? original.updatedAt;
+    if (Date.now() - new Date(cancelledAt).getTime() > cfg.windowHours * 3_600_000) return 0;
+
+    const gap = replacement.priceBreakdown.total.amount - original.priceBreakdown.total.amount;
+    if (gap <= 0) return 0; // the replacement was the same or cheaper
+
+    const covered = Math.min(Math.floor((gap * cfg.coverageBps) / 10000), cfg.maxCoverageCents);
+    if (covered <= 0) return 0;
+
+    const currency = replacement.priceBreakdown.total.currency;
+    await ledgerService.post({
+      refType: 'rebooking_protection',
+      refId: replacement._id,
+      currency,
+      description: `Rebooking guarantee: covered the difference after a host cancellation (${original.code})`,
+      legs: [
+        { account: Account.guaranteeExpense(), direction: 'debit', amount: covered },
+        { account: Account.userWallet(original.guestId), direction: 'credit', amount: covered },
+      ],
+    });
+
+    await BookingModel.updateOne(
+      { _id: replacement._id },
+      { rebookedFrom: original._id, coveredDifference: { amount: covered, currency } },
+    );
+
+    // Only claim they paid nothing extra when that is actually true — the cap
+    // means a very large gap is covered in part, and saying otherwise would be
+    // the kind of promise that turns into a support ticket.
+    const fullyCovered = covered >= gap;
+    await notificationService.send({
+      userId: original.guestId,
+      priority: 'high',
+      deepLink: `/bookings/${replacement._id}`,
+      templateKey: 'booking.rebooking_covered',
+      title: fullyCovered ? 'We covered the difference' : 'We covered most of the difference',
+      body: fullyCovered
+        ? `Your replacement car cost more, so we credited the ${formatMinor(covered, currency)} difference to your wallet. You paid what you originally booked.`
+        : `Your replacement car cost ${formatMinor(gap, currency)} more. We credited ${formatMinor(covered, currency)} to your wallet — the most our guarantee covers on one trip.`,
+      data: { bookingId: replacement._id, covered, gap, fullyCovered },
+    });
+    logger.info({ original: original._id, replacement: replacement._id, covered }, 'rebooking guarantee applied');
+    return covered;
+  }
+
+  /**
+   * Charge a host for cancelling a confirmed trip.
+   *
+   * Without a cost, cancelling is free for the host and expensive for everyone
+   * else — the guest is stranded and the platform funds the rebooking. The
+   * penalty is deducted from the host's payable balance (so it settles against
+   * their next payout rather than needing a separate charge), and the first few
+   * cancellations in the window are forgiven because genuine emergencies happen.
+   */
+  private async chargeHostCancellationPenalty(booking: BookingDoc): Promise<void> {
+    const { hostPenalty } = (await platformConfigService.get()).rebookingProtection;
+    if (!hostPenalty.enabled) return;
+
+    const since = new Date(Date.now() - hostPenalty.graceWindowDays * 86_400_000);
+    const priorCancellations = await BookingModel.countDocuments({
+      hostId: booking.hostId,
+      status: 'cancelled_host',
+      _id: { $ne: booking._id },
+      updatedAt: { $gte: since },
+    });
+    if (priorCancellations < hostPenalty.graceCancellations) {
+      logger.info(
+        { hostId: booking.hostId, priorCancellations },
+        'host cancellation within the forgiven allowance — no penalty',
+      );
+      return;
+    }
+
+    const total = booking.priceBreakdown.total.amount;
+    const penalty = hostPenalty.flatCents + Math.floor((total * hostPenalty.pctOfBookingBps) / 10000);
+    if (penalty <= 0) return;
+
+    const currency = booking.priceBreakdown.total.currency;
+    await ledgerService.post({
+      refType: 'host_cancellation_penalty',
+      refId: booking._id,
+      currency,
+      description: `Host cancellation penalty (${booking.code})`,
+      legs: [
+        { account: Account.hostPayable(booking.hostId), direction: 'debit', amount: penalty },
+        { account: Account.guaranteeExpense(), direction: 'credit', amount: penalty },
+      ],
+    });
+
+    await this.notifyHostOfPenalty(booking.hostId, penalty, currency, booking.code);
+    logger.info({ hostId: booking.hostId, bookingId: booking._id, penalty }, 'host cancellation penalty charged');
+  }
+
+  private async notifyHostOfPenalty(hostId: string, penalty: number, currency: string, code: string): Promise<void> {
+    try {
+      const host = await hostService.getById(hostId);
+      await notificationService.send({
+        userId: host.userId,
+        priority: 'high',
+        templateKey: 'booking.host_cancellation_penalty',
+        title: 'Cancellation fee applied',
+        body: `Cancelling ${code} left your guest without a car, so a ${formatMinor(penalty, currency)} fee was deducted from your next payout. Cancellations also affect your All-Star status.`,
+        data: { hostId, penalty },
+      });
+    } catch (err) {
+      logger.warn({ err, hostId }, 'host penalty notification failed');
+    }
   }
 
   /**

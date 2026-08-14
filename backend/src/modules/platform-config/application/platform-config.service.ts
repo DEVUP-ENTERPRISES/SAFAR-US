@@ -92,6 +92,21 @@ export class PlatformConfigService {
         strict: { fullBeforeHours: 168, partialBps: 0, ...(doc.cancellation?.strict ?? {}) },
       },
       noShow: { graceHours: 2, guestForfeitBps: 5000, ...(doc.noShow ?? {}) },
+      rebookingProtection: {
+        enabled: true,
+        coverageBps: 10000,
+        maxCoverageCents: 15000,
+        windowHours: 72,
+        ...(doc.rebookingProtection ?? {}),
+        hostPenalty: {
+          enabled: true,
+          flatCents: 5000,
+          pctOfBookingBps: 0,
+          graceCancellations: 1,
+          graceWindowDays: 365,
+          ...(doc.rebookingProtection?.hostPenalty ?? {}),
+        },
+      },
       superhost: { minTrips: 5, minRatingAvg: 4.8, minRatingCount: 3, maxCancellationRatePct: 5, ...(doc.superhost ?? {}) },
       trust: {
         tiers: { gold: 80, silver: 55, bronze: 30, ...(doc.trust?.tiers ?? {}) },

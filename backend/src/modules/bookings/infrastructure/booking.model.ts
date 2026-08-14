@@ -57,6 +57,13 @@ export interface BookingDoc {
   instantBook: boolean;
   approvalDeadline?: Date;
   cancellation?: { by: string; role?: 'guest' | 'host' | 'admin' | 'system'; at: Date; reason: string; refund: MoneyField };
+  /**
+   * Set when this booking replaces one the host cancelled. `coveredDifference`
+   * is what the rebooking guarantee paid so the guest kept their original
+   * price — the audit trail behind the promise.
+   */
+  rebookedFrom?: string;
+  coveredDifference?: MoneyField;
   tripId?: string;
   idempotencyKey?: string;
   reminderSentAt?: Date;
@@ -146,6 +153,8 @@ const schema = new Schema<BookingDoc>(
     costCenterId: String,
     instantBook: { type: Boolean, default: false },
     approvalDeadline: Date,
+    rebookedFrom: String,
+    coveredDifference: moneySchema,
     cancellation: {
       by: String,
       role: { type: String, enum: ['guest', 'host', 'admin', 'system'] },

@@ -57,6 +57,23 @@ router.put(
       noShow: z
         .object({ graceHours: z.number().int().min(0).max(72).optional(), guestForfeitBps: bps.optional() })
         .optional(),
+      rebookingProtection: z
+        .object({
+          enabled: z.boolean().optional(),
+          coverageBps: bps.optional(),
+          maxCoverageCents: cents.optional(),
+          windowHours: z.number().int().min(0).max(720).optional(),
+          hostPenalty: z
+            .object({
+              enabled: z.boolean().optional(),
+              flatCents: cents.optional(),
+              pctOfBookingBps: bps.optional(),
+              graceCancellations: z.number().int().min(0).max(50).optional(),
+              graceWindowDays: z.number().int().min(1).max(3650).optional(),
+            })
+            .optional(),
+        })
+        .optional(),
       superhost: z
         .object({
           minTrips: z.number().int().min(0).max(1000).optional(),

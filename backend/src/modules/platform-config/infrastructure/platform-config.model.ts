@@ -46,6 +46,35 @@ export interface PlatformConfigDoc {
     moderate: { fullBeforeHours: number; partialBps: number };
     strict: { fullBeforeHours: number; partialBps: number };
   };
+  /**
+   * Rebooking protection — the promise that a host cancelling does not leave
+   * the guest paying more for the same trip.
+   *
+   * When the host strands a guest, comparable cars for those exact dates are
+   * almost always dearer (they are now last-minute). Refunding leaves the guest
+   * out of pocket for a failure that was not theirs, so the platform covers the
+   * difference, and the host who caused it carries a penalty — which is also
+   * what stops cancellations becoming free.
+   */
+  rebookingProtection: {
+    enabled: boolean;
+    /** Share of the price difference covered. 10000 = the whole gap. */
+    coverageBps: number;
+    /** Hard ceiling on what a single rebooking may cost the platform. */
+    maxCoverageCents: number;
+    /** How long after the cancellation the guarantee stands. */
+    windowHours: number;
+    hostPenalty: {
+      enabled: boolean;
+      /** Flat charge per host cancellation, in minor units. */
+      flatCents: number;
+      /** Additional share of the booking total. */
+      pctOfBookingBps: number;
+      /** Cancellations forgiven per window — genuine emergencies happen. */
+      graceCancellations: number;
+      graceWindowDays: number;
+    };
+  };
   /** No-show handling once the trip start passes without a handover. */
   noShow: {
     /** Hours after start before a no-show can be declared. */
@@ -215,6 +244,19 @@ const schema = new Schema<PlatformConfigDoc>(
       flexible: { fullBeforeHours: { type: Number, default: 24 }, partialBps: { type: Number, default: 5000 } },
       moderate: { fullBeforeHours: { type: Number, default: 48 }, partialBps: { type: Number, default: 5000 } },
       strict: { fullBeforeHours: { type: Number, default: 168 }, partialBps: { type: Number, default: 0 } },
+    },
+    rebookingProtection: {
+      enabled: { type: Boolean, default: true },
+      coverageBps: { type: Number, default: 10000 },
+      maxCoverageCents: { type: Number, default: 15000 },
+      windowHours: { type: Number, default: 72 },
+      hostPenalty: {
+        enabled: { type: Boolean, default: true },
+        flatCents: { type: Number, default: 5000 },
+        pctOfBookingBps: { type: Number, default: 0 },
+        graceCancellations: { type: Number, default: 1 },
+        graceWindowDays: { type: Number, default: 365 },
+      },
     },
     noShow: {
       graceHours: { type: Number, default: 2 },

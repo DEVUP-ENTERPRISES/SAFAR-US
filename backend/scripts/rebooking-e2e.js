@@ -55,9 +55,12 @@ const day = (n) => new Date(BASE + n * 864e5).toISOString();
     await db.collection('availabilities').deleteMany({ bookingId });
 
     const opts = await call('GET', `/bookings/${bookingId}/rebooking-options`, { token });
-    const alts = opts.body?.data ?? [];
+    // Options now carry the guarantee alongside each car: what it costs, what
+    // we cover, and what the guest actually pays.
+    const alts = (opts.body?.data?.options ?? []).map((o) => o.vehicle);
     ok('similar free cars are offered', opts.ok && alts.length >= 1, `${opts.status} count=${alts.length}`);
     ok('the offer excludes the original car', !alts.some((v) => v._id === car._id));
+    ok('each option shows what the guest would pay', (opts.body?.data?.options ?? []).every((o) => typeof o.youPay?.amount === 'number'));
 
     const target = alts[0];
     const rb = await call('POST', `/bookings/${bookingId}/rebook`, { token, body: { vehicleId: target._id } });

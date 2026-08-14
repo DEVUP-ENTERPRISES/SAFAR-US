@@ -269,8 +269,11 @@ export function registerEventSubscribers(): void {
       priority: 'high',
       deepLink: `/bookings/${p.bookingId}/rebook`,
       templateKey: 'booking.rebooking_available',
-      title: 'Rebook a similar car',
-      body: 'We found similar cars free for your exact dates — rebook in one tap.',
+      title: 'We’ll get you another car',
+      // The promise, not just a link: a host cancelling pushes the guest into
+      // last-minute pricing, and we cover that gap rather than refunding and
+      // leaving them worse off.
+      body: 'Your host cancelled, so we’ve lined up similar cars for the same dates — and we’ll cover the price difference. You won’t pay more than you originally booked.',
       data: { bookingId: p.bookingId },
     });
   });
