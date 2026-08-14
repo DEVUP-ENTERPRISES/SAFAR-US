@@ -33,7 +33,17 @@ export interface BookingDoc {
   };
   cancellationPolicy: 'flexible' | 'moderate' | 'strict';
   /** Where the host delivers the car, when the guest requested delivery. */
-  delivery?: { mode: 'airport' | 'home' | 'hotel' | 'business'; address: string; lat?: number; lng?: number };
+  delivery?: {
+    mode: 'airport' | 'home' | 'hotel' | 'business';
+    address: string;
+    lat?: number;
+    lng?: number;
+    /** Airport pickups: which flight the guest is on, so a delay moves the
+     *  handover rather than triggering a no-show. */
+    flightNumber?: string;
+    terminal?: string;
+    arrivesAt?: Date;
+  };
   /**
    * Extra people approved to drive on this trip. They must be added before the
    * trip so they're covered by the protection plan; they cannot pick up or drop
@@ -121,6 +131,9 @@ const schema = new Schema<BookingDoc>(
         address: String,
         lat: Number,
         lng: Number,
+        flightNumber: String,
+        terminal: String,
+        arrivesAt: Date,
       },
       default: undefined,
     },

@@ -584,9 +584,28 @@ export class BookingService {
     if (booking.tripId) throw new ConflictError('The trip has already started', 'INVALID_STATE');
 
     const cfg = await platformConfigService.get();
-    const earliest = new Date(booking.period.start).getTime() + cfg.noShow.graceHours * 3_600_000;
+
+    /*
+     * The grace clock runs from the later of the booked start and the guest's
+     * scheduled landing.
+     *
+     * A guest meeting their car at an airport cannot arrive before their plane
+     * does, and flights slip constantly. Measuring only from the booked start
+     * would let a host declare a no-show against someone still in the air —
+     * penalising a guest for a delay they had no part in. The host is not
+     * disadvantaged: the clock still runs, it just starts when the guest could
+     * realistically be there.
+     */
+    const bookedStart = new Date(booking.period.start).getTime();
+    const arrival = booking.delivery?.arrivesAt ? new Date(booking.delivery.arrivesAt).getTime() : 0;
+    const clockFrom = Math.max(bookedStart, Number.isFinite(arrival) ? arrival : 0);
+    const earliest = clockFrom + cfg.noShow.graceHours * 3_600_000;
     if (Date.now() < earliest) {
-      throw new ConflictError(`Wait until ${cfg.noShow.graceHours}h after the start time to declare a no-show.`, 'TOO_EARLY');
+      const anchored = clockFrom > bookedStart ? ' after the flight’s scheduled arrival' : ' after the start time';
+      throw new ConflictError(
+        `Wait until ${cfg.noShow.graceHours}h${anchored} to declare a no-show.`,
+        'TOO_EARLY',
+      );
     }
 
     const total = booking.priceBreakdown.total;

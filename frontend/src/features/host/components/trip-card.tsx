@@ -47,6 +47,20 @@ export function TripCard({ trip }: { trip: HostTrip }) {
             <p className="mt-1.5 truncate text-[15px] font-medium text-foreground/80">{trip.pickupAddress}</p>
           )}
 
+          {/* An airport handover is only as good as the flight info — this is
+              what tells the host when to actually leave for the terminal. */}
+          {trip.delivery?.mode === 'airport' && trip.delivery.flightNumber && (
+            <p className="mt-1 text-[13px] font-medium text-primary">
+              ✈ {trip.delivery.flightNumber}
+              {trip.delivery.terminal ? ` · Terminal ${trip.delivery.terminal}` : ''}
+              {trip.delivery.arrivesAt
+                ? ` · lands ${new Date(trip.delivery.arrivesAt).toLocaleString('en-US', {
+                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+                  })}`
+                : ''}
+            </p>
+          )}
+
           <div className="mt-3 flex items-center gap-2">
             {trip.guest.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element

@@ -63,6 +63,11 @@ export default function VehicleDetailPage() {
   const [payWithWallet, setPayWithWallet] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState<'airport' | 'home' | 'hotel' | 'business' | ''>('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  // Airport pickups: the flight is what tells the host when to actually be
+  // there, and it is what stops a delayed landing counting as a no-show.
+  const [flightNumber, setFlightNumber] = useState('');
+  const [terminal, setTerminal] = useState('');
+  const [arrivesAt, setArrivesAt] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const quote = useQuote();
   const createBooking = useCreateBooking();
@@ -125,11 +130,26 @@ export default function VehicleDetailPage() {
     // address would be a delivery the host can't fulfil.
     delivery:
       deliveryMode && deliveryAddress.trim()
-        ? { mode: deliveryMode, address: deliveryAddress.trim() }
+        ? {
+            mode: deliveryMode,
+            address: deliveryAddress.trim(),
+            ...(deliveryMode === 'airport'
+              ? {
+                  flightNumber: flightNumber.trim().toUpperCase() || undefined,
+                  terminal: terminal.trim() || undefined,
+                  arrivesAt: arrivesAt ? new Date(arrivesAt).toISOString() : undefined,
+                }
+              : {}),
+          }
         : undefined,
   });
   // Delivery needs an address before it can be quoted/booked.
-  const deliveryReady = !deliveryMode || deliveryAddress.trim().length > 2;
+  // Airport delivery also needs the flight — the API rejects it otherwise, so
+  // the button should not promise a quote it cannot get.
+  const deliveryReady =
+    !deliveryMode ||
+    (deliveryAddress.trim().length > 2 &&
+      (deliveryMode !== 'airport' || flightNumber.trim().length >= 3));
   const canQuote = start && end && deliveryReady;
   const runQuote = () => canQuote && quote.mutate(selection());
   const book = async () => {
@@ -525,13 +545,38 @@ export default function VehicleDetailPage() {
                   ))}
                 </div>
                 {deliveryMode && (
-                  <Input
-                    value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
-                    placeholder={
-                      deliveryMode === 'airport' ? 'Airport & terminal' : 'Delivery address'
-                    }
-                  />
+                  <div className="space-y-2">
+                    <Input
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      placeholder={deliveryMode === 'airport' ? 'Airport (e.g. JFK)' : 'Delivery address'}
+                    />
+                    {deliveryMode === 'airport' && (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            value={flightNumber}
+                            onChange={(e) => setFlightNumber(e.target.value.toUpperCase())}
+                            placeholder="Flight no. (AA123)"
+                          />
+                          <Input
+                            value={terminal}
+                            onChange={(e) => setTerminal(e.target.value)}
+                            placeholder="Terminal (opt.)"
+                          />
+                        </div>
+                        <Input
+                          type="datetime-local"
+                          value={arrivesAt}
+                          onChange={(e) => setArrivesAt(e.target.value)}
+                          aria-label="Scheduled arrival"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Your host meets your flight. If it’s delayed, your pickup window moves with it.
+                        </p>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             )}

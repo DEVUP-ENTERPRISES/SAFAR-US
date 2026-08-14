@@ -10,6 +10,7 @@ export interface HostTrip {
   currency: string;
   pickupAddress?: string;
   isDelivery: boolean;
+  delivery?: { mode: string; address: string; flightNumber?: string; terminal?: string; arrivesAt?: string };
   vehicle: { _id: string; make: string; model: string; year: number; plate?: string; photoUrl?: string };
   guest: { _id: string; name: string; avatarUrl?: string; joinedAt: string; tripCount: number };
   mileage: { includedKm: number; overageFeePerKm: number; drivenKm?: number };

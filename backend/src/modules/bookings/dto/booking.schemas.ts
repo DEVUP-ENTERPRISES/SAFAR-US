@@ -2,12 +2,26 @@ import { z } from 'zod';
 
 const isoDate = z.string().datetime().or(z.coerce.date());
 
-const deliverySchema = z.object({
-  mode: z.enum(['airport', 'home', 'hotel', 'business']),
-  address: z.string().min(3).max(300),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
-});
+const deliverySchema = z
+  .object({
+    mode: z.enum(['airport', 'home', 'hotel', 'business']),
+    address: z.string().min(3).max(300),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
+    /**
+     * Airport pickups only. A terminal alone is not enough: the host needs to
+     * know WHICH flight, so a delay moves the handover instead of becoming a
+     * no-show — the single most common way an airport pickup goes wrong.
+     */
+    flightNumber: z.string().trim().min(3).max(10).optional(),
+    terminal: z.string().trim().max(20).optional(),
+    /** Scheduled arrival, so the host can meet the actual landing time. */
+    arrivesAt: isoDate.optional(),
+  })
+  .refine(
+    (d) => d.mode !== 'airport' || !!d.flightNumber,
+    { message: 'A flight number is required for airport delivery', path: ['flightNumber'] },
+  );
 
 export const quoteSchema = z.object({
   vehicleId: z.string().min(1),

@@ -16,6 +16,18 @@ export interface HostTrip {
   currency: string;
   pickupAddress?: string;
   isDelivery: boolean;
+  /**
+   * Where and when to hand the car over when the guest asked for delivery.
+   * For an airport pickup the flight is the important part — it is what tells
+   * the host when to actually be there.
+   */
+  delivery?: {
+    mode: string;
+    address: string;
+    flightNumber?: string;
+    terminal?: string;
+    arrivesAt?: Date;
+  };
 
   vehicle: {
     _id: string;
@@ -158,8 +170,17 @@ export class HostTripsService {
         period: b.period,
         earnings: b.priceBreakdown.hostEarnings.amount,
         currency: b.priceBreakdown.currency,
-        pickupAddress: v?.location?.address,
-        isDelivery: !!(b as unknown as { delivery?: unknown }).delivery,
+        pickupAddress: b.delivery?.address ?? v?.location?.address,
+        isDelivery: !!b.delivery,
+        delivery: b.delivery
+          ? {
+              mode: b.delivery.mode,
+              address: b.delivery.address,
+              flightNumber: b.delivery.flightNumber,
+              terminal: b.delivery.terminal,
+              arrivesAt: b.delivery.arrivesAt,
+            }
+          : undefined,
 
         vehicle: {
           _id: b.vehicleId,
