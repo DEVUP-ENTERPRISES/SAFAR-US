@@ -3,6 +3,7 @@ import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/veh
 import { UserModel } from '../../users/infrastructure/user.model';
 import { TripModel } from '../../trips/infrastructure/trip.model';
 import { hostService } from '../../hosts/application/host.service';
+import { TERMINAL_STATUSES } from '../domain/booking-status';
 
 /** Everything a host trip card / detail screen needs, in one shot. */
 export interface HostTrip {
@@ -51,13 +52,35 @@ export interface HostTrip {
  */
 export class HostTripsService {
   /** Upcoming + active trips ("BOOKED"). */
+  /**
+   * Upcoming and active trips ("BOOKED").
+   *
+   * `pending_approval` belongs here and was missing: a request-to-book booking
+   * sits in exactly that state waiting for the host to answer, so leaving it
+   * out meant the host never saw the request they were being asked to approve —
+   * it simply expired after the approval window while they were told nothing
+   * was there. `pending_verification` is included for the same reason: the host
+   * should see a trip that is coming, and why it is still being held.
+   */
   async booked(userId: string): Promise<HostTrip[]> {
-    return this.query(userId, ['confirmed', 'paid', 'in_progress'], { 'period.start': 1 });
+    return this.query(
+      userId,
+      ['pending_approval', 'pending_verification', 'confirmed', 'paid', 'in_progress'],
+      { 'period.start': 1 },
+    );
   }
 
-  /** Finished or cancelled trips ("HISTORY"). */
+  /**
+   * Finished trips ("HISTORY").
+   *
+   * The old filter looked for a status called 'cancelled', which does not exist
+   * — cancellations are recorded by who caused them (cancelled_guest /
+   * cancelled_host / cancelled_system), so no cancelled trip ever appeared in a
+   * host's history. Declined and expired requests belong here too: they are
+   * over, and a host reviewing their record should see them.
+   */
   async history(userId: string): Promise<HostTrip[]> {
-    return this.query(userId, ['completed', 'cancelled'], { 'period.end': -1 });
+    return this.query(userId, ['completed', ...TERMINAL_STATUSES], { 'period.end': -1 });
   }
 
   async one(userId: string, bookingId: string): Promise<HostTrip | null> {

@@ -243,4 +243,86 @@ export const adminApi = {
   kyc: (q: Q = {}) => api.get<any[]>('/admin/kyc', q),
   reviewKyc: (id: string, decision: 'approved' | 'rejected', reason?: string) =>
     api.post(`/admin/kyc/${id}/review`, { decision, reason }),
+
+  // ── Knowledge base ──
+  kbArticles: (q: { status?: string; q?: string } = {}) => api.get<KbArticle[]>('/admin/kb/articles', q),
+  kbStats: () => api.get<KbStats>('/admin/kb/stats'),
+  createKbArticle: (b: Partial<KbArticle>) => api.post<KbArticle>('/admin/kb/articles', b),
+  updateKbArticle: (id: string, b: Partial<KbArticle>) => api.patch<KbArticle>(`/admin/kb/articles/${id}`, b),
+  publishKbArticle: (id: string) => api.post<KbArticle>(`/admin/kb/articles/${id}/publish`),
+  unpublishKbArticle: (id: string) => api.post<KbArticle>(`/admin/kb/articles/${id}/unpublish`),
+  deleteKbArticle: (id: string) => api.delete(`/admin/kb/articles/${id}`),
+
+  // ── Promo codes ──
+  coupons: (q: { status?: string; q?: string } = {}) => api.get<Coupon[]>('/admin/coupons', q),
+  couponStats: (id: string) => api.get<CouponStats>(`/admin/coupons/${id}/stats`),
+  createCoupon: (b: Partial<Coupon>) => api.post<Coupon>('/admin/coupons', b),
+  setCouponStatus: (id: string, status: 'active' | 'disabled') =>
+    api.post<Coupon>(`/admin/coupons/${id}/status`, { status }),
+  deleteCoupon: (id: string) => api.delete(`/admin/coupons/${id}`),
+
+  // ── Referrals ──
+  referralStats: (days = 30) => api.get<ReferralStats>('/admin/referrals/stats', { days }),
 };
+
+export interface KbArticle {
+  _id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  body: string;
+  category: string;
+  tags: string[];
+  status: 'draft' | 'published';
+  views: number;
+  helpful: number;
+  notHelpful: number;
+  publishedAt?: string;
+  updatedAt: string;
+}
+
+export interface KbStats {
+  published: number;
+  draft: number;
+  totalViews: number;
+  needsAttention: { slug: string; title: string; helpful: number; notHelpful: number; views: number }[];
+}
+
+export interface Coupon {
+  _id: string;
+  code: string;
+  campaign?: string;
+  type: 'percent' | 'fixed';
+  valueBps: number;
+  amount: number;
+  minSpend: number;
+  maxDiscount: number;
+  budget: number;
+  spent: number;
+  maxRedemptions: number;
+  redeemedCount: number;
+  perUserLimit: number;
+  firstTimeOnly: boolean;
+  status: 'active' | 'disabled';
+  validTo: string;
+}
+
+export interface CouponStats {
+  coupon: Coupon;
+  redemptions: number;
+  uniqueUsers: number;
+  discountGiven: number;
+  budgetUsedPct: number | null;
+  redemptionsRemaining: number;
+  recent: { userId: string; bookingId: string; discountAmount: number; createdAt: string }[];
+}
+
+export interface ReferralStats {
+  windowDays: number;
+  total: number;
+  converted: number;
+  pending: number;
+  conversionRatePct: number;
+  inWindow: number;
+  topReferrers: { userId: string; conversions: number }[];
+}

@@ -1,6 +1,7 @@
 import { config } from '@/lib/config';
 import { tokenStore } from './token-store';
 import { ApiError, type ApiSuccess } from './types';
+import { onSessionExpired } from './session-events';
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
@@ -77,7 +78,12 @@ async function raw<T>(path: string, opts: RequestOptions, retry = true): Promise
   if (res.status === 401 && retry && opts.auth !== false) {
     const refreshed = await attemptRefresh();
     if (refreshed) return raw<T>(path, opts, false);
+    // The session is genuinely gone. Clearing the tokens is not enough: the
+    // auth store still reads "authenticated", so no guard fires and the caller
+    // surfaces the raw API message ("Missing bearer token") as if it were a
+    // page. Announce it instead, so the app can send the user to sign in.
     tokenStore.clear();
+    onSessionExpired();
   }
 
   const json = await res.json().catch(() => null);

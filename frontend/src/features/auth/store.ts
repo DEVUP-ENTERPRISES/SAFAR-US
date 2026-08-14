@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { tokenStore } from '@/lib/api/token-store';
+import { subscribeSessionExpired } from '@/lib/api/session-events';
 import type { AuthUser } from './types';
 
 interface AuthState {
@@ -24,6 +25,19 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user: null, status: 'unauthenticated' });
   },
 }));
+
+/*
+ * When a 401 outlives a refresh, the API layer announces it here. Flipping the
+ * store to "unauthenticated" is what makes every AuthGuard redirect to its
+ * portal's sign-in page — without this the token was cleared but the app still
+ * believed it was signed in, so the user was shown the raw API error
+ * ("Missing bearer token") instead of a login screen.
+ */
+subscribeSessionExpired(() => {
+  if (useAuthStore.getState().status !== 'unauthenticated') {
+    useAuthStore.setState({ user: null, status: 'unauthenticated' });
+  }
+});
 
 export function hasRole(user: AuthUser | null, role: string): boolean {
   return !!user?.roles.includes(role);
