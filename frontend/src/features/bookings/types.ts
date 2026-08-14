@@ -25,13 +25,23 @@ export interface PriceBreakdown {
   memberPlan?: string;
 }
 
+/**
+ * Mirrors the backend BookingStatus exactly. It had drifted: the states a
+ * booking is actually held in while waiting on verification, and the three
+ * cancellation states that record WHO cancelled, were missing — so any UI
+ * switching on status silently failed to handle them.
+ */
 export type BookingStatus =
+  | 'pending_verification'
   | 'pending_approval'
   | 'confirmed'
   | 'paid'
   | 'in_progress'
   | 'completed'
   | 'cancelled'
+  | 'cancelled_guest'
+  | 'cancelled_host'
+  | 'cancelled_system'
   | 'declined'
   | 'expired'
   | 'disputed';

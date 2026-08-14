@@ -75,15 +75,15 @@ function BookingsList() {
       {data.map((b) => (
         <Card key={b._id}>
           <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6">
-            <div>
+            <button onClick={() => router.push(`/bookings/${b._id}`)} className="min-w-0 text-left">
               <div className="flex items-center gap-2">
-                <span className="font-semibold">{b.code}</span>
+                <span className="font-semibold hover:text-primary hover:underline">{b.code}</span>
                 <BookingStatusBadge status={b.status} />
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 {formatDateRange(b.period.start, b.period.end)}
               </p>
-            </div>
+            </button>
             <div className="flex flex-col items-end gap-1">
               <button
                 onClick={() => router.push(`/bookings/${b._id}/receipt`)}
