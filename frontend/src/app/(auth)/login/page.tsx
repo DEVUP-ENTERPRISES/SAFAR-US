@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
-import { useLogin } from '@/features/auth/hooks';
+import { useLogin, useOnAuthSuccess } from '@/features/auth/hooks';
+import { SocialSignIn } from '@/features/auth/social-signin';
 import { ApiError } from '@/lib/api/types';
 
 const schema = z.object({
@@ -19,6 +21,8 @@ type FormValues = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const login = useLogin();
+  const router = useRouter();
+  const onAuthSuccess = useOnAuthSuccess();
   const { register, handleSubmit, formState } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const mfaRequired = login.error instanceof ApiError && login.error.code === 'MFA_REQUIRED';
@@ -56,6 +60,15 @@ export default function LoginPage() {
               {mfaRequired ? 'Verify & log in' : 'Log in'}
             </Button>
           </form>
+
+          <div className="mt-8">
+            <SocialSignIn
+              onSuccess={(result) => {
+                onAuthSuccess(result);
+                router.push('/search');
+              }}
+            />
+          </div>
 
           <p className="mt-8 text-center text-base font-medium text-muted-foreground">
             New to CATO?{' '}

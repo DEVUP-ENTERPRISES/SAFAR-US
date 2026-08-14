@@ -37,7 +37,7 @@ export function useSessionBootstrap() {
   });
 }
 
-function useOnAuthSuccess() {
+export function useOnAuthSuccess() {
   const setUser = useAuthStore((s) => s.setUser);
   const qc = useQueryClient();
   return (result: AuthResult) => {

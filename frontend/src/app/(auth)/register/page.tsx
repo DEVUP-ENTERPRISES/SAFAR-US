@@ -2,12 +2,14 @@
 
 import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SocialSignIn } from '@/features/auth/social-signin';
+import { useOnAuthSuccess } from '@/features/auth/hooks';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { useRegister } from '@/features/auth/hooks';
@@ -23,6 +25,8 @@ type FormValues = z.infer<typeof schema>;
 
 function RegisterInner() {
   const qp = useSearchParams();
+  const router = useRouter();
+  const onAuthSuccess = useOnAuthSuccess();
   const registerMutation = useRegister();
   const { register, handleSubmit, setValue, watch, formState } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
@@ -69,6 +73,15 @@ function RegisterInner() {
               Create account
             </Button>
           </form>
+
+          <div className="mt-8">
+            <SocialSignIn
+              onSuccess={(result) => {
+                onAuthSuccess(result);
+                router.push('/search');
+              }}
+            />
+          </div>
 
           <p className="mt-8 text-center text-base font-medium text-muted-foreground">
             Already have an account?{' '}
