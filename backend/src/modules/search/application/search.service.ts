@@ -110,6 +110,130 @@ export class SearchService {
   }
 
   /**
+   * How many cars each filter option would actually return, in this area, with
+   * the guest's other filters still applied.
+   *
+   * Filtering blind is the worst part of every car-rental search: you pick
+   * "Electric", get nothing, undo it, try "7 seats", get nothing, and give up
+   * with no idea which combination has supply. Counts turn that into one
+   * glance — and an option showing zero can be disabled rather than offered as
+   * a dead end.
+   *
+   * Each dimension is counted with its OWN filter removed. That is what makes
+   * the number mean "what I'd get if I picked this" rather than "what I have
+   * now", so switching between options in the same group behaves sanely.
+   */
+  async filterCounts(q: SearchQuery): Promise<{
+    total: number;
+    category: Record<string, number>;
+    bodyType: Record<string, number>;
+    fuelType: Record<string, number>;
+    transmission: Record<string, number>;
+    seats: Record<string, number>;
+    make: Record<string, number>;
+    instantBook: number;
+    delivery: number;
+    priceRange: { min: number; max: number } | null;
+  }> {
+    // $near is illegal inside an aggregation $match (it implies a sort), and
+    // counting has no use for distance ordering anyway — $geoWithin expresses
+    // "inside this radius" without one. Radians, per $centerSphere.
+    const EARTH_RADIUS_KM = 6378.1;
+    const radiusRadians = (q.radiusKm ?? 25) / EARTH_RADIUS_KM;
+
+    /** The filter for everything EXCEPT the named dimension. */
+    const build = (except?: keyof SearchQuery): Record<string, unknown> => {
+      const f: Record<string, unknown> = {
+        status: 'listed',
+        verificationStatus: 'verified',
+        deletedAt: null,
+        location: {
+          $geoWithin: { $centerSphere: [[q.lng, q.lat], radiusRadians] },
+        },
+      };
+      if (q.category && except !== 'category') f.category = q.category;
+      if (q.bodyType && except !== 'bodyType') f.bodyType = q.bodyType;
+      if (q.fuelType && except !== 'fuelType') f.fuelType = q.fuelType;
+      if (q.transmission && except !== 'transmission') f.transmission = q.transmission;
+      if (q.seatsMin && except !== 'seatsMin') f.seats = { $gte: q.seatsMin };
+      if (q.make && except !== 'make') f.make = new RegExp(`^${escapeRegex(q.make)}`, 'i');
+      if (q.instantBook !== undefined && except !== 'instantBook') f['listing.instantBook'] = q.instantBook;
+      if (q.ratingMin && except !== 'ratingMin') f.ratingAvg = { $gte: q.ratingMin };
+      if (q.yearMin || q.yearMax) {
+        const year: Record<string, number> = {};
+        if (q.yearMin) year.$gte = q.yearMin;
+        if (q.yearMax) year.$lte = q.yearMax;
+        if (except !== 'yearMin' && except !== 'yearMax') f.year = year;
+      }
+      if ((q.priceMin || q.priceMax) && except !== 'priceMin' && except !== 'priceMax') {
+        const price: Record<string, number> = {};
+        if (q.priceMin) price.$gte = q.priceMin;
+        if (q.priceMax) price.$lte = q.priceMax;
+        f['pricing.dailyPrice'] = price;
+      }
+      return f;
+    };
+
+    const countBy = async (field: string, except: keyof SearchQuery): Promise<Record<string, number>> => {
+      const rows = await VehicleModel.aggregate<{ _id: string | number; n: number }>([
+        { $match: build(except) },
+        { $group: { _id: `$${field}`, n: { $sum: 1 } } },
+      ]);
+      const out: Record<string, number> = {};
+      for (const r of rows) if (r._id !== null && r._id !== undefined) out[String(r._id)] = r.n;
+      return out;
+    };
+
+    const [total, category, bodyType, fuelType, transmission, make, seatRows, instantBook, delivery, priceAgg] =
+      await Promise.all([
+        VehicleModel.countDocuments(build()),
+        countBy('category', 'category'),
+        countBy('bodyType', 'bodyType'),
+        countBy('fuelType', 'fuelType'),
+        countBy('transmission', 'transmission'),
+        countBy('make', 'make'),
+        VehicleModel.aggregate<{ _id: number; n: number }>([
+          { $match: build('seatsMin') },
+          { $group: { _id: '$seats', n: { $sum: 1 } } },
+        ]),
+        VehicleModel.countDocuments({ ...build('instantBook'), 'listing.instantBook': true }),
+        VehicleModel.countDocuments({
+          ...build(),
+          $or: [
+            { 'listing.delivery.airport': true },
+            { 'listing.delivery.home': true },
+            { 'listing.delivery.hotel': true },
+            { 'listing.delivery.business': true },
+          ],
+        }),
+        VehicleModel.aggregate<{ min: number; max: number }>([
+          { $match: build('priceMin') },
+          { $group: { _id: null, min: { $min: '$pricing.dailyPrice' }, max: { $max: '$pricing.dailyPrice' } } },
+        ]),
+      ]);
+
+    // "5+ seats" means every car with at least five, so the buckets accumulate
+    // downward rather than counting exact seat numbers.
+    const seats: Record<string, number> = {};
+    for (const bucket of [2, 4, 5, 7]) {
+      seats[String(bucket)] = seatRows.filter((r) => r._id >= bucket).reduce((sum, r) => sum + r.n, 0);
+    }
+
+    return {
+      total,
+      category,
+      bodyType,
+      fuelType,
+      transmission,
+      seats,
+      make,
+      instantBook,
+      delivery,
+      priceRange: priceAgg[0] ? { min: priceAgg[0].min, max: priceAgg[0].max } : null,
+    };
+  }
+
+  /**
    * "Similar cars" for a vehicle's detail page — nearby, listed, verified cars
    * other than this one, ranked same-category-first then by rating. When a date
    * range is supplied, only cars actually free for those dates are returned, so

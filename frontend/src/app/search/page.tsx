@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
 import { VehicleListCard } from '@/features/vehicles/components/vehicle-list-card';
-import { useVehicleSearch, useFacets } from '@/features/vehicles/hooks';
+import { useVehicleSearch, useFacets, useFilterCounts } from '@/features/vehicles/hooks';
 import { useMutation } from '@tanstack/react-query';
 import { savedSearchApi } from '@/features/saved-search/api';
 import { useAuthStore } from '@/features/auth/store';
@@ -72,17 +72,47 @@ function FilterDropdown({
 }
 
 /** A pill option inside a dropdown. */
-function Opt({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+/**
+ * A filter option, with how many cars it would return.
+ *
+ * An option that leads nowhere is disabled rather than offered — discovering an
+ * empty result by clicking is the single most tedious part of car search. A
+ * count of `undefined` means we have no data yet, so the option stays live
+ * rather than being wrongly greyed out while the counts load.
+ */
+function Opt({
+  on,
+  onClick,
+  count,
+  children,
+}: {
+  on: boolean;
+  onClick: () => void;
+  count?: number;
+  children: React.ReactNode;
+}) {
+  const empty = count === 0 && !on;
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={empty}
+      title={empty ? 'No cars match this in your area' : undefined}
       className={cn(
         'rounded-full border px-3.5 py-2 text-sm font-medium capitalize transition-colors',
-        on ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background hover:border-primary/50',
+        on
+          ? 'border-primary bg-primary text-primary-foreground'
+          : empty
+            ? 'cursor-not-allowed border-border/60 bg-muted/40 text-muted-foreground/50'
+            : 'border-border bg-background hover:border-primary/50',
       )}
     >
       {children}
+      {count !== undefined && (
+        <span className={cn('ml-1.5 text-xs tabular-nums', on ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
+          {count}
+        </span>
+      )}
     </button>
   );
 }
@@ -115,21 +145,23 @@ function SearchInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filters
+  // Filters — seeded from the URL, so a shared or bookmarked search opens with
+  // the same results the sender saw, and Back after opening a car restores the
+  // filters instead of dumping the guest into an unfiltered list.
   const [category, setCategory] = useState(qp.get('category') ?? '');
-  const [make, setMake] = useState('');
-  const [fuelType, setFuelType] = useState('');
-  const [transmission, setTransmission] = useState('');
-  const [instantBook, setInstantBook] = useState(false);
-  const [delivery, setDelivery] = useState(false);
-  const [seatsMin, setSeatsMin] = useState('');
-  const [priceMin, setPriceMin] = useState('');
-  const [priceMax, setPriceMax] = useState('');
-  const [yearMin, setYearMin] = useState('');
-  const [yearMax, setYearMax] = useState('');
-  const [ratingMin, setRatingMin] = useState(0);
-  const [sort, setSort] = useState<SortKey>('relevance');
-  const [view, setView] = useState<'grid' | 'map'>('grid');
+  const [make, setMake] = useState(qp.get('make') ?? '');
+  const [fuelType, setFuelType] = useState(qp.get('fuel') ?? '');
+  const [transmission, setTransmission] = useState(qp.get('transmission') ?? '');
+  const [instantBook, setInstantBook] = useState(qp.get('instant') === '1');
+  const [delivery, setDelivery] = useState(qp.get('delivery') === '1');
+  const [seatsMin, setSeatsMin] = useState(qp.get('seats') ?? '');
+  const [priceMin, setPriceMin] = useState(qp.get('priceMin') ?? '');
+  const [priceMax, setPriceMax] = useState(qp.get('priceMax') ?? '');
+  const [yearMin, setYearMin] = useState(qp.get('yearMin') ?? '');
+  const [yearMax, setYearMax] = useState(qp.get('yearMax') ?? '');
+  const [ratingMin, setRatingMin] = useState(Number(qp.get('rating') ?? 0));
+  const [sort, setSort] = useState<SortKey>((qp.get('sort') as SortKey) ?? 'relevance');
+  const [view, setView] = useState<'grid' | 'map'>(qp.get('view') === 'map' ? 'map' : 'grid');
 
   const startIso = toIso(fromDate, fromTime);
   const endIso = toIso(untilDate, untilTime);
@@ -171,8 +203,45 @@ function SearchInner() {
     : null;
 
   const { data, isLoading, isError, refetch, isFetching } = useVehicleSearch(params);
+  // Counts share the search's params, so every option shows what picking it
+  // would actually return rather than making the guest find out by clicking.
+  const counts = useFilterCounts(params).data;
 
   const activeCount = [category, make, fuelType, transmission, instantBook, delivery, seatsMin, priceMin, priceMax, yearMin, yearMax, ratingMin].filter(Boolean).length;
+
+  /*
+   * Mirror the filters into the address bar.
+   *
+   * replaceState rather than router.replace: this fires on every keystroke in
+   * the price boxes, and pushing through the router would re-render the tree
+   * and stack up history entries the Back button then has to chew through.
+   * Only the URL string needs to change — React already holds the truth.
+   */
+  useEffect(() => {
+    const q = new URLSearchParams();
+    const put = (k: string, v: string | number | boolean | undefined) => {
+      if (v === '' || v === false || v === 0 || v === undefined) return;
+      q.set(k, String(v === true ? 1 : v));
+    };
+    put('city', city);
+    put('category', category);
+    put('make', make.trim());
+    put('fuel', fuelType);
+    put('transmission', transmission);
+    put('instant', instantBook);
+    put('delivery', delivery);
+    put('seats', seatsMin);
+    put('priceMin', priceMin);
+    put('priceMax', priceMax);
+    put('yearMin', yearMin);
+    put('yearMax', yearMax);
+    put('rating', ratingMin);
+    if (sort !== 'relevance') q.set('sort', sort);
+    if (view !== 'grid') q.set('view', view);
+
+    const qs = q.toString();
+    window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
+  }, [city, category, make, fuelType, transmission, instantBook, delivery, seatsMin, priceMin, priceMax, yearMin, yearMax, ratingMin, sort, view]);
   const clear = () => {
     setCategory(''); setMake(''); setFuelType(''); setTransmission(''); setInstantBook(false);
     setDelivery(false); setSeatsMin(''); setPriceMin(''); setPriceMax(''); setYearMin(''); setYearMax(''); setRatingMin(0);
@@ -202,7 +271,7 @@ function SearchInner() {
                     <p className="mb-2 text-sm font-semibold">Transmission</p>
                     <div className="flex flex-wrap gap-2">
                       {['automatic', 'manual'].map((t) => (
-                        <Opt key={t} on={transmission === t} onClick={() => setTransmission(transmission === t ? '' : t)}>{t}</Opt>
+                        <Opt key={t} on={transmission === t} count={counts?.transmission[t]} onClick={() => setTransmission(transmission === t ? '' : t)}>{t}</Opt>
                       ))}
                     </div>
                   </div>
@@ -245,7 +314,7 @@ function SearchInner() {
                 <div className="flex flex-wrap gap-2">
                   {categories.length === 0 && <p className="text-sm text-muted-foreground">No types yet.</p>}
                   {categories.map((c) => (
-                    <Opt key={c.category} on={category === c.category} onClick={() => setCategory(category === c.category ? '' : c.category)}>
+                    <Opt key={c.category} on={category === c.category} count={counts?.category[c.category]} onClick={() => setCategory(category === c.category ? '' : c.category)}>
                       {c.category} <span className="opacity-60">{c.vehicles}</span>
                     </Opt>
                   ))}
@@ -284,7 +353,7 @@ function SearchInner() {
                   <p className="mb-2 text-sm font-semibold">Minimum seats</p>
                   <div className="flex flex-wrap gap-2">
                     {SEAT_OPTIONS.map((s) => (
-                      <Opt key={s} on={seatsMin === String(s)} onClick={() => setSeatsMin(seatsMin === String(s) ? '' : String(s))}>{s}+</Opt>
+                      <Opt key={s} on={seatsMin === String(s)} count={counts?.seats[String(s)]} onClick={() => setSeatsMin(seatsMin === String(s) ? '' : String(s))}>{s}+</Opt>
                     ))}
                   </div>
                 </div>
@@ -296,7 +365,7 @@ function SearchInner() {
               {() => (
                 <div className="flex flex-wrap gap-2">
                   {FUELS.map((f) => (
-                    <Opt key={f} on={fuelType === f} onClick={() => setFuelType(fuelType === f ? '' : f)}>
+                    <Opt key={f} on={fuelType === f} count={counts?.fuelType[f]} onClick={() => setFuelType(fuelType === f ? '' : f)}>
                       {f === 'ev' ? <><Zap className="mr-1 inline h-3.5 w-3.5" />Electric</> : f}
                     </Opt>
                   ))}

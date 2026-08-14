@@ -63,6 +63,20 @@ export interface MarketplaceFacets {
   };
 }
 
+/** Per-option result counts, so no filter is a dead end. */
+export interface FilterCounts {
+  total: number;
+  category: Record<string, number>;
+  bodyType: Record<string, number>;
+  fuelType: Record<string, number>;
+  transmission: Record<string, number>;
+  seats: Record<string, number>;
+  make: Record<string, number>;
+  instantBook: number;
+  delivery: number;
+  priceRange: { min: number; max: number } | null;
+}
+
 export const vehicleApi = {
   /** Real cities/categories/trust numbers — nothing about supply is hardcoded. */
   facets: (city?: string) =>
@@ -76,6 +90,12 @@ export const vehicleApi = {
   recommendations: (limit = 12) =>
     api.get<Vehicle[]>('/search/recommendations', { limit }),
   getById: (id: string) => api.get<Vehicle>(`/vehicles/${id}`, undefined, false),
+  filterCounts: (params: SearchParams) =>
+    api.get<FilterCounts>(
+      '/search/filter-counts',
+      params as unknown as Record<string, string | number | boolean | undefined>,
+      false,
+    ),
   myVehicles: () => api.get<Vehicle[]>('/vehicles/me/list'),
   create: (input: CreateVehicleInput) => api.post<Vehicle>('/vehicles', input),
   submit: (id: string) => api.post<Vehicle>(`/vehicles/${id}/submit`),

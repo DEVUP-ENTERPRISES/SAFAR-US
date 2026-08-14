@@ -25,6 +25,20 @@ export function useVehicleSearch(params: SearchParams | null) {
   });
 }
 
+/**
+ * Live counts for every filter option, given the guest's current selection.
+ * Shares the search's params so the two always describe the same query.
+ */
+export function useFilterCounts(params: SearchParams | null) {
+  return useQuery({
+    queryKey: ['filter-counts', params],
+    queryFn: () => vehicleApi.filterCounts(params!),
+    enabled: !!params,
+    placeholderData: (prev) => prev, // counts shouldn't flicker to zero mid-typing
+    staleTime: 30_000,
+  });
+}
+
 export function useVehicle(id: string) {
   return useQuery({
     queryKey: ['vehicle', id],

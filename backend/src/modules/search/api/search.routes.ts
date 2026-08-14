@@ -33,6 +33,19 @@ const searchSchema = z.object({
   limit: z.coerce.number().int().positive().max(50).optional(),
 });
 
+/**
+ * How many cars each filter option would return, given everything else the
+ * guest has already picked. Lets the UI show counts and disable dead ends
+ * instead of making people discover empty results by trial and error.
+ */
+router.get(
+  '/filter-counts',
+  validate({ query: searchSchema }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await searchService.filterCounts(req.query as never));
+  }),
+);
+
 router.get(
   '/vehicles',
   validate({ query: searchSchema }),
