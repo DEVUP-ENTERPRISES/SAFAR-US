@@ -1,6 +1,7 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import {
   SlidersHorizontal, X, Map as MapIcon, LayoutGrid, ChevronDown, Zap, Star, Bell,
@@ -32,6 +33,15 @@ const FUELS = ['petrol', 'diesel', 'hybrid', 'ev'] as const;
 const SEAT_OPTIONS = [2, 4, 5, 7];
 
 /** A filter "pill" that opens a small popover, Turo-style. Closes on outside click. */
+/**
+ * A filter pill with a dropdown panel.
+ *
+ * The panel is rendered through a portal, positioned to the button, rather than
+ * absolutely inside it. The filter bar scrolls horizontally, and a scroll
+ * container clips on BOTH axes — an absolutely-positioned panel inside it was
+ * being cut off entirely, so clicking a filter appeared to do nothing. A
+ * portalled, fixed-position panel escapes the clip and follows the button.
+ */
 function FilterDropdown({
   label, active, width = 300, children,
 }: {
@@ -39,35 +49,67 @@ function FilterDropdown({
   children: (close: () => void) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Anchor the panel under the button, nudged back inside the viewport when it
+  // would spill off the right edge (the last pills sit near it).
+  const place = useCallback(() => {
+    const b = btnRef.current?.getBoundingClientRect();
+    if (!b) return;
+    const w = Math.min(width, window.innerWidth * 0.92);
+    setPos({ top: b.bottom + 8, left: Math.max(8, Math.min(b.left, window.innerWidth - w - 8)) });
+  }, [width]);
+
   useEffect(() => {
     if (!open) return;
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, [open]);
+    place();
+    const onPointerDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!btnRef.current?.contains(t) && !panelRef.current?.contains(t)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    // `true` — catch the bar's own horizontal scroll, which does not bubble.
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [open, place]);
+
   return (
-    <div ref={ref} className="relative shrink-0">
+    <>
       <button
+        ref={btnRef}
         type="button"
+        aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition-colors',
+          'flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition-colors',
           active ? 'border-foreground bg-foreground text-background' : 'border-border bg-card hover:border-foreground/50',
         )}
       >
         {label}
         <ChevronDown className={cn('h-4 w-4 opacity-60 transition-transform', open && 'rotate-180')} />
       </button>
-      {open && (
+
+      {open && pos && createPortal(
         <div
-          className="absolute left-0 top-12 z-50 animate-slide-up rounded-2xl border border-border bg-card p-4 shadow-xl"
-          style={{ width, maxWidth: '92vw' }}
+          ref={panelRef}
+          className="fixed z-[60] animate-slide-up rounded-2xl border border-border bg-card p-4 shadow-xl"
+          style={{ top: pos.top, left: pos.left, width: Math.min(width, window.innerWidth * 0.92) }}
         >
           {children(() => setOpen(false))}
-        </div>
+        </div>,
+        document.body,
       )}
-    </div>
+    </>
   );
 }
 

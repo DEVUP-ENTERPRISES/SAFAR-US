@@ -6,7 +6,7 @@ import { incidentalsService } from '../application/incidentals.service';
 import { riskService } from '../../risk/application/risk.service';
 import { ForbiddenError } from '../../../core/errors/app-error';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
-import { authenticate } from '../../../shared/middleware/authenticate';
+import { authenticate, authenticateOptional } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
@@ -25,7 +25,10 @@ router.get(
 
 router.post(
   '/quote',
-  authenticate,
+  // Optional: a signed-in guest gets membership pricing and a price lock; a
+  // visitor still gets a price. Making this compulsory meant a logged-out
+  // browser saw "Missing bearer token" where the price should have been.
+  authenticateOptional,
   validate({ body: quoteSchema }),
   asyncHandler(async (req, res) => {
     // Pass the caller so CATO Plus benefits are reflected in the quoted price.
@@ -34,7 +37,7 @@ router.post(
     // silently charges more than the screen showed.
     const { breakdown, priceLock } = await bookingService.quoteWithLock(
       req.body,
-      req.principal!.userId,
+      req.principal?.userId,
     );
     sendSuccess(res, {
       ...breakdown,

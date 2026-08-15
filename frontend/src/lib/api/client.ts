@@ -7,7 +7,14 @@ interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined>;
-  auth?: boolean; // attach bearer token (default true)
+  /**
+   * true (default) — send the token; a 401 means the session is over.
+   * false          — never send it; this endpoint is public.
+   * 'optional'     — send it if we have one, but the endpoint works without.
+   *                  A 401 here is a real error, not an expired session, so it
+   *                  must not sign the user out.
+   */
+  auth?: boolean | 'optional';
   idempotencyKey?: string;
   signal?: AbortSignal;
 }
@@ -75,7 +82,7 @@ async function raw<T>(path: string, opts: RequestOptions, retry = true): Promise
     );
   }
 
-  if (res.status === 401 && retry && opts.auth !== false) {
+  if (res.status === 401 && retry && opts.auth !== false && opts.auth !== 'optional') {
     const refreshed = await attemptRefresh();
     if (refreshed) return raw<T>(path, opts, false);
     // The session is genuinely gone. Clearing the tokens is not enough: the
@@ -90,6 +97,17 @@ async function raw<T>(path: string, opts: RequestOptions, retry = true): Promise
 
   if (!res.ok || !json?.success) {
     const err = json?.error;
+
+    // "Missing bearer token" is a fact about HTTP, not something a person did
+    // wrong, and it has been rendering verbatim next to booking buttons. Any
+    // 401 on an authenticated call means the same thing to a user — sign in —
+    // so it is normalised here rather than in every component that shows an
+    // error string.
+    if (res.status === 401 && opts.auth !== false) {
+      // Same normalisation either way — the user's action is to sign in.
+      throw new ApiError('AUTH_REQUIRED', 'Please sign in to continue', 401, err?.details);
+    }
+
     throw new ApiError(
       err?.code ?? 'UNKNOWN',
       err?.message ?? `Request failed (${res.status})`,

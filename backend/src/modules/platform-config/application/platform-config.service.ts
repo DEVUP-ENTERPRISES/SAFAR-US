@@ -50,17 +50,39 @@ export interface ResolvedCommission {
  * hot — no deploy, no restart.
  */
 export class PlatformConfigService {
-  /** The live economics config (creates defaults on first call). */
+  /**
+   * The live economics config (creates defaults on first call).
+   *
+   * The cache is an optimisation; Mongo is the source of truth. So a Redis
+   * failure must never propagate — this read sits underneath pricing, deposits,
+   * trust and payouts, which means a dropped cache connection would otherwise
+   * 500 every price quote on the site and nobody could book anything. Both
+   * cache calls are therefore best-effort, and we fall through to the database.
+   */
   async get(): Promise<PlatformConfigDoc> {
-    const cached = await kv().get(CONFIG_KEY);
-    if (cached) return this.withDefaults(JSON.parse(cached));
+    const cached = await kv()
+      .get(CONFIG_KEY)
+      .catch((err: Error) => {
+        logger.warn({ err: err.message }, 'config cache read failed — reading from the database');
+        return null;
+      });
+    if (cached) {
+      try {
+        return this.withDefaults(JSON.parse(cached));
+      } catch {
+        // A corrupt cache entry is not worth failing a booking over.
+        logger.warn('config cache entry was unparseable — reading from the database');
+      }
+    }
 
     const doc =
       (await PlatformConfigModel.findById('platform').lean<PlatformConfigDoc>()) ??
       (await PlatformConfigModel.create({ _id: 'platform' })).toObject();
 
     const full = this.withDefaults(doc);
-    await kv().set(CONFIG_KEY, JSON.stringify(full), TTL);
+    await kv()
+      .set(CONFIG_KEY, JSON.stringify(full), TTL)
+      .catch(() => undefined); // failing to warm the cache changes nothing for the caller
     return full;
   }
 
@@ -338,17 +360,39 @@ export class PlatformConfigService {
     };
   }
 
+  /** Commission rules, cached. Read on every quote, so it degrades like get(). */
   private async activeRules(): Promise<CommissionRuleDoc[]> {
-    const cached = await kv().get(RULES_KEY);
-    if (cached) return JSON.parse(cached) as CommissionRuleDoc[];
+    const cached = await kv().get(RULES_KEY).catch(() => null);
+    if (cached) {
+      try {
+        return JSON.parse(cached) as CommissionRuleDoc[];
+      } catch {
+        logger.warn('commission rules cache entry was unparseable — reading from the database');
+      }
+    }
     const rules = await CommissionRuleModel.find({ active: true }).lean<CommissionRuleDoc[]>();
-    await kv().set(RULES_KEY, JSON.stringify(rules), TTL);
+    await kv().set(RULES_KEY, JSON.stringify(rules), TTL).catch(() => undefined);
     return rules;
   }
 
-  /** Drop the caches so the next read sees the change immediately. */
+  /**
+   * Drop the caches so the next read sees the change immediately.
+   *
+   * Never throws: by the time this runs the database write has already
+   * committed, so failing here would tell an admin their change was rejected
+   * when it was in fact saved. The cost of a failed invalidation is that the
+   * change takes up to the TTL to appear — worth logging loudly, not worth
+   * failing the request over.
+   */
   private async invalidate(): Promise<void> {
-    await Promise.all([kv().del(CONFIG_KEY), kv().del(RULES_KEY)]);
+    try {
+      await Promise.all([kv().del(CONFIG_KEY), kv().del(RULES_KEY)]);
+    } catch (err) {
+      logger.error(
+        { err: (err as Error).message, ttlSeconds: TTL },
+        'config cache invalidation failed — the change is saved but may take up to the TTL to take effect',
+      );
+    }
   }
 }
 

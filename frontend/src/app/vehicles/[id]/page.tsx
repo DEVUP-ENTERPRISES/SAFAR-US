@@ -153,7 +153,11 @@ export default function VehicleDetailPage() {
   const canQuote = start && end && deliveryReady;
   const runQuote = () => canQuote && quote.mutate(selection());
   const book = async () => {
-    if (status !== 'authenticated') return router.push('/login');
+    // Send them back to this car after signing in, rather than dropping them on
+    // search having lost their dates and options.
+    if (status !== 'authenticated') {
+      return router.push(`/login?next=${encodeURIComponent(`/vehicles/${v?._id ?? ''}`)}`);
+    }
     const b = await createBooking.mutateAsync(selection());
     router.push(`/bookings?highlight=${b._id}`);
   };
@@ -699,7 +703,11 @@ export default function VehicleDetailPage() {
               <p className="text-sm text-destructive">{createBooking.error instanceof ApiError ? createBooking.error.message : 'Booking failed'}</p>
             )}
             <Button className="w-full rounded-xl py-6 text-base font-bold transition-transform hover:scale-[1.02] active:scale-[0.98]" size="lg" disabled={!quote.data} loading={createBooking.isPending} onClick={book}>
-              {v.listing.instantBook ? 'Continue' : 'Request to book'}
+              {status !== 'authenticated'
+                ? 'Sign in to book'
+                : v.listing.instantBook
+                  ? 'Continue'
+                  : 'Request to book'}
             </Button>
             
             <p className="text-center text-sm font-medium text-muted-foreground">You won&apos;t be charged yet</p>

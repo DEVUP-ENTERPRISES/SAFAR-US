@@ -32,3 +32,38 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
     }
   })();
 }
+
+/**
+ * Attach the caller if they are signed in, but never reject them.
+ *
+ * For endpoints that are strictly better with a user yet must work without one
+ * — a price quote being the obvious case. Requiring a login just to see a
+ * price is a conversion tax, and the pricing service already handles an absent
+ * guest (it prices normally and simply issues no price lock, since a lock is
+ * bound to a person).
+ *
+ * A malformed or expired token is treated as "not signed in" rather than an
+ * error: the caller asked for something public, and failing them over a stale
+ * token would be worse than serving the anonymous answer.
+ */
+export function authenticateOptional(req: Request, _res: Response, next: NextFunction): void {
+  void (async () => {
+    try {
+      const header = req.header('authorization');
+      if (!header?.startsWith('Bearer ')) return next();
+
+      const claims = tokenService.verifyAccess(header.slice(7));
+      if (await sessionStore.isActive(claims.sid)) {
+        req.principal = {
+          userId: claims.sub,
+          sessionId: claims.sid,
+          roles: claims.roles ?? [],
+          permissions: claims.permissions ?? [],
+        };
+      }
+    } catch {
+      // Anonymous is a valid outcome here.
+    }
+    next();
+  })();
+}

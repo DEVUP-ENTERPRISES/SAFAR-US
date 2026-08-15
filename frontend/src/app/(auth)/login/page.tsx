@@ -1,7 +1,8 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,8 +20,14 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-export default function LoginPage() {
-  const login = useLogin();
+function LoginInner() {
+  const qp = useSearchParams();
+  // Send people back to whatever they were trying to do. Only same-site paths
+  // are honoured — an absolute URL here would be an open redirect.
+  const next = qp.get('next');
+  const returnTo = next && next.startsWith('/') && !next.startsWith('//') ? next : '/search';
+
+  const login = useLogin({ redirectTo: returnTo });
   const router = useRouter();
   const onAuthSuccess = useOnAuthSuccess();
   const { register, handleSubmit, formState } = useForm<FormValues>({ resolver: zodResolver(schema) });
@@ -65,7 +72,7 @@ export default function LoginPage() {
             <SocialSignIn
               onSuccess={(result) => {
                 onAuthSuccess(result);
-                router.push('/search');
+                router.push(returnTo);
               }}
             />
           </div>
@@ -77,5 +84,17 @@ export default function LoginPage() {
             </Link>
           </p>
     </div>
+  );
+}
+
+/**
+ * useSearchParams (for the ?next= return path) opts the tree into client-side
+ * rendering, which Next refuses to prerender without a boundary.
+ */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
   );
 }
