@@ -160,6 +160,8 @@ export const hostApi = {
   earnings: () => api.get<EarningsDashboard>('/earnings/dashboard'),
 
   payouts: () => api.get<Payout[]>('/payouts/me'),
+  /** Whether this host can actually get paid, and what is blocking it. */
+  payoutReadiness: () => api.get<PayoutReadiness>('/payouts/readiness'),
   instantPayout: () => api.post<InstantPayoutResult>('/payouts/instant'),
 
   uploadUrls: (category: UploadCategory, count = 1, contentType = 'image/jpeg') =>
@@ -198,4 +200,27 @@ export interface HostActionItem {
 export interface HostInbox {
   items: HostActionItem[];
   atRiskTotal: number;
+}
+
+export interface PayoutBlocker {
+  key: 'bank_details' | 'identity' | 'insurance';
+  label: string;
+  detail: string;
+  href: string;
+  severity: 'blocking' | 'warning';
+}
+
+export interface PayoutReadiness {
+  ready: boolean;
+  blockers: PayoutBlocker[];
+  balance: { pending: number; scheduled: number; paidLifetime: number; currency: string };
+  nextPayoutAt: string | null;
+  destination: {
+    configured: boolean;
+    verified: boolean;
+    viaStripe: boolean;
+    accountHolder?: string;
+    bankName?: string;
+    last4?: string;
+  };
 }

@@ -10,6 +10,7 @@ import { BarChart } from '@/components/ui/charts';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { useEarnings, usePayouts, useInstantPayout } from '@/features/host/hooks';
+import { PayoutReadinessCard } from '@/features/host/components/payout-readiness-card';
 
 export default function EarningsPage() {
   const { data, isLoading } = useEarnings();
@@ -30,6 +31,11 @@ export default function EarningsPage() {
         title="Earnings"
         description={`${data.completedTrips} completed trip${data.completedTrips === 1 ? '' : 's'}. Payouts release after the trip-completion hold window.`}
       />
+
+      {/* Whether the money can physically reach them. Bank details were being
+          collected and used by nothing, so a host could watch a balance grow
+          with no idea it could not be sent. */}
+      <PayoutReadinessCard />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile tone="primary" icon={<TrendingUp className="h-5 w-5" />} label="Lifetime earnings" value={money(data.lifetimeEarnings)} />

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { payoutService } from '../application/payout.service';
+import { payoutReadinessService } from '../application/payout-readiness.service';
 import { hostService } from '../../hosts/application/host.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
@@ -7,6 +8,15 @@ import { authorize } from '../../../shared/middleware/authorize';
 import { sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
+
+/** Can this host get paid, and what is standing in the way? */
+router.get(
+  '/readiness',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await payoutReadinessService.forHost(req.principal!.userId));
+  }),
+);
 
 /** Host views own payouts. */
 router.get(
