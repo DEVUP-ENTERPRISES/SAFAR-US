@@ -18,6 +18,7 @@ const ICONS = {
 const NAV = [
   { slug: 'dashboard', label: 'Dashboard', path: '/host', group: 'Overview' },
   { slug: 'trips', label: 'Trips', path: '/host/trips', group: 'Overview' },
+  { slug: 'inbox', label: 'Inbox', path: '/host/inbox', group: 'Overview' },
   { slug: 'listings', label: 'Listings', path: '/host/listings', group: 'Manage' },
   { slug: 'fleet', label: 'Fleet', path: '/host/fleet', group: 'Manage', mobile: false },
   { slug: 'operations', label: 'Operations', path: '/host/operations', group: 'Manage', mobile: false },

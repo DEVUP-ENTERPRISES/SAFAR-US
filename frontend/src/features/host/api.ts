@@ -180,4 +180,22 @@ export const hostApi = {
     scheduledFor: string;
     notes?: string;
   }) => api.post<MaintenanceRecord>('/maintenance', input),
+  /** Everything waiting on the host, ordered by what ignoring it costs. */
+  inboxActions: () => api.get<HostInbox>('/hosts/inbox/actions'),
 };
+
+export interface HostActionItem {
+  kind: 'approval' | 'message' | 'document' | 'return_due';
+  id: string;
+  title: string;
+  detail: string;
+  dueAt: string | null;
+  /** Money lost if this lapses, in minor units. Null when it isn't money. */
+  atRisk: number | null;
+  href: string;
+}
+
+export interface HostInbox {
+  items: HostActionItem[];
+  atRiskTotal: number;
+}

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { hostService } from '../application/host.service';
+import { hostInboxService } from '../application/host-inbox.service';
 import { hostProfileService } from '../application/host-profile.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
@@ -9,6 +10,18 @@ import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
+
+/**
+ * The host's action queue — everything waiting on them, ordered by what it
+ * costs to ignore rather than by when it arrived.
+ */
+router.get(
+  '/inbox/actions',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await hostInboxService.actionItems(req.principal!.userId));
+  }),
+);
 
 const onboardSchema = z.object({
   displayName: z.string().min(2).max(80),
