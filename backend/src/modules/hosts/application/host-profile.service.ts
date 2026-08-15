@@ -24,6 +24,16 @@ export interface HostPublicProfile {
   responseRatePct: number | null;
   /** Typical minutes to respond (median, so one slow reply doesn't define them). */
   responseTimeMinutes: number | null;
+  /**
+   * Share of this host's finished trips that THEY cancelled, 0-100.
+   *
+   * The question a guest is really asking is "will I be left without a car",
+   * and no marketplace answers it — a host cancelling is the single most
+   * common way a trip fails. Null until there is enough history to mean
+   * anything: one cancellation out of one trip is not a 100% cancellation rate,
+   * it is a coincidence.
+   */
+  cancellationRatePct: number | null;
   verifications: { email: boolean; phone: boolean; identity: boolean };
 }
 
@@ -39,11 +49,12 @@ export class HostProfileService {
     const host = await HostModel.findOne({ _id: hostId, deletedAt: null }).lean();
     if (!host) throw new NotFoundError('Host');
 
-    const [user, listedVehicles, responsiveness, kyc] = await Promise.all([
+    const [user, listedVehicles, responsiveness, kyc, cancellationRatePct] = await Promise.all([
       UserModel.findOne({ _id: host.userId }).lean(),
       VehicleModel.countDocuments({ hostId, status: 'listed', verificationStatus: 'verified' }),
       this.responsiveness(hostId),
       KycModel.findOne({ userId: host.userId }, { status: 1 }).lean(),
+      this.cancellationRate(hostId),
     ]);
 
     return {
@@ -63,6 +74,7 @@ export class HostProfileService {
       ratingCount: host.ratingCount ?? 0,
       totalTrips: host.totalTrips ?? 0,
       listedVehicles,
+      cancellationRatePct,
       ...responsiveness,
       verifications: {
         email: !!user?.emailVerified,
@@ -128,6 +140,26 @@ export class HostProfileService {
       responseRatePct: Math.round((answered / rows.length) * 100),
       responseTimeMinutes: median === null ? null : Math.max(1, Math.round(median)),
     };
+  }
+
+  /**
+   * How often this host cancels on people, as a share of trips that reached an
+   * outcome (completed or cancelled by them).
+   *
+   * Suppressed below a handful of trips: a rate computed from one or two
+   * bookings says more about luck than about the host, and publishing it would
+   * punish new hosts for noise.
+   */
+  private async cancellationRate(hostId: string): Promise<number | null> {
+    const rows = await BookingModel.aggregate<{ _id: string; n: number }>([
+      { $match: { hostId, status: { $in: ['completed', 'cancelled_host'] } } },
+      { $group: { _id: '$status', n: { $sum: 1 } } },
+    ]);
+    const completed = rows.find((r) => r._id === 'completed')?.n ?? 0;
+    const cancelled = rows.find((r) => r._id === 'cancelled_host')?.n ?? 0;
+    const total = completed + cancelled;
+    if (total < 3) return null;
+    return Math.round((cancelled / total) * 100);
   }
 }
 

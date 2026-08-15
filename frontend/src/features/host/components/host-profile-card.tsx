@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Star, BadgeCheck, MessageSquare, Clock, Globe, MapPin, Briefcase } from 'lucide-react';
+import { Star, BadgeCheck, MessageSquare, Clock, Globe, MapPin, Briefcase, ShieldCheck, CalendarX } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 import { Skeleton } from '@/components/ui/skeleton';
 import { hostApi, type HostPublicProfile } from '@/features/host/api';
 
@@ -113,18 +114,31 @@ export function HostTrustSignals({ profile: h }: { profile: HostPublicProfile })
       icon: Clock,
       text: `Responds in ${responseTimeLabel(h.responseTimeMinutes)}`,
     },
+    /*
+     * The question a guest is actually asking is "will I be left without a
+     * car". Nobody in this market answers it, so we do — but only in the
+     * direction that helps them decide: a host who reliably shows up gets the
+     * credit, and a host who cancels is stated plainly rather than buried.
+     */
+    h.cancellationRatePct !== null &&
+      (h.cancellationRatePct === 0
+        ? { icon: ShieldCheck, text: 'Never cancelled a trip' }
+        : { icon: CalendarX, text: `Cancels ${h.cancellationRatePct}% of trips`, warn: h.cancellationRatePct >= 10 }),
     verified.length > 0 && { icon: BadgeCheck, text: `Verified ${verified.join(', ')}` },
     h.languages.length > 0 && { icon: Globe, text: `Speaks ${h.languages.join(', ')}` },
     h.city && { icon: MapPin, text: `Lives in ${h.city}` },
     h.work && { icon: Briefcase, text: h.work },
-  ].filter(Boolean) as { icon: typeof Star; text: string }[];
+  ].filter(Boolean) as { icon: typeof Star; text: string; warn?: boolean }[];
 
   if (items.length === 0) return null;
 
   return (
     <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
       {items.map((it) => (
-        <span key={it.text} className="flex items-center gap-1.5">
+        <span
+          key={it.text}
+          className={cn('flex items-center gap-1.5', it.warn && 'font-medium text-warning')}
+        >
           <it.icon className="h-4 w-4 shrink-0" /> {it.text}
         </span>
       ))}

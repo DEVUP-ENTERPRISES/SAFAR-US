@@ -38,6 +38,8 @@ export interface HostPublicProfile {
   listedVehicles: number;
   responseRatePct: number | null;
   responseTimeMinutes: number | null;
+  /** Share of finished trips this host cancelled. Null until enough history. */
+  cancellationRatePct: number | null;
   verifications: { email: boolean; phone: boolean; identity: boolean };
 }
 
