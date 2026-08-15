@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { vehicleService, MIN_LISTING_PHOTOS } from '../application/vehicle.service';
+import { vehicleInsightsService } from '../application/vehicle-insights.service';
 import { availabilityService } from '../../availability/application/availability.service';
 import { searchService } from '../../search/application/search.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
@@ -81,6 +82,18 @@ router.get(
 );
 
 /** Similar cars nearby — availability-aware when start/end are supplied. */
+/**
+ * The full picture for one car — earnings, utilisation, reviews, claims and
+ * paperwork in a single read. Owner only: this is the asset's finances.
+ */
+router.get(
+  '/:id/insights',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await vehicleInsightsService.forVehicle(req.principal!.userId, req.params.id));
+  }),
+);
+
 router.get(
   '/:id/similar',
   validate({ query: z.object({ start: z.string().optional(), end: z.string().optional(), limit: z.coerce.number().int().min(1).max(12).optional() }) }),

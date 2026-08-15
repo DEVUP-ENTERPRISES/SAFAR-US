@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DollarSign, MapPin, SlidersHorizontal, Camera, FileText, ShieldCheck, CalendarX, Star,
-  Upload, Trash2, AlertTriangle, Check, Power,
+  Upload, Trash2, AlertTriangle, Check, Power, TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -235,6 +236,14 @@ export default function ManageListingPage() {
             <span className="text-muted-foreground">({v.totalTrips} trips)</span>
           </p>
         )}
+        {/* The financial view of this car, which is a different question from
+            how it is configured. */}
+        <Link
+          href={`/host/listings/${id}/insights`}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
+        >
+          <TrendingUp className="h-4 w-4" /> Earnings &amp; performance
+        </Link>
       </div>
 
       {/* Blocking requirement, stated before they hit Submit and get rejected. */}

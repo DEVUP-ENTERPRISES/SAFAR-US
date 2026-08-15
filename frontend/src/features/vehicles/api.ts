@@ -77,6 +77,25 @@ export interface FilterCounts {
   priceRange: { min: number; max: number } | null;
 }
 
+export interface VehicleInsights {
+  vehicle: {
+    _id: string; make: string; model: string; year: number;
+    status: string; verificationStatus: string;
+    ratingAvg: number; ratingCount: number; totalTrips: number;
+  };
+  earnings: {
+    lifetime: number;
+    last30d: number;
+    byMonth: { month: string; amount: number; trips: number }[];
+    averagePerTrip: number;
+  };
+  utilisation: { completedTrips: number; cancelledTrips: number; occupancyPct: number; daysRented90d: number };
+  reviews: { average: number; count: number; recent: { rating: number; comment: string; createdAt: string }[] };
+  claims: { total: number; open: number; costToDate: number };
+  documents: { category: string; status: string; expiresAt?: string; expiringSoon: boolean }[];
+  upcoming: { bookingId: string; code: string; start: string; end: string; status: string; earnings: number }[];
+}
+
 export const vehicleApi = {
   /** Real cities/categories/trust numbers — nothing about supply is hardcoded. */
   facets: (city?: string) =>
@@ -90,6 +109,8 @@ export const vehicleApi = {
   recommendations: (limit = 12) =>
     api.get<Vehicle[]>('/search/recommendations', { limit }),
   getById: (id: string) => api.get<Vehicle>(`/vehicles/${id}`, undefined, false),
+  /** Everything about one car — earnings, utilisation, reviews, claims, docs. */
+  insights: (id: string) => api.get<VehicleInsights>(`/vehicles/${id}/insights`),
   filterCounts: (params: SearchParams) =>
     api.get<FilterCounts>(
       '/search/filter-counts',
