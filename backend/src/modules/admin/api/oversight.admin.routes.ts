@@ -6,6 +6,7 @@ import { documentComplianceService } from '../../documents/application/document-
 import { maintenanceService } from '../../maintenance/application/maintenance.service';
 import { hostService } from '../../hosts/application/host.service';
 import { bookingService } from '../../bookings/application/booking.service';
+import { reviewService } from '../../reviews/application/review.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
@@ -119,6 +120,20 @@ router.post(
   authorize('booking:manage'),
   asyncHandler(async (_req, res) => {
     sendSuccess(res, { expired: await bookingService.expirePending() });
+  }),
+);
+
+/**
+ * Release reviews whose blind window has closed, now.
+ *
+ * Scheduled hourly, but a support agent chasing "why can't I see my review"
+ * needs to be able to answer it in the moment rather than wait for the tick.
+ */
+router.post(
+  '/reviews/release-expired',
+  authorize('review:moderate'),
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, { released: await reviewService.releaseExpired() });
   }),
 );
 

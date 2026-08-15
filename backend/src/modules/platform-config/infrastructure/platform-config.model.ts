@@ -91,6 +91,19 @@ export interface PlatformConfigDoc {
     /** Refuse a damage claim with no photographic evidence. */
     requireEvidence: boolean;
   };
+  /**
+   * Two-way reviews, written blind.
+   *
+   * Publishing a review the moment it is written lets the second party read the
+   * first and answer it — which is how a guest who disputed a charge ends up
+   * with a retaliatory rating. Neither side is shown until both have written or
+   * the window closes, so every review is an opinion of the trip rather than a
+   * reply to a review.
+   */
+  reviews: {
+    /** Days each party has to write before the other's is released anyway. */
+    blindWindowDays: number;
+  };
   /** No-show handling once the trip start passes without a handover. */
   noShow: {
     /** Hours after start before a no-show can be declared. */
@@ -277,6 +290,9 @@ const schema = new Schema<PlatformConfigDoc>(
     claims: {
       filingWindowHours: { type: Number, default: 72 },
       requireEvidence: { type: Boolean, default: true },
+    },
+    reviews: {
+      blindWindowDays: { type: Number, default: 14 },
     },
     noShow: {
       graceHours: { type: Number, default: 2 },

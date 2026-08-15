@@ -5,6 +5,7 @@ import { payoutService } from '../modules/payouts/application/payout.service';
 import { depositService } from '../modules/payments/application/deposit.service';
 import { documentComplianceService } from '../modules/documents/application/document-compliance.service';
 import { maintenanceService } from '../modules/maintenance/application/maintenance.service';
+import { reviewService } from '../modules/reviews/application/review.service';
 
 const QUEUE = 'cato-maintenance';
 
@@ -27,6 +28,7 @@ export async function initJobs(): Promise<void> {
   await queue.add('release-deposits', {}, { repeat: { every: 30 * 60_000 }, jobId: 'release-deposits' });
   await queue.add('compliance-sweep', {}, { repeat: { every: 60 * 60_000 }, jobId: 'compliance-sweep' });
   await queue.add('maintenance-reminders', {}, { repeat: { every: 6 * 60 * 60_000 }, jobId: 'maintenance-reminders' });
+  await queue.add('release-reviews', {}, { repeat: { every: 60 * 60_000 }, jobId: 'release-reviews' });
 
   makeWorker(QUEUE, async (job) => {
     switch (job.name) {
@@ -58,6 +60,12 @@ export async function initJobs(): Promise<void> {
       case 'maintenance-reminders': {
         const n = await maintenanceService.remindDue();
         return { reminded: n };
+      }
+      // Blind window closed: publish reviews the other side never answered, so
+      // silence cannot be used to bury criticism.
+      case 'release-reviews': {
+        const n = await reviewService.releaseExpired();
+        return { released: n };
       }
       default:
         return null;

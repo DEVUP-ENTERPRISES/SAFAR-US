@@ -50,7 +50,7 @@ router.get(
   '/booking/:bookingId',
   authenticate,
   asyncHandler(async (req, res) => {
-    sendSuccess(res, await reviewService.listForBooking(req.params.bookingId));
+    sendSuccess(res, await reviewService.listForBooking(req.params.bookingId, req.principal!.userId));
   }),
 );
 

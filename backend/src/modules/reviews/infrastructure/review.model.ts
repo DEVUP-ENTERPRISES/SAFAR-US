@@ -11,7 +11,14 @@ export interface ReviewDoc {
   hostId?: string;
   rating: number;
   comment: string;
-  status: 'published' | 'hidden';
+  /**
+   * `pending` — written, but not shown to anyone yet. Reviews stay here until
+   * both sides have had their say or the window closes, so neither party can
+   * read the other's before writing their own.
+   */
+  status: 'pending' | 'published' | 'hidden';
+  /** When this became (or becomes) visible. */
+  publishedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -28,7 +35,8 @@ const schema = new Schema<ReviewDoc>(
     hostId: String,
     rating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String, default: '' },
-    status: { type: String, default: 'published', enum: ['published', 'hidden'] },
+    status: { type: String, default: 'pending', enum: ['pending', 'published', 'hidden'] },
+    publishedAt: Date,
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true, _id: false },

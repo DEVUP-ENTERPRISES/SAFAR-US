@@ -80,6 +80,7 @@ router.put(
           requireEvidence: z.boolean().optional(),
         })
         .optional(),
+      reviews: z.object({ blindWindowDays: z.number().int().min(1).max(90).optional() }).optional(),
       superhost: z
         .object({
           minTrips: z.number().int().min(0).max(1000).optional(),
