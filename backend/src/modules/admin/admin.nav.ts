@@ -51,6 +51,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'commission', path: A('commission'), apiPath: '/admin/commission-rules', label: 'Commission', group: 'Revenue', permission: 'admin:read' },
   { slug: 'finance', path: A('finance'), apiPath: '/admin/finance', label: 'Finance', group: 'Revenue', permission: 'analytics:read' },
   { slug: 'economics', path: A('economics'), apiPath: '/admin/config', label: 'Platform Economics', group: 'Revenue', permission: 'admin:read' },
+  { slug: 'tax', path: A('tax'), apiPath: '/admin/tax-rules', label: 'Tax Rules', group: 'Revenue', permission: 'platform:manage' },
 
   { slug: 'coupons', path: A('coupons'), apiPath: '/admin/coupons', label: 'Promo Codes', group: 'Revenue', permission: 'platform:manage' },
   { slug: 'surge', path: A('surge'), apiPath: '/admin/surge-rules', label: 'Surge Pricing', group: 'Revenue', permission: 'admin:read' },

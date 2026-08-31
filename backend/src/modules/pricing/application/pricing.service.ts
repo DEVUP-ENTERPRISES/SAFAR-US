@@ -3,6 +3,7 @@ import { NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { money, zeroMoney, addMoney, subMoney, applyBps, sumMoney } from '../../../core/types/money';
 import type { IPricingContract, QuoteInput, PriceBreakdown } from '../../../core/contracts/pricing.contract';
 import { couponService } from '../../coupons/application/coupon.service';
+import { taxService } from '../../tax/application/tax.service';
 import { getProtectionPlan } from '../domain/protection-plans';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { surgeService } from './surge.service';
@@ -188,8 +189,26 @@ export class PricingService implements IPricingContract {
     const tax = applyBps(commission, cfg.tax.bps);
     const hostEarnings = subMoney(subMoney(subtotal, commission), tax);
 
-    // Guest pays host-side + protection (protection accrues to platform/insurer).
-    const total = addMoney(subtotal, protection);
+    /*
+     * Rental tax, charged to the guest on top and remitted by us.
+     *
+     * Distinct from `tax` above, which is a platform levy on our own commission
+     * taken out of host earnings. Rental tax is the guest's, resolved from where
+     * the car actually changes hands — an airport handover attracts a concession
+     * fee that the same car in a suburb does not.
+     */
+    const { lines: taxLines, total: taxTotal } = await taxService.quote(subtotal, {
+      state: v.location?.state,
+      city: v.location?.city,
+      days,
+      // An airport handover attracts a concession fee the same car in a suburb
+      // does not, so the terminal is part of the tax context.
+      airportCode:
+        input.delivery?.mode === 'airport' ? extractAirportCode(input.delivery.address) : undefined,
+    });
+
+    // Guest pays host-side + protection + rental tax.
+    const total = addMoney(addMoney(subtotal, protection), taxTotal);
 
     // Balance guard on the host-side split (protection handled separately at charge).
     const recomposed = sumMoney([hostEarnings, commission, tax], currency);
@@ -197,6 +216,7 @@ export class PricingService implements IPricingContract {
 
     return {
       days, base, cleaningFee, discount, addOnsTotal, delivery, protection,
+      taxLines, taxTotal,
       protectionPlan: plan.code, selectedAddOns,
       subtotal, commission, tax, hostEarnings, total, currency,
       // Which rate applied and why — makes every quote explainable in support.
@@ -211,3 +231,16 @@ export class PricingService implements IPricingContract {
 }
 
 export const pricingService = new PricingService();
+
+/**
+ * Pull an airport code out of a delivery address.
+ *
+ * Guests type "DFW Terminal C" or "Dallas Fort Worth (DFW)". A three-letter
+ * token in caps is the reliable signal; anything else means no airport rule
+ * applies, which fails safe by charging less rather than inventing a fee.
+ */
+function extractAirportCode(address?: string): string | undefined {
+  if (!address) return undefined;
+  const m = /([A-Z]{3})/.exec(address.toUpperCase());
+  return m?.[1];
+}

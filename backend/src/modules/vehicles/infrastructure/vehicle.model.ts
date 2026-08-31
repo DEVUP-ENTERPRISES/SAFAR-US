@@ -50,6 +50,12 @@ export interface VehicleDoc {
     coordinates: [number, number];
     address: string;
     city: string;
+    /**
+     * Two-letter state code. Rental tax is levied per state, so a car without
+     * one cannot be taxed correctly — it is derived at listing time from the
+     * geocoded address rather than typed by the host.
+     */
+    state?: string;
   };
   listing: {
     title: string;
@@ -150,6 +156,7 @@ const schema = new Schema<VehicleDoc>(
       coordinates: { type: [Number], required: true },
       address: { type: String, default: '' },
       city: { type: String, default: '' },
+      state: { type: String, uppercase: true, trim: true },
     },
     listing: {
       title: { type: String, required: true },

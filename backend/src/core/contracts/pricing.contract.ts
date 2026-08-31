@@ -12,7 +12,16 @@ export interface PriceBreakdown {
   selectedAddOns: { code: string; label: string; amount: Money }[];
   subtotal: Money;
   commission: Money; // platform take (from host portion)
-  tax: Money; // tax on commission
+  tax: Money; // platform tax on commission (deducted from host earnings)
+  /**
+   * Rental tax charged TO the guest and remitted by the platform — state sales
+   * tax, motor-vehicle excise, city surcharge, airport concession. Separate
+   * lines because each is levied and remitted by a different authority, and the
+   * guest is entitled to see which is which.
+   */
+  taxLines?: { ruleId: string; label: string; kind: string; scope: string; rateBps: number; amount: number }[];
+  /** Sum of taxLines. Included in `total`. */
+  taxTotal?: Money;
   hostEarnings: Money;
   total: Money; // what the guest pays / hits the gateway
   currency: string;
