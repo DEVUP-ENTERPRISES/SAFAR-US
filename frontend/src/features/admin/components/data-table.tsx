@@ -49,7 +49,7 @@ export function DataTable<T extends { _id: string }>({
       <div className="max-h-[70vh] overflow-auto">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10">
-            <tr className="border-b border-border bg-subtle text-left">
+            <tr className="border-b border-border bg-subtle text-start">
               {columns.map((c) => (
                 <th
                   key={c.header}

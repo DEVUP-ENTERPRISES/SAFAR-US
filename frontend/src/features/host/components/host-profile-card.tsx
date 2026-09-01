@@ -51,7 +51,7 @@ export function HostAvatar({
       </div>
       {/* Only badge a rating that exists — a blank host is not a 5.0 host. */}
       {profile.ratingAvg !== null && (
-        <span className="absolute -bottom-1 left-1/2 w-max -translate-x-1/2 rounded-full bg-background px-1.5 py-0.5 text-[11px] font-bold shadow-sm">
+        <span className="absolute -bottom-1 start-1/2 w-max -translate-x-1/2 rounded-full bg-background px-1.5 py-0.5 text-[11px] font-bold shadow-sm">
           {profile.ratingAvg.toFixed(1)} <span className="text-primary">★</span>
         </span>
       )}

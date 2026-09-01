@@ -33,7 +33,7 @@ function Inbox() {
             />
           ) : (
             conversations.data!.map((c) => (
-              <button key={c.bookingId} onClick={() => setSelected(c)} className="w-full text-left">
+              <button key={c.bookingId} onClick={() => setSelected(c)} className="w-full text-start">
                 <Card
                   className={cn(
                     'flex items-center gap-3 p-3 transition-colors hover:border-primary/40',
@@ -52,7 +52,7 @@ function Inbox() {
                     </p>
                   </div>
                   {c.unread > 0 && (
-                    <span className="ml-1 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+                    <span className="ms-1 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
                       {c.unread}
                     </span>
                   )}
@@ -74,7 +74,7 @@ function Inbox() {
                   <p className="truncate font-semibold">{selected.counterpart.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{selected.vehicle.title}</p>
                 </div>
-                <Link href={`/trips/${selected.bookingId}`} className="ml-auto inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                <Link href={`/trips/${selected.bookingId}`} className="ms-auto inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
                   Trip <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
               </div>

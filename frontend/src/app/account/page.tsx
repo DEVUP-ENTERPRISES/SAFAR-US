@@ -147,7 +147,7 @@ function Account() {
           {me.data.addresses.map((a) => (
             <div key={a.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl bg-muted/30 p-5 gap-4">
               <div>
-                <p className="text-base font-bold">{a.label} {a.isDefault && <Badge tone="success" className="ml-2">Default</Badge>}</p>
+                <p className="text-base font-bold">{a.label} {a.isDefault && <Badge tone="success" className="ms-2">Default</Badge>}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{a.line1}, {a.city} {a.state} {a.zip}</p>
               </div>
               <div className="flex gap-1">
@@ -240,7 +240,7 @@ function Account() {
           {cards.data?.map((c) => (
             <div key={c._id} className="flex items-center justify-between rounded-lg border border-border p-3">
               <div>
-                <p className="text-sm font-medium capitalize">{c.brand} •••• {c.last4} {c.isDefault && <Badge tone="success" className="ml-1">Default</Badge>}</p>
+                <p className="text-sm font-medium capitalize">{c.brand} •••• {c.last4} {c.isDefault && <Badge tone="success" className="ms-1">Default</Badge>}</p>
                 <p className="text-xs text-muted-foreground">Expires {c.expMonth}/{c.expYear}</p>
               </div>
               <div className="flex gap-1">
@@ -274,7 +274,7 @@ function Account() {
             <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3">
               <div>
                 <p className="text-sm font-medium">
-                  {shortUa(s.userAgent)} {s.current && <Badge tone="success" className="ml-1"><Star className="mr-1 h-3 w-3" /> This device</Badge>}
+                  {shortUa(s.userAgent)} {s.current && <Badge tone="success" className="ms-1"><Star className="me-1 h-3 w-3" /> This device</Badge>}
                 </p>
                 <p className="text-xs text-muted-foreground">{s.ip ?? 'unknown IP'} · since {formatDate(s.createdAt)}</p>
               </div>

@@ -163,7 +163,7 @@ export function LineChart({
       {hover != null && (
         <div className="mt-1 text-center text-xs">
           <span className="font-semibold">{fmt(data[hover].value)}</span>
-          <span className="ml-1.5 text-muted-foreground">{data[hover].label}</span>
+          <span className="ms-1.5 text-muted-foreground">{data[hover].label}</span>
         </div>
       )}
     </div>
@@ -254,7 +254,7 @@ export function Donut({
             </span>
             <span className="shrink-0 font-medium tabular-nums">
               {currency ? money(d.value, currency) : d.value}
-              <span className="ml-1 text-xs text-muted-foreground">
+              <span className="ms-1 text-xs text-muted-foreground">
                 {Math.round((d.value / total) * 100)}%
               </span>
             </span>

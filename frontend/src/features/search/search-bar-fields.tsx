@@ -54,7 +54,7 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
       {/* Where */}
       <div className={cn('min-w-0 flex-1', seg)}>
         <span className={labelCls}>Where</span>
-        <div className={isNav ? '' : '-ml-1'}>
+        <div className={isNav ? '' : '-ms-1'}>
           <LocationSearch
             bare={isNav}
             onPick={(p) => s.patch({ center: { lat: p.lat, lng: p.lng, label: p.label } })}
@@ -99,7 +99,7 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
       </div>
 
       {/* Search */}
-      <div className={cn('flex items-center', isNav ? 'pl-4' : 'px-1')}>
+      <div className={cn('flex items-center', isNav ? 'ps-4' : 'px-1')}>
         <Button className={cn('gap-2 rounded-full', isNav ? 'h-11 px-5' : 'h-12 w-full rounded-2xl px-6 lg:w-auto')} onClick={onSearch}>
           <Search className="h-4 w-4" /> Search
         </Button>

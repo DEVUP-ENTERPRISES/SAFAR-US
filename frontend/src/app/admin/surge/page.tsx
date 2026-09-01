@@ -113,7 +113,7 @@ export default function AdminSurgePage() {
     { header: 'Status', cell: (r) => <Badge tone={r.active ? 'warning' : 'muted'}>{r.active ? 'surging' : 'off'}</Badge> },
     {
       header: 'Actions',
-      className: 'text-right',
+      className: 'text-end',
       cell: (r) => (
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="outline" loading={toggle.isPending} onClick={() => toggle.mutate({ id: r._id, active: !r.active })}>

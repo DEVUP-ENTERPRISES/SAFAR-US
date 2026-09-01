@@ -315,11 +315,11 @@ export default function NewListingPage() {
                     <img src={p.url} alt="" className="h-full w-full object-cover" />
                     <button
                       onClick={() => set('photos', d.photos.filter((_, j) => j !== i))}
-                      className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 group-hover:opacity-100"
+                      className="absolute end-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 group-hover:opacity-100"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
-                    {i === 0 && <span className="absolute bottom-1 left-1 rounded bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">Cover</span>}
+                    {i === 0 && <span className="absolute bottom-1 start-1 rounded bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">Cover</span>}
                   </div>
                 ))}
                 <label className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary">
@@ -432,7 +432,7 @@ export default function NewListingPage() {
                       <li key={`${b.step}-${b.field}`}>
                         <button
                           onClick={() => setStep(b.step)}
-                          className="text-left text-destructive hover:underline"
+                          className="text-start text-destructive hover:underline"
                         >
                           {STEPS[b.step]}: {b.msg}
                         </button>

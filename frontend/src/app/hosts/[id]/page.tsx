@@ -78,7 +78,7 @@ export default function HostProfilePage() {
           <CardContent className="pt-6">
             <p className="text-2xl font-bold">
               {h.ratingAvg !== null ? h.ratingAvg.toFixed(1) : '—'}
-              {h.ratingAvg !== null && <Star className="ml-1 inline h-5 w-5 fill-primary text-primary" />}
+              {h.ratingAvg !== null && <Star className="ms-1 inline h-5 w-5 fill-primary text-primary" />}
             </p>
             <p className="text-sm text-muted-foreground">
               {h.ratingCount > 0 ? `${h.ratingCount} review${h.ratingCount === 1 ? '' : 's'}` : 'No reviews yet'}

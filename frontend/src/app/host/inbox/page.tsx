@@ -68,7 +68,7 @@ function HostInbox() {
         </div>
         {/* The number that makes a host open this screen. */}
         {atRisk > 0 && (
-          <div className="rounded-xl border border-warning/40 bg-warning/5 px-4 py-2.5 text-right">
+          <div className="rounded-xl border border-warning/40 bg-warning/5 px-4 py-2.5 text-end">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Income at risk</p>
             <p className="text-xl font-bold text-warning">{money(atRisk)}</p>
           </div>
@@ -189,7 +189,7 @@ function ActionRow({ item }: { item: HostActionItem }) {
             <p className="truncate text-sm text-muted-foreground">{item.detail}</p>
           </div>
 
-          <div className="shrink-0 text-right">
+          <div className="shrink-0 text-end">
             {/* The two things that decide whether this gets opened now. */}
             {item.atRisk !== null && item.atRisk > 0 && (
               <p className="text-sm font-bold">{money(item.atRisk)}</p>

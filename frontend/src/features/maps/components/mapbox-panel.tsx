@@ -222,7 +222,7 @@ function VehicleSheet({ vehicle: v, onClose }: { vehicle: Vehicle; onClose: () =
             <button
               type="button"
               onClick={(e) => { e.preventDefault(); onClose(); }}
-              className="-mr-1 -mt-1 rounded-full p-1 text-muted-foreground hover:bg-muted"
+              className="-me-1 -mt-1 rounded-full p-1 text-muted-foreground hover:bg-muted"
               aria-label="Close"
             >
               <X className="h-4 w-4" />

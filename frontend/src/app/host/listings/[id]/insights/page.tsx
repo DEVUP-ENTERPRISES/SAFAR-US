@@ -137,10 +137,10 @@ function Insights({ id }: { id: string }) {
           ) : (
             <ul className="mt-3 space-y-3">
               {d.reviews.recent.map((r, i) => (
-                <li key={i} className="border-l-2 border-border pl-3">
+                <li key={i} className="border-s-2 border-border ps-3">
                   <div className="flex items-center gap-1 text-sm font-semibold">
                     {r.rating.toFixed(1)} <Star className="h-3.5 w-3.5 fill-current" />
-                    <span className="ml-1 font-normal text-muted-foreground">{formatDate(r.createdAt)}</span>
+                    <span className="ms-1 font-normal text-muted-foreground">{formatDate(r.createdAt)}</span>
                   </div>
                   {r.comment && <p className="mt-0.5 text-sm text-muted-foreground">{r.comment}</p>}
                 </li>

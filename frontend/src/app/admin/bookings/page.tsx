@@ -49,7 +49,7 @@ export default function AdminBookingsPage() {
     { header: 'Dates', cell: (b) => <span className="text-xs">{formatDateRange(b.period.start, b.period.end)}</span> },
     { header: 'Total', cell: (b) => formatMoney(b.priceBreakdown.total) },
     { header: 'Status', cell: (b) => <BookingStatusBadge status={b.status} /> },
-    { header: '', className: 'text-right', cell: (b) => (
+    { header: '', className: 'text-end', cell: (b) => (
       ['pending_approval', 'confirmed', 'paid'].includes(b.status)
         ? <Button size="sm" variant="outline" className="text-destructive" loading={cancel.isPending} onClick={() => cancelBooking(b)}>Cancel + refund</Button>
         : null

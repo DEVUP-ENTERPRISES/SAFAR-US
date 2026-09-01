@@ -53,7 +53,7 @@ export default function AdminClaimsPage() {
     { header: 'Evidence', cell: (c) => <span className="text-xs text-muted-foreground">{c.evidence?.length ?? 0} file(s)</span> },
     { header: 'Filed', cell: (c) => <span className="text-xs">{formatDate(c.createdAt)}</span> },
     { header: 'Status', cell: (c) => <Badge tone={TONE[c.status] ?? 'muted'}>{c.status}</Badge> },
-    { header: 'Actions', className: 'text-right', cell: (c) => (
+    { header: 'Actions', className: 'text-end', cell: (c) => (
       <div className="flex justify-end gap-2">
         {c.status === 'opened' && <Button size="sm" variant="outline" loading={assign.isPending} onClick={() => assign.mutate(c._id)}>Investigate</Button>}
         {['opened', 'investigating'].includes(c.status) && (

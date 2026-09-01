@@ -124,7 +124,7 @@ function OptionCard({ option: o, selected, onSelect }: { option: RebookingOption
   const photo = v.photos?.find((p) => p.isCover)?.url ?? v.photos?.[0]?.url;
 
   return (
-    <button onClick={onSelect} className="block w-full text-left">
+    <button onClick={onSelect} className="block w-full text-start">
       <Card className={cn('transition-colors', selected ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/40')}>
         <CardContent className="flex gap-4 py-4">
           {photo ? (

@@ -27,12 +27,12 @@ export default function HelpCentre() {
       <PageHeader title="Help centre" description="Answers to the most common questions — search or browse by topic." />
 
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search help articles…"
-          className="h-12 pl-11 text-base"
+          className="h-12 ps-11 text-base"
           aria-label="Search help articles"
         />
       </div>

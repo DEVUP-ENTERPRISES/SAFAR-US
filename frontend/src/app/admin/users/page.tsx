@@ -84,7 +84,7 @@ export default function AdminUsersPage() {
       <span className="text-xs text-muted-foreground">{u.emailVerified ? 'email ' : ''}{u.phoneVerified ? 'phone' : ''}{!u.emailVerified && !u.phoneVerified ? '—' : ''}</span>
     ) },
     { header: 'Status', cell: (u) => <Badge tone={STATUS_TONE[u.status] ?? 'muted'}>{u.status}</Badge> },
-    { header: 'Actions', className: 'text-right', cell: (u) => (
+    { header: 'Actions', className: 'text-end', cell: (u) => (
       <div className="flex justify-end gap-2">
         {u.status !== 'active' && (
           <Button size="sm" loading={setUserStatus.isPending} onClick={() => activate(u)}>Activate</Button>

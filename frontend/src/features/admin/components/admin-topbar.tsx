@@ -43,7 +43,7 @@ export function AdminTopbar() {
           {isProd ? 'production' : 'development'}
         </span>
 
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ms-auto flex items-center gap-1.5">
           <Link
             href="/"
             target="_blank"
@@ -54,7 +54,7 @@ export function AdminTopbar() {
           <ThemeToggle />
           <NotificationBell />
 
-          <div className="ml-1 flex items-center gap-2 border-l border-border pl-3">
+          <div className="ms-1 flex items-center gap-2 border-s border-border ps-3">
             <span className="grid h-8 w-8 place-items-center rounded-full bg-muted text-muted-foreground">
               <User className="h-4 w-4" />
             </span>

@@ -82,7 +82,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
               <div
                 className={cn(
                   'max-w-[75%] overflow-hidden rounded-2xl text-sm',
-                  mine ? 'rounded-br-sm bg-primary text-primary-foreground' : 'rounded-bl-sm bg-muted text-foreground',
+                  mine ? 'rounded-ee-sm bg-primary text-primary-foreground' : 'rounded-es-sm bg-muted text-foreground',
                 )}
               >
                 {m.attachments?.map((a, i) =>
@@ -101,7 +101,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
               </div>
               {/* Read receipt under my most recent message only. */}
               {mine && m._id === lastMineId && (
-                <span className="mt-0.5 flex items-center gap-0.5 pr-1 text-[11px] text-muted-foreground">
+                <span className="mt-0.5 flex items-center gap-0.5 pe-1 text-[11px] text-muted-foreground">
                   {seenByCounterpart ? (
                     <><CheckCheck className="h-3 w-3 text-primary" /> Seen</>
                   ) : (

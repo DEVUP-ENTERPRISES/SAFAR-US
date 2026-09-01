@@ -81,7 +81,7 @@ export function DriverManager({ bookingId }: { bookingId: string }) {
                 <span>
                   <span className="font-medium">{d.name}</span>
                   {d.licenseNumber && (
-                    <span className="ml-2 font-mono text-xs text-muted-foreground">
+                    <span className="ms-2 font-mono text-xs text-muted-foreground">
                       · {d.licenseNumber}
                     </span>
                   )}

@@ -17,8 +17,8 @@ export function Markdown({ source }: { source: string }) {
     const items = list.items.map((t, i) => <li key={i}>{inline(t)}</li>);
     blocks.push(
       list.ordered
-        ? <ol key={blocks.length} className="my-3 list-decimal space-y-1 pl-6">{items}</ol>
-        : <ul key={blocks.length} className="my-3 list-disc space-y-1 pl-6">{items}</ul>,
+        ? <ol key={blocks.length} className="my-3 list-decimal space-y-1 ps-6">{items}</ol>
+        : <ul key={blocks.length} className="my-3 list-disc space-y-1 ps-6">{items}</ul>,
     );
     list = null;
   };

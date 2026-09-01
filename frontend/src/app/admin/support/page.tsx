@@ -105,7 +105,7 @@ export default function AdminSupportPage() {
               <button
                 key={t._id}
                 onClick={() => setSelected(t._id)}
-                className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-destructive/10"
+                className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-start text-sm transition-colors hover:bg-destructive/10"
               >
                 <span className="truncate">
                   <span className="font-medium uppercase text-destructive">{t.priority}</span> · {t.subject}
@@ -129,7 +129,7 @@ export default function AdminSupportPage() {
           {list.isLoading && <Skeleton className="h-64 w-full" />}
           {list.data && list.data.length === 0 && <EmptyState title="No tickets" />}
           {list.data?.map((t: any) => (
-            <button key={t._id} onClick={() => setSelected(t._id)} className="w-full text-left">
+            <button key={t._id} onClick={() => setSelected(t._id)} className="w-full text-start">
               <Card className={cn('transition-colors', selected === t._id && 'border-primary')}>
                 <CardContent className="flex items-center justify-between pt-6">
                   <div className="min-w-0">

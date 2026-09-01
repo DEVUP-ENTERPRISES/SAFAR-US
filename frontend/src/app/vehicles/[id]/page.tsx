@@ -223,7 +223,7 @@ export default function VehicleDetailPage() {
             ))}
           </div>
 
-          <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
+          <div className="absolute end-4 top-4 z-10 flex items-center gap-2">
             <div className="bg-background/90 backdrop-blur-md rounded-full shadow-float hover:scale-105 transition-transform overflow-hidden">
               <ShareButton title={`${v.year} ${v.make} ${v.model}`} />
             </div>
@@ -458,7 +458,7 @@ export default function VehicleDetailPage() {
                     <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                       <div className="h-full rounded-full bg-[#635BFF]" style={{ width: `${pct}%` }} />
                     </div>
-                    <span className="w-8 shrink-0 text-right tabular-nums text-muted-foreground">{n}</span>
+                    <span className="w-8 shrink-0 text-end tabular-nums text-muted-foreground">{n}</span>
                   </div>
                 );
               })}
@@ -686,7 +686,7 @@ export default function VehicleDetailPage() {
                   />
                   <span className="flex-1">
                     <span className="font-medium">Pay with CATO Wallet</span>
-                    <span className="ml-1 text-muted-foreground">
+                    <span className="ms-1 text-muted-foreground">
                       ({formatMoney({ amount: bal, currency: quote.data.total.currency })} available)
                     </span>
                     {payWithWallet && (

@@ -70,12 +70,12 @@ export default function HostListingsPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Make, model, plate #"
-          className="pl-9"
+          className="ps-9"
         />
       </div>
 
@@ -101,7 +101,7 @@ export default function HostListingsPage() {
           <option value="draft">Draft</option>
         </select>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ms-auto flex items-center gap-2">
           <span className="text-sm font-semibold">
             {filtered.length} listing{filtered.length === 1 ? '' : 's'}
           </span>
@@ -165,7 +165,7 @@ export default function HostListingsPage() {
                     {grid && (
                       <span
                         className={cn(
-                          'absolute left-3 top-3 rounded-md px-2 py-1 text-[11px] font-bold uppercase',
+                          'absolute start-3 top-3 rounded-md px-2 py-1 text-[11px] font-bold uppercase',
                           v.status === 'listed'
                             ? 'bg-success text-success-foreground'
                             : 'bg-foreground/80 text-background',

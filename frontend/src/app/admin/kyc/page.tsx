@@ -55,7 +55,7 @@ export default function AdminKycPage() {
     ) },
     { header: 'Submitted', cell: (k) => <span className="text-xs">{formatDate(k.createdAt)}</span> },
     { header: 'Status', cell: (k) => <Badge tone={k.status === 'approved' ? 'success' : k.status === 'rejected' ? 'destructive' : 'warning'}>{k.status}</Badge> },
-    { header: 'Actions', className: 'text-right', cell: (k) => (
+    { header: 'Actions', className: 'text-end', cell: (k) => (
       k.status === 'pending' ? (
         <div className="flex justify-end gap-2">
           <Button size="sm" loading={review.isPending} onClick={() => approve(k)}>Approve</Button>

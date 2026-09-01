@@ -49,7 +49,7 @@ export default function AdminHostsPage() {
     { header: 'Rating', cell: (h) => <Rating value={h.ratingAvg} count={h.ratingCount} /> },
     { header: 'Trips', cell: (h) => <span>{h.totalTrips}</span> },
     { header: 'Status', cell: (h) => <Badge tone={TONE[h.verificationStatus] ?? 'muted'}>{h.verificationStatus}</Badge> },
-    { header: 'Actions', className: 'text-right', cell: (h) => (
+    { header: 'Actions', className: 'text-end', cell: (h) => (
       <div className="flex justify-end gap-2">
         {h.verificationStatus !== 'verified' && (
           <Button size="sm" loading={setVerification.isPending} onClick={() => decide(h, true)}>Approve</Button>

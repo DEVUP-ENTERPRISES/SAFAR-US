@@ -54,7 +54,7 @@ export function PanelSidebar({
   }
 
   const desktopSidebar = (
-    <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-60 shrink-0 overflow-y-auto border-r border-border py-6 pr-4 md:block">
+    <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-60 shrink-0 overflow-y-auto border-e border-border py-6 pe-4 md:block">
       {/* Panel brand header — makes it unmistakable which panel you're in. */}
       <div className="mb-8 flex items-center gap-3 px-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20">
@@ -91,12 +91,12 @@ export function PanelSidebar({
                 >
                   {/* Active rail */}
                   {active && (
-                    <span className="absolute inset-y-2 left-0 w-1.5 rounded-r-full bg-primary" />
+                    <span className="absolute inset-y-2 start-0 w-1.5 rounded-e-full bg-primary" />
                   )}
                   <NavIcon className={cn('h-4.5 w-4.5 shrink-0', active ? 'text-primary' : 'text-muted-foreground/70')} />
                   <span className="truncate">{n.label}</span>
                   {typeof n.count === 'number' && n.count > 0 && (
-                    <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                    <span className="ms-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
                       {n.count > 99 ? '99+' : n.count}
                     </span>
                   )}
@@ -131,7 +131,7 @@ export function PanelSidebar({
             <div className="relative">
               <NavIcon className="h-6 w-6" />
               {typeof n.count === 'number' && n.count > 0 && (
-                <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                <span className="absolute -end-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
                   {n.count > 99 ? '99+' : n.count}
                 </span>
               )}

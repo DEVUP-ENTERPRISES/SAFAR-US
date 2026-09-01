@@ -73,7 +73,7 @@ export function Row({
         {subtitle && <p className="mt-0.5 text-sm leading-snug text-muted-foreground">{subtitle}</p>}
       </div>
 
-      {value != null && <span className="shrink-0 text-right font-semibold tabular-nums">{value}</span>}
+      {value != null && <span className="shrink-0 text-end font-semibold tabular-nums">{value}</span>}
 
       {action &&
         (action.href ? (

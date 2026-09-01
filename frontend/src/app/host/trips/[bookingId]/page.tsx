@@ -190,7 +190,7 @@ export default function HostTripDetailPage() {
               </p>
             </div>
             <span className="text-muted-foreground">→</span>
-            <div className="text-right">
+            <div className="text-end">
               <p className="text-lg font-bold">{formatDate(t.period.end)}</p>
               <p className="text-sm text-muted-foreground">
                 {new Date(t.period.end).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}

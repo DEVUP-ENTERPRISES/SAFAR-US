@@ -35,7 +35,7 @@ export default function HostDashboardPage() {
             )}
             {host.data?.isSuperhost && (
               <Badge tone="default">
-                <Award className="mr-1 h-3 w-3" /> Superhost
+                <Award className="me-1 h-3 w-3" /> Superhost
               </Badge>
             )}
             <Link href="/host/listings/new">

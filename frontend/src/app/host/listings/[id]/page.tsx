@@ -209,7 +209,7 @@ export default function ManageListingPage() {
         </div>
         <span
           className={cn(
-            'absolute left-4 top-4 flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold uppercase',
+            'absolute start-4 top-4 flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold uppercase',
             v.status === 'listed' ? 'bg-success text-success-foreground' : 'bg-foreground/80 text-background',
           )}
         >
@@ -356,7 +356,7 @@ export default function ManageListingPage() {
                           <img src={p.url} alt="" className="h-full w-full object-cover" />
 
                           {isCover && (
-                            <span className="absolute left-1 top-1 flex items-center gap-1 rounded bg-foreground/80 px-1.5 py-0.5 text-[10px] font-bold uppercase text-background">
+                            <span className="absolute start-1 top-1 flex items-center gap-1 rounded bg-foreground/80 px-1.5 py-0.5 text-[10px] font-bold uppercase text-background">
                               <Check className="h-3 w-3" /> Cover
                             </span>
                           )}
@@ -374,7 +374,7 @@ export default function ManageListingPage() {
                             <button
                               onClick={() => doRemovePhoto(p.key!, isCover)}
                               aria-label="Delete photo"
-                              className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity hover:bg-destructive group-hover:opacity-100"
+                              className="absolute end-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity hover:bg-destructive group-hover:opacity-100"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>

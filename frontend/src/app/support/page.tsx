@@ -64,7 +64,7 @@ function Support() {
       <Link href="/help" className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3 transition-colors hover:bg-muted">
         <BookOpen className="h-5 w-5 shrink-0 text-primary" />
         <span className="text-sm"><span className="font-medium">Browse the help centre</span> — answers to common questions, no waiting.</span>
-        <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
+        <ChevronRight className="ms-auto h-4 w-4 shrink-0 text-muted-foreground" />
       </Link>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -72,7 +72,7 @@ function Support() {
           {list.isLoading && <Skeleton className="h-40 w-full" />}
           {list.data && list.data.length === 0 && !creating && <EmptyState title="No tickets yet" description="Open a ticket and our team will help." />}
           {list.data?.map((t) => (
-            <button key={t._id} onClick={() => { setSelected(t._id); setCreating(false); }} className="w-full text-left">
+            <button key={t._id} onClick={() => { setSelected(t._id); setCreating(false); }} className="w-full text-start">
               <Card className={cn('transition-colors', selected === t._id && 'border-primary')}>
                 <CardContent className="flex items-center justify-between pt-6">
                   <div className="min-w-0"><p className="truncate font-medium">{t.subject}</p><p className="text-xs capitalize text-muted-foreground">{t.status}</p></div>
@@ -102,7 +102,7 @@ function Support() {
                   const mine = m.authorId === me?.id;
                   return (
                     <div key={i} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
-                      <div className={cn('max-w-[75%] rounded-2xl px-3.5 py-2 text-sm', mine ? 'rounded-br-sm bg-primary text-primary-foreground' : 'rounded-bl-sm bg-muted')}>{m.body}</div>
+                      <div className={cn('max-w-[75%] rounded-2xl px-3.5 py-2 text-sm', mine ? 'rounded-ee-sm bg-primary text-primary-foreground' : 'rounded-es-sm bg-muted')}>{m.body}</div>
                     </div>
                   );
                 })}

@@ -79,7 +79,7 @@ export function HostCalendar() {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border">
-              <th className="sticky left-0 z-10 w-40 bg-card p-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <th className="sticky start-0 z-10 w-40 bg-card p-3 text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Vehicle
               </th>
               {days.map((d) => {
@@ -107,7 +107,7 @@ export function HostCalendar() {
           <tbody>
             {vehicles.data.map((v) => (
               <tr key={v._id} className="border-b border-border last:border-0">
-                <td className="sticky left-0 z-10 bg-card p-3">
+                <td className="sticky start-0 z-10 bg-card p-3">
                   <div className="flex items-center gap-2">
                     <div className="h-9 w-12 shrink-0 overflow-hidden rounded bg-muted">
                       {v.photos?.[0]?.url ? (
@@ -140,7 +140,7 @@ export function HostCalendar() {
                     <td
                       key={key(d)}
                       className={cn(
-                        'relative h-14 border-l border-border text-center align-middle',
+                        'relative h-14 border-s border-border text-center align-middle',
                         weekend && 'bg-muted/40',
                         bookedDay && 'bg-primary/10',
                       )}
@@ -162,7 +162,7 @@ export function HostCalendar() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        <span className="mr-1 inline-block h-1.5 w-4 rounded-full bg-primary align-middle" /> booked ·
+        <span className="me-1 inline-block h-1.5 w-4 rounded-full bg-primary align-middle" /> booked ·
         prices shown are what a guest pays that day (weekend rates included).
       </p>
     </div>

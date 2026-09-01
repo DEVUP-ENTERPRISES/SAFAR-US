@@ -139,7 +139,7 @@ export default function AdminCommissionPage() {
     },
     {
       header: 'Actions',
-      className: 'text-right',
+      className: 'text-end',
       cell: (r) => (
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="outline" loading={toggle.isPending} onClick={() => doToggle(r)}>

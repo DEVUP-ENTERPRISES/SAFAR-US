@@ -48,7 +48,7 @@ export function Navbar() {
         {/* Left: Mobile Menu Toggle & Wordmark */}
         <div className="flex items-center gap-3">
           <button 
-            className="sm:hidden p-1 -ml-1 text-foreground transition-transform hover:scale-110" 
+            className="sm:hidden p-1 -ms-1 text-foreground transition-transform hover:scale-110" 
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Open menu"
           >
@@ -82,7 +82,7 @@ export function Navbar() {
           </Link>
         )}
 
-        <nav className={cn('flex shrink-0 items-center gap-1 sm:gap-2', isSearch && 'lg:ml-4')}>
+        <nav className={cn('flex shrink-0 items-center gap-1 sm:gap-2', isSearch && 'lg:ms-4')}>
           {/* Explore and Host live in the avatar menu on the search page, so the
               inline search bar has room to breathe. */}
           {!isSearch && (
@@ -103,17 +103,17 @@ export function Navbar() {
             </>
           )}
 
-          <div className="hidden sm:flex items-center justify-center h-8 w-8 rounded-full hover:bg-accent transition-colors ml-1">
+          <div className="hidden sm:flex items-center justify-center h-8 w-8 rounded-full hover:bg-accent transition-colors ms-1">
             <ThemeToggle />
           </div>
 
           {authed ? (
-            <div className="ml-1 flex items-center gap-1">
+            <div className="ms-1 flex items-center gap-1">
               <NotificationBell />
               <UserMenu />
             </div>
           ) : (
-            <div className="hidden sm:flex items-center gap-2 ml-2">
+            <div className="hidden sm:flex items-center gap-2 ms-2">
               <Link href="/login">
                 <Button variant="ghost" size="sm" className="rounded-full font-semibold hover:bg-primary/10 hover:text-primary">Log in</Button>
               </Link>
@@ -136,7 +136,7 @@ export function Navbar() {
           />
           
           {/* Drawer */}
-          <div className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-background shadow-2xl animate-slide-in-right flex flex-col">
+          <div className="fixed inset-y-0 start-0 w-[85%] max-w-sm bg-background shadow-2xl animate-slide-in-right flex flex-col">
             <div className="flex items-center justify-between px-4 h-16 border-b border-border">
               <Link href="/" className="flex items-center gap-2.5" onClick={() => setMobileMenuOpen(false)}>
                 <span className="grid h-8 w-8 place-items-center rounded-lg brand-gradient shadow-soft">
@@ -145,7 +145,7 @@ export function Navbar() {
                 <span className="text-lg font-extrabold tracking-tight">{config.appName}</span>
               </Link>
               <button 
-                className="p-2 -mr-2 text-foreground" 
+                className="p-2 -me-2 text-foreground" 
                 onClick={() => setMobileMenuOpen(false)}
                 aria-label="Close menu"
               >

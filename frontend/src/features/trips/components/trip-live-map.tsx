@@ -142,7 +142,7 @@ export function TripLiveMap({
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border" style={{ height }}>
       <div ref={ref} className="h-full w-full" />
-      <div className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-background/85 px-2.5 py-1 text-xs text-muted-foreground backdrop-blur">
+      <div className="pointer-events-none absolute bottom-2 start-2 rounded-full bg-background/85 px-2.5 py-1 text-xs text-muted-foreground backdrop-blur">
         {fix
           ? `Live · updated ${fix.updatedAt ? new Date(fix.updatedAt).toLocaleTimeString() : 'just now'}`
           : 'Waiting for live location…'}

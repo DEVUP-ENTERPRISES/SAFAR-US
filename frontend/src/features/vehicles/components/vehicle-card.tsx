@@ -39,7 +39,7 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-60 transition-opacity duration-500 group-hover:opacity-80" />
 
           {/* Actions */}
-          <div className="absolute right-3 top-3 flex flex-col gap-2 scale-90 sm:scale-100 origin-top-right z-20">
+          <div className="absolute end-3 top-3 flex flex-col gap-2 scale-90 sm:scale-100 origin-top-right z-20">
             <div className="rounded-full bg-black/20 backdrop-blur-md shadow-sm border border-white/10 transition-transform hover:scale-110 hover:bg-black/40">
               <WishlistButton vehicleId={vehicle._id} />
             </div>
@@ -49,7 +49,7 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
           </div>
 
           {/* Status chips */}
-          <div className="absolute left-3 top-3 flex flex-wrap gap-2 max-w-[70%] z-20">
+          <div className="absolute start-3 top-3 flex flex-wrap gap-2 max-w-[70%] z-20">
             {vehicle.hostIsSuperhost && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-black/40 border border-white/20 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white backdrop-blur-md shadow-sm">
                 <Award className="h-3.5 w-3.5 text-yellow-400" /> Superhost
@@ -80,8 +80,8 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
             {vehicle.ratingCount > 0 && (
               <div className="flex shrink-0 items-center rounded-full bg-foreground/5 px-2.5 py-1 text-[13px] font-semibold leading-none text-foreground backdrop-blur-sm border border-border/50">
                 <Star className="h-3.5 w-3.5 fill-primary text-primary -mt-[1px]" />
-                <span className="numeric ml-1.5">{vehicle.ratingAvg.toFixed(1)}</span>
-                <span className="text-muted-foreground/70 font-medium ml-1">({vehicle.ratingCount})</span>
+                <span className="numeric ms-1.5">{vehicle.ratingAvg.toFixed(1)}</span>
+                <span className="text-muted-foreground/70 font-medium ms-1">({vehicle.ratingCount})</span>
               </div>
             )}
           </div>

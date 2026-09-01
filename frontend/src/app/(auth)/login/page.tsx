@@ -36,7 +36,7 @@ function LoginInner() {
 
   return (
     <div className="w-full">
-      <div className="mb-10 text-center lg:text-left">
+      <div className="mb-10 text-center lg:text-start">
         <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-foreground">Welcome back</h2>
         <p className="mt-3 text-lg font-medium text-muted-foreground">
           Enter your details to sign in to your account.

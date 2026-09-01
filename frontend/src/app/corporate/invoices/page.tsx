@@ -15,7 +15,7 @@ export default function InvoicesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="display text-display-sm">Consolidated invoice</h1>
-        <div className="text-right">
+        <div className="text-end">
           <p className="text-sm text-muted-foreground">Total</p>
           <p className="text-2xl font-bold">{formatMoney({ amount: data.total, currency: data.currency })}</p>
         </div>
@@ -41,12 +41,12 @@ export default function InvoicesPage() {
         <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-soft">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-muted-foreground">
+              <tr className="border-b border-border text-start text-muted-foreground">
                 <th className="px-4 py-3 font-medium">Booking</th>
                 <th className="px-4 py-3 font-medium">Date</th>
                 <th className="px-4 py-3 font-medium">Cost center</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 text-right font-medium">Amount</th>
+                <th className="px-4 py-3 text-end font-medium">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -56,7 +56,7 @@ export default function InvoicesPage() {
                   <td className="px-4 py-3">{formatDate(l.date)}</td>
                   <td className="px-4 py-3">{l.costCenter}</td>
                   <td className="px-4 py-3 capitalize text-muted-foreground">{l.status.replace(/_/g, ' ')}</td>
-                  <td className="px-4 py-3 text-right font-semibold">{formatMoney({ amount: l.amount, currency: data.currency })}</td>
+                  <td className="px-4 py-3 text-end font-semibold">{formatMoney({ amount: l.amount, currency: data.currency })}</td>
                 </tr>
               ))}
             </tbody>

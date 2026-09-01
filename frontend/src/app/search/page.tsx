@@ -151,7 +151,7 @@ function Opt({
     >
       {children}
       {count !== undefined && (
-        <span className={cn('ml-1.5 text-xs tabular-nums', on ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
+        <span className={cn('ms-1.5 text-xs tabular-nums', on ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
           {count}
         </span>
       )}
@@ -322,7 +322,7 @@ function SearchInner() {
                     <div className="flex flex-wrap gap-2">
                       {[4, 4.5].map((r) => (
                         <Opt key={r} on={ratingMin === r} onClick={() => setRatingMin(ratingMin === r ? 0 : r)}>
-                          <Star className="mr-1 inline h-3.5 w-3.5 fill-current" />{r}+
+                          <Star className="me-1 inline h-3.5 w-3.5 fill-current" />{r}+
                         </Opt>
                       ))}
                     </div>
@@ -408,7 +408,7 @@ function SearchInner() {
                 <div className="flex flex-wrap gap-2">
                   {FUELS.map((f) => (
                     <Opt key={f} on={fuelType === f} count={counts?.fuelType[f]} onClick={() => setFuelType(fuelType === f ? '' : f)}>
-                      {f === 'ev' ? <><Zap className="mr-1 inline h-3.5 w-3.5" />Electric</> : f}
+                      {f === 'ev' ? <><Zap className="me-1 inline h-3.5 w-3.5" />Electric</> : f}
                     </Opt>
                   ))}
                 </div>
@@ -463,7 +463,7 @@ function SearchInner() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">
           {isFetching ? 'Searching…' : `${data?.length ?? 0} cars available`}
-          <span className="ml-2 text-base font-medium text-muted-foreground">in {areaLabel}</span>
+          <span className="ms-2 text-base font-medium text-muted-foreground">in {areaLabel}</span>
         </h1>
         <div className="flex items-center gap-2">
           {status === 'authenticated' && (
@@ -490,11 +490,11 @@ function SearchInner() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="h-9 cursor-pointer appearance-none rounded-full border border-border bg-card pl-4 pr-9 text-sm font-medium outline-none hover:border-foreground/40"
+              className="h-9 cursor-pointer appearance-none rounded-full border border-border bg-card ps-4 pe-9 text-sm font-medium outline-none hover:border-foreground/40"
             >
               {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <ChevronDown className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
         </div>
       </div>

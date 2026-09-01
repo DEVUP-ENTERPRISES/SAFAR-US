@@ -47,10 +47,10 @@ function CompareInner() {
       {/* Scrollable table container */}
       <div className="relative rounded-2xl border border-border bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
         <div className="overflow-x-auto hide-scrollbar">
-          <table className="w-full text-sm text-left">
+          <table className="w-full text-sm text-start">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="sticky left-0 z-20 bg-card/95 backdrop-blur px-4 py-4 sm:px-6 font-semibold text-foreground border-r border-border min-w-[140px] shadow-[4px_0_12px_rgb(0,0,0,0.02)]">
+                <th className="sticky start-0 z-20 bg-card/95 backdrop-blur px-4 py-4 sm:px-6 font-semibold text-foreground border-e border-border min-w-[140px] shadow-[4px_0_12px_rgb(0,0,0,0.02)]">
                   Feature
                 </th>
                 {cars.map((c) => (
@@ -70,7 +70,7 @@ function CompareInner() {
             <tbody className="divide-y divide-border">
               {rows.map((row) => (
                 <tr key={row.label} className="group hover:bg-muted/20 transition-colors">
-                  <td className="sticky left-0 z-20 bg-card/95 backdrop-blur px-4 py-4 sm:px-6 font-medium text-muted-foreground border-r border-border group-hover:bg-muted/40 shadow-[4px_0_12px_rgb(0,0,0,0.02)]">
+                  <td className="sticky start-0 z-20 bg-card/95 backdrop-blur px-4 py-4 sm:px-6 font-medium text-muted-foreground border-e border-border group-hover:bg-muted/40 shadow-[4px_0_12px_rgb(0,0,0,0.02)]">
                     {row.label}
                   </td>
                   {cars.map((c) => (
@@ -81,7 +81,7 @@ function CompareInner() {
                 </tr>
               ))}
               <tr className="bg-muted/10">
-                <td className="sticky left-0 z-20 bg-card/95 backdrop-blur px-4 py-5 sm:px-6 border-r border-border shadow-[4px_0_12px_rgb(0,0,0,0.02)]" />
+                <td className="sticky start-0 z-20 bg-card/95 backdrop-blur px-4 py-5 sm:px-6 border-e border-border shadow-[4px_0_12px_rgb(0,0,0,0.02)]" />
                 {cars.map((c) => (
                   <td key={c._id} className="px-5 py-5">
                     <Link href={`/vehicles/${c._id}`}>

@@ -108,7 +108,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             <button
               onClick={() => close(false)}
               aria-label="Close"
-              className="absolute right-3 top-3 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent"
+              className="absolute end-3 top-3 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent"
             >
               <X className="h-4 w-4" />
             </button>
@@ -124,7 +124,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                   <AlertTriangle className="h-5 w-5" />
                 </span>
                 <div className="min-w-0 pt-0.5">
-                  <h2 id="confirm-title" className="pr-6 text-lg font-semibold leading-snug">
+                  <h2 id="confirm-title" className="pe-6 text-lg font-semibold leading-snug">
                     {opts.title}
                   </h2>
                   {opts.description && (
@@ -139,7 +139,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 <div className="mt-5">
                   <label className="mb-1.5 block text-xs font-medium">
                     {opts.reason.label}
-                    {opts.reason.required && <span className="ml-1 text-destructive">*</span>}
+                    {opts.reason.required && <span className="ms-1 text-destructive">*</span>}
                   </label>
                   <Input
                     autoFocus

@@ -100,7 +100,7 @@ export default function HostPerformancePage() {
                   <span className="font-medium">{v.label}</span>
                   <span className="flex items-center gap-6">
                     <span className="text-muted-foreground">{v.trips} trip{v.trips === 1 ? '' : 's'}</span>
-                    <span className="w-24 text-right font-semibold tabular-nums">{m(v.revenue)}</span>
+                    <span className="w-24 text-end font-semibold tabular-nums">{m(v.revenue)}</span>
                   </span>
                 </div>
               ))}

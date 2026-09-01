@@ -56,7 +56,7 @@ export function CategoryCarousel({ city }: { city: string }) {
       <button
         onClick={() => scrollByAmount(-300)}
         className={cn(
-          "absolute left-4 top-1/2 z-10 -translate-y-1/2 hidden h-12 w-12 items-center justify-center rounded-full bg-background/80 text-foreground shadow-lg backdrop-blur transition-all hover:scale-105 hover:bg-background sm:flex opacity-0 group-hover/carousel:opacity-100",
+          "absolute start-4 top-1/2 z-10 -translate-y-1/2 hidden h-12 w-12 items-center justify-center rounded-full bg-background/80 text-foreground shadow-lg backdrop-blur transition-all hover:scale-105 hover:bg-background sm:flex opacity-0 group-hover/carousel:opacity-100",
           !canScrollLeft && "hidden sm:hidden"
         )}
         aria-label="Scroll left"
@@ -120,7 +120,7 @@ export function CategoryCarousel({ city }: { city: string }) {
       <button
         onClick={() => scrollByAmount(300)}
         className={cn(
-          "absolute right-4 top-1/2 z-10 -translate-y-1/2 hidden h-12 w-12 items-center justify-center rounded-full bg-background/80 text-foreground shadow-lg backdrop-blur transition-all hover:scale-105 hover:bg-background sm:flex opacity-0 group-hover/carousel:opacity-100",
+          "absolute end-4 top-1/2 z-10 -translate-y-1/2 hidden h-12 w-12 items-center justify-center rounded-full bg-background/80 text-foreground shadow-lg backdrop-blur transition-all hover:scale-105 hover:bg-background sm:flex opacity-0 group-hover/carousel:opacity-100",
           !canScrollRight && "hidden sm:hidden"
         )}
         aria-label="Scroll right"

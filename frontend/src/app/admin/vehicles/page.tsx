@@ -72,7 +72,7 @@ export default function AdminVehiclesPage() {
     { header: 'Price', cell: (v) => formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency }) },
     { header: 'Verification', cell: (v) => <Badge tone={v.verificationStatus === 'verified' ? 'success' : 'warning'}>{v.verificationStatus}</Badge> },
     { header: 'Status', cell: (v) => <Badge tone={v.status === 'listed' ? 'success' : 'muted'}>{v.status}</Badge> },
-    { header: 'Actions', className: 'text-right', cell: (v) => (
+    { header: 'Actions', className: 'text-end', cell: (v) => (
       <div className="flex justify-end gap-2">
         {v.verificationStatus !== 'verified' && (
           <Button size="sm" loading={action.isPending} onClick={() => act(v, 'approve')}>Approve</Button>

@@ -62,14 +62,14 @@ export function UserMenu() {
         aria-expanded={open}
         aria-label={unread > 0 ? `Account — ${unread} unread messages` : 'Account'}
         className={cn(
-          'relative flex items-center gap-2 rounded-full border border-border bg-card py-1 pl-1 pr-2.5',
+          'relative flex items-center gap-2 rounded-full border border-border bg-card py-1 ps-1 pe-2.5',
           'shadow-soft transition-all hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         )}
       >
         <span className="relative grid h-7 w-7 place-items-center rounded-full brand-gradient text-xs font-bold text-white">
           {initial}
           {unread > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary" />
+            <span className="absolute -end-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary" />
           )}
         </span>
         <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} />
@@ -78,7 +78,7 @@ export function UserMenu() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-60 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-border bg-card shadow-float"
+          className="absolute end-0 z-50 mt-2 w-60 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-border bg-card shadow-float"
         >
           <div className="border-b border-border px-4 py-3">
             <p className="truncate text-sm font-semibold">{name}</p>
@@ -96,7 +96,7 @@ export function UserMenu() {
               >
                 <it.icon className="h-4 w-4 text-muted-foreground" /> {it.label}
                 {it.href === '/messages' && unread > 0 && (
-                  <span className="ml-auto grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
+                  <span className="ms-auto grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
                     {unread > 9 ? '9+' : unread}
                   </span>
                 )}

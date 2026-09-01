@@ -75,7 +75,7 @@ function BookingsList() {
       {data.map((b) => (
         <Card key={b._id}>
           <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6">
-            <button onClick={() => router.push(`/bookings/${b._id}`)} className="min-w-0 text-left">
+            <button onClick={() => router.push(`/bookings/${b._id}`)} className="min-w-0 text-start">
               <div className="flex items-center gap-2">
                 <span className="font-semibold hover:text-primary hover:underline">{b.code}</span>
                 <BookingStatusBadge status={b.status} />

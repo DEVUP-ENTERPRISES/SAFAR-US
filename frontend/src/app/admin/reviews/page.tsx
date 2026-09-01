@@ -75,7 +75,7 @@ export default function AdminReviewsPage() {
     },
     {
       header: 'Actions',
-      className: 'text-right',
+      className: 'text-end',
       cell: (r) => (
         <div className="flex justify-end gap-2">
           {r.status === 'published' ? (

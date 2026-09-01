@@ -56,7 +56,7 @@ export default function FleetPage() {
       {fleets.data && fleets.data.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {fleets.data.map((fl) => (
-            <button key={fl._id} onClick={() => setSelected(fl._id)} className="text-left">
+            <button key={fl._id} onClick={() => setSelected(fl._id)} className="text-start">
               <Card className={selected === fl._id ? 'border-primary' : ''}>
                 <CardContent className="pt-6">
                   <p className="font-medium">{fl.name}</p>
@@ -103,12 +103,12 @@ export default function FleetPage() {
               <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border text-left text-muted-foreground">
+                    <tr className="border-b border-border text-start text-muted-foreground">
                       <th className="px-3 py-2 font-medium">Vehicle</th>
                       <th className="px-3 py-2 font-medium">Trips</th>
                       <th className="px-3 py-2 font-medium">Host earnings</th>
                       <th className="px-3 py-2 font-medium">Maintenance</th>
-                      <th className="px-3 py-2 text-right font-medium">Net profit</th>
+                      <th className="px-3 py-2 text-end font-medium">Net profit</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -118,7 +118,7 @@ export default function FleetPage() {
                         <td className="px-3 py-2">{v.trips}</td>
                         <td className="px-3 py-2">{usd(v.hostEarnings)}</td>
                         <td className="px-3 py-2 text-muted-foreground">−{usd(v.maintenanceCost)}</td>
-                        <td className={`px-3 py-2 text-right font-semibold ${v.netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                        <td className={`px-3 py-2 text-end font-semibold ${v.netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>
                           {usd(v.netProfit)}
                         </td>
                       </tr>

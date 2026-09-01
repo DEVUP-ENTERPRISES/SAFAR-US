@@ -64,7 +64,7 @@ export function LocationSearch({ onPick, placeholder = 'Search a city or place',
       {open && suggestions.data && suggestions.data.length > 0 && (
         <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-border bg-card shadow-lift">
           {suggestions.data.map((s, i) => (
-            <button key={i} onClick={() => pick(s.description)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent">
+            <button key={i} onClick={() => pick(s.description)} className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-accent">
               <MapPin className="h-4 w-4 text-muted-foreground" /> {s.description}
             </button>
           ))}

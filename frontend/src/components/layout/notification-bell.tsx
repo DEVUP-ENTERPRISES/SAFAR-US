@@ -68,14 +68,14 @@ export function NotificationBell() {
       >
         <Bell className="h-5 w-5" />
         {unread.length > 0 && (
-          <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+          <span className="absolute end-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
             {unread.length > 9 ? '9+' : unread.length}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-3 w-[340px] sm:w-[420px] origin-top-right animate-scale-in overflow-hidden rounded-[1.5rem] border border-border/60 bg-card shadow-[0_12px_48px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 dark:ring-white/10">
+        <div className="absolute end-0 z-50 mt-3 w-[340px] sm:w-[420px] origin-top-right animate-scale-in overflow-hidden rounded-[1.5rem] border border-border/60 bg-card shadow-[0_12px_48px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 dark:ring-white/10">
           <div className="flex items-center justify-between border-b border-border/40 bg-muted/20 px-5 py-4 backdrop-blur-sm">
             <p className="text-[17px] font-bold tracking-tight">Notifications</p>
             {unread.length > 0 && (
@@ -105,13 +105,13 @@ export function NotificationBell() {
                   key={n._id}
                   onClick={() => openNotification(n)}
                   className={cn(
-                    'group relative flex w-full items-start gap-4 px-5 py-4 text-left transition-all hover:bg-muted/40',
+                    'group relative flex w-full items-start gap-4 px-5 py-4 text-start transition-all hover:bg-muted/40',
                     !n.readAt && 'bg-primary/[0.02]',
                   )}
                 >
                   {/* Unread indicator */}
                   {!n.readAt && (
-                    <span className="absolute left-0 top-0 h-full w-1 bg-primary" />
+                    <span className="absolute start-0 top-0 h-full w-1 bg-primary" />
                   )}
                   
                   <div className="mt-1 shrink-0">

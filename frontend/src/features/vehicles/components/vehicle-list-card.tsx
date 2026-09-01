@@ -45,11 +45,11 @@ export function VehicleListCard({
             </div>
           )}
           {unlimited && (
-            <span className="absolute left-3 top-3 rounded-md bg-background/90 px-2 py-1 text-[11px] font-bold text-foreground shadow-sm backdrop-blur">
+            <span className="absolute start-3 top-3 rounded-md bg-background/90 px-2 py-1 text-[11px] font-bold text-foreground shadow-sm backdrop-blur">
               Unlimited miles
             </span>
           )}
-          <div className="absolute right-2 top-2 rounded-full bg-black/25 backdrop-blur-md">
+          <div className="absolute end-2 top-2 rounded-full bg-black/25 backdrop-blur-md">
             <WishlistButton vehicleId={vehicle._id} />
           </div>
         </div>
@@ -92,7 +92,7 @@ export function VehicleListCard({
             )}
           </div>
 
-          <div className="text-right">
+          <div className="text-end">
             {total != null ? (
               <>
                 <p className="font-bold">
