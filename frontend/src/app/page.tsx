@@ -44,15 +44,18 @@ export default function HomePage() {
               <Sparkles className="h-4 w-4" /> The Mobility Operating System
             </span>
 
-            <h1 className="mt-8 text-[3rem] leading-[1.05] tracking-tighter sm:text-[4.5rem] lg:text-[5.5rem] font-black text-white drop-shadow-md">
-              Skip the counter.
+            {/* The display face, and no gradient-to-transparent: that trick
+                is everywhere, and it throws away contrast on the one line the
+                whole page is built around. */}
+            <h1 className="display mt-8 text-[3.1rem] leading-[0.95] text-white sm:text-[4.6rem] lg:text-[5.6rem]">
+              Drive away
               <br />
-              <span className="text-white/80 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">Drive something better.</span>
+              certain.
             </h1>
 
-            <p className="mt-8 max-w-xl text-lg sm:text-2xl font-medium leading-relaxed text-white/80 drop-shadow-sm">
-              Book the perfect car from trusted local hosts — from everyday commuters to the one
-              you&apos;ve always wanted to drive. Delivered to your door.
+            <p className="mt-7 max-w-xl text-lg font-medium leading-relaxed text-white/75 sm:text-xl">
+              Real cars from local hosts, delivered where you need them — with three promises no
+              other rental makes.
             </p>
           </div>
 
@@ -61,8 +64,32 @@ export default function HomePage() {
             <SearchWidget />
           </div>
 
-          {/* Trust strip */}
-          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-white/60">
+          {/* The three promises, stated on the first screen. Each one is a
+              shipped mechanic, not a marketing line. */}
+          <div className="mt-11 grid max-w-4xl gap-px overflow-hidden rounded-2xl border border-white/15 bg-white/10 sm:grid-cols-3">
+            {[
+              {
+                t: 'Your host cancels, you still drive',
+                d: 'We put you in a comparable car and cover the price difference.',
+              },
+              {
+                t: 'A finished trip stays finished',
+                d: 'Damage must be reported within 72 hours, with photos. After that, nothing.',
+              },
+              {
+                t: 'Reviews written blind',
+                d: 'Neither side sees the other until both are in. Nobody can retaliate.',
+              },
+            ].map((p) => (
+              <div key={p.t} className="bg-[hsl(var(--ink))]/70 p-5 backdrop-blur-sm">
+                <p className="text-[15px] font-semibold leading-snug text-white">{p.t}</p>
+                <p className="mt-1.5 text-[13.5px] leading-relaxed text-white/60">{p.d}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Live marketplace numbers — supporting evidence, not the pitch. */}
+          <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-white/55">
             {stats && stats.ratingAvg !== null && (
               <span className="flex items-center gap-2">
                 <Star className="h-4 w-4 fill-white/70 text-white/70" />
@@ -134,7 +161,7 @@ export default function HomePage() {
                   }`}
                 >
                   {c.city}
-                  <span className="ml-1.5 text-xs opacity-60">{c.vehicles}</span>
+                  <span className="ms-1.5 text-xs opacity-60">{c.vehicles}</span>
                 </button>
               ))}
             </div>
@@ -177,7 +204,7 @@ export default function HomePage() {
         {/* ── How it works ───────────────────────────────────────────── */}
         <section className="space-y-12 sm:space-y-16 relative isolate pt-10">
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-60 pointer-events-none blur-3xl"></div>
-          <div className="text-center sm:text-left">
+          <div className="text-center sm:text-start">
             <h2 className="text-4xl sm:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 inline-block">How CATO works</h2>
             <p className="mt-4 text-muted-foreground text-lg sm:text-xl font-medium max-w-xl">Three steps. No counter, no queue, no paperwork.</p>
           </div>
@@ -188,7 +215,7 @@ export default function HomePage() {
                 className="group relative overflow-hidden rounded-3xl border border-border/50 bg-card/40 backdrop-blur-xl p-8 shadow-lg transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/40 hover:bg-card/80"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
-                <span className="absolute -right-4 -top-8 text-[140px] font-black text-foreground/[0.02] transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3 group-hover:text-primary/[0.03] pointer-events-none select-none">
+                <span className="absolute -end-4 -top-8 text-[140px] font-black text-foreground/[0.02] transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3 group-hover:text-primary/[0.03] pointer-events-none select-none">
                   {i + 1}
                 </span>
                 <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/20 shadow-inner transition-all duration-500 group-hover:scale-110 group-hover:shadow-[0_0_20px_-5px_rgba(var(--primary),0.4)]">
@@ -198,7 +225,7 @@ export default function HomePage() {
                 <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground transition-colors group-hover:text-muted-foreground/90">{s.body}</p>
                 
                 {/* Glow effect at the bottom */}
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1/2 h-1.5 bg-primary blur-md opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
+                <div className="absolute -bottom-1 start-1/2 -translate-x-1/2 w-1/2 h-1.5 bg-primary blur-md opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
               </div>
             ))}
           </div>
@@ -206,15 +233,15 @@ export default function HomePage() {
 
         {/* ── Trust ──────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden grid gap-10 rounded-3xl sm:rounded-[2.5rem] border border-border/50 bg-gradient-to-br from-card/80 via-card/50 to-card/20 backdrop-blur-2xl p-8 sm:p-14 md:grid-cols-3 shadow-2xl">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute -top-40 -end-40 w-96 h-96 bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute -bottom-40 -start-40 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
           
           {[
             { icon: ShieldCheck, stat: 'Verified', label: 'Every host and every car is checked before it ever gets listed.' },
             { icon: BadgeCheck, stat: 'Protected', label: 'Choose a protection plan at checkout — up to zero deductible.' },
             { icon: Zap, stat: 'Instant', label: 'Instant Book cars are confirmed the moment you pay. No waiting.' },
           ].map((t) => (
-            <div key={t.stat} className="relative z-10 group flex flex-col items-center text-center md:items-start md:text-left">
+            <div key={t.stat} className="relative z-10 group flex flex-col items-center text-center md:items-start md:text-start">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 ring-1 ring-primary/20 transition-all duration-500 group-hover:bg-primary/20 group-hover:scale-110 group-hover:shadow-[0_0_30px_-5px_rgba(var(--primary),0.3)]">
                 <t.icon className="h-8 w-8 text-primary transition-transform duration-500 group-hover:scale-110" />
               </div>
