@@ -2,62 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Design tokens (light) ───────────────────────────────────────────── */
+/* ── Design tokens (light) ─────────────────────────────────────────────
+   MERIDIAN. Two rules govern this palette:
+
+   1. The NEUTRALS are the brand. They are warm (a hue around 35–40°, never
+      blue) because a car handed to a stranger is a warm physical thing, and
+      because warm neutrals carry no cultural charge in any market we ship to.
+      Blue-black would make a marketplace read like a bank.
+
+   2. The ACCENT is a guest, not the host. Deep teal is the least
+      culturally-loaded hue at 50-market scale — saffron is political in India,
+      red pulls three ways, purple is mourning in Brazil and Thailand and is
+      already Turo's. Teal is also rare on car bodywork, so it never fights the
+      photography, and it leaves green free to mean exactly one thing: cleared.
+   ───────────────────────────────────────────────────────────────────── */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
-  --subtle: 210 40% 98%;
+  --background: 40 30% 96%;        /* paper — warm, never grey-blue */
+  --foreground: 38 21% 7%;         /* ink */
+  --subtle: 40 24% 93%;
+  /* Cards stay PURE WHITE on purpose: a warm ground behind a silver or white
+     car reads as a yellowed photo, and silver + white are 39% of the US fleet.
+     The warmth lives in the page behind the cards, never under a photograph. */
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --primary: 160 84% 39%; /* CATO emerald */
+  --card-foreground: 38 21% 7%;
+  --primary: 180 82% 31%;          /* meridian teal */
   --primary-foreground: 0 0% 100%;
-  --primary-soft: 160 60% 96%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222 47% 11%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  --accent: 160 60% 96%;
-  --accent-foreground: 222 47% 11%;
-  --destructive: 0 72% 51%;
+  --primary-soft: 180 40% 93%;
+  --secondary: 40 24% 93%;
+  --secondary-foreground: 38 21% 7%;
+  --muted: 40 20% 93%;
+  --muted-foreground: 33 9% 40%;   /* road */
+  --accent: 180 40% 93%;
+  --accent-foreground: 38 21% 7%;
+  --destructive: 4 64% 48%;
   --destructive-foreground: 0 0% 100%;
-  --success: 142 71% 45%;
+  --success: 159 76% 30%;          /* cleared — semantic only, never brand */
   --success-foreground: 0 0% 100%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 160 84% 39%;
+  --border: 39 20% 86%;
+  --input: 39 20% 86%;
+  --ring: 180 82% 31%;
   --radius: 0.85rem;
 
-  /* Ink scale — used for high-contrast marketing surfaces */
-  --ink: 224 47% 7%;
-  --ink-foreground: 0 0% 100%;
+  /* Ink scale — high-contrast marketing surfaces (asphalt) */
+  --ink: 30 18% 7%;
+  --ink-foreground: 38 31% 93%;
 }
 
-/* ── Design tokens (dark) ────────────────────────────────────────────── */
+/* ── Design tokens (dark) ─────────────────────────────────────────────
+   Not an inversion. The ground warms rather than cooling, and the accent
+   lightens so it clears contrast on a dark surface — a 31%-lightness teal is
+   unreadable on asphalt.
+   ───────────────────────────────────────────────────────────────────── */
 .dark {
-  --background: 224 47% 6%;
-  --foreground: 210 40% 98%;
-  --subtle: 222 44% 9%;
-  --card: 222 44% 9%;
-  --card-foreground: 210 40% 98%;
-  --primary: 158 74% 44%;
-  --primary-foreground: 224 47% 6%;
-  --primary-soft: 158 40% 14%;
-  --secondary: 217 33% 16%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217 33% 15%;
-  --muted-foreground: 215 20% 62%;
-  --accent: 158 40% 14%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 63% 50%;
-  --destructive-foreground: 210 40% 98%;
-  --success: 142 71% 45%;
-  --success-foreground: 0 0% 100%;
-  --border: 217 33% 18%;
-  --input: 217 33% 20%;
-  --ring: 158 74% 44%;
+  --background: 30 18% 7%;         /* asphalt */
+  --foreground: 38 31% 93%;
+  --subtle: 30 15% 10%;
+  /* Photos still sit on a lifted surface rather than the page ground, so a
+     dark card never swallows the darker half of the fleet. */
+  --card: 30 15% 11%;
+  --card-foreground: 38 31% 93%;
+  --primary: 180 55% 45%;
+  --primary-foreground: 30 18% 7%;
+  --primary-soft: 183 55% 11%;
+  --secondary: 33 12% 17%;
+  --secondary-foreground: 38 31% 93%;
+  --muted: 33 12% 16%;
+  --muted-foreground: 34 11% 61%;
+  --accent: 183 55% 11%;
+  --accent-foreground: 38 31% 93%;
+  --destructive: 5 73% 63%;
+  --destructive-foreground: 30 18% 7%;
+  --success: 159 54% 46%;
+  --success-foreground: 30 18% 7%;
+  --border: 37 17% 15%;
+  --input: 37 17% 18%;
+  --ring: 180 55% 45%;
 
-  --ink: 222 44% 9%;
-  --ink-foreground: 210 40% 98%;
+  --ink: 30 15% 10%;
+  --ink-foreground: 38 31% 93%;
 }
 
 * {
@@ -76,20 +98,47 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Display headings: tight, confident, marketing-grade. */
+/* Display headings: tight, confident, marketing-grade.
+   Now actually uses the display FACE — until the font pairing landed this
+   class only changed weight and tracking on the body font, which is why
+   headings never had a voice of their own. */
 .display {
+  font-family: var(--font-display), ui-sans-serif, sans-serif;
   letter-spacing: -0.035em;
   line-height: 0.98;
   font-weight: 800;
 }
 
+/* Money, dates, plates, references — data, not prose.
+   Tabular figures keep columns aligned and stop a total from dancing
+   sideways as its digits change. */
+.numeric {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* The scrim every photo gets.
+   Host-uploaded photography is uncontrollable — a white car at noon and a
+   black car at dusk arrive in the same grid — so chrome NEVER sits directly
+   on an image. This guarantees a legible field for it regardless. */
+.photo-scrim::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 3.25rem;
+  background: linear-gradient(180deg, rgb(0 0 0 / 0.42), transparent);
+  pointer-events: none;
+}
+
 /* ── Reusable design utilities ───────────────────────────────────────── */
 @layer utilities {
   .brand-gradient {
-    background-image: linear-gradient(135deg, hsl(160 84% 39%), hsl(180 70% 42%));
+    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(196 70% 38%));
   }
   .text-gradient {
-    background-image: linear-gradient(135deg, hsl(160 84% 39%), hsl(185 75% 40%));
+    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(198 72% 40%));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -110,9 +159,11 @@ body {
   .hero-mesh {
     background-color: hsl(var(--ink));
     background-image:
-      radial-gradient(ellipse 80% 60% at 15% 0%, hsl(160 84% 39% / 0.35), transparent 60%),
-      radial-gradient(ellipse 70% 60% at 85% 15%, hsl(185 80% 45% / 0.28), transparent 60%),
-      radial-gradient(ellipse 90% 70% at 50% 110%, hsl(170 70% 35% / 0.30), transparent 65%);
+      radial-gradient(ellipse 80% 60% at 15% 0%, hsl(180 70% 38% / 0.30), transparent 62%),
+      radial-gradient(ellipse 70% 60% at 85% 15%, hsl(196 68% 42% / 0.22), transparent 60%),
+      /* A warm ember low in the frame keeps the ground from reading as cold
+         teal-black — the warmth is the brand, the teal is the guest. */
+      radial-gradient(ellipse 90% 70% at 50% 112%, hsl(28 45% 26% / 0.34), transparent 66%);
   }
 
   /* Fine grain so large flat areas don't band. */

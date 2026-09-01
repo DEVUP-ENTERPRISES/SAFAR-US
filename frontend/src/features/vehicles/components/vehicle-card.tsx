@@ -56,7 +56,7 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
               </span>
             )}
             {vehicle.listing.instantBook && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/90 border border-primary-foreground/20 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-primary-foreground backdrop-blur-md shadow-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/55 border border-white/20 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white backdrop-blur-md shadow-sm">
                 <Zap className="h-3.5 w-3.5 fill-current" /> Instant
               </span>
             )}
@@ -68,7 +68,7 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
         <div className="relative z-20 flex flex-col flex-1 px-2 py-4 sm:px-4 sm:py-5">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
-              <h3 className="truncate text-base sm:text-lg font-bold tracking-tight text-foreground transition-colors group-hover:text-primary">
+              <h3 className="display truncate text-base sm:text-lg font-bold text-foreground transition-colors group-hover:text-primary">
                 {vehicle.make} {vehicle.model}
               </h3>
               <p className="mt-1 truncate text-sm font-medium text-muted-foreground/80 flex items-center gap-1.5">
@@ -80,7 +80,7 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
             {vehicle.ratingCount > 0 && (
               <div className="flex shrink-0 items-center rounded-full bg-foreground/5 px-2.5 py-1 text-[13px] font-semibold leading-none text-foreground backdrop-blur-sm border border-border/50">
                 <Star className="h-3.5 w-3.5 fill-primary text-primary -mt-[1px]" />
-                <span className="ml-1.5">{vehicle.ratingAvg.toFixed(1)}</span>
+                <span className="numeric ml-1.5">{vehicle.ratingAvg.toFixed(1)}</span>
                 <span className="text-muted-foreground/70 font-medium ml-1">({vehicle.ratingCount})</span>
               </div>
             )}
@@ -112,7 +112,9 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
 
             {/* Price */}
             <div className="flex items-end gap-1.5 border-t border-border/50 pt-3">
-              <span className="text-2xl font-black tracking-tighter text-foreground">
+              {/* Price is data. Tabular figures keep it from shuffling
+                  sideways as digits change across a grid of cards. */}
+              <span className="numeric text-2xl font-semibold text-foreground">
                 {formatMoney({ amount: vehicle.pricing.dailyPrice, currency: vehicle.pricing.currency })}
               </span>
               <span className="text-sm font-medium text-muted-foreground pb-1">/ day</span>

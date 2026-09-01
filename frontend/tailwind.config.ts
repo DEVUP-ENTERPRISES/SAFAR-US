@@ -11,7 +11,10 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        display: ['var(--font-sans)', 'ui-sans-serif', 'sans-serif'],
+        // Display is its own face now — previously it aliased the body font,
+        // which is why headings never felt like headings.
+        display: ['var(--font-display)', 'var(--font-sans)', 'ui-sans-serif', 'sans-serif'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
         border: 'hsl(var(--border))',

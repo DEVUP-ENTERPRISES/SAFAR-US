@@ -262,7 +262,7 @@ export default function VehicleDetailPage() {
 
         {/* Great deal — shown only when genuinely below the local median */}
         {isGreatDeal && (
-          <div className="rounded-2xl bg-[#E5F9ED] p-4 text-[#0A472E] dark:bg-[#0A472E]/20 dark:text-[#E5F9ED]">
+          <div className="rounded-2xl bg-success/10 p-4 text-success">
             <p className="font-bold">Great deal!</p>
             <p className="mt-0.5 text-[15px]">
               About {dealPct}% below the typical {v.category} in {v.location.city || 'this area'}.
@@ -289,13 +289,13 @@ export default function VehicleDetailPage() {
                 {weeklyPct > 0 && (
                   <div className="flex items-center justify-between">
                     <p className="text-[17px] font-medium">Weekly discount (7+ days)</p>
-                    <p className="text-[17px] font-medium text-[#0A472E] dark:text-emerald-400">−{weeklyPct}%</p>
+                    <p className="text-[17px] font-medium text-success">−{weeklyPct}%</p>
                   </div>
                 )}
                 {monthlyPct > 0 && (
                   <div className="flex items-center justify-between">
                     <p className="text-[17px] font-medium">Monthly discount (28+ days)</p>
-                    <p className="text-[17px] font-medium text-[#0A472E] dark:text-emerald-400">−{monthlyPct}%</p>
+                    <p className="text-[17px] font-medium text-success">−{monthlyPct}%</p>
                   </div>
                 )}
               </div>
