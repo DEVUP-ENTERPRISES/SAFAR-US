@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
+import { Select } from '@/components/ui/select';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
 import { VehicleListCard } from '@/features/vehicles/components/vehicle-list-card';
 import { useVehicleSearch, useFacets, useFilterCounts } from '@/features/vehicles/hooks';
@@ -342,9 +343,9 @@ function SearchInner() {
                 <div>
                   <p className="mb-2 text-sm font-semibold">Daily price</p>
                   <div className="flex items-center gap-2">
-                    <input type="number" min={0} value={priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="Min $" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary" />
+                    <input type="number" min={0} value={priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="Min $" className="outline-none focus:border-primary" />
                     <span className="text-muted-foreground">–</span>
-                    <input type="number" min={0} value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Max $" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary" />
+                    <input type="number" min={0} value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Max $" className="outline-none focus:border-primary" />
                   </div>
                 </div>
               )}
@@ -369,7 +370,7 @@ function SearchInner() {
               {() => (
                 <div>
                   <p className="mb-2 text-sm font-semibold">Make</p>
-                  <input value={make} onChange={(e) => setMake(e.target.value)} placeholder="e.g. Tesla, BMW" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary" />
+                  <input value={make} onChange={(e) => setMake(e.target.value)} placeholder="e.g. Tesla, BMW" className="outline-none focus:border-primary" />
                 </div>
               )}
             </FilterDropdown>
@@ -380,9 +381,9 @@ function SearchInner() {
                 <div>
                   <p className="mb-2 text-sm font-semibold">Year</p>
                   <div className="flex items-center gap-2">
-                    <input type="number" min={1990} max={2100} value={yearMin} onChange={(e) => setYearMin(e.target.value)} placeholder="From" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary" />
+                    <input type="number" min={1990} max={2100} value={yearMin} onChange={(e) => setYearMin(e.target.value)} placeholder="From" className="outline-none focus:border-primary" />
                     <span className="text-muted-foreground">–</span>
-                    <input type="number" min={1990} max={2100} value={yearMax} onChange={(e) => setYearMax(e.target.value)} placeholder="To" className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary" />
+                    <input type="number" min={1990} max={2100} value={yearMax} onChange={(e) => setYearMax(e.target.value)} placeholder="To" className="outline-none focus:border-primary" />
                   </div>
                 </div>
               )}
@@ -487,13 +488,13 @@ function SearchInner() {
             </Button>
           )}
           <div className="relative">
-            <select
+            <Select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
               className="h-9 cursor-pointer appearance-none rounded-full border border-border bg-card ps-4 pe-9 text-sm font-medium outline-none hover:border-foreground/40"
             >
               {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-            </select>
+            </Select>
             <ChevronDown className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
         </div>

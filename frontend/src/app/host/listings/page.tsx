@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
+import { Select } from '@/components/ui/select';
 import { formatMoney } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import { useMyVehicles } from '@/features/vehicles/hooks';
@@ -81,7 +82,7 @@ export default function HostListingsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <select
+        <Select
           value={tripStatus}
           onChange={(e) => setTripStatus(e.target.value as TripStatus)}
           className="h-9 rounded-full border border-input bg-card px-3 text-sm font-medium"
@@ -89,8 +90,8 @@ export default function HostListingsPage() {
           <option value="">Trip status</option>
           <option value="on_trip">On a trip</option>
           <option value="available">Available</option>
-        </select>
-        <select
+        </Select>
+        <Select
           value={listingStatus}
           onChange={(e) => setListingStatus(e.target.value)}
           className="h-9 rounded-full border border-input bg-card px-3 text-sm font-medium"
@@ -99,7 +100,7 @@ export default function HostListingsPage() {
           <option value="listed">Listed</option>
           <option value="unlisted">Unlisted</option>
           <option value="draft">Draft</option>
-        </select>
+        </Select>
 
         <div className="ms-auto flex items-center gap-2">
           <span className="text-sm font-semibold">

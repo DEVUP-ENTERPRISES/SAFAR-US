@@ -8,6 +8,8 @@ import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useHostMe, useUpdateHostProfile } from '@/features/host/hooks';
 import { AvatarUpload } from '@/components/ui/avatar-upload';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function HostProfilePage() {
   const { data, isLoading } = useHostMe();
@@ -107,10 +109,10 @@ export default function HostProfilePage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Display name"><Input value={form.displayName} onChange={f('displayName')} /></Field>
             <Field label="Host type">
-              <select value={form.hostType} onChange={(e) => setForm({ ...form, hostType: e.target.value as 'individual' | 'business' })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <Select value={form.hostType} onChange={(e) => setForm({ ...form, hostType: e.target.value as 'individual' | 'business' })}>
                 <option value="individual">Individual</option>
                 <option value="business">Business</option>
-              </select>
+              </Select>
             </Field>
             <Field label="Lives in" hint="City guests will see, e.g. Brooklyn, NY">
               <Input value={form.city} onChange={f('city')} placeholder="Brooklyn, NY" />
@@ -122,12 +124,11 @@ export default function HostProfilePage() {
               <Input value={form.languages} onChange={f('languages')} placeholder="English, Spanish" />
             </Field>
             <Field label="About you" className="sm:col-span-2" hint="A short intro builds trust — why you host, what you love to drive">
-              <textarea
+              <Textarea
                 value={form.bio}
                 onChange={(e) => setForm({ ...form, bio: e.target.value })}
                 rows={4}
                 maxLength={500}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />
             </Field>
           </div>

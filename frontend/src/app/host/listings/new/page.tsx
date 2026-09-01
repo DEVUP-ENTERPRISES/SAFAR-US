@@ -13,6 +13,8 @@ import { ApiError } from '@/lib/api/types';
 import { vehicleApi, type CreateVehicleInput } from '@/features/vehicles/api';
 import { hostApi } from '@/features/host/api';
 import { useToast } from '@/components/ui/toast';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { LocationSearch } from '@/features/maps/components/location-search';
 
 const STEPS = ['Basics', 'Details', 'Photos', 'Pricing', 'Delivery', 'Review'];
@@ -291,7 +293,7 @@ export default function NewListingPage() {
               <Field label="Features (comma separated)" className="sm:col-span-2"><Input value={d.features} onChange={(e) => set('features', e.target.value)} placeholder="gps, bluetooth, sunroof" /></Field>
               <Field label="Listing title" className="sm:col-span-2"><Input value={d.title} onChange={(e) => set('title', e.target.value)} placeholder={`${d.make} ${d.model} ${d.year}`} /></Field>
               <Field label="Description" className="sm:col-span-2">
-                <textarea value={d.description} onChange={(e) => set('description', e.target.value)} rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                <Textarea value={d.description} onChange={(e) => set('description', e.target.value)} rows={3} />
               </Field>
             </div>
           )}
@@ -407,7 +409,7 @@ export default function NewListingPage() {
                 <Field label="Mileage limit (km/day, 0 = unlimited)"><Input type="number" value={d.mileagePerDay} onChange={(e) => set('mileagePerDay', Number(e.target.value))} /></Field>
                 <Field label="Overage fee ($/km)"><Input type="number" step="0.01" value={d.mileageOverage} onChange={(e) => set('mileageOverage', Number(e.target.value))} /></Field>
                 <Field label="Trip rules (one per line)" className="sm:col-span-2">
-                  <textarea value={d.tripRules} onChange={(e) => set('tripRules', e.target.value)} rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="No smoking&#10;Pets allowed with deposit" />
+                  <Textarea value={d.tripRules} onChange={(e) => set('tripRules', e.target.value)} rows={3} placeholder="No smoking&#10;Pets allowed with deposit" />
                 </Field>
               </div>
             </div>
@@ -497,11 +499,11 @@ export default function NewListingPage() {
 function SelectField({ label, value, onChange, options, }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
     <Field label={label}>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm capitalize">
+      <Select value={value} onChange={(e) => onChange(e.target.value)} className="capitalize">
         {options.map((o) => (
           <option key={o} value={o}>{o}</option>
         ))}
-      </select>
+      </Select>
     </Field>
   );
 }

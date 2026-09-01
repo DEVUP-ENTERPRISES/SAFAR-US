@@ -137,7 +137,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
           onChange={(e) => sendPhoto(e.target.files)}
         />
         <Button
-          size="icon"
+          size="icon-lg"
           variant="ghost"
           aria-label="Send a photo"
           disabled={uploading}
@@ -151,7 +151,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
           onKeyDown={(e) => e.key === 'Enter' && submit()}
           placeholder="Type a message…"
         />
-        <Button size="icon" onClick={submit} aria-label="Send">
+        <Button size="icon-lg" onClick={submit} aria-label="Send">
           <Send className="h-4 w-4" />
         </Button>
       </div>

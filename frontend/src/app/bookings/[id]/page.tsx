@@ -75,11 +75,11 @@ function BookingDetail({ id }: { id: string }) {
   });
 
   if (booking.isLoading) {
-    return <div className="mx-auto max-w-3xl space-y-4 p-6"><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>;
+    return <div className="mx-auto max-w-3xl space-y-4 py-6"><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>;
   }
   if (booking.isError || !booking.data) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="mx-auto max-w-3xl py-6">
         <ErrorState message="We couldn’t find that booking." />
         <Link href="/bookings" className="mt-4 inline-block text-sm font-medium text-primary underline">Back to my trips</Link>
       </div>
@@ -107,7 +107,7 @@ function BookingDetail({ id }: { id: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 p-6 pb-24">
+    <div className="mx-auto max-w-3xl space-y-5 py-6 pb-24">
       <Link href="/bookings" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> My trips
       </Link>

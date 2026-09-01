@@ -2,20 +2,22 @@
 
 import { forwardRef, type InputHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils/cn';
+import { controlClasses, type ControlSize } from './control';
 
-export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
-  ({ className, ...props }, ref) => (
-    <input
-      ref={ref}
-      className={cn(
-        'flex h-12 sm:h-14 w-full rounded-xl border border-input/60 bg-muted/30 px-4 py-3 text-base font-medium shadow-sm transition-all',
-        'placeholder:text-muted-foreground/70',
-        'focus-visible:outline-none focus-visible:border-primary/50 focus-visible:bg-background focus-visible:ring-[4px] focus-visible:ring-primary/10',
-        'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50',
-        className,
-      )}
-      {...props}
-    />
+interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
+  size?: ControlSize;
+}
+
+/**
+ * Default is `lg` (48px), which is also Button's `lg` — so an input and the
+ * button beside it are the same height without either side guessing.
+ *
+ * This used to be `h-12 sm:h-14`, which silently grew to 56px on desktop and
+ * left every adjacent 40px button floating out of alignment.
+ */
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ className, size = 'lg', ...props }, ref) => (
+    <input ref={ref} className={cn(controlClasses(size), className)} {...props} />
   ),
 );
 Input.displayName = 'Input';

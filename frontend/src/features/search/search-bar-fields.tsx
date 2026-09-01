@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils/cn';
 import { LocationSearch } from '@/features/maps/components/location-search';
 import { useFacets } from '@/features/vehicles/hooks';
@@ -62,7 +63,7 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
           />
         </div>
         {!isNav && cities.length > 0 && (
-          <select
+          <Select
             value={s.city}
             onChange={(e) => s.patch({ city: e.target.value, center: null })}
             className="mt-0.5 w-full cursor-pointer bg-transparent text-sm text-muted-foreground outline-none"
@@ -70,7 +71,7 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
             {cities.map((c) => (
               <option key={c.city} value={c.city}>{c.city} ({c.vehicles})</option>
             ))}
-          </select>
+          </Select>
         )}
       </div>
 

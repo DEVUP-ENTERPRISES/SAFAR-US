@@ -12,6 +12,7 @@ import { Field } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils/cn';
 import { connectSocket } from '@/lib/realtime/socket';
 import { supportApi } from '@/features/support/api';
@@ -89,7 +90,7 @@ function Support() {
               <CardHeader><CardTitle>New ticket</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <Field label="Subject"><Input value={subject} onChange={(e) => setSubject(e.target.value)} /></Field>
-                <Field label="How can we help?"><textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></Field>
+                <Field label="How can we help?"><Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} /></Field>
                 <Button disabled={!subject || !body} loading={create.isPending} onClick={() => create.mutate()}>Submit</Button>
               </CardContent>
             </Card>
@@ -110,7 +111,7 @@ function Support() {
               {ticket.data.status !== 'resolved' && (
                 <div className="flex items-center gap-2 border-t border-border p-3">
                   <Input value={reply} onChange={(e) => setReply(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && reply.trim() && sendReply.mutate()} placeholder="Reply…" />
-                  <Button size="icon" disabled={!reply.trim()} loading={sendReply.isPending} onClick={() => sendReply.mutate()}><Send className="h-4 w-4" /></Button>
+                  <Button size="icon-lg" disabled={!reply.trim()} loading={sendReply.isPending} onClick={() => sendReply.mutate()}><Send className="h-4 w-4" /></Button>
                 </div>
               )}
             </Card>

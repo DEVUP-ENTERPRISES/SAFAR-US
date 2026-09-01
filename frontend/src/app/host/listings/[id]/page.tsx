@@ -16,6 +16,8 @@ import { ErrorState } from '@/components/ui/states';
 import { SectionLabel, RowGroup, Row } from '@/components/ui/rows';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { formatMoney } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import { useVehicle } from '@/features/vehicles/hooks';
@@ -702,15 +704,14 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
       </div>
 
       <Field label="Cancellation policy">
-        <select
+        <Select
           value={policy}
           onChange={(e) => setPolicy(e.target.value as typeof policy)}
-          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
         >
           <option value="flexible">Flexible — free cancellation up to 24h before</option>
           <option value="moderate">Moderate — free up to 3 days before</option>
           <option value="strict">Strict — free up to 7 days before</option>
-        </select>
+        </Select>
       </Field>
 
       <Button
@@ -859,11 +860,10 @@ function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: S
         <Input value={title} onChange={(e) => setTitle(e.target.value)} />
       </Field>
       <Field label="Description">
-        <textarea
+        <Textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
         />
       </Field>
       <Field label="Features" hint="Comma separated">

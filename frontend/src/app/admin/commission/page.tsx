@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi, type CommissionRule, type CommissionScope } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
@@ -198,13 +199,12 @@ export default function AdminCommissionPage() {
               <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Luxury premium take" />
             </Field>
             <Field label="Applies to">
-              <select
+              <Select
                 value={form.scope}
                 onChange={(e) => setForm({ ...form, scope: e.target.value as CommissionScope })}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 {SCOPES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-              </select>
+              </Select>
             </Field>
             <Field
               label={form.scope === 'global' ? 'Value (n/a)' : 'Value'}

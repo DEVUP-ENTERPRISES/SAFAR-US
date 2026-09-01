@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select } from '@/components/ui/select';
 import { corporateApi } from '@/features/corporate/api';
 
 export default function MembersPage() {
@@ -31,11 +32,11 @@ export default function MembersPage() {
         <CardContent className="flex flex-wrap items-end gap-3">
           <Field label="Work email"><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@acme.com" /></Field>
           <Field label="Role">
-            <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+            <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
               <option value="employee">Employee</option>
               <option value="manager">Manager</option>
               <option value="corp_admin">Admin</option>
-            </select>
+            </Select>
           </Field>
           <Button disabled={!form.email} loading={invite.isPending} onClick={() => invite.mutate()}>Invite</Button>
         </CardContent>

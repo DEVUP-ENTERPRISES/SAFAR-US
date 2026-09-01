@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Star, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuthStore } from '@/features/auth/store';
 import { reviewsApi } from '@/features/reviews/api';
 import { cn } from '@/lib/utils/cn';
@@ -94,7 +95,7 @@ export function ReviewPrompt({
           ))}
         </div>
 
-        <textarea
+        <Textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           rows={3}
@@ -102,7 +103,6 @@ export function ReviewPrompt({
           placeholder={role === 'guest'
             ? 'How was the car and the host? (optional)'
             : 'How was your guest? (optional)'}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
         />
 
         <div className="flex items-center gap-3">

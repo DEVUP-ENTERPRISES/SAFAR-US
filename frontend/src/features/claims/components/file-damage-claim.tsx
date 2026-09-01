@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils/cn';
 import { tripApi } from '@/features/trips/api';
 import { claimsApi } from '@/features/claims/api';
@@ -146,13 +147,12 @@ export function FileDamageClaim({
         <CardContent className="space-y-4">
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">What’s the damage?</label>
-            <textarea
+            <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               maxLength={2000}
               placeholder="e.g. Deep scratch on the rear passenger door, not present at pickup."
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             />
           </div>
 

@@ -17,7 +17,7 @@ function Inbox() {
   const [selected, setSelected] = useState<Conversation | null>(null);
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
+    <div className="mx-auto max-w-5xl py-6">
       <PageHeader title="Messages" description="Every conversation with your hosts and guests, in one place." />
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,360px)_1fr]">

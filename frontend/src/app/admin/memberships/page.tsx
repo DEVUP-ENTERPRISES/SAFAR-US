@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { Select } from '@/components/ui/select';
 import { formatMoney } from '@/lib/utils/format';
 import { adminApi, type SubscriptionPlan } from '@/features/admin/api';
 
@@ -152,12 +153,11 @@ export default function AdminMembershipsPage() {
                     onChange={(e) => edit(p, (x) => { x.benefits.bookingDiscountBps = Math.round(Number(e.target.value) * 100); })} />
                 </Field>
                 <Field label="Free protection tier" hint="Included at no cost">
-                  <select value={d.benefits.freeProtectionCode ?? ''}
-                    onChange={(e) => edit(p, (x) => { x.benefits.freeProtectionCode = e.target.value || undefined; })}
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                  <Select value={d.benefits.freeProtectionCode ?? ''}
+                    onChange={(e) => edit(p, (x) => { x.benefits.freeProtectionCode = e.target.value || undefined; })}>
                     <option value="">None</option>
                     {protectionCodes.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Rewards multiplier" hint="2 = double points">
                   <Input type="number" step="0.5" min={1} value={d.benefits.rewardsMultiplierBps / 10000}

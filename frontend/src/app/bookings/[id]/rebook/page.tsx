@@ -33,7 +33,7 @@ function Rebook({ id }: { id: string }) {
   });
 
   if (data.isLoading) {
-    return <div className="mx-auto max-w-3xl space-y-4 p-6"><Skeleton className="h-28 w-full" /><Skeleton className="h-64 w-full" /></div>;
+    return <div className="mx-auto max-w-3xl space-y-4 py-6"><Skeleton className="h-28 w-full" /><Skeleton className="h-64 w-full" /></div>;
   }
 
   const d = data.data;
@@ -43,7 +43,7 @@ function Rebook({ id }: { id: string }) {
     : null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6 pb-28">
+    <div className="mx-auto max-w-3xl space-y-6 py-6 pb-28">
       <Link href={`/bookings/${id}`} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to booking
       </Link>

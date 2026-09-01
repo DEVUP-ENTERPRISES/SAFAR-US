@@ -10,6 +10,7 @@ import { Field } from '@/components/ui/field';
 import { Card, CardContent } from '@/components/ui/card';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
+import { Textarea } from '@/components/ui/textarea';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { formatDate } from '@/lib/utils/format';
 import { adminApi, type KbArticle } from '@/features/admin/api';
@@ -142,7 +143,7 @@ export default function AdminKbPage() {
             <Field label="Summary"><Input value={draft.summary} onChange={(e) => setDraft({ ...draft, summary: e.target.value })} placeholder="One line shown in search results" /></Field>
             <Field label="Category"><Input value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} placeholder="trips" /></Field>
             <Field label="Body (Markdown)">
-              <textarea
+              <Textarea
                 value={draft.body}
                 onChange={(e) => setDraft({ ...draft, body: e.target.value })}
                 rows={10}

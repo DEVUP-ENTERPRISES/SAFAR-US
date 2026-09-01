@@ -10,6 +10,7 @@ import { Field } from '@/components/ui/field';
 import { Card, CardContent } from '@/components/ui/card';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
+import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { formatDate } from '@/lib/utils/format';
 import { adminApi, type Coupon } from '@/features/admin/api';
@@ -171,14 +172,13 @@ export default function AdminCouponsPage() {
             <Field label="Code"><Input value={draft.code} onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase() })} placeholder="SUMMER25" /></Field>
             <Field label="Campaign (internal)"><Input value={draft.campaign} onChange={(e) => setDraft({ ...draft, campaign: e.target.value })} placeholder="Summer launch" /></Field>
             <Field label="Type">
-              <select
+              <Select
                 value={draft.type}
                 onChange={(e) => setDraft({ ...draft, type: e.target.value as 'percent' | 'fixed' })}
-                className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
               >
                 <option value="percent">Percentage off</option>
                 <option value="fixed">Fixed amount off</option>
-              </select>
+              </Select>
             </Field>
             <Field label={draft.type === 'percent' ? 'Percent off' : 'Dollars off'}>
               <Input type="number" value={draft.value} onChange={(e) => setDraft({ ...draft, value: e.target.value })} />

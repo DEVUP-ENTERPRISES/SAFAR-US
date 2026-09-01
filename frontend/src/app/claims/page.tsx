@@ -11,6 +11,8 @@ import { Field } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { formatDate } from '@/lib/utils/format';
 import Link from 'next/link';
 import { claimsApi } from '@/features/claims/api';
@@ -41,14 +43,14 @@ function Claims() {
           <CardHeader><CardTitle>New claim</CardTitle></CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
             <Field label="Type">
-              <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as typeof form.type })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <Select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as typeof form.type })}>
                 <option value="damage">Damage</option>
                 <option value="insurance">Insurance</option>
                 <option value="dispute">Dispute</option>
-              </select>
+              </Select>
             </Field>
             <Field label="Booking ID (optional)"><Input value={form.bookingId} onChange={(e) => setForm({ ...form, bookingId: e.target.value })} /></Field>
-            <Field label="Description" className="sm:col-span-2"><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></Field>
+            <Field label="Description" className="sm:col-span-2"><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} /></Field>
             <div className="sm:col-span-2"><Button disabled={form.description.length < 5} loading={create.isPending} onClick={() => create.mutate()}>Submit claim</Button></div>
           </CardContent>
         </Card>

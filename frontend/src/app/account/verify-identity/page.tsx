@@ -78,7 +78,7 @@ function VerifyIdentity() {
   });
 
   if (status.isLoading || me.isLoading) {
-    return <div className="mx-auto max-w-2xl space-y-4 p-6"><Skeleton className="h-40 w-full" /><Skeleton className="h-64 w-full" /></div>;
+    return <div className="mx-auto max-w-2xl space-y-4 py-6"><Skeleton className="h-40 w-full" /><Skeleton className="h-64 w-full" /></div>;
   }
 
   const s = status.data?.status ?? 'not_started';
@@ -87,7 +87,7 @@ function VerifyIdentity() {
   const primaryAddress = profile?.addresses?.find((a) => a.isDefault) ?? profile?.addresses?.[0];
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="mx-auto max-w-2xl space-y-6 py-6">
       <Link href="/account" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to account
       </Link>

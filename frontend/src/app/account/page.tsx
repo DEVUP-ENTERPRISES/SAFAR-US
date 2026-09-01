@@ -18,6 +18,7 @@ import { formatDate } from '@/lib/utils/format';
 import { PageHeader } from '@/components/ui/page-header';
 import { accountApi } from '@/features/account/api';
 import { AvatarUpload } from '@/components/ui/avatar-upload';
+import { Select } from '@/components/ui/select';
 
 function Account() {
   const qc = useQueryClient();
@@ -250,9 +251,9 @@ function Account() {
             </div>
           ))}
           <div className="grid gap-2 sm:grid-cols-4">
-            <select value={card.brand} onChange={(e) => setCard({ ...card, brand: e.target.value })} className="h-10 rounded-md border border-input bg-background px-3 text-sm capitalize">
+            <Select value={card.brand} onChange={(e) => setCard({ ...card, brand: e.target.value })} className="capitalize">
               {['visa', 'mastercard', 'amex', 'discover'].map((b) => <option key={b}>{b}</option>)}
-            </select>
+            </Select>
             <Input placeholder="Last 4" maxLength={4} value={card.last4} onChange={(e) => setCard({ ...card, last4: e.target.value })} />
             <Input type="number" placeholder="MM" value={card.expMonth} onChange={(e) => setCard({ ...card, expMonth: Number(e.target.value) })} />
             <Input type="number" placeholder="YYYY" value={card.expYear} onChange={(e) => setCard({ ...card, expYear: Number(e.target.value) })} />

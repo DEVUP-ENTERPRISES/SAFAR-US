@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
+import { Select } from '@/components/ui/select';
 import { formatDateRange, formatDate } from '@/lib/utils/format';
 import { bookingApi } from '@/features/bookings/api';
 import { hostApi } from '@/features/host/api';
@@ -74,17 +75,17 @@ function Maintenance() {
         <CardHeader><CardTitle>Schedule maintenance</CardTitle></CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
           <Field label="Vehicle">
-            <select value={form.vehicleId} onChange={(e) => setForm({ ...form, vehicleId: e.target.value })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+            <Select value={form.vehicleId} onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}>
               <option value="">Select…</option>
               {vehicles.data?.map((v) => (
                 <option key={v._id} value={v._id}>{v.make} {v.model}</option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Type">
-            <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+            <Select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
               {['service', 'repair', 'inspection', 'cleaning'].map((t) => <option key={t}>{t}</option>)}
-            </select>
+            </Select>
           </Field>
           <Field label="Date"><Input type="date" value={form.scheduledFor} onChange={(e) => setForm({ ...form, scheduledFor: e.target.value })} /></Field>
           <Field label="Notes"><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>

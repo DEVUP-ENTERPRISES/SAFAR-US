@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi, type SurgeRule, type SurgeScope } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
@@ -189,17 +190,16 @@ export default function AdminSurgePage() {
               <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Labor Day weekend" />
             </Field>
             <Field label="Applies to">
-              <select value={form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value as SurgeScope })}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <Select value={form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value as SurgeScope })}>
                 {SCOPES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-              </select>
+              </Select>
             </Field>
             <Field label="City">
-              <select disabled={form.scope === 'global' || form.scope === 'category'} value={form.city || city}
+              <Select disabled={form.scope === 'global' || form.scope === 'category'} value={form.city || city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm disabled:opacity-50">
+                className="disabled:opacity-50">
                 {cities.map((c) => <option key={c}>{c}</option>)}
-              </select>
+              </Select>
             </Field>
             <Field label="Category">
               <Input disabled={form.scope === 'global' || form.scope === 'city'} value={form.category}

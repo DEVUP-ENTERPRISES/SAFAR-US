@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MapPin, CalendarDays, Search } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useFacets } from '@/features/vehicles/hooks';
+import { Select } from '@/components/ui/select';
 
 
 function addDays(n: number): string {
@@ -45,7 +46,7 @@ export function SearchWidget({ variant = 'hero' }: { variant?: 'hero' | 'inline'
       )}
     >
       <Segment icon={<MapPin className="h-4 w-4" />} label="Where">
-        <select
+        <Select
           value={selected}
           onChange={(e) => setCity(e.target.value)}
           disabled={cities.length === 0}
@@ -60,7 +61,7 @@ export function SearchWidget({ variant = 'hero' }: { variant?: 'hero' | 'inline'
               {c.city} ({c.vehicles})
             </option>
           ))}
-        </select>
+        </Select>
       </Segment>
 
       <Divider />

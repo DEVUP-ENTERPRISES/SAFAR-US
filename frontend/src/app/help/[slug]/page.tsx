@@ -22,11 +22,11 @@ export default function Article({ params }: { params: Promise<{ slug: string }> 
   });
 
   if (article.isLoading) {
-    return <div className="mx-auto max-w-2xl space-y-4 p-6"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-64 w-full" /></div>;
+    return <div className="mx-auto max-w-2xl space-y-4 py-6"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-64 w-full" /></div>;
   }
   if (article.isError || !article.data) {
     return (
-      <div className="mx-auto max-w-2xl p-6">
+      <div className="mx-auto max-w-2xl py-6">
         <ErrorState message="We couldn’t find that article." />
         <div className="mt-4"><Link href="/help" className="text-sm font-medium text-primary underline">Back to help centre</Link></div>
       </div>
@@ -35,7 +35,7 @@ export default function Article({ params }: { params: Promise<{ slug: string }> 
 
   const a = article.data;
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="mx-auto max-w-2xl space-y-6 py-6">
       <Link href="/help" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Help centre
       </Link>

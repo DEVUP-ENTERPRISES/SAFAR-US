@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
-type Size = 'sm' | 'md' | 'lg' | 'icon';
+type Size = 'sm' | 'md' | 'lg' | 'xl' | 'icon' | 'icon-lg';
 
 const variants: Record<Variant, string> = {
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md hover:-translate-y-0.5',
@@ -19,7 +19,11 @@ const sizes: Record<Size, string> = {
   sm: 'h-9 px-3 text-sm',
   md: 'h-10 px-4 text-sm',
   lg: 'h-12 px-6 text-base',
+  xl: 'h-14 px-7 text-base',
+  // Square variants exist per height so an icon button beside a text input is
+  // the same height as it, not 8px shorter.
   icon: 'h-10 w-10',
+  'icon-lg': 'h-12 w-12',
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
