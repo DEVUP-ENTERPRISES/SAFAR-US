@@ -25,6 +25,7 @@ import { maintenanceRoutes } from './modules/maintenance/api/maintenance.routes'
 import { favoritesRoutes } from './modules/favorites/api/favorites.routes';
 import { messagesRoutes } from './modules/messaging/api/messages.routes';
 import { claimsRoutes } from './modules/claims/api/claims.routes';
+import { violationsRoutes } from './modules/violations/api/violations.routes';
 import { supportRoutes } from './modules/support/api/support.routes';
 import { kbRoutes } from './modules/support/api/kb.routes';
 import { buildAdminRouter } from './modules/admin/admin.routes';
@@ -69,6 +70,7 @@ export function buildApiRouter(): Router {
   api.use('/favorites', favoritesRoutes);
   api.use('/messages', messagesRoutes);
   api.use('/claims', claimsRoutes);
+  api.use('/violations', violationsRoutes);
   api.use('/support/kb', kbRoutes);
   api.use('/support', supportRoutes);
   api.use('/kyc', kycRoutes);

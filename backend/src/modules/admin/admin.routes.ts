@@ -12,6 +12,7 @@ import { supportAdminRoutes } from './api/support.admin.routes';
 import { kbAdminRoutes } from './api/kb.admin.routes';
 import { couponsAdminRoutes } from './api/coupons.admin.routes';
 import { taxAdminRoutes } from './api/tax.admin.routes';
+import { violationsAdminRoutes } from './api/violations.admin.routes';
 import { memberEconomyAdminRoutes } from './api/member-economy.admin.routes';
 import { platformAdminRoutes } from './api/platform.admin.routes';
 import { kycAdminRoutes } from './api/kyc.admin.routes';
@@ -43,6 +44,7 @@ export function buildAdminRouter(): Router {
   admin.use(kbAdminRoutes);
   admin.use(couponsAdminRoutes);
   admin.use(taxAdminRoutes);
+  admin.use(violationsAdminRoutes);
   admin.use(memberEconomyAdminRoutes);
   admin.use(platformAdminRoutes);
   admin.use(kycAdminRoutes);

@@ -81,6 +81,14 @@ router.put(
         })
         .optional(),
       reviews: z.object({ blindWindowDays: z.number().int().min(1).max(90).optional() }).optional(),
+      violations: z
+        .object({
+          reportingWindowDays: z.number().int().min(1).max(730).optional(),
+          disputeWindowDays: z.number().int().min(1).max(90).optional(),
+          adminFeeCents: cents.optional(),
+          requireEvidence: z.boolean().optional(),
+        })
+        .optional(),
       superhost: z
         .object({
           minTrips: z.number().int().min(0).max(1000).optional(),

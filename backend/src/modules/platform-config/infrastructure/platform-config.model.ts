@@ -104,6 +104,21 @@ export interface PlatformConfigDoc {
     /** Days each party has to write before the other's is released anyway. */
     blindWindowDays: number;
   };
+  /**
+   * Traffic, toll and parking citations passed through to the guest who
+   * incurred them. The reporting window is long because notices genuinely take
+   * weeks to arrive by post — but not open-ended, or a host could produce a
+   * charge against a trip from last year.
+   */
+  violations: {
+    reportingWindowDays: number;
+    /** How long the guest has to dispute before it can be charged. */
+    disputeWindowDays: number;
+    /** What the platform charges for processing one, in minor units. */
+    adminFeeCents: number;
+    /** Refuse a citation with no photo of the notice. */
+    requireEvidence: boolean;
+  };
   /** No-show handling once the trip start passes without a handover. */
   noShow: {
     /** Hours after start before a no-show can be declared. */
@@ -293,6 +308,12 @@ const schema = new Schema<PlatformConfigDoc>(
     },
     reviews: {
       blindWindowDays: { type: Number, default: 14 },
+    },
+    violations: {
+      reportingWindowDays: { type: Number, default: 90 },
+      disputeWindowDays: { type: Number, default: 7 },
+      adminFeeCents: { type: Number, default: 1500 },
+      requireEvidence: { type: Boolean, default: true },
     },
     noShow: {
       graceHours: { type: Number, default: 2 },
