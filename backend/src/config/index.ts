@@ -170,6 +170,7 @@ export const config = Object.freeze({
   },
   ai: {
     apiKey: env.OPENROUTER_API_KEY,
+    fallbackApiKey: env.OPENROUTER_API_KEY_FALLBACK,
     model: env.OPENROUTER_MODEL,
     dailyBudgetCents: env.AI_DAILY_BUDGET_CENTS,
     enabled: !!env.OPENROUTER_API_KEY,

@@ -92,74 +92,35 @@ export const aiGateway = {
 
     const model = opts.model ?? config.ai.model;
     const started = Date.now();
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 60_000);
 
-    try {
-      const res = await fetch(ENDPOINT, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          Authorization: `Bearer ${config.ai.apiKey}`,
-          'Content-Type': 'application/json',
-          // OpenRouter attributes traffic with these; harmless if unset upstream.
-          'HTTP-Referer': config.app.publicUrl,
-          'X-Title': 'SAFAR-US',
-        },
-        body: JSON.stringify({
-          model,
-          messages: opts.messages,
-          max_tokens: opts.maxTokens ?? 1200,
-          temperature: opts.temperature ?? 0.2,
-          ...(opts.json ? { response_format: { type: 'json_object' } } : {}),
-        }),
-      });
+    // Primary key first. The fallback exists for failures a retry on the SAME
+    // key cannot fix — a dead key, an exhausted balance, a rate limit against
+    // that account. Anything else fails identically on both, so it is not retried.
+    const keys = [config.ai.apiKey, config.ai.fallbackApiKey].filter(Boolean) as string[];
+    let lastErr: Error | null = null;
 
-      if (!res.ok) {
-        const detail = await res.text().catch(() => '');
-        throw new Error(`OpenRouter ${res.status}: ${detail.slice(0, 300)}`);
+    for (let i = 0; i < keys.length; i += 1) {
+      const isLastKey = i === keys.length - 1;
+      try {
+        const result = await attempt(keys[i], model, started, opts);
+        await record({ feature: opts.feature, model: result.model, result, ok: true });
+        return result;
+      } catch (err) {
+        lastErr = err as Error;
+        const status = (err as { status?: number }).status;
+        // 401/403 dead key, 402 out of credit, 429 rate limited.
+        if (status && [401, 402, 403, 429].includes(status) && !isLastKey) {
+          logger.warn(`OpenRouter key ${i + 1} failed (${status}) — trying fallback`);
+          continue;
+        }
+        await record({ feature: opts.feature, model, ok: false, error: lastErr.message, started });
+        logger.warn(`AI call failed (${opts.feature}): ${lastErr.message}`);
+        throw lastErr;
       }
-
-      const body = (await res.json()) as {
-        choices?: { message?: { content?: string } }[];
-        usage?: { prompt_tokens?: number; completion_tokens?: number; cost?: number };
-        model?: string;
-      };
-
-      const content = body.choices?.[0]?.message?.content ?? '';
-      const promptTokens = body.usage?.prompt_tokens ?? 0;
-      const completionTokens = body.usage?.completion_tokens ?? 0;
-      // OpenRouter reports cost in USD; store cents so it sums with the ledger's units.
-      const costCents = Math.round((body.usage?.cost ?? 0) * 100);
-      const latencyMs = Date.now() - started;
-
-      await AiUsageModel.create({
-        feature: opts.feature,
-        model: body.model ?? model,
-        promptTokens,
-        completionTokens,
-        costCents,
-        latencyMs,
-        ok: true,
-      }).catch(() => undefined); // Accounting must never fail the caller.
-
-      return { content, model: body.model ?? model, promptTokens, completionTokens, costCents, latencyMs };
-    } catch (err) {
-      await AiUsageModel.create({
-        feature: opts.feature,
-        model,
-        promptTokens: 0,
-        completionTokens: 0,
-        costCents: 0,
-        latencyMs: Date.now() - started,
-        ok: false,
-        error: (err as Error).message.slice(0, 300),
-      }).catch(() => undefined);
-      logger.warn(`AI call failed (${opts.feature}): ${(err as Error).message}`);
-      throw err;
-    } finally {
-      clearTimeout(timer);
     }
+
+    await record({ feature: opts.feature, model, ok: false, error: lastErr?.message, started });
+    throw lastErr ?? new Error('No OpenRouter key succeeded');
   },
 
   /**
@@ -181,6 +142,84 @@ export const aiGateway = {
     return { ...r, content: JSON.parse(slice) as T };
   },
 };
+
+/** One HTTP attempt with one key. Throws with `status` so the caller can decide
+ *  whether a different key would help. */
+async function attempt(
+  key: string,
+  model: string,
+  started: number,
+  opts: AiCallOptions,
+): Promise<AiResult<string>> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 60_000);
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        // OpenRouter attributes traffic with these; harmless if unset upstream.
+        'HTTP-Referer': config.app.publicUrl,
+        'X-Title': 'SAFAR-US',
+      },
+      body: JSON.stringify({
+        model,
+        messages: opts.messages,
+        max_tokens: opts.maxTokens ?? 1200,
+        temperature: opts.temperature ?? 0.2,
+        ...(opts.json ? { response_format: { type: 'json_object' } } : {}),
+      }),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw Object.assign(new Error(`OpenRouter ${res.status}: ${detail.slice(0, 300)}`), {
+        status: res.status,
+      });
+    }
+
+    const body = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+      usage?: { prompt_tokens?: number; completion_tokens?: number; cost?: number };
+      model?: string;
+    };
+
+    return {
+      content: body.choices?.[0]?.message?.content ?? '',
+      model: body.model ?? model,
+      promptTokens: body.usage?.prompt_tokens ?? 0,
+      completionTokens: body.usage?.completion_tokens ?? 0,
+      // OpenRouter reports cost in USD; store cents so it sums with the ledger.
+      costCents: Math.round((body.usage?.cost ?? 0) * 100),
+      latencyMs: Date.now() - started,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Accounting must never fail the caller, so every write here is best-effort. */
+async function record(a: {
+  feature: string;
+  model: string;
+  ok: boolean;
+  result?: AiResult<string>;
+  error?: string;
+  started?: number;
+}): Promise<void> {
+  await AiUsageModel.create({
+    feature: a.feature,
+    model: a.model,
+    promptTokens: a.result?.promptTokens ?? 0,
+    completionTokens: a.result?.completionTokens ?? 0,
+    costCents: a.result?.costCents ?? 0,
+    latencyMs: a.result?.latencyMs ?? (a.started ? Date.now() - a.started : 0),
+    ok: a.ok,
+    error: a.error?.slice(0, 300),
+  }).catch(() => undefined);
+}
 
 logger.info(
   `AI: ${config.ai.enabled ? `OpenRouter (${config.ai.model})` : 'disabled — set OPENROUTER_API_KEY'}`,

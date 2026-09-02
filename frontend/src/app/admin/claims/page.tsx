@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Chip } from '@/components/ui/chip';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
+import { CaseFilePanel } from '@/features/ai/components/case-file-panel';
+import { FileSearch } from 'lucide-react';
 import { formatDate } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
 
@@ -18,6 +20,7 @@ export default function AdminClaimsPage() {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const [status, setStatus] = useState('');
+  const [caseFileFor, setCaseFileFor] = useState<string | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ['admin-claims', status],
     queryFn: () => adminApi.claims({ status: status || undefined }),
@@ -55,6 +58,14 @@ export default function AdminClaimsPage() {
     { header: 'Status', cell: (c) => <Badge tone={TONE[c.status] ?? 'muted'}>{c.status}</Badge> },
     { header: 'Actions', className: 'text-end', cell: (c) => (
       <div className="flex justify-end gap-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-label="Build case file"
+          onClick={() => setCaseFileFor(caseFileFor === c._id ? null : c._id)}
+        >
+          <FileSearch className="h-4 w-4" />
+        </Button>
         {c.status === 'opened' && <Button size="sm" variant="outline" loading={assign.isPending} onClick={() => assign.mutate(c._id)}>Investigate</Button>}
         {['opened', 'investigating'].includes(c.status) && (
           <>
@@ -74,6 +85,7 @@ export default function AdminClaimsPage() {
           <Chip key={s || 'all'} active={status === s} onClick={() => setStatus(s)} className="capitalize">{s || 'All'}</Chip>
         ))}
       </div>
+      {caseFileFor && <CaseFilePanel key={caseFileFor} claimId={caseFileFor} />}
       <DataTable columns={columns} rows={data} isLoading={isLoading} emptyTitle="No claims filed" />
     </div>
   );

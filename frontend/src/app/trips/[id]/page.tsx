@@ -14,6 +14,8 @@ import { formatDate } from '@/lib/utils/format';
 import { tripApi } from '@/features/trips/api';
 import { useTrip, useCheckIn, useCompleteTrip, useSos, useLocationStreaming } from '@/features/trips/hooks';
 import { ChatPanel } from '@/features/messaging/chat-panel';
+import { HandoverPanel } from '@/features/trips/components/handover-panel';
+import { DamageReviewPanel } from '@/features/ai/components/damage-review-panel';
 import { DriverManager } from '@/features/bookings/components/driver-manager';
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
 import { TripLiveMap } from '@/features/trips/components/trip-live-map';
@@ -52,6 +54,12 @@ function TripDashboard() {
             {trip.status}
           </Badge>
         </div>
+
+        {/* Navigation to the car — only useful before the keys change hands. */}
+        {trip.status === 'active' && !trip.checkin && <HandoverPanel tripId={trip._id} role="guest" />}
+
+        {/* The guest reads the same damage verdict the host does. */}
+        <DamageReviewPanel tripId={trip._id} canRun={false} />
 
         {/* Live status */}
         <Card>

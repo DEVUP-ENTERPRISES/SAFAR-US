@@ -15,6 +15,8 @@ import { SectionLabel, RowGroup, Row, ActionSheet, Tabs } from '@/components/ui/
 import { ReviewPrompt } from '@/features/reviews/components/review-prompt';
 import { FileDamageClaim } from '@/features/claims/components/file-damage-claim';
 import { TripLiveMap } from '@/features/trips/components/trip-live-map';
+import { HandoverPanel } from '@/features/trips/components/handover-panel';
+import { DamageReviewPanel } from '@/features/ai/components/damage-review-panel';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { bookingApi } from '@/features/bookings/api';
 import { formatMoney, formatDate } from '@/lib/utils/format';
@@ -198,6 +200,14 @@ export default function HostTripDetailPage() {
             </div>
           </div>
 
+          {/* Before handover the useful thing is when to set off, not a map. */}
+          {!started && t.tripId && (
+            <>
+              <SectionLabel>Handover</SectionLabel>
+              <HandoverPanel tripId={t.tripId} role="host" />
+            </>
+          )}
+
           {/* Live location while the trip is in progress */}
           {started && t.tripId && (
             <>
@@ -299,6 +309,7 @@ export default function HostTripDetailPage() {
           {/* Post-trip: rate the guest, and file a damage claim if needed */}
           {finished && t.tripId && (
             <div className="mt-6 space-y-4">
+              <DamageReviewPanel tripId={t.tripId} canRun />
               <ReviewPrompt bookingId={t.bookingId} role="host" subjectName={t.guest.name} />
               <FileDamageClaim bookingId={t.bookingId} tripId={t.tripId} currency={cur} />
             </div>
