@@ -1,6 +1,7 @@
 import { config } from '../../../config';
 import { logger } from '../../../infrastructure/logging/logger';
 import { AiUsageModel } from './ai-usage.model';
+import { ExternalServiceError } from '../../../core/errors/app-error';
 
 /**
  * OpenRouter gateway.
@@ -115,12 +116,12 @@ export const aiGateway = {
         }
         await record({ feature: opts.feature, model, ok: false, error: lastErr.message, started });
         logger.warn(`AI call failed (${opts.feature}): ${lastErr.message}`);
-        throw lastErr;
+        throw toUserFacing(lastErr, status);
       }
     }
 
     await record({ feature: opts.feature, model, ok: false, error: lastErr?.message, started });
-    throw lastErr ?? new Error('No OpenRouter key succeeded');
+    throw toUserFacing(lastErr, (lastErr as { status?: number } | null)?.status);
   },
 
   /**
@@ -142,6 +143,26 @@ export const aiGateway = {
     return { ...r, content: JSON.parse(slice) as T };
   },
 };
+
+/**
+ * Turn a provider failure into something a person can act on. The operator sees
+ * the raw error in the logs and the usage table; the user sees why the button
+ * did not work.
+ */
+function toUserFacing(err: Error | null, status?: number): Error {
+  if (status === 402) {
+    return new ExternalServiceError(
+      'AI credits are exhausted. Top up the OpenRouter account to re-enable this.',
+    );
+  }
+  if (status === 429) {
+    return new ExternalServiceError('AI is rate limited right now. Try again shortly.');
+  }
+  if (status === 401 || status === 403) {
+    return new ExternalServiceError('The AI key was rejected. Check OPENROUTER_API_KEY.');
+  }
+  return new ExternalServiceError(err?.message?.slice(0, 200) ?? 'The AI service failed');
+}
 
 /** One HTTP attempt with one key. Throws with `status` so the caller can decide
  *  whether a different key would help. */

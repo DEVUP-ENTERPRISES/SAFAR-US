@@ -9,6 +9,17 @@ import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
+import { ForbiddenError, NotFoundError } from '../../../core/errors/app-error';
+
+/**
+ * Staff check that honours the '*' wildcard super_admin carries. A bare
+ * includes('claim:manage') silently locks out the highest-privileged role,
+ * which is exactly the account used to investigate a dispute.
+ */
+function isStaff(req: { principal?: { permissions?: string[] } }): boolean {
+  const perms = req.principal?.permissions ?? [];
+  return perms.includes('*') || perms.includes('claim:manage');
+}
 
 const router = Router();
 
@@ -38,10 +49,9 @@ router.get(
     const trip = await TripModel.findById(req.params.tripId).lean();
     const uid = req.principal!.userId;
     const isParty = !!trip && (trip.guestId === uid || trip.hostId === uid);
-    const isStaff = !!req.principal?.permissions?.includes('claim:manage');
     // Not a party and not staff reads the same as "no assessment": the
     // existence of a damage finding is itself information about the trip.
-    sendSuccess(res, isParty || isStaff ? await damageReviewService.get(req.params.tripId) : null);
+    sendSuccess(res, isParty || isStaff(req) ? await damageReviewService.get(req.params.tripId) : null);
   }),
 );
 
@@ -49,12 +59,11 @@ router.post(
   '/trips/:tripId/damage-review',
   authenticate,
   asyncHandler(async (req, res) => {
-    const trip = await TripModel.findById(req.params.tripId).lean();
-    if (!trip) throw new Error('Trip not found');
     const uid = req.principal!.userId;
-    const isStaff = !!req.principal?.permissions?.includes('claim:manage');
-    if (trip.hostId !== uid && !isStaff) {
-      throw Object.assign(new Error('Only the host or staff can run a damage review'), { status: 403 });
+    const trip = await TripModel.findById(req.params.tripId).lean();
+    if (!trip) throw new NotFoundError('Trip not found');
+    if (trip.hostId !== uid && !isStaff(req)) {
+      throw new ForbiddenError('Only the host or staff can run a damage review');
     }
     sendSuccess(res, await damageReviewService.review(req.params.tripId, uid));
   }),

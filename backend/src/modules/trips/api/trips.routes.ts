@@ -9,6 +9,7 @@ import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import { tripCarbon } from '../../../shared/utils/carbon';
 import { handoverService } from '../application/handover.service';
+import { ForbiddenError } from '../../../core/errors/app-error';
 
 const router = Router();
 
@@ -240,7 +241,7 @@ router.get(
     const trip = await tripService.get(req.params.id);
     // tripService.get does not authorize, so the party check happens here.
     if (trip.guestId !== uid && trip.hostId !== uid) {
-      throw Object.assign(new Error('Not your trip'), { status: 403 });
+      throw new ForbiddenError('Not your trip');
     }
     const viewer = trip.hostId === uid ? 'host' : 'guest';
     const lat = req.query.lat === undefined ? undefined : Number(req.query.lat);
