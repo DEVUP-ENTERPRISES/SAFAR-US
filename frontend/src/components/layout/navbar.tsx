@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, Menu, X, Car, Info, HelpCircle, FileText, ShieldCheck, Wrench, Calculator } from 'lucide-react';
+import { Search, Menu, X, Car, Info, HelpCircle, FileText, ShieldCheck, Calculator } from 'lucide-react';
 import { config } from '@/lib/config';
 import { CatoMark } from '@/components/layout/cato-mark';
 import { useAuthStore } from '@/features/auth/store';
@@ -185,10 +185,6 @@ export function Navbar() {
                 <Link href="/insurance" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
                   <ShieldCheck className="h-5 w-5 text-muted-foreground" />
                   Insurance & protection
-                </Link>
-                <Link href="/host/tools" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
-                  <Wrench className="h-5 w-5 text-muted-foreground" />
-                  Host tools
                 </Link>
                 <Link href="/calculator" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
                   <Calculator className="h-5 w-5 text-muted-foreground" />

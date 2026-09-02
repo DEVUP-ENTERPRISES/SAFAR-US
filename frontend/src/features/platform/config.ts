@@ -17,6 +17,11 @@ export interface PlatformPublicConfig {
   };
   deposit: { enabled: boolean; minCents: number; maxCents: number; multiplierBps: number };
   pricing: { earlyBirdMinDaysAhead: number; lastMinuteMaxHoursAhead: number };
+  /** Protection tiers a guest can buy at checkout; priced per day in cents. */
+  protection: { code: string; label: string; description: string; pricePerDay: number }[];
+  /** The platform's default take rate. An individual host's rate can be lower
+   *  if a CommissionRule matches, so treat this as a floor on host earnings. */
+  hostTakeRateBps: number;
 }
 
 export const platformApi = {
