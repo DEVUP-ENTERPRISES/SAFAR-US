@@ -8,6 +8,7 @@ import { authenticate } from '../../../shared/middleware/authenticate';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import { tripCarbon } from '../../../shared/utils/carbon';
+import { handoverService } from '../application/handover.service';
 
 const router = Router();
 
@@ -224,5 +225,29 @@ router.post(
   }),
 );
 
+
+/**
+ * The handover countdown. Both parties call this and read the same clock: the
+ * guest gets navigation to the car, the host gets when to leave, both derived
+ * from the guest's live position rather than the nominal booking time.
+ */
+router.get(
+  '/:id/handover',
+  authenticate,
+  validate({ query: z.object({ lat: z.coerce.number(), lng: z.coerce.number() }).partial() }),
+  asyncHandler(async (req, res) => {
+    const uid = req.principal!.userId;
+    const trip = await tripService.get(req.params.id);
+    // tripService.get does not authorize, so the party check happens here.
+    if (trip.guestId !== uid && trip.hostId !== uid) {
+      throw Object.assign(new Error('Not your trip'), { status: 403 });
+    }
+    const viewer = trip.hostId === uid ? 'host' : 'guest';
+    const lat = req.query.lat === undefined ? undefined : Number(req.query.lat);
+    const lng = req.query.lng === undefined ? undefined : Number(req.query.lng);
+    const from = lat !== undefined && lng !== undefined ? { lat, lng } : undefined;
+    sendSuccess(res, await handoverService.status(req.params.id, viewer, from));
+  }),
+);
 
 export const tripsRoutes = router;

@@ -30,6 +30,7 @@ import { supportRoutes } from './modules/support/api/support.routes';
 import { kbRoutes } from './modules/support/api/kb.routes';
 import { buildAdminRouter } from './modules/admin/admin.routes';
 import { featureFlagsRoutes } from './modules/feature-flags/api/feature-flags.routes';
+import { aiRoutes } from './modules/ai/api/ai.routes';
 import { kycRoutes } from './modules/kyc/api/kyc.routes';
 import { mapsRoutes } from './modules/maps/api/maps.routes';
 import { corporateRoutes } from './modules/corporate/api/corporate.routes';
@@ -76,6 +77,7 @@ export function buildApiRouter(): Router {
   api.use('/kyc', kycRoutes);
   api.use('/maps', mapsRoutes);
   api.use('/feature-flags', featureFlagsRoutes);
+  api.use('/ai', aiRoutes);
   api.use('/corporate', corporateRoutes);
   api.use('/rewards', rewardsRoutes);
   api.use('/referral', referralRoutes);

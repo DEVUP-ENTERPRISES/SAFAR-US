@@ -168,6 +168,12 @@ export const config = Object.freeze({
     // boot log and the frontend-key hints.
     enabled: !!env.MAPBOX_TOKEN || !!env.GOOGLE_MAPS_API_KEY,
   },
+  ai: {
+    apiKey: env.OPENROUTER_API_KEY,
+    model: env.OPENROUTER_MODEL,
+    dailyBudgetCents: env.AI_DAILY_BUDGET_CENTS,
+    enabled: !!env.OPENROUTER_API_KEY,
+  },
   google: {
     clientId: env.GOOGLE_CLIENT_ID,
     enabled: !!env.GOOGLE_CLIENT_ID,

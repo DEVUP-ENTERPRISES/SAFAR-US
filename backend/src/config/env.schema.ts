@@ -66,6 +66,15 @@ export const envSchema = z.object({
 
   MAPBOX_TOKEN: optional(z.string()),
   GOOGLE_MAPS_API_KEY: z.string().optional(),
+
+  // ── AI (OpenRouter) ───────────────────────────────────────────────
+  // One key fronts many models, so the model is a config value rather than a
+  // vendor commitment. Absent key = every AI feature degrades to off, never errors.
+  OPENROUTER_API_KEY: optional(z.string()),
+  /** Default model. Vision-capable, because damage review reads photographs. */
+  OPENROUTER_MODEL: z.string().default('anthropic/claude-sonnet-4.5'),
+  /** Hard ceiling on spend per calendar day, in US cents. 0 = no cap. */
+  AI_DAILY_BUDGET_CENTS: z.coerce.number().int().min(0).default(2000),
   GOOGLE_CLIENT_ID: z.string().optional(),
 
   // ── Bootstrap super-admin (seeded on boot if set) ──
