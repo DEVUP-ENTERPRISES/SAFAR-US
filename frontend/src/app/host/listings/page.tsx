@@ -69,32 +69,35 @@ export default function HostListingsPage() {
         }
       />
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Make, model, plate #"
-          className="ps-9"
-        />
-      </div>
-
-      {/* Filters */}
+      {/* Filter strip — search and both pills on one line at one height. */}
       <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[16rem] flex-1">
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            size="sm"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Make, model, plate #"
+            className="rounded-full ps-9"
+          />
+        </div>
         <Select
+          size="sm"
+          wrapperClassName="w-auto"
           value={tripStatus}
           onChange={(e) => setTripStatus(e.target.value as TripStatus)}
-          className="h-9 rounded-full border border-input bg-card px-3 text-sm font-medium"
+          className="rounded-full bg-card font-medium"
         >
           <option value="">Trip status</option>
           <option value="on_trip">On a trip</option>
           <option value="available">Available</option>
         </Select>
         <Select
+          size="sm"
+          wrapperClassName="w-auto"
           value={listingStatus}
           onChange={(e) => setListingStatus(e.target.value)}
-          className="h-9 rounded-full border border-input bg-card px-3 text-sm font-medium"
+          className="rounded-full bg-card font-medium"
         >
           <option value="">Listing status</option>
           <option value="listed">Listed</option>

@@ -54,7 +54,11 @@ export function PanelSidebar({
   }
 
   const desktopSidebar = (
-    <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-60 shrink-0 overflow-y-auto border-e border-border py-6 pe-4 md:block">
+    // The navbar floats at top-4 and is h-14, so it occupies 16-72px. Sticking
+    // at top-16 (64px) parked the sidebar UNDER it and clipped its header; the
+    // height calc used a third, unrelated offset, so it also overran the
+    // viewport and cut off the last nav item. Both now derive from 5rem.
+    <aside className="sticky top-20 hidden h-[calc(100vh-5.5rem)] w-60 shrink-0 overflow-y-auto overscroll-contain border-e border-border py-6 pe-4 md:block">
       {/* Panel brand header — makes it unmistakable which panel you're in. */}
       <div className="mb-8 flex items-center gap-3 px-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20">

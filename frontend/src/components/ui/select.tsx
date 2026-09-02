@@ -7,6 +7,13 @@ import { CONTROL_HEIGHTS, CONTROL_PADDING, CONTROL_SURFACE, type ControlSize } f
 
 interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   size?: ControlSize;
+  /**
+   * Classes for the positioning wrapper. Needed because `className` lands on
+   * the <select>, which cannot reach the wrapper — so a caller wanting an
+   * inline pill instead of a full-width field had no way to say so, and every
+   * filter bar rendered as stacked full-width rows.
+   */
+  wrapperClassName?: string;
 }
 
 /**
@@ -20,8 +27,8 @@ interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'siz
  * `end-*` so it crosses to the left under dir="rtl" along with the text.
  */
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, size = 'lg', children, ...props }, ref) => (
-    <div className="relative w-full">
+  ({ className, size = 'lg', children, wrapperClassName, ...props }, ref) => (
+    <div className={cn('relative w-full', wrapperClassName)}>
       <select
         ref={ref}
         className={cn(
