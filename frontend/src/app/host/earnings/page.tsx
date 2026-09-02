@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart } from '@/components/ui/charts';
+import { EarningsInsights } from '@/features/host/components/earnings-insights';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { useEarnings, usePayouts, useInstantPayout } from '@/features/host/hooks';
@@ -129,6 +130,9 @@ export default function EarningsPage() {
         </CardContent>
       </Card>
 
+
+      {/* Rates rather than totals — the part a host can act on. */}
+      <EarningsInsights />
     </div>
   );
 }

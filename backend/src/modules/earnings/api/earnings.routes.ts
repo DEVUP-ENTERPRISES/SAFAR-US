@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { earningsService } from '../application/earnings.service';
 import { hostAnalyticsService } from '../application/host-analytics.service';
+import { earningsInsightsService } from '../application/earnings-insights.service';
 import { hostService } from '../../hosts/application/host.service';
 import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
@@ -25,6 +26,19 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     sendSuccess(res, await hostAnalyticsService.performance(req.principal!.userId));
+  }),
+);
+
+/**
+ * Business insight: rates rather than totals — revenue per available day,
+ * the cost of idle days, weekday pattern, and booking lead time.
+ */
+router.get(
+  '/insights',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const days = Math.min(365, Math.max(7, Number(req.query.days ?? 90)));
+    sendSuccess(res, await earningsInsightsService.insights(req.principal!.userId, days));
   }),
 );
 

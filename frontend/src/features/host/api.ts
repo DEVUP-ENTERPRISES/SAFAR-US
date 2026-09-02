@@ -150,6 +150,30 @@ export interface HostPerformance {
   cancelledByHost: number;
 }
 
+/** Rates rather than totals — see earnings-insights.service on the backend. */
+export interface VehicleEconomics {
+  vehicleId: string;
+  label: string;
+  dailyPriceCents: number;
+  trips: number;
+  earnedCents: number;
+  daysBooked: number;
+  daysAvailable: number;
+  revPerAvailableDayCents: number;
+  utilisationPct: number;
+  idleCostCents: number;
+}
+
+export interface EarningsInsights {
+  windowDays: number;
+  currency: string;
+  fleet: VehicleEconomics[];
+  split: { grossCents: number; commissionCents: number; netCents: number; commissionPct: number };
+  byWeekday: { weekday: number; label: string; trips: number; earnedCents: number }[];
+  leadTime: { bucket: string; trips: number; earnedCents: number }[];
+  headline: string | null;
+}
+
 export const hostApi = {
   me: () => api.get<HostProfile>('/hosts/me'),
   onboard: (displayName: string, bio?: string) => api.post<HostProfile>('/hosts/onboard', { displayName, bio }),
@@ -159,6 +183,7 @@ export const hostApi = {
     api.get<HostPublicProfile>(`/hosts/${hostId}/public`, undefined, false),
 
   performance: () => api.get<HostPerformance>('/earnings/performance'),
+  earningsInsights: (days = 90) => api.get<EarningsInsights>('/earnings/insights', { days }),
   earnings: () => api.get<EarningsDashboard>('/earnings/dashboard'),
 
   payouts: () => api.get<Payout[]>('/payouts/me'),
