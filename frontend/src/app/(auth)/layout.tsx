@@ -2,94 +2,147 @@
 
 import { useState, useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { config } from '@/lib/config';
 import { CatoMark } from '@/components/layout/cato-mark';
+import { vehicleApi } from '@/features/vehicles/api';
 
-const IMAGES = [
-  'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=2070&auto=format&fit=crop', // Tesla/Sleek
-  'https://images.unsplash.com/photo-1503376762362-e610660600ce?q=80&w=2069&auto=format&fit=crop', // Porsche
-  'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=2070&auto=format&fit=crop', // G-Wagon/Rugged
-];
-
+/**
+ * The auth shell.
+ *
+ * This used to hotlink three hardcoded Unsplash photos. Two problems with that,
+ * and both bit: they were stock cars we do not have on the platform, and one of
+ * the three was deleted upstream and started returning 404 — so a third of the
+ * time the login page rendered a broken-image icon.
+ *
+ * Now it shows real cars from the marketplace, and the panel is designed to
+ * stand on its own without any image at all. The gradient composition below is
+ * pure CSS: it needs no network, cannot rot, and is what renders while photos
+ * load, when the marketplace is empty, or when a request fails. A photo only
+ * ever appears after it has actually decoded, so a dead URL degrades to the
+ * designed panel instead of a broken icon.
+ */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   const [active, setActive] = useState(0);
+  const [loaded, setLoaded] = useState<string[]>([]);
 
-  // Auto-playing carousel
+  // Real listings, fetched without auth. Decorative, so every failure is silent.
+  const photos = useQuery({
+    queryKey: ['auth-showcase'],
+    queryFn: async () => {
+      const facets = await vehicleApi.facets();
+      const city = facets.cities?.[0];
+      if (!city) return [];
+      const vehicles = await vehicleApi.search({ lng: city.lng, lat: city.lat, radiusKm: 200, limit: 6 });
+      return vehicles
+        .map((v) => v.photos?.find((p) => p.isCover)?.url ?? v.photos?.[0]?.url)
+        .filter((u): u is string => !!u)
+        .slice(0, 3);
+    },
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
+
+  // Only photos that decoded are eligible to show.
   useEffect(() => {
-    const timer = setInterval(() => {
-      setActive((prev) => (prev + 1) % IMAGES.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
+    if (!photos.data?.length) return;
+    let cancelled = false;
+    Promise.all(
+      photos.data.map(
+        (src) =>
+          new Promise<string | null>((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(src);
+            img.onerror = () => resolve(null);
+            img.src = src;
+          }),
+      ),
+    ).then((r) => {
+      if (!cancelled) setLoaded(r.filter((s): s is string => !!s));
+    });
+    return () => { cancelled = true; };
+  }, [photos.data]);
+
+  useEffect(() => {
+    if (loaded.length < 2) return;
+    const t = setInterval(() => setActive((p) => (p + 1) % loaded.length), 6000);
+    return () => clearInterval(t);
+  }, [loaded.length]);
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      {/* LEFT SIDE: The Carousel (Hidden on very small mobile, or shown as header) */}
-      <div className="relative hidden lg:flex w-1/2 flex-col justify-between overflow-hidden bg-zinc-950">
-        {/* Images */}
-        {IMAGES.map((src, i) => (
+      {/* LEFT: the brand panel. Holds up with or without photography. */}
+      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-ink lg:flex">
+        {/* Designed backdrop — no network, always present. */}
+        <div aria-hidden className="absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_15%_10%,hsl(var(--primary)/0.30),transparent_60%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(90%_70%_at_90%_95%,hsl(var(--primary)/0.16),transparent_65%)]" />
+        </div>
+
+        {/* Real cars, layered over it once they have decoded. */}
+        {loaded.map((src, i) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={src}
             src={src}
             alt=""
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
-              i === active ? 'opacity-50' : 'opacity-0'
+              i === active ? 'opacity-45' : 'opacity-0'
             }`}
           />
         ))}
 
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
+        <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-transparent" />
 
-        {/* Top bar on image */}
+        {/* Brand */}
         <div className="relative z-10 flex items-center p-10">
           <Link href="/" className="flex items-center gap-2.5 text-white transition-transform hover:scale-105">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-zinc-950 shadow-lg">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-ink shadow-lg">
               <CatoMark />
             </span>
-            <span className="text-2xl font-black tracking-tight">{config.appName}</span>
+            <span className="display text-2xl tracking-tight">{config.appName}</span>
           </Link>
         </div>
 
-        {/* Marketing Copy on image */}
+        {/* Copy. States a guarantee we actually enforce rather than a superlative. */}
         <div className="relative z-10 p-10 pb-16">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-white/90 backdrop-blur-md">
-            <Sparkles className="h-4 w-4" /> Top 1% Experience
+            <ShieldCheck className="h-4 w-4" /> Booking protected
           </span>
-          <h1 className="mt-6 text-5xl font-black leading-[1.1] tracking-tight text-white xl:text-6xl">
-            Drive the cars you&apos;ve <br /> always dreamed of.
+          <h1 className="display mt-6 text-5xl leading-[1.05] text-white xl:text-6xl">
+            Drive away<br />certain.
           </h1>
-          <p className="mt-6 max-w-md text-xl font-medium text-white/70">
-            Join the world&apos;s leading peer-to-peer mobility platform. Skip the counter entirely.
+          <p className="mt-6 max-w-md text-lg font-medium leading-relaxed text-white/70">
+            If your host cancels, we find you another car and cover the difference. Your trip is not their
+            change of mind.
           </p>
 
-          {/* Carousel indicators */}
-          <div className="mt-12 flex items-center gap-3">
-            {IMAGES.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setActive(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i === active ? 'w-8 bg-white' : 'w-2 bg-white/30 hover:bg-white/50'
-                }`}
-                aria-label={`Go to slide ${i + 1}`}
-              />
-            ))}
-          </div>
+          {loaded.length > 1 && (
+            <div className="mt-12 flex items-center gap-3">
+              {loaded.map((src, i) => (
+                <button
+                  key={src}
+                  onClick={() => setActive(i)}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === active ? 'w-8 bg-white' : 'w-2 bg-white/30 hover:bg-white/50'
+                  }`}
+                  aria-label={`Show car ${i + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* RIGHT SIDE: The Form */}
+      {/* RIGHT: the form */}
       <div className="relative flex w-full flex-col lg:w-1/2">
-        {/* Mobile Header (Only visible when image is hidden) */}
         <div className="flex h-20 items-center justify-between px-6 lg:hidden">
           <Link href="/" className="flex items-center gap-2.5 transition-transform hover:scale-105">
-            <span className="grid h-8 w-8 place-items-center rounded-lg brand-gradient shadow-soft text-white">
+            <span className="grid h-8 w-8 place-items-center rounded-lg brand-gradient text-white shadow-soft">
               <CatoMark />
             </span>
-            <span className="text-xl font-black tracking-tight">{config.appName}</span>
+            <span className="display text-xl tracking-tight">{config.appName}</span>
           </Link>
           <Link href="/" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> Back
@@ -97,9 +150,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="flex flex-1 items-center justify-center p-6 sm:p-12 lg:p-16">
-          <div className="w-full max-w-md animate-slide-in-right">
-            {children}
-          </div>
+          <div className="w-full max-w-md animate-slide-in-right">{children}</div>
         </div>
       </div>
     </div>

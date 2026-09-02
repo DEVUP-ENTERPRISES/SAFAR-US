@@ -38,6 +38,10 @@
   --destructive-foreground: 0 0% 100%;
   --success: 159 76% 30%;          /* cleared — semantic only, never brand */
   --success-foreground: 0 0% 100%;
+  /* Amber, kept clear of the teal brand so "needs attention" never reads as
+     "on brand". Dark enough to pass on the warm paper ground. */
+  --warning: 32 88% 40%;
+  --warning-foreground: 0 0% 100%;
   --border: 39 20% 86%;
   --input: 39 20% 86%;
   --ring: 180 82% 31%;
@@ -74,6 +78,8 @@
   --destructive-foreground: 30 18% 7%;
   --success: 159 54% 46%;
   --success-foreground: 30 18% 7%;
+  --warning: 38 92% 58%;
+  --warning-foreground: 30 18% 7%;
   --border: 37 17% 15%;
   --input: 37 17% 18%;
   --ring: 180 55% 45%;
