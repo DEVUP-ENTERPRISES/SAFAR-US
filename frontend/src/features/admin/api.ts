@@ -137,6 +137,43 @@ export interface AdminPayouts {
   totals: { scheduled: number; paid: number };
 }
 
+/** A jurisdiction's tax rule. Rules stack — country + state + city + airport
+ *  all apply to the same booking, unlike commission rules which resolve to a
+ *  single most-specific winner. */
+export interface TaxRule {
+  _id: string;
+  label: string;
+  scope: 'country' | 'state' | 'city' | 'airport';
+  matchValue: string;
+  kind?: 'sales_tax' | 'rental_excise' | 'airport_concession' | 'surcharge';
+  rateBps?: number;
+  perDayCents?: number;
+  perTripCents?: number;
+  active?: boolean;
+  effectiveFrom?: string;
+  effectiveTo?: string;
+  note?: string;
+}
+
+export interface TaxPreview {
+  lines: { label: string; amount: { amount: number; currency: string } }[];
+  total: { amount: number; currency: string };
+}
+
+/** A citation (ticket/toll) incurred during a trip, passed through at cost. */
+export interface Violation {
+  _id: string;
+  bookingId: string;
+  citationRef: string;
+  kind?: string;
+  description?: string;
+  amountCents: number;
+  occurredAt: string;
+  status: string;
+  evidenceUrl?: string;
+  createdAt: string;
+}
+
 export const adminApi = {
   nav: () => api.get<AdminNavItem[]>('/admin/nav'),
   metrics: () => api.get<AdminMetrics>('/admin/metrics'),
@@ -263,6 +300,25 @@ export const adminApi = {
 
   // ── Referrals ──
   referralStats: (days = 30) => api.get<ReferralStats>('/admin/referrals/stats', { days }),
+
+  // Tax rules — jurisdiction stack. platform:manage gated.
+  taxRules: (params: { scope?: string; active?: boolean } = {}) =>
+    api.get<TaxRule[]>('/admin/tax-rules', params as Record<string, string | boolean | undefined>),
+  createTaxRule: (body: Partial<TaxRule>) => api.post<TaxRule>('/admin/tax-rules', body),
+  updateTaxRule: (id: string, body: Partial<TaxRule>) =>
+    api.patch<TaxRule>(`/admin/tax-rules/${id}`, body),
+  deleteTaxRule: (id: string) => api.delete<{ deleted: boolean }>(`/admin/tax-rules/${id}`),
+  /** What a place would be taxed, without making a booking. */
+  previewTax: (q: { amount?: number; state?: string; city?: string; airport?: string; days?: number }) =>
+    api.get<TaxPreview>('/admin/tax-rules/preview', q as Record<string, string | number | undefined>),
+
+  // Citations
+  violations: (params: { status?: string; limit?: number } = {}) =>
+    api.get<Violation[]>('/admin/violations', params as Record<string, string | number | undefined>),
+  chargeViolation: (id: string) => api.post<Violation>(`/admin/violations/${id}/charge`, {}),
+  waiveViolation: (id: string, resolution: string) =>
+    api.post<Violation>(`/admin/violations/${id}/waive`, { resolution }),
+
 };
 
 export interface KbArticle {
