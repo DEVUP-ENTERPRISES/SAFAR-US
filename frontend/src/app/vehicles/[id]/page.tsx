@@ -25,6 +25,7 @@ import { useAuthStore } from '@/features/auth/store';
 import { walletApi } from '@/features/wallet/api';
 import { WishlistButton } from '@/features/favorites/wishlist-button';
 import { ShareButton } from '@/features/vehicles/components/share-button';
+import { AvailabilityCalendar } from '@/features/vehicles/components/availability-calendar';
 
 interface Review {
   _id: string;
@@ -432,7 +433,11 @@ export default function VehicleDetailPage() {
         {/* Availability calendar */}
         <div>
           <h2 className="mb-3 font-semibold">Availability</h2>
-          <AvailabilityCalendar occupied={calendar.data ?? []} />
+          <AvailabilityCalendar
+            occupied={calendar.data ?? []}
+            vehicle={v}
+            onPick={(from, to) => { setStart(from); setEnd(to); }}
+          />
         </div>
 
         {/* Reviews */}
@@ -785,55 +790,3 @@ function iso(local: string): string {
   return new Date(local).toISOString();
 }
 
-/** Simple month grid marking booked/blocked days for the next 60 days. */
-function AvailabilityCalendar({ occupied }: { occupied: { dayKey: string; state: string }[] }) {
-  const busy = new Map(occupied.map((o) => [o.dayKey, o.state]));
-  const today = new Date();
-  const first = new Date(today.getFullYear(), today.getMonth(), 1);
-  const startDow = first.getDay();
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const monthLabel = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < startDow; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-
-  const keyFor = (d: number) =>
-    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-
-  return (
-    <Card>
-      <CardContent className="p-6 sm:p-8">
-        <p className="mb-3 text-sm font-medium">{monthLabel}</p>
-        <div className="grid grid-cols-7 gap-1 text-center text-xs">
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-            <div key={i} className="pb-1 font-medium text-muted-foreground">{d}</div>
-          ))}
-          {cells.map((d, i) => {
-            if (d === null) return <div key={i} />;
-            const state = busy.get(keyFor(d));
-            const past = d < today.getDate();
-            const occupiedDay = state === 'booked' || state === 'blocked' || state === 'held';
-            return (
-              <div
-                key={i}
-                className={cn(
-                  'flex h-9 w-9 mx-auto items-center justify-center rounded-full',
-                  past && 'text-muted-foreground/40',
-                  occupiedDay ? 'bg-muted text-muted-foreground line-through' : 'bg-primary/5 text-foreground',
-                )}
-                title={occupiedDay ? 'Unavailable' : 'Available'}
-              >
-                {d}
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-primary/5" /> Available</span>
-          <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-muted" /> Booked/Blocked</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
