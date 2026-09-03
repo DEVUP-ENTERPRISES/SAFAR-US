@@ -99,9 +99,19 @@ export function initRealtime(httpServer: HttpServer): void {
         const role = trip.hostId === principal.userId ? 'host' : 'guest';
         if (!(await trackingPhaseService.mayBroadcast(data.tripId, role))) return;
 
-        await tripService.updateLocation(principal.userId, data.tripId, data.lng, data.lat);
+        // trip.liveLocation means "where the car is", so only the guest's
+        // position is persisted. During handover the host is broadcasting too,
+        // and storing theirs would overwrite the car's position — which the
+        // handover ETA reads to work out when the host should leave.
+        if (role === 'guest') {
+          await tripService.updateLocation(principal.userId, data.tripId, data.lng, data.lat);
+        }
+
+        // The role rides along: both parties broadcast during handover, and
+        // without it the client renders one marker jumping between two people.
         realtimeEmitter.toTrip(data.tripId, RT.TRIP_LOCATION, {
           tripId: data.tripId,
+          role,
           lng: data.lng,
           lat: data.lat,
           at: new Date().toISOString(),

@@ -7,6 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils/cn';
 import { TripLiveMap } from '@/features/trips/components/trip-live-map';
 import { useTrackingState } from '@/features/trips/hooks';
+import { handoverApi } from '@/features/ai/api';
+import { useQuery } from '@tanstack/react-query';
 
 /**
  * Location, and why it is or is not on screen.
@@ -28,6 +30,15 @@ export function TrackingPanel({
   role: 'guest' | 'host';
 }) {
   const q = useTrackingState(tripId);
+  // The handover point, so the map can pin the destination and frame both ends
+  // rather than opening on a car with no context.
+  const handover = useQuery({
+    queryKey: ['handover-dest', tripId],
+    queryFn: () => handoverApi.status(tripId),
+    enabled: !!q.data?.trackingEnabled,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
 
   if (q.isLoading) return <Skeleton className="h-40 w-full" />;
   if (q.isError || !q.data) return null;
@@ -93,7 +104,7 @@ export function TrackingPanel({
 
         {canSee ? (
           <div className="mt-4 overflow-hidden rounded-xl">
-            <TripLiveMap tripId={tripId} height="15rem" />
+            <TripLiveMap tripId={tripId} destination={handover.data?.destination ?? null} height="15rem" />
           </div>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">
