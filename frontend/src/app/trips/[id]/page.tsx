@@ -12,13 +12,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { formatDate } from '@/lib/utils/format';
 import { tripApi } from '@/features/trips/api';
-import { useTrip, useCheckIn, useCompleteTrip, useSos, useLocationStreaming } from '@/features/trips/hooks';
+import { useTrip, useCheckIn, useCompleteTrip, useSos, useLocationStreaming, useTrackingState } from '@/features/trips/hooks';
 import { ChatPanel } from '@/features/messaging/chat-panel';
 import { HandoverPanel } from '@/features/trips/components/handover-panel';
+import { TrackingPanel } from '@/features/trips/components/tracking-panel';
 import { DamageReviewPanel } from '@/features/ai/components/damage-review-panel';
 import { DriverManager } from '@/features/bookings/components/driver-manager';
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
-import { TripLiveMap } from '@/features/trips/components/trip-live-map';
 import { ReviewPrompt } from '@/features/reviews/components/review-prompt';
 
 function TripDashboard() {
@@ -31,9 +31,11 @@ function TripDashboard() {
   const [odoEnd, setOdoEnd] = useState('');
   const [fuelEnd, setFuelEnd] = useState('');
 
-  // Stream this device's location while the trip is live (hook is a no-op until
-  // the trip loads and is active).
-  useLocationStreaming(id, trip?.status === 'active');
+  // Stream only while the server says tracking is open. Gating on
+  // trip.status === 'active' meant streaming for the whole hire — days of a
+  // guest's position going to their host.
+  const tracking = useTrackingState(id);
+  useLocationStreaming(id, !!tracking.data?.trackingEnabled && tracking.data.broadcasters.includes('guest'));
 
   if (isLoading) return <Skeleton className="h-[70vh] w-full" />;
   if (isError || !trip) return <ErrorState message="Trip not found." retry={() => refetch()} />;
@@ -57,6 +59,9 @@ function TripDashboard() {
 
         {/* Navigation to the car — only useful before the keys change hands. */}
         {trip.status === 'active' && !trip.checkin && <HandoverPanel tripId={trip._id} role="guest" />}
+
+        {/* What is shared, and why — never a map without a reason. */}
+        <TrackingPanel tripId={trip._id} role="guest" />
 
         {/* The guest reads the same damage verdict the host does. */}
         <DamageReviewPanel tripId={trip._id} canRun={false} />
@@ -84,13 +89,6 @@ function TripDashboard() {
             </CardContent>
           </Card>
         )}
-
-        {/* Live location — the guest's device streams its position while active */}
-        <TripLiveMap
-          tripId={id}
-          initial={loc ? { lng: loc.coordinates[0], lat: loc.coordinates[1], updatedAt: loc.updatedAt } : null}
-          height="18rem"
-        />
 
         {/* Review prompt — appears once the trip is done */}
         {trip.status === 'completed' && (

@@ -65,6 +65,27 @@ export function useSos(id: string) {
  * throttled to at most one update every 15s to spare battery and bandwidth, and
  * stops the moment the trip is no longer active or the screen unmounts.
  */
+/**
+ * Streams this device's position — but only while the server says tracking is
+ * open for the trip.
+ *
+ * This used to run for as long as the trip was active, which for a car rental
+ * is days: a guest's position flowing to their host through an entire hire.
+ * The phase decides now, so streaming happens at the handover edges and during
+ * a declared exception, and stops in between.
+ */
+export function useTrackingState(id: string) {
+  return useQuery({
+    queryKey: ['trip-tracking', id],
+    queryFn: () => tripApi.tracking(id),
+    // Cheap, and the phase turns over on a clock — a stale answer would either
+    // leak position or hide a map someone needs.
+    refetchInterval: 60_000,
+    enabled: !!id,
+    retry: false,
+  });
+}
+
 export function useLocationStreaming(id: string, active: boolean) {
   useEffect(() => {
     if (!id || !active || typeof navigator === 'undefined' || !navigator.geolocation) return;

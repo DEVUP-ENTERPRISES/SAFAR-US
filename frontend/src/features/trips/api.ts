@@ -27,6 +27,8 @@ export interface Trip {
 
 export const tripApi = {
   get: (id: string) => api.get<Trip>(`/trips/${id}`),
+  /** Read before streaming or rendering a map — the server owns this decision. */
+  tracking: (id: string) => api.get<TrackingState>(`/trips/${id}/tracking`),
   start: (bookingId: string, odometerStart?: number, fuelStart?: number) =>
     api.post<Trip>('/trips/start', { bookingId, odometerStart, fuelStart }),
   checkIn: (id: string, method: 'contactless' | 'in_person') =>
@@ -41,3 +43,17 @@ export const tripApi = {
     api.post<Trip>(`/trips/${id}/damage`, { description, photos }),
   sos: (id: string) => api.post<{ alerted: boolean }>(`/trips/${id}/sos`),
 };
+
+/** Whether tracking is open for a trip, and why. Resolved by the server. */
+export interface TrackingState {
+  phase: 'off' | 'approach' | 'in_trip' | 'return' | 'exception';
+  trackingEnabled: boolean;
+  broadcasters: ('guest' | 'host')[];
+  viewers: ('guest' | 'host' | 'support')[];
+  reason: string | null;
+  isException: boolean;
+  exceptionKind?: 'sos' | 'overdue' | 'incident';
+  opensAt?: string;
+  closesAt?: string;
+}
+

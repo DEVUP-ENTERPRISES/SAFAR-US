@@ -6,6 +6,8 @@ import { logger } from '../infrastructure/logging/logger';
 import { redis, isRedisHealthy } from '../infrastructure/cache/redis.client';
 import { tokenService } from '../modules/auth/application/token.service';
 import { realtimeEmitter, RT } from './emitter';
+import { trackingPhaseService } from '../modules/trips/application/tracking-phase.service';
+import { TripModel } from '../modules/trips/infrastructure/trip.model';
 import { tripService } from '../modules/trips/application/trip.service';
 import { messageService } from '../modules/messaging/application/message.service';
 
@@ -82,9 +84,21 @@ export function initRealtime(httpServer: HttpServer): void {
       }
     });
 
-    // Guest streams live location during an active trip.
+    /*
+     * Location streaming, gated on the trip's tracking phase.
+     *
+     * The gate is HERE rather than only in the client, because a client that
+     * keeps streaming — a stale tab, an old build, a modified one — must not be
+     * able to keep a guest's position flowing through the middle of a hire.
+     * The server decides when tracking is open, and silently drops the rest.
+     */
     socket.on('trip:location', async (data: { tripId: string; lng: number; lat: number }) => {
       try {
+        const trip = await TripModel.findById(data.tripId).lean<{ guestId: string; hostId: string }>();
+        if (!trip) return;
+        const role = trip.hostId === principal.userId ? 'host' : 'guest';
+        if (!(await trackingPhaseService.mayBroadcast(data.tripId, role))) return;
+
         await tripService.updateLocation(principal.userId, data.tripId, data.lng, data.lat);
         realtimeEmitter.toTrip(data.tripId, RT.TRIP_LOCATION, {
           tripId: data.tripId,

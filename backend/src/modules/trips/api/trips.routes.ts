@@ -9,6 +9,8 @@ import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import { tripCarbon } from '../../../shared/utils/carbon';
 import { handoverService } from '../application/handover.service';
+import { trackingPhaseService } from '../application/tracking-phase.service';
+import { trackingNoticeService } from '../application/tracking-notice.service';
 import { ForbiddenError } from '../../../core/errors/app-error';
 
 const router = Router();
@@ -102,6 +104,14 @@ router.post(
   authenticate,
   validate({ body: locationSchema }),
   asyncHandler(async (req, res) => {
+    // Same gate as the socket path: the server decides when tracking is open,
+    // so a stale client cannot keep a position flowing mid-hire.
+    const trip = await tripService.get(req.params.id);
+    const role = trip.hostId === req.principal!.userId ? 'host' : 'guest';
+    if (!(await trackingPhaseService.mayBroadcast(req.params.id, role))) {
+      sendSuccess(res, { updated: false, reason: 'Location sharing is not open for this trip right now' });
+      return;
+    }
     await tripService.updateLocation(req.principal!.userId, req.params.id, req.body.lng, req.body.lat);
     sendSuccess(res, { updated: true });
   }),
@@ -226,6 +236,24 @@ router.post(
   }),
 );
 
+
+/**
+ * Whether tracking is open for this trip, and why.
+ *
+ * Both clients read this before streaming or rendering a map, so the reason a
+ * map is on screen is always something the server said — never an assumption
+ * the UI made.
+ */
+router.get(
+  '/:id/tracking',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const uid = req.principal!.userId;
+    const trip = await tripService.get(req.params.id);
+    if (trip.guestId !== uid && trip.hostId !== uid) throw new ForbiddenError('Not your trip');
+    sendSuccess(res, await trackingNoticeService.resolveAndAnnounce(req.params.id));
+  }),
+);
 
 /**
  * The handover countdown. Both parties call this and read the same clock: the

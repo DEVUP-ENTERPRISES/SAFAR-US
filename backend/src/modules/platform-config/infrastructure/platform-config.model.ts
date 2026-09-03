@@ -126,6 +126,20 @@ export interface PlatformConfigDoc {
     /** Fraction of the total the guest forfeits on a guest no-show (host keeps it). */
     guestForfeitBps: number;
   };
+  /**
+   * Location tracking windows.
+   *
+   * Tracking runs at the edges of a trip and is dark in the middle. These are
+   * the edges. Widening them widens surveillance of a paying customer, so they
+   * live here rather than as constants — an operator changing them should have
+   * to do it deliberately, and it should be auditable.
+   */
+  tracking: {
+    /** Minutes before handover/return that both parties start sharing. */
+    approachWindowMinutes: number;
+    /** Minutes past the return time before an overdue car may be located. */
+    overdueGraceMinutes: number;
+  };
   /** All-Star Host (superhost) qualification bar — earned, not granted. */
   superhost: {
     minTrips: number;
@@ -318,6 +332,10 @@ const schema = new Schema<PlatformConfigDoc>(
     noShow: {
       graceHours: { type: Number, default: 2 },
       guestForfeitBps: { type: Number, default: 5000 },
+    },
+    tracking: {
+      approachWindowMinutes: { type: Number, default: 60 },
+      overdueGraceMinutes: { type: Number, default: 60 },
     },
     superhost: {
       minTrips: { type: Number, default: 5 },

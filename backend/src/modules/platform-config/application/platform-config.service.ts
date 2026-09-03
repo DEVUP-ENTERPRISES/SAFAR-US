@@ -114,6 +114,7 @@ export class PlatformConfigService {
         strict: { fullBeforeHours: 168, partialBps: 0, ...(doc.cancellation?.strict ?? {}) },
       },
       noShow: { graceHours: 2, guestForfeitBps: 5000, ...(doc.noShow ?? {}) },
+      tracking: { approachWindowMinutes: 60, overdueGraceMinutes: 60, ...(doc.tracking ?? {}) },
       violations: {
         reportingWindowDays: 90, disputeWindowDays: 7, adminFeeCents: 1500, requireEvidence: true,
         ...(doc.violations ?? {}),

@@ -54,6 +54,14 @@ router.put(
           strict: z.object({ fullBeforeHours: z.number().int().min(0).max(2160), partialBps: bps }).optional(),
         })
         .optional(),
+      tracking: z
+        .object({
+          // Capped: a wider window is more surveillance, so the API refuses
+          // values an operator would regret rather than trusting the UI.
+          approachWindowMinutes: z.number().int().min(5).max(240).optional(),
+          overdueGraceMinutes: z.number().int().min(0).max(720).optional(),
+        })
+        .optional(),
       noShow: z
         .object({ graceHours: z.number().int().min(0).max(72).optional(), guestForfeitBps: bps.optional() })
         .optional(),

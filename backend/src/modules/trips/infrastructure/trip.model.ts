@@ -28,6 +28,9 @@ export interface TripDoc {
    *  it is resolved, so no late/mileage/fuel charge lands during an emergency. */
   incidents: { type: string; status: 'open' | 'resolved'; note?: string; byUserId: string; at: Date; resolvedAt?: Date }[];
   pausedForIncident?: boolean;
+  /** Which exception kind the guest has already been told about, so notice is
+   *  sent once per episode rather than on every read. */
+  trackingNoticeSentFor?: 'sos' | 'overdue' | 'incident';
   /** The host verified the guest's pickup code at handover (physical presence). */
   pickupVerified?: boolean;
   pickupVerifiedAt?: Date;
@@ -75,6 +78,7 @@ const schema = new Schema<TripDoc>(
       default: [],
     },
     pausedForIncident: { type: Boolean, default: false },
+    trackingNoticeSentFor: { type: String, enum: ['sos', 'overdue', 'incident'] },
     pickupVerified: { type: Boolean, default: false },
     pickupVerifiedAt: Date,
     return: {

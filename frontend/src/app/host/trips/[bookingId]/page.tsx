@@ -14,7 +14,7 @@ import { ErrorState } from '@/components/ui/states';
 import { SectionLabel, RowGroup, Row, ActionSheet, Tabs } from '@/components/ui/rows';
 import { ReviewPrompt } from '@/features/reviews/components/review-prompt';
 import { FileDamageClaim } from '@/features/claims/components/file-damage-claim';
-import { TripLiveMap } from '@/features/trips/components/trip-live-map';
+import { TrackingPanel } from '@/features/trips/components/tracking-panel';
 import { HandoverPanel } from '@/features/trips/components/handover-panel';
 import { DamageReviewPanel } from '@/features/ai/components/damage-review-panel';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -208,11 +208,14 @@ export default function HostTripDetailPage() {
             </>
           )}
 
-          {/* Live location while the trip is in progress */}
+          {/* Location, gated on the trip's tracking phase. The host used to
+              see the guest's live position for the entire hire; now it is the
+              handover edges and declared exceptions only, and the panel says
+              which. */}
           {started && t.tripId && (
             <>
-              <SectionLabel>Live location</SectionLabel>
-              <TripLiveMap tripId={t.tripId} height="14rem" />
+              <SectionLabel>Location</SectionLabel>
+              <TrackingPanel tripId={t.tripId} role="host" />
             </>
           )}
 
