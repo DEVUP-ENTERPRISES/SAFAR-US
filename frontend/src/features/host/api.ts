@@ -174,6 +174,41 @@ export interface EarningsInsights {
   headline: string | null;
 }
 
+/** Fleet import — see fleet-import.service on the backend. */
+export interface RowPreview {
+  vin: string;
+  ok: boolean;
+  year?: number;
+  make?: string;
+  model?: string;
+  trim?: string;
+  bodyType?: string;
+  fuelType?: 'petrol' | 'diesel' | 'hybrid' | 'ev';
+  transmission?: 'manual' | 'automatic';
+  seats?: number;
+  doors?: number;
+  note?: string;
+  error?: string;
+  /** Required fields the VIN did not carry. */
+  missing: ('transmission' | 'fuelType' | 'seats' | 'bodyType')[];
+  duplicate?: boolean;
+}
+
+export interface ImportResult {
+  vin: string;
+  status: 'created' | 'skipped' | 'failed';
+  vehicleId?: string;
+  label?: string;
+  reason?: string;
+}
+
+export interface ImportRow {
+  vin: string;
+  dailyPrice: number;
+  address: string;
+  title?: string;
+}
+
 export const hostApi = {
   me: () => api.get<HostProfile>('/hosts/me'),
   onboard: (displayName: string, bio?: string) => api.post<HostProfile>('/hosts/onboard', { displayName, bio }),
@@ -184,6 +219,8 @@ export const hostApi = {
 
   performance: () => api.get<HostPerformance>('/earnings/performance'),
   earningsInsights: (days = 90) => api.get<EarningsInsights>('/earnings/insights', { days }),
+  importPreview: (vins: string[]) => api.post<RowPreview[]>('/vehicles/import/preview', { vins }),
+  importFleet: (rows: ImportRow[]) => api.post<ImportResult[]>('/vehicles/import', { rows }),
   earnings: () => api.get<EarningsDashboard>('/earnings/dashboard'),
 
   payouts: () => api.get<Payout[]>('/payouts/me'),

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Star, LayoutGrid, List, Car } from 'lucide-react';
+import { Plus, Search, Star, LayoutGrid, List, Car, Upload} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -104,6 +104,13 @@ export default function HostListingsPage() {
           <option value="unlisted">Unlisted</option>
           <option value="draft">Draft</option>
         </Select>
+
+        <Link
+          href="/host/listings/import"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-sm font-medium transition-colors hover:bg-muted"
+        >
+          <Upload className="h-3.5 w-3.5" /> Import fleet
+        </Link>
 
         <div className="ms-auto flex items-center gap-2">
           <span className="text-sm font-semibold">

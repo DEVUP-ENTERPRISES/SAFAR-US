@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { vehicleService, MIN_LISTING_PHOTOS } from '../application/vehicle.service';
 import { vehicleInsightsService } from '../application/vehicle-insights.service';
+import { fleetImportService } from '../application/fleet-import.service';
 import { availabilityService } from '../../availability/application/availability.service';
 import { searchService } from '../../search/application/search.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
@@ -70,6 +71,44 @@ router.get(
         radiusKm: req.query.radiusKm ? Number(req.query.radiusKm) : undefined,
       }),
     );
+  }),
+);
+
+/**
+ * Fleet import — decode a batch of VINs and report what each row still needs,
+ * writing nothing. The host sees their whole fleet resolved before committing.
+ */
+router.post(
+  '/import/preview',
+  authenticate,
+  validate({ body: z.object({ vins: z.array(z.string().min(11).max(20)).min(1).max(200) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await fleetImportService.preview(req.principal!.userId, req.body.vins));
+  }),
+);
+
+/** Create the fleet as drafts. Rows are independent — one bad row costs one row. */
+router.post(
+  '/import',
+  authenticate,
+  validate({
+    body: z.object({
+      rows: z.array(z.object({
+        vin: z.string().min(11).max(20),
+        dailyPrice: z.number().int().positive(),
+        address: z.string().min(4).max(300),
+        title: z.string().max(120).optional(),
+        description: z.string().max(4000).optional(),
+        registrationNumber: z.string().max(32).optional(),
+        transmission: z.enum(['manual', 'automatic']).optional(),
+        fuelType: z.enum(['petrol', 'diesel', 'hybrid', 'ev']).optional(),
+        seats: z.number().int().min(1).max(60).optional(),
+        bodyType: z.string().max(40).optional(),
+      })).min(1).max(200),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await fleetImportService.importRows(req.principal!.userId, req.body.rows));
   }),
 );
 
