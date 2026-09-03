@@ -7,6 +7,7 @@ import { redis, isRedisHealthy } from '../infrastructure/cache/redis.client';
 import { tokenService } from '../modules/auth/application/token.service';
 import { realtimeEmitter, RT } from './emitter';
 import { trackingPhaseService } from '../modules/trips/application/tracking-phase.service';
+import { approachService } from '../modules/trips/application/approach.service';
 import { TripModel } from '../modules/trips/infrastructure/trip.model';
 import { tripService } from '../modules/trips/application/trip.service';
 import { messageService } from '../modules/messaging/application/message.service';
@@ -106,6 +107,13 @@ export function initRealtime(httpServer: HttpServer): void {
         if (role === 'guest') {
           await tripService.updateLocation(principal.userId, data.tripId, data.lng, data.lat);
         }
+
+        // Recompute the mover's ETA and tell the counterpart if it slipped.
+        // Runs off the stream their device is already sending, because the
+        // person who is late is driving and cannot type.
+        void approachService
+          .onPosition(data.tripId, role, { lat: data.lat, lng: data.lng })
+          .catch(() => undefined);
 
         // The role rides along: both parties broadcast during handover, and
         // without it the client renders one marker jumping between two people.

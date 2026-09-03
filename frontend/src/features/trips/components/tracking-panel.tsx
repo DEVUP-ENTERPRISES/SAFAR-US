@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils/cn';
 import { TripLiveMap } from '@/features/trips/components/trip-live-map';
+import { ApproachStrip } from '@/features/trips/components/approach-strip';
 import { useTrackingState } from '@/features/trips/hooks';
 import { handoverApi } from '@/features/ai/api';
 import { useQuery } from '@tanstack/react-query';
@@ -101,6 +102,15 @@ export function TrackingPanel({
             {exception ? t.exceptionKind ?? 'exception' : 'Live'}
           </Badge>
         </div>
+
+        {/* Who has set off and who has arrived, above the map — the answer to
+            the question, before the map is even read. Exceptions are not a
+            handover, so the strip stays out of the way there. */}
+        {!exception && (t.phase === 'approach' || t.phase === 'return') && (
+          <div className="mt-4">
+            <ApproachStrip tripId={tripId} role={role} />
+          </div>
+        )}
 
         {canSee ? (
           <div className="mt-4 overflow-hidden rounded-xl">

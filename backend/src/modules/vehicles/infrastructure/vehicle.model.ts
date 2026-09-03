@@ -30,6 +30,20 @@ export interface VehicleDoc {
   transmission: 'manual' | 'automatic';
   fuelType: 'petrol' | 'diesel' | 'hybrid' | 'ev';
   seats: number;
+  /**
+   * How to actually find the car once you are at the pin.
+   *
+   * A map pin is street-level; the car is on P3 in bay 44. Every host explains
+   * this by message, to every guest, every time. Stored once instead.
+   */
+  pickup?: {
+    /** "Level 3, bay 44, blue section" */
+    instructions?: string;
+    /** A photo of the parking spot — worth more than the sentence. */
+    spotPhotoUrl?: string;
+    /** Gate/lockbox code, revealed only near the handover window. */
+    accessCode?: string;
+  };
   vin?: string;
   vinVerified: boolean;
   registrationNumber?: string;
@@ -127,6 +141,11 @@ const schema = new Schema<VehicleDoc>(
     transmission: { type: String, enum: ['manual', 'automatic'], required: true },
     fuelType: { type: String, enum: ['petrol', 'diesel', 'hybrid', 'ev'], required: true },
     seats: { type: Number, required: true },
+    pickup: {
+      instructions: { type: String, maxlength: 600 },
+      spotPhotoUrl: { type: String },
+      accessCode: { type: String, maxlength: 40 },
+    },
     vin: { type: String },
     vinVerified: { type: Boolean, default: false },
     registrationNumber: { type: String },

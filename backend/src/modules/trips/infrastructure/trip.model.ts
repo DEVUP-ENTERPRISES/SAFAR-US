@@ -21,6 +21,20 @@ export interface TripDoc {
   handover: { at: Date; odometerStart?: number; fuelStart?: number; notes?: string };
   return?: { at: Date; odometerEnd?: number; fuelEnd?: number; notes?: string };
   liveLocation?: { type: 'Point'; coordinates: [number, number]; updatedAt: Date };
+  /**
+   * The approach to a handover, per party.
+   *
+   * Separate from `handover` above, which is the odometer/fuel record taken
+   * once the keys change hands. This is the hour before that — the hour people
+   * currently spend messaging "where are you?".
+   *
+   * `etaNotifiedAt` is the ETA the counterpart was last told, so a slip alert
+   * fires on a real change rather than on every recalculation.
+   */
+  approach?: {
+    guest?: { onWayAt?: Date; arrivedAt?: Date; etaAt?: Date; etaNotifiedAt?: Date };
+    host?: { onWayAt?: Date; arrivedAt?: Date; etaAt?: Date; etaNotifiedAt?: Date };
+  };
   damageReports: { description: string; photos: string[]; byUserId: string; at: Date }[];
   sosEvents: { byUserId: string; at: Date }[];
   /** Structured emergencies — accident, breakdown, medical, theft, unsafe party.
@@ -58,6 +72,10 @@ const schema = new Schema<TripDoc>(
       default: [],
     },
     mileageOverage: { km: Number, amountCents: Number, chargedAt: Date },
+    approach: {
+      guest: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date },
+      host: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date },
+    },
     handover: {
       at: Date,
       odometerStart: Number,

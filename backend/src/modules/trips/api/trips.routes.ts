@@ -11,6 +11,7 @@ import { tripCarbon } from '../../../shared/utils/carbon';
 import { handoverService } from '../application/handover.service';
 import { trackingPhaseService } from '../application/tracking-phase.service';
 import { trackingNoticeService } from '../application/tracking-notice.service';
+import { approachService } from '../application/approach.service';
 import { ForbiddenError } from '../../../core/errors/app-error';
 
 const router = Router();
@@ -236,6 +237,27 @@ router.post(
   }),
 );
 
+
+/**
+ * The approach: who has set off, who has arrived, current ETAs, and how to
+ * find the car. This is what replaces the "where are you?" messages.
+ */
+router.get(
+  '/:id/approach',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await approachService.state(req.params.id, req.principal!.userId));
+  }),
+);
+
+/** One tap. The other party is notified and the map goes live. */
+router.post(
+  '/:id/on-my-way',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await approachService.setOnWay(req.params.id, req.principal!.userId));
+  }),
+);
 
 /**
  * Whether tracking is open for this trip, and why.
