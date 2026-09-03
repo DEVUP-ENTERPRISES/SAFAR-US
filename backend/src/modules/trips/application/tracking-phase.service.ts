@@ -1,5 +1,5 @@
 import { TripModel, type TripDoc } from '../infrastructure/trip.model';
-import { BookingModel } from '../../bookings/infrastructure/booking.model';
+import { BookingModel, type BookingDoc } from '../../bookings/infrastructure/booking.model';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
 /**
@@ -66,31 +66,33 @@ export const trackingPhaseService = {
    * Resolve the phase for a trip. Pure derivation from state and time — never
    * stored, so it cannot drift out of date or be left switched on.
    */
-  async resolve(tripId: string): Promise<TrackingState> {
-    const trip = await TripModel.findById(tripId).lean<TripDoc>();
-    if (!trip) return OFF;
-    return this.resolveFor(trip);
+  async resolve(bookingId: string): Promise<TrackingState> {
+    const booking = await BookingModel.findById(bookingId).lean<BookingDoc>();
+    if (!booking) return OFF;
+    // The trip may not exist yet — it is created at handover, which is AFTER
+    // the approach window this resolves. Absent trip simply means "not started".
+    const trip = await TripModel.findOne({ bookingId }).lean<TripDoc>();
+    return this.resolveFor(booking, trip);
   },
 
-  async resolveFor(trip: TripDoc): Promise<TrackingState> {
-    if (trip.status === 'completed') return OFF;
+  async resolveFor(booking: BookingDoc, trip: TripDoc | null): Promise<TrackingState> {
+    if (trip?.status === 'completed') return OFF;
+    // A booking that never became a live trip has nothing to track.
+    if (!['paid', 'confirmed', 'active', 'in_progress'].includes(String(booking.status))) return OFF;
 
     const cfg = await platformConfigService.get();
     const approachMinutes = cfg.tracking?.approachWindowMinutes ?? 60;
     const graceMinutes = cfg.tracking?.overdueGraceMinutes ?? 60;
 
-    const booking = await BookingModel.findById(trip.bookingId).lean<{
-      period?: { start?: Date; end?: Date };
-    }>();
-    const start = booking?.period?.start ? new Date(booking.period.start) : null;
-    const end = booking?.period?.end ? new Date(booking.period.end) : null;
+    const start = booking.period?.start ? new Date(booking.period.start) : null;
+    const end = booking.period?.end ? new Date(booking.period.end) : null;
     const now = Date.now();
 
     // ── Exceptions outrank everything, including the quiet middle ────
-    const openIncident = (trip.incidents ?? []).find((i) => i.status === 'open');
+    const openIncident = (trip?.incidents ?? []).find((i) => i.status === 'open');
     // An SOS counts until the trip ends; it is not a state anyone raises lightly.
-    const recentSos = (trip.sosEvents ?? []).length > 0;
-    const overdue = !!end && !trip.return && now > end.getTime() + graceMinutes * MIN;
+    const recentSos = (trip?.sosEvents ?? []).length > 0;
+    const overdue = !!end && !!trip && !trip.return && now > end.getTime() + graceMinutes * MIN;
 
     if (recentSos || openIncident || overdue) {
       const kind: TrackingState['exceptionKind'] = recentSos ? 'sos' : openIncident ? 'incident' : 'overdue';
@@ -113,7 +115,7 @@ export const trackingPhaseService = {
     }
 
     // ── Return approach ──────────────────────────────────────────────
-    if (trip.checkin && end) {
+    if (trip?.checkin && end) {
       const opens = end.getTime() - approachMinutes * MIN;
       if (now >= opens) {
         return {
@@ -140,7 +142,7 @@ export const trackingPhaseService = {
     }
 
     // ── Handover approach: before the keys change hands ──────────────
-    if (!trip.checkin && start) {
+    if (!trip?.checkin && start) {
       const opens = start.getTime() - approachMinutes * MIN;
       if (now >= opens) {
         return {
@@ -161,13 +163,13 @@ export const trackingPhaseService = {
   },
 
   /** Guard for the socket and REST write paths. */
-  async mayBroadcast(tripId: string, role: 'guest' | 'host'): Promise<boolean> {
-    const s = await this.resolve(tripId);
+  async mayBroadcast(bookingId: string, role: 'guest' | 'host'): Promise<boolean> {
+    const s = await this.resolve(bookingId);
     return s.trackingEnabled && s.broadcasters.includes(role);
   },
 
-  async mayView(tripId: string, role: 'guest' | 'host' | 'support'): Promise<boolean> {
-    const s = await this.resolve(tripId);
+  async mayView(bookingId: string, role: 'guest' | 'host' | 'support'): Promise<boolean> {
+    const s = await this.resolve(bookingId);
     return s.trackingEnabled && s.viewers.includes(role);
   },
 };

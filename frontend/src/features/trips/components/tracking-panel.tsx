@@ -24,18 +24,18 @@ import { useQuery } from '@tanstack/react-query';
  * is off during the trip, and here is when it comes back" does not.
  */
 export function TrackingPanel({
-  tripId,
+  bookingId,
   role,
 }: {
-  tripId: string;
+  bookingId: string;
   role: 'guest' | 'host';
 }) {
-  const q = useTrackingState(tripId);
+  const q = useTrackingState(bookingId);
   // The handover point, so the map can pin the destination and frame both ends
   // rather than opening on a car with no context.
   const handover = useQuery({
-    queryKey: ['handover-dest', tripId],
-    queryFn: () => handoverApi.status(tripId),
+    queryKey: ['handover-dest', bookingId],
+    queryFn: () => handoverApi.status(bookingId),
     enabled: !!q.data?.trackingEnabled,
     retry: false,
     staleTime: 5 * 60 * 1000,
@@ -108,13 +108,13 @@ export function TrackingPanel({
             handover, so the strip stays out of the way there. */}
         {!exception && (t.phase === 'approach' || t.phase === 'return') && (
           <div className="mt-4">
-            <ApproachStrip tripId={tripId} role={role} />
+            <ApproachStrip bookingId={bookingId} role={role} />
           </div>
         )}
 
         {canSee ? (
           <div className="mt-4 overflow-hidden rounded-xl">
-            <TripLiveMap tripId={tripId} destination={handover.data?.destination ?? null} height="15rem" />
+            <TripLiveMap bookingId={bookingId} destination={handover.data?.destination ?? null} height="15rem" />
           </div>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">

@@ -208,16 +208,12 @@ export default function HostTripDetailPage() {
             </>
           )}
 
-          {/* Location, gated on the trip's tracking phase. The host used to
-              see the guest's live position for the entire hire; now it is the
-              handover edges and declared exceptions only, and the panel says
-              which. */}
-          {started && t.tripId && (
-            <>
-              <SectionLabel>Location</SectionLabel>
-              <TrackingPanel tripId={t.tripId} role="host" />
-            </>
-          )}
+          {/* Location, gated on the tracking phase. Keyed on the booking, not
+              the trip: the approach happens before a trip exists, and showing
+              this only once started would hide it for the whole window it
+              matters. The panel hides itself outside the window. */}
+          <SectionLabel>Location</SectionLabel>
+          <TrackingPanel bookingId={t.bookingId} role="host" />
 
           {/* Guest */}
           <SectionLabel>Your guest</SectionLabel>

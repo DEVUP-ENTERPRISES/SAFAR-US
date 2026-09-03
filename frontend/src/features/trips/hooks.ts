@@ -74,30 +74,30 @@ export function useSos(id: string) {
  * The phase decides now, so streaming happens at the handover edges and during
  * a declared exception, and stops in between.
  */
-export function useTrackingState(id: string) {
+export function useTrackingState(bookingId: string) {
   return useQuery({
-    queryKey: ['trip-tracking', id],
-    queryFn: () => tripApi.tracking(id),
+    queryKey: ['tracking', bookingId],
+    queryFn: () => tripApi.tracking(bookingId),
     // Cheap, and the phase turns over on a clock — a stale answer would either
     // leak position or hide a map someone needs.
     refetchInterval: 60_000,
-    enabled: !!id,
+    enabled: !!bookingId,
     retry: false,
   });
 }
 
-export function useLocationStreaming(id: string, active: boolean) {
+export function useLocationStreaming(bookingId: string, active: boolean) {
   useEffect(() => {
-    if (!id || !active || typeof navigator === 'undefined' || !navigator.geolocation) return;
+    if (!bookingId || !active || typeof navigator === 'undefined' || !navigator.geolocation) return;
     const socket = connectSocket();
-    socket.emit('trip:join', id, () => undefined);
+    socket.emit('booking:join', bookingId, () => undefined);
     let last = 0;
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const now = Date.now();
         if (now - last < 15_000) return;
         last = now;
-        socket.emit('trip:location', { tripId: id, lng: pos.coords.longitude, lat: pos.coords.latitude });
+        socket.emit('trip:location', { bookingId, lng: pos.coords.longitude, lat: pos.coords.latitude });
       },
       () => {
         /* permission denied / unavailable — the trip simply has no live location */
@@ -105,5 +105,5 @@ export function useLocationStreaming(id: string, active: boolean) {
       { enableHighAccuracy: true, maximumAge: 10_000, timeout: 20_000 },
     );
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [id, active]);
+  }, [bookingId, active]);
 }

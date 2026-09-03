@@ -34,8 +34,8 @@ function TripDashboard() {
   // Stream only while the server says tracking is open. Gating on
   // trip.status === 'active' meant streaming for the whole hire — days of a
   // guest's position going to their host.
-  const tracking = useTrackingState(id);
-  useLocationStreaming(id, !!tracking.data?.trackingEnabled && tracking.data.broadcasters.includes('guest'));
+  const tracking = useTrackingState(trip?.bookingId ?? '');
+  useLocationStreaming(trip?.bookingId ?? '', !!tracking.data?.trackingEnabled && tracking.data.broadcasters.includes('guest'));
 
   if (isLoading) return <Skeleton className="h-[70vh] w-full" />;
   if (isError || !trip) return <ErrorState message="Trip not found." retry={() => refetch()} />;
@@ -61,7 +61,7 @@ function TripDashboard() {
         {trip.status === 'active' && !trip.checkin && <HandoverPanel tripId={trip._id} role="guest" />}
 
         {/* What is shared, and why — never a map without a reason. */}
-        <TrackingPanel tripId={trip._id} role="guest" />
+        <TrackingPanel bookingId={trip.bookingId} role="guest" />
 
         {/* The guest reads the same damage verdict the host does. */}
         <DamageReviewPanel tripId={trip._id} canRun={false} />

@@ -10,8 +10,6 @@ import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import { tripCarbon } from '../../../shared/utils/carbon';
 import { handoverService } from '../application/handover.service';
 import { trackingPhaseService } from '../application/tracking-phase.service';
-import { trackingNoticeService } from '../application/tracking-notice.service';
-import { approachService } from '../application/approach.service';
 import { ForbiddenError } from '../../../core/errors/app-error';
 
 const router = Router();
@@ -109,7 +107,7 @@ router.post(
     // so a stale client cannot keep a position flowing mid-hire.
     const trip = await tripService.get(req.params.id);
     const role = trip.hostId === req.principal!.userId ? 'host' : 'guest';
-    if (!(await trackingPhaseService.mayBroadcast(req.params.id, role))) {
+    if (!(await trackingPhaseService.mayBroadcast(trip.bookingId, role))) {
       sendSuccess(res, { updated: false, reason: 'Location sharing is not open for this trip right now' });
       return;
     }
@@ -236,47 +234,6 @@ router.post(
     );
   }),
 );
-
-
-/**
- * The approach: who has set off, who has arrived, current ETAs, and how to
- * find the car. This is what replaces the "where are you?" messages.
- */
-router.get(
-  '/:id/approach',
-  authenticate,
-  asyncHandler(async (req, res) => {
-    sendSuccess(res, await approachService.state(req.params.id, req.principal!.userId));
-  }),
-);
-
-/** One tap. The other party is notified and the map goes live. */
-router.post(
-  '/:id/on-my-way',
-  authenticate,
-  asyncHandler(async (req, res) => {
-    sendSuccess(res, await approachService.setOnWay(req.params.id, req.principal!.userId));
-  }),
-);
-
-/**
- * Whether tracking is open for this trip, and why.
- *
- * Both clients read this before streaming or rendering a map, so the reason a
- * map is on screen is always something the server said — never an assumption
- * the UI made.
- */
-router.get(
-  '/:id/tracking',
-  authenticate,
-  asyncHandler(async (req, res) => {
-    const uid = req.principal!.userId;
-    const trip = await tripService.get(req.params.id);
-    if (trip.guestId !== uid && trip.hostId !== uid) throw new ForbiddenError('Not your trip');
-    sendSuccess(res, await trackingNoticeService.resolveAndAnnounce(req.params.id));
-  }),
-);
-
 /**
  * The handover countdown. Both parties call this and read the same clock: the
  * guest gets navigation to the car, the host gets when to leave, both derived

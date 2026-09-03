@@ -4,7 +4,6 @@ import { bookingService } from '../application/booking.service';
 import { eligibilityService } from '../application/eligibility.service';
 import { incidentalsService } from '../application/incidentals.service';
 import { riskService } from '../../risk/application/risk.service';
-import { ForbiddenError } from '../../../core/errors/app-error';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate, authenticateOptional } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
@@ -12,6 +11,9 @@ import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import { quoteSchema, createBookingSchema, cancelSchema, extendSchema } from '../dto/booking.schemas';
 import { listProtectionPlans } from '../../pricing/domain/protection-plans';
+import { approachService } from '../../trips/application/approach.service';
+import { trackingNoticeService } from '../../trips/application/tracking-notice.service';
+import { ForbiddenError } from '../../../core/errors/app-error';
 
 const router = Router();
 
@@ -309,6 +311,40 @@ router.delete(
       decodeURIComponent(req.params.name),
     );
     sendSuccess(res, booking);
+  }),
+);
+
+/**
+ * The approach — who has set off, who has arrived, ETAs, and how to find the
+ * car. Keyed on the booking because the trip does not exist until handover,
+ * which is after the window this covers.
+ */
+router.get(
+  '/:id/approach',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await approachService.state(req.params.id, req.principal!.userId));
+  }),
+);
+
+/** One tap. The other party is notified and the map goes live. */
+router.post(
+  '/:id/on-my-way',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await approachService.setOnWay(req.params.id, req.principal!.userId));
+  }),
+);
+
+/** Whether location sharing is open for this booking, and why. */
+router.get(
+  '/:id/tracking',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const b = await bookingService.getDoc(req.params.id);
+    const uid = req.principal!.userId;
+    if (b.guestId !== uid && b.hostId !== uid) throw new ForbiddenError('Not your booking');
+    sendSuccess(res, await trackingNoticeService.resolveAndAnnounce(req.params.id));
   }),
 );
 

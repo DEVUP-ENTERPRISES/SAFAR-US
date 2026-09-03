@@ -21,20 +21,6 @@ export interface TripDoc {
   handover: { at: Date; odometerStart?: number; fuelStart?: number; notes?: string };
   return?: { at: Date; odometerEnd?: number; fuelEnd?: number; notes?: string };
   liveLocation?: { type: 'Point'; coordinates: [number, number]; updatedAt: Date };
-  /**
-   * The approach to a handover, per party.
-   *
-   * Separate from `handover` above, which is the odometer/fuel record taken
-   * once the keys change hands. This is the hour before that — the hour people
-   * currently spend messaging "where are you?".
-   *
-   * `etaNotifiedAt` is the ETA the counterpart was last told, so a slip alert
-   * fires on a real change rather than on every recalculation.
-   */
-  approach?: {
-    guest?: { onWayAt?: Date; arrivedAt?: Date; etaAt?: Date; etaNotifiedAt?: Date };
-    host?: { onWayAt?: Date; arrivedAt?: Date; etaAt?: Date; etaNotifiedAt?: Date };
-  };
   damageReports: { description: string; photos: string[]; byUserId: string; at: Date }[];
   sosEvents: { byUserId: string; at: Date }[];
   /** Structured emergencies — accident, breakdown, medical, theft, unsafe party.
@@ -42,9 +28,6 @@ export interface TripDoc {
    *  it is resolved, so no late/mileage/fuel charge lands during an emergency. */
   incidents: { type: string; status: 'open' | 'resolved'; note?: string; byUserId: string; at: Date; resolvedAt?: Date }[];
   pausedForIncident?: boolean;
-  /** Which exception kind the guest has already been told about, so notice is
-   *  sent once per episode rather than on every read. */
-  trackingNoticeSentFor?: 'sos' | 'overdue' | 'incident';
   /** The host verified the guest's pickup code at handover (physical presence). */
   pickupVerified?: boolean;
   pickupVerifiedAt?: Date;
@@ -72,10 +55,6 @@ const schema = new Schema<TripDoc>(
       default: [],
     },
     mileageOverage: { km: Number, amountCents: Number, chargedAt: Date },
-    approach: {
-      guest: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date },
-      host: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date },
-    },
     handover: {
       at: Date,
       odometerStart: Number,
@@ -96,7 +75,6 @@ const schema = new Schema<TripDoc>(
       default: [],
     },
     pausedForIncident: { type: Boolean, default: false },
-    trackingNoticeSentFor: { type: String, enum: ['sos', 'overdue', 'incident'] },
     pickupVerified: { type: Boolean, default: false },
     pickupVerifiedAt: Date,
     return: {

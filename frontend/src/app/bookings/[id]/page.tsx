@@ -16,6 +16,8 @@ import { ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { formatMoney, formatDate } from '@/lib/utils/format';
+import { TrackingPanel } from '@/features/trips/components/tracking-panel';
+import { useLocationStreaming, useTrackingState } from '@/features/trips/hooks';
 import { cn } from '@/lib/utils/cn';
 import { ChatPanel } from '@/features/messaging/chat-panel';
 import { bookingApi } from '@/features/bookings/api';
@@ -45,6 +47,9 @@ function BookingDetail({ id }: { id: string }) {
   const qc = useQueryClient();
   const router = useRouter();
   const confirm = useConfirm();
+  // Share position only while the server says the window is open.
+  const tracking = useTrackingState(id);
+  useLocationStreaming(id, !!tracking.data?.trackingEnabled && tracking.data.broadcasters.includes('guest'));
   const toast = useToast();
 
   const booking = useQuery({ queryKey: ['booking', id], queryFn: () => bookingApi.getById(id), retry: false });
@@ -111,6 +116,12 @@ function BookingDetail({ id }: { id: string }) {
       <Link href="/bookings" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> My trips
       </Link>
+
+      {/* The approach — who has set off, live map, and how to find the car.
+          This is the screen a guest is actually on in the half hour before
+          pickup, which is why it sits above everything else. The panel hides
+          itself outside the window. */}
+      <TrackingPanel bookingId={id} role="guest" />
 
       {/* Status first — the question the guest opened this page to answer. */}
       <Card>

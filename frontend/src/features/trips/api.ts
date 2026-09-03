@@ -28,9 +28,10 @@ export interface Trip {
 export const tripApi = {
   get: (id: string) => api.get<Trip>(`/trips/${id}`),
   /** Read before streaming or rendering a map — the server owns this decision. */
-  tracking: (id: string) => api.get<TrackingState>(`/trips/${id}/tracking`),
-  approach: (id: string) => api.get<ApproachState>(`/trips/${id}/approach`),
-  onMyWay: (id: string) => api.post<ApproachState>(`/trips/${id}/on-my-way`, {}),
+  /** All three key on the BOOKING — the trip does not exist until handover. */
+  tracking: (bookingId: string) => api.get<TrackingState>(`/bookings/${bookingId}/tracking`),
+  approach: (bookingId: string) => api.get<ApproachState>(`/bookings/${bookingId}/approach`),
+  onMyWay: (bookingId: string) => api.post<ApproachState>(`/bookings/${bookingId}/on-my-way`, {}),
   start: (bookingId: string, odometerStart?: number, fuelStart?: number) =>
     api.post<Trip>('/trips/start', { bookingId, odometerStart, fuelStart }),
   checkIn: (id: string, method: 'contactless' | 'in_person') =>
@@ -69,6 +70,9 @@ export interface ApproachLeg {
 export interface ApproachState {
   guest: ApproachLeg;
   host: ApproachLeg;
+  /** Last known positions, so a map opened late is not blank. */
+  guestAt?: { lat: number; lng: number; at: string } | null;
+  hostAt?: { lat: number; lng: number; at: string } | null;
   /** How to find the car once you are at the pin. Access code only reaches the
    *  guest, and only once they are on their way. */
   pickup?: { instructions?: string; spotPhotoUrl?: string; accessCode?: string } | null;

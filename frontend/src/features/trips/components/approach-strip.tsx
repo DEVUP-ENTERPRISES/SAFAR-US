@@ -25,22 +25,22 @@ const clock = (iso?: string) =>
  * to someone waiting, which is why the departure signal is its own thing rather
  * than something inferred from position.
  */
-export function ApproachStrip({ tripId, role }: { tripId: string; role: 'guest' | 'host' }) {
+export function ApproachStrip({ bookingId, role }: { bookingId: string; role: 'guest' | 'host' }) {
   const qc = useQueryClient();
   const toast = useToast();
 
   const q = useQuery({
-    queryKey: ['approach', tripId],
-    queryFn: () => tripApi.approach(tripId),
+    queryKey: ['approach', bookingId],
+    queryFn: () => tripApi.approach(bookingId),
     refetchInterval: 45_000,
     retry: false,
   });
 
   const onWay = useMutation({
-    mutationFn: () => tripApi.onMyWay(tripId),
+    mutationFn: () => tripApi.onMyWay(bookingId),
     onSuccess: () => {
       toast({ tone: 'success', title: 'They have been told you are on the way' });
-      qc.invalidateQueries({ queryKey: ['approach', tripId] });
+      qc.invalidateQueries({ queryKey: ['approach', bookingId] });
     },
     onError: () => toast({ tone: 'error', title: 'Could not send that' }),
   });

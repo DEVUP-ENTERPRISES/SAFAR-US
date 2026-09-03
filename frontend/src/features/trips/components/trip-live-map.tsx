@@ -52,12 +52,12 @@ interface MbNamespace {
  * the role on the event these would be one marker flicking between two people.
  */
 export function TripLiveMap({
-  tripId,
+  bookingId,
   initial,
   destination,
   height = '16rem',
 }: {
-  tripId: string;
+  bookingId: string;
   /** Last known car position, if the trip already has one. */
   initial?: { lng: number; lat: number; updatedAt?: string } | null;
   /** Where the handover happens, drawn as a pin. */
@@ -75,12 +75,12 @@ export function TripLiveMap({
   const cars = useRef<Record<string, MarkerAnimator>>({});
 
   useEffect(() => {
-    if (!tripId) return;
+    if (!bookingId) return;
     const socket = connectSocket();
-    socket.emit('trip:join', tripId, () => undefined);
+    socket.emit('booking:join', bookingId, () => undefined);
 
-    const onLocation = (loc: { tripId: string; role?: string; lng: number; lat: number; at?: string }) => {
-      if (loc.tripId !== tripId) return;
+    const onLocation = (loc: { bookingId: string; role?: string; lng: number; lat: number; at?: string }) => {
+      if (loc.bookingId !== bookingId) return;
       const role = loc.role ?? 'guest';
       const mb = (window as unknown as { mapboxgl?: MbNamespace }).mapboxgl;
       const map = mapRef.current;
@@ -96,7 +96,7 @@ export function TripLiveMap({
 
     socket.on('trip:location', onLocation);
     return () => { socket.off('trip:location', onLocation); };
-  }, [tripId]);
+  }, [bookingId]);
 
   // Boot once. Recreating on prop changes would reset the viewer's pan.
   useEffect(() => {

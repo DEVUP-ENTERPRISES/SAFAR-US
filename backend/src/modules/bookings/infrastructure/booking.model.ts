@@ -75,6 +75,23 @@ export interface BookingDoc {
   rebookedFrom?: string;
   coveredDifference?: MoneyField;
   tripId?: string;
+  /** Which exception kind the guest has already been told about, so the notice
+   *  is sent once per episode rather than on every read. */
+  trackingNoticeSentFor?: 'sos' | 'overdue' | 'incident';
+  /**
+   * The hour before the keys change hands.
+   *
+   * On the BOOKING rather than the trip because the trip does not exist yet —
+   * it is created at handover. Putting this on the trip made every approach
+   * feature unreachable in exactly the window it was built for.
+   */
+  approach?: {
+    guest?: { onWayAt?: Date; arrivedAt?: Date; etaAt?: Date; etaNotifiedAt?: Date };
+    host?: { onWayAt?: Date; arrivedAt?: Date; etaAt?: Date; etaNotifiedAt?: Date };
+    /** Last known position of each party during the approach. */
+    guestAt?: { lat: number; lng: number; at: Date };
+    hostAt?: { lat: number; lng: number; at: Date };
+  };
   idempotencyKey?: string;
   reminderSentAt?: Date;
   version: number;
@@ -176,6 +193,13 @@ const schema = new Schema<BookingDoc>(
       refund: moneySchema,
     },
     tripId: String,
+    trackingNoticeSentFor: { type: String, enum: ['sos', 'overdue', 'incident'] },
+    approach: {
+      guest: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date },
+      host: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date },
+      guestAt: { lat: Number, lng: Number, at: Date },
+      hostAt: { lat: Number, lng: Number, at: Date },
+    },
     idempotencyKey: String,
     reminderSentAt: Date,
     version: { type: Number, default: 0 },
