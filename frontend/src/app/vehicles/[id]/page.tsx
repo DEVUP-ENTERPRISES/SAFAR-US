@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -757,6 +758,26 @@ export default function VehicleDetailPage() {
                 <div className="mt-2 flex justify-between border-t border-border pt-2 font-semibold">
                   <span>Total</span><span>{formatMoney(quote.data.total)}</span>
                 </div>
+
+                {/* The real saving on this real trip. A pricing page asks
+                    someone to do this arithmetic themselves; the server has
+                    already done it, and only offers when the trip saves more
+                    than the membership costs. */}
+                {quote.data.memberOffer && (
+                  <Link
+                    href="/membership"
+                    className="mt-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm transition-colors hover:border-primary/60"
+                  >
+                    <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+                    <span className="min-w-0">
+                      Save <span className="font-semibold">{formatMoney(quote.data.memberOffer.savings)}</span> on
+                      this trip with {quote.data.memberOffer.planName}
+                      <span className="block text-xs text-muted-foreground">
+                        ${(quote.data.memberOffer.monthlyCents / 100).toFixed(0)}/month, cancel any time
+                      </span>
+                    </span>
+                  </Link>
+                )}
               </div>
             )}
             {quote.data && v.listing.instantBook && status === 'authenticated' && (wallet.data?.balance ?? 0) > 0 && (() => {

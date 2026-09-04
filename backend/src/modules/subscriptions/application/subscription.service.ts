@@ -4,6 +4,8 @@ import {
   type SubscriptionPlanDoc,
   type UserSubscriptionDoc,
 } from '../infrastructure/subscription.model';
+import { PaymentMethodModel } from '../../payments/infrastructure/payment-method.model';
+import { paymentMethodService } from '../../payments/application/payment-method.service';
 import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
 import { paymentGateway } from '../../payments/infrastructure/gateway.provider';
@@ -67,12 +69,41 @@ export class SubscriptionService {
     if (!plan) throw new NotFoundError('Subscription plan');
 
     if (plan.priceCents > 0) {
+      /*
+       * Charge the card, and only grant the membership if the money arrived.
+       *
+       * This previously created the intent, ignored the result entirely, posted
+       * to the ledger as though it had settled, and granted the plan. A member
+       * with no saved card got a paid tier for free, and the ledger recorded
+       * revenue that never existed — which then flowed into the MRR figure the
+       * admin dashboard reports.
+       *
+       * The idempotency key is derived from the user and the billing month, not
+       * from Date.now(): a double-click used to produce two distinct keys and
+       * therefore two charges for one membership.
+       */
+      const period = new Date().toISOString().slice(0, 7); // YYYY-MM
       const intent = await paymentGateway.createIntent({
         amount: { amount: plan.priceCents, currency: 'USD' },
         userId,
         capture: true,
-        idempotencyKey: `sub_${userId}_${planCode}_${Date.now()}`,
+        idempotencyKey: `sub_${userId}_${planCode}_${period}`,
+        customerId: (await paymentMethodService.customerFor(userId).catch(() => null)) ?? undefined,
+        paymentMethodId: (
+          await PaymentMethodModel.findOne({ userId, isDefault: true })
+            .lean<{ stripePaymentMethodId?: string }>()
+        )?.stripePaymentMethodId,
       });
+
+      if (intent.status !== 'succeeded') {
+        throw new ConflictError(
+          intent.status === 'requires_action'
+            ? 'Your bank needs to approve this payment. Try again and complete the check.'
+            : 'We could not charge your card. Add a payment method and try again.',
+          'SUBSCRIPTION_PAYMENT_FAILED',
+        );
+      }
+
       await ledgerService.post({
         refType: 'subscription',
         refId: intent.intentId,

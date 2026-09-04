@@ -35,6 +35,14 @@ export interface PriceBreakdown {
   /** Membership savings applied (CATO Plus), in minor units. */
   memberSavings?: Money;
   memberPlan?: string;
+  /**
+   * What a NON-member would have saved on this exact trip by joining the best
+   * available plan. Absent for members, and absent when no plan would help.
+   *
+   * A real number on a real booking is the only honest way to sell a
+   * membership — a pricing page asks someone to do the arithmetic themselves.
+   */
+  memberOffer?: { planCode: string; planName: string; monthlyCents: number; savings: Money };
 }
 
 export interface QuoteInput {

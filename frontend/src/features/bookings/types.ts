@@ -2,6 +2,9 @@ import type { Money } from '@/lib/api/types';
 export type { Money };
 
 export interface PriceBreakdown {
+  /** What a non-member would save on THIS trip by joining. Absent for members
+   *  and when no plan would beat its own monthly cost. */
+  memberOffer?: { planCode: string; planName: string; monthlyCents: number; savings: { amount: number; currency: string } };
   days: number;
   base: Money;
   cleaningFee: Money;

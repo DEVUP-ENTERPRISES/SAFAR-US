@@ -8,6 +8,7 @@ import { getProtectionPlan } from '../domain/protection-plans';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { surgeService } from './surge.service';
 import { subscriptionService } from '../../subscriptions/application/subscription.service';
+import type { Money } from '../../../core/types/money';
 
 // Platform economics are NOT constants — commission, tax, protection pricing and
 // the early-bird / last-minute windows are all resolved live from PlatformConfig
@@ -226,11 +227,48 @@ export class PricingService implements IPricingContract {
       surgeSource,
       memberSavings,
       memberPlan: memberSub?.planCode,
+      // Only computed for non-members: a member is already getting the benefit,
+      // and telling them what they would save by joining is nonsense.
+      memberOffer: memberSub ? undefined : await bestMemberOffer(base),
     };
   }
 }
 
 export const pricingService = new PricingService();
+
+/**
+ * The best membership saving available on this trip's base.
+ *
+ * Ranked by what the guest actually saves here, not by plan price — the
+ * cheapest plan often wins on a short trip, and recommending the expensive one
+ * regardless would be selling rather than helping.
+ *
+ * Returns undefined when no plan would save anything, so the UI shows nothing
+ * rather than "save $0".
+ */
+async function bestMemberOffer(
+  base: Money,
+): Promise<{ planCode: string; planName: string; monthlyCents: number; savings: Money } | undefined> {
+  try {
+    const plans = await subscriptionService.listPlans();
+    let best: { planCode: string; planName: string; monthlyCents: number; savings: Money } | undefined;
+
+    for (const p of plans) {
+      if (!p.active || p.priceCents <= 0) continue;
+      const savings = applyBps(base, p.benefits.bookingDiscountBps ?? 0);
+      if (savings.amount <= 0) continue;
+      if (!best || savings.amount > best.savings.amount) {
+        best = { planCode: p.code, planName: p.name, monthlyCents: p.priceCents, savings };
+      }
+    }
+    // Only worth showing when the trip saves more than the month costs.
+    if (best && best.savings.amount < best.monthlyCents) return undefined;
+    return best;
+  } catch {
+    // A quote must never fail because the membership lookup did.
+    return undefined;
+  }
+}
 
 /**
  * Pull an airport code out of a delivery address.
