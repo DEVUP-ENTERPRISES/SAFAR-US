@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { vehicleService, MIN_LISTING_PHOTOS } from '../application/vehicle.service';
 import { vehicleInsightsService } from '../application/vehicle-insights.service';
 import { fleetImportService } from '../application/fleet-import.service';
+import { vehicleHistoryService } from '../application/vehicle-history.service';
 import { availabilityService } from '../../availability/application/availability.service';
 import { searchService } from '../../search/application/search.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
@@ -109,6 +110,29 @@ router.post(
   }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await fleetImportService.importRows(req.principal!.userId, req.body.rows));
+  }),
+);
+
+/**
+ * Recalls and history for one car.
+ *
+ * Public: an open safety recall is exactly the thing a guest should be able to
+ * see before booking, and hiding it would be the wrong call for a platform that
+ * puts strangers in each other's vehicles.
+ */
+router.get(
+  '/:id/history',
+  asyncHandler(async (req, res) => {
+    const v = await vehicleService.getById(req.params.id);
+    sendSuccess(
+      res,
+      await vehicleHistoryService.full({
+        vin: v.vin,
+        make: v.make,
+        model: v.model,
+        year: v.year,
+      }),
+    );
   }),
 );
 

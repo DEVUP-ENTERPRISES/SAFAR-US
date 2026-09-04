@@ -8,6 +8,7 @@ import type {
   VehicleForBooking,
 } from '../../../core/contracts/vehicle.contract';
 import type { CreateVehicleDto } from '../dto/vehicle.schemas';
+import { vinDecodeService } from './vin-decode.service';
 
 /**
  * Minimum photos before a listing can be submitted for verification. Turo
@@ -196,13 +197,57 @@ export class VehicleService implements IVehicleContract {
     return this.getById(vehicleId);
   }
 
-  /** VIN verification (mock: accepts a well-formed VIN; real impl calls a VIN API). */
+  /**
+   * VIN verification.
+   *
+   * This used to be a regex. It checked that the string looked like a VIN and
+   * then set `vinVerified: true` — so seventeen random valid characters earned
+   * a verification badge that guests are shown as a trust signal. The badge
+   * asserted something nobody had checked.
+   *
+   * It now decodes the VIN against NHTSA and compares the result to what the
+   * host listed. Two different failures, kept separate because the answers are
+   * different: a VIN that does not resolve is a typo, and a VIN that resolves
+   * to a DIFFERENT car is either a mistake or someone listing a vehicle they do
+   * not have.
+   */
   async verifyVin(userId: string, vehicleId: string, vin: string): Promise<VehicleDoc> {
     const vehicle = await this.getById(vehicleId);
     await this.assertOwner(userId, vehicle);
-    const valid = /^[A-HJ-NPR-Z0-9]{11,17}$/i.test(vin);
-    if (!valid) throw new ConflictError('Invalid VIN format', 'INVALID_VIN');
-    await VehicleModel.updateOne({ _id: vehicleId }, { vin, vinVerified: true });
+
+    const clean = vin.trim().toUpperCase();
+    // Shape first — no point spending a lookup on something that cannot be a VIN.
+    if (!/^[A-HJ-NPR-Z0-9]{11,17}$/.test(clean)) {
+      throw new ConflictError('That does not look like a VIN', 'INVALID_VIN');
+    }
+
+    const [decoded] = await vinDecodeService.decodeBatch([clean]);
+    if (!decoded?.ok) {
+      throw new ConflictError(
+        decoded?.error ?? 'We could not look that VIN up. Check it against the dashboard or door frame.',
+        'VIN_NOT_FOUND',
+      );
+    }
+
+    // The decode is authoritative about what the car IS. A mismatch means the
+    // listing and the VIN describe different vehicles.
+    const sameMake = decoded.make?.toLowerCase() === vehicle.make?.toLowerCase();
+    const sameYear = decoded.year === vehicle.year;
+    // Model names vary in punctuation and trim ("F-150" vs "F150 XLT"), so a
+    // containment test either way is the honest comparison.
+    const a = (decoded.model ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const b = (vehicle.model ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const sameModel = !!a && !!b && (a.includes(b) || b.includes(a));
+
+    if (!sameMake || !sameYear || !sameModel) {
+      throw new ConflictError(
+        `That VIN is a ${decoded.year} ${decoded.make} ${decoded.model}, but this listing says ` +
+          `${vehicle.year} ${vehicle.make} ${vehicle.model}. Fix whichever is wrong.`,
+        'VIN_MISMATCH',
+      );
+    }
+
+    await VehicleModel.updateOne({ _id: vehicleId }, { vin: clean, vinVerified: true });
     return this.getById(vehicleId);
   }
 

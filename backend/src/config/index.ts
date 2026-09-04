@@ -179,6 +179,10 @@ export const config = Object.freeze({
     clientId: env.GOOGLE_CLIENT_ID,
     enabled: !!env.GOOGLE_CLIENT_ID,
   },
+  vinAudit: {
+    apiKey: env.VINAUDIT_API_KEY,
+    enabled: !!env.VINAUDIT_API_KEY,
+  },
   apple: {
     clientId: env.APPLE_CLIENT_ID,
     enabled: !!env.APPLE_CLIENT_ID,

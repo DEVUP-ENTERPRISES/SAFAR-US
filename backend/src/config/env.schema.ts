@@ -79,6 +79,9 @@ export const envSchema = z.object({
   AI_DAILY_BUDGET_CENTS: z.coerce.number().int().min(0).default(2000),
   // ── Social sign-in ────────────────────────────────────────────────
   /** Apple Services ID (the 'aud' every Apple token is checked against). */
+  /** VinAudit: title, salvage, theft and odometer history. Metered — without
+   *  it, history reports as "not checked" rather than as clean. */
+  VINAUDIT_API_KEY: optional(z.string()),
   APPLE_CLIENT_ID: optional(z.string()),
   FACEBOOK_APP_ID: optional(z.string()),
   FACEBOOK_APP_SECRET: optional(z.string()),

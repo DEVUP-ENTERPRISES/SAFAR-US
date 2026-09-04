@@ -26,6 +26,7 @@ import { api } from '@/lib/api/client';
 import { hostApi } from '@/features/host/api';
 import { LocationSearch } from '@/features/maps/components/location-search';
 import { PickupEditor } from '@/features/vehicles/components/pickup-editor';
+import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 
 type Panel = null | 'pricing' | 'photos' | 'availability' | 'details' | 'safety' | 'location' | 'trip';
 
@@ -510,6 +511,9 @@ export default function ManageListingPage() {
       {/* Pickup details — dormant until now: the fields existed on the model
           and had no editor, so the guest-facing panel never had anything to
           show. */}
+      <SectionLabel>Safety & history</SectionLabel>
+      <VehicleHistory vehicleId={id} audience="host" />
+
       <SectionLabel>Pickup</SectionLabel>
       <PickupEditor vehicleId={id} initial={v.pickup} onSaved={invalidate} />
 
