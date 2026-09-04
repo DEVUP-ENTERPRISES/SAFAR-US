@@ -1,4 +1,5 @@
 import type { Response } from 'express';
+import { normaliseMediaUrls } from './media-url';
 
 /**
  * Standard success envelope used by every endpoint.
@@ -13,7 +14,11 @@ export interface Meta {
 export function sendSuccess<T>(res: Response, data: T, status = 200, meta?: Meta): Response {
   return res.status(status).json({
     success: true,
-    data,
+    // Media URLs are stored whole at upload time, so a photo uploaded while the
+    // API was on localhost keeps that address forever. Rewritten here to the
+    // host we are actually serving from — one choke point, every endpoint, no
+    // migration, and nothing stored is changed.
+    data: normaliseMediaUrls(data),
     meta: { requestId: res.locals.requestId, ...meta },
   });
 }
