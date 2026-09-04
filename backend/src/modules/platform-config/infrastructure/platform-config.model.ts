@@ -192,6 +192,17 @@ export interface PlatformConfigDoc {
     petCents: number;
     /** Extra late-return fee per hour past the grace window. */
     lateReturnPerHourCents: number;
+    /**
+     * Ceiling on a single free-form incidental (toll, fine, other).
+     *
+     * Those three types accept whatever amount the host sends. Uncapped, a host
+     * can charge a guest an arbitrary sum against a card the guest already
+     * handed over — the most abusable surface in the product. Anything above
+     * this belongs in a claim, where it is evidenced and adjudicated.
+     */
+    maxFreeformCents: number;
+    /** Days after the trip ends that incidentals may still be applied. */
+    windowDays: number;
   };
   payout: {
     /** Hold window before scheduled payouts are released. */
@@ -400,6 +411,8 @@ const schema = new Schema<PlatformConfigDoc>(
       smokingCents: { type: Number, default: 25000 },
       petCents: { type: Number, default: 10000 },
       lateReturnPerHourCents: { type: Number, default: 2500 },
+      maxFreeformCents: { type: Number, default: 25_000 }, // $250
+      windowDays: { type: Number, default: 7 },
     },
     payout: {
       holdHours: { type: Number, default: 24 },

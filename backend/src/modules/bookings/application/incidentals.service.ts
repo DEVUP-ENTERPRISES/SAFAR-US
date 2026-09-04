@@ -47,6 +47,48 @@ export class IncidentalsService {
     const cfg = (await platformConfigService.get()).incidentals;
     const currency = booking.priceBreakdown.currency;
 
+    /*
+     * Three guards, because this charges a card the guest already handed over
+     * and nobody is standing between the host and that card.
+     *
+     * 1. A WINDOW. Without one a host can charge against a trip from six months
+     *    ago, long after the guest could possibly evidence otherwise.
+     */
+    const tripEnd = booking.period?.end ? new Date(booking.period.end) : null;
+    if (tripEnd) {
+      const closesAt = new Date(tripEnd.getTime() + (cfg.windowDays ?? 7) * 86_400_000);
+      if (Date.now() > closesAt.getTime()) {
+        throw new ValidationError(
+          `Incidentals can only be applied within ${cfg.windowDays ?? 7} days of the trip ending. ` +
+            'Open a claim instead.',
+        );
+      }
+    }
+
+    for (const it of items) {
+      const freeform = it.type === 'toll' || it.type === 'fine' || it.type === 'other';
+      if (!freeform) continue;
+
+      // 2. A CAP. These three accept whatever amount is sent. Above the ceiling
+      //    it belongs in a claim, where it is evidenced and adjudicated rather
+      //    than simply taken.
+      const cap = cfg.maxFreeformCents ?? 25_000;
+      if ((it.amount ?? 0) > cap) {
+        throw new ValidationError(
+          `A single ${it.type} charge cannot exceed ${(cap / 100).toFixed(0)} ${currency}. ` +
+            'File a damage claim for anything larger.',
+        );
+      }
+
+      // 3. AN EXPLANATION. A charge the guest cannot understand is a charge
+      //    they will dispute, and one we could not defend.
+      if (!it.note || it.note.trim().length < 10) {
+        throw new ValidationError(
+          `Say what the ${it.type} charge is for — the guest sees this, and an unexplained charge gets disputed.`,
+        );
+      }
+    }
+
     const priced = items
       .map((it) => ({ type: it.type, amount: this.priceFor(it.type, cfg, it), note: it.note, at: new Date(), by: byUserId }))
       .filter((p) => p.amount > 0);

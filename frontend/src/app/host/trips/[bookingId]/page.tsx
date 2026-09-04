@@ -22,6 +22,7 @@ import { bookingApi } from '@/features/bookings/api';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { hostTripsApi } from '@/features/host/trips.api';
 import { TripMessages } from '@/features/host/components/trip-messages';
+import { IncidentalsForm } from '@/features/host/components/incidentals-form';
 
 type Tab = 'details' | 'messages' | 'help';
 
@@ -309,6 +310,7 @@ export default function HostTripDetailPage() {
           {finished && t.tripId && (
             <div className="mt-6 space-y-4">
               <DamageReviewPanel tripId={t.tripId} canRun />
+              <IncidentalsForm bookingId={t.bookingId} />
               <ReviewPrompt bookingId={t.bookingId} role="host" subjectName={t.guest.name} />
               <FileDamageClaim bookingId={t.bookingId} tripId={t.tripId} currency={cur} />
             </div>
