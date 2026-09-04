@@ -75,6 +75,9 @@ export interface UserDoc {
   /** Stripe Customer. Created on first card save; saved cards attach to it,
    *  which is what makes a later booking chargeable without re-entry. */
   stripeCustomerId?: string;
+  /** Hashed provider subjects (apple/facebook). Apple withholds the email on
+   *  every sign-in after the first, so the subject is the only stable match. */
+  socialSubjects?: string[];
   phoneVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -145,6 +148,7 @@ const userSchema = new Schema<UserDoc>(
     timezone: { type: String, default: 'UTC' },
     emailVerified: { type: Boolean, default: false },
     stripeCustomerId: { type: String, index: true, sparse: true },
+    socialSubjects: { type: [String], default: [], index: true },
     phoneVerified: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },

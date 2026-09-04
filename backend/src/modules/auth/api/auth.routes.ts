@@ -6,6 +6,8 @@ import { validate } from '../../../shared/middleware/validate';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { authLimiter } from '../../../shared/middleware/auth-rate-limit';
 import { loginSchema, refreshSchema, registerSchema, otpRequestSchema, otpVerifySchema } from '../dto/auth.schemas';
+import { authService } from '../application/auth.service';
+import { sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 
@@ -60,6 +62,25 @@ router.post(
   authLimiter,
   validate({ body: z.object({ idToken: z.string().min(10) }) }),
   asyncHandler((req, res) => authController.googleLogin(req, res)),
+);
+
+/**
+ * Apple and Facebook. Same shape as Google: the client hands over the
+ * provider's token and the server verifies it with the issuer — a client
+ * claiming an identity is not evidence of one.
+ */
+router.post(
+  '/oauth/:provider(apple|facebook)',
+  authLimiter,
+  validate({ body: z.object({ token: z.string().min(10) }) }),
+  asyncHandler(async (req, res) => {
+    const result = await authService.loginWithSocial(
+      req.params.provider as 'apple' | 'facebook',
+      req.body.token,
+      { ip: req.ip, userAgent: req.get('user-agent') },
+    );
+    sendSuccess(res, result);
+  }),
 );
 
 router.post(

@@ -18,6 +18,16 @@ export class UserRepository {
     return UserModel.findOne({ _id: id, deletedAt: null }).lean<UserDoc>().exec();
   }
 
+  /** Match a returning social user on the provider subject. */
+  async findBySocialSubject(subjectKey: string): Promise<UserDoc | null> {
+    return UserModel.findOne({ socialSubjects: subjectKey, deletedAt: null }).lean<UserDoc>();
+  }
+
+  /** Idempotent — $addToSet, so re-linking the same provider is a no-op. */
+  async linkSocialSubject(userId: string, subjectKey: string): Promise<void> {
+    await UserModel.updateOne({ _id: userId }, { $addToSet: { socialSubjects: subjectKey } });
+  }
+
   async findByEmail(email: string, withSecret = false): Promise<UserDoc | null> {
     const q = UserModel.findOne({ email: email.toLowerCase(), deletedAt: null });
     if (withSecret) q.select('+passwordHash +mfa.secret');

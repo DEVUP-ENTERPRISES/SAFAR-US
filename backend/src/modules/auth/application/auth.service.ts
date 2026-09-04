@@ -12,6 +12,7 @@ import { channelProviders } from '../../notifications/infrastructure/channel.pro
 import { sessionStore } from '../infrastructure/session.store';
 import { isRedisHealthy } from '../../../infrastructure/cache/redis.client';
 import type { RegisterDto, LoginDto } from '../dto/auth.schemas';
+import { socialAuthService } from './social-auth.service';
 
 export interface AuthResult {
   user: { id: string; email?: string; roles: string[] };
@@ -175,6 +176,39 @@ export class AuthService {
 
     let user = await userRepository.findByEmail(info.email);
     if (!user) user = await userRepository.create({ email: info.email, emailVerified: true });
+    if (user.status !== 'active') throw new ForbiddenError('Account is not active');
+    return this.issueSession(user._id, user.email, user.roles, ctx);
+  }
+
+  /**
+   * Apple and Facebook sign-in.
+   *
+   * Matched on the provider subject first, then email. Apple only returns the
+   * email on the very first authorisation — every later token carries just the
+   * subject — so looking a returning user up by email alone would create them a
+   * brand new account on every sign-in.
+   */
+  async loginWithSocial(
+    provider: 'apple' | 'facebook',
+    token: string,
+    ctx?: AuthCtx,
+  ): Promise<AuthResult> {
+    const identity = await socialAuthService.verify(provider, token);
+    const subjectKey = socialAuthService.subjectHash(provider, identity.subject);
+
+    let user = await userRepository.findBySocialSubject(subjectKey);
+    if (!user) user = await userRepository.findByEmail(identity.email);
+
+    if (!user) {
+      user = await userRepository.create({
+        email: identity.email,
+        emailVerified: identity.emailVerified,
+      });
+    }
+    // Remember the subject so the next sign-in matches even if Apple withholds
+    // the email, or the person later changes it.
+    await userRepository.linkSocialSubject(user._id, subjectKey);
+
     if (user.status !== 'active') throw new ForbiddenError('Account is not active');
     return this.issueSession(user._id, user.email, user.roles, ctx);
   }

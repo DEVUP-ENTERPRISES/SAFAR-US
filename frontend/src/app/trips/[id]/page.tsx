@@ -16,6 +16,7 @@ import { useTrip, useCheckIn, useCompleteTrip, useSos, useLocationStreaming, use
 import { ChatPanel } from '@/features/messaging/chat-panel';
 import { HandoverPanel } from '@/features/trips/components/handover-panel';
 import { TrackingPanel } from '@/features/trips/components/tracking-panel';
+import { IncidentButton } from '@/features/trips/components/incident-button';
 import { DamageReviewPanel } from '@/features/ai/components/damage-review-panel';
 import { DriverManager } from '@/features/bookings/components/driver-manager';
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
@@ -59,6 +60,10 @@ function TripDashboard() {
 
         {/* Navigation to the car — only useful before the keys change hands. */}
         {trip.status === 'active' && !trip.checkin && <HandoverPanel tripId={trip._id} role="guest" />}
+
+        {/* Something has gone wrong. The endpoint existed and nothing called
+            it — a guest in an accident had no button at all. */}
+        {trip.status === 'active' && <IncidentButton tripId={trip._id} />}
 
         {/* What is shared, and why — never a map without a reason. */}
         <TrackingPanel bookingId={trip.bookingId} role="guest" />

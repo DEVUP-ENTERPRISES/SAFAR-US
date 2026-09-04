@@ -179,6 +179,17 @@ export const config = Object.freeze({
     clientId: env.GOOGLE_CLIENT_ID,
     enabled: !!env.GOOGLE_CLIENT_ID,
   },
+  apple: {
+    clientId: env.APPLE_CLIENT_ID,
+    enabled: !!env.APPLE_CLIENT_ID,
+  },
+  facebook: {
+    appId: env.FACEBOOK_APP_ID,
+    appSecret: env.FACEBOOK_APP_SECRET,
+    // Both halves or nothing: an app id without a secret cannot verify a token,
+    // and would advertise a button that always fails.
+    enabled: !!(env.FACEBOOK_APP_ID && env.FACEBOOK_APP_SECRET),
+  },
   admin: {
     email: env.ADMIN_EMAIL,
     password: env.ADMIN_PASSWORD,

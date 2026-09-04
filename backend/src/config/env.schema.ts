@@ -77,6 +77,11 @@ export const envSchema = z.object({
   OPENROUTER_MODEL: z.string().default('anthropic/claude-sonnet-4.5'),
   /** Hard ceiling on spend per calendar day, in US cents. 0 = no cap. */
   AI_DAILY_BUDGET_CENTS: z.coerce.number().int().min(0).default(2000),
+  // ── Social sign-in ────────────────────────────────────────────────
+  /** Apple Services ID (the 'aud' every Apple token is checked against). */
+  APPLE_CLIENT_ID: optional(z.string()),
+  FACEBOOK_APP_ID: optional(z.string()),
+  FACEBOOK_APP_SECRET: optional(z.string()),
   GOOGLE_CLIENT_ID: z.string().optional(),
 
   // ── Bootstrap super-admin (seeded on boot if set) ──
