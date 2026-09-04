@@ -31,6 +31,10 @@ const SORTS: { key: SortKey; label: string }[] = [
 ];
 
 const FUELS = ['petrol', 'diesel', 'hybrid', 'ev'] as const;
+/** Stored value -> what a US guest actually calls it. */
+const FUEL_LABEL: Record<(typeof FUELS)[number], string> = {
+  petrol: 'Gas', diesel: 'Diesel', hybrid: 'Hybrid', ev: 'Electric',
+};
 const SEAT_OPTIONS = [2, 4, 5, 7];
 
 /** A filter "pill" that opens a small popover, Turo-style. Closes on outside click. */
@@ -409,7 +413,7 @@ function SearchInner() {
                 <div className="flex flex-wrap gap-2">
                   {FUELS.map((f) => (
                     <Opt key={f} on={fuelType === f} count={counts?.fuelType[f]} onClick={() => setFuelType(fuelType === f ? '' : f)}>
-                      {f === 'ev' ? <><Zap className="me-1 inline h-3.5 w-3.5" />Electric</> : f}
+                      {f === 'ev' ? <><Zap className="me-1 inline h-3.5 w-3.5" />Electric</> : FUEL_LABEL[f]}
                     </Opt>
                   ))}
                 </div>

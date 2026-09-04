@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { LocationSearch } from '@/features/maps/components/location-search';
+import { ColorPicker } from '@/features/vehicles/components/color-picker';
 
 const STEPS = ['Basics', 'Details', 'Photos', 'Pricing', 'Delivery', 'Review'];
 
@@ -36,7 +37,7 @@ interface Draft {
   color: string;
   doors: number;
   features: string;
-  photos: { url: string; key?: string }[];
+  photos: { url: string; key?: string; isCover?: boolean }[];
   title: string;
   description: string;
   instantBook: boolean;
@@ -96,10 +97,25 @@ export default function NewListingPage() {
     setUploading(true);
     try {
       const list = Array.from(files);
-      const targets = await hostApi.uploadUrls('vehicle_photo', list.length, list[0].type || 'image/jpeg');
+      // Presign per content type: signing every file with list[0].type meant
+      // a mixed JPEG/PNG selection uploaded the later files under the wrong
+      // type, which storage can reject outright.
+      const byType = new Map<string, File[]>();
+      for (const f of list) {
+        const t = f.type || 'image/jpeg';
+        byType.set(t, [...(byType.get(t) ?? []), f]);
+      }
+      const groups = await Promise.all(
+        Array.from(byType.entries()).map(async ([type, files]) => ({
+          files,
+          targets: await hostApi.uploadUrls('vehicle_photo', files.length, type),
+        })),
+      );
+      const pairs = groups.flatMap((g) => g.files.map((f, i) => ({ file: f, target: g.targets[i] })));
+      const targets = pairs.map((p) => p.target);
       await Promise.all(
-        list.map(async (f, i) => {
-          const res = await fetch(targets[i].uploadUrl, {
+        pairs.map(async ({ file: f, target }) => {
+          const res = await fetch(target.uploadUrl, {
             method: 'PUT',
             body: f,
             headers: { 'Content-Type': f.type || 'application/octet-stream' },
@@ -109,10 +125,14 @@ export default function NewListingPage() {
           if (!res.ok) throw new Error(`Storage rejected the upload (${res.status}).`);
         }),
       );
-      setD((prev) => ({
-        ...prev,
-        photos: [...prev.photos, ...targets.map((t) => ({ url: t.publicUrl, key: t.key }))],
-      }));
+      setD((prev) => {
+        const added = targets.map((t) => ({ url: t.publicUrl, key: t.key, isCover: false }));
+        const photos = [...prev.photos, ...added];
+        // Something must be the cover; the first photo ever added is a better
+        // default than none at all.
+        if (photos.length && !photos.some((x) => x.isCover)) photos[0] = { ...photos[0], isCover: true };
+        return { ...prev, photos };
+      });
     } catch (err) {
       notify({
         tone: 'error',
@@ -260,7 +280,17 @@ export default function NewListingPage() {
               <SelectField label="Category" value={d.category} onChange={(v) => set('category', v)} options={['economy', 'luxury', 'suv', 'van', 'sports', 'ev']} />
               <SelectField label="Body type" value={d.bodyType} onChange={(v) => set('bodyType', v)} options={['sedan', 'suv', 'hatchback', 'coupe', 'van', 'truck']} />
               <SelectField label="Transmission" value={d.transmission} onChange={(v) => set('transmission', v as Draft['transmission'])} options={['automatic', 'manual']} />
-              <SelectField label="Fuel" value={d.fuelType} onChange={(v) => set('fuelType', v as Draft['fuelType'])} options={['petrol', 'diesel', 'hybrid', 'ev']} />
+              <SelectField
+                label="Fuel"
+                value={d.fuelType}
+                onChange={(v) => set('fuelType', v as Draft['fuelType'])}
+                options={[
+                  { value: 'petrol', label: 'Gas' },
+                  { value: 'diesel', label: 'Diesel' },
+                  { value: 'hybrid', label: 'Hybrid' },
+                  { value: 'ev', label: 'Electric' },
+                ]}
+              />
             </div>
           )}
 
@@ -288,7 +318,9 @@ export default function NewListingPage() {
               <Field label="Pickup notes" className="sm:col-span-2" hint="Optional — where exactly to meet, parking, gate codes">
                 <Input value={d.pickupNotes} onChange={(e) => set('pickupNotes', e.target.value)} placeholder="Garage level 2, spot 14" />
               </Field>
-              <Field label="Color"><Input value={d.color} onChange={(e) => set('color', e.target.value)} /></Field>
+              <Field label="Color" hint="Guests filter by this, so pick the closest match">
+                <ColorPicker value={d.color} onChange={(v) => set('color', v)} />
+              </Field>
               <Field label="Doors"><Input type="number" value={d.doors} onChange={(e) => set('doors', Number(e.target.value))} /></Field>
               <Field label="Features (comma separated)" className="sm:col-span-2"><Input value={d.features} onChange={(e) => set('features', e.target.value)} placeholder="gps, bluetooth, sunroof" /></Field>
               <Field label="Listing title" className="sm:col-span-2"><Input value={d.title} onChange={(e) => set('title', e.target.value)} placeholder={`${d.make} ${d.model} ${d.year}`} /></Field>
@@ -302,7 +334,8 @@ export default function NewListingPage() {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-muted-foreground">
-                  Add photos of your vehicle. The first photo is the cover guests see in search.
+                  Add photos of your vehicle. Select several at once. Tap any photo to make it the cover
+                  guests see in search.
                 </p>
                 <p className={`mt-1 text-sm font-medium ${d.photos.length >= minPhotos ? 'text-success' : 'text-destructive'}`}>
                   {d.photos.length >= minPhotos
@@ -311,19 +344,60 @@ export default function NewListingPage() {
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {d.photos.map((p, i) => (
-                  <div key={i} className="group relative aspect-[4/3] overflow-hidden rounded-md border border-border">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.url} alt="" className="h-full w-full object-cover" />
-                    <button
-                      onClick={() => set('photos', d.photos.filter((_, j) => j !== i))}
-                      className="absolute end-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 group-hover:opacity-100"
+                {d.photos.map((p, i) => {
+                  // Cover is explicit now. It used to be "whichever is first",
+                  // which a host could not change without deleting and
+                  // re-uploading in a different order.
+                  const isCover = p.isCover ?? (!d.photos.some((x) => x.isCover) && i === 0);
+                  return (
+                    <div
+                      key={p.key ?? i}
+                      className={cn(
+                        'group relative aspect-[4/3] overflow-hidden rounded-md border-2 transition-colors',
+                        isCover ? 'border-primary' : 'border-border',
+                      )}
                     >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                    {i === 0 && <span className="absolute bottom-1 start-1 rounded bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">Cover</span>}
-                  </div>
-                ))}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.url} alt="" className="h-full w-full object-cover" />
+
+                      {/* The whole tile is the target — a small icon is a poor
+                          touch target on a phone, which is where hosts list. */}
+                      {!isCover && (
+                        <button
+                          type="button"
+                          aria-label="Make this the cover photo"
+                          onClick={() => set('photos', d.photos.map((x, j) => ({ ...x, isCover: j === i })))}
+                          className="absolute inset-0 flex items-end justify-center bg-black/0 pb-2 opacity-0 transition-all hover:bg-black/35 hover:opacity-100 focus-visible:bg-black/35 focus-visible:opacity-100"
+                        >
+                          <span className="rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-foreground">
+                            Make cover
+                          </span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        aria-label="Remove photo"
+                        onClick={() => {
+                          const next = d.photos.filter((_, j) => j !== i);
+                          // Removing the cover must promote another, or the
+                          // listing silently loses its cover image.
+                          if (isCover && next.length) next[0] = { ...next[0], isCover: true };
+                          set('photos', next);
+                        }}
+                        className="absolute end-1 top-1 z-10 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+
+                      {isCover && (
+                        <span className="pointer-events-none absolute bottom-1 start-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                          Cover
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
                 <label className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary">
                   <input
                     type="file"
@@ -496,12 +570,20 @@ export default function NewListingPage() {
   );
 }
 
-function SelectField({ label, value, onChange, options, }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+/**
+ * Options may be plain strings or {value,label} pairs — needed because the
+ * stored value and the word a host reads are not always the same. "petrol"
+ * is stored, but a US host is looking for "Gas".
+ */
+type Opt = string | { value: string; label: string };
+
+function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: Opt[] }) {
+  const norm = options.map((o) => (typeof o === 'string' ? { value: o, label: o } : o));
   return (
     <Field label={label}>
-      <Select value={value} onChange={(e) => onChange(e.target.value)} className="capitalize">
-        {options.map((o) => (
-          <option key={o} value={o}>{o}</option>
+      <Select value={value} onChange={(e) => onChange(e.target.value)}>
+        {norm.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </Select>
     </Field>
