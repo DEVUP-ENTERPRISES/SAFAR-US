@@ -9,6 +9,9 @@ export interface DocumentDoc {
   url: string;
   key?: string;
   expiresAt?: Date;
+  /** Which expiry milestone (30 or 7 days) the host has already been warned
+   *  about, so a daily sweep warns twice rather than thirty times. */
+  expiryNoticeSentFor?: number;
   verification: { status: 'pending' | 'verified' | 'rejected'; reason?: string; verifiedAt?: Date };
   createdAt: Date;
   updatedAt: Date;
@@ -24,6 +27,7 @@ const schema = new Schema<DocumentDoc>(
     url: { type: String, required: true },
     key: String,
     expiresAt: Date,
+    expiryNoticeSentFor: Number,
     verification: {
       status: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
       reason: String,

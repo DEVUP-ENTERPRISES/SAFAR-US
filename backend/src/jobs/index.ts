@@ -53,9 +53,14 @@ export async function initJobs(): Promise<void> {
         return { reminded: n };
       }
       case 'compliance-sweep': {
+        // Warn before pausing: a host whose first notice is the car going
+        // offline cannot renew insurance in time to prevent it.
+        const warned = await documentComplianceService.remindExpiring();
         const r = await documentComplianceService.sweep();
-        if (r.paused || r.restored) logger.info(r, 'document compliance sweep');
-        return r;
+        if (r.paused || r.restored || warned.warned30 || warned.warned7) {
+          logger.info({ ...r, ...warned }, 'document compliance sweep');
+        }
+        return { ...r, ...warned };
       }
       case 'maintenance-reminders': {
         const n = await maintenanceService.remindDue();

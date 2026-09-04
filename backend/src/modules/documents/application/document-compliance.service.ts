@@ -59,6 +59,68 @@ export class DocumentComplianceService {
    * actually HAVE an expired doc — a car that never uploaded insurance is an
    * onboarding matter, not something this job silently takes down.
    */
+  /**
+   * Warn a host BEFORE their car is pulled.
+   *
+   * The sweep pauses a listing the moment a mandatory document lapses, which is
+   * correct and also brutal if the first a host hears of it is the car going
+   * offline. Renewing insurance or registration takes days, so the warning has
+   * to arrive with enough time to act on it.
+   *
+   * Fired at 30 days and again at 7. `expiryNoticeSentFor` records which
+   * milestone has been sent, so a daily sweep warns twice in total rather than
+   * thirty times — and a host who ignores the first still gets the urgent one.
+   */
+  async remindExpiring(now = new Date()): Promise<{ warned30: number; warned7: number }> {
+    const out = { warned30: 0, warned7: 0 };
+
+    for (const days of [30, 7] as const) {
+      const horizon = new Date(now.getTime() + days * 86_400_000);
+      // Documents lapsing inside the horizon that have not had THIS notice yet.
+      const docs = await DocumentModel.find({
+        category: { $in: MANDATORY as unknown as string[] },
+        deletedAt: null,
+        expiresAt: { $gt: now, $lte: horizon },
+        expiryNoticeSentFor: { $ne: days },
+      }).lean<{ _id: string; vehicleId?: string; category: string; expiresAt?: Date }[]>();
+
+      for (const d of docs) {
+        if (!d.vehicleId) continue;
+        const v = await VehicleModel.findOne({ _id: d.vehicleId }, { hostId: 1, make: 1, model: 1 }).lean();
+        if (!v) continue;
+        try {
+          const host = await hostService.getById(v.hostId);
+          await notificationService.send({
+            userId: host.userId,
+            priority: days === 7 ? 'high' : 'normal',
+            templateKey: 'vehicle.document_expiring',
+            title:
+              days === 7
+                ? `Your ${v.make} ${v.model} comes offline in a week`
+                : `${v.make} ${v.model}: ${d.category} expires soon`,
+            body:
+              `The ${d.category} on your ${v.make} ${v.model} expires on ` +
+              `${d.expiresAt ? new Date(d.expiresAt).toLocaleDateString('en-US', { dateStyle: 'medium' }) : 'soon'}. ` +
+              `Upload the renewal before then and the car keeps taking bookings — after it lapses we have to pause the listing.`,
+            deepLink: `/host/listings/${d.vehicleId}`,
+            data: { vehicleId: d.vehicleId, category: d.category, days },
+          });
+          // Marked only after the notice actually went out, so a send failure
+          // is retried on the next sweep rather than silently swallowed.
+          await DocumentModel.updateOne({ _id: d._id }, { $set: { expiryNoticeSentFor: days } });
+          if (days === 30) out.warned30 += 1;
+          else out.warned7 += 1;
+        } catch (err) {
+          logger.warn(
+            { documentId: d._id, err: (err as Error).message },
+            'document expiry reminder failed — will retry next sweep',
+          );
+        }
+      }
+    }
+    return out;
+  }
+
   async sweep(): Promise<{ paused: number; restored: number }> {
     const expired = await this.expiredVehicleIds();
     let paused = 0;
