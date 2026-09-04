@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList, Sparkles, LifeBuoy, Headphones, CalendarCheck } from 'lucide-react';
+import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList, Sparkles, LifeBuoy, Headphones, CalendarCheck, Grid2x2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ import { walletApi } from '@/features/wallet/api';
 import { WishlistButton } from '@/features/favorites/wishlist-button';
 import { ShareButton } from '@/features/vehicles/components/share-button';
 import { AvailabilityCalendar } from '@/features/vehicles/components/availability-calendar';
+import { PhotoLightbox } from '@/features/vehicles/components/photo-lightbox';
 
 interface Review {
   _id: string;
@@ -56,7 +57,8 @@ export default function VehicleDetailPage() {
 
   // Gallery selection — setter is used by the thumbnail grid; the value is not
   // read yet (lightbox is not wired up).
-  const [, setActive] = useState(0);
+  // Which photo the full-screen viewer is showing; null means closed.
+  const [lightbox, setLightbox] = useState<number | null>(null);
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [addOnCodes, setAddOnCodes] = useState<string[]>([]);
@@ -191,38 +193,96 @@ export default function VehicleDetailPage() {
 
   return (
     <div className="space-y-6 sm:space-y-10 pb-20">
-      {/* 1. Photo Collage Header */}
+      {lightbox !== null && (
+        <PhotoLightbox
+          photos={photos}
+          index={lightbox}
+          onIndexChange={setLightbox}
+          onClose={() => setLightbox(null)}
+          alt={`${v.year} ${v.make} ${v.model}`}
+        />
+      )}
+
+      {/* 1. Photo header */}
       <div className="-mx-4 sm:mx-0">
-        <div className="relative overflow-hidden sm:rounded-[2rem] bg-background">
-          <div className="flex h-[35vh] sm:h-[55vh] sm:grid sm:grid-cols-4 sm:gap-2 overflow-x-auto sm:overflow-visible snap-x snap-mandatory hide-scrollbar">
-            {/* Main large photo */}
-            <div className="relative h-full w-[100vw] sm:w-auto shrink-0 sm:col-span-2 sm:row-span-2 snap-center sm:snap-align-none">
+        <div className="relative overflow-hidden bg-background sm:rounded-[2rem]">
+          {/*
+            The desktop grid is explicitly two rows. It was cols-4 with the hero
+            spanning two rows and no row definition, so the secondary photos
+            flowed into implicit rows and were clipped by the fixed height —
+            which is why the bottom row appeared cut in half.
+          */}
+          <div className="flex h-[35vh] snap-x snap-mandatory overflow-x-auto hide-scrollbar sm:grid sm:h-[55vh] sm:grid-cols-4 sm:grid-rows-2 sm:gap-2 sm:overflow-visible">
+            {/* Hero */}
+            <button
+              type="button"
+              onClick={() => photos.length && setLightbox(0)}
+              className="relative h-full w-[100vw] shrink-0 snap-center sm:col-span-2 sm:row-span-2 sm:w-auto sm:snap-align-none"
+              aria-label="Open photos"
+            >
               {photos[0]?.url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={photos[0].url} alt="" className="h-full w-full object-cover" />
+                <img src={photos[0].url} alt={`${v.year} ${v.make} ${v.model}`} className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center brand-gradient text-8xl font-black text-white/80">
+                <div className="brand-gradient flex h-full w-full items-center justify-center text-8xl font-black text-white/80">
                   {v.make.slice(0, 1)}{v.model.slice(0, 1)}
                 </div>
               )}
-            </div>
-            
-            {/* Secondary photos (Desktop only grid) */}
+            </button>
+
+            {/* Four secondary tiles fill the remaining 2x2 exactly. */}
             {photos.slice(1, 5).map((p, i) => (
-              <div key={i} className="hidden sm:block relative h-full w-full">
+              <button
+                key={i}
+                type="button"
+                onClick={() => setLightbox(i + 1)}
+                className="relative hidden h-full w-full sm:block"
+                aria-label={`Open photo ${i + 2}`}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.url} alt="" className="h-full w-full object-cover transition-opacity hover:opacity-90 cursor-pointer" onClick={() => setActive(i + 1)} />
-              </div>
+                <img
+                  src={p.url}
+                  alt=""
+                  className="h-full w-full cursor-pointer object-cover transition-opacity hover:opacity-90"
+                />
+              </button>
             ))}
-            
-            {/* Mobile secondary photos for swipe */}
+
+            {/* Mobile swipes through everything rather than stopping at five. */}
             {photos.slice(1).map((p, i) => (
-              <div key={`m-${i}`} className="sm:hidden relative h-full w-[100vw] shrink-0 snap-center">
+              <button
+                key={`m-${i}`}
+                type="button"
+                onClick={() => setLightbox(i + 1)}
+                className="relative h-full w-[100vw] shrink-0 snap-center sm:hidden"
+                aria-label={`Open photo ${i + 2}`}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.url} alt="" className="h-full w-full object-cover" />
-              </div>
+              </button>
             ))}
           </div>
+
+          {/* The way to the rest of the photos. Without this, anything past the
+              fifth was unreachable on desktop. */}
+          {photos.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setLightbox(0)}
+              className="absolute bottom-4 end-4 z-10 hidden items-center gap-2 rounded-full bg-background/95 px-4 py-2.5 text-sm font-semibold shadow-float backdrop-blur-md transition-transform hover:scale-105 sm:inline-flex"
+            >
+              <Grid2x2 className="h-4 w-4" />
+              Show all {photos.length} photos
+            </button>
+          )}
+
+          {/* Mobile gets a position counter instead — a button would sit on top
+              of the photo people are swiping. */}
+          {photos.length > 1 && (
+            <span className="absolute bottom-3 end-3 z-10 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-md sm:hidden">
+              {photos.length} photos
+            </span>
+          )}
 
           <div className="absolute end-4 top-4 z-10 flex items-center gap-2">
             <div className="bg-background/90 backdrop-blur-md rounded-full shadow-float hover:scale-105 transition-transform overflow-hidden">
