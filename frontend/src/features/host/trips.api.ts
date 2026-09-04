@@ -15,6 +15,7 @@ export interface HostTrip {
   guest: { _id: string; name: string; avatarUrl?: string; joinedAt: string; tripCount: number };
   mileage: { includedKm: number; overageFeePerKm: number; drivenKm?: number };
   licenseConfirmed: boolean;
+  pickupVerified: boolean;
   photoCount: number;
 }
 

@@ -25,6 +25,7 @@ import { claimsApi } from '@/features/claims/api';
 import { vehicleApi } from '@/features/vehicles/api';
 import { DepositStatus } from '@/features/payments/deposit-status';
 import { IncidentalCharges } from '@/features/bookings/components/incidental-charges';
+import { PickupCode } from '@/features/bookings/components/pickup-code';
 import { ApiError } from '@/lib/api/types';
 
 /** How each state reads to the guest, and what it means for them. */
@@ -127,6 +128,10 @@ function BookingDetail({ id }: { id: string }) {
 
       {/* "When do I get my $500 back" — the most common post-trip question in
           this category, previously answerable only by an API nobody called. */}
+      {/* The handover moment. Shown only once the booking is actually
+          collectable — a code on a pending request means nothing. */}
+      {['paid', 'confirmed', 'in_progress'].includes(String(b.status)) && <PickupCode bookingId={id} />}
+
       <DepositStatus bookingId={id} />
 
       {/* Post-trip charges, itemised and disputable. Previously a guest saw

@@ -6,7 +6,6 @@ import {
   Plus, Car, TrendingUp, Award, ArrowRight, AlertTriangle, ImageOff,
   Wallet, ChevronRight, Sparkles,
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -83,147 +82,144 @@ export default function HostDashboardPage() {
 
       {/* 1 — Waiting on you. Rendered only when something actually is. */}
       {(actions.length > 0 || blockers.length > 0) && (
-        <section className="space-y-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="display text-xl">Waiting on you</h2>
+        <section className="space-y-4">
+          <div className="flex items-baseline justify-between gap-3 px-1">
+            <h2 className="text-xl font-bold tracking-tight">Needs attention</h2>
             {(inbox.data?.atRiskTotal ?? 0) > 0 && (
-              <span className="numeric text-sm font-semibold text-warning">
-                {money(inbox.data!.atRiskTotal)} at risk
+              <span className="numeric text-sm font-bold text-destructive flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4" /> {money(inbox.data!.atRiskTotal)} at risk
               </span>
             )}
           </div>
-
-          {blockers.map((b) => (
-            <Link key={b.key} href={b.href} className="block">
-              <Card className="border-destructive/40 bg-destructive/5 transition-colors hover:border-destructive">
-                <CardContent className="flex items-center gap-3 py-4">
-                  <Wallet className="h-5 w-5 shrink-0 text-destructive" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{b.label}</p>
-                    <p className="text-sm text-muted-foreground">{b.detail}</p>
+          <div className="space-y-3">
+            {blockers.map((b) => (
+              <Link key={b.key} href={b.href} className="block group">
+                <div className="flex items-center gap-4 rounded-3xl bg-destructive/5 p-5 transition-all group-hover:bg-destructive/10 group-active:scale-[0.98]">
+                  <div className="h-12 w-12 shrink-0 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
+                    <Wallet className="h-6 w-6" />
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-
-          {actions.slice(0, 4).map((a) => (
-            <Link key={a.id} href={a.href} className="block">
-              <Card className="transition-colors hover:border-primary/50">
-                <CardContent className="flex items-center gap-3 py-4">
-                  <AlertTriangle className="h-5 w-5 shrink-0 text-warning" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{a.title}</p>
-                    <p className="truncate text-sm text-muted-foreground">{a.detail}</p>
+                    <p className="font-bold text-foreground text-base">{b.label}</p>
+                    <p className="text-sm font-medium text-destructive/80 mt-0.5">{b.detail}</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-1" />
+                </div>
+              </Link>
+            ))}
+
+            {actions.slice(0, 4).map((a) => (
+              <Link key={a.id} href={a.href} className="block group">
+                <div className="flex items-center gap-4 rounded-3xl bg-warning/5 p-5 transition-all group-hover:bg-warning/10 group-active:scale-[0.98]">
+                  <div className="h-12 w-12 shrink-0 rounded-full bg-warning/20 flex items-center justify-center text-warning-foreground">
+                    <AlertTriangle className="h-6 w-6" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold text-foreground text-base">{a.title}</p>
+                    <p className="truncate text-sm font-medium text-warning-foreground/80 mt-0.5">{a.detail}</p>
                   </div>
                   {a.atRisk ? (
-                    <span className="numeric shrink-0 text-sm font-semibold">{money(a.atRisk)}</span>
+                    <span className="numeric shrink-0 text-base font-bold text-foreground">{money(a.atRisk)}</span>
                   ) : null}
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                  <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-1" />
+                </div>
+              </Link>
+            ))}
+          </div>
         </section>
       )}
 
       {/* 2 — Money. One headline figure, the rest supporting it. */}
       {earnings.isLoading ? (
-        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-3xl" />
       ) : hasHistory ? (
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="grid sm:grid-cols-[1.4fr_1fr]">
-              <div className="border-b border-border p-6 sm:border-b-0 sm:border-e">
-                <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <TrendingUp className="h-4 w-4 text-primary" /> Lifetime earnings
-                </p>
-                <p className="numeric display mt-2 text-5xl leading-none">
-                  {money(earnings.data!.lifetimeEarnings)}
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Across {earnings.data!.completedTrips ?? 0} completed trip
-                  {earnings.data!.completedTrips === 1 ? '' : 's'}
-                </p>
-                <Link
-                  href="/host/earnings"
-                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
-                >
-                  See the breakdown <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-              <dl className="divide-y divide-border">
-                <Figure label="Available now" value={money(earnings.data!.currentBalance)} />
-                <Figure
-                  label="Pending payout"
-                  value={money(earnings.data!.pendingPayout)}
-                  tone={earnings.data!.pendingPayout > 0 ? 'warning' : undefined}
-                />
-                <Figure label="Paid out" value={money(earnings.data!.paidOut)} />
-              </dl>
+        <section className="rounded-3xl bg-muted/20 border border-border/30 overflow-hidden">
+          <div className="grid sm:grid-cols-[1.4fr_1fr]">
+            <div className="p-8 sm:border-r border-border/40 flex flex-col justify-center">
+              <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                <TrendingUp className="h-4 w-4 text-primary" /> Lifetime earnings
+              </p>
+              <p className="numeric tracking-tighter mt-4 text-5xl lg:text-6xl font-black text-foreground">
+                {money(earnings.data!.lifetimeEarnings)}
+              </p>
+              <p className="mt-3 text-sm font-medium text-muted-foreground">
+                Across {earnings.data!.completedTrips ?? 0} completed trip
+                {earnings.data!.completedTrips === 1 ? '' : 's'}
+              </p>
+              <Link
+                href="/host/earnings"
+                className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background transition-transform hover:scale-105"
+              >
+                View breakdown <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
-          </CardContent>
-        </Card>
+            <dl className="flex flex-col justify-center p-6 sm:p-8 space-y-6">
+              <Figure label="Available now" value={money(earnings.data!.currentBalance)} />
+              <Figure
+                label="Pending payout"
+                value={money(earnings.data!.pendingPayout)}
+                tone={earnings.data!.pendingPayout > 0 ? 'warning' : undefined}
+              />
+              <Figure label="Paid out" value={money(earnings.data!.paidOut)} />
+            </dl>
+          </div>
+        </section>
       ) : (
         // A new host does not need four zeros explained to them.
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="flex flex-wrap items-center justify-between gap-4 py-6">
-            <div className="flex items-start gap-3">
-              <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+        <section className="rounded-3xl border border-primary/20 bg-primary/5 p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 shrink-0 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                <Sparkles className="h-6 w-6" />
+              </div>
               <div>
-                <p className="font-semibold">No earnings yet</p>
-                <p className="mt-0.5 max-w-prose text-sm text-muted-foreground">
+                <p className="text-xl font-bold text-foreground">No earnings yet</p>
+                <p className="mt-1 max-w-prose text-base font-medium text-muted-foreground">
                   {cars.length === 0
                     ? 'List your first car and your earnings will appear here after your first completed trip.'
                     : 'Your cars are live. Earnings appear here once your first trip completes.'}
                 </p>
               </div>
             </div>
-            <Link href={cars.length === 0 ? '/host/listings/new' : '/host/listings'}>
-              <Button variant="outline">
+            <Link href={cars.length === 0 ? '/host/listings/new' : '/host/listings'} className="shrink-0">
+              <Button size="lg" className="rounded-full font-bold w-full sm:w-auto">
                 {cars.length === 0 ? 'List a car' : 'Review your listings'}
               </Button>
             </Link>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       )}
 
       {/* 3 — The fleet, with photographs. */}
-      <section className="space-y-4">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="display text-xl">Your cars</h2>
+      <section className="space-y-6 pt-4">
+        <div className="flex items-baseline justify-between gap-3 px-1">
+          <h2 className="text-xl font-bold tracking-tight">Your cars</h2>
           {cars.length > 3 && (
-            <Link href="/host/listings" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-              View all <ArrowRight className="h-3.5 w-3.5" />
+            <Link href="/host/listings" className="inline-flex items-center gap-1.5 text-sm font-bold text-primary transition-transform hover:translate-x-1">
+              View all <ArrowRight className="h-4 w-4" />
             </Link>
           )}
         </div>
 
         {vehicles.isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[0, 1, 2].map((i) => <Skeleton key={i} className="h-64 w-full rounded-2xl" />)}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2].map((i) => <Skeleton key={i} className="h-72 w-full rounded-[2rem]" />)}
           </div>
         ) : cars.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-              <span className="grid h-14 w-14 place-items-center rounded-2xl bg-muted">
-                <Car className="h-7 w-7 text-muted-foreground" />
-              </span>
-              <div>
-                <p className="font-semibold">No cars listed yet</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Adding a car takes a few minutes — we read most of the details from the VIN.
-                </p>
-              </div>
-              <div className="mt-1 flex flex-wrap justify-center gap-2">
-                <Link href="/host/listings/new"><Button><Plus className="h-4 w-4" /> Add a car</Button></Link>
-                <Link href="/host/listings/import"><Button variant="outline">Import a fleet</Button></Link>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="rounded-[2rem] border-2 border-dashed border-border p-12 text-center">
+            <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-muted">
+              <Car className="h-10 w-10 text-muted-foreground/60" />
+            </span>
+            <p className="mt-6 text-xl font-bold">No cars listed yet</p>
+            <p className="mt-2 text-base font-medium text-muted-foreground max-w-sm mx-auto">
+              Adding a car takes a few minutes — we read most of the details from the VIN.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
+              <Link href="/host/listings/new"><Button size="lg" className="w-full sm:w-auto rounded-full font-bold"><Plus className="h-5 w-5 mr-2" /> Add a car</Button></Link>
+              <Link href="/host/listings/import"><Button size="lg" variant="outline" className="w-full sm:w-auto rounded-full font-bold">Import fleet</Button></Link>
+            </div>
+          </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {cars.slice(0, 6).map((v) => <FleetCard key={v._id} v={v} />)}
           </div>
         )}
@@ -234,9 +230,9 @@ export default function HostDashboardPage() {
 
 function Figure({ label, value, tone }: { label: string; value: string; tone?: 'warning' }) {
   return (
-    <div className="flex items-center justify-between px-6 py-4">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className={cn('numeric font-semibold', tone === 'warning' && 'text-warning')}>{value}</dd>
+    <div className="flex items-center justify-between">
+      <dt className="text-base font-semibold text-muted-foreground">{label}</dt>
+      <dd className={cn('numeric text-lg font-bold', tone === 'warning' ? 'text-warning' : 'text-foreground')}>{value}</dd>
     </div>
   );
 }
@@ -254,54 +250,58 @@ function FleetCard({ v }: { v: Vehicle }) {
   const listed = v.status === 'listed';
 
   return (
-    <Link href={`/host/listings/${v._id}`} className="group block">
-      <Card className="overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:border-primary/40 group-hover:shadow-lg">
-        <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+    <Link href={`/host/listings/${v._id}`} className="group block h-full">
+      <div className="flex flex-col h-full overflow-hidden rounded-[2rem] bg-card transition-all duration-500 group-hover:-translate-y-2 group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border border-border/40 hover:border-primary/30">
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
           {photo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={photo}
               alt={`${v.make} ${v.model}`}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
             />
           ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-1.5 text-muted-foreground">
-              <ImageOff className="h-6 w-6" />
-              <span className="text-xs font-medium">No photo — add one</span>
+            <div className="flex h-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-muted/50 to-muted text-muted-foreground/60">
+              <ImageOff className="h-8 w-8" />
+              <span className="text-sm font-bold">No photo added</span>
             </div>
           )}
 
-          {/* On a photograph, a scrim is what keeps a label readable over both
-              a white car and a black one. */}
-          <span className="absolute end-2 top-2 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-md">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+          
+          <span className={cn(
+            "absolute left-4 top-4 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider backdrop-blur-md border",
+            listed ? "bg-black/40 text-white border-white/20" : "bg-black/70 text-white border-white/10"
+          )}>
             {v.status}
           </span>
-          {!listed && <span className="absolute inset-0 bg-background/45" />}
+          {!listed && <span className="absolute inset-0 bg-background/20 backdrop-blur-[1px]" />}
         </div>
 
-        <CardContent className="flex items-center justify-between gap-3 py-4">
+        <div className="flex flex-col flex-1 justify-between p-5 sm:p-6">
           <div className="min-w-0">
-            {/* Year included: a host with two Camrys cannot tell them apart
-                without it, and the old card truncated even a single name. */}
-            <p className="truncate font-semibold transition-colors group-hover:text-primary">
+            <h3 className="truncate text-lg font-bold transition-colors group-hover:text-primary">
               {v.year} {v.make} {v.model}
-            </p>
-            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            </h3>
+            <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-muted-foreground/80">
               {v.ratingCount > 0 ? (
-                <>{v.ratingAvg.toFixed(1)} ★ · {v.ratingCount} trip{v.ratingCount === 1 ? '' : 's'}</>
+                <><span className="text-primary">★ {v.ratingAvg.toFixed(1)}</span> <span className="w-1 h-1 rounded-full bg-muted-foreground/40 mx-1"/> {v.ratingCount} trips</>
               ) : (
                 'No trips yet'
               )}
             </p>
           </div>
-          <p className="numeric shrink-0 text-end">
-            <span className="text-lg font-bold">
-              {formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency })}
-            </span>
-            <span className="block text-xs text-muted-foreground">per day</span>
-          </p>
-        </CardContent>
-      </Card>
+          <div className="mt-6 flex items-end justify-between border-t border-border/40 pt-4">
+             <span className="text-sm font-semibold text-muted-foreground">Daily rate</span>
+             <p className="numeric text-right flex items-baseline gap-1">
+              <span className="text-xl font-bold text-foreground">
+                {formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency })}
+              </span>
+              <span className="text-xs font-medium text-muted-foreground">/d</span>
+            </p>
+          </div>
+        </div>
+      </div>
     </Link>
   );
 }

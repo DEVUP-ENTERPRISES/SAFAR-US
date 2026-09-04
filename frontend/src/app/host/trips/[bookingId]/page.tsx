@@ -23,6 +23,7 @@ import { formatMoney, formatDate } from '@/lib/utils/format';
 import { hostTripsApi } from '@/features/host/trips.api';
 import { TripMessages } from '@/features/host/components/trip-messages';
 import { IncidentalsForm } from '@/features/host/components/incidentals-form';
+import { VerifyPickup } from '@/features/bookings/components/pickup-code';
 
 type Tab = 'details' | 'messages' | 'help';
 
@@ -202,6 +203,15 @@ export default function HostTripDetailPage() {
           </div>
 
           {/* Before handover the useful thing is when to set off, not a map. */}
+          {/* Confirm the person collecting is the person who booked, before
+              anything else at the handover. */}
+          {!started && t.tripId && !t.pickupVerified && (
+            <>
+              <SectionLabel>Verify your guest</SectionLabel>
+              <VerifyPickup tripId={t.tripId} onVerified={invalidate} />
+            </>
+          )}
+
           {!started && t.tripId && (
             <>
               <SectionLabel>Handover</SectionLabel>

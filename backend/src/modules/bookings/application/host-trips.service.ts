@@ -55,6 +55,8 @@ export interface HostTrip {
 
   /** Check-in state — drives the "Start check-in" vs "End trip" CTA. */
   licenseConfirmed: boolean;
+  /** The host has checked the guest's pickup code. Hides the check once done. */
+  pickupVerified: boolean;
   photoCount: number;
 }
 
@@ -206,6 +208,7 @@ export class HostTripsService {
         },
 
         licenseConfirmed: !!(t?.licenseConfirmed as boolean),
+        pickupVerified: !!(t?.pickupVerified as boolean),
         photoCount: photos,
       };
     });
