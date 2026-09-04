@@ -36,6 +36,10 @@ export const EVENTS = {
 
   PAYMENT_SUCCEEDED: 'payment.succeeded',
   PAYMENT_REFUNDED: 'payment.refunded',
+  /** A card failed asynchronously, after the booking was already made. */
+  PAYMENT_FAILED: 'payment.failed',
+  /** The cardholder's bank is pulling the money back. */
+  PAYMENT_DISPUTED: 'payment.disputed',
   WALLET_TOPPED_UP: 'wallet.topped_up',
   PLATFORM_CONFIG_UPDATED: 'platform.config_updated',
 

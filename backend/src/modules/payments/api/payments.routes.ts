@@ -13,6 +13,7 @@ import { sendSuccess, sendCreated } from '../../../shared/http/api-response';
 import { logger } from '../../../infrastructure/logging/logger';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
+import { WebhookEventModel } from '../infrastructure/webhook-event.model';
 
 const router = Router();
 
@@ -160,7 +161,32 @@ router.post('/webhooks/stripe', (req: Request, res: Response) => {
   // Fire-and-forget processing; always 200 fast so Stripe doesn't retry storm.
   void (async () => {
     try {
-      const obj = event.data.object as { metadata?: { bookingId?: string } };
+      /*
+       * Claim the event before doing anything with it.
+       *
+       * Stripe delivers at-least-once and retries on any non-2xx or timeout,
+       * so the same `payment_intent.succeeded` arrives more than once in normal
+       * operation. Without this, the domain event fires twice and everything
+       * downstream — ledger postings, booking transitions — happens twice.
+       *
+       * The insert IS the lock: a unique _id means a second concurrent delivery
+       * loses on write, rather than after a read-then-check that two workers
+       * can both pass in the same millisecond.
+       */
+      try {
+        await WebhookEventModel.create({ _id: event.id, provider: 'stripe', type: event.type });
+      } catch (dup) {
+        if ((dup as { code?: number }).code === 11000) {
+          logger.debug({ eventId: event.id, type: event.type }, 'stripe webhook already handled — ignored');
+          return;
+        }
+        throw dup;
+      }
+
+      const obj = event.data.object as {
+        metadata?: { bookingId?: string };
+        last_payment_error?: { message?: string };
+      };
       const bookingId = obj.metadata?.bookingId;
       switch (event.type) {
         case 'payment_intent.succeeded':
@@ -168,6 +194,30 @@ router.post('/webhooks/stripe', (req: Request, res: Response) => {
           break;
         case 'charge.refunded':
           if (bookingId) emit(EVENTS.PAYMENT_REFUNDED, bookingId, { bookingId });
+          break;
+        // A card can fail asynchronously, minutes after the booking was made.
+        // Unhandled, that booking sat as paid with no money behind it.
+        case 'payment_intent.payment_failed':
+          if (bookingId) {
+            emit(EVENTS.PAYMENT_FAILED, bookingId, {
+              bookingId,
+              reason: obj.last_payment_error?.message,
+            });
+            logger.warn(
+              { bookingId, reason: obj.last_payment_error?.message },
+              'payment failed after the fact',
+            );
+          }
+          break;
+        // Money is being pulled back by the cardholder's bank. Ops must know
+        // immediately; silently losing this is how a marketplace pays a host
+        // out of a charge that no longer exists.
+        case 'charge.dispute.created':
+          logger.error(
+            { bookingId, eventId: event.id },
+            'CHARGEBACK opened — funds are being reversed',
+          );
+          if (bookingId) emit(EVENTS.PAYMENT_DISPUTED, bookingId, { bookingId });
           break;
         default:
           break;

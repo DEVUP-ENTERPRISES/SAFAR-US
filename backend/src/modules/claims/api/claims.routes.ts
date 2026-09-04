@@ -5,6 +5,7 @@ import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
+import { bookingService } from '../../bookings/application/booking.service';
 
 const router = Router();
 
@@ -45,6 +46,9 @@ router.get(
   '/settlement/:bookingId',
   authenticate,
   asyncHandler(async (req, res) => {
+    // Leaked whether a booking existed and when its claim window closed to any
+    // signed-in user. Low value to an attacker, but it is other people's data.
+    await bookingService.get(req.principal!, req.params.bookingId);
     sendSuccess(res, await claimService.settlementStatus(req.params.bookingId));
   }),
 );

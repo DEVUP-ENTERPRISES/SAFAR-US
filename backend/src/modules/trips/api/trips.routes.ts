@@ -86,6 +86,13 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     const trip = await tripService.get(req.params.id);
+    // tripService.get does NOT authorize — any signed-in user could read any
+    // trip, including both parties' ids, live location, odometer and photos.
+    const uid = req.principal!.userId;
+    const isStaff = !!req.principal?.permissions?.some((p) => p === '*' || p === 'booking:read:any');
+    if (trip.guestId !== uid && trip.hostId !== uid && !isStaff) {
+      throw new ForbiddenError('Not your trip');
+    }
     // Attach carbon footprint + EV savings (needs the vehicle's fuel type).
     let carbon = null;
     try {

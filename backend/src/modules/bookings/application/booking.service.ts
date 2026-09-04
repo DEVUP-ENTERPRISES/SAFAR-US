@@ -234,6 +234,9 @@ export class BookingService {
     // Reserve the slot BEFORE talking to the gateway (prevents double-booking
     // during the payment round-trip). Roll back on any downstream failure.
     const holdId = await availabilityService.placeHold(dto.vehicleId, start, end);
+    // Held outside the try so the failure path can reverse a charge that
+    // succeeded before a later step threw.
+    let charged: { paymentId: string; intentId: string; status: string } | null = null;
     const bookingId = uuid();
 
     try {
@@ -256,6 +259,8 @@ export class BookingService {
         walletApplied,
         idempotencyKey: idempotencyKey ?? bookingId,
       });
+
+      charged = { paymentId: charge.paymentId, intentId: charge.intentId, status: charge.status };
 
       // Deduct the wallet portion (only after the card charge succeeded).
       if (walletApplied > 0) {
@@ -339,6 +344,49 @@ export class BookingService {
       };
     } catch (err) {
       await availabilityService.releaseHold(holdId);
+
+      /*
+       * Give the money back.
+       *
+       * The card is charged before the booking row is written, so anything
+       * that threw after that point — a duplicate code, a validation slip, a
+       * dropped connection — left the guest paid with no booking, no record to
+       * point at, and no way to get it back except a chargeback. Releasing the
+       * hold without reversing the charge is the single worst outcome in this
+       * whole flow.
+       *
+       * Reversal is best-effort and never masks the original error: if it also
+       * fails, the guest still needs to know the booking did not happen, and
+       * the log carries the payment id so finance can settle it by hand.
+       */
+      if (charged) {
+        try {
+          if (charged.status === 'succeeded') {
+            await paymentService.refundBooking(bookingId, breakdown.total, 'Booking could not be created');
+          } else {
+            await paymentService.cancelAuthorization(bookingId);
+          }
+          logger.warn(
+            { bookingId, paymentId: charged.paymentId, status: charged.status },
+            'booking failed after charge — payment reversed',
+          );
+        } catch (reversalErr) {
+          // Loud, and with everything finance needs to fix it manually.
+          logger.error(
+            {
+              bookingId,
+              paymentId: charged.paymentId,
+              intentId: charged.intentId,
+              guestId,
+              amount: breakdown.total.amount,
+              currency: breakdown.total.currency,
+              err: (reversalErr as Error).message,
+            },
+            'CRITICAL: guest was charged, booking failed, and the reversal ALSO failed — manual refund required',
+          );
+        }
+      }
+
       throw err;
     }
   }
@@ -1110,6 +1158,7 @@ export class BookingService {
       return this.getDoc(bookingId);
     } catch (err) {
       await availabilityService.releaseHold(holdId);
+
       throw err;
     }
   }
