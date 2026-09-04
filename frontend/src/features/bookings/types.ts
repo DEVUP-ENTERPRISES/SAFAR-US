@@ -47,6 +47,10 @@ export type BookingStatus =
   | 'disputed';
 
 export interface Booking {
+  /** Set when the card needs the cardholder — a 3-D Secure challenge. The trip
+   *  is held, not confirmed, until the client finishes it. */
+  requiresAction?: boolean;
+  clientSecret?: string;
   delivery?: { mode: string; address: string };
   additionalDrivers?: { name: string; licenseNumber?: string; addedAt: string }[];
   _id: string;

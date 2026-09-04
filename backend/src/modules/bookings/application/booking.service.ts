@@ -262,11 +262,22 @@ export class BookingService {
         await walletService.spend(guestId, walletApplied, 'booking', bookingId);
       }
 
+      /*
+       * A booking is only 'paid' when the money actually moved.
+       *
+       * `effectiveInstant` describes what the listing allows, not what the card
+       * did. Marking a booking paid off that alone meant a 3-D Secure challenge
+       * or a soft decline still produced a confirmed, unpaid trip — the host
+       * would show up for it.
+       */
+      const paymentCleared = charge.status === 'succeeded' || charge.status === 'authorized';
       const status: BookingStatus = !eligibility.eligible
         ? 'pending_verification'
-        : effectiveInstant
+        : effectiveInstant && paymentCleared
           ? 'paid'
-          : 'pending_approval';
+          : effectiveInstant && !paymentCleared
+            ? 'pending_payment'
+            : 'pending_approval';
       const now = new Date();
 
       const booking = await BookingModel.create({
@@ -318,7 +329,14 @@ export class BookingService {
         emit(EVENTS.BOOKING_CONFIRMED, bookingId, { bookingId, guestId, hostId: vehicle.hostId });
       }
 
-      return booking.toObject();
+      // The client needs the secret to finish a 3-D Secure challenge, and needs
+      // to know that it must.
+      return {
+        ...booking.toObject(),
+        ...(charge.requiresAction
+          ? { requiresAction: true, clientSecret: charge.clientSecret }
+          : {}),
+      };
     } catch (err) {
       await availabilityService.releaseHold(holdId);
       throw err;

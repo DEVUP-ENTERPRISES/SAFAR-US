@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Rating } from '@/components/ui/rating';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
+import { useToast } from '@/components/ui/toast';
 import { formatMoney } from '@/lib/utils/format';
 import { HostProfileCard } from '@/features/host/components/host-profile-card';
 import { cn } from '@/lib/utils/cn';
@@ -27,6 +28,7 @@ import { WishlistButton } from '@/features/favorites/wishlist-button';
 import { ShareButton } from '@/features/vehicles/components/share-button';
 import { AvailabilityCalendar } from '@/features/vehicles/components/availability-calendar';
 import { PhotoLightbox } from '@/features/vehicles/components/photo-lightbox';
+import { confirmCardPayment } from '@/features/payments/confirm-payment';
 
 interface Review {
   _id: string;
@@ -74,6 +76,7 @@ export default function VehicleDetailPage() {
   const [couponCode, setCouponCode] = useState('');
   const quote = useQuote();
   const createBooking = useCreateBooking();
+  const toast = useToast();
 
   const wallet = useQuery({
     queryKey: ['wallet', 'balance'],
@@ -162,6 +165,20 @@ export default function VehicleDetailPage() {
       return router.push(`/login?next=${encodeURIComponent(`/vehicles/${v?._id ?? ''}`)}`);
     }
     const b = await createBooking.mutateAsync(selection());
+
+    // The bank wants the cardholder. Finish the challenge here rather than
+    // sending them to a bookings list that would show the trip as unpaid with
+    // no way to fix it.
+    if (b.requiresAction && b.clientSecret) {
+      const ok = await confirmCardPayment(b.clientSecret);
+      if (!ok) {
+        toast({
+          tone: 'error',
+          title: 'Your bank did not approve the payment',
+          description: 'The trip is held. Try again from your bookings, or use another card.',
+        });
+      }
+    }
     router.push(`/bookings?highlight=${b._id}`);
   };
   const toggleAddOn = (code: string) =>

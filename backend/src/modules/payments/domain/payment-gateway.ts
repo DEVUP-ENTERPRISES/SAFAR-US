@@ -11,12 +11,19 @@ export interface CreateIntentInput {
   capture: boolean; // true = capture now (instant book), false = authorize only
   idempotencyKey: string;
   metadata?: Record<string, string>;
+  /** Stripe Customer + saved card. Both present = charge off-session, so the
+   *  guest is not asked for a card they already gave us. */
+  customerId?: string;
+  paymentMethodId?: string;
 }
 
 export interface IntentResult {
   intentId: string;
   clientSecret: string;
-  status: 'requires_confirmation' | 'succeeded' | 'requires_capture';
+  /** `requires_action` is 3-D Secure: the bank wants the cardholder present,
+   *  and the client must finish it. Treating that as a failure would decline
+   *  perfectly good European and increasingly US cards. */
+  status: 'requires_confirmation' | 'requires_action' | 'succeeded' | 'requires_capture';
 }
 
 export interface PaymentGateway {

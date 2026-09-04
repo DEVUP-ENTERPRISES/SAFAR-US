@@ -17,8 +17,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/utils/format';
 import { PageHeader } from '@/components/ui/page-header';
 import { accountApi } from '@/features/account/api';
+import { AddCard } from '@/features/payments/add-card';
 import { AvatarUpload } from '@/components/ui/avatar-upload';
-import { Select } from '@/components/ui/select';
 
 function Account() {
   const qc = useQueryClient();
@@ -74,17 +74,12 @@ function Account() {
 
   // Payment methods
   const cards = useQuery({ queryKey: ['payment-methods'], queryFn: () => accountApi.paymentMethods() });
-  const [card, setCard] = useState({ brand: 'visa', last4: '', expMonth: 12, expYear: 2028 });
   const notify = useToast();
   const [enablingPush, setEnablingPush] = useState(false);
   const onEnablePush = async () => {
     setEnablingPush(true);
     try { await enablePush(notify); } finally { setEnablingPush(false); }
   };
-  const addCard = useMutation({
-    mutationFn: () => accountApi.savePaymentMethod(card),
-    onSuccess: () => { setCard({ brand: 'visa', last4: '', expMonth: 12, expYear: 2028 }); qc.invalidateQueries({ queryKey: ['payment-methods'] }); },
-  });
   const removeCard = useMutation({ mutationFn: (id: string) => accountApi.removePaymentMethod(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['payment-methods'] }) });
   const defaultCard = useMutation({ mutationFn: (id: string) => accountApi.setDefaultPaymentMethod(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['payment-methods'] }) });
 
@@ -250,16 +245,10 @@ function Account() {
               </div>
             </div>
           ))}
-          <div className="grid gap-2 sm:grid-cols-4">
-            <Select value={card.brand} onChange={(e) => setCard({ ...card, brand: e.target.value })} className="capitalize">
-              {['visa', 'mastercard', 'amex', 'discover'].map((b) => <option key={b}>{b}</option>)}
-            </Select>
-            <Input placeholder="Last 4" maxLength={4} value={card.last4} onChange={(e) => setCard({ ...card, last4: e.target.value })} />
-            <Input type="number" placeholder="MM" value={card.expMonth} onChange={(e) => setCard({ ...card, expMonth: Number(e.target.value) })} />
-            <Input type="number" placeholder="YYYY" value={card.expYear} onChange={(e) => setCard({ ...card, expYear: Number(e.target.value) })} />
-          </div>
-          <Button size="sm" disabled={card.last4.length !== 4} loading={addCard.isPending} onClick={() => addCard.mutate()}>Add card</Button>
-          <p className="text-xs text-muted-foreground">Cards are stored via your payment provider — full card numbers never touch CATO servers.</p>
+          {/* Real card entry. This was four text inputs collecting a brand and
+              a last4 — a note about a card, never a card, so nothing was
+              tokenised and no booking could be charged. */}
+          <AddCard onSaved={() => qc.invalidateQueries({ queryKey: ['payment-methods'] })} />
         </CardContent>
       </Card>
 

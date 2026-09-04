@@ -72,6 +72,9 @@ export interface UserDoc {
   /** IANA zone — quiet hours are local to the recipient, not the server. */
   timezone?: string;
   emailVerified: boolean;
+  /** Stripe Customer. Created on first card save; saved cards attach to it,
+   *  which is what makes a later booking chargeable without re-entry. */
+  stripeCustomerId?: string;
   phoneVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -141,6 +144,7 @@ const userSchema = new Schema<UserDoc>(
     locale: { type: String, default: 'en-US' },
     timezone: { type: String, default: 'UTC' },
     emailVerified: { type: Boolean, default: false },
+    stripeCustomerId: { type: String, index: true, sparse: true },
     phoneVerified: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },

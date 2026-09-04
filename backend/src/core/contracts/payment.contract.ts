@@ -15,6 +15,9 @@ export interface ChargeBookingInput {
 }
 
 export interface ChargeResult {
+  /** True when the card needs the cardholder present — a 3-D Secure challenge,
+   *  or no saved card to charge. The booking is NOT paid until it clears. */
+  requiresAction?: boolean;
   paymentId: string;
   intentId: string;
   clientSecret: string;

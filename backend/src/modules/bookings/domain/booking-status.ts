@@ -1,5 +1,9 @@
 export type BookingStatus =
   | 'pending_verification'
+  /** The card needs the cardholder — a 3-D Secure challenge, or no saved card.
+   *  The trip is held but NOT confirmed; a host must never be sent to a
+   *  handover for a booking whose money did not move. */
+  | 'pending_payment'
   | 'pending_approval'
   | 'confirmed'
   | 'paid'
@@ -37,6 +41,17 @@ export const TERMINAL_STATUSES: BookingStatus[] = [
  * bookings written before this split still load and still report correctly.
  */
 export const ALLOWED_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
+  // Clearing the challenge moves it forward exactly as a fresh booking would;
+  // abandoning it expires like any unfinished request.
+  pending_payment: [
+    'paid',
+    'pending_approval',
+    'confirmed',
+    'expired',
+    'cancelled_guest',
+    'cancelled_system',
+    'cancelled',
+  ],
   pending_verification: [
     'pending_approval',
     'paid',

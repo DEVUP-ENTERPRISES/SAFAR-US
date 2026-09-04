@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { PaymentMethodModel, type PaymentMethodDoc } from '../infrastructure/payment-method.model';
 import { config } from '../../../config';
 import { NotFoundError } from '../../../core/errors/app-error';
+import { UserModel } from '../../users/infrastructure/user.model';
 import { randomId } from '../../../shared/utils/uuid';
 
 /**
@@ -17,10 +18,42 @@ export class PaymentMethodService {
     return PaymentMethodModel.find({ userId }).sort({ isDefault: -1, createdAt: -1 }).lean<PaymentMethodDoc[]>();
   }
 
+  /**
+   * The Stripe Customer for a user, created on demand.
+   *
+   * A card saved without a customer cannot be charged again — Stripe will not
+   * reuse a bare PaymentMethod off-session. The customer is what turns "we
+   * stored a card" into "we can bill this booking", so it is created the first
+   * time anyone tries to save a card and reused forever after.
+   */
+  async customerFor(userId: string): Promise<string | null> {
+    if (!this.stripe) return null;
+    const user = await UserModel.findById(userId).lean<{
+      _id: string; email?: string; firstName?: string; lastName?: string; stripeCustomerId?: string;
+    }>();
+    if (!user) throw new NotFoundError('User');
+    if (user.stripeCustomerId) return user.stripeCustomerId;
+
+    const customer = await this.stripe.customers.create({
+      email: user.email,
+      name: [user.firstName, user.lastName].filter(Boolean).join(' ') || undefined,
+      metadata: { userId },
+    });
+    await UserModel.updateOne({ _id: userId }, { $set: { stripeCustomerId: customer.id } });
+    return customer.id;
+  }
+
   /** Returns a client secret to collect a card (Stripe) or a mock handle (dev). */
   async setupIntent(userId: string): Promise<{ provider: 'mock' | 'stripe'; clientSecret: string }> {
     if (this.stripe) {
-      const intent = await this.stripe.setupIntents.create({ metadata: { userId }, usage: 'off_session' });
+      const customer = await this.customerFor(userId);
+      const intent = await this.stripe.setupIntents.create({
+        // Without the customer the card is collected and then unusable later.
+        customer: customer ?? undefined,
+        metadata: { userId },
+        usage: 'off_session',
+        payment_method_types: ['card'],
+      });
       return { provider: 'stripe', clientSecret: intent.client_secret! };
     }
     return { provider: 'mock', clientSecret: `seti_mock_${randomId()}` };
@@ -35,6 +68,25 @@ export class PaymentMethodService {
     card: { brand: string; last4: string; expMonth: number; expYear: number; stripePaymentMethodId?: string },
   ): Promise<PaymentMethodDoc> {
     const count = await PaymentMethodModel.countDocuments({ userId });
+
+    // Attach to the customer and make it their default, so a booking can charge
+    // it without the guest present. A SetupIntent confirmed with a customer
+    // usually attaches already; this is idempotent and covers the case where it
+    // was collected without one.
+    if (this.stripe && card.stripePaymentMethodId) {
+      const customer = await this.customerFor(userId);
+      if (customer) {
+        await this.stripe.paymentMethods
+          .attach(card.stripePaymentMethodId, { customer })
+          .catch(() => undefined);
+        if (count === 0) {
+          await this.stripe.customers
+            .update(customer, { invoice_settings: { default_payment_method: card.stripePaymentMethodId } })
+            .catch(() => undefined);
+        }
+      }
+    }
+
     const pm = await PaymentMethodModel.create({
       userId,
       provider: card.stripePaymentMethodId ? 'stripe' : 'mock',

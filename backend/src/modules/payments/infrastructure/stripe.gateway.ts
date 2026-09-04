@@ -22,12 +22,28 @@ export class StripeGateway implements PaymentGateway {
 
   async createIntent(input: CreateIntentInput): Promise<IntentResult> {
     try {
+      // With a saved card we confirm immediately and off-session: the guest
+      // gave us the card when they saved it, and being asked to re-enter it at
+      // booking is the single biggest drop-off in a checkout.
+      const offSession = !!(input.customerId && input.paymentMethodId);
+
       const intent = await this.stripe.paymentIntents.create(
         {
           amount: input.amount.amount,
           currency: input.amount.currency.toLowerCase(),
           capture_method: input.capture ? 'automatic' : 'manual',
           metadata: { userId: input.userId, ...input.metadata },
+          ...(offSession
+            ? {
+                customer: input.customerId,
+                payment_method: input.paymentMethodId,
+                off_session: true,
+                confirm: true,
+                // Without this a 3-D Secure challenge cannot be finished by the
+                // client later, and the payment is simply stuck.
+                error_on_requires_action: false,
+              }
+            : {}),
         },
         { idempotencyKey: input.idempotencyKey },
       );
@@ -39,7 +55,9 @@ export class StripeGateway implements PaymentGateway {
             ? 'succeeded'
             : intent.status === 'requires_capture'
               ? 'requires_capture'
-              : 'requires_confirmation',
+              : intent.status === 'requires_action'
+                ? 'requires_action'
+                : 'requires_confirmation',
       };
     } catch (err) {
       throw new ExternalServiceError(`Stripe createIntent failed: ${(err as Error).message}`);

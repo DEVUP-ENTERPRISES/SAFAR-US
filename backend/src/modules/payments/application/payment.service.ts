@@ -1,3 +1,5 @@
+import { PaymentMethodModel } from '../infrastructure/payment-method.model';
+import { paymentMethodService } from './payment-method.service';
 import { PaymentModel, type PaymentDoc } from '../infrastructure/payment.model';
 import { paymentGateway } from '../infrastructure/gateway.provider';
 import { ledgerService } from './ledger.service';
@@ -38,13 +40,40 @@ export class PaymentService implements IPaymentContract {
 
     // Wallet funds part of the total; the card charges only the remainder.
     const cardAmount = Math.max(0, input.total.amount - (input.walletApplied ?? 0));
+
+    // The guest's saved card, so the charge happens without asking for it
+    // again. Absent one, the intent comes back needing confirmation and the
+    // client collects a card there and then.
+    const [card, customerId] = await Promise.all([
+      PaymentMethodModel.findOne({ userId: input.guestId, isDefault: true })
+        .lean<{ stripePaymentMethodId?: string }>(),
+      paymentMethodService.customerFor(input.guestId).catch(() => null),
+    ]);
+
     const intent = await paymentGateway.createIntent({
       amount: { amount: cardAmount, currency: input.total.currency },
       userId: input.guestId,
       capture: input.capture,
       idempotencyKey: input.idempotencyKey,
       metadata: { bookingId: input.bookingId, hostId: input.hostId },
+      customerId: customerId ?? undefined,
+      paymentMethodId: card?.stripePaymentMethodId,
     });
+
+    /*
+     * Status comes from the GATEWAY, not from what we intended.
+     *
+     * This previously recorded `succeeded` or `authorized` purely from
+     * input.capture, so a declined card or a 3-D Secure challenge was still
+     * written down as paid — a booking would confirm with no money taken. The
+     * only status worth storing is the one the processor actually returned.
+     */
+    const status =
+      intent.status === 'succeeded'
+        ? 'succeeded'
+        : intent.status === 'requires_capture'
+          ? 'authorized'
+          : 'pending';
 
     const payment = await PaymentModel.create({
       bookingId: input.bookingId,
@@ -57,12 +86,13 @@ export class PaymentService implements IPaymentContract {
       hostEarnings: input.hostEarnings.amount,
       commission: input.commission.amount,
       tax: input.tax.amount,
-      capturedAmount: input.capture ? input.total.amount : 0,
-      status: input.capture ? 'succeeded' : 'authorized',
+      capturedAmount: status === 'succeeded' ? cardAmount : 0,
+      status,
       idempotencyKey: input.idempotencyKey,
     });
 
-    if (input.capture) {
+    // The ledger only moves when money actually did.
+    if (status === 'succeeded') {
       await this.postBookingLedger(payment);
       emit(EVENTS.PAYMENT_SUCCEEDED, input.bookingId, { bookingId: input.bookingId });
     }
@@ -72,6 +102,9 @@ export class PaymentService implements IPaymentContract {
       intentId: intent.intentId,
       clientSecret: intent.clientSecret,
       status: payment.status,
+      // The client must finish a 3-D Secure challenge; the booking is not paid
+      // until it does. Surfaced rather than swallowed.
+      requiresAction: intent.status === 'requires_action' || intent.status === 'requires_confirmation',
     };
   }
 
