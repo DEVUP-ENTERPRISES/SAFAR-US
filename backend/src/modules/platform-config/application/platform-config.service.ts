@@ -167,7 +167,8 @@ export class PlatformConfigService {
       payoutTrust: { newHostTripThreshold: 3, newHostExtraHoldHours: 48, ...(doc.payoutTrust ?? {}) },
       incidentals: {
         fuelPerPercentCents: 300, cleaningCents: 7500, smokingCents: 25000, petCents: 10000, lateReturnPerHourCents: 2500,
-        maxFreeformCents: 25_000, windowDays: 7,
+        maxTollCents: 10_000, maxFineCents: 50_000, maxOtherCents: 15_000,
+        windowDays: 7, evidenceRequiredAboveCents: 5_000, disputeWindowHours: 72,
         ...(doc.incidentals ?? {}),
       },
       payout: { holdHours: 24, instantFeeBps: 150, instantFeeMinCents: 50, ...(doc.payout ?? {}) },

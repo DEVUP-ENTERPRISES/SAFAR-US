@@ -50,6 +50,12 @@ export type BookingStatus =
   | 'disputed';
 
 export interface Booking {
+  /** Post-trip charges. Each carries an id and status so it can be disputed. */
+  incidentals?: {
+    _id: string; type: string; amount: number; qty?: number; note?: string;
+    evidenceUrl?: string; status: 'charged' | 'disputed' | 'refunded' | 'upheld';
+    disputeReason?: string; resolutionNote?: string; at: string;
+  }[];
   /** Set when the card needs the cardholder — a 3-D Secure challenge. The trip
    *  is held, not confirmed, until the client finishes it. */
   requiresAction?: boolean;

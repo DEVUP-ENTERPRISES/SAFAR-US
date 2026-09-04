@@ -348,4 +348,53 @@ router.get(
   }),
 );
 
+/**
+ * The guest's answer to a post-trip charge.
+ *
+ * A charge nobody can contest is not a charge, it is a taking. Disputing does
+ * not reverse the money on its own — staff rule on it — but it marks the charge
+ * and stops it being treated as settled.
+ */
+router.post(
+  '/:id/incidentals/:incidentalId/dispute',
+  authenticate,
+  validate({ body: z.object({ reason: z.string().min(10).max(1000) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await incidentalsService.dispute(
+        req.params.id,
+        req.params.incidentalId,
+        req.principal!.userId,
+        req.body.reason,
+      ),
+    );
+  }),
+);
+
+/** Staff ruling. Refunding posts a compensating entry, never edits the original. */
+router.post(
+  '/:id/incidentals/:incidentalId/resolve',
+  authenticate,
+  authorize('claim:manage'),
+  validate({
+    body: z.object({
+      outcome: z.enum(['refund', 'uphold']),
+      note: z.string().min(10).max(1000),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await incidentalsService.resolveDispute(
+        req.params.id,
+        req.params.incidentalId,
+        req.principal!.userId,
+        req.body.outcome,
+        req.body.note,
+      ),
+    );
+  }),
+);
+
 export const bookingsRoutes = router;

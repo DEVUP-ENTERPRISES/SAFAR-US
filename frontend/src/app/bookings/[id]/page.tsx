@@ -24,6 +24,7 @@ import { bookingApi } from '@/features/bookings/api';
 import { claimsApi } from '@/features/claims/api';
 import { vehicleApi } from '@/features/vehicles/api';
 import { DepositStatus } from '@/features/payments/deposit-status';
+import { IncidentalCharges } from '@/features/bookings/components/incidental-charges';
 import { ApiError } from '@/lib/api/types';
 
 /** How each state reads to the guest, and what it means for them. */
@@ -127,6 +128,16 @@ function BookingDetail({ id }: { id: string }) {
       {/* "When do I get my $500 back" — the most common post-trip question in
           this category, previously answerable only by an API nobody called. */}
       <DepositStatus bookingId={id} />
+
+      {/* Post-trip charges, itemised and disputable. Previously a guest saw
+          only a notification that money had been taken. */}
+      {(b.incidentals?.length ?? 0) > 0 && (
+        <IncidentalCharges
+          bookingId={id}
+          items={b.incidentals!}
+          currency={b.priceBreakdown?.currency ?? 'USD'}
+        />
+      )}
 
       {/* Status first — the question the guest opened this page to answer. */}
       <Card>

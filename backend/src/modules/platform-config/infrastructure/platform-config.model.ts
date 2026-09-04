@@ -200,9 +200,29 @@ export interface PlatformConfigDoc {
      * handed over — the most abusable surface in the product. Anything above
      * this belongs in a claim, where it is evidenced and adjudicated.
      */
-    maxFreeformCents: number;
+    /**
+     * Ceiling per free-form category, in cents.
+     *
+     * One blanket cap was too crude: a toll is a few dollars, a moving
+     * violation can be a few hundred, and "other" is the category with no
+     * natural bound at all — so it gets the tightest limit. Above these, it
+     * belongs in a claim, where it is evidenced and adjudicated rather than
+     * simply taken from a card the guest already handed over.
+     */
+    maxTollCents: number;
+    maxFineCents: number;
+    maxOtherCents: number;
     /** Days after the trip ends that incidentals may still be applied. */
     windowDays: number;
+    /**
+     * Above this, the host must attach proof.
+     *
+     * A $6 toll on trust is reasonable; a $200 one is an assertion. The
+     * threshold is where "just tell me" stops being enough.
+     */
+    evidenceRequiredAboveCents: number;
+    /** Hours a guest has to dispute a charge after it is applied. */
+    disputeWindowHours: number;
   };
   payout: {
     /** Hold window before scheduled payouts are released. */
@@ -411,8 +431,12 @@ const schema = new Schema<PlatformConfigDoc>(
       smokingCents: { type: Number, default: 25000 },
       petCents: { type: Number, default: 10000 },
       lateReturnPerHourCents: { type: Number, default: 2500 },
-      maxFreeformCents: { type: Number, default: 25_000 }, // $250
+      maxTollCents: { type: Number, default: 10_000 }, // $100
+      maxFineCents: { type: Number, default: 50_000 }, // $500
+      maxOtherCents: { type: Number, default: 15_000 }, // $150 — least bounded
       windowDays: { type: Number, default: 7 },
+      evidenceRequiredAboveCents: { type: Number, default: 5_000 }, // $50
+      disputeWindowHours: { type: Number, default: 72 },
     },
     payout: {
       holdHours: { type: Number, default: 24 },

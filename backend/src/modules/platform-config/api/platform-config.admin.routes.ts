@@ -178,6 +178,14 @@ router.put(
           smokingCents: cents.optional(),
           petCents: cents.optional(),
           lateReturnPerHourCents: cents.optional(),
+          // Capped in the API too: a caps field is only a safeguard if it
+          // cannot itself be set to something absurd.
+          maxTollCents: z.number().int().min(0).max(100_000).optional(),
+          maxFineCents: z.number().int().min(0).max(200_000).optional(),
+          maxOtherCents: z.number().int().min(0).max(100_000).optional(),
+          windowDays: z.number().int().min(0).max(90).optional(),
+          evidenceRequiredAboveCents: z.number().int().min(0).max(100_000).optional(),
+          disputeWindowHours: z.number().int().min(1).max(720).optional(),
         })
         .optional(),
       surge: z

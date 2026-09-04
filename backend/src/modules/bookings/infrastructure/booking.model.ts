@@ -53,7 +53,33 @@ export interface BookingDoc {
   status: BookingStatus;
   statusHistory: { from: BookingStatus | null; to: BookingStatus; at: Date; by: string; reason?: string }[];
   /** Post-trip incidental charges (fuel, cleaning, late return, tolls…). */
-  incidentals?: { type: string; amount: number; note?: string; at: Date; by: string }[];
+  /**
+   * Post-trip charges: fuel, cleaning, tolls, fines.
+   *
+   * Each one carries its own id and status because a guest cannot dispute what
+   * they cannot reference. Without an id these were an anonymous array, which
+   * is the real reason there was no dispute path — not an oversight in the UI,
+   * a data model that could not support one.
+   */
+  incidentals?: {
+    _id: string;
+    type: string;
+    amount: number;
+    /** Units for rated types: % of tank, hours late. */
+    qty?: number;
+    note?: string;
+    /** Photo of the receipt, the citation, or the state of the car. */
+    evidenceUrl?: string;
+    status: 'charged' | 'disputed' | 'refunded' | 'upheld';
+    disputeReason?: string;
+    disputedAt?: Date;
+    /** Set when staff rule on a dispute. */
+    resolvedAt?: Date;
+    resolvedBy?: string;
+    resolutionNote?: string;
+    at: Date;
+    by: string;
+  }[];
   /** SHA-256 of the guest's pickup code — the host verifies it at handover to
    *  prove the guest is physically present. Never stored in the clear. */
   pickupCodeHash?: string;
@@ -171,7 +197,28 @@ const schema = new Schema<BookingDoc>(
     incidentals: {
       // `type: { type: String }` — the field is literally named "type", which
       // would otherwise be read as the Mongoose SchemaType keyword.
-      type: [{ _id: false, type: { type: String }, amount: Number, note: String, at: Date, by: String }],
+      type: [
+        {
+          _id: { type: String, required: true },
+          type: { type: String },
+          amount: Number,
+          qty: Number,
+          note: String,
+          evidenceUrl: String,
+          status: {
+            type: String,
+            enum: ['charged', 'disputed', 'refunded', 'upheld'],
+            default: 'charged',
+          },
+          disputeReason: String,
+          disputedAt: Date,
+          resolvedAt: Date,
+          resolvedBy: String,
+          resolutionNote: String,
+          at: Date,
+          by: String,
+        },
+      ],
       default: [],
     },
     pickupCodeHash: String,
