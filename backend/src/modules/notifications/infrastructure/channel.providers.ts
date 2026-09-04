@@ -4,6 +4,7 @@ import { UserModel } from '../../users/infrastructure/user.model';
 import { config } from '../../../config';
 import { logger } from '../../../infrastructure/logging/logger';
 import type { ChannelProvider, DeliveryRequest, DeliveryResult } from '../domain/notification-channel';
+import { renderEmail, renderText, type EmailContent } from './email-template';
 
 /**
  * Channel adapters.
@@ -117,8 +118,10 @@ class SmtpEmailProvider implements ChannelProvider {
         from: config.notifications.emailFrom,
         to: req.target.email,
         subject: req.title,
-        text: req.deepLink ? `${req.body}\n\n${absolute(req.deepLink)}` : req.body,
-        html: renderHtml(req),
+        // Both parts, always: HTML-only mail scores worse with spam filters and
+        // is unreadable in text-only clients.
+        text: renderText(toContent(req)),
+        html: renderEmail(toContent(req)),
       });
       return { ok: true, providerId: info.messageId };
     } catch (err) {
@@ -137,31 +140,30 @@ class SmtpEmailProvider implements ChannelProvider {
 }
 
 /** Relative deep links need the site origin to be clickable in an inbox. */
-function absolute(deepLink: string): string {
-  if (/^https?:\/\//.test(deepLink)) return deepLink;
-  const base = (config.cors.origins[0] ?? '').replace(/\/+$/, '');
-  return `${base}${deepLink.startsWith('/') ? '' : '/'}${deepLink}`;
-}
-
 /**
  * A plain, legible HTML email. Deliberately minimal: inbox clients strip most
  * CSS, and a booking notification's job is to be read and acted on, not admired.
  */
-function renderHtml(req: DeliveryRequest): string {
-  const esc = (v: string) =>
-    v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const link = req.deepLink ? absolute(req.deepLink) : null;
-  return [
-    '<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;',
-    'max-width:520px;margin:0 auto;padding:24px;color:#12161c;line-height:1.6">',
-    `<h1 style="font-size:20px;margin:0 0 12px">${esc(req.title)}</h1>`,
-    `<p style="margin:0 0 20px;color:#46535b">${esc(req.body)}</p>`,
-    link
-      ? `<a href="${esc(link)}" style="display:inline-block;background:#0f9d6a;color:#fff;` +
-        'text-decoration:none;padding:11px 20px;border-radius:8px;font-weight:600">View details</a>'
-      : '',
-    '</div>',
-  ].join('');
+/** Delivery request -> email content. Links point at the web app, not the API. */
+function toContent(req: DeliveryRequest): EmailContent {
+  return {
+    title: req.title,
+    body: req.body,
+    actionUrl: req.deepLink ? webAbsolute(req.deepLink) : undefined,
+  };
+}
+
+/**
+ * An email link must reach the WEB app.
+ *
+ * The API base builds a URL that is right for a media file and wrong
+ * for a person: a recipient clicking it would land on JSON. Falls back to the
+ * API base only when no web URL is configured, which at least keeps the link
+ * from being relative and broken.
+ */
+function webAbsolute(path: string): string {
+  const base = config.notifications.webUrl || config.app.publicUrl;
+  return path.startsWith('http') ? path : `${base}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
 class SmsProvider implements ChannelProvider {

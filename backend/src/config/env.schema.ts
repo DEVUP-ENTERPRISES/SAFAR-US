@@ -82,6 +82,19 @@ export const envSchema = z.object({
   /** VinAudit: title, salvage, theft and odometer history. Metered — without
    *  it, history reports as "not checked" rather than as clean. */
   VINAUDIT_API_KEY: optional(z.string()),
+  // ── Branding, used in email footers ───────────────────────────────
+  /** Shown in email headers and footers. */
+  BRAND_NAME: z.string().default('SAFAR'),
+  /** The web app, for links in emails. Falls back to the first CORS origin. */
+  WEB_URL: optional(z.string()),
+  /**
+   * Postal address in the email footer.
+   *
+   * CAN-SPAM requires a valid physical address on commercial mail, and even
+   * transactional mail is safer with it. Deliverability suffers without one.
+   */
+  COMPANY_ADDRESS: z.string().default(''),
+  SUPPORT_EMAIL: z.string().default('support@example.com'),
   APPLE_CLIENT_ID: optional(z.string()),
   FACEBOOK_APP_ID: optional(z.string()),
   FACEBOOK_APP_SECRET: optional(z.string()),

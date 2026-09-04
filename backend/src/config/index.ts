@@ -136,6 +136,11 @@ export const config = Object.freeze({
     emailApiUrl: env.EMAIL_API_URL,
     emailApiKey: env.EMAIL_API_KEY,
     emailFrom: env.EMAIL_FROM,
+    brandName: env.BRAND_NAME,
+    // Emails link to the web app, not the API.
+    webUrl: (env.WEB_URL ?? env.CORS_ORIGINS.split(',')[0] ?? '').replace(/\/+$/, ''),
+    companyAddress: env.COMPANY_ADDRESS,
+    supportEmail: env.SUPPORT_EMAIL,
     emailApiEnabled: !!(env.EMAIL_API_URL && env.EMAIL_API_KEY && env.EMAIL_FROM),
     emailEnabled: !!(
       env.EMAIL_FROM &&
