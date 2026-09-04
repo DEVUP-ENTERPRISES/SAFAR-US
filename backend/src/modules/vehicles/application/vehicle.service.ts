@@ -30,6 +30,7 @@ export class VehicleService implements IVehicleContract {
       fuelType: dto.fuelType,
       seats: dto.seats,
       vin: dto.vin,
+      pickup: dto.pickup,
       registrationNumber: dto.registrationNumber,
       specs: dto.specs ?? {},
       features: dto.features,
@@ -85,6 +86,9 @@ export class VehicleService implements IVehicleContract {
       };
     }
     if (patch.pricing) update.pricing = { ...vehicle.pricing, ...patch.pricing };
+    // Merged, not replaced: a host editing the instructions must not wipe the
+    // access code they set last week.
+    if (patch.pickup) update.pickup = { ...vehicle.pickup, ...patch.pickup };
     if (patch.features) update.features = patch.features;
     if (patch.tripRules) update.tripRules = patch.tripRules;
     if (patch.mileageLimit) {

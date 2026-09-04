@@ -17,6 +17,9 @@ export interface Vehicle {
   transmission: 'manual' | 'automatic';
   fuelType: 'petrol' | 'diesel' | 'hybrid' | 'ev';
   seats: number;
+  /** How to find the car once you are at the pin. Access code reaches the
+   *  guest only after they are on their way. */
+  pickup?: { instructions?: string; spotPhotoUrl?: string; accessCode?: string };
   vin?: string;
   vinVerified: boolean;
   registrationNumber?: string;

@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart } from '@/components/ui/charts';
 import { EarningsInsights } from '@/features/host/components/earnings-insights';
+import { PayoutConnect } from '@/features/host/components/payout-connect';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { useEarnings, usePayouts, useInstantPayout } from '@/features/host/hooks';
@@ -37,6 +38,8 @@ export default function EarningsPage() {
           collected and used by nothing, so a host could watch a balance grow
           with no idea it could not be sent. */}
       <PayoutReadinessCard />
+
+      <PayoutConnect />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile tone="primary" icon={<TrendingUp className="h-5 w-5" />} label="Lifetime earnings" value={money(data.lifetimeEarnings)} />

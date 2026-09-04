@@ -210,13 +210,20 @@ function SearchInner() {
   const [sort, setSort] = useState<SortKey>((qp.get('sort') as SortKey) ?? 'relevance');
   const [view, setView] = useState<'grid' | 'map'>(qp.get('view') === 'map' ? 'map' : 'grid');
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const startIso = toIso(fromDate, fromTime);
   const endIso = toIso(untilDate, untilTime);
   const bothDates = !!(startIso && endIso);
   const days = bothDates ? Math.max(1, Math.ceil((+new Date(endIso!) - +new Date(startIso!)) / 86_400_000)) : undefined;
+  
+  // Wait until mounted to format dates using the client's locale to avoid hydration mismatch errors
   const dateLabel =
-    bothDates
+    bothDates && mounted
       ? `${new Date(startIso!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${new Date(endIso!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+      : bothDates
+      ? ''
       : null;
 
   const coords = center
@@ -446,36 +453,37 @@ function SearchInner() {
             </button>
           </div>
 
-          {/* Grid / Map toggle */}
-          <div className="flex shrink-0 rounded-full border border-border bg-card p-1">
+          {/* Grid / Map toggle (Desktop) */}
+          <div className="hidden md:flex shrink-0 rounded-full border border-border bg-card p-1">
             <button
               onClick={() => setView('grid')}
               className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors', view === 'grid' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground')}
             >
-              <LayoutGrid className="h-4 w-4" /> <span className="hidden sm:inline">Grid</span>
+              <LayoutGrid className="h-4 w-4" /> <span>Grid</span>
             </button>
             <button
               onClick={() => setView('map')}
               className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors', view === 'map' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground')}
             >
-              <MapIcon className="h-4 w-4" /> <span className="hidden sm:inline">Map</span>
+              <MapIcon className="h-4 w-4" /> <span>Map</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* ── Count + sort + save ───────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2 mb-2">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
           {isFetching ? 'Searching…' : `${data?.length ?? 0} cars available`}
-          <span className="ms-2 text-base font-medium text-muted-foreground">in {areaLabel}</span>
+          <span className="block sm:inline sm:ms-2 text-sm sm:text-base font-medium text-muted-foreground mt-1 sm:mt-0">in {areaLabel}</span>
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-auto w-full sm:w-auto">
           {status === 'authenticated' && (
             <Button
               variant="outline"
               size="sm"
               loading={saveSearch.isPending}
+              className="flex-1 sm:flex-none h-10 sm:h-9"
               onClick={() =>
                 saveSearch.mutate({
                   city: city || undefined,
@@ -491,11 +499,11 @@ function SearchInner() {
               <Bell className="h-4 w-4" /> {saveSearch.isSuccess ? 'Saved' : 'Save search'}
             </Button>
           )}
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none">
             <Select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="h-9 cursor-pointer appearance-none rounded-full border border-border bg-card ps-4 pe-9 text-sm font-medium outline-none hover:border-foreground/40"
+              className="h-10 sm:h-9 w-full sm:w-auto cursor-pointer appearance-none rounded-full border border-border bg-card ps-4 pe-9 text-sm font-medium outline-none hover:border-foreground/40"
             >
               {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
             </Select>
@@ -523,16 +531,34 @@ function SearchInner() {
                 <VehicleListCard key={v._id} vehicle={v} days={days} dateLabel={dateLabel} />
               ))}
             </div>
-            <div className="sticky top-32 hidden h-[calc(100vh-9rem)] overflow-hidden rounded-2xl border border-border lg:block">
+            <div className="sticky top-32 h-[calc(100vh-9rem)] overflow-hidden rounded-2xl border border-border hidden md:block">
               <MapPanel lat={coords!.lat} lng={coords!.lng} label={areaLabel} count={data.length} vehicles={data} />
+            </div>
+            {/* Mobile Map Render when view is map */}
+            <div className="fixed inset-0 z-40 md:hidden mt-[140px] bg-background">
+               <MapPanel lat={coords!.lat} lng={coords!.lng} label={areaLabel} count={data.length} vehicles={data} />
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-6">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-20 md:pb-6">
             {data.map((v) => <VehicleCard key={v._id} vehicle={v} />)}
           </div>
         )
       )}
+
+      {/* Floating Map/Grid Toggle (Mobile) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden">
+        <button
+          onClick={() => setView(view === 'grid' ? 'map' : 'grid')}
+          className="flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background shadow-2xl hover:bg-foreground/90 transition-transform active:scale-95"
+        >
+          {view === 'grid' ? (
+            <><MapIcon className="h-5 w-5" /> Map</>
+          ) : (
+            <><LayoutGrid className="h-5 w-5" /> List</>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

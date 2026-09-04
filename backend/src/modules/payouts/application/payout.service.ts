@@ -1,6 +1,7 @@
 import { PayoutModel, type PayoutDoc } from '../infrastructure/payout.model';
 import { bookingService } from '../../bookings/application/booking.service';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
+import { connectService } from './connect.service';
 import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
 import { emit } from '../../../shared/events/event-bus';
@@ -83,8 +84,42 @@ export class PayoutService {
     });
 
     let total = 0;
+    let paid = 0;
+
     for (const payout of due) {
-      // Move funds out of host payable via the ledger (mock transfer).
+      /*
+       * Send the money BEFORE writing that we sent it.
+       *
+       * This used to post a ledger entry and mark the payout paid without ever
+       * calling a payment processor — the row said "paid", the host's bank
+       * never saw anything. Everything downstream then agreed with a fiction:
+       * balances, statements, and eventually tax.
+       *
+       * When Connect is configured the transfer is real, and a failure leaves
+       * the payout scheduled with the reason attached rather than silently
+       * marking it settled.
+       */
+      if (connectService.enabled) {
+        try {
+          const { transferId } = await connectService.transfer(
+            hostId,
+            { amount: payout.amount, currency: payout.currency },
+            // Keyed on the payout, so a retry cannot pay a host twice.
+            `payout_${payout._id}`,
+            `Payout to host ${hostId}`,
+          );
+          payout.providerRef = transferId;
+        } catch (err) {
+          payout.lastError = (err as Error).message.slice(0, 300);
+          await payout.save();
+          logger.error(
+            { hostId, payoutId: payout._id, err: payout.lastError },
+            'payout transfer failed — left scheduled',
+          );
+          continue;
+        }
+      }
+
       const txnId = await ledgerService.post({
         refType: 'payout',
         refId: payout._id,
@@ -100,8 +135,9 @@ export class PayoutService {
       payout.ledgerTxnId = txnId;
       await payout.save();
       total += payout.amount;
+      paid += 1;
     }
-    return { paid: due.length, amount: total };
+    return { paid, amount: total };
   }
 
   async listForHost(hostId: string): Promise<PayoutDoc[]> {

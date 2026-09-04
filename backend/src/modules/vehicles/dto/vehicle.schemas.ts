@@ -26,6 +26,14 @@ export const createVehicleSchema = z.object({
   transmission: z.enum(['manual', 'automatic']),
   fuelType: z.enum(['petrol', 'diesel', 'hybrid', 'ev']),
   seats: z.number().int().min(1).max(60),
+  /** How to find the car once you are at the pin. Self-pickup only. */
+  pickup: z
+    .object({
+      instructions: z.string().max(600).optional(),
+      spotPhotoUrl: z.string().url().optional(),
+      accessCode: z.string().max(40).optional(),
+    })
+    .optional(),
   vin: z.string().max(32).optional(),
   registrationNumber: z.string().max(32).optional(),
   specs: z
@@ -106,6 +114,11 @@ export const updateVehicleSchema = z
     fuelType: z.enum(['petrol', 'diesel', 'hybrid', 'ev']),
     seats: z.number().int().min(1).max(20),
     features: z.array(z.string()),
+    pickup: z.object({
+      instructions: z.string().max(600),
+      spotPhotoUrl: z.string().url(),
+      accessCode: z.string().max(40),
+    }).partial(),
     tripRules: z.array(z.string()),
     mileageLimit: z
       .object({

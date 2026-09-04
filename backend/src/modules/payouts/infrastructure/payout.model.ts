@@ -10,6 +10,10 @@ export interface PayoutDoc {
   status: 'scheduled' | 'paid' | 'failed';
   instant?: boolean;
   ledgerTxnId?: string;
+  /** The processor's transfer id — proof the money actually left. */
+  providerRef?: string;
+  /** Why the last attempt failed, so a stuck payout can be explained. */
+  lastError?: string;
   scheduledFor: Date;
   paidAt?: Date;
   createdAt: Date;
@@ -26,6 +30,8 @@ const schema = new Schema<PayoutDoc>(
     status: { type: String, default: 'scheduled', enum: ['scheduled', 'paid', 'failed'] },
     instant: { type: Boolean, default: false },
     ledgerTxnId: String,
+    providerRef: String,
+    lastError: String,
     scheduledFor: { type: Date, required: true },
     paidAt: Date,
   },
