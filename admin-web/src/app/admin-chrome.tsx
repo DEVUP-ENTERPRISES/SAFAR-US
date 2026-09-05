@@ -1,5 +1,7 @@
 'use client';
 
+
+
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -53,7 +55,7 @@ function AdminShell({ children }: { children: ReactNode }) {
   );
 }
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export function AdminChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   // The admin login page is public — everything else requires an admin session.
   if (pathname === adminPath('login')) {

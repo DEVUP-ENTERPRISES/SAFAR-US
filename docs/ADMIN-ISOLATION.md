@@ -80,20 +80,32 @@ from inside the datacenter. The EC2 security group should also not expose 3005.
 > `TRUST_PROXY_HOPS` still applies. With Cloudflare in front of NGINX that is
 > **2** (see DEPLOY.md), or the rate limiter keys on the wrong address.
 
-## 4. If you split the admin into its own app/process on :3005
+## 4. The admin is its own app on :3005 (done)
 
-This is optional. The security guarantee does not need it — it is code-level and
-already met — but a separate process gives you a smaller bundle, an independent
-deploy, and a blast-radius boundary. Two ways, cheapest first:
+The console is a standalone Next application in `admin-web/`, listening on port
+**3005**, entirely separate from the public app:
 
-- **Same codebase, second process.** Run a second instance of the existing app
-  bound to `127.0.0.1:3005`, and have NGINX send only `admin.yourdomain.com` to
-  it. No code split, no duplication; the isolation is entirely at the proxy.
-- **Separate app folder (`/admin-web`).** A standalone Next app that imports the
-  shared UI as a workspace package. Cleanest boundary, but it is a real
-  refactor — the 28 console pages and their hooks move, and the shared component
-  library becomes a package both apps consume. Do this deliberately, not in the
-  last days before launch.
+- It serves the console at its own **root** (`/users`, `/bookings`, …) — no
+  secret slug, because the whole app is the back office.
+- It **shares** the public app's component library, API client and admin
+  feature code from `../frontend/src` (via `@/*` alias + `externalDir`), so
+  there is one design system and no duplicated logic. The sharing is
+  one-directional: admin reads shared code, shared code never imports admin.
+- The public app (`frontend/`) now serves **no** console routes at all. Both the
+  old secret slug and `/admin` return 404, and there is no console code left in
+  that bundle to reach.
+
+Run it:
+
+```bash
+cd admin-web
+npm install
+npm run build && npm run start   # listens on :3005
+```
+
+Bind it to loopback in production (`next start -p 3005 -H 127.0.0.1`) so :3005 is
+never publicly reachable, and let NGINX + Cloudflare Access (§2–§3) be the only
+way in.
 
 ## 5. Provisioning and rotating the one admin
 

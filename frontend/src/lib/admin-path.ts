@@ -14,5 +14,11 @@ export const ADMIN_SLUG = process.env.NEXT_PUBLIC_ADMIN_SLUG || 'admin';
  */
 export function adminPath(sub = ''): string {
   const clean = sub.replace(/^\/+/, '');
+  // In the standalone admin app (port 3005) the console IS the whole site, so
+  // routes live at the root — `/users`, not `/{slug}/users`. The public app
+  // leaves this unset and keeps serving the console behind its secret slug.
+  if (process.env.NEXT_PUBLIC_ADMIN_ROOT === '1') {
+    return clean ? `/${clean}` : '/';
+  }
   return clean ? `/${ADMIN_SLUG}/${clean}` : `/${ADMIN_SLUG}`;
 }

@@ -6,22 +6,19 @@ import { Navbar } from './navbar';
 import { Footer } from './footer';
 import { MobileTabBar } from './mobile-tab-bar';
 import { CompareBar } from '@/features/vehicles/components/compare-bar';
-import { adminPath } from '@/lib/admin-path';
 
 /**
  * Decides which chrome a route gets.
  *
- * The admin console is a different product from the consumer marketplace: it
- * must not carry the shopper navbar ("Become a host", "Search cars"), the
- * marketing footer, or the compare bar, and it needs the full viewport width
- * for dense tables. So /admin renders bare and supplies its own shell.
+ * The auth screens render bare — no marketplace chrome around a sign-in form.
+ * The admin console is no longer one of these cases: it moved to its own
+ * application (admin-web, port 3005) and this app serves none of it.
  */
 export function AppChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? '';
-  const isConsole = pathname.startsWith(adminPath());
   const isAuth = pathname === '/login' || pathname === '/register';
 
-  if (isConsole || isAuth) return <>{children}</>;
+  if (isAuth) return <>{children}</>;
 
   return (
     <>

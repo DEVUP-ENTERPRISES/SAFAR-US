@@ -3,14 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  Car, LogOut, Wallet, Gift, User, LifeBuoy, Shield, Building2, Heart, ChevronDown, Search, BookOpen, MessageSquare, FileWarning, Sparkles } from 'lucide-react';
+  Car, LogOut, Wallet, Gift, User, LifeBuoy, Building2, Heart, ChevronDown, Search, BookOpen, MessageSquare, FileWarning, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store';
 import { useUnreadMessages } from '@/features/messaging/hooks';
 import { useLogout } from '@/features/auth/hooks';
 import { cn } from '@/lib/utils/cn';
-import { adminPath } from '@/lib/admin-path';
 
-const ADMIN_ROLES = ['support', 'moderator', 'finance', 'ops', 'super_admin'];
 
 /**
  * Avatar dropdown. Collapses what used to be nine flat nav buttons into a
@@ -39,7 +37,6 @@ export function UserMenu() {
 
   const name = user?.email?.split('@')[0] ?? 'Account';
   const initial = name.slice(0, 1).toUpperCase();
-  const isStaff = user?.roles.some((r) => ADMIN_ROLES.includes(r));
   const unread = useUnreadMessages(!!user).data?.count ?? 0;
 
   const items = [
@@ -123,16 +120,9 @@ export function UserMenu() {
             >
               <Building2 className="h-4 w-4 text-muted-foreground" /> Corporate
             </Link>
-            {isStaff && (
-              <Link
-                href={adminPath()}
-                onClick={() => setOpen(false)}
-                role="menuitem"
-                className="flex items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-accent"
-              >
-                <Shield className="h-4 w-4 text-muted-foreground" /> Admin
-              </Link>
-            )}
+            {/* No admin link here. The console is a separate application on
+                its own hostname behind Cloudflare Access; the public app neither
+                serves it nor advertises its URL. Staff go there directly. */}
           </div>
 
           <div className="border-t border-border py-1">
