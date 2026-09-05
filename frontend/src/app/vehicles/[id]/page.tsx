@@ -28,6 +28,7 @@ import { walletApi } from '@/features/wallet/api';
 import { WishlistButton } from '@/features/favorites/wishlist-button';
 import { ShareButton } from '@/features/vehicles/components/share-button';
 import { AvailabilityCalendar } from '@/features/vehicles/components/availability-calendar';
+import { TripDatesField } from '@/features/vehicles/components/trip-dates-field';
 import { PhotoLightbox } from '@/features/vehicles/components/photo-lightbox';
 import { confirmCardPayment } from '@/features/payments/confirm-payment';
 import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
@@ -314,8 +315,23 @@ export default function VehicleDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-10 lg:grid-cols-[1fr_400px] lg:gap-16">
-        <div className="space-y-10">
+      {/*
+        minmax(0,1fr), not 1fr.
+
+        A grid track sized `1fr` still has `min-width: auto`, so it refuses to
+        shrink below the intrinsic width of its widest child. Anything wide in
+        this column — the spec grid, a long unbroken string, the calendar —
+        pushed the track past the viewport, and because body carries
+        overflow-x-hidden the excess was silently CLIPPED rather than
+        scrollable. On a phone that meant the right-hand side of this page,
+        which is where the booking panel and half the calendar live, simply
+        could not be reached.
+
+        min-w-0 on the column itself is the same fix one level down, for the
+        flex and grid children inside it.
+      */}
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-16">
+        <div className="min-w-0 space-y-10">
           {/* Header */}
         <div>
           <h1 className="display text-3xl leading-tight text-foreground sm:text-4xl">
@@ -584,17 +600,12 @@ export default function VehicleDetailPage() {
               </span>
             </div>
 
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-              <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
-                <div className="p-3">
-                  <label htmlFor="s" className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Trip start</label>
-                  <input id="s" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} className="w-full bg-transparent text-sm font-medium outline-none" />
-                </div>
-                <div className="p-3">
-                  <label htmlFor="e" className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Trip end</label>
-                  <input id="e" type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} className="w-full bg-transparent text-sm font-medium outline-none" />
-                </div>
-              </div>
+            <div className="rounded-xl border border-border bg-card">
+              <TripDatesField
+                start={start}
+                end={end}
+                onChange={(s2, e2) => { setStart(s2); setEnd(e2); }}
+              />
               <div className="p-3">
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Pickup & return</label>
                 <div className="text-sm font-medium truncate">{v.location.address || v.location.city}</div>

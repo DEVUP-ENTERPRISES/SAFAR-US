@@ -31,10 +31,20 @@ export function DateRangePicker({
   from,
   to,
   onChange,
+  /**
+   * One month instead of two.
+   *
+   * The two-month layout is 34rem wide, which is fine in the search bar's
+   * popover and 8rem wider than the 400px booking panel it also has to live
+   * in. Rather than let it overflow there, the caller says which it has room
+   * for.
+   */
+  compact = false,
 }: {
   from: string;
   to: string;
   onChange: (from: string, to: string) => void;
+  compact?: boolean;
 }) {
   const today = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
   const [offset, setOffset] = useState(0);
@@ -63,7 +73,7 @@ export function DateRangePicker({
   };
 
   return (
-    <div className="w-[19rem] sm:w-[34rem]">
+    <div className={cn('w-full', compact ? 'max-w-full' : 'sm:w-[34rem]')}>
       <div className="mb-2 flex items-center justify-between">
         <button
           type="button"
@@ -84,11 +94,11 @@ export function DateRangePicker({
         </button>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className={cn('grid gap-6', !compact && 'sm:grid-cols-2')}>
         {months.map((mo, mi) => (
           // The second month is hidden on small screens rather than squeezed —
           // a cramped calendar is worse than one month at a time.
-          <div key={mi} className={cn(mi === 1 && 'hidden sm:block')}>
+          <div key={mi} className={cn(mi === 1 && (compact ? 'hidden' : 'hidden sm:block'))}>
             <p className="mb-2 text-center text-sm font-semibold">{mo.label}</p>
             <div className="grid grid-cols-7 gap-y-1">
               {DOW.map((d, i) => (

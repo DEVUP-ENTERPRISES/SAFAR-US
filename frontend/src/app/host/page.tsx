@@ -133,7 +133,7 @@ export default function HostDashboardPage() {
         <Skeleton className="h-40 w-full rounded-3xl" />
       ) : hasHistory ? (
         <section className="rounded-3xl bg-muted/20 border border-border/30 overflow-hidden">
-          <div className="grid sm:grid-cols-[1.4fr_1fr]">
+          <div className="grid sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <div className="p-8 sm:border-r border-border/40 flex flex-col justify-center">
               <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
                 <TrendingUp className="h-4 w-4 text-primary" /> Lifetime earnings

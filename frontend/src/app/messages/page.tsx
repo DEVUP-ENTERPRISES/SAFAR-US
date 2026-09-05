@@ -20,7 +20,7 @@ function Inbox() {
     <div className="mx-auto max-w-5xl py-6">
       <PageHeader title="Messages" description="Every conversation with your hosts and guests, in one place." />
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,360px)_1fr]">
+      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         {/* Conversation list — hidden on mobile once a chat is open */}
         <div className={cn('space-y-2', selected && 'hidden lg:block')}>
           {conversations.isLoading ? (

@@ -526,7 +526,7 @@ function SearchInner() {
 
       {data && data.length > 0 && (
         view === 'map' ? (
-          <div className="grid gap-6 lg:grid-cols-[1fr_460px] xl:grid-cols-[1fr_560px]">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_560px]">
             <div className="space-y-4">
               {data.map((v) => (
                 <VehicleListCard key={v._id} vehicle={v} days={days} dateLabel={dateLabel} />

@@ -33,9 +33,21 @@ export function VehicleListCard({
       href={`/vehicles/${vehicle._id}`}
       className={cn('group block overflow-hidden rounded-2xl border border-border bg-card transition-shadow hover:shadow-lg', className)}
     >
-      <div className="flex flex-col sm:flex-row">
-        {/* Photo */}
-        <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-muted sm:aspect-auto sm:w-[44%]">
+      <div className="flex flex-col sm:h-[13.5rem] sm:flex-row">
+        {/*
+          Photo.
+
+          `sm:aspect-auto` was the reason no two cards were the same height. It
+          removes the ratio, and the img inside is `h-full` — which against an
+          auto-height parent resolves to auto, so each card ended up as tall as
+          its own photo happened to be. A landscape shot gave a short card, a
+          squarer one gave a card nearly twice the height, and a list of them
+          looked broken.
+
+          A fixed ratio on both breakpoints means every card is identical and
+          object-cover does the work it was always meant to do.
+        */}
+        <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-muted sm:aspect-[4/3] sm:w-[44%]">
           {cover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={cover} alt={`${vehicle.make} ${vehicle.model}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -55,9 +67,9 @@ export function VehicleListCard({
         </div>
 
         {/* Details */}
-        <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 p-4 sm:p-5">
+        <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 overflow-hidden p-4 sm:p-5">
           <div className="min-w-0">
-            <p className="text-lg font-bold leading-tight">{vehicle.make} {vehicle.model}</p>
+            <p className="truncate text-lg font-bold leading-tight">{vehicle.make} {vehicle.model}</p>
             <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-muted-foreground">
               <span>{vehicle.year}</span>
               {vehicle.ratingCount > 0 && (

@@ -93,7 +93,7 @@ export function AvailabilityCalendar({
     return cents;
   };
 
-  const { days, monthLabel, cheapest, longestRun, longestFrom } = useMemo(() => {
+  const { days, monthLabel, cheapest, longestRun, longestFrom, baseline, varies } = useMemo(() => {
     const now = new Date();
     const cursor = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
     const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
@@ -132,6 +132,21 @@ export function AvailabilityCalendar({
 
     const openDays = list.filter((d) => d.state === 'open');
     const best = openDays.reduce<Day | null>((a, d) => (!a || d.priceCents < a.priceCents ? d : a), null);
+
+    /*
+     * The baseline is the most common nightly rate in view, not the lowest.
+     * Using the minimum would mark a whole month as "more expensive" the moment
+     * one promo night appeared, which is the opposite of useful — the guest
+     * wants to know what the normal night costs and which ones break from it.
+     */
+    const tally = new Map<number, number>();
+    for (const d of openDays) tally.set(d.priceCents, (tally.get(d.priceCents) ?? 0) + 1);
+    let modal = p.dailyPrice;
+    let modalCount = -1;
+    for (const [cents, count] of tally) {
+      if (count > modalCount) { modal = cents; modalCount = count; }
+    }
+    const differing = openDays.some((d) => d.priceCents !== modal);
     const longest = openDays.reduce((m, d) => Math.max(m, d.runLength), 0);
     const longestStart = openDays.find((d) => d.runLength === longest);
 
@@ -141,6 +156,8 @@ export function AvailabilityCalendar({
       cheapest: best,
       longestRun: longest,
       longestFrom: longestStart,
+      baseline: modal,
+      varies: differing,
       // eslint-disable-next-line react-hooks/exhaustive-deps
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,7 +216,30 @@ export function AvailabilityCalendar({
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-7 gap-1">
+        {/*
+          A price on every cell is only information when the prices differ.
+          This platform prices most cars flat, so the grid was repeating the
+          same number thirty times — thirty pieces of chrome carrying one fact,
+          which also forced every cell tall enough to stack two lines and made
+          the whole calendar unusable on a phone.
+
+          The rule is now: say the rate once, above the grid, and mark only the
+          nights that depart from it. Variation becomes visible instead of being
+          buried in uniformity, and a flat month reads as a clean grid of days.
+        */}
+        {varies ? (
+          <p className="mt-3 text-xs text-muted-foreground">
+            From <span className="numeric font-semibold text-foreground">{money(baseline)}</span> a
+            night · nights that cost more are marked
+          </p>
+        ) : (
+          <p className="mt-3 text-xs text-muted-foreground">
+            <span className="numeric font-semibold text-foreground">{money(baseline)}</span> a night
+            for every open date this month
+          </p>
+        )}
+
+        <div className="mt-3 grid grid-cols-7 gap-1 sm:gap-1.5">
           {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
             <div key={i} className="pb-2 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               {d}
@@ -226,7 +266,7 @@ export function AvailabilityCalendar({
                           : `${money(d.priceCents)} a night`
                 }
                 className={cn(
-                  'flex aspect-square flex-col items-center justify-center rounded-xl border text-sm transition-all',
+                  'flex h-11 flex-col items-center justify-center rounded-lg border text-sm transition-all sm:h-12 sm:rounded-xl',
                   open && !marked && 'border-border bg-card hover:border-primary hover:shadow-sm',
                   marked && 'border-primary bg-primary text-primary-foreground shadow-sm',
                   d.state === 'past' && 'border-transparent text-muted-foreground/35',
@@ -237,15 +277,19 @@ export function AvailabilityCalendar({
                   isCheapest && 'border-success ring-1 ring-success',
                 )}
               >
-                <span className={cn('numeric font-semibold leading-none', marked && 'text-primary-foreground')}>
+                <span className={cn('numeric text-[13px] font-semibold leading-none sm:text-sm', marked && 'text-primary-foreground')}>
                   {d.dom}
                 </span>
-                {/* The number that was missing entirely. */}
-                {open && (
+                {/* Shown only where this night departs from the baseline. */}
+                {open && varies && d.priceCents !== baseline && (
                   <span
                     className={cn(
-                      'numeric mt-1 text-[10px] leading-none',
-                      marked ? 'text-primary-foreground/80' : 'text-muted-foreground',
+                      'numeric mt-0.5 text-[9px] leading-none sm:text-[10px]',
+                      marked
+                        ? 'text-primary-foreground/80'
+                        : d.priceCents > baseline
+                          ? 'text-warning'
+                          : 'text-success',
                     )}
                   >
                     {money(d.priceCents)}
