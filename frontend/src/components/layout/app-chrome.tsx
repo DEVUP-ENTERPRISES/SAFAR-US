@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Navbar } from './navbar';
 import { Footer } from './footer';
+import { MobileTabBar } from './mobile-tab-bar';
 import { CompareBar } from '@/features/vehicles/components/compare-bar';
 import { adminPath } from '@/lib/admin-path';
 
@@ -28,6 +29,7 @@ export function AppChrome({ children }: { children: ReactNode }) {
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-8 pt-24 sm:px-6">{children}</main>
       <Footer />
       <CompareBar />
+      <MobileTabBar />
     </>
   );
 }

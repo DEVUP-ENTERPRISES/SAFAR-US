@@ -2,10 +2,20 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { bookingApi } from './api';
+import { useAuthStore } from '@/features/auth/store';
 import type { QuoteInput } from './types';
 
 export function useMyBookings(role: 'guest' | 'host' = 'guest') {
-  return useQuery({ queryKey: ['bookings', role], queryFn: () => bookingApi.list(role) });
+  // Gated on being signed in. Nothing needed this while the hook was only
+  // mounted on pages behind an auth guard, but the phone tab bar shows a trip
+  // count on every screen — without this, every signed-out visitor fires a
+  // request that can only ever 401.
+  const status = useAuthStore((s) => s.status);
+  return useQuery({
+    queryKey: ['bookings', role],
+    queryFn: () => bookingApi.list(role),
+    enabled: status === 'authenticated',
+  });
 }
 
 export function useBooking(id: string) {
