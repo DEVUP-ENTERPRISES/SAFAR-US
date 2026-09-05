@@ -12,7 +12,11 @@ import { loadMapbox } from '@/features/maps/mapbox-loader';
 type LngLat = [number, number];
 interface MbFeature {
   geometry: { coordinates: LngLat };
-  properties: { cluster?: boolean; cluster_id?: number; point_count?: number; id?: string; price?: number; instant?: boolean };
+  properties: {
+    cluster?: boolean; cluster_id?: number; point_count?: number;
+    id?: string; price?: number; instant?: boolean;
+    photo?: string; name?: string; rating?: string;
+  };
 }
 interface MbSource {
   setData(data: unknown): void;
@@ -81,6 +85,9 @@ export function MapboxPanel({
         id: v._id,
         price: Math.round(v.pricing.dailyPrice / 100),
         instant: !!v.listing?.instantBook,
+        photo: v.photos?.find((p) => p.isCover)?.url ?? v.photos?.[0]?.url ?? '',
+        name: `${v.year} ${v.make} ${v.model}`,
+        rating: v.ratingCount > 0 ? v.ratingAvg.toFixed(1) : '',
       },
     })),
   });
@@ -111,14 +118,10 @@ export function MapboxPanel({
                 if (!err) map.easeTo({ center: coords, zoom });
               });
             })
-          : pinEl(
-              p.price ?? 0,
-              () => {
-                const v = vehiclesRef.current.find((x) => x._id === p.id);
-                if (v) setSelected(v);
-              },
-              !!p.instant,
-            );
+          : pinEl(p, () => {
+              const v = vehiclesRef.current.find((x) => x._id === p.id);
+              if (v) setSelected(v);
+            });
         markers.current[id] = new mb.Marker({ element: el }).setLngLat(coords);
       }
       next[id] = markers.current[id];
@@ -272,27 +275,55 @@ function VehicleSheet({ vehicle: v, onClose }: { vehicle: Vehicle; onClose: () =
 }
 
 /**
- * A price pin.
+ * A car on the map.
  *
- * Reads as a price tag rather than a dot: a pointer anchors it to the actual
- * spot, so a pill floating above a junction is not mistaken for the junction.
- * White on ink keeps it legible over parks, water and motorways alike, which a
- * tinted pill does not.
+ * A price alone tells you what it costs and nothing about what it is. On a
+ * marketplace where the product is a photograph of a specific car, showing the
+ * car is the whole point — someone scanning a map is choosing by sight long
+ * before they read a number.
+ *
+ * It stays small until hovered, because a map of expanded cards is a collage,
+ * not a map. Collapsed it is a photo chip with the price; hovered it grows to
+ * show the model and rating. One tap opens the car either way.
  */
-function pinEl(price: number, onClick: () => void, instant = false): HTMLButtonElement {
+function pinEl(
+  p: { price?: number; instant?: boolean; photo?: string; name?: string; rating?: string },
+  onClick: () => void,
+): HTMLButtonElement {
   const el = document.createElement('button');
   el.type = 'button';
-  el.setAttribute('aria-label', `$${price} per day`);
+  el.setAttribute('aria-label', `${p.name ?? 'Car'} — $${p.price} per day`);
   el.className = 'group relative block cursor-pointer';
+
+  const bolt = p.instant
+    ? '<span class="absolute -end-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-[#0e918c] text-[9px] text-white ring-2 ring-white">\u26A1</span>'
+    : '';
+
+  // No photo is a real case — an imported draft has none yet — and a broken
+  // image on a map is worse than a clean price pill.
+  const media = p.photo
+    ? `<img src="${p.photo}" alt="" loading="lazy"
+           class="h-9 w-9 shrink-0 rounded-lg object-cover transition-all duration-200
+                  group-hover:h-14 group-hover:w-20" />`
+    : '';
+
   el.innerHTML = `
-    <span class="relative flex items-center gap-1 rounded-full bg-[#141210] px-2.5 py-1
-                 text-[13px] font-bold text-white shadow-[0_2px_10px_rgba(0,0,0,.35)]
-                 ring-2 ring-white transition-transform duration-150
-                 group-hover:scale-110 group-hover:bg-[#0e918c]">
-      ${instant ? '<span style="font-size:11px;line-height:1">\u26A1</span>' : ''}$${price}
+    <span class="relative flex items-center gap-1.5 rounded-2xl bg-[#141210] p-1 pe-2.5
+                 shadow-[0_4px_16px_rgba(0,0,0,.4)] ring-2 ring-white
+                 transition-all duration-200 group-hover:pe-3 group-hover:ring-[#0e918c]">
+      ${media}
+      <span class="flex flex-col items-start leading-tight text-white">
+        <span class="text-[13px] font-bold">$${p.price}</span>
+        <span class="max-w-0 overflow-hidden whitespace-nowrap text-[10px] text-white/70
+                     transition-all duration-200 group-hover:max-w-[9rem]">
+          ${p.name ?? ''}${p.rating ? ` \u00B7 ${p.rating}\u2605` : ''}
+        </span>
+      </span>
+      ${bolt}
     </span>
     <span class="absolute left-1/2 top-full -translate-x-1/2 -translate-y-[2px]
                  border-x-[5px] border-t-[6px] border-x-transparent border-t-white"></span>`;
+
   el.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
   return el;
 }
