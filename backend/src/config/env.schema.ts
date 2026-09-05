@@ -217,6 +217,38 @@ export const envSchemaWithProdGuards = envSchema.superRefine((env, ctx) => {
       fail('AWS_SECRET_ACCESS_KEY', 'looks like a placeholder — real AWS secret keys are 40 characters');
     }
   }
+
+  // 7. Live Stripe with no webhook secret is a money hole: the webhook is the
+  //    authoritative source of payment status, and without the signing secret
+  //    it cannot be verified — a forged POST could mark a booking paid. If the
+  //    secret key is present in production, the webhook secret must be too.
+  if (env.STRIPE_SECRET_KEY) {
+    if (!env.STRIPE_WEBHOOK_SECRET) {
+      fail('STRIPE_WEBHOOK_SECRET', 'required when STRIPE_SECRET_KEY is set — unverified webhooks let anyone mark a booking paid');
+    }
+    if (weak.test(env.STRIPE_SECRET_KEY)) {
+      fail('STRIPE_SECRET_KEY', 'looks like a placeholder');
+    }
+    // A test key in production takes real bookings that never charge a card.
+    if (env.STRIPE_SECRET_KEY.startsWith('sk_test_')) {
+      fail('STRIPE_SECRET_KEY', 'is a TEST key — production must use a live key (sk_live_)');
+    }
+  }
+
+  // 8. The admin is provisioned only from the environment, and there must be
+  //    exactly one. In production, refusing to boot without it prevents both a
+  //    console with no way in and any reliance on a leftover account.
+  if (!env.ADMIN_EMAIL || !env.ADMIN_PASSWORD) {
+    fail('ADMIN_EMAIL', 'ADMIN_EMAIL and ADMIN_PASSWORD are required in production — the sole admin is provisioned from them');
+  }
+
+  // 9. Behind Cloudflare (orange cloud → Nginx → Node) this must be 2, or every
+  //    IP-keyed control reads the Cloudflare edge address. It is deployment
+  //    truth, so production must set it CONSCIOUSLY rather than inherit a
+  //    default that is right for only one topology.
+  if (process.env.TRUST_PROXY_HOPS === undefined) {
+    fail('TRUST_PROXY_HOPS', 'must be set explicitly in production (1 = Nginx only, 2 = Cloudflare → Nginx) — see DEPLOY.md');
+  }
 });
 
 export type Env = z.infer<typeof envSchema>;
