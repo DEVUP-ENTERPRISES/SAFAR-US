@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash, randomInt } from 'crypto';
 import { kv } from '../../../infrastructure/cache/kv-store';
 import { UnauthorizedError, TooManyRequestsError } from '../../../core/errors/app-error';
 
@@ -27,7 +27,10 @@ export class OtpService {
     }
     await kv().set(rateKey(target), String(sends + 1), 900);
 
-    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
+    // crypto.randomInt, not Math.random: an OTP is a secret, and a predictable
+    // PRNG makes the code guessable independent of the attempt cap. randomInt
+    // draws from the OS CSPRNG and is unbiased across the range.
+    const code = String(randomInt(100000, 1000000)); // 6 digits, [100000, 999999]
     await kv().set(otpKey(purpose, target), JSON.stringify({ hash: hash(code), attempts: 0 }), TTL_SECONDS);
     return code;
   }
