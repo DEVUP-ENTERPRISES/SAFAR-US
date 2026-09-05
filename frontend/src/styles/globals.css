@@ -217,3 +217,89 @@ textarea {
 ::placeholder {
   color: hsl(var(--muted-foreground));
 }
+
+/* ── Motion ───────────────────────────────────────────────────────────
+   The system defined keyframes that almost nothing called, so the product
+   painted inert. These are the shared entrance used by <Reveal>.
+
+   Transition, not animation, on purpose: an animation runs the moment it is
+   painted, which would fire every card on the page at once regardless of
+   whether it is on screen. A transition waits for the class the observer adds.
+   ───────────────────────────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  /* Decelerating curve — arrives fast, settles slowly. Linear entrances read
+     as mechanical. */
+  transition:
+    opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Hints the compositor without leaving layers promoted forever. */
+  will-change: opacity, transform;
+}
+.reveal.is-revealed {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+/* Motion is a preference, and on a page someone books a car through it is also
+   an accessibility requirement. Nothing below animates when it is switched off
+   — including anything that opted in via a utility class. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Interaction ──────────────────────────────────────────────────────
+   A surface that responds to the cursor tells you it is operable before you
+   click it. Kept to a lift and a shadow: scaling a card nudges its neighbours
+   and makes a grid feel loose.
+   ───────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .lift {
+    transition:
+      transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.25s ease;
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 40px -12px rgb(0 0 0 / 0.18);
+  }
+
+  /* Underline that draws from the leading edge. Logical properties, so it
+     still grows from the start edge in RTL markets. */
+  .link-underline {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-repeat: no-repeat;
+    background-position-y: 100%;
+    background-size: 0 1.5px;
+    transition: background-size 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .link-underline:hover {
+    background-size: 100% 1.5px;
+  }
+}
+
+/* Focus is never removed, only made to match the system. Keyboard users are
+   the ones who cannot see a hover state. */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 2px;
+}

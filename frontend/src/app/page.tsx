@@ -6,6 +6,7 @@ import {
   ShieldCheck, Zap, Sparkles, ArrowRight, Star, CarFront, KeyRound, Route, BadgeCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Reveal } from '@/components/ui/reveal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
 import { SearchWidget } from '@/features/vehicles/components/search-widget';
@@ -202,16 +203,17 @@ export default function HomePage() {
         </section>
 
         {/* ── How it works ───────────────────────────────────────────── */}
-        <section className="space-y-12 sm:space-y-16 relative isolate pt-10">
+        <Reveal as="section" className="space-y-12 sm:space-y-16 relative isolate pt-10">
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-60 pointer-events-none blur-3xl"></div>
           <div className="text-center sm:text-start">
-            <h2 className="text-4xl sm:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 inline-block">How CATO works</h2>
+            <h2 className="display text-4xl text-foreground sm:text-5xl">How CATO works</h2>
             <p className="mt-4 text-muted-foreground text-lg sm:text-xl font-medium max-w-xl">Three steps. No counter, no queue, no paperwork.</p>
           </div>
           <div className="grid gap-6 sm:gap-10 md:grid-cols-3">
             {STEPS.map((s, i) => (
-              <div
+              <Reveal
                 key={s.title}
+                delay={i * 90}
                 className="group relative overflow-hidden rounded-3xl border border-border/50 bg-card/40 backdrop-blur-xl p-8 shadow-lg transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/40 hover:bg-card/80"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
@@ -226,13 +228,13 @@ export default function HomePage() {
                 
                 {/* Glow effect at the bottom */}
                 <div className="absolute -bottom-1 start-1/2 -translate-x-1/2 w-1/2 h-1.5 bg-primary blur-md opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
-              </div>
+              </Reveal>
             ))}
           </div>
-        </section>
+        </Reveal>
 
         {/* ── Trust ──────────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden grid gap-10 rounded-3xl sm:rounded-[2.5rem] border border-border/50 bg-gradient-to-br from-card/80 via-card/50 to-card/20 backdrop-blur-2xl p-8 sm:p-14 md:grid-cols-3 shadow-2xl">
+        <Reveal as="section" className="relative overflow-hidden grid gap-10 rounded-3xl sm:rounded-[2.5rem] border border-border/50 bg-gradient-to-br from-card/80 via-card/50 to-card/20 backdrop-blur-2xl p-8 sm:p-14 md:grid-cols-3 shadow-2xl">
           <div className="absolute -top-40 -end-40 w-96 h-96 bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
           <div className="absolute -bottom-40 -start-40 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
           
@@ -249,10 +251,10 @@ export default function HomePage() {
               <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground max-w-xs">{t.label}</p>
             </div>
           ))}
-        </section>
+        </Reveal>
 
         {/* ── Host CTA ───────────────────────────────────────────────── */}
-        <section className="relative isolate grain overflow-hidden rounded-3xl hero-mesh px-8 py-16 sm:px-16 sm:py-20">
+        <Reveal as="section" className="relative isolate grain overflow-hidden rounded-3xl hero-mesh px-8 py-16 sm:px-16 sm:py-20">
           {/* An existing host shouldn't be pitched on hosting — send them to
               their dashboard instead. */}
           <div className="max-w-xl">
@@ -282,7 +284,7 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
-        </section>
+        </Reveal>
       </div>
     </div>
   );
