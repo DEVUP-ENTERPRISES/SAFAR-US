@@ -71,10 +71,15 @@ export function MapboxPanel({
   const vehiclesRef = useRef<Vehicle[]>(vehicles);
   const markers = useRef<Record<string, MbMarker>>({});
   const onScreen = useRef<Record<string, MbMarker>>({});
+  // Which marker shape is currently on the map, so a mode change rebuilds.
+  const compactRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Vehicle | null>(null);
 
-  const withCoords = (vs: Vehicle[]) => vs.filter((v) => v.location?.coordinates?.length === 2);
+  /** Above this many visible cars, photos give way to price pills. */
+const PHOTO_LIMIT = 14;
+
+const withCoords = (vs: Vehicle[]) => vs.filter((v) => v.location?.coordinates?.length === 2);
 
   const featureCollection = (vs: Vehicle[]) => ({
     type: 'FeatureCollection',
@@ -106,8 +111,34 @@ export function MapboxPanel({
     const map = mapRef.current;
     if (!mb || !map || !map.isSourceLoaded('vehicles')) return;
 
+    const features = map.querySourceFeatures('vehicles');
+
+    /*
+     * Photos only when there is room for them.
+     *
+     * A photo chip is the right marker for a handful of cars and the wrong one
+     * for fifty: at that density the map becomes a collage and the streets
+     * underneath — the thing that tells you WHERE a car is — disappear. Above
+     * the threshold every marker falls back to a bare price pill, which is what
+     * a dense map can actually carry.
+     *
+     * Counted per render, so it adapts as the user zooms rather than being
+     * fixed at load.
+     */
+    const singles = features.filter((f) => !f.properties.cluster).length;
+    const compact = singles > PHOTO_LIMIT;
+
+    // Switching mode has to rebuild the markers, or half the map keeps the old
+    // shape until it happens to be re-created.
+    if (compact !== compactRef.current) {
+      compactRef.current = compact;
+      Object.values(onScreen.current).forEach((m) => m.remove());
+      markers.current = {};
+      onScreen.current = {};
+    }
+
     const next: Record<string, MbMarker> = {};
-    for (const f of map.querySourceFeatures('vehicles')) {
+    for (const f of features) {
       const coords = f.geometry.coordinates;
       const p = f.properties;
       const id = p.cluster ? `cl-${p.cluster_id}` : `pt-${p.id}`;
@@ -118,10 +149,14 @@ export function MapboxPanel({
                 if (!err) map.easeTo({ center: coords, zoom });
               });
             })
-          : pinEl(p, () => {
-              const v = vehiclesRef.current.find((x) => x._id === p.id);
-              if (v) setSelected(v);
-            });
+          : pinEl(
+              p,
+              () => {
+                const v = vehiclesRef.current.find((x) => x._id === p.id);
+                if (v) setSelected(v);
+              },
+              compact,
+            );
         markers.current[id] = new mb.Marker({ element: el }).setLngLat(coords);
       }
       next[id] = markers.current[id];
@@ -277,48 +312,45 @@ function VehicleSheet({ vehicle: v, onClose }: { vehicle: Vehicle; onClose: () =
 /**
  * A car on the map.
  *
- * A price alone tells you what it costs and nothing about what it is. On a
+ * A price alone says what it costs and nothing about what it is. On a
  * marketplace where the product is a photograph of a specific car, showing the
- * car is the whole point — someone scanning a map is choosing by sight long
- * before they read a number.
+ * car is the point — someone scanning a map chooses by sight long before they
+ * read a number.
  *
- * It stays small until hovered, because a map of expanded cards is a collage,
- * not a map. Collapsed it is a photo chip with the price; hovered it grows to
- * show the model and rating. One tap opens the car either way.
+ * Hover LIFTS rather than grows. Resizing a marker on hover moves it relative
+ * to the pin that anchors it, so the card appears to slide off the place it is
+ * marking and every neighbouring pin shifts under the cursor. A small scale, a
+ * ring and a raised z-index read as "this one" without disturbing the map.
+ *
+ * In `compact` mode the photo is dropped entirely — see PHOTO_LIMIT.
  */
 function pinEl(
   p: { price?: number; instant?: boolean; photo?: string; name?: string; rating?: string },
   onClick: () => void,
+  compact = false,
 ): HTMLButtonElement {
   const el = document.createElement('button');
   el.type = 'button';
   el.setAttribute('aria-label', `${p.name ?? 'Car'} — $${p.price} per day`);
-  el.className = 'group relative block cursor-pointer';
+  // Raising only the hovered marker keeps it above its neighbours without
+  // needing to reorder anything.
+  el.className = 'group relative block cursor-pointer transition-transform duration-150 hover:z-10 hover:scale-[1.06]';
+  el.title = `${p.name ?? ''}${p.rating ? ` · ${p.rating}★` : ''} — $${p.price}/day`;
 
   const bolt = p.instant
     ? '<span class="absolute -end-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-[#0e918c] text-[9px] text-white ring-2 ring-white">\u26A1</span>'
     : '';
 
-  // No photo is a real case — an imported draft has none yet — and a broken
-  // image on a map is worse than a clean price pill.
-  const media = p.photo
-    ? `<img src="${p.photo}" alt="" loading="lazy"
-           class="h-9 w-9 shrink-0 rounded-lg object-cover transition-all duration-200
-                  group-hover:h-14 group-hover:w-20" />`
-    : '';
+  // A photo is dropped when the map is busy, and when the car has none — an
+  // imported draft is a real case, and a broken image is worse than a pill.
+  const showPhoto = !compact && !!p.photo;
 
   el.innerHTML = `
-    <span class="relative flex items-center gap-1.5 rounded-2xl bg-[#141210] p-1 pe-2.5
-                 shadow-[0_4px_16px_rgba(0,0,0,.4)] ring-2 ring-white
-                 transition-all duration-200 group-hover:pe-3 group-hover:ring-[#0e918c]">
-      ${media}
-      <span class="flex flex-col items-start leading-tight text-white">
-        <span class="text-[13px] font-bold">$${p.price}</span>
-        <span class="max-w-0 overflow-hidden whitespace-nowrap text-[10px] text-white/70
-                     transition-all duration-200 group-hover:max-w-[9rem]">
-          ${p.name ?? ''}${p.rating ? ` \u00B7 ${p.rating}\u2605` : ''}
-        </span>
-      </span>
+    <span class="relative flex items-center rounded-2xl bg-[#141210] shadow-[0_3px_12px_rgba(0,0,0,.35)]
+                 ring-2 ring-white transition-colors duration-150 group-hover:ring-[#0e918c]
+                 ${showPhoto ? 'gap-1.5 p-1 pe-2.5' : 'px-2.5 py-1'}">
+      ${showPhoto ? `<img src="${p.photo}" alt="" loading="lazy" class="h-9 w-12 shrink-0 rounded-xl object-cover" />` : ''}
+      <span class="text-[13px] font-bold leading-none text-white">$${p.price}</span>
       ${bolt}
     </span>
     <span class="absolute left-1/2 top-full -translate-x-1/2 -translate-y-[2px]
