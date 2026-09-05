@@ -89,6 +89,7 @@ export const config = Object.freeze({
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     max: env.RATE_LIMIT_MAX,
   },
+  trustProxyHops: env.TRUST_PROXY_HOPS,
   cors: {
     // Strip stray quotes/backticks/whitespace so a value like `*` still parses.
     origins: env.CORS_ORIGINS.split(',')

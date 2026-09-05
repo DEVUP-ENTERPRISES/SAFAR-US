@@ -12,6 +12,7 @@ import { deviceContext } from './shared/middleware/device-context';
 import { errorHandler } from './shared/middleware/error-handler';
 import { notFound } from './shared/middleware/not-found';
 import { buildApiRouter } from './routes';
+import { globalRateLimitStore } from './shared/middleware/rate-limit-store';
 
 /**
  * Express app factory. No server.listen here — this lets tests import the
@@ -22,7 +23,22 @@ import { buildApiRouter } from './routes';
 export function createApp(): Express {
   const app = express();
 
-  app.set('trust proxy', 1);
+  /*
+   * Must match the real number of proxies in front of this process.
+   *
+   * It was hardcoded to 1 while the documented topology is Cloudflare ->
+   * Nginx -> Node, which is two. With 1, Express walks one hop from the right
+   * of X-Forwarded-For and lands on the CLOUDFLARE EDGE address rather than
+   * the client — so every IP-keyed decision below (both rate limiters, the
+   * audit trail, abuse detection) collapses onto a handful of Cloudflare POPs.
+   * Ten failed logins from anywhere in a metro would lock out every user
+   * routed through that datacenter.
+   *
+   * Setting it too high is the opposite failure — a client could forge
+   * X-Forwarded-For and appear as any address — so this is deployment truth,
+   * not a tunable, and it lives in env where the deployment is described.
+   */
+  app.set('trust proxy', config.trustProxyHops);
 
   // 1. correlation id
   app.use(requestContext);
@@ -68,12 +84,19 @@ export function createApp(): Express {
   );
 
   // 7. coarse global rate limiter (DDoS backstop; tighter per-route limiters added later)
+  //
+  // Redis-backed in production for the same reason the auth limiter is: the
+  // default store is per-process memory, so the effective ceiling was
+  // RATE_LIMIT_MAX multiplied by the number of instances, and it reset to zero
+  // on every deploy. A backstop that loosens as you scale out is not a
+  // backstop.
   app.use(
     rateLimit({
       windowMs: config.rateLimit.windowMs,
       max: config.rateLimit.max,
       standardHeaders: true,
       legacyHeaders: false,
+      store: globalRateLimitStore(),
     }),
   );
 

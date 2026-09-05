@@ -113,7 +113,16 @@ router.post(
     // Same gate as the socket path: the server decides when tracking is open,
     // so a stale client cannot keep a position flowing mid-hire.
     const trip = await tripService.get(req.params.id);
-    const role = trip.hostId === req.principal!.userId ? 'host' : 'guest';
+    const uid = req.principal!.userId;
+    // The role was derived by elimination — anyone who was not the host was
+    // treated as the guest, including a stranger. updateLocation below does
+    // reject them, so nothing could be written, but the phase check still ran
+    // first and its answer leaked back: a signed-in third party could probe any
+    // trip id and learn whether tracking was currently open on it.
+    if (trip.guestId !== uid && trip.hostId !== uid) {
+      throw new ForbiddenError('Not your trip');
+    }
+    const role = trip.hostId === uid ? 'host' : 'guest';
     if (!(await trackingPhaseService.mayBroadcast(trip.bookingId, role))) {
       sendSuccess(res, { updated: false, reason: 'Location sharing is not open for this trip right now' });
       return;

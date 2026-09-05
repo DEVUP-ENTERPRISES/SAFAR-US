@@ -51,6 +51,19 @@ export const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),
 
+  /**
+   * How many reverse proxies sit in front of the app.
+   *
+   * This has to match the deployment exactly or every IP-keyed decision in the
+   * app is made against the wrong address. Too low and req.ip resolves to the
+   * nearest proxy, so all users behind it share one rate-limit bucket; too high
+   * and a client can forge X-Forwarded-For to appear as any address it likes.
+   *
+   * 1 = Nginx only (Cloudflare grey-clouded / DNS-only).
+   * 2 = Cloudflare (orange cloud) in front of Nginx — the documented setup.
+   */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
+
   CORS_ORIGINS: z.string().default('*'),
 
   // ── Optional integrations: real adapters activate when these are set ──

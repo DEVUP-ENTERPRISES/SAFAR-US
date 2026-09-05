@@ -64,9 +64,30 @@ server {
   }
 }
 ```
-The app sets `trust proxy` already, so it reads the real client IP from
-`X-Forwarded-For` — which the risk engine and rate limiter depend on. Get the
-`X-Forwarded-*` headers right or every request looks like it came from Nginx.
+#### Client IP — set `TRUST_PROXY_HOPS` to match this diagram
+
+Every IP-keyed decision in the app (both rate limiters, the risk engine, the
+audit trail) reads `req.ip`, and Express derives that by walking
+`X-Forwarded-For` from the right, skipping exactly `TRUST_PROXY_HOPS`
+addresses. The number must equal the proxies actually in front of Node:
+
+| Topology | `TRUST_PROXY_HOPS` |
+|---|---|
+| Nginx only — Cloudflare grey cloud (DNS only) | `1` |
+| **Cloudflare orange cloud → Nginx** (§3, the production setup) | **`2`** |
+
+Both failure modes are real, and they fail in opposite directions:
+
+- **Too low** — `req.ip` becomes the *Cloudflare edge* address. Every user
+  behind one Cloudflare datacenter then shares a single rate-limit bucket, so
+  ten failed logins from anywhere in a metro lock out that whole region for
+  fifteen minutes. This is a self-inflicted outage, not a security hole, and it
+  only appears once real traffic arrives.
+- **Too high** — a client can forge `X-Forwarded-For` and present as any
+  address it likes, which defeats rate limiting and poisons the audit trail.
+
+If you turn the orange cloud on in §3, set `TRUST_PROXY_HOPS=2` in the same
+change. If you ever turn it back off, set it to `1`.
 
 Then `certbot --nginx -d api.yourdomain.com` for the certificate.
 

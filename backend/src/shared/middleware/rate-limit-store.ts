@@ -1,0 +1,23 @@
+import type { Store } from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
+import { config } from '../../config';
+import { redis } from '../../infrastructure/cache/redis.client';
+
+/**
+ * Shared store for the global limiter.
+ *
+ * express-rate-limit defaults to an in-process Map. Behind more than one
+ * instance that means each process counts separately, so the real ceiling is
+ * the configured max times the instance count, and a restart clears it — the
+ * DDoS backstop got weaker exactly as the fleet grew.
+ *
+ * Undefined outside production, which keeps local runs and the test suite off
+ * Redis entirely (the same choice the auth limiter already makes).
+ */
+export function globalRateLimitStore(): Store | undefined {
+  if (!config.isProd) return undefined;
+  return new RedisStore({
+    prefix: 'rl:global:',
+    sendCommand: (...args: string[]) => redis.call(...(args as [string, ...string[]])) as Promise<never>,
+  });
+}
