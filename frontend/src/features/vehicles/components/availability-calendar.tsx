@@ -13,10 +13,16 @@ import type { Vehicle } from '@/features/vehicles/types';
  * two flat colours, and no prices — so it answered "is the 14th free?" and
  * nothing else. Three things a guest actually needs, that it did not give:
  *
- *  1. WHAT A NIGHT COSTS. This platform already prices weekends, seasons and
- *     lead time differently, and the guest could not see any of it until
- *     checkout. Every night now carries its real price, computed from the same
- *     rules the quote uses.
+ *  1. WHAT A NIGHT COSTS. This platform prices weekends, seasons and lead time
+ *     differently, and the guest could not see any of it until checkout. The
+ *     rate is stated above the grid, computed from the same rules the quote
+ *     uses, with the peak named when nights differ.
+ *
+ *     It is deliberately NOT printed into every cell. A figure repeated across
+ *     thirty squares is chrome, not information — it competes with the shape
+ *     the grid exists to show, and it forces each cell tall enough to stack two
+ *     lines. Premium nights get a dot; the exact figure is a hover away, and
+ *     the total for a selected range appears under the grid.
  *
  *  2. WHICH FREE DAYS ARE ACTUALLY BOOKABLE. A two-night hole between two
  *     trips is free, and useless, when the host's minimum is three nights.
@@ -93,7 +99,7 @@ export function AvailabilityCalendar({
     return cents;
   };
 
-  const { days, monthLabel, cheapest, longestRun, longestFrom, baseline, varies } = useMemo(() => {
+  const { days, monthLabel, cheapest, longestRun, longestFrom, baseline, varies, peak } = useMemo(() => {
     const now = new Date();
     const cursor = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
     const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
@@ -147,6 +153,7 @@ export function AvailabilityCalendar({
       if (count > modalCount) { modal = cents; modalCount = count; }
     }
     const differing = openDays.some((d) => d.priceCents !== modal);
+    const dearest = openDays.reduce((m, d) => Math.max(m, d.priceCents), modal);
     const longest = openDays.reduce((m, d) => Math.max(m, d.runLength), 0);
     const longestStart = openDays.find((d) => d.runLength === longest);
 
@@ -158,6 +165,7 @@ export function AvailabilityCalendar({
       longestFrom: longestStart,
       baseline: modal,
       varies: differing,
+      peak: dearest,
       // eslint-disable-next-line react-hooks/exhaustive-deps
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -227,17 +235,21 @@ export function AvailabilityCalendar({
           nights that depart from it. Variation becomes visible instead of being
           buried in uniformity, and a flat month reads as a clean grid of days.
         */}
-        {varies ? (
-          <p className="mt-3 text-xs text-muted-foreground">
-            From <span className="numeric font-semibold text-foreground">{money(baseline)}</span> a
-            night · nights that cost more are marked
-          </p>
-        ) : (
-          <p className="mt-3 text-xs text-muted-foreground">
+        <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <span>
             <span className="numeric font-semibold text-foreground">{money(baseline)}</span> a night
-            for every open date this month
-          </p>
-        )}
+          </span>
+          {varies && peak > baseline && (
+            <>
+              <span aria-hidden>·</span>
+              <span className="inline-flex items-center gap-1.5">
+                <span aria-hidden className="h-1 w-1 rounded-full bg-warning" />
+                up to <span className="numeric font-semibold text-warning">{money(peak)}</span> on
+                busier nights
+              </span>
+            </>
+          )}
+        </p>
 
         <div className="mt-3 grid grid-cols-7 gap-1 sm:gap-1.5">
           {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
@@ -277,23 +289,23 @@ export function AvailabilityCalendar({
                   isCheapest && 'border-success ring-1 ring-success',
                 )}
               >
-                <span className={cn('numeric text-[13px] font-semibold leading-none sm:text-sm', marked && 'text-primary-foreground')}>
+                {/*
+                  A day number, and nothing else.
+
+                  A calendar is a grid people scan for shape — which stretches
+                  are free, how long they run. A second line of type in every
+                  cell competes with that, and it made each cell tall enough to
+                  need two lines of its own. The rate lives above the grid now,
+                  where it is said once; the exact figure for a specific night
+                  is still a hover away, and the total for a chosen range
+                  appears under the grid the moment it is selected.
+                */}
+                <span className={cn('numeric text-sm font-semibold leading-none', marked && 'text-primary-foreground')}>
                   {d.dom}
                 </span>
-                {/* Shown only where this night departs from the baseline. */}
-                {open && varies && d.priceCents !== baseline && (
-                  <span
-                    className={cn(
-                      'numeric mt-0.5 text-[9px] leading-none sm:text-[10px]',
-                      marked
-                        ? 'text-primary-foreground/80'
-                        : d.priceCents > baseline
-                          ? 'text-warning'
-                          : 'text-success',
-                    )}
-                  >
-                    {money(d.priceCents)}
-                  </span>
+                {/* A premium night is worth a mark — but a dot, not a number. */}
+                {open && varies && d.priceCents > baseline && !marked && (
+                  <span aria-hidden className="mt-1 h-1 w-1 rounded-full bg-warning" />
                 )}
               </button>
             );
