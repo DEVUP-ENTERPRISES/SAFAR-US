@@ -79,6 +79,10 @@ export const config = Object.freeze({
   redis: {
     url: env.REDIS_URL,
   },
+  password: {
+    // argon2's `secret` option takes a Buffer; undefined when no pepper is set.
+    pepper: env.PASSWORD_PEPPER ? Buffer.from(env.PASSWORD_PEPPER) : undefined,
+  },
   jwt: {
     accessSecret: env.JWT_ACCESS_SECRET,
     refreshSecret: env.JWT_REFRESH_SECRET,

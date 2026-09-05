@@ -1,4 +1,4 @@
-import argon2 from 'argon2';
+import { hashPassword, verifyPassword } from './password';
 import { v4 as uuidv4 } from 'uuid';
 import { AppError, ConflictError, UnauthorizedError, ForbiddenError } from '../../../core/errors/app-error';
 import { permissionsForRoles } from '../../../shared/constants/rbac';
@@ -28,7 +28,7 @@ export class AuthService {
     if (await userRepository.existsByEmail(dto.email)) {
       throw new ConflictError('An account with this email already exists', 'EMAIL_TAKEN');
     }
-    const passwordHash = await argon2.hash(dto.password, { type: argon2.argon2id });
+    const passwordHash = await hashPassword(dto.password);
     const user = await userRepository.create({
       email: dto.email,
       passwordHash,
@@ -47,10 +47,19 @@ export class AuthService {
     const user = await userRepository.findByEmail(dto.email, true);
     if (!user?.passwordHash) throw new UnauthorizedError('Invalid credentials');
 
-    const valid = await argon2.verify(user.passwordHash, dto.password);
+    const { valid, needsRehash } = await verifyPassword(user.passwordHash, dto.password);
     if (!valid) throw new UnauthorizedError('Invalid credentials');
 
     if (user.status !== 'active') throw new ForbiddenError('Account is not active');
+
+    // Upgrade the stored hash in place when it was made under an older scheme
+    // (weaker params, or before the pepper). Best-effort: a failed upgrade must
+    // never fail the login itself.
+    if (needsRehash) {
+      void hashPassword(dto.password)
+        .then((h) => userRepository.updatePasswordHash(user._id, h))
+        .catch(() => undefined);
+    }
 
     // Two-factor: if enabled, a valid TOTP code is required.
     if (user.mfa?.enabled) {

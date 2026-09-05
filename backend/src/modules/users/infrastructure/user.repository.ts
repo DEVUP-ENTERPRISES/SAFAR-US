@@ -91,6 +91,11 @@ export class UserRepository {
    * — there is deliberately no method to ADD a privileged role from anywhere in
    * the request path, so escalation has no code to travel through.
    */
+  /** Replace a user's stored password hash — used to upgrade legacy hashes. */
+  async updatePasswordHash(userId: string, passwordHash: string): Promise<void> {
+    await UserModel.updateOne({ _id: userId }, { passwordHash });
+  }
+
   async pullRoles(userId: string, roles: string[]): Promise<void> {
     await UserModel.updateOne({ _id: userId }, { $pull: { roles: { $in: roles } } });
   }

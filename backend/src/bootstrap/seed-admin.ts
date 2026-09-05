@@ -1,4 +1,4 @@
-import argon2 from 'argon2';
+import { hashPassword } from '../modules/auth/application/password';
 import { config } from '../config';
 import { logger } from '../infrastructure/logging/logger';
 import { UserModel } from '../modules/users/infrastructure/user.model';
@@ -19,7 +19,7 @@ export async function seedAdmin(): Promise<void> {
   const existing = await UserModel.findOne({ email }).lean();
 
   if (!existing) {
-    const passwordHash = await argon2.hash(config.admin.password!, { type: argon2.argon2id });
+    const passwordHash = await hashPassword(config.admin.password!);
     const [firstName, ...rest] = config.admin.name.split(' ');
     await UserModel.create({
       email,

@@ -45,6 +45,16 @@ export const envSchema = z.object({
 
   JWT_ACCESS_SECRET: z.string().min(16, 'JWT_ACCESS_SECRET too short'),
   JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET too short'),
+  /**
+   * Server-side secret mixed into every password before hashing (a "pepper").
+   * Kept OUT of the database, so a DB-only breach cannot crack even weak
+   * passwords. Optional — omit and hashing falls back to salt-only (still
+   * strong). If set, NEVER lose or change it casually: existing hashes were
+   * bound to it, and rotating requires users to re-verify (handled by the
+   * login rehash path). Store it in a secrets manager, not next to the DB.
+   */
+  PASSWORD_PEPPER: z.string().optional(),
+
   JWT_ACCESS_TTL: z.coerce.number().int().positive().default(900),
   JWT_REFRESH_TTL: z.coerce.number().int().positive().default(2_592_000),
 
@@ -238,6 +248,11 @@ export const envSchemaWithProdGuards = envSchema.superRefine((env, ctx) => {
   // 8. The admin is provisioned only from the environment, and there must be
   //    exactly one. In production, refusing to boot without it prevents both a
   //    console with no way in and any reliance on a leftover account.
+  // A pepper is optional, but a short one is a false sense of security.
+  if (env.PASSWORD_PEPPER && env.PASSWORD_PEPPER.trim().length < 32) {
+    fail('PASSWORD_PEPPER', 'must be at least 32 random characters when set');
+  }
+
   if (!env.ADMIN_EMAIL || !env.ADMIN_PASSWORD) {
     fail('ADMIN_EMAIL', 'ADMIN_EMAIL and ADMIN_PASSWORD are required in production — the sole admin is provisioned from them');
   }
