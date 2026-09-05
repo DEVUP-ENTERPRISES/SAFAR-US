@@ -1,4 +1,5 @@
 import { makeQueue, makeWorker } from '../infrastructure/queue/bullmq.client';
+import { webhookRetryService } from '../modules/payments/application/webhook-retry.service';
 import { logger } from '../infrastructure/logging/logger';
 import { bookingService } from '../modules/bookings/application/booking.service';
 import { payoutService } from '../modules/payouts/application/payout.service';
@@ -15,6 +16,7 @@ const QUEUE = 'cato-maintenance';
  *   - run-payouts      every hour    → pay hosts whose hold window elapsed
  *   - trip-reminders   every hour    → notify guests of imminent trips
  *   - release-deposits every 30 min  → free holds whose inspection window closed
+ *   - retry-webhooks   every 5 min   → replay payment events whose handler failed
  * These run here in dev; in prod they run in a dedicated worker process
  * (same code, started via PM2) so the API tier stays latency-focused.
  */
@@ -29,6 +31,7 @@ export async function initJobs(): Promise<void> {
   await queue.add('compliance-sweep', {}, { repeat: { every: 60 * 60_000 }, jobId: 'compliance-sweep' });
   await queue.add('maintenance-reminders', {}, { repeat: { every: 6 * 60 * 60_000 }, jobId: 'maintenance-reminders' });
   await queue.add('release-reviews', {}, { repeat: { every: 60 * 60_000 }, jobId: 'release-reviews' });
+  await queue.add('retry-webhooks', {}, { repeat: { every: 5 * 60_000 }, jobId: 'retry-webhooks' });
 
   makeWorker(QUEUE, async (job) => {
     switch (job.name) {
@@ -71,6 +74,12 @@ export async function initJobs(): Promise<void> {
       case 'release-reviews': {
         const n = await reviewService.releaseExpired();
         return { released: n };
+      }
+      // A charge that Stripe confirmed but this side failed to record is
+      // money without a booking, so this runs often rather than hourly.
+      case 'retry-webhooks': {
+        const r = await webhookRetryService.retryFailed();
+        return r;
       }
       default:
         return null;
