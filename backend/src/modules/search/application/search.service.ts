@@ -92,12 +92,15 @@ export class SearchService {
 
     let results = candidates;
     if (q.start && q.end) {
-      const available: VehicleDoc[] = [];
-      for (const v of candidates) {
-        if (available.length >= limit) break;
-        if (await availabilityService.isAvailable(v._id, q.start, q.end)) available.push(v);
-      }
-      results = available;
+      // One batched probe rather than a sequential isAvailable per candidate.
+      // That loop cost two round trips each — up to 120 serial queries for a
+      // single page of results.
+      const free = await availabilityService.availableAmong(
+        candidates.map((v) => v._id),
+        q.start,
+        q.end,
+      );
+      results = candidates.filter((v) => free.has(v._id));
     }
 
     const sort = q.sort ?? 'relevance';
@@ -267,12 +270,12 @@ export class SearchService {
 
     let pool = candidates;
     if (opts.start && opts.end) {
-      const available: VehicleDoc[] = [];
-      for (const v of candidates) {
-        if (available.length >= limit * 2) break;
-        if (await availabilityService.isAvailable(v._id, opts.start, opts.end)) available.push(v);
-      }
-      pool = available;
+      const free = await availabilityService.availableAmong(
+        candidates.map((v) => v._id),
+        opts.start,
+        opts.end,
+      );
+      pool = candidates.filter((v) => free.has(v._id));
     }
 
     // Same category first (the closest substitute), then better-rated.

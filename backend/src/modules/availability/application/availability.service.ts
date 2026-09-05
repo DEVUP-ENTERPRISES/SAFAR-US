@@ -71,6 +71,89 @@ export class AvailabilityService implements IAvailabilityContract {
     return !blocking;
   }
 
+  /**
+   * The same question as isAvailable, asked about many cars at once.
+   *
+   * Search called isAvailable in a sequential loop over every candidate, and
+   * each call costs two round trips (the turnaround lookup, then the calendar
+   * probe). With the default page that is up to sixty candidates — a hundred
+   * and twenty queries, run one after another, on the hottest endpoint in the
+   * product. This answers the whole page in two.
+   *
+   * The semantics are deliberately identical: each car keeps its OWN turnaround
+   * window, so the keys are unioned for the fetch and then narrowed per vehicle
+   * in memory rather than applying one shared window to everybody.
+   */
+  async availableAmong(vehicleIds: string[], start: Date, end: Date): Promise<Set<string>> {
+    const free = new Set<string>();
+    if (vehicleIds.length === 0) return free;
+
+    // 1. Every turnaround in one read.
+    const vehicles = await VehicleModel.find(
+      { _id: { $in: vehicleIds } },
+      { 'listing.turnaroundDays': 1 },
+    ).lean<{ _id: string; listing?: { turnaroundDays?: number } }[]>();
+
+    const turnaroundOf = new Map<string, number>();
+    for (const v of vehicles) {
+      turnaroundOf.set(String(v._id), Math.max(0, Math.min(7, v.listing?.turnaroundDays ?? 0)));
+    }
+
+    // 2. Each car's own key range, plus the union to fetch against.
+    const keysOf = new Map<string, Set<string>>();
+    const union = new Set<string>();
+    for (const id of vehicleIds) {
+      const t = turnaroundOf.get(id) ?? 0;
+      const keys = t > 0 ? dayKeys(addDays(start, -t), addDays(end, t)) : dayKeys(start, end);
+      keysOf.set(id, new Set(keys));
+      for (const k of keys) union.add(k);
+    }
+
+    // 3. One calendar probe for the whole page. Same blocking predicate as
+    //    isAvailable — booked and blocked always count, a hold only while it
+    //    has not expired.
+    const now = new Date();
+    const blocking = await AvailabilityModel.find(
+      {
+        vehicleId: { $in: vehicleIds },
+        dayKey: { $in: [...union] },
+        $or: [
+          { state: { $in: ['blocked', 'booked'] } },
+          { state: 'held', holdExpiresAt: { $gt: now } },
+        ],
+      },
+      { vehicleId: 1, dayKey: 1 },
+    ).lean<{ vehicleId: string; dayKey: string }[]>();
+
+    // A row only blocks the car it belongs to, and only on a day inside THAT
+    // car's window — the union is wider than any single vehicle's range.
+    const blockedOf = new Map<string, Set<string>>();
+    for (const row of blocking) {
+      const id = String(row.vehicleId);
+      let set = blockedOf.get(id);
+      if (!set) blockedOf.set(id, (set = new Set()));
+      set.add(row.dayKey);
+    }
+
+    for (const id of vehicleIds) {
+      const blocked = blockedOf.get(id);
+      if (!blocked) {
+        free.add(id);
+        continue;
+      }
+      const mine = keysOf.get(id)!;
+      let hit = false;
+      for (const k of blocked) {
+        if (mine.has(k)) {
+          hit = true;
+          break;
+        }
+      }
+      if (!hit) free.add(id);
+    }
+    return free;
+  }
+
   /** Atomically reserve the range. The unique index rejects overlaps. */
   async placeHold(vehicleId: string, start: Date, end: Date): Promise<string> {
     const keys = dayKeys(start, end);
