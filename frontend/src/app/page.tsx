@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/ui/reveal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
-import { SearchWidget } from '@/features/vehicles/components/search-widget';
+import { SearchBarFields } from '@/features/search/search-bar-fields';
 import { CategoryCarousel } from '@/features/vehicles/components/category-carousel';
 import { useTrending, useRecommendations, useFacets } from '@/features/vehicles/hooks';
 import { useAuthStore } from '@/features/auth/store';
@@ -60,9 +60,21 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Search widget — the centerpiece */}
+          {/*
+            One search bar, not two.
+
+            The hero ran its own widget — a native <select> listing cities with
+            a "(1)" vehicle count after each, and two native date inputs
+            rendering dd-mm-yyyy in an OS-drawn picker. The navbar and the
+            search page had already moved to SearchBarFields, so the product
+            had two search implementations that looked and behaved differently
+            depending on which one you happened to hit first.
+
+            The counts went with it. A city offering one car reads as an empty
+            marketplace, and the number is not what anyone is choosing on.
+          */}
           <div className="mt-10 max-w-4xl animate-slide-up">
-            <SearchWidget />
+            <SearchBarFields />
           </div>
 
           {/* The three promises, stated on the first screen. Each one is a

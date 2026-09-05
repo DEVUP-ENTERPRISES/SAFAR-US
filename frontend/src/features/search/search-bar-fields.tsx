@@ -158,8 +158,11 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block font-medium">{c.city}</span>
+                        {/* The price is what someone picks a city on. A raw
+                            count answers a question nobody asked, and a "1"
+                            beside a city reads as an empty marketplace. */}
                         <span className="block text-xs text-muted-foreground">
-                          {c.vehicles} car{c.vehicles === 1 ? '' : 's'} · from ${Math.round(c.fromPrice / 100)}/day
+                          From <span className="numeric font-medium text-foreground">${Math.round(c.fromPrice / 100)}</span> a day
                         </span>
                       </span>
                       {on && <Check className="h-4 w-4 shrink-0 text-primary" />}

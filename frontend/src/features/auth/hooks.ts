@@ -71,14 +71,22 @@ export function useLogin(opts: LoginOptions = {}) {
   });
 }
 
-export function useRegister() {
+/**
+ * Sign-up.
+ *
+ * Takes a redirect for the same reason useLogin does, and it matters more
+ * here: someone stopped mid-booking who chooses "Create an account" is a NEW
+ * user, which on a launching marketplace is most of them. Hardcoding /search
+ * sent every one of them away from the car they were booking.
+ */
+export function useRegister(opts?: { redirectTo?: string }) {
   const onSuccess = useOnAuthSuccess();
   const router = useRouter();
   return useMutation({
     mutationFn: (input: RegisterInput) => authApi.register(input),
     onSuccess: (result) => {
       onSuccess(result);
-      router.push('/search');
+      router.push(opts?.redirectTo || '/search');
     },
   });
 }

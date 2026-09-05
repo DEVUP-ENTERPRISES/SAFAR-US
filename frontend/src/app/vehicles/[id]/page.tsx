@@ -29,6 +29,7 @@ import { WishlistButton } from '@/features/favorites/wishlist-button';
 import { ShareButton } from '@/features/vehicles/components/share-button';
 import { AvailabilityCalendar } from '@/features/vehicles/components/availability-calendar';
 import { TripDatesField } from '@/features/vehicles/components/trip-dates-field';
+import { saveDraft, takeDraft } from '@/features/bookings/booking-draft';
 import { PhotoLightbox } from '@/features/vehicles/components/photo-lightbox';
 import { confirmCardPayment } from '@/features/payments/confirm-payment';
 import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
@@ -124,6 +125,36 @@ export default function VehicleDetailPage() {
     enabled: !!v?.location?.coordinates,
   });
 
+  /*
+   * Put the guest back where they left off.
+   *
+   * Fires on mount rather than on auth becoming true, because the draft is
+   * also worth restoring if they came back without signing in — the work they
+   * did is theirs either way.
+   */
+  useEffect(() => {
+    if (!id) return;
+    const draft = takeDraft(id);
+    if (!draft) return;
+    setStart(draft.start);
+    setEnd(draft.end);
+    setAddOnCodes(draft.addOnCodes ?? []);
+    setProtectionPlan(draft.protectionPlan || 'basic');
+    setPayWithWallet(!!draft.payWithWallet);
+    setDeliveryMode((draft.deliveryMode as typeof deliveryMode) || '');
+    setDeliveryAddress(draft.deliveryAddress ?? '');
+    setFlightNumber(draft.flightNumber ?? '');
+    setTerminal(draft.terminal ?? '');
+    setArrivesAt(draft.arrivesAt ?? '');
+    setCouponCode(draft.couponCode ?? '');
+    toast({
+      tone: 'success',
+      title: 'Picked up where you left off',
+      description: 'Your dates and options are still here — check them and book.',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   const selection = () => ({
     vehicleId: id,
     start: iso(start),
@@ -162,9 +193,24 @@ export default function VehicleDetailPage() {
   const canQuote = start && end && deliveryReady;
   const runQuote = () => canQuote && quote.mutate(selection());
   const book = async () => {
-    // Send them back to this car after signing in, rather than dropping them on
-    // search having lost their dates and options.
     if (status !== 'authenticated') {
+      // Keep the whole selection, not just the URL. Coming back to this car
+      // with an empty form is the same as being sent to search: the guest has
+      // already decided to pay and is asked to do the work twice.
+      saveDraft({
+        vehicleId: id,
+        start,
+        end,
+        addOnCodes,
+        protectionPlan,
+        payWithWallet,
+        deliveryMode,
+        deliveryAddress,
+        flightNumber,
+        terminal,
+        arrivesAt,
+        couponCode,
+      });
       return router.push(`/login?next=${encodeURIComponent(`/vehicles/${v?._id ?? ''}`)}`);
     }
     const b = await createBooking.mutateAsync(selection());

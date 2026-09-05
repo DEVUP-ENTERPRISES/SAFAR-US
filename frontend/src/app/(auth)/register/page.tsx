@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SocialSignIn } from '@/features/auth/social-signin';
+import { ReturnContext } from '@/features/auth/return-context';
 import { useOnAuthSuccess } from '@/features/auth/hooks';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
@@ -27,7 +28,15 @@ function RegisterInner() {
   const qp = useSearchParams();
   const router = useRouter();
   const onAuthSuccess = useOnAuthSuccess();
-  const registerMutation = useRegister();
+
+  // Same-site only. An absolute URL here would be an open redirect, exactly
+  // as on the login page. Resolved before it is handed to the mutation below.
+  const nextParam = qp.get('next');
+  const returnTo =
+    nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : '/search';
+  const bookingReturn = returnTo.startsWith('/vehicles/');
+
+  const registerMutation = useRegister({ redirectTo: returnTo });
   const { register, handleSubmit, setValue, watch, formState } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const ref = qp.get('ref');
@@ -36,10 +45,16 @@ function RegisterInner() {
 
   return (
     <div className="w-full">
-      <div className="mb-10 text-center lg:text-start">
-        <h2 className="display text-4xl text-foreground sm:text-5xl">Create your account</h2>
-        <p className="mt-3 text-lg font-medium text-muted-foreground">
-          Join CATO today and start driving.
+      <ReturnContext next={bookingReturn ? returnTo : null} />
+
+      <div className="mb-8 text-center lg:text-start">
+        <h2 className="display text-4xl text-foreground sm:text-5xl">
+          {bookingReturn ? 'Almost yours' : 'Create your account'}
+        </h2>
+        <p className="mt-3 text-[17px] text-muted-foreground">
+          {bookingReturn
+            ? 'Create an account to confirm this trip. Your dates and options are waiting.'
+            : 'One account for booking, hosting and everything in between.'}
         </p>
       </div>
 
@@ -78,14 +93,14 @@ function RegisterInner() {
             <SocialSignIn
               onSuccess={(result) => {
                 onAuthSuccess(result);
-                router.push('/search');
+                router.push(returnTo);
               }}
             />
           </div>
 
           <p className="mt-8 text-center text-base font-medium text-muted-foreground">
             Already have an account?{' '}
-            <Link href="/login" className="font-bold text-primary hover:underline">Log in</Link>
+            <Link href={`/login?next=${encodeURIComponent(returnTo)}`} className="font-bold text-primary hover:underline">Log in</Link>
           </p>
     </div>
   );

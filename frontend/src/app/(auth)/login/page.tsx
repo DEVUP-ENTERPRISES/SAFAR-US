@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { useLogin, useOnAuthSuccess } from '@/features/auth/hooks';
 import { SocialSignIn } from '@/features/auth/social-signin';
+import { ReturnContext } from '@/features/auth/return-context';
 import { ApiError } from '@/lib/api/types';
 
 const schema = z.object({
@@ -33,13 +34,28 @@ function LoginInner() {
   const { register, handleSubmit, formState } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const mfaRequired = login.error instanceof ApiError && login.error.code === 'MFA_REQUIRED';
+  const bookingReturn = returnTo.startsWith('/vehicles/');
 
   return (
     <div className="w-full">
-      <div className="mb-10 text-center lg:text-start">
-        <h2 className="display text-4xl text-foreground sm:text-5xl">Welcome back</h2>
-        <p className="mt-3 text-lg font-medium text-muted-foreground">
-          Enter your details to sign in to your account.
+      {/*
+        The heading answers why they are here, not what the form is.
+
+        Someone stopped mid-booking is not "welcoming back" — they are being
+        interrupted, and the useful thing to say is that the car and the dates
+        they picked are still waiting. ReturnContext renders the car itself
+        above it and stays silent when there is nothing to return to.
+      */}
+      <ReturnContext next={returnTo === '/search' ? null : returnTo} />
+
+      <div className="mb-8 text-center lg:text-start">
+        <h2 className="display text-4xl text-foreground sm:text-5xl">
+          {bookingReturn ? 'One step left' : 'Welcome back'}
+        </h2>
+        <p className="mt-3 text-[17px] text-muted-foreground">
+          {bookingReturn
+            ? 'Sign in to confirm your trip. Nothing you picked has been lost.'
+            : 'Sign in to pick up your trips, messages and saved cars.'}
         </p>
       </div>
       
@@ -68,7 +84,14 @@ function LoginInner() {
             </Button>
           </form>
 
-          <div className="mt-8">
+          <div className="relative mt-8 mb-6 text-center">
+            <span aria-hidden className="absolute inset-x-0 top-1/2 h-px bg-border" />
+            <span className="relative bg-background px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              or
+            </span>
+          </div>
+
+          <div>
             <SocialSignIn
               onSuccess={(result) => {
                 onAuthSuccess(result);
@@ -79,7 +102,7 @@ function LoginInner() {
 
           <p className="mt-8 text-center text-base font-medium text-muted-foreground">
             New to CATO?{' '}
-            <Link href="/register" className="font-bold text-primary hover:underline">
+            <Link href={`/register?next=${encodeURIComponent(returnTo)}`} className="font-bold text-primary hover:underline">
               Create an account
             </Link>
           </p>
