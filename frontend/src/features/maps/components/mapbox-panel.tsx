@@ -12,7 +12,7 @@ import { loadMapbox } from '@/features/maps/mapbox-loader';
 type LngLat = [number, number];
 interface MbFeature {
   geometry: { coordinates: LngLat };
-  properties: { cluster?: boolean; cluster_id?: number; point_count?: number; id?: string; price?: number };
+  properties: { cluster?: boolean; cluster_id?: number; point_count?: number; id?: string; price?: number; instant?: boolean };
 }
 interface MbSource {
   setData(data: unknown): void;
@@ -25,6 +25,7 @@ interface MbMap {
   remove(): void;
   addControl(c: unknown, pos?: string): void;
   addSource(id: string, source: unknown): void;
+  addLayer(layer: unknown): void;
   getSource(id: string): MbSource | undefined;
   querySourceFeatures(id: string): MbFeature[];
   isSourceLoaded(id: string): boolean;
@@ -76,7 +77,11 @@ export function MapboxPanel({
     features: withCoords(vs).map((v) => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: v.location.coordinates as LngLat },
-      properties: { id: v._id, price: Math.round(v.pricing.dailyPrice / 100) },
+      properties: {
+        id: v._id,
+        price: Math.round(v.pricing.dailyPrice / 100),
+        instant: !!v.listing?.instantBook,
+      },
     })),
   });
 
@@ -106,10 +111,14 @@ export function MapboxPanel({
                 if (!err) map.easeTo({ center: coords, zoom });
               });
             })
-          : pinEl(p.price ?? 0, () => {
-              const v = vehiclesRef.current.find((x) => x._id === p.id);
-              if (v) setSelected(v);
-            });
+          : pinEl(
+              p.price ?? 0,
+              () => {
+                const v = vehiclesRef.current.find((x) => x._id === p.id);
+                if (v) setSelected(v);
+              },
+              !!p.instant,
+            );
         markers.current[id] = new mb.Marker({ element: el }).setLngLat(coords);
       }
       next[id] = markers.current[id];
@@ -147,6 +156,25 @@ export function MapboxPanel({
             cluster: true,
             clusterMaxZoom: 14,
             clusterRadius: 55,
+          });
+
+          /*
+           * An invisible layer, and the reason the map was empty.
+           *
+           * Mapbox only generates tiles for a source that some layer actually
+           * uses. With `addSource` and no `addLayer`, nothing is ever tiled, so
+           * `querySourceFeatures` returns an empty array forever and not one
+           * marker is created — a silent failure with no error anywhere.
+           *
+           * The markers themselves are custom HTML (so the price pills keep
+           * their look and we own the click behaviour), so this layer exists
+           * purely to make the source real. Zero opacity, never seen.
+           */
+          map.addLayer({
+            id: 'vehicles-tiles',
+            type: 'circle',
+            source: 'vehicles',
+            paint: { 'circle-radius': 1, 'circle-opacity': 0 },
           });
           map.on('render', syncMarkers);
           fitToResults(map, mb, vehiclesRef.current);
@@ -243,12 +271,28 @@ function VehicleSheet({ vehicle: v, onClose }: { vehicle: Vehicle; onClose: () =
   );
 }
 
-function pinEl(price: number, onClick: () => void): HTMLButtonElement {
+/**
+ * A price pin.
+ *
+ * Reads as a price tag rather than a dot: a pointer anchors it to the actual
+ * spot, so a pill floating above a junction is not mistaken for the junction.
+ * White on ink keeps it legible over parks, water and motorways alike, which a
+ * tinted pill does not.
+ */
+function pinEl(price: number, onClick: () => void, instant = false): HTMLButtonElement {
   const el = document.createElement('button');
   el.type = 'button';
-  el.textContent = `$${price}`;
-  el.className =
-    'rounded-full border border-white bg-foreground px-2 py-0.5 text-xs font-bold text-background shadow-md transition-transform hover:scale-110';
+  el.setAttribute('aria-label', `$${price} per day`);
+  el.className = 'group relative block cursor-pointer';
+  el.innerHTML = `
+    <span class="relative flex items-center gap-1 rounded-full bg-[#141210] px-2.5 py-1
+                 text-[13px] font-bold text-white shadow-[0_2px_10px_rgba(0,0,0,.35)]
+                 ring-2 ring-white transition-transform duration-150
+                 group-hover:scale-110 group-hover:bg-[#0e918c]">
+      ${instant ? '<span style="font-size:11px;line-height:1">\u26A1</span>' : ''}$${price}
+    </span>
+    <span class="absolute left-1/2 top-full -translate-x-1/2 -translate-y-[2px]
+                 border-x-[5px] border-t-[6px] border-x-transparent border-t-white"></span>`;
   el.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
   return el;
 }
@@ -258,11 +302,19 @@ function clusterEl(count: number, onClick: () => void): HTMLButtonElement {
   const size = count < 10 ? 34 : count < 50 ? 42 : 50;
   const el = document.createElement('button');
   el.type = 'button';
-  el.textContent = String(count);
+  el.setAttribute('aria-label', `${count} cars here`);
   el.style.width = `${size}px`;
   el.style.height = `${size}px`;
-  el.className =
-    'flex items-center justify-center rounded-full border-2 border-white bg-primary text-sm font-bold text-primary-foreground shadow-md transition-transform hover:scale-110';
+  el.className = 'group relative grid cursor-pointer place-items-center';
+  // A soft halo behind the bubble reads as density without needing a heat map,
+  // and tells the eye which clusters are worth zooming into.
+  el.innerHTML = `
+    <span class="absolute inset-0 rounded-full bg-[#0e918c] opacity-20"></span>
+    <span class="absolute inset-[15%] rounded-full bg-[#0e918c] opacity-30"></span>
+    <span class="relative grid h-[70%] w-[70%] place-items-center rounded-full bg-[#0e918c]
+                 text-[13px] font-bold text-white ring-2 ring-white
+                 shadow-[0_2px_10px_rgba(0,0,0,.3)] transition-transform duration-150
+                 group-hover:scale-110">${count}</span>`;
   el.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
   return el;
 }
