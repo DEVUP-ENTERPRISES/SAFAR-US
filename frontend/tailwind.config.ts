@@ -71,12 +71,20 @@ const config: Config = {
           from: { opacity: '0', transform: 'scale(0.96)' },
           to: { opacity: '1', transform: 'scale(1)' },
         },
+        // Used by the auth form panel and the mobile nav drawer, and never
+        // defined — so the drawer popped into existence instead of sliding in
+        // from the edge it is anchored to, which is the whole affordance.
+        'slide-in-right': {
+          from: { opacity: '0', transform: 'translateX(16px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
       },
       animation: {
         shimmer: 'shimmer 1.5s infinite',
         'fade-in': 'fade-in 0.3s ease-out',
         'slide-up': 'slide-up 0.4s cubic-bezier(0.16,1,0.3,1)',
         'scale-in': 'scale-in 0.2s ease-out',
+        'slide-in-right': 'slide-in-right 0.35s cubic-bezier(0.16,1,0.3,1)',
       },
     },
   },

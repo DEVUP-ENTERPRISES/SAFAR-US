@@ -47,7 +47,7 @@ function HostShell({ children }: { children: ReactNode }) {
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary">
             <Store className="h-4 w-4" /> Hosting on CATO
           </span>
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05]">
+          <h1 className="display text-5xl leading-[1.05] sm:text-6xl lg:text-7xl">
             Your car can pay
             <br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-muted-foreground to-muted-foreground/40">for itself.</span>

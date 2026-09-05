@@ -318,7 +318,7 @@ export default function VehicleDetailPage() {
         <div className="space-y-10">
           {/* Header */}
         <div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground leading-tight">
+          <h1 className="display text-3xl leading-tight text-foreground sm:text-4xl">
             {v.make} {v.model} {v.year}
           </h1>
           <div className="mt-2.5 flex items-center gap-2 text-[17px] font-medium text-foreground">

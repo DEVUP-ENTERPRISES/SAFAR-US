@@ -37,7 +37,7 @@ function RegisterInner() {
   return (
     <div className="w-full">
       <div className="mb-10 text-center lg:text-start">
-        <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-foreground">Create your account</h2>
+        <h2 className="display text-4xl text-foreground sm:text-5xl">Create your account</h2>
         <p className="mt-3 text-lg font-medium text-muted-foreground">
           Join CATO today and start driving.
         </p>
