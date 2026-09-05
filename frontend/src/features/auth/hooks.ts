@@ -16,6 +16,12 @@ export interface LoginOptions {
   redirectTo?: string;
   /** If set, the account must hold at least one of these roles or login is denied. */
   requireAnyRole?: string[];
+  /**
+   * If set, an account holding ANY of these roles is refused. The public login
+   * uses it to turn staff away: an admin session must be minted in the admin
+   * app, never in the public browser context where a future XSS could reach it.
+   */
+  denyAnyRole?: string[];
   /** Human label for the portal (used in the denial message). */
   portalLabel?: string;
 }
@@ -59,6 +65,15 @@ export function useLogin(opts: LoginOptions = {}) {
         throw new ApiError(
           'FORBIDDEN',
           `This account doesn't have access to the ${opts.portalLabel ?? 'requested'} portal.`,
+          403,
+        );
+      }
+      // Staff turned away from the public portal: admins sign in at the admin
+      // app, so an admin session is never created here.
+      if (opts.denyAnyRole && result.user.roles.some((r) => opts.denyAnyRole!.includes(r))) {
+        throw new ApiError(
+          'ADMIN_USE_ADMIN_PORTAL',
+          'Staff accounts sign in through the admin portal, not the public site.',
           403,
         );
       }

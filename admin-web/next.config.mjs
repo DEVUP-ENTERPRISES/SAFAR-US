@@ -27,6 +27,20 @@ const nextConfig = {
       { protocol: 'https', hostname: 'picsum.photos' },
     ],
   },
+  // Belt-and-braces against indexing: the meta robots tag lives in the page
+  // head, and this sends the same instruction as an HTTP header, which some
+  // crawlers honour even when they do not parse the HTML.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive, nosnippet' },
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+        ],
+      },
+    ];
+  },
   webpack(config) {
     config.resolve.alias['@'] = sharedSrc;
     return config;
