@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { Select } from '@/components/ui/select';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
+import { Reveal } from '@/components/ui/reveal';
 import { VehicleListCard } from '@/features/vehicles/components/vehicle-list-card';
 import { useVehicleSearch, useFacets, useFilterCounts } from '@/features/vehicles/hooks';
 import { useMutation } from '@tanstack/react-query';
@@ -541,7 +542,11 @@ function SearchInner() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-20 md:pb-6">
-            {data.map((v) => <VehicleCard key={v._id} vehicle={v} />)}
+            {data.map((v, i) => (
+              <Reveal key={v._id} delay={Math.min(i, 7) * 45}>
+                <VehicleCard vehicle={v} />
+              </Reveal>
+            ))}
           </div>
         )
       )}

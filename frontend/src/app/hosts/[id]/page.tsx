@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/states';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
+import { Reveal } from '@/components/ui/reveal';
 import type { Vehicle } from '@/features/vehicles/types';
 import {
   useHostPublicProfile, HostAvatar, HostTrustSignals, joinedLabel,
@@ -117,7 +118,11 @@ export default function HostProfilePage() {
           </div>
         ) : vehicles.data && vehicles.data.length > 0 ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {vehicles.data.map((v) => <VehicleCard key={v._id} vehicle={v} />)}
+            {vehicles.data.map((v, i) => (
+              <Reveal key={v._id} delay={Math.min(i, 7) * 45}>
+                <VehicleCard vehicle={v} />
+              </Reveal>
+            ))}
           </div>
         ) : (
           <EmptyState

@@ -13,17 +13,15 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
 
   return (
     <Link href={`/vehicles/${vehicle._id}`} className={cn("group block", className)}>
-      <article className="relative flex flex-col h-full overflow-hidden rounded-2xl sm:rounded-[2rem] border border-white/10 bg-card/60 backdrop-blur-2xl p-2 sm:p-2.5 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/30 group-hover:bg-card/80">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none z-10" />
-        
+      <article className="lift relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card p-2 shadow-card hover:border-primary/40 sm:rounded-[2rem] sm:p-2.5">
         {/* Image Wrapper */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl sm:rounded-[1.5rem] bg-muted shadow-inner">
+        <div className="photo-scrim relative aspect-[4/3] w-full overflow-hidden rounded-xl sm:rounded-[1.5rem] bg-muted">
           {cover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={cover}
               alt={`${vehicle.make} ${vehicle.model}`}
-              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/80 via-primary to-primary/40 relative overflow-hidden">
@@ -34,9 +32,6 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
               </span>
             </div>
           )}
-
-          {/* Elegant Scrim */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-60 transition-opacity duration-500 group-hover:opacity-80" />
 
           {/* Actions */}
           <div className="absolute end-3 top-3 flex flex-col gap-2 scale-90 sm:scale-100 origin-top-right z-20">
@@ -63,7 +58,6 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
           </div>
         </div>
 
-        {/* Body */}
         {/* Body */}
         <div className="relative z-20 flex flex-col flex-1 px-2 py-4 sm:px-4 sm:py-5">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3">
