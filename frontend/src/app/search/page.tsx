@@ -156,11 +156,9 @@ function Opt({
       )}
     >
       {children}
-      {count !== undefined && (
-        <span className={cn('ms-1.5 text-xs tabular-nums', on ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
-          {count}
-        </span>
-      )}
+      {/* `count` still drives the disabled state above (a dead-end option is
+          greyed out), but the number is not shown — a bare "1" beside a filter
+          reads as an empty marketplace. */}
     </button>
   );
 }
@@ -370,7 +368,7 @@ function SearchInner() {
                   {categories.length === 0 && <p className="text-sm text-muted-foreground">No types yet.</p>}
                   {categories.map((c) => (
                     <Opt key={c.category} on={category === c.category} count={counts?.category[c.category]} onClick={() => setCategory(category === c.category ? '' : c.category)}>
-                      {c.category} <span className="opacity-60">{c.vehicles}</span>
+                      {c.category}
                     </Opt>
                   ))}
                 </div>

@@ -9,7 +9,7 @@ export interface SearchCenter {
 }
 
 /**
- * The Where / From / Until / Age of the search bar, shared so the bar can live
+ * The Where / From / Until of the search bar, shared so the bar can live
  * in the navbar (desktop) while the results page reads the same values to build
  * its query. Filters (price, seats, …) stay local to the results page — only
  * the top-bar fields are shared.
@@ -21,7 +21,6 @@ export interface SearchBarState {
   fromTime: string;
   untilDate: string;
   untilTime: string;
-  age: string;
   patch: (p: Partial<Omit<SearchBarState, 'patch'>>) => void;
 }
 
@@ -32,7 +31,6 @@ export const useSearchBar = create<SearchBarState>((set) => ({
   fromTime: '10:00',
   untilDate: '',
   untilTime: '10:00',
-  age: '30',
   patch: (p) => set(p),
 }));
 

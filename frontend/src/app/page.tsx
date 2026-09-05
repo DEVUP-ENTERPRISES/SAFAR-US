@@ -174,7 +174,6 @@ export default function HomePage() {
                   }`}
                 >
                   {c.city}
-                  <span className="ms-1.5 text-xs opacity-60">{c.vehicles}</span>
                 </button>
               ))}
             </div>

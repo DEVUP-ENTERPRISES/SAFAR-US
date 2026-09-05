@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, MapPin, CalendarDays, User, Check } from 'lucide-react';
+import { Search, MapPin, CalendarDays, Check } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useFacets } from '@/features/vehicles/hooks';
 import { DateRangePicker } from './date-range-picker';
@@ -22,18 +22,13 @@ import { useSearchBar } from './search-store';
  * select — so the same city appeared twice and it was unclear which one the
  * search actually used.
  *
- * Now: one location field, one range calendar, one age control, each in its own
- * popover, all styled by us.
+ * Now: one location field and one range calendar, each in its own popover, all
+ * styled by us. There is deliberately no driver-age field — it steered guests
+ * toward young-driver surcharges before they had chosen anything, and it fed
+ * nothing: the value was never sent to search.
  */
 
 const TIMES = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
-
-/** Age bands, because the exact number only matters at two thresholds. */
-const AGE_BANDS = [
-  { value: '19', label: '18–20', note: 'Fewest cars available' },
-  { value: '23', label: '21–24', note: 'Young-driver fee may apply' },
-  { value: '30', label: '25 or over', note: 'All cars available' },
-];
 
 export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }) {
   const router = useRouter();
@@ -42,7 +37,7 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
   const cities = facets.data?.cities ?? [];
   const s = useSearchBar();
 
-  const [open, setOpen] = useState<'where' | 'when' | 'who' | null>(null);
+  const [open, setOpen] = useState<'where' | 'when' | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
 
   // Close on an outside click or Escape — a popover that traps you feels broken.
@@ -62,7 +57,6 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
 
   const activeCity = cities.find((c) => c.city === s.city) ?? cities[0];
   const cityLabel = s.center?.label ?? activeCity?.city ?? 'Anywhere';
-  const band = AGE_BANDS.find((b) => Number(s.age) >= 25 ? b.value === '30' : Number(s.age) >= 21 ? b.value === '23' : b.value === '19');
 
   const onSearch = () => {
     setOpen(null);
@@ -108,15 +102,6 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
           value={s.fromDate && s.untilDate ? `${fmt(s.fromDate)} — ${fmt(s.untilDate)}` : 'Add dates'}
           nav={isNav}
           grow
-        />
-        <Field
-          open={open === 'who'}
-          onOpen={() => setOpen(open === 'who' ? null : 'who')}
-          icon={<User className="h-4 w-4" />}
-          label="Driver age"
-          value={band?.label ?? '25 or over'}
-          nav={isNav}
-          className={isNav ? 'hidden md:flex' : ''}
         />
 
         <div className={cn('flex items-center', isNav ? 'ps-3 pe-1' : 'p-3 lg:p-0 lg:pe-1')}>
@@ -189,34 +174,6 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
         </Panel>
       )}
 
-      {open === 'who' && (
-        <Panel>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Driver age</p>
-          {/* Bands rather than a number field: the exact age only matters at two
-              thresholds, and each band says what it actually changes. */}
-          <div className="-mx-2">
-            {AGE_BANDS.map((b) => {
-              const on = band?.value === b.value;
-              return (
-                <button
-                  key={b.value}
-                  onClick={() => { s.patch({ age: b.value }); setOpen(null); }}
-                  className={cn(
-                    'flex w-full items-center justify-between gap-3 rounded-xl px-2 py-2.5 text-start transition-colors',
-                    on ? 'bg-primary/5' : 'hover:bg-muted',
-                  )}
-                >
-                  <span>
-                    <span className="block font-medium">{b.label}</span>
-                    <span className="block text-xs text-muted-foreground">{b.note}</span>
-                  </span>
-                  {on && <Check className="h-4 w-4 shrink-0 text-primary" />}
-                </button>
-              );
-            })}
-          </div>
-        </Panel>
-      )}
     </div>
   );
 }
