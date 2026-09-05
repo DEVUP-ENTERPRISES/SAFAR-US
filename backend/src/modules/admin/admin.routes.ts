@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/authenticate';
 import { authorize } from '../../shared/middleware/authorize';
+import { requireAdmin } from '../../shared/middleware/require-admin';
 import { auditLog } from '../../shared/middleware/audit-log';
 import { metricsAdminRoutes } from './api/metrics.admin.routes';
 import { usersAdminRoutes } from './api/users.admin.routes';
@@ -31,7 +32,19 @@ import { growthAdminRoutes } from '../platform-config/api/growth.admin.routes';
 export function buildAdminRouter(): Router {
   const admin = Router();
 
-  admin.use(authenticate, authorize('admin:read'), auditLog('admin'));
+  /*
+   * The base gate. Order matters:
+   *   authenticate  — token signature valid AND session live in Redis
+   *   requireAdmin  — re-verify roles/status against the DATABASE, per request,
+   *                   and rebuild req.principal from live truth
+   *   authorize     — the recomputed permissions must include admin:read
+   *   auditLog      — record every privileged mutation
+   *
+   * Because requireAdmin overwrites req.principal.permissions from the DB, the
+   * authorize() below and every per-route authorize() decide on live roles, so
+   * a JWT that still claims admin after a demotion no longer opens anything.
+   */
+  admin.use(authenticate, requireAdmin, authorize('admin:read'), auditLog('admin'));
 
   admin.use(navAdminRoutes);
   admin.use(metricsAdminRoutes);

@@ -7,7 +7,7 @@ import { redis, connectRedis, disconnectRedis } from './infrastructure/cache/red
 import { setKvStore, RedisKvStore, InMemoryKvStore } from './infrastructure/cache/kv-store';
 import { registerEventSubscribers } from './bootstrap/event-subscriptions';
 import { installCrashHandlers } from './infrastructure/observability/error-reporter';
-import { seedAdmin } from './bootstrap/seed-admin';
+import { seedAdmin, enforceSingleSuperAdmin } from './bootstrap/seed-admin';
 import { initRealtime } from './realtime';
 import { initJobs } from './jobs';
 import { verifyChannels } from './modules/notifications/infrastructure/channel.providers';
@@ -42,6 +42,7 @@ async function bootstrap(): Promise<void> {
   }
 
   await seedAdmin();
+  await enforceSingleSuperAdmin();
   registerEventSubscribers();
 
   // Background jobs need Redis (BullMQ). Skip gracefully in dev without Redis.

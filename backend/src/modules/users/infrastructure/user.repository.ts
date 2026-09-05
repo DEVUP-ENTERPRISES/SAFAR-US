@@ -86,6 +86,20 @@ export class UserRepository {
     );
   }
 
+  /**
+   * Remove roles from an account. Used only by the admin-singleton enforcement
+   * — there is deliberately no method to ADD a privileged role from anywhere in
+   * the request path, so escalation has no code to travel through.
+   */
+  async pullRoles(userId: string, roles: string[]): Promise<void> {
+    await UserModel.updateOne({ _id: userId }, { $pull: { roles: { $in: roles } } });
+  }
+
+  /** Every account holding any of these roles. */
+  async findByAnyRole(roles: string[]): Promise<UserDoc[]> {
+    return UserModel.find({ roles: { $in: roles }, deletedAt: null }).lean<UserDoc[]>();
+  }
+
   async count(filter: Record<string, unknown> = {}): Promise<number> {
     return UserModel.countDocuments({ deletedAt: null, ...filter });
   }
