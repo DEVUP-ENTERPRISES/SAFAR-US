@@ -1,7 +1,7 @@
 {
   "name": "tura-backend",
   "version": "0.1.0",
-  "description": "TURA — Mobility Operating System (modular monolith)",
+  "description": "TURA \u2014 Mobility Operating System (modular monolith)",
   "main": "dist/main.js",
   "type": "commonjs",
   "engines": {
@@ -60,5 +60,8 @@
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.7.3"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
   }
 }
