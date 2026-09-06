@@ -33,9 +33,18 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      # The jest suite is pure logic (no Mongo/Redis needed), so it runs here as
-      # is. DB-backed checks run against a real database outside CI.
+      # The jest suite is pure logic — it never connects to Mongo or Redis — but
+      # importing config validates the environment and exits if required vars are
+      # missing. CI has no .env, so provide throwaway values that satisfy the
+      # schema. NODE_ENV=test skips the production guards. DB-backed checks run
+      # against a real database outside CI.
       - run: npm test
+        env:
+          NODE_ENV: test
+          MONGO_URI: mongodb://localhost:27017/cato_test
+          REDIS_URL: redis://localhost:6379
+          JWT_ACCESS_SECRET: ci_test_access_secret_0123456789abcdef
+          JWT_REFRESH_SECRET: ci_test_refresh_secret_fedcba9876543210
       - run: npm run build
 
   frontend:
