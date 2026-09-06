@@ -1,8 +1,9 @@
 'use client';
 
+import { Logo } from '@/components/layout/logo';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Shield, LogOut, ExternalLink, User } from 'lucide-react';
+import { LogOut, ExternalLink, User } from 'lucide-react';
 import { config } from '@/lib/config';
 import { useAuthStore } from '@/features/auth/store';
 import { useLogout } from '@/features/auth/hooks';
@@ -25,9 +26,7 @@ export function AdminTopbar() {
     <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
       <div className="flex h-14 items-center gap-4 px-4 sm:px-6">
         <Link href={adminPath()} className="flex shrink-0 items-center gap-2.5">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-foreground text-background">
-            <Shield className="h-4.5 w-4.5" />
-          </span>
+          <Logo className="h-8 w-8 shrink-0" />
           <span className="text-[15px] font-black tracking-tight">
             {config.appName} <span className="font-medium text-muted-foreground">Console</span>
           </span>

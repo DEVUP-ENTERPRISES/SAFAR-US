@@ -1,3 +1,4 @@
+import { Logo } from '@/components/layout/logo';
 import Link from 'next/link';
 import { config } from '@/lib/config';
 
@@ -50,14 +51,8 @@ export function Footer() {
           {/* Brand block */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2.5">
-              <span className="grid h-8 w-8 place-items-center rounded-lg brand-gradient">
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-                  <path d="M4 17c3-8 13-8 16 0" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
-                  <circle cx="8" cy="17" r="2.1" fill="white" />
-                  <circle cx="16" cy="17" r="2.1" fill="white" fillOpacity="0.6" />
-                </svg>
-              </span>
-              <span className="text-lg font-extrabold tracking-tight">{config.appName}</span>
+              <Logo className="h-9 w-9 shrink-0" />
+              <span className="display text-xl tracking-tight">{config.appName}</span>
             </div>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
               The Mobility Operating System. Book cars from trusted local hosts — or turn your car

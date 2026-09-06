@@ -47,6 +47,10 @@ export interface EmailContent {
 
 export function renderEmail(c: EmailContent): string {
   const brand = config.notifications.brandName || 'SAFAR';
+  // Emails need an ABSOLUTE url — they can't reach local files. Served from the
+  // web app's /public. Falls back to text-only when no web URL is configured,
+  // and the alt text covers the (common) case of a client blocking images.
+  const logoUrl = config.notifications.webUrl ? `${config.notifications.webUrl}/logos/cato-logo-256.png` : '';
   const web = config.notifications.webUrl || '';
   const support = config.notifications.supportEmail;
   const address = config.notifications.companyAddress;
@@ -91,10 +95,18 @@ export function renderEmail(c: EmailContent): string {
           <!-- Header -->
           <tr>
             <td style="padding:24px 28px 0;">
-              <span style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                           font-size:15px;font-weight:800;letter-spacing:-0.01em;color:${BRAND};">
-                ${esc(brand)}
-              </span>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+                ${logoUrl ? `<td style="padding-right:10px;vertical-align:middle;">
+                  <img src="${logoUrl}" width="34" height="34" alt="${esc(brand)}"
+                       style="display:block;border:0;outline:none;text-decoration:none;height:34px;width:34px;" />
+                </td>` : ''}
+                <td style="vertical-align:middle;">
+                  <span style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+                               font-size:16px;font-weight:800;letter-spacing:-0.01em;color:${BRAND};">
+                    ${esc(brand)}
+                  </span>
+                </td>
+              </tr></table>
             </td>
           </tr>
 

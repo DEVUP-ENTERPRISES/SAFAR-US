@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Search, Menu, X, Car, Info, HelpCircle, FileText, ShieldCheck, Calculator } from 'lucide-react';
 import { config } from '@/lib/config';
-import { CatoMark } from '@/components/layout/cato-mark';
+import { Logo } from '@/components/layout/logo';
 import { useAuthStore } from '@/features/auth/store';
 import { useIsHost } from '@/features/host/hooks';
 import { Button } from '@/components/ui/button';
@@ -56,10 +56,8 @@ export function Navbar() {
           </button>
           
           <Link href="/" className="flex shrink-0 items-center gap-2.5 transition-transform hover:scale-105">
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-lg shadow-primary/20 text-white">
-              <CatoMark />
-            </span>
-            <span className="text-lg font-bold tracking-tight hidden xs:block">{config.appName}</span>
+            <Logo className="h-9 w-9 shrink-0" />
+            <span className="display text-xl tracking-tight hidden xs:block">{config.appName}</span>
           </Link>
         </div>
 
@@ -139,10 +137,8 @@ export function Navbar() {
           <div className="fixed inset-y-0 start-0 w-[85%] max-w-sm bg-background shadow-2xl animate-slide-in-right flex flex-col">
             <div className="flex items-center justify-between px-4 h-16 border-b border-border">
               <Link href="/" className="flex items-center gap-2.5" onClick={() => setMobileMenuOpen(false)}>
-                <span className="grid h-8 w-8 place-items-center rounded-lg brand-gradient shadow-soft">
-                  <CatoMark />
-                </span>
-                <span className="text-lg font-extrabold tracking-tight">{config.appName}</span>
+                <Logo className="h-9 w-9 shrink-0" />
+                <span className="display text-xl tracking-tight">{config.appName}</span>
               </Link>
               <button 
                 className="p-2 -me-2 text-foreground" 

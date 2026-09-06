@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { config } from '@/lib/config';
-import { CatoMark } from '@/components/layout/cato-mark';
+import { Logo } from '@/components/layout/logo';
 import { vehicleApi } from '@/features/vehicles/api';
 
 /**
@@ -98,8 +98,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {/* Brand */}
         <div className="relative z-10 flex items-center p-10">
           <Link href="/" className="flex items-center gap-2.5 text-white transition-transform hover:scale-105">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-ink shadow-lg">
-              <CatoMark />
+            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white p-1 shadow-lg">
+              <Logo className="h-9 w-9" />
             </span>
             <span className="display text-2xl tracking-tight">{config.appName}</span>
           </Link>
@@ -139,9 +139,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <div className="relative flex w-full flex-col lg:w-1/2">
         <div className="flex h-20 items-center justify-between px-6 lg:hidden">
           <Link href="/" className="flex items-center gap-2.5 transition-transform hover:scale-105">
-            <span className="grid h-8 w-8 place-items-center rounded-lg brand-gradient text-white shadow-soft">
-              <CatoMark />
-            </span>
+            <Logo className="h-9 w-9 shrink-0" />
             <span className="display text-xl tracking-tight">{config.appName}</span>
           </Link>
           <Link href="/" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
