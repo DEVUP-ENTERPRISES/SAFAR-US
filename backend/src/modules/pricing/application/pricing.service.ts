@@ -279,6 +279,6 @@ async function bestMemberOffer(
  */
 function extractAirportCode(address?: string): string | undefined {
   if (!address) return undefined;
-  const m = /([A-Z]{3})/.exec(address.toUpperCase());
+  const m = /\b([A-Z]{3})\b/.exec(address.toUpperCase());
   return m?.[1];
 }
