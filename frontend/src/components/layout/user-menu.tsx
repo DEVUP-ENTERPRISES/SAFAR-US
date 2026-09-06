@@ -47,7 +47,7 @@ export function UserMenu() {
     { href: '/messages', label: 'Messages', icon: MessageSquare, inFooter: true },
     { href: '/wishlist', label: 'Saved cars', icon: Heart, inFooter: true },
     { href: '/saved-searches', label: 'Saved searches', icon: Search, inFooter: false },
-    { href: '/wallet', label: 'Wallet', icon: Wallet, inFooter: true },
+    { href: '/wallet', label: 'Wallet', icon: Wallet, inFooter: false },
     { href: '/citations', label: 'Tickets & tolls', icon: FileWarning, inFooter: false },
     { href: '/membership', label: 'Membership', icon: Sparkles, inFooter: false },
     { href: '/rewards', label: 'Rewards', icon: Gift, inFooter: false },

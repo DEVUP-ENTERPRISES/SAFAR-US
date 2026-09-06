@@ -141,8 +141,8 @@ function Account() {
         <div className="space-y-5">
           {me.data.addresses.map((a) => (
             <div key={a.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl bg-background p-5 gap-4 border border-border/40 shadow-sm">
-              <div>
-                <p className="text-base font-bold flex items-center">{a.label} {a.isDefault && <Badge tone="success" className="ms-3 text-[10px] uppercase tracking-widest">Default</Badge>}</p>
+              <div className="min-w-0">
+                <p className="text-base font-bold flex flex-wrap items-center gap-x-2 gap-y-1">{a.label} {a.isDefault && <Badge tone="success" className="ms-3 text-[10px] uppercase tracking-widest">Default</Badge>}</p>
                 <p className="mt-1.5 text-sm font-medium text-muted-foreground">{a.line1}, {a.city} {a.state} {a.zip}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -151,7 +151,7 @@ function Account() {
               </div>
             </div>
           ))}
-          <div className="grid gap-3 sm:grid-cols-5 mt-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 mt-4">
             <Input className="h-12 rounded-xl" placeholder="Label" value={addr.label} onChange={(e) => setAddr({ ...addr, label: e.target.value })} />
             <Input className="h-12 rounded-xl" placeholder="Street" value={addr.line1} onChange={(e) => setAddr({ ...addr, line1: e.target.value })} />
             <Input className="h-12 rounded-xl" placeholder="City" value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} />
@@ -168,11 +168,11 @@ function Account() {
         <div className="space-y-4">
           {me.data.emergencyContacts.map((c) => (
             <div key={c.id} className="flex items-center justify-between rounded-2xl bg-background p-4 gap-4 border border-border/40 shadow-sm">
-              <div><p className="text-base font-bold">{c.name}</p><p className="text-sm font-medium text-muted-foreground mt-0.5">{c.phone}{c.relation ? ` · ${c.relation}` : ''}</p></div>
+              <div className="min-w-0"><p className="text-base font-bold">{c.name}</p><p className="text-sm font-medium text-muted-foreground mt-0.5">{c.phone}{c.relation ? ` · ${c.relation}` : ''}</p></div>
               <Button size="icon" variant="ghost" className="text-destructive rounded-full hover:bg-destructive/10 shrink-0" onClick={async () => { const { ok } = await confirm({ title: `Remove ${c.name}?`, description: 'This emergency contact will no longer be notified during a trip SOS.', confirmLabel: 'Remove contact', tone: 'destructive' }); if (ok) removeContact.mutate(c.id); }}><Trash2 className="h-4 w-4" /></Button>
             </div>
           ))}
-          <div className="grid gap-3 sm:grid-cols-3 mt-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 mt-4">
             <Input className="h-12 rounded-xl" placeholder="Name" value={contact.name} onChange={(e) => setContact({ ...contact, name: e.target.value })} />
             <Input className="h-12 rounded-xl" placeholder="Phone" value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} />
             <Input className="h-12 rounded-xl" placeholder="Relation" value={contact.relation} onChange={(e) => setContact({ ...contact, relation: e.target.value })} />
@@ -234,8 +234,8 @@ function Account() {
         <div className="space-y-4">
           {cards.data?.map((c) => (
             <div key={c._id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl bg-background p-5 gap-4 border border-border/40 shadow-sm">
-              <div>
-                <p className="text-base font-bold capitalize flex items-center">{c.brand} •••• {c.last4} {c.isDefault && <Badge tone="success" className="ms-3 text-[10px] uppercase tracking-widest">Default</Badge>}</p>
+              <div className="min-w-0">
+                <p className="text-base font-bold capitalize flex flex-wrap items-center gap-x-2 gap-y-1">{c.brand} •••• {c.last4} {c.isDefault && <Badge tone="success" className="ms-3 text-[10px] uppercase tracking-widest">Default</Badge>}</p>
                 <p className="mt-1 text-sm font-medium text-muted-foreground">Expires {c.expMonth}/{c.expYear}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -260,8 +260,8 @@ function Account() {
           {sessions.isLoading && <Skeleton className="h-20 w-full rounded-2xl" />}
           {sessions.data?.map((s) => (
             <div key={s.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl bg-background p-5 gap-4 border border-border/40 shadow-sm">
-              <div>
-                <p className="text-base font-bold flex items-center">
+              <div className="min-w-0">
+                <p className="text-base font-bold flex flex-wrap items-center gap-x-2 gap-y-1">
                   {shortUa(s.userAgent)} {s.current && <Badge tone="success" className="ms-3 text-[10px] uppercase tracking-widest"><Star className="me-1 h-3 w-3 inline" /> This device</Badge>}
                 </p>
                 <p className="mt-1 text-sm font-medium text-muted-foreground">{s.ip ?? 'unknown IP'} · since {formatDate(s.createdAt)}</p>
