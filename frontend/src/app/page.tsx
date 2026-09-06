@@ -128,17 +128,17 @@ export default function HomePage() {
 
       <div className="space-y-24 py-16">
         {/* ── Browse by category ─────────────────────────────────────── */}
-        <section className="space-y-6">
+        <Reveal as="section" className="space-y-6">
           <div>
             <h2 className="display text-display-sm">Browse by style</h2>
             <p className="mt-2 text-muted-foreground">Whatever the trip calls for.</p>
           </div>
           <CategoryCarousel city={city} />
-        </section>
+        </Reveal>
 
         {/* ── For You (personalized) ─────────────────────────────────── */}
         {user && forYou.data && forYou.data.length > 0 && (
-          <section className="space-y-6">
+          <Reveal as="section" className="space-y-6">
             <div className="flex items-end justify-between gap-4">
               <div>
                 <h2 className="display flex items-center gap-2.5 text-display-sm">
@@ -152,11 +152,11 @@ export default function HomePage() {
                 <VehicleCard key={v._id} vehicle={v} className="w-[85vw] shrink-0 snap-center sm:w-auto" />
               ))}
             </div>
-          </section>
+          </Reveal>
         )}
 
         {/* ── Trending ───────────────────────────────────────────────── */}
-        <section className="space-y-6">
+        <Reveal as="section" className="space-y-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="display text-display-sm">Trending in {city}</h2>
@@ -211,7 +211,7 @@ export default function HomePage() {
               </p>
             </div>
           )}
-        </section>
+        </Reveal>
 
         {/* ── How it works ───────────────────────────────────────────── */}
         <Reveal as="section" className="space-y-12 sm:space-y-16 relative isolate pt-10">

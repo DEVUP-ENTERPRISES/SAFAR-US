@@ -70,7 +70,7 @@ export function CategoryCarousel({ city }: { city: string }) {
         onScroll={checkScroll}
         className="hide-scrollbar flex gap-5 overflow-x-auto snap-x snap-mandatory pb-6 pt-2"
       >
-        {categories.map((cat) => {
+        {categories.map((cat, i) => {
           const look = LOOK[cat.category] ?? {
             label: titleCase(cat.category),
             image: '/categories/economy.png',
@@ -81,7 +81,8 @@ export function CategoryCarousel({ city }: { city: string }) {
           <Link
             key={c.key}
             href={`/search?city=${encodeURIComponent(city)}&category=${c.key}`}
-            className="group relative flex h-[340px] w-[240px] sm:w-[280px] shrink-0 snap-start flex-col justify-end overflow-hidden rounded-[2rem] border-0 shadow-float transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
+            style={{ animationDelay: `${i * 90}ms`, animationFillMode: 'backwards' }}
+            className="group animate-slide-up relative flex h-[340px] w-[240px] shrink-0 snap-start flex-col justify-end overflow-hidden rounded-[2rem] border-0 shadow-float transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl sm:w-[280px]"
           >
             {/* Background Image with Parallax-like scale */}
             <div className="absolute inset-0 bg-muted">
@@ -96,8 +97,11 @@ export function CategoryCarousel({ city }: { city: string }) {
             {/* Advanced Gradients for Text Legibility */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-90" />
             
-            {/* Inner Premium Ring */}
-            <div className="absolute inset-0 rounded-[2rem] ring-1 ring-inset ring-white/10 group-hover:ring-white/20 transition-all duration-500" />
+            {/* Inner premium ring */}
+            <div className="absolute inset-0 rounded-[2rem] ring-1 ring-inset ring-white/10 transition-all duration-500 group-hover:ring-white/25" />
+
+            {/* A light sheen that sweeps across on hover — alive, not noisy. */}
+            <div className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-[900ms] ease-out group-hover:translate-x-full" />
             
             {/* Content */}
             <div className="relative z-10 p-6 sm:p-8 flex flex-col gap-1 transform transition-transform duration-500 translate-y-2 group-hover:translate-y-0">
