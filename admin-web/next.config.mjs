@@ -17,6 +17,8 @@ const sharedSrc = path.resolve(dir, '../frontend/src');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Don't send the X-Powered-By: Next.js header — no need to announce the stack.
+  poweredByHeader: false,
   output: 'standalone',
   experimental: { externalDir: true },
   images: {

@@ -40,6 +40,10 @@ export function createApp(): Express {
    */
   app.set('trust proxy', config.trustProxyHops);
 
+  // Don't advertise the server framework. Helmet also strips this, but stating
+  // it explicitly makes the intent obvious and covers any window before helmet.
+  app.disable('x-powered-by');
+
   // 1. correlation id
   app.use(requestContext);
 

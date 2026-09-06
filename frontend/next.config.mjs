@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Don't send the X-Powered-By: Next.js header — no need to announce the stack.
+  poweredByHeader: false,
   // Emits a self-contained server bundle carrying only the node_modules that
   // are actually used — the difference between a ~1GB and a ~150MB image.
   output: 'standalone',

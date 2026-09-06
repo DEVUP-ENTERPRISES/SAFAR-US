@@ -35,15 +35,60 @@ const fontMono = IBM_Plex_Mono({
   display: 'swap',
 });
 
+/*
+ * Owned, on-brand metadata for CATO Drive.
+ *
+ * Every field is filled with the product's own identity rather than left to a
+ * framework default, so search engines, link previews and site scanners see
+ * "CATO Drive", not a generic scaffold. Nothing here advertises the build tool
+ * (and poweredByHeader is off in next.config, so no X-Powered-By header ships).
+ */
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://catodrive.com';
+const BRAND = `${config.appName} Drive`;
+const TAGLINE = `${BRAND} — rent the perfect car from local hosts`;
+const DESCRIPTION =
+  `${BRAND} is a peer-to-peer car rental marketplace: book a car from a trusted local host, ` +
+  `or earn by sharing yours. Verified hosts, protected trips, no rental counters.`;
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: `${config.appName} — Mobility Operating System`,
-    template: `%s · ${config.appName}`,
+    default: TAGLINE,
+    template: `%s · ${BRAND}`,
   },
-  description:
-    'CATO is a complete mobility platform — peer-to-peer vehicle rentals, fleet, corporate mobility, and more.',
-  applicationName: config.appName,
-  openGraph: { title: config.appName, type: 'website' },
+  description: DESCRIPTION,
+  applicationName: BRAND,
+  authors: [{ name: BRAND, url: SITE_URL }],
+  creator: BRAND,
+  publisher: BRAND,
+  // Don't announce the generator/build tool.
+  generator: null,
+  keywords: [
+    'CATO Drive', 'car rental', 'rent a car', 'peer to peer car rental',
+    'car sharing', 'book a car', 'local car rental', 'host your car', 'car hire',
+  ],
+  category: 'travel',
+  referrer: 'strict-origin-when-cross-origin',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
+  },
+  icons: { icon: '/icon.png', shortcut: '/icon.png', apple: '/icon.png' },
+  openGraph: {
+    type: 'website',
+    siteName: BRAND,
+    title: TAGLINE,
+    description: DESCRIPTION,
+    url: SITE_URL,
+    images: [{ url: '/logos/cato-logo.png', width: 829, height: 937, alt: BRAND }],
+  },
+  twitter: {
+    card: 'summary',
+    title: TAGLINE,
+    description: DESCRIPTION,
+    images: ['/logos/cato-logo.png'],
+  },
 };
 
 export const viewport: Viewport = {
