@@ -317,8 +317,9 @@ export class SearchService {
       if (v.category) catWeight.set(v.category, (catWeight.get(v.category) ?? 0) + 1);
       if (v.bodyType) bodyWeight.set(v.bodyType, (bodyWeight.get(v.bodyType) ?? 0) + 1);
       if (v.pricing?.dailyPrice) { priceSum += v.pricing.dailyPrice; priceN += 1; }
-      if (!anchor && (v.location as any)?.coordinates) {
-        anchor = (v.location as any).coordinates as [number, number];
+      const coords = (v.location as { coordinates?: [number, number] } | undefined)?.coordinates;
+      if (!anchor && coords) {
+        anchor = coords;
       }
     }
     const avgPrice = priceN ? priceSum / priceN : 0;

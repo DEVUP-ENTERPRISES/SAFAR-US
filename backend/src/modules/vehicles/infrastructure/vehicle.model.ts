@@ -228,7 +228,19 @@ const schema = new Schema<VehicleDoc>(
   { timestamps: true, _id: false },
 );
 
+// Plain geo index — used by unfiltered proximity queries (recommendations,
+// similar cars).
 schema.index({ location: '2dsphere' });
+
+/*
+ * The search index. Search is by far the hottest query and always filters
+ * status:'listed' before the $near proximity sort. A compound 2dsphere index
+ * with the equality-matched status first lets the planner narrow to listed cars
+ * and THEN walk the geometry, instead of walking every car in the radius and
+ * discarding the unlisted ones. That difference is invisible at a few hundred
+ * cars and decisive at 100K+ in a dense metro.
+ */
+schema.index({ status: 1, location: '2dsphere' });
 schema.index({ status: 1, verificationStatus: 1 });
 schema.index({ hostId: 1, status: 1 });
 schema.index({ fleetId: 1 });
