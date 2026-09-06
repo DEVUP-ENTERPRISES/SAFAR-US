@@ -2,7 +2,7 @@ import { FleetModel, type FleetDoc } from '../infrastructure/fleet.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { AvailabilityModel } from '../../availability/infrastructure/availability.model';
 import { hostService } from '../../hosts/application/host.service';
-import { bookingService } from '../../bookings/application/booking.service';
+import { bookingReportingService } from '../../bookings/application/booking-reporting.service';
 import { maintenanceService } from '../../maintenance/application/maintenance.service';
 import { ForbiddenError, NotFoundError } from '../../../core/errors/app-error';
 
@@ -89,7 +89,7 @@ export class FleetService {
     const occupancyPct = capacity ? Math.round((bookedDays / capacity) * 100) : 0;
 
     const stats = vehicleIds.length
-      ? await bookingService.completedStatsForVehicles(vehicleIds)
+      ? await bookingReportingService.completedStatsForVehicles(vehicleIds)
       : { trips: 0, revenue: 0 };
 
     return {
@@ -114,7 +114,7 @@ export class FleetService {
     const vehicleIds = vehicles.map((v) => v._id);
 
     const [earnings, costs] = await Promise.all([
-      bookingService.earningsByVehicle(vehicleIds),
+      bookingReportingService.earningsByVehicle(vehicleIds),
       maintenanceService.costByVehicles(vehicleIds),
     ]);
 

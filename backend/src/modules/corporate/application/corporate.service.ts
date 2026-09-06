@@ -6,6 +6,7 @@ import { userRepository } from '../../users/infrastructure/user.repository';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { pricingService } from '../../pricing/application/pricing.service';
 import { bookingService } from '../../bookings/application/booking.service';
+import { bookingReportingService } from '../../bookings/application/booking-reporting.service';
 import { NotFoundError, ForbiddenError, ConflictError, ValidationError } from '../../../core/errors/app-error';
 
 export interface OrgContext {
@@ -219,7 +220,7 @@ export class CorporateService {
       MemberModel.countDocuments({ orgId: ctx.org._id, status: { $ne: 'removed' } }),
       CostCenterModel.countDocuments({ orgId: ctx.org._id }),
       RequestModel.countDocuments({ orgId: ctx.org._id, status: 'pending' }),
-      bookingService.orgBookings(ctx.org._id),
+      bookingReportingService.orgBookings(ctx.org._id),
       CostCenterModel.find({ orgId: ctx.org._id }).lean<{ _id: string; name: string }[]>(),
     ]);
     const billable = bookings.filter((b) => ['paid', 'in_progress', 'completed'].includes(b.status));
@@ -276,7 +277,7 @@ export class CorporateService {
   }> {
     const ctx = await this.context(userId);
     this.assertManager(ctx);
-    const bookings = (await bookingService.orgBookings(ctx.org._id, from, to)).filter((b) =>
+    const bookings = (await bookingReportingService.orgBookings(ctx.org._id, from, to)).filter((b) =>
       ['paid', 'in_progress', 'completed'].includes(b.status),
     );
     const centers = await CostCenterModel.find({ orgId: ctx.org._id }).lean<CostCenterDoc[]>();

@@ -1,7 +1,7 @@
 import { userRepository } from '../../users/infrastructure/user.repository';
 import { hostService } from '../../hosts/application/host.service';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
-import { bookingService } from '../../bookings/application/booking.service';
+import { bookingReportingService } from '../../bookings/application/booking-reporting.service';
 import { claimService } from '../../claims/application/claim.service';
 import { ticketService } from '../../support/application/ticket.service';
 import { ledgerService } from '../../payments/application/ledger.service';
@@ -40,9 +40,9 @@ export class AdminMetricsService {
       vehicleService.count(),
       vehicleService.count({ status: 'listed' }),
       vehicleService.count({ verificationStatus: 'pending' }),
-      bookingService.count(),
-      bookingService.statusBreakdown(),
-      bookingService.gmv(),
+      bookingReportingService.count(),
+      bookingReportingService.statusBreakdown(),
+      bookingReportingService.gmv(),
       claimService.count({ status: { $in: ['opened', 'investigating'] } }),
       ticketService.count({ status: { $in: ['open', 'pending', 'escalated'] } }),
       // platform_revenue is DEBIT-normal (commission debits it). balance() =
@@ -68,10 +68,10 @@ export class AdminMetricsService {
    */
   async analytics(days = 30): Promise<AdminAnalytics> {
     const [series, signups, demand, byStatus] = await Promise.all([
-      bookingService.dailySeries(days),
+      bookingReportingService.dailySeries(days),
       userRepository.dailySignups(days),
-      bookingService.demandBreakdown(days),
-      bookingService.statusBreakdown(),
+      bookingReportingService.demandBreakdown(days),
+      bookingReportingService.statusBreakdown(),
     ]);
 
     const bookings = series.reduce((a, d) => a + d.bookings, 0);
