@@ -9,7 +9,7 @@ import { registerEventSubscribers } from './bootstrap/event-subscriptions';
 import { installCrashHandlers } from './infrastructure/observability/error-reporter';
 import { seedAdmin, enforceSingleSuperAdmin } from './bootstrap/seed-admin';
 import { initRealtime } from './realtime';
-import { initJobs } from './jobs';
+import { initJobs, closeJobs } from './jobs';
 import { verifyChannels } from './modules/notifications/infrastructure/channel.providers';
 import { isRedisHealthy } from './infrastructure/cache/redis.client';
 
@@ -57,20 +57,54 @@ async function bootstrap(): Promise<void> {
   const app = createApp();
   const server = http.createServer(app);
 
-  initRealtime(server);
+  const io = initRealtime(server);
 
   server.listen(config.app.port, () => {
     logger.info(`🚀 ${config.app.name} API listening on :${config.app.port} (${config.env})`);
   });
 
+  /*
+   * Graceful shutdown, in the only order that does not drop work.
+   *
+   * The previous version called server.close() and waited on its callback —
+   * but open WebSockets keep the HTTP server from ever closing, so it always
+   * fell through to the hard-kill timer and exited 1, dropping in-flight
+   * requests AND killing in-flight jobs (payout transfers included) the moment
+   * Redis went away.
+   *
+   *   1. Boot the WebSocket clients so the HTTP server can actually drain.
+   *   2. Stop accepting new HTTP and let in-flight requests finish.
+   *   3. Let the background worker finish its CURRENT job, then stop.
+   *   4. Only now disconnect Mongo and Redis — the steps above need them.
+   *
+   * A longer safety timer still forces exit if any step hangs, but the happy
+   * path exits 0 with nothing lost.
+   */
+  let shuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     logger.warn(`${signal} received — shutting down gracefully`);
-    server.close(async () => {
+    const hardKill = setTimeout(() => {
+      logger.error('graceful shutdown timed out — forcing exit');
+      process.exit(1);
+    }, 25_000);
+    hardKill.unref();
+    try {
+      io.disconnectSockets(true);
+      await io.close().catch(() => undefined);
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      await closeJobs().catch((err) =>
+        logger.error({ err: (err as Error).message }, 'closeJobs failed during shutdown'),
+      );
       await Promise.allSettled([disconnectMongo(), disconnectRedis()]);
       logger.info('Shutdown complete');
+      clearTimeout(hardKill);
       process.exit(0);
-    });
-    setTimeout(() => process.exit(1), 10_000).unref();
+    } catch (err) {
+      logger.error({ err: (err as Error).message }, 'error during graceful shutdown');
+      process.exit(1);
+    }
   };
 
   process.on('SIGTERM', () => void shutdown('SIGTERM'));

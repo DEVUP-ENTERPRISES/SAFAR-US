@@ -20,8 +20,12 @@ const QUEUE = 'cato-maintenance';
  * These run here in dev; in prod they run in a dedicated worker process
  * (same code, started via PM2) so the API tier stays latency-focused.
  */
+let queueRef: import('bullmq').Queue | null = null;
+let workerRef: import('bullmq').Worker | null = null;
+
 export async function initJobs(): Promise<void> {
   const queue = makeQueue(QUEUE);
+  queueRef = queue;
 
   // Register repeatable jobs (idempotent — BullMQ dedups by repeat key).
   await queue.add('expire-bookings', {}, { repeat: { every: 5 * 60_000 }, jobId: 'expire-bookings' });
@@ -33,7 +37,7 @@ export async function initJobs(): Promise<void> {
   await queue.add('release-reviews', {}, { repeat: { every: 60 * 60_000 }, jobId: 'release-reviews' });
   await queue.add('retry-webhooks', {}, { repeat: { every: 5 * 60_000 }, jobId: 'retry-webhooks' });
 
-  makeWorker(QUEUE, async (job) => {
+  workerRef = makeWorker(QUEUE, async (job) => {
     switch (job.name) {
       case 'expire-bookings': {
         const n = await bookingService.expirePending();
@@ -87,4 +91,20 @@ export async function initJobs(): Promise<void> {
   });
 
   logger.info('✅ Background jobs (BullMQ) scheduler + worker started');
+}
+
+/**
+ * Stop background processing gracefully on shutdown.
+ *
+ * worker.close() waits for the job currently being processed to FINISH before
+ * resolving — critical for the payout and payment jobs, which must never be
+ * killed mid-transfer. New jobs stop being pulled immediately. Called before
+ * Redis is disconnected, or BullMQ cannot record the outcome of the in-flight
+ * job and it would be retried from scratch on the next boot.
+ */
+export async function closeJobs(): Promise<void> {
+  await workerRef?.close();
+  await queueRef?.close();
+  workerRef = null;
+  queueRef = null;
 }

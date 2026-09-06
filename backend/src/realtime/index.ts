@@ -23,7 +23,7 @@ interface SocketPrincipal {
  * adapter makes rooms cluster-wide so an emit from any node reaches the
  * right sockets.
  */
-export function initRealtime(httpServer: HttpServer): void {
+export function initRealtime(httpServer: HttpServer): SocketServer {
   const io = new SocketServer(httpServer, {
     cors: { origin: config.cors.origins.includes('*') ? true : config.cors.origins, credentials: true },
     transports: ['websocket', 'polling'],
@@ -202,4 +202,5 @@ export function initRealtime(httpServer: HttpServer): void {
 
   realtimeEmitter.bind(io);
   logger.info('✅ Socket.IO realtime gateway ready');
+  return io;
 }
