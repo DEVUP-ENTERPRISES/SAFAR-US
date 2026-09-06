@@ -39,18 +39,21 @@ export function UserMenu() {
   const initial = name.slice(0, 1).toUpperCase();
   const unread = useUnreadMessages(!!user).data?.count ?? 0;
 
+  // `inFooter` items are already in the phone tab bar, so the drawer hides them
+  // on mobile to avoid showing everything twice. Desktop has no footer bar, so
+  // there they stay visible.
   const items = [
-    { href: '/bookings', label: 'My trips', icon: Car },
-    { href: '/messages', label: 'Messages', icon: MessageSquare },
-    { href: '/wishlist', label: 'Saved cars', icon: Heart },
-    { href: '/saved-searches', label: 'Saved searches', icon: Search },
-    { href: '/wallet', label: 'Wallet', icon: Wallet },
-    { href: '/citations', label: 'Tickets & tolls', icon: FileWarning },
-    { href: '/membership', label: 'Membership', icon: Sparkles },
-    { href: '/rewards', label: 'Rewards', icon: Gift },
-    { href: '/account', label: 'Account', icon: User },
-    { href: '/help', label: 'Help centre', icon: BookOpen },
-    { href: '/support', label: 'Support', icon: LifeBuoy },
+    { href: '/bookings', label: 'My trips', icon: Car, inFooter: true },
+    { href: '/messages', label: 'Messages', icon: MessageSquare, inFooter: true },
+    { href: '/wishlist', label: 'Saved cars', icon: Heart, inFooter: true },
+    { href: '/saved-searches', label: 'Saved searches', icon: Search, inFooter: false },
+    { href: '/wallet', label: 'Wallet', icon: Wallet, inFooter: true },
+    { href: '/citations', label: 'Tickets & tolls', icon: FileWarning, inFooter: false },
+    { href: '/membership', label: 'Membership', icon: Sparkles, inFooter: false },
+    { href: '/rewards', label: 'Rewards', icon: Gift, inFooter: false },
+    { href: '/account', label: 'Account', icon: User, inFooter: true },
+    { href: '/help', label: 'Help centre', icon: BookOpen, inFooter: false },
+    { href: '/support', label: 'Support', icon: LifeBuoy, inFooter: false },
   ];
 
   return (
@@ -91,7 +94,11 @@ export function UserMenu() {
                 href={it.href}
                 onClick={() => setOpen(false)}
                 role="menuitem"
-                className="flex items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-accent"
+                className={cn(
+                  'items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-accent',
+                  // In the phone footer already → show only from lg up.
+                  it.inFooter ? 'hidden lg:flex' : 'flex',
+                )}
               >
                 <it.icon className="h-4 w-4 text-muted-foreground" /> {it.label}
                 {it.href === '/messages' && unread > 0 && (
