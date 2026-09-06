@@ -126,28 +126,68 @@ export class PaymentService implements IPaymentContract {
   async refundBooking(bookingId: string, amount: Money, reason: string): Promise<void> {
     const payment = await PaymentModel.findOne({ bookingId, type: 'booking' });
     if (!payment) throw new NotFoundError('Payment');
-    if (payment.refundedAmount + amount.amount > payment.capturedAmount) {
+    const priorRefunded = payment.refundedAmount;
+    if (priorRefunded + amount.amount > payment.capturedAmount) {
       throw new ConflictError('Refund exceeds captured amount', 'REFUND_TOO_LARGE');
     }
 
-    await paymentGateway.refund(payment.intentId, amount, `refund_${bookingId}_${Date.now()}`);
+    /*
+     * Claim this refund step atomically before any money moves.
+     *
+     * Refunds arrive from more than one place — a cancellation, a resolved
+     * dispute, a Stripe `charge.refunded` webhook — and two of them can land at
+     * once. The update only succeeds if refundedAmount is still what we read, so
+     * exactly one caller wins; a duplicate or concurrent refund fails the
+     * condition and stops here, before it can refund at Stripe a second time or
+     * double-credit the guest's wallet (the ledger post is not idempotent).
+     */
+    const nextRefunded = priorRefunded + amount.amount;
+    const claimed = await PaymentModel.findOneAndUpdate(
+      { _id: payment._id, refundedAmount: priorRefunded },
+      {
+        $set: {
+          refundedAmount: nextRefunded,
+          status: nextRefunded >= payment.capturedAmount ? 'refunded' : 'partially_refunded',
+        },
+      },
+      { new: true },
+    );
+    if (!claimed) {
+      throw new ConflictError('A refund for this booking is already being processed', 'REFUND_IN_PROGRESS');
+    }
 
-    // Reverse money to the guest's wallet (fast, encourages re-booking).
-    await ledgerService.post({
-      refType: 'refund',
-      refId: bookingId,
-      currency: amount.currency,
-      description: `Refund: ${reason}`,
-      legs: [
-        { account: Account.gatewayClearing(), direction: 'debit', amount: amount.amount },
-        { account: Account.userWallet(payment.userId), direction: 'credit', amount: amount.amount },
-      ],
-    });
+    try {
+      // Deterministic idempotency key — NOT Date.now(). A retry of this exact
+      // step reuses the key, so Stripe processes one refund; a later, distinct
+      // partial refund has a different prior total and its own key.
+      await paymentGateway.refund(payment.intentId, amount, `refund_${payment.intentId}_${priorRefunded}`);
 
-    payment.refundedAmount += amount.amount;
-    payment.status =
-      payment.refundedAmount >= payment.capturedAmount ? 'refunded' : 'partially_refunded';
-    await payment.save();
+      // Reverse money to the guest's wallet (fast, encourages re-booking).
+      await ledgerService.post({
+        refType: 'refund',
+        refId: bookingId,
+        currency: amount.currency,
+        description: `Refund: ${reason}`,
+        legs: [
+          { account: Account.gatewayClearing(), direction: 'debit', amount: amount.amount },
+          { account: Account.userWallet(payment.userId), direction: 'credit', amount: amount.amount },
+        ],
+      });
+    } catch (err) {
+      // Money did not move — release the claim so the step can be retried. The
+      // deterministic key above makes a retry safe even if Stripe had partially
+      // succeeded.
+      await PaymentModel.updateOne(
+        { _id: payment._id },
+        {
+          $set: {
+            refundedAmount: priorRefunded,
+            status: priorRefunded > 0 ? 'partially_refunded' : 'captured',
+          },
+        },
+      ).catch(() => undefined);
+      throw err;
+    }
 
     emit(EVENTS.PAYMENT_REFUNDED, bookingId, { bookingId, amount });
   }
