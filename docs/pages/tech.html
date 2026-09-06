@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CATO Under the Hood</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:    #F5F2EC;
+    --card:     #FFFFFF;
+    --ink:      #17140F;
+    --ink-soft: #55503f;
+    --ink-faint:#8a8574;
+    --rule:     #E6E1D6;
+    --rule-soft:#EFEBE2;
+    --teal:     #0C7E7A;
+    --teal-wash:#E2F0EE;
+    --green:    #1C7A50;
+    --green-wash:#E3F1E9;
+    --amber:    #A9670A;
+    --amber-wash:#F8ECD9;
+    --red:      #B23120;
+    --red-wash: #F8E6E2;
+    --code-bg:  #EDE8DD;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:    #16130E;
+      --card:     #1E1A14;
+      --ink:      #EDE7DA;
+      --ink-soft: #ADA593;
+      --ink-faint:#79725f;
+      --rule:     #2C2820;
+      --rule-soft:#232019;
+      --teal:     #46BEB6;
+      --teal-wash:#12332F;
+      --green:    #55C089;
+      --green-wash:#132A1E;
+      --amber:    #DFA24E;
+      --amber-wash:#2C2211;
+      --red:      #EE8375;
+      --red-wash: #2E1712;
+      --code-bg:  #262119;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:    #16130E;
+    --card:     #1E1A14;
+    --ink:      #EDE7DA;
+    --ink-soft: #ADA593;
+    --ink-faint:#79725f;
+    --rule:     #2C2820;
+    --rule-soft:#232019;
+    --teal:     #46BEB6;
+    --teal-wash:#12332F;
+    --green:    #55C089;
+    --green-wash:#132A1E;
+    --amber:    #DFA24E;
+    --amber-wash:#2C2211;
+    --red:      #EE8375;
+    --red-wash: #2E1712;
+    --code-bg:  #262119;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 60rem; margin: 0 auto; padding: 0 1.25rem 6rem; }
+
+  /* ── Masthead ── */
+  header.top {
+    padding: 4.5rem 0 2rem;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 3rem;
+  }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .72rem; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--teal); margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-family: 'Fraunces', serif; font-weight: 600;
+    font-size: clamp(2.4rem, 1.5rem + 3.6vw, 3.9rem);
+    line-height: 1.03; letter-spacing: -.02em; margin: 0; text-wrap: balance;
+  }
+  .lede {
+    font-size: 1.12rem; color: var(--ink-soft); max-width: 42rem; margin: 1.3rem 0 0;
+  }
+  .toc {
+    display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 2rem;
+  }
+  .toc a {
+    font-family: 'IBM Plex Mono', monospace; font-size: .76rem;
+    text-decoration: none; color: var(--ink-soft);
+    border: 1px solid var(--rule); border-radius: 99px; padding: .34rem .8rem;
+    transition: all .15s;
+  }
+  .toc a:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* ── System card ── */
+  .sys {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+    padding: 2rem 2rem 2.2rem;
+    margin-bottom: 1.75rem;
+    scroll-margin-top: 1.5rem;
+  }
+  .sys-num {
+    font-family: 'IBM Plex Mono', monospace; font-size: .74rem;
+    color: var(--teal); letter-spacing: .12em;
+  }
+  .sys h2 {
+    font-family: 'Fraunces', serif; font-weight: 600;
+    font-size: 1.7rem; letter-spacing: -.015em; margin: .3rem 0 0; line-height: 1.15;
+  }
+  .plain {
+    margin: 1rem 0 0; color: var(--ink-soft);
+  }
+  .plain strong { color: var(--ink); font-weight: 600; }
+
+  h3.mini {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 2rem 0 .8rem;
+    display: flex; align-items: center; gap: .6rem;
+  }
+  h3.mini::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
+
+  /* diagram frame */
+  .diagram {
+    background: var(--rule-soft);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 1.25rem 1rem;
+    overflow-x: auto;
+    margin: .4rem 0 0;
+  }
+  .mermaid { display: flex; justify-content: center; min-width: min-content; }
+
+  /* scenario */
+  .scn {
+    border-inline-start: 3px solid var(--teal);
+    background: var(--teal-wash);
+    border-radius: 0 10px 10px 0;
+    padding: 1rem 1.2rem; margin-top: 1.6rem;
+  }
+  .scn .scn-h {
+    font-family: 'IBM Plex Mono', monospace; font-size: .72rem;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--teal);
+    margin: 0 0 .5rem;
+  }
+  .scn p { margin: 0; font-size: .96rem; }
+  .scn.warn { border-color: var(--red); background: var(--red-wash); }
+  .scn.warn .scn-h { color: var(--red); }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace; font-size: .85em;
+    background: var(--code-bg); padding: .08em .38em; border-radius: 4px;
+    color: var(--ink); word-break: break-word;
+  }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 1rem 1.4rem;
+    margin: .8rem 0 0; padding: .8rem 1rem;
+    font-size: .82rem; color: var(--ink-soft);
+    border: 1px dashed var(--rule); border-radius: 10px;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: .45rem; }
+  .dot { width: .8rem; height: .8rem; border-radius: 3px; flex: none; }
+
+  footer {
+    margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--rule);
+    font-family: 'IBM Plex Mono', monospace; font-size: .74rem; color: var(--ink-faint);
+    line-height: 1.9;
+  }
+  .tag {
+    display: inline-block; font-family: 'IBM Plex Mono', monospace;
+    font-size: .68rem; color: var(--teal); background: var(--teal-wash);
+    padding: .12rem .5rem; border-radius: 5px; margin-inline-end: .3rem;
+  }
+</style>
+</head>
+<body style="margin:0">
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">CATO · Engineering Field Guide</p>
+    <h1>How it actually works, under the hood.</h1>
+    <p class="lede">
+      Plain-language walkthroughs of the systems that keep the marketplace safe and
+      correct — passwords, logins, bookings, payments, and the admin panel. Each one:
+      what it is, a flowchart, and a real "what happens when…" scenario.
+    </p>
+    <nav class="toc">
+      <a href="#pw">1 · Password security</a>
+      <a href="#session">2 · Login &amp; sessions</a>
+      <a href="#booking">3 · No double-booking</a>
+      <a href="#pay">4 · Payments &amp; webhooks</a>
+      <a href="#admin">5 · Admin isolation</a>
+    </nav>
+  </header>
+
+  <!-- 1 · PASSWORD -->
+  <section class="sys" id="pw">
+    <span class="sys-num">01</span>
+    <h2>Password security — salt + pepper</h2>
+    <p class="plain">
+      We <strong>never store the actual password</strong>. We store a one-way
+      <strong>hash</strong> made with <code>argon2id</code> — a deliberately slow,
+      memory-hungry recipe. Three layers stack up:
+    </p>
+    <p class="plain">
+      <strong>Hash</strong> = the scrambled output; you cannot reverse it back to the password.
+      <strong>Salt</strong> = a random value added per user, so two people with the same
+      password get totally different hashes (argon2 does this automatically).
+      <strong>Pepper</strong> = one secret key we keep <em>outside the database</em> and mix into
+      every password. It's the layer most apps skip.
+    </p>
+
+    <h3 class="mini">Sign-up: turning a password into a stored hash</h3>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'IBM Plex Mono','primaryColor':'#E2F0EE','primaryTextColor':'#17140F','primaryBorderColor':'#0C7E7A','lineColor':'#8a8574','fontSize':'13px'}}}%%
+flowchart LR
+  A([You type a<br/>password]) --> B[+ PEPPER<br/>secret, not in DB]
+  B --> C[argon2id<br/>+ random SALT]
+  C --> D[(Store the HASH<br/>in the database)]
+  style D fill:#E3F1E9,stroke:#1C7A50
+</pre>
+    </div>
+
+    <h3 class="mini">Login: checking without ever un-scrambling</h3>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'IBM Plex Mono','primaryColor':'#E2F0EE','primaryTextColor':'#17140F','primaryBorderColor':'#0C7E7A','lineColor':'#8a8574','fontSize':'13px'}}}%%
+flowchart TD
+  A([You type a password]) --> B[Re-hash it with the<br/>same pepper + stored salt]
+  B --> C{Matches the<br/>stored hash?}
+  C -->|no| D[Reject:<br/>Invalid credentials]
+  C -->|yes| E{Hash made with an<br/>OLD recipe?}
+  E -->|yes| F[Quietly re-hash &amp;<br/>upgrade in place]
+  E -->|no| G[Let you in]
+  F --> G
+  style D fill:#F8E6E2,stroke:#B23120
+  style G fill:#E3F1E9,stroke:#1C7A50
+</pre>
+    </div>
+
+    <div class="scn warn">
+      <p class="scn-h">Scenario · the database gets stolen</p>
+      <p>
+        An attacker walks off with the whole users table — every hash and every salt.
+        Without the pepper (which lives in our secrets manager, <em>not</em> the database),
+        they still can't crack even weak passwords: every guess has to be re-peppered,
+        and they don't have the pepper. <strong>Salt makes each hash unique; pepper makes a
+        stolen database useless.</strong>
+      </p>
+    </div>
+  </section>
+
+  <!-- 2 · SESSION -->
+  <section class="sys" id="session">
+    <span class="sys-num">02</span>
+    <h2>Login &amp; sessions — two keys, instant revoke</h2>
+    <p class="plain">
+      Once you log in we hand your browser two tokens. A short-lived
+      <strong>access token</strong> (≈15 min) that proves who you are on every request, and a
+      long-lived <strong>refresh token</strong> that quietly gets you a new access token when it
+      expires — so you're not logged out every 15 minutes. We also keep a
+      <strong>session record in Redis</strong>, which is the kill switch.
+    </p>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'IBM Plex Mono','primaryColor':'#E2F0EE','primaryTextColor':'#17140F','primaryBorderColor':'#0C7E7A','lineColor':'#8a8574','fontSize':'13px'}}}%%
+flowchart TD
+  A([Request with<br/>access token]) --> B{Token signature<br/>valid?}
+  B -->|no| X[401 · not you]
+  B -->|yes| C{Session still<br/>live in Redis?}
+  C -->|no · logged out/banned| X
+  C -->|yes| D[Serve the request]
+  style X fill:#F8E6E2,stroke:#B23120
+  style D fill:#E3F1E9,stroke:#1C7A50
+</pre>
+    </div>
+    <div class="scn">
+      <p class="scn-h">Scenario · you hit "log out everywhere" or get banned</p>
+      <p>
+        A plain token can't be un-issued — it's valid until it expires. That's why we also
+        check Redis on every request: deleting the session there means the very next request
+        is rejected, <strong>instantly</strong>, even though the token still looks valid. Tokens
+        for speed, Redis for control.
+      </p>
+    </div>
+  </section>
+
+  <!-- 3 · BOOKING -->
+  <section class="sys" id="booking">
+    <span class="sys-num">03</span>
+    <h2>No double-booking — the database referees</h2>
+    <p class="plain">
+      Two guests can tap "Book" on the same car for the same dates at the exact same
+      millisecond. Only one can win. We don't trust our own code to check "is it free?" then
+      "mark it taken" — between those two steps, the other guest sneaks in. Instead the
+      <strong>database itself enforces a unique rule</strong>: one row per car per day. The first
+      write wins; the second is physically rejected.
+    </p>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'IBM Plex Mono','primaryColor':'#E2F0EE','primaryTextColor':'#17140F','primaryBorderColor':'#0C7E7A','lineColor':'#8a8574','fontSize':'13px'}}}%%
+flowchart TD
+  G1([Guest A · Book]) --> DB{{Unique rule:<br/>one row per car per day}}
+  G2([Guest B · Book]) --> DB
+  DB -->|first to write| W[Hold placed ·<br/>booking proceeds]
+  DB -->|loses the race| L[Rejected ·<br/>Not available]
+  style W fill:#E3F1E9,stroke:#1C7A50
+  style L fill:#F8ECD9,stroke:#A9670A
+</pre>
+    </div>
+    <div class="scn">
+      <p class="scn-h">Scenario · 20 people book at once (we tested this)</p>
+      <p>
+        We fired 20 simultaneous bookings at one car. Exactly <strong>one</strong> succeeded; the
+        other 19 got a clean "Not available" — no half-bookings, no overselling. The loser's
+        partial data is rolled back automatically. The guarantee lives in the database, so
+        no amount of traffic can break it.
+      </p>
+    </div>
+  </section>
+
+  <!-- 4 · PAYMENTS -->
+  <section class="sys" id="pay">
+    <span class="sys-num">04</span>
+    <h2>Payments &amp; webhooks — never lose a charge</h2>
+    <p class="plain">
+      Stripe takes the card, then tells us "this succeeded" with a <strong>webhook</strong> — a
+      POST to our server. Two dangers: someone could <em>fake</em> that message, and Stripe
+      sends it <em>more than once</em>. So we verify a signature (proves it's really Stripe),
+      and record each event's id so we only ever act on it <strong>once</strong>. If our handler
+      trips, the event is parked and <strong>retried</strong> instead of vanishing.
+    </p>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'IBM Plex Mono','primaryColor':'#E2F0EE','primaryTextColor':'#17140F','primaryBorderColor':'#0C7E7A','lineColor':'#8a8574','fontSize':'13px'}}}%%
+flowchart TD
+  S([Stripe webhook]) --> V{Signature<br/>really Stripe?}
+  V -->|no| X[Reject · forged]
+  V -->|yes| D{Seen this<br/>event id before?}
+  D -->|yes| I[Ignore · already done]
+  D -->|no| H[Claim it, then handle:<br/>mark booking paid]
+  H --> R{Handler<br/>succeeded?}
+  R -->|yes| OK[Done]
+  R -->|no| P[Park it ·<br/>retry every 5 min]
+  P --> H
+  style X fill:#F8E6E2,stroke:#B23120
+  style OK fill:#E3F1E9,stroke:#1C7A50
+  style P fill:#F8ECD9,stroke:#A9670A
+</pre>
+    </div>
+    <div class="scn warn">
+      <p class="scn-h">Scenario · the charge went through but our server hiccupped</p>
+      <p>
+        Before, if our code threw an error right after the card was charged, the event was
+        gone — money taken, no booking. Now the event is <strong>parked and replayed</strong> until
+        it lands. And the flip side: even if Stripe sends the same "paid" ten times, the
+        booking is only ever marked paid once — <strong>no double charges, no lost charges.</strong>
+      </p>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:#1C7A50"></span>success path</span>
+      <span><span class="dot" style="background:#A9670A"></span>retry / hold</span>
+      <span><span class="dot" style="background:#B23120"></span>rejected / danger</span>
+    </div>
+  </section>
+
+  <!-- 5 · ADMIN -->
+  <section class="sys" id="admin">
+    <span class="sys-num">05</span>
+    <h2>Admin isolation — a locked, hidden building</h2>
+    <p class="plain">
+      The admin panel is a <strong>separate app</strong> (its own port, 3005), reachable only at a
+      <strong>secret address</strong> — every other path returns "not found," so search engines and
+      attackers can't even discover the login. On top of that, every admin action
+      <strong>re-checks with the database</strong> that you're really an admin — the app never
+      trusts a role claimed by the browser.
+    </p>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'IBM Plex Mono','primaryColor':'#E2F0EE','primaryTextColor':'#17140F','primaryBorderColor':'#0C7E7A','lineColor':'#8a8574','fontSize':'13px'}}}%%
+flowchart TD
+  A([Someone visits<br/>the admin app]) --> S{Knows the<br/>secret path?}
+  S -->|no| N[404 · nothing here]
+  S -->|yes| L[Login page]
+  L --> P{Password + the DB says<br/>this user is staff &amp; active?}
+  P -->|no| N
+  P -->|yes| G[Admin panel]
+  style N fill:#F8E6E2,stroke:#B23120
+  style G fill:#E3F1E9,stroke:#1C7A50
+</pre>
+    </div>
+    <div class="scn">
+      <p class="scn-h">Scenario · a normal user tries to become admin</p>
+      <p>
+        Even if someone edits their browser to <em>claim</em> "role: admin," it changes nothing —
+        the server asks the database on every request, and the database says "guest." The
+        only admin is the one provisioned from a secret env file; there is no button, API, or
+        request anywhere that can promote an account. <strong>Hidden door, real lock, guard checks
+        ID every time.</strong>
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <div><span class="tag">stack</span> Node · TypeScript · MongoDB · Redis · Stripe · Next.js · argon2id</div>
+    <div><span class="tag">note</span> A field guide, not the source. Simplified on purpose — the real code has more edge cases handled.</div>
+  </footer>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,securityLevel:"loose"});</script>
+</body>
+</html>

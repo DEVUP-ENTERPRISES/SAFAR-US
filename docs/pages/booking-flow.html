@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CATO Booking &amp; Money Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:#F5F2EC; --card:#FFFFFF; --ink:#17140F; --ink-soft:#55503f; --ink-faint:#8a8574;
+    --rule:#E6E1D6; --rule-soft:#EFEBE2; --teal:#0C7E7A; --teal-wash:#E2F0EE;
+    --green:#1C7A50; --green-wash:#E3F1E9; --amber:#A9670A; --amber-wash:#F8ECD9;
+    --red:#B23120; --red-wash:#F8E6E2; --code-bg:#EDE8DD;
+    --gold:#8A6A18; --gold-wash:#F4ECD6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#16130E; --card:#1E1A14; --ink:#EDE7DA; --ink-soft:#ADA593; --ink-faint:#79725f;
+      --rule:#2C2820; --rule-soft:#232019; --teal:#46BEB6; --teal-wash:#12332F;
+      --green:#55C089; --green-wash:#132A1E; --amber:#DFA24E; --amber-wash:#2C2211;
+      --red:#EE8375; --red-wash:#2E1712; --code-bg:#262119;
+      --gold:#D8B75E; --gold-wash:#2A2312;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#16130E; --card:#1E1A14; --ink:#EDE7DA; --ink-soft:#ADA593; --ink-faint:#79725f;
+    --rule:#2C2820; --rule-soft:#232019; --teal:#46BEB6; --teal-wash:#12332F;
+    --green:#55C089; --green-wash:#132A1E; --amber:#DFA24E; --amber-wash:#2C2211;
+    --red:#EE8375; --red-wash:#2E1712; --code-bg:#262119;
+    --gold:#D8B75E; --gold-wash:#2A2312;
+  }
+
+  * { box-sizing: border-box; }
+  body { background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans',system-ui,sans-serif; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:60rem; margin:0 auto; padding:0 1.25rem 6rem; }
+
+  header.top { padding:4.5rem 0 2rem; border-bottom:1px solid var(--rule); margin-bottom:3rem; }
+  .eyebrow { font-family:'IBM Plex Mono',monospace; font-size:.72rem; letter-spacing:.22em; text-transform:uppercase; color:var(--teal); margin:0 0 1.1rem; }
+  h1 { font-family:'Fraunces',serif; font-weight:600; font-size:clamp(2.4rem,1.5rem + 3.6vw,3.9rem); line-height:1.03; letter-spacing:-.02em; margin:0; text-wrap:balance; }
+  .lede { font-size:1.12rem; color:var(--ink-soft); max-width:42rem; margin:1.3rem 0 0; }
+  .toc { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:2rem; }
+  .toc a { font-family:'IBM Plex Mono',monospace; font-size:.76rem; text-decoration:none; color:var(--ink-soft); border:1px solid var(--rule); border-radius:99px; padding:.34rem .8rem; transition:all .15s; }
+  .toc a:hover { border-color:var(--teal); color:var(--teal); }
+
+  .sys { background:var(--card); border:1px solid var(--rule); border-radius:16px; padding:2rem 2rem 2.2rem; margin-bottom:1.75rem; scroll-margin-top:1.5rem; }
+  .sys-num { font-family:'IBM Plex Mono',monospace; font-size:.74rem; color:var(--teal); letter-spacing:.12em; }
+  .sys h2 { font-family:'Fraunces',serif; font-weight:600; font-size:1.7rem; letter-spacing:-.015em; margin:.3rem 0 0; line-height:1.15; }
+  .plain { margin:1rem 0 0; color:var(--ink-soft); }
+  .plain strong { color:var(--ink); font-weight:600; }
+
+  h3.mini { font-family:'IBM Plex Mono',monospace; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); margin:2rem 0 .8rem; display:flex; align-items:center; gap:.6rem; }
+  h3.mini::after { content:''; flex:1; height:1px; background:var(--rule); }
+
+  .diagram { background:var(--rule-soft); border:1px solid var(--rule); border-radius:12px; padding:1.25rem 1rem; overflow-x:auto; margin:.4rem 0 0; }
+  .mermaid { display:flex; justify-content:center; min-width:min-content; }
+
+  .scn { border-inline-start:3px solid var(--teal); background:var(--teal-wash); border-radius:0 10px 10px 0; padding:1rem 1.2rem; margin-top:1.6rem; }
+  .scn .scn-h { font-family:'IBM Plex Mono',monospace; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--teal); margin:0 0 .5rem; }
+  .scn p { margin:0; font-size:.96rem; }
+  .scn.warn { border-color:var(--red); background:var(--red-wash); }
+  .scn.warn .scn-h { color:var(--red); }
+
+  code { font-family:'IBM Plex Mono',monospace; font-size:.85em; background:var(--code-bg); padding:.08em .38em; border-radius:4px; color:var(--ink); }
+
+  /* receipt / money table */
+  .receipt { margin:.6rem 0 0; border:1px solid var(--rule); border-radius:12px; overflow:hidden; }
+  .receipt .row { display:flex; justify-content:space-between; gap:1rem; padding:.7rem 1rem; border-bottom:1px solid var(--rule-soft); font-size:.94rem; }
+  .receipt .row:last-child { border-bottom:0; }
+  .receipt .lbl { color:var(--ink-soft); }
+  .receipt .val { font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .receipt .row.head { background:var(--rule-soft); font-weight:600; color:var(--ink); }
+  .receipt .row.total { background:var(--teal-wash); font-weight:600; }
+  .receipt .row.total .val { color:var(--teal); }
+  .receipt .row.profit { background:var(--gold-wash); font-weight:600; }
+  .receipt .row.profit .val, .receipt .row.profit .lbl { color:var(--gold); }
+  .pos { color:var(--green); } .neg { color:var(--red); }
+
+  /* revenue cards */
+  .rev { display:grid; grid-template-columns:repeat(auto-fit,minmax(13rem,1fr)); gap:.8rem; margin-top:.6rem; }
+  .rev .r { border:1px solid var(--rule); border-radius:12px; padding:1rem 1.1rem; background:var(--rule-soft); }
+  .rev .r .amt { font-family:'Fraunces',serif; font-size:1.5rem; font-weight:600; color:var(--gold); }
+  .rev .r .nm { font-weight:600; margin-top:.15rem; }
+  .rev .r .ds { font-size:.84rem; color:var(--ink-soft); margin-top:.25rem; }
+
+  .legend { display:flex; flex-wrap:wrap; gap:1rem 1.4rem; margin:.8rem 0 0; padding:.8rem 1rem; font-size:.82rem; color:var(--ink-soft); border:1px dashed var(--rule); border-radius:10px; }
+  .legend span { display:inline-flex; align-items:center; gap:.45rem; }
+  .dot { width:.8rem; height:.8rem; border-radius:3px; flex:none; }
+
+  footer { margin-top:3.5rem; padding-top:1.5rem; border-top:1px solid var(--rule); font-family:'IBM Plex Mono',monospace; font-size:.74rem; color:var(--ink-faint); line-height:1.9; }
+  .tag { display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:.68rem; color:var(--teal); background:var(--teal-wash); padding:.12rem .5rem; border-radius:5px; margin-inline-end:.3rem; }
+  .note { font-size:.85rem; color:var(--ink-faint); margin-top:.8rem; font-style:italic; }
+</style>
+</head>
+<body style="margin:0">
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">CATO · Booking &amp; Money Flow</p>
+    <h1>From "Book now" to money in the bank.</h1>
+    <p class="lede">
+      The full journey once the real keys are in — Stripe charging cards, hosts getting paid,
+      and where CATO's profit actually comes from. With a worked example using real numbers
+      from the system.
+    </p>
+    <nav class="toc">
+      <a href="#journey">1 · The full journey</a>
+      <a href="#money">2 · Where the money goes</a>
+      <a href="#example">3 · A real example</a>
+      <a href="#profit">4 · How CATO profits</a>
+      <a href="#live">5 · What "adding keys" unlocks</a>
+    </nav>
+  </header>
+
+  <!-- 1 · JOURNEY -->
+  <section class="sys" id="journey">
+    <span class="sys-num">01</span>
+    <h2>The full journey, end to end</h2>
+    <p class="plain">
+      A booking passes through <strong>four players</strong>: the guest, the host, CATO (the
+      platform), and Stripe (the money rails). Here's every step from a guest tapping a car to
+      the host being paid.
+    </p>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'IBM Plex Mono','primaryColor':'#E2F0EE','primaryTextColor':'#17140F','primaryBorderColor':'#0C7E7A','lineColor':'#8a8574','fontSize':'12px'}}}%%
+flowchart TD
+  A([Guest picks a car<br/>+ dates]) --> B[CATO calculates the<br/>exact price server-side]
+  B --> C{Guest logged in<br/>&amp; verified?}
+  C -->|no| C2[Sign in / verify ID<br/>· selection is saved]
+  C2 --> D
+  C -->|yes| D[Dates locked ·<br/>car held so no one else can book]
+  D --> E[Stripe charges the card<br/>· + holds a refundable deposit]
+  E --> F{Payment<br/>confirmed?}
+  F -->|no| FX[Hold released ·<br/>booking cancelled cleanly]
+  F -->|yes| G[Booking = PAID ·<br/>host notified]
+  G --> H[Pickup · both share live<br/>location, photos, odometer]
+  H --> I[Trip runs]
+  I --> J[Return · return photos<br/>+ final odometer]
+  J --> K[Deposit released<br/>after inspection window]
+  K --> L[Host payout scheduled<br/>24h hold]
+  L --> M([Stripe transfers earnings<br/>to host's bank])
+  style FX fill:#F8E6E2,stroke:#B23120
+  style G fill:#E3F1E9,stroke:#1C7A50
+  style M fill:#E3F1E9,stroke:#1C7A50
+</pre>
+    </div>
+    <div class="scn">
+      <p class="scn-h">Key idea · the client never decides the price</p>
+      <p>
+        The browser only <em>shows</em> the price — CATO's server <strong>recalculates it</strong> at
+        the moment of charge. So even if someone edits the page to say "$1", they're still
+        charged the real amount. Same for whether a car is available and whether the guest is
+        verified: all decided on the server, never trusted from the app.
+      </p>
+    </div>
+  </section>
+
+  <!-- 2 · MONEY SPLIT -->
+  <section class="sys" id="money">
+    <span class="sys-num">02</span>
+    <h2>Where each dollar goes</h2>
+    <p class="plain">
+      The guest pays one total. Behind it, that total splits three ways: the
+      <strong>host's earnings</strong>, <strong>CATO's cut</strong>, and pass-through
+      <strong>tax</strong> that CATO collects and forwards to the government.
+    </p>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'IBM Plex Mono','primaryColor':'#E2F0EE','primaryTextColor':'#17140F','primaryBorderColor':'#0C7E7A','lineColor':'#8a8574','fontSize':'12px'}}}%%
+flowchart TD
+  P([Guest pays<br/>ONE total]) --> Q[Stripe takes its<br/>processing fee first]
+  Q --> R[Rental subtotal]
+  Q --> S[Protection plan]
+  Q --> T[Rental tax]
+  R --> R1[Host earnings<br/>= subtotal − commission]
+  R --> R2[CATO commission<br/>~20%]
+  S --> S1[CATO revenue<br/>protection fee]
+  T --> T1[Remitted to<br/>government · not profit]
+  style R1 fill:#E3F1E9,stroke:#1C7A50
+  style R2 fill:#F4ECD6,stroke:#8A6A18
+  style S1 fill:#F4ECD6,stroke:#8A6A18
+  style T1 fill:#EFEBE2,stroke:#8a8574
+</pre>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:#1C7A50"></span>host earns</span>
+      <span><span class="dot" style="background:#8A6A18"></span>CATO revenue</span>
+      <span><span class="dot" style="background:#8a8574"></span>pass-through (tax)</span>
+    </div>
+  </section>
+
+  <!-- 3 · EXAMPLE -->
+  <section class="sys" id="example">
+    <span class="sys-num">03</span>
+    <h2>A real example — $65/day car, 3 days</h2>
+    <p class="plain">
+      A guest books a <strong>$65/day</strong> car for <strong>3 days</strong> and adds
+      <strong>Standard protection</strong> ($15/day). Here's the exact split (tax shown as a
+      round ~10% for illustration — the real rate is set per state).
+    </p>
+
+    <div class="receipt">
+      <div class="row head"><span class="lbl">What the guest pays</span><span class="val">amount</span></div>
+      <div class="row"><span class="lbl">Rental · $65 × 3 days</span><span class="val">$195.00</span></div>
+      <div class="row"><span class="lbl">Standard protection · $15 × 3</span><span class="val">$45.00</span></div>
+      <div class="row"><span class="lbl">Rental tax (~10%, illustrative)</span><span class="val">$19.50</span></div>
+      <div class="row total"><span class="lbl">Guest total</span><span class="val">$259.50</span></div>
+    </div>
+    <p class="note">+ a refundable security deposit is held on the card, then released after the trip.</p>
+
+    <h3 class="mini">How that $259.50 splits</h3>
+    <div class="receipt">
+      <div class="row"><span class="lbl">→ Host earnings <span style="opacity:.7">(subtotal − 20% commission)</span></span><span class="val pos">$156.00</span></div>
+      <div class="row"><span class="lbl">→ CATO commission <span style="opacity:.7">(20% of $195)</span></span><span class="val">$39.00</span></div>
+      <div class="row"><span class="lbl">→ CATO protection revenue</span><span class="val">$45.00</span></div>
+      <div class="row"><span class="lbl">→ Tax remitted to government</span><span class="val">$19.50</span></div>
+      <div class="row"><span class="lbl">− Stripe processing (~2.9% + 30¢)</span><span class="val neg">−$7.83</span></div>
+      <div class="row profit"><span class="lbl">CATO gross profit (this booking)</span><span class="val">≈ $76.17</span></div>
+    </div>
+    <p class="note">
+      Protection revenue ($45) is gross — once a real insurance underwriter is connected,
+      part of it pays the actual coverage cost, so net protection margin will be lower.
+    </p>
+  </section>
+
+  <!-- 4 · PROFIT -->
+  <section class="sys" id="profit">
+    <span class="sys-num">04</span>
+    <h2>How CATO makes money — 4 streams</h2>
+    <p class="plain">
+      Every number below is a <strong>default you control from the admin panel</strong> — you can
+      raise commission, price protection differently, or charge more for instant payouts,
+      without touching code.
+    </p>
+    <div class="rev">
+      <div class="r">
+        <div class="amt">20%</div>
+        <div class="nm">Commission</div>
+        <div class="ds">Taken from every booking's rental subtotal. The core engine. Adjustable 0–40%, and can differ per car, superhost, or fleet deal.</div>
+      </div>
+      <div class="r">
+        <div class="amt">$15–30<span style="font-size:.9rem">/day</span></div>
+        <div class="nm">Protection plans</div>
+        <div class="ds">Standard &amp; Premier are paid by the guest. Basic is free. Margin is yours until an insurer is wired in.</div>
+      </div>
+      <div class="r">
+        <div class="amt">1.5%</div>
+        <div class="nm">Instant payout fee</div>
+        <div class="ds">Hosts who want their money now — instead of waiting the 24h hold — pay a small fee that goes to CATO.</div>
+      </div>
+      <div class="r">
+        <div class="amt">+more</div>
+        <div class="nm">Add-ons &amp; delivery</div>
+        <div class="ds">Extras (child seat, unlimited miles, delivery) flow through the same commission, so they lift the cut too.</div>
+      </div>
+    </div>
+    <div class="scn">
+      <p class="scn-h">Why the 24-hour payout hold matters</p>
+      <p>
+        Hosts aren't paid the instant a trip ends — earnings are held <strong>24 hours</strong>
+        (72h for brand-new hosts under 3 trips). This window lets damage or disputes surface
+        before the money leaves, protects against fraud, and is exactly what a guest's deposit
+        and any incidental charges settle against.
+      </p>
+    </div>
+  </section>
+
+  <!-- 5 · KEYS -->
+  <section class="sys" id="live">
+    <span class="sys-num">05</span>
+    <h2>What "adding the keys" actually turns on</h2>
+    <p class="plain">
+      The whole flow above is <strong>already built</strong>. Today it runs in "test mode." Adding
+      the real keys flips each piece from simulated to live:
+    </p>
+    <div class="diagram">
+<pre class="mermaid">
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'IBM Plex Mono','primaryColor':'#E2F0EE','primaryTextColor':'#17140F','primaryBorderColor':'#0C7E7A','lineColor':'#8a8574','fontSize':'12px'}}}%%
+flowchart LR
+  K1[Stripe key] --> V1[Real card charges<br/>+ deposits]
+  K2[Stripe Connect] --> V2[Hosts onboard &amp;<br/>get paid to their bank]
+  K3[Stripe Identity] --> V3[Real driver-license<br/>verification]
+  K4[SMS / Email keys] --> V4[Real OTP codes,<br/>receipts, alerts]
+  K5[S3 storage] --> V5[Real photo &amp;<br/>document uploads]
+  style V1 fill:#E3F1E9,stroke:#1C7A50
+  style V2 fill:#E3F1E9,stroke:#1C7A50
+  style V3 fill:#E3F1E9,stroke:#1C7A50
+  style V4 fill:#E3F1E9,stroke:#1C7A50
+  style V5 fill:#E3F1E9,stroke:#1C7A50
+</pre>
+    </div>
+    <div class="scn warn">
+      <p class="scn-h">The one gap to know about before real money moves</p>
+      <p>
+        There's <strong>no insurance underwriter connected yet</strong>. The protection plans
+        collect revenue, but the actual coverage promise behind them isn't backed by a real
+        policy. Before taking live bookings at scale, that has to be real — it's the difference
+        between selling protection and actually being able to pay a claim.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <div><span class="tag">defaults</span> 20% commission · protection $0/$15/$30 per day · 24h payout hold · 1.5% instant fee</div>
+    <div><span class="tag">note</span> All figures are admin-configurable. Example numbers are illustrative; tax varies by state. Simplified for clarity.</div>
+  </footer>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,securityLevel:"loose"});</script>
+</body>
+</html>

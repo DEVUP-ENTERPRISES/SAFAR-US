@@ -84,14 +84,7 @@ function LoginInner() {
             </Button>
           </form>
 
-          <div className="relative mt-8 mb-6 text-center">
-            <span aria-hidden className="absolute inset-x-0 top-1/2 h-px bg-border" />
-            <span className="relative bg-background px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              or
-            </span>
-          </div>
-
-          <div>
+          <div className="mt-8">
             <SocialSignIn
               onSuccess={(result) => {
                 onAuthSuccess(result);
