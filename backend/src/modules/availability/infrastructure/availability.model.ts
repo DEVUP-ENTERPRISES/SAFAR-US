@@ -34,6 +34,24 @@ const schema = new Schema<AvailabilityDoc>(
 
 schema.index({ vehicleId: 1, dayKey: 1 }, { unique: true });
 schema.index({ state: 1, holdExpiresAt: 1 });
+
+/*
+ * Garbage-collect abandoned holds.
+ *
+ * A 'held' row is a checkout in progress. Most convert to 'booked' (which
+ * unsets holdExpiresAt) or are released, but a crash between placing the hold
+ * and creating the booking can orphan one. Orphans never cause a double-booking
+ * — isAvailable already treats an expired hold as free — but without cleanup the
+ * collection grows without bound.
+ *
+ * A PARTIAL TTL, scoped to state:'held', deletes them at their own expiry and
+ * can never touch a real booking: 'booked' rows are excluded by the filter, and
+ * they have no holdExpiresAt to expire on anyway.
+ */
+schema.index(
+  { holdExpiresAt: 1 },
+  { expireAfterSeconds: 0, partialFilterExpression: { state: 'held' } },
+);
 schema.index({ holdId: 1 });
 schema.index({ bookingId: 1 });
 
