@@ -98,6 +98,9 @@ html {
      <body>) mobile Safari still lets a sliver of overflow pan the whole page
      side to side. */
   overflow-x: hidden;
+  /* No rubber-band / drift: the page can only scroll straight up and down,
+     it can't be dragged around or bounce at the edges. */
+  overscroll-behavior: none;
 }
 
 body {
