@@ -17,7 +17,7 @@ import { useVehicleSearch, useFacets, useFilterCounts } from '@/features/vehicle
 import { useMutation } from '@tanstack/react-query';
 import { savedSearchApi } from '@/features/saved-search/api';
 import { useAuthStore } from '@/features/auth/store';
-import { MapPanel } from '@/features/maps/components/map-panel';
+import { MapboxPanel } from '@/features/maps/components/mapbox-panel';
 import { SearchBarFields } from '@/features/search/search-bar-fields';
 import { useSearchBar, toIso } from '@/features/search/search-store';
 import { cn } from '@/lib/utils/cn';
@@ -531,11 +531,11 @@ function SearchInner() {
               ))}
             </div>
             <div className="sticky top-32 h-[calc(100vh-9rem)] overflow-hidden rounded-2xl border border-border hidden md:block">
-              <MapPanel lat={coords!.lat} lng={coords!.lng} label={areaLabel} count={data.length} vehicles={data} />
+              <MapboxPanel lat={coords!.lat} lng={coords!.lng} label={areaLabel} count={data.length} vehicles={data} />
             </div>
             {/* Mobile Map Render when view is map */}
             <div className="fixed inset-0 z-40 md:hidden mt-[140px] bg-background">
-               <MapPanel lat={coords!.lat} lng={coords!.lng} label={areaLabel} count={data.length} vehicles={data} />
+               <MapboxPanel lat={coords!.lat} lng={coords!.lng} label={areaLabel} count={data.length} vehicles={data} />
             </div>
           </div>
         ) : (
@@ -550,7 +550,7 @@ function SearchInner() {
       )}
 
       {/* Floating Map/Grid Toggle (Mobile) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden">
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 md:hidden">
         <button
           onClick={() => setView(view === 'grid' ? 'map' : 'grid')}
           className="flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background shadow-2xl hover:bg-foreground/90 transition-transform active:scale-95"
