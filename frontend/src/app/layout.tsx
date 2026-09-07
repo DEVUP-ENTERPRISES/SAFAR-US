@@ -92,6 +92,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // Explicit so the page maps 1:1 to the device width instead of rendering wide
+  // and letting the user pan/zoom the whole layout. Pinch-zoom stays enabled
+  // (accessibility) — we fix the overflow, we don't disable zoom.
+  width: 'device-width',
+  initialScale: 1,
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#f8f6f2' }, // --background paper
     { media: '(prefers-color-scheme: dark)', color: '#151210' }, // --background asphalt
