@@ -97,11 +97,13 @@ export class S3StorageGateway implements StorageGateway {
     const rejection = configured ? placeholderReason(configured) : null;
 
     if (configured && rejection) {
-      // In production this is a deploy blocker: images would be broken for
-      // every user. In development, fall back so uploads still work.
+      // A placeholder CDN base would render every photo broken — but that must
+      // not crash the whole API. Degrade to direct S3 URLs and log loudly:
+      // uploads still persist to the real bucket, only the public read URL is
+      // affected until the CDN base is fixed. (Was a hard throw in production.)
       const message = `S3_PUBLIC_BASE_URL looks like a placeholder (${rejection}): ${configured}`;
-      if (config.env === 'production') throw new Error(message);
-      logger.warn(`${message} — falling back to direct S3 URLs`);
+      const log = config.env === 'production' ? logger.error.bind(logger) : logger.warn.bind(logger);
+      log(`${message} — falling back to direct S3 URLs. Fix the CDN base for production.`);
     }
 
     this.hasCdn = !!configured && !rejection;
