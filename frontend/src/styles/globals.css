@@ -207,15 +207,11 @@ body {
      refactoring every route's layout. */
   .full-bleed {
     width: 100vw;
-    max-width: 100vw;
     position: relative;
     left: 50%;
     right: 50%;
-    /* calc keeps the bleed centered without the extra px that 100vw +
-       -50vw margins can leak on mobile, which is what let the page pan. */
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-    overflow-x: clip;
+    margin-left: -50vw;
+    margin-right: -50vw;
   }
 }
 
