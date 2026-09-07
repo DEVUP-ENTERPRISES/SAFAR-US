@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ShieldCheck, Zap, Sparkles, ArrowRight, Star, CarFront, KeyRound, Route, BadgeCheck,
 } from 'lucide-react';
@@ -17,9 +18,9 @@ import { useIsHost } from '@/features/host/hooks';
 
 
 const STEPS = [
-  { icon: CarFront, image: '/sections/find-the-one.png', title: 'Find the one', body: 'Browse verified cars from local hosts. Filter by price, features, or delivery.' },
-  { icon: KeyRound, image: '/sections/book-in-seconds.png', title: 'Book in seconds', body: 'Instant Book cars confirm immediately. No back-and-forth, no waiting.' },
-  { icon: Route, image: '/sections/hit-the-road.png', title: 'Hit the road', body: 'Pick it up, or have it delivered to your door, hotel, or the airport.' },
+  { icon: CarFront, image: '/sections/find-the-one.webp', title: 'Find the one', body: 'Browse verified cars from local hosts. Filter by price, features, or delivery.' },
+  { icon: KeyRound, image: '/sections/book-in-seconds.webp', title: 'Book in seconds', body: 'Instant Book cars confirm immediately. No back-and-forth, no waiting.' },
+  { icon: Route, image: '/sections/hit-the-road.webp', title: 'Hit the road', body: 'Pick it up, or have it delivered to your door, hotel, or the airport.' },
 ];
 
 /**
@@ -262,12 +263,12 @@ export default function HomePage() {
                 >
                   {/* The real photo leads. A slow zoom on hover keeps it alive. */}
                   <div className="relative aspect-[16/10] w-full overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={s.image}
                       alt={s.title}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
                     />
                     {/* Nothing sits on the photo — the image stays clean. */}
                   </div>
@@ -292,9 +293,9 @@ export default function HomePage() {
         <section>
           <div className="grid gap-8 sm:gap-y-6 md:grid-cols-3 md:gap-x-12">
             {[
-              { icon: ShieldCheck, image: '/sections/cato-verified.png', stat: 'Verified', label: 'Every host and every car is checked before it ever gets listed.' },
-              { icon: BadgeCheck, image: '/sections/cato-protected.png', stat: 'Protected', label: 'Choose a protection plan at checkout — up to zero deductible.' },
-              { icon: Zap, image: '/sections/cato-instant.png', stat: 'Instant', label: 'Instant Book cars are confirmed the moment you pay. No waiting.' },
+              { icon: ShieldCheck, image: '/sections/cato-verified.webp', stat: 'Verified', label: 'Every host and every car is checked before it ever gets listed.' },
+              { icon: BadgeCheck, image: '/sections/cato-protected.webp', stat: 'Protected', label: 'Choose a protection plan at checkout — up to zero deductible.' },
+              { icon: Zap, image: '/sections/cato-instant.webp', stat: 'Instant', label: 'Instant Book cars are confirmed the moment you pay. No waiting.' },
             ].map((t, i, arr) => (
               <div key={t.stat} className="relative">
                 <Reveal
@@ -302,12 +303,12 @@ export default function HomePage() {
                   className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card shadow-card transition-all duration-500 hover:-translate-y-2 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
                 >
                   <div className="relative aspect-[16/10] w-full overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={t.image}
                       alt={t.stat}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+                      fill
+                      sizes="(min-width: 768px) 33vw, 100vw"
+                      className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
                     />
                     {/* Clean photo — nothing overlaid. */}
                   </div>
@@ -365,12 +366,13 @@ export default function HomePage() {
               before a headline does) and sits beside the copy on desktop. */}
           <div className="relative order-first lg:order-last">
             <div className="absolute -inset-4 -z-10 rounded-[2rem] bg-primary/20 blur-3xl" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/sections/cato-your-car.png"
+            <Image
+              src="/sections/cato-your-car.webp"
               alt="The CATO app showing a host's weekly earnings"
-              loading="lazy"
-              className="w-full rounded-2xl object-cover shadow-2xl ring-1 ring-white/15"
+              width={1200}
+              height={800}
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              className="w-full h-auto rounded-2xl object-cover shadow-2xl ring-1 ring-white/15"
             />
           </div>
           </div>

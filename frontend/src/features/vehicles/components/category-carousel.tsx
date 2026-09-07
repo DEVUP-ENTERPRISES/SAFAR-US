@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useFacets } from '@/features/vehicles/hooks';
@@ -18,12 +19,12 @@ import { formatMoney } from '@/lib/utils/format';
  * Tiles light up on their own as hosts list cars.
  */
 const STYLES: { key: string; label: string; image: string; description: string }[] = [
-  { key: 'economy', label: 'Economy', image: '/categories/economy.png', description: 'Everyday value' },
-  { key: 'suv', label: 'SUVs', image: '/categories/suv.png', description: 'Room for everyone' },
-  { key: 'luxury', label: 'Luxury', image: '/categories/luxury.png', description: 'Arrive in style' },
-  { key: 'ev', label: 'Electric', image: '/categories/electric.png', description: 'Zero emissions' },
-  { key: 'sports', label: 'Sports', image: '/categories/sports.png', description: 'Thrill & speed' },
-  { key: 'van', label: 'Vans', image: '/categories/van.png', description: 'Group trips' },
+  { key: 'economy', label: 'Economy', image: '/categories/economy.webp', description: 'Everyday value' },
+  { key: 'suv', label: 'SUVs', image: '/categories/suv.webp', description: 'Room for everyone' },
+  { key: 'luxury', label: 'Luxury', image: '/categories/luxury.webp', description: 'Arrive in style' },
+  { key: 'ev', label: 'Electric', image: '/categories/electric.webp', description: 'Zero emissions' },
+  { key: 'sports', label: 'Sports', image: '/categories/sports.webp', description: 'Thrill & speed' },
+  { key: 'van', label: 'Vans', image: '/categories/van.webp', description: 'Group trips' },
 ];
 
 export function CategoryCarousel({ city }: { city: string }) {
@@ -80,12 +81,13 @@ export function CategoryCarousel({ city }: { city: string }) {
           const inner = (
             <>
               <div className="absolute inset-0 bg-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={t.image}
                   alt={t.label}
+                  fill
+                  sizes="180px"
                   className={cn(
-                    'h-full w-full object-cover transition-transform duration-[1200ms] ease-out',
+                    'object-cover transition-transform duration-[1200ms] ease-out',
                     available ? 'group-hover:scale-110' : 'scale-105 opacity-50 grayscale',
                   )}
                 />
