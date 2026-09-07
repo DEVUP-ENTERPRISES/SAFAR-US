@@ -1,5 +1,4 @@
 import http from 'http';
-import { createApp } from './app';
 import { config } from './config';
 import { logger } from './infrastructure/logging/logger';
 import { connectMongo, disconnectMongo } from './infrastructure/database/mongoose.client';
@@ -32,13 +31,21 @@ async function bootstrap(): Promise<void> {
     setKvStore(new RedisKvStore(redis));
     logger.info('Session/cache store: Redis');
   } catch (err) {
-    if (config.isProd) throw err;
+    // Degrade instead of crash. Redis backs sessions, rate limits and the job
+    // queue, so running without it is NOT multi-instance safe and loses that
+    // state on restart — but for a single-box prod-test it beats a dead server.
+    // Logged at error level in production so the degradation is never silent.
     redis.disconnect();
     setKvStore(new InMemoryKvStore());
-    logger.warn(
-      { err: (err as Error).message },
-      '⚠️  Redis unavailable — using in-memory KV store (dev only, not multi-instance safe)',
-    );
+    const detail = { err: (err as Error).message };
+    if (config.isProd) {
+      logger.error(
+        detail,
+        '⚠️  Redis unavailable — running on the IN-MEMORY store. Sessions, rate limits and background jobs are degraded and NOT shared across instances. Install/point Redis for real production.',
+      );
+    } else {
+      logger.warn(detail, '⚠️  Redis unavailable — using in-memory KV store (dev, not multi-instance safe)');
+    }
   }
 
   await seedAdmin();
@@ -54,6 +61,9 @@ async function bootstrap(): Promise<void> {
     logger.warn('⚠️  Redis unavailable — background jobs (BullMQ) disabled');
   }
 
+  // Imported here, AFTER the Redis decision, so the rate limiters it pulls in
+  // pick the Redis-backed or in-memory store based on the real connection state.
+  const { createApp } = await import('./app');
   const app = createApp();
   const server = http.createServer(app);
 

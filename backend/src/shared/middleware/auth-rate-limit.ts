@@ -1,7 +1,7 @@
 import rateLimit, { type Store } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { config } from '../../config';
-import { redis } from '../../infrastructure/cache/redis.client';
+import { redis, isRedisHealthy } from '../../infrastructure/cache/redis.client';
 
 /**
  * Strict brute-force limiter for credential and OTP endpoints. The global
@@ -11,10 +11,17 @@ import { redis } from '../../infrastructure/cache/redis.client';
  *
  * Backed by Redis in production so the cap is shared across every instance;
  * skipped entirely in dev/test so local e2e suites aren't throttled.
+ *
+ * Only wired to Redis when Redis is actually healthy. If it isn't (a degraded
+ * prod-test box), the store is left undefined so express-rate-limit uses its
+ * in-memory store — the limiter still works per-instance, instead of erroring
+ * on a dead connection every request. This module is loaded after the boot-time
+ * Redis decision (main.ts imports the app lazily), so the check is accurate.
  */
-const store: Store | undefined = config.isProd
-  ? new RedisStore({ prefix: 'rl:auth:', sendCommand: (...args: string[]) => redis.call(...(args as [string, ...string[]])) as Promise<never> })
-  : undefined;
+const store: Store | undefined =
+  config.isProd && isRedisHealthy()
+    ? new RedisStore({ prefix: 'rl:auth:', sendCommand: (...args: string[]) => redis.call(...(args as [string, ...string[]])) as Promise<never> })
+    : undefined;
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

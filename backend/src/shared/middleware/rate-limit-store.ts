@@ -1,7 +1,7 @@
 import type { Store } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { config } from '../../config';
-import { redis } from '../../infrastructure/cache/redis.client';
+import { redis, isRedisHealthy } from '../../infrastructure/cache/redis.client';
 
 /**
  * Shared store for the global limiter.
@@ -15,7 +15,10 @@ import { redis } from '../../infrastructure/cache/redis.client';
  * Redis entirely (the same choice the auth limiter already makes).
  */
 export function globalRateLimitStore(): Store | undefined {
-  if (!config.isProd) return undefined;
+  // In-memory (undefined) unless Redis is actually up. A degraded prod-test box
+  // still gets per-instance limiting instead of a 500 on every request from a
+  // dead Redis connection.
+  if (!config.isProd || !isRedisHealthy()) return undefined;
   return new RedisStore({
     prefix: 'rl:global:',
     sendCommand: (...args: string[]) => redis.call(...(args as [string, ...string[]])) as Promise<never>,
