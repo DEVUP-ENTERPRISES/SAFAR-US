@@ -78,6 +78,12 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateX(16px)' },
           to: { opacity: '1', transform: 'translateX(0)' },
         },
+        // A gentle forward nudge — used on the step connectors so the journey
+        // reads as moving 1 → 2 → 3.
+        'nudge-x': {
+          '0%,100%': { transform: 'translateX(0)' },
+          '50%': { transform: 'translateX(5px)' },
+        },
       },
       animation: {
         shimmer: 'shimmer 1.5s infinite',
@@ -85,6 +91,7 @@ const config: Config = {
         'slide-up': 'slide-up 0.4s cubic-bezier(0.16,1,0.3,1)',
         'scale-in': 'scale-in 0.2s ease-out',
         'slide-in-right': 'slide-in-right 0.35s cubic-bezier(0.16,1,0.3,1)',
+        'nudge-x': 'nudge-x 1.5s ease-in-out infinite',
       },
     },
   },

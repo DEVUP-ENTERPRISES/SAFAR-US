@@ -22,6 +22,25 @@ const STEPS = [
   { icon: Route, image: '/sections/hit-the-road.png', title: 'Hit the road', body: 'Pick it up, or have it delivered to your door, hotel, or the airport.' },
 ];
 
+/**
+ * The connector between two cards in a three-step row — an arrow that sits in
+ * the gap and nudges forward, so the eye is carried 1 → 2 → 3. It points right
+ * between columns on desktop and down between stacked cards on mobile. Lives
+ * outside the (clipped) card, inside a relative grid cell.
+ */
+function StepConnector() {
+  return (
+    <div
+      aria-hidden
+      className="absolute z-20 grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background
+                 bottom-0 start-1/2 -translate-x-1/2 translate-y-1/2
+                 md:bottom-auto md:start-auto md:end-0 md:top-1/2 md:translate-x-1/2 md:-translate-y-1/2"
+    >
+      <ArrowRight className="h-4 w-4 animate-nudge-x rotate-90 md:rotate-0" />
+    </div>
+  );
+}
+
 export default function HomePage() {
   // Cities, categories and the trust numbers all come from live supply.
   const facets = useFacets();
@@ -220,80 +239,79 @@ export default function HomePage() {
             <h2 className="display text-4xl text-foreground sm:text-5xl">How CATO works</h2>
             <p className="mt-4 text-muted-foreground text-lg sm:text-xl font-medium max-w-xl">Three steps. No counter, no queue, no paperwork.</p>
           </div>
-          <div className="grid gap-6 sm:gap-10 md:grid-cols-3">
+          <div className="grid gap-8 sm:gap-y-6 md:grid-cols-3 md:gap-x-12">
             {STEPS.map((s, i) => (
-              <Reveal
-                key={s.title}
-                delay={i * 90}
-                className="group relative flex flex-col overflow-hidden rounded-3xl border border-border/50 bg-card shadow-card transition-all duration-500 hover:-translate-y-2 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
-              >
-                {/* The real photo leads. A slow zoom on hover keeps it alive. */}
-                <div className="relative aspect-[16/10] w-full overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={s.image}
-                    alt={s.title}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
-                  />
-                  {/* A soft floor so the icon chip reads on any photo. */}
-                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-card via-card/40 to-transparent" />
-                  {/* Step number — the sequence is the information here. */}
-                  <span className="numeric absolute end-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-background/85 text-sm font-bold text-foreground shadow-lg backdrop-blur">
-                    {i + 1}
-                  </span>
-                  {/* The icon chip straddles the photo and the text, tying them together. */}
-                  <span className="absolute -bottom-6 start-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg ring-4 ring-card transition-transform duration-500 group-hover:scale-110">
-                    <s.icon className="h-6 w-6" />
-                  </span>
-                </div>
-                <div className="flex flex-col p-6 pt-9 sm:p-7 sm:pt-9">
-                  <h3 className="display text-xl text-foreground">{s.title}</h3>
-                  <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground">{s.body}</p>
-                </div>
-              </Reveal>
+              <div key={s.title} className="relative">
+                <Reveal
+                  delay={i * 120}
+                  className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card shadow-card transition-all duration-500 hover:-translate-y-2 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
+                >
+                  {/* The real photo leads. A slow zoom on hover keeps it alive. */}
+                  <div className="relative aspect-[16/10] w-full overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={s.image}
+                      alt={s.title}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+                    />
+                    {/* Just a whisper of a floor — enough to seat the chip, not
+                        the heavy white fade that was eating the photo. */}
+                    <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card/60 to-transparent" />
+                    {/* Step number — the sequence is the information here. */}
+                    <span className="numeric absolute end-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-background/85 text-sm font-bold text-foreground shadow-lg backdrop-blur">
+                      {i + 1}
+                    </span>
+                    {/* The icon chip straddles the photo and the text. */}
+                    <span className="absolute -bottom-6 start-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg ring-4 ring-card transition-transform duration-500 group-hover:scale-110">
+                      <s.icon className="h-6 w-6" />
+                    </span>
+                  </div>
+                  <div className="flex flex-col p-6 pt-9 sm:p-7 sm:pt-9">
+                    <h3 className="display text-xl text-foreground">{s.title}</h3>
+                    <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground">{s.body}</p>
+                  </div>
+                </Reveal>
+                {i < STEPS.length - 1 && <StepConnector />}
+              </div>
             ))}
           </div>
         </Reveal>
 
         {/* ── Trust ──────────────────────────────────────────────────── */}
-        <section className="space-y-8">
-          <div className="text-center sm:text-start">
-            <h2 className="display text-4xl text-foreground sm:text-5xl">Built on trust</h2>
-            <p className="mt-4 max-w-xl text-lg font-medium text-muted-foreground sm:text-xl">
-              Three promises no other rental makes.
-            </p>
-          </div>
-          <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
+        <section>
+          <div className="grid gap-8 sm:gap-y-6 md:grid-cols-3 md:gap-x-12">
             {[
               { icon: ShieldCheck, image: '/sections/cato-verified.png', stat: 'Verified', label: 'Every host and every car is checked before it ever gets listed.' },
               { icon: BadgeCheck, image: '/sections/cato-protected.png', stat: 'Protected', label: 'Choose a protection plan at checkout — up to zero deductible.' },
               { icon: Zap, image: '/sections/cato-instant.png', stat: 'Instant', label: 'Instant Book cars are confirmed the moment you pay. No waiting.' },
-            ].map((t, i) => (
-              <Reveal
-                key={t.stat}
-                delay={i * 90}
-                className="group flex flex-col overflow-hidden rounded-3xl border border-border/50 bg-card shadow-card transition-all duration-500 hover:-translate-y-2 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
-              >
-                <div className="relative aspect-[16/10] w-full overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={t.image}
-                    alt={t.stat}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                  {/* Label sits on the photo — the promise, over the proof. */}
-                  <div className="absolute bottom-4 start-5 flex items-center gap-2.5">
-                    <span className="grid h-10 w-10 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/25 backdrop-blur">
-                      <t.icon className="h-5 w-5" />
-                    </span>
-                    <span className="display text-2xl text-white drop-shadow">{t.stat}</span>
+            ].map((t, i, arr) => (
+              <div key={t.stat} className="relative">
+                <Reveal
+                  delay={i * 120}
+                  className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card shadow-card transition-all duration-500 hover:-translate-y-2 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
+                >
+                  <div className="relative aspect-[16/10] w-full overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={t.image}
+                      alt={t.stat}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                    {/* Label sits on the photo — the promise, over the proof. */}
+                    <div className="absolute bottom-4 start-5 flex items-center gap-2.5">
+                      <span className="grid h-10 w-10 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/25 backdrop-blur">
+                        <t.icon className="h-5 w-5" />
+                      </span>
+                      <span className="display text-2xl text-white drop-shadow">{t.stat}</span>
+                    </div>
                   </div>
-                </div>
-                <p className="p-6 text-[15px] leading-relaxed text-muted-foreground">{t.label}</p>
-              </Reveal>
+                  <p className="p-6 text-[15px] leading-relaxed text-muted-foreground">{t.label}</p>
+                </Reveal>
+                {i < arr.length - 1 && <StepConnector />}
+              </div>
             ))}
           </div>
         </section>
