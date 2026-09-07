@@ -29,14 +29,22 @@ const STEPS = [
  * outside the (clipped) card, inside a relative grid cell.
  */
 function StepConnector() {
+  // Three nested layers, each owning ONE transform, because rotation, the
+  // gap-centering offset, and the nudge animation all use `transform` and would
+  // otherwise clobber each other — which is why the mobile arrow was staying
+  // horizontal instead of pointing down.
   return (
     <div
       aria-hidden
-      className="absolute z-20 grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background
-                 bottom-0 start-1/2 -translate-x-1/2 translate-y-1/2
+      className="absolute z-20 bottom-0 start-1/2 -translate-x-1/2 translate-y-1/2
                  md:bottom-auto md:start-auto md:end-0 md:top-1/2 md:translate-x-1/2 md:-translate-y-1/2"
     >
-      <ArrowRight className="h-4 w-4 animate-nudge-x rotate-90 md:rotate-0" />
+      {/* Rotate the whole badge: down between stacked cards, right between columns. */}
+      <span className="grid h-9 w-9 rotate-90 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background md:rotate-0">
+        {/* The nudge lives on the icon, inside the rotated frame, so it travels
+            in whatever direction the badge points. */}
+        <ArrowRight className="h-4 w-4 animate-nudge-x" />
+      </span>
     </div>
   );
 }
@@ -258,10 +266,8 @@ export default function HomePage() {
                     {/* Just a whisper of a floor — enough to seat the chip, not
                         the heavy white fade that was eating the photo. */}
                     <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card/60 to-transparent" />
-                    {/* Step number — the sequence is the information here. */}
-                    <span className="numeric absolute end-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-background/85 text-sm font-bold text-foreground shadow-lg backdrop-blur">
-                      {i + 1}
-                    </span>
+                    {/* No step-number badge — the connecting arrows already carry
+                        the 1 → 2 → 3 sequence, so a number would say it twice. */}
                     {/* The icon chip straddles the photo and the text. */}
                     <span className="absolute -bottom-6 start-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg ring-4 ring-card transition-transform duration-500 group-hover:scale-110">
                       <s.icon className="h-6 w-6" />
