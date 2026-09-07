@@ -17,9 +17,9 @@ import { useIsHost } from '@/features/host/hooks';
 
 
 const STEPS = [
-  { icon: CarFront, title: 'Find the one', body: 'Browse verified cars from local hosts. Filter by price, features, or delivery.' },
-  { icon: KeyRound, title: 'Book in seconds', body: 'Instant Book cars confirm immediately. No back-and-forth, no waiting.' },
-  { icon: Route, title: 'Hit the road', body: 'Pick it up, or have it delivered to your door, hotel, or the airport.' },
+  { icon: CarFront, image: '/sections/find-the-one.png', title: 'Find the one', body: 'Browse verified cars from local hosts. Filter by price, features, or delivery.' },
+  { icon: KeyRound, image: '/sections/book-in-seconds.png', title: 'Book in seconds', body: 'Instant Book cars confirm immediately. No back-and-forth, no waiting.' },
+  { icon: Route, image: '/sections/hit-the-road.png', title: 'Hit the road', body: 'Pick it up, or have it delivered to your door, hotel, or the airport.' },
 ];
 
 export default function HomePage() {
@@ -225,49 +225,84 @@ export default function HomePage() {
               <Reveal
                 key={s.title}
                 delay={i * 90}
-                className="group relative overflow-hidden rounded-3xl border border-border/50 bg-card/40 backdrop-blur-xl p-8 shadow-lg transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/40 hover:bg-card/80"
+                className="group relative flex flex-col overflow-hidden rounded-3xl border border-border/50 bg-card shadow-card transition-all duration-500 hover:-translate-y-2 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
-                <span className="absolute -end-4 -top-8 text-[140px] font-black text-foreground/[0.02] transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3 group-hover:text-primary/[0.03] pointer-events-none select-none">
-                  {i + 1}
-                </span>
-                <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/20 shadow-inner transition-all duration-500 group-hover:scale-110 group-hover:shadow-[0_0_20px_-5px_rgba(var(--primary),0.4)]">
-                  <s.icon className="h-7 w-7 text-primary" />
-                </span>
-                <h3 className="mt-8 text-xl font-bold tracking-tight text-foreground/90 transition-colors group-hover:text-foreground">{s.title}</h3>
-                <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground transition-colors group-hover:text-muted-foreground/90">{s.body}</p>
-                
-                {/* Glow effect at the bottom */}
-                <div className="absolute -bottom-1 start-1/2 -translate-x-1/2 w-1/2 h-1.5 bg-primary blur-md opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
+                {/* The real photo leads. A slow zoom on hover keeps it alive. */}
+                <div className="relative aspect-[16/10] w-full overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={s.image}
+                    alt={s.title}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+                  />
+                  {/* A soft floor so the icon chip reads on any photo. */}
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-card via-card/40 to-transparent" />
+                  {/* Step number — the sequence is the information here. */}
+                  <span className="numeric absolute end-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-background/85 text-sm font-bold text-foreground shadow-lg backdrop-blur">
+                    {i + 1}
+                  </span>
+                  {/* The icon chip straddles the photo and the text, tying them together. */}
+                  <span className="absolute -bottom-6 start-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg ring-4 ring-card transition-transform duration-500 group-hover:scale-110">
+                    <s.icon className="h-6 w-6" />
+                  </span>
+                </div>
+                <div className="flex flex-col p-6 pt-9 sm:p-7 sm:pt-9">
+                  <h3 className="display text-xl text-foreground">{s.title}</h3>
+                  <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground">{s.body}</p>
+                </div>
               </Reveal>
             ))}
           </div>
         </Reveal>
 
         {/* ── Trust ──────────────────────────────────────────────────── */}
-        <Reveal as="section" className="relative overflow-hidden grid gap-10 rounded-3xl sm:rounded-[2.5rem] border border-border/50 bg-gradient-to-br from-card/80 via-card/50 to-card/20 backdrop-blur-2xl p-8 sm:p-14 md:grid-cols-3 shadow-2xl">
-          <div className="absolute -top-40 -end-40 w-96 h-96 bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute -bottom-40 -start-40 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
-          
-          {[
-            { icon: ShieldCheck, stat: 'Verified', label: 'Every host and every car is checked before it ever gets listed.' },
-            { icon: BadgeCheck, stat: 'Protected', label: 'Choose a protection plan at checkout — up to zero deductible.' },
-            { icon: Zap, stat: 'Instant', label: 'Instant Book cars are confirmed the moment you pay. No waiting.' },
-          ].map((t) => (
-            <div key={t.stat} className="relative z-10 group flex flex-col items-center text-center md:items-start md:text-start">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 ring-1 ring-primary/20 transition-all duration-500 group-hover:bg-primary/20 group-hover:scale-110 group-hover:shadow-[0_0_30px_-5px_rgba(var(--primary),0.3)]">
-                <t.icon className="h-8 w-8 text-primary transition-transform duration-500 group-hover:scale-110" />
-              </div>
-              <p className="mt-6 text-2xl font-bold tracking-tight text-foreground/90 transition-colors duration-300 group-hover:text-primary">{t.stat}</p>
-              <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground max-w-xs">{t.label}</p>
-            </div>
-          ))}
-        </Reveal>
+        <section className="space-y-8">
+          <div className="text-center sm:text-start">
+            <h2 className="display text-4xl text-foreground sm:text-5xl">Built on trust</h2>
+            <p className="mt-4 max-w-xl text-lg font-medium text-muted-foreground sm:text-xl">
+              Three promises no other rental makes.
+            </p>
+          </div>
+          <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
+            {[
+              { icon: ShieldCheck, image: '/sections/cato-verified.png', stat: 'Verified', label: 'Every host and every car is checked before it ever gets listed.' },
+              { icon: BadgeCheck, image: '/sections/cato-protected.png', stat: 'Protected', label: 'Choose a protection plan at checkout — up to zero deductible.' },
+              { icon: Zap, image: '/sections/cato-instant.png', stat: 'Instant', label: 'Instant Book cars are confirmed the moment you pay. No waiting.' },
+            ].map((t, i) => (
+              <Reveal
+                key={t.stat}
+                delay={i * 90}
+                className="group flex flex-col overflow-hidden rounded-3xl border border-border/50 bg-card shadow-card transition-all duration-500 hover:-translate-y-2 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
+              >
+                <div className="relative aspect-[16/10] w-full overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={t.image}
+                    alt={t.stat}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  {/* Label sits on the photo — the promise, over the proof. */}
+                  <div className="absolute bottom-4 start-5 flex items-center gap-2.5">
+                    <span className="grid h-10 w-10 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/25 backdrop-blur">
+                      <t.icon className="h-5 w-5" />
+                    </span>
+                    <span className="display text-2xl text-white drop-shadow">{t.stat}</span>
+                  </div>
+                </div>
+                <p className="p-6 text-[15px] leading-relaxed text-muted-foreground">{t.label}</p>
+              </Reveal>
+            ))}
+          </div>
+        </section>
 
         {/* ── Host CTA ───────────────────────────────────────────────── */}
-        <Reveal as="section" className="relative isolate grain overflow-hidden rounded-3xl hero-mesh px-8 py-16 sm:px-16 sm:py-20">
+        <Reveal as="section" className="relative isolate grain overflow-hidden rounded-3xl hero-mesh px-8 py-14 sm:px-16 sm:py-16">
           {/* An existing host shouldn't be pitched on hosting — send them to
               their dashboard instead. */}
+          <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-14">
           <div className="max-w-xl">
             <h2 className="display text-display text-white">
               {isHost ? (
@@ -294,6 +329,20 @@ export default function HomePage() {
                 {isHost ? 'Go to your dashboard' : 'Start hosting'} <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
+          </div>
+
+          {/* The real product shot. It leads on mobile (a picture pulls you in
+              before a headline does) and sits beside the copy on desktop. */}
+          <div className="relative order-first lg:order-last">
+            <div className="absolute -inset-4 -z-10 rounded-[2rem] bg-primary/20 blur-3xl" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/sections/cato-your-car.png"
+              alt="The CATO app showing a host's weekly earnings"
+              loading="lazy"
+              className="w-full rounded-2xl object-cover shadow-2xl ring-1 ring-white/15"
+            />
+          </div>
           </div>
         </Reveal>
       </div>
