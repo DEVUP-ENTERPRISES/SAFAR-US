@@ -53,11 +53,16 @@ export function createApp(): Express {
 
   // 3. cors — reflect allowed origins (or any origin when '*' configured).
   const allowAllOrigins = config.cors.origins.some((o) => o === '*' || o.includes('*'));
+  // The production web origins, baked in as a safety net so the live site works
+  // even if CORS_ORIGINS was not updated on the server. CORS_ORIGINS still adds
+  // to this (previews, extra domains); this just guarantees the known ones.
+  const alwaysAllow = ['https://www.axonycs.com', 'https://axonycs.com'];
+  const allowed = new Set([...config.cors.origins, ...alwaysAllow]);
   app.use(
     cors({
       origin(origin, cb) {
         // No Origin header (same-origin, curl, server-to-server) → allow.
-        if (!origin || allowAllOrigins || config.cors.origins.includes(origin)) {
+        if (!origin || allowAllOrigins || allowed.has(origin)) {
           return cb(null, true);
         }
         return cb(null, false);
