@@ -69,8 +69,8 @@ async function bootstrap(): Promise<void> {
 
   const io = initRealtime(server);
 
-  server.listen(config.app.port, () => {
-    logger.info(`🚀 ${config.app.name} API listening on :${config.app.port} (${config.env})`);
+  server.listen(config.app.port, config.app.host, () => {
+    logger.info(`🚀 ${config.app.name} API listening on ${config.app.host}:${config.app.port} (${config.env})`);
   });
 
   /*

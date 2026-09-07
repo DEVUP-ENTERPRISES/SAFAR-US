@@ -18,6 +18,10 @@ const optional = <T extends z.ZodTypeAny>(schema: T) =>
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
+  /** Interface to bind. '0.0.0.0' = all (default, portable); '127.0.0.1'
+   *  = localhost only, correct behind a reverse proxy like Nginx so the Node
+   *  port is never directly reachable from the internet. */
+  HOST: z.string().default('0.0.0.0'),
   API_PREFIX: z.string().default('/api/v1'),
   /**
    * Absolute, publicly reachable base of this API (no trailing slash), e.g.

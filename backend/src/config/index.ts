@@ -69,6 +69,7 @@ export const config = Object.freeze({
   app: {
     name: env.APP_NAME,
     port: env.PORT,
+    host: env.HOST,
     apiPrefix: env.API_PREFIX,
     /** Absolute base for URLs we hand to browsers (media, webhooks, emails). */
     publicUrl: (env.PUBLIC_API_URL ?? `http://localhost:${env.PORT}${env.API_PREFIX}`).replace(/\/+$/, ''),
