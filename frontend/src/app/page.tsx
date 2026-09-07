@@ -269,19 +269,17 @@ export default function HomePage() {
                       loading="lazy"
                       className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
                     />
-                    {/* Just a whisper of a floor — enough to seat the chip, not
-                        the heavy white fade that was eating the photo. */}
-                    <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card/60 to-transparent" />
-                    {/* No step-number badge — the connecting arrows already carry
-                        the 1 → 2 → 3 sequence, so a number would say it twice. */}
-                    {/* The icon chip straddles the photo and the text. */}
-                    <span className="absolute -bottom-6 start-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg ring-4 ring-card transition-transform duration-500 group-hover:scale-110">
-                      <s.icon className="h-6 w-6" />
-                    </span>
+                    {/* Nothing sits on the photo — the image stays clean. */}
                   </div>
-                  <div className="flex flex-col p-6 pt-9 sm:p-7 sm:pt-9">
-                    <h3 className="display text-xl text-foreground">{s.title}</h3>
-                    <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground">{s.body}</p>
+                  <div className="flex flex-col p-6 sm:p-7">
+                    {/* Icon + title live in the content, off the image. */}
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
+                        <s.icon className="h-5 w-5" />
+                      </span>
+                      <h3 className="display text-xl text-foreground">{s.title}</h3>
+                    </div>
+                    <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{s.body}</p>
                   </div>
                 </Reveal>
                 {i < STEPS.length - 1 && <StepConnector />}
@@ -311,16 +309,18 @@ export default function HomePage() {
                       loading="lazy"
                       className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                    {/* Label sits on the photo — the promise, over the proof. */}
-                    <div className="absolute bottom-4 start-5 flex items-center gap-2.5">
-                      <span className="grid h-10 w-10 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/25 backdrop-blur">
+                    {/* Clean photo — nothing overlaid. */}
+                  </div>
+                  <div className="flex flex-col p-6">
+                    {/* Icon + promise live below the image, ahead of the detail. */}
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
                         <t.icon className="h-5 w-5" />
                       </span>
-                      <span className="display text-2xl text-white drop-shadow">{t.stat}</span>
+                      <span className="display text-xl text-foreground">{t.stat}</span>
                     </div>
+                    <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{t.label}</p>
                   </div>
-                  <p className="p-6 text-[15px] leading-relaxed text-muted-foreground">{t.label}</p>
                 </Reveal>
                 {i < arr.length - 1 && <StepConnector />}
               </div>
