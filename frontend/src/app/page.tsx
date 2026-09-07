@@ -31,19 +31,25 @@ const STEPS = [
 function StepConnector() {
   // Three nested layers, each owning ONE transform, because rotation, the
   // gap-centering offset, and the nudge animation all use `transform` and would
-  // otherwise clobber each other — which is why the mobile arrow was staying
-  // horizontal instead of pointing down.
+  // otherwise clobber each other.
+  //
+  // Vertical placement: on desktop it sits low, over the CONTENT band rather
+  // than on the photo (the image is the top ~two-thirds of the card, so a
+  // mid-card arrow landed on the picture). On mobile it drops into the gap
+  // between the stacked cards and points down.
   return (
     <div
       aria-hidden
       className="absolute z-20 bottom-0 start-1/2 -translate-x-1/2 translate-y-1/2
-                 md:bottom-auto md:start-auto md:end-0 md:top-1/2 md:translate-x-1/2 md:-translate-y-1/2"
+                 md:bottom-[16%] md:start-auto md:end-0 md:top-auto md:translate-x-1/2 md:translate-y-1/2"
     >
       {/* Rotate the whole badge: down between stacked cards, right between columns. */}
-      <span className="grid h-9 w-9 rotate-90 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background md:rotate-0">
+      <span className="relative grid h-9 w-9 rotate-90 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background md:rotate-0">
+        {/* A slow halo pulse so the link between cards reads as active. */}
+        <span className="absolute inset-0 rounded-full bg-primary opacity-40 animate-ping [animation-duration:2.4s]" />
         {/* The nudge lives on the icon, inside the rotated frame, so it travels
             in whatever direction the badge points. */}
-        <ArrowRight className="h-4 w-4 animate-nudge-x" />
+        <ArrowRight className="relative h-4 w-4 animate-nudge-x" />
       </span>
     </div>
   );
