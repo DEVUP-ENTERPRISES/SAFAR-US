@@ -10,6 +10,8 @@ import { bookingService } from '../modules/bookings/application/booking.service'
 import { favoritesService } from '../modules/favorites/application/favorites.service';
 import { savedSearchService } from '../modules/saved-search/application/saved-search.service';
 import { messageService } from '../modules/messaging/application/message.service';
+import { vehicleLifecycleService } from '../modules/vehicles/application/vehicle-lifecycle.service';
+import { TripModel } from '../modules/trips/infrastructure/trip.model';
 import { logger } from '../infrastructure/logging/logger';
 
 /** Best-effort system note into a booking conversation; never breaks the flow. */
@@ -425,6 +427,118 @@ export function registerEventSubscribers(): void {
     } catch (err) {
       logger.error({ err, vehicleId: p.vehicleId }, 'saved-search match run failed');
     }
+  });
+
+  // ── Vehicle lifecycle & master timeline ────────────────────────────────
+  // The trip milestones the trip service already emits drive the vehicle's
+  // operational state and its append-only timeline. Handlers are isolated by
+  // the bus, so a lifecycle write failing never breaks the trip flow; the
+  // idempotency keys make a redelivered event a no-op.
+  eventBus.subscribe(EVENTS.TRIP_STARTED, async (e) => {
+    const p = e.payload as { tripId: string; bookingId: string; vehicleId?: string };
+    const trip = await TripModel.findById(p.tripId).lean<{ vehicleId: string; guestId: string }>();
+    const vehicleId = p.vehicleId ?? trip?.vehicleId;
+    if (!vehicleId) return;
+    await vehicleLifecycleService.transition({
+      vehicleId,
+      to: 'on_trip',
+      actor: { userId: trip?.guestId, system: true },
+      reason: 'Trip started (handover complete)',
+      bookingId: p.bookingId,
+      tripId: p.tripId,
+      sourceType: 'trip',
+      sourceId: p.tripId,
+      idempotencyKey: `trip.started:${p.tripId}`,
+    }).catch((err) => logger.warn({ err: (err as Error).message, tripId: p.tripId }, 'lifecycle on_trip failed'));
+  });
+
+  eventBus.subscribe(EVENTS.TRIP_COMPLETED, async (e) => {
+    const p = e.payload as { tripId: string; bookingId: string };
+    const trip = await TripModel.findById(p.tripId).lean<{
+      vehicleId: string;
+      damageReports?: unknown[];
+      incidents?: { status: string }[];
+    }>();
+    if (!trip?.vehicleId) return;
+    // Return the car, then route it: straight back to service when it came back
+    // clean, otherwise into inspection when there is damage or an open incident.
+    const needsReview =
+      (trip.damageReports?.length ?? 0) > 0 ||
+      (trip.incidents ?? []).some((i) => i.status === 'open');
+    const common = {
+      vehicleId: trip.vehicleId,
+      actor: { system: true },
+      bookingId: p.bookingId,
+      tripId: p.tripId,
+      sourceType: 'trip',
+      sourceId: p.tripId,
+    } as const;
+    try {
+      await vehicleLifecycleService.transition({
+        ...common,
+        to: 'returned',
+        reason: 'Trip completed (vehicle returned)',
+        idempotencyKey: `trip.returned:${p.tripId}`,
+      });
+      await vehicleLifecycleService.transition({
+        ...common,
+        to: needsReview ? 'inspecting' : 'idle',
+        reason: needsReview ? 'Post-trip review required (damage/incident on record)' : 'Returned clean — back in service',
+        idempotencyKey: `trip.postreturn:${p.tripId}`,
+      });
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, tripId: p.tripId }, 'lifecycle return failed');
+    }
+  });
+
+  eventBus.subscribe(EVENTS.TRIP_CHECKED_IN, async (e) => {
+    const p = e.payload as { tripId: string; bookingId: string; method?: string };
+    const trip = await TripModel.findById(p.tripId).lean<{ vehicleId: string }>();
+    if (!trip?.vehicleId) return;
+    await vehicleLifecycleService.record({
+      vehicleId: trip.vehicleId,
+      kind: 'trip.checked_in',
+      summary: `Guest checked in (${p.method ?? 'contactless'}) — pre-trip inspection captured`,
+      actor: { system: true },
+      bookingId: p.bookingId,
+      tripId: p.tripId,
+      sourceType: 'trip',
+      sourceId: p.tripId,
+      idempotencyKey: `trip.checked_in:${p.tripId}`,
+    }).catch(() => undefined);
+  });
+
+  eventBus.subscribe(EVENTS.TRIP_DAMAGE_REPORTED, async (e) => {
+    const p = e.payload as { tripId: string; bookingId: string; byUserId: string };
+    const trip = await TripModel.findById(p.tripId).lean<{ vehicleId: string }>();
+    if (!trip?.vehicleId) return;
+    await vehicleLifecycleService.record({
+      vehicleId: trip.vehicleId,
+      kind: 'damage.reported',
+      summary: 'Damage reported on the vehicle',
+      actor: { userId: p.byUserId },
+      bookingId: p.bookingId,
+      tripId: p.tripId,
+      sourceType: 'trip',
+      sourceId: p.tripId,
+    }).catch(() => undefined);
+  });
+
+  eventBus.subscribe(EVENTS.TRIP_INCIDENT_RAISED, async (e) => {
+    const p = e.payload as { tripId: string; bookingId: string; byUserId: string; type: string };
+    const trip = await TripModel.findById(p.tripId).lean<{ vehicleId: string }>();
+    if (!trip?.vehicleId) return;
+    await vehicleLifecycleService.record({
+      vehicleId: trip.vehicleId,
+      kind: 'incident.raised',
+      summary: `Emergency reported on an active trip: ${p.type}`,
+      actor: { userId: p.byUserId },
+      reason: p.type,
+      bookingId: p.bookingId,
+      tripId: p.tripId,
+      sourceType: 'trip',
+      sourceId: p.tripId,
+    }).catch(() => undefined);
   });
 
   logger.info('Event subscribers registered');

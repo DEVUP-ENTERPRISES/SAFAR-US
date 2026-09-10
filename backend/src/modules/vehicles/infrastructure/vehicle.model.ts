@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose';
 import { uuid } from '../../../shared/utils/uuid';
+import type { OperationalState } from '../domain/vehicle-lifecycle';
 
 export type VehicleStatus = 'draft' | 'pending_verification' | 'listed' | 'paused' | 'delisted';
 export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
@@ -114,6 +115,21 @@ export interface VehicleDoc {
   };
   purposes: string[];
   status: VehicleStatus;
+  /**
+   * Where the physical car is in its operational lifecycle (idle / on_trip /
+   * cleaning / maintenance / repair / …), independent of the marketplace
+   * `status`. States that mean the car is physically down also stop new
+   * bookings — see vehicle-lifecycle.ts. Defaults to 'idle'.
+   */
+  operationalState: OperationalState;
+  lifecycle?: {
+    /** Per-vehicle monotonic counter backing the timeline's total order. */
+    timelineSeq: number;
+    /** Why the car is in a blocking state, surfaced to ops/host. */
+    downReason?: string;
+    /** When it went down, for how-long-down reporting. */
+    downSince?: Date;
+  };
   /** Paused automatically because a mandatory doc (insurance/registration)
    *  lapsed. Distinguishes a compliance hold from a host-initiated pause so the
    *  car is auto-relisted on renewal, not left down. */
@@ -218,6 +234,12 @@ const schema = new Schema<VehicleDoc>(
     },
     purposes: { type: [String], default: ['rent'] },
     status: { type: String, default: 'draft' },
+    operationalState: { type: String, default: 'idle' },
+    lifecycle: {
+      timelineSeq: { type: Number, default: 0 },
+      downReason: String,
+      downSince: Date,
+    },
     complianceHold: { type: Boolean, default: false },
     verificationStatus: { type: String, default: 'unverified' },
     ratingAvg: { type: Number, default: 0 },
@@ -243,6 +265,8 @@ schema.index({ location: '2dsphere' });
 schema.index({ status: 1, location: '2dsphere' });
 schema.index({ status: 1, verificationStatus: 1 });
 schema.index({ hostId: 1, status: 1 });
+// Ops dashboards query "which cars are down / in maintenance / blocked".
+schema.index({ operationalState: 1 });
 schema.index({ fleetId: 1 });
 schema.index({ 'location.city': 1, category: 1 });
 schema.index({ purposes: 1 });

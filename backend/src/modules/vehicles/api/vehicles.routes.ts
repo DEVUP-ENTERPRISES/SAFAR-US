@@ -4,6 +4,8 @@ import { vehicleService, MIN_LISTING_PHOTOS } from '../application/vehicle.servi
 import { vehicleInsightsService } from '../application/vehicle-insights.service';
 import { fleetImportService } from '../application/fleet-import.service';
 import { vehicleHistoryService } from '../application/vehicle-history.service';
+import { vehicleLifecycleService } from '../application/vehicle-lifecycle.service';
+import { OPERATIONAL_STATES } from '../domain/vehicle-lifecycle';
 import { availabilityService } from '../../availability/application/availability.service';
 import { searchService } from '../../search/application/search.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
@@ -306,6 +308,75 @@ router.post(
   asyncHandler(async (req, res) => {
     const v = await vehicleService.verify(req.params.id);
     sendSuccess(res, v);
+  }),
+);
+
+// ── Vehicle lifecycle & master timeline ──────────────────────────────────
+
+const STAFF_ROLES = ['admin', 'super_admin', 'ops', 'support', 'staff'];
+
+/**
+ * The vehicle's operational timeline (§21). The host owner sees their own car's
+ * history; staff can see any car's. Everything that ever happened to the car,
+ * newest first.
+ */
+router.get(
+  '/:id/timeline',
+  authenticate,
+  validate({
+    query: z.object({
+      limit: z.coerce.number().int().positive().max(200).optional(),
+      beforeSeq: z.coerce.number().int().positive().optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    const isStaff = (req.principal!.roles ?? []).some((r) => STAFF_ROLES.includes(r));
+    if (!isStaff) await vehicleService.assertOwnerById(req.principal!.userId, req.params.id);
+    const events = await vehicleLifecycleService.timeline(req.params.id, {
+      limit: req.query.limit ? Number(req.query.limit) : undefined,
+      beforeSeq: req.query.beforeSeq ? Number(req.query.beforeSeq) : undefined,
+    });
+    sendSuccess(res, events);
+  }),
+);
+
+/**
+ * Ops-driven operational transition (cleaning → maintenance → repair →
+ * reactivation, safety holds, …). Gated to staff: a host must never reactivate
+ * a car out of a safety/compliance hold themselves (§19). The state machine
+ * validates the move; the service makes it auditable and idempotent.
+ */
+router.post(
+  '/:id/lifecycle/transition',
+  authenticate,
+  authorize('vehicle:verify'),
+  validate({
+    body: z.object({
+      to: z.enum(OPERATIONAL_STATES as unknown as [string, ...string[]]),
+      reason: z.string().max(500).optional(),
+      evidence: z
+        .array(
+          z.object({
+            kind: z.string().max(40),
+            url: z.string().url().optional(),
+            key: z.string().max(400).optional(),
+            ref: z.string().max(200).optional(),
+            label: z.string().max(200).optional(),
+          }),
+        )
+        .max(30)
+        .optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    const result = await vehicleLifecycleService.transition({
+      vehicleId: req.params.id,
+      to: req.body.to,
+      actor: { userId: req.principal!.userId, roles: req.principal!.roles },
+      reason: req.body.reason,
+      evidence: req.body.evidence,
+    });
+    sendSuccess(res, result);
   }),
 );
 

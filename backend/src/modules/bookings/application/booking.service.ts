@@ -4,6 +4,7 @@ import { canTransition, type BookingStatus } from '../domain/booking-status';
 import { computeRefund } from '../domain/cancellation-policy';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { documentComplianceService } from '../../documents/application/document-compliance.service';
+import { vehicleLifecycleService } from '../../vehicles/application/vehicle-lifecycle.service';
 import { searchService } from '../../search/application/search.service';
 import { trustScoreService } from '../../risk/application/trust-score.service';
 import type { VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
@@ -115,6 +116,15 @@ export class BookingService {
     // this closes the window between a document expiring and the next sweep.
     if (await documentComplianceService.hasExpiredMandatoryDoc(dto.vehicleId)) {
       throw new ConflictError('This car is temporarily unavailable while its documents are renewed.', 'DOCS_EXPIRED');
+    }
+
+    // Operational gate: a car that is physically down (in maintenance, repair,
+    // a safety hold, or awaiting reactivation approval) cannot be handed to a
+    // new guest — regardless of what the calendar says. This is point-in-time
+    // physical state, so it does not touch future-dated availability; it only
+    // refuses a booking while the car is out of service.
+    if (!(await vehicleLifecycleService.isOperableForBooking(dto.vehicleId))) {
+      throw new ConflictError('This car is temporarily out of service.', 'VEHICLE_OUT_OF_SERVICE');
     }
     if (vehicle.hostId && guestId === (await this.hostUserId(vehicle.hostId))) {
       throw new ForbiddenError('You cannot book your own vehicle');
