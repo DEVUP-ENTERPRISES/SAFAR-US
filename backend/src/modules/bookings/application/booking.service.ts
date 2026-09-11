@@ -126,6 +126,18 @@ export class BookingService {
     if (!(await vehicleLifecycleService.isOperableForBooking(dto.vehicleId))) {
       throw new ConflictError('This car is temporarily out of service.', 'VEHICLE_OUT_OF_SERVICE');
     }
+
+    // Terms & Conditions: a booking is a contract, so we record exactly which
+    // version the guest accepted, when, and from where — and refuse a blank or
+    // stale acceptance (e.g. the terms were bumped while the form was open).
+    const { legal } = await platformConfigService.get();
+    if (dto.acceptedTermsVersion !== legal.termsVersion) {
+      throw new ConflictError(
+        'Please review and accept the current Terms & Conditions to continue.',
+        'TERMS_OUTDATED',
+      );
+    }
+    const acceptedTerms = { version: legal.termsVersion, acceptedAt: new Date(), ip: ctx?.ip };
     if (vehicle.hostId && guestId === (await this.hostUserId(vehicle.hostId))) {
       throw new ForbiddenError('You cannot book your own vehicle');
     }
@@ -304,6 +316,7 @@ export class BookingService {
         period: { start, end },
         priceBreakdown: breakdown,
         cancellationPolicy: vehicle.cancellationPolicy,
+        terms: acceptedTerms, // the T&C version this guest accepted to book
         delivery: dto.delivery, // where the host brings the car, if requested
         status,
         statusHistory: [{ from: null, to: status, at: now, by: guestId }],

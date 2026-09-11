@@ -22,6 +22,15 @@ export interface PlatformPublicConfig {
   /** The platform's default take rate. An individual host's rate can be lower
    *  if a CommissionRule matches, so treat this as a floor on host earnings. */
   hostTakeRateBps: number;
+  /** Terms/privacy versions the client must display + submit, and the minimum
+   *  rental age that gates account setup. */
+  legal: {
+    termsVersion: string;
+    termsUrl: string;
+    privacyVersion: string;
+    privacyUrl: string;
+    minAgeYears: number;
+  };
 }
 
 export const platformApi = {

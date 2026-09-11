@@ -97,6 +97,14 @@ export class PlatformConfigService {
   private withDefaults(doc: Partial<PlatformConfigDoc>): PlatformConfigDoc {
     return {
       ...doc,
+      legal: {
+        termsVersion: '2026-09-01',
+        termsUrl: '/legal',
+        privacyVersion: '2026-09-01',
+        privacyUrl: '/legal',
+        minAgeYears: 18,
+        ...(doc.legal ?? {}),
+      },
       deposit: {
         enabled: true,
         minCents: 25000,

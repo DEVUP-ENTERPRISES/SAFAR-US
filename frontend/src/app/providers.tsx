@@ -10,6 +10,7 @@ import { ApiError } from '@/lib/api/types';
 import { useSessionBootstrap } from '@/features/auth/hooks';
 import { usePushRegistration } from '@/features/push/use-push';
 import { useAuthStore } from '@/features/auth/store';
+import { ProfileGate } from '@/features/account/profile-gate';
 
 function AuthBootstrap({ children }: { children: ReactNode }) {
   // Registers this browser for push once signed in (no-op until permission is
@@ -30,7 +31,12 @@ function AuthBootstrap({ children }: { children: ReactNode }) {
     if (isSuccess) setStatus('authenticated');
   }, [isError, isSuccess, setStatus]);
 
-  return <>{children}</>;
+  return (
+    <>
+      <ProfileGate />
+      {children}
+    </>
+  );
 }
 
 /**

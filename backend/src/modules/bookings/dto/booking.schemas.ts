@@ -49,6 +49,12 @@ export const createBookingSchema = quoteSchema.extend({
   useWallet: z.boolean().optional(),
   /** Optional so existing clients keep working; when present it is enforced. */
   priceLock: priceLockSchema.optional(),
+  /**
+   * The Terms & Conditions version the guest ticked to accept. Required: a
+   * booking is a contract, so we record exactly which terms were agreed. The
+   * service rejects it if it is not the current published version.
+   */
+  acceptedTermsVersion: z.string().trim().min(1, 'You must accept the Terms & Conditions to book.'),
 });
 
 export const cancelSchema = z.object({

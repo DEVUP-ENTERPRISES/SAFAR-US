@@ -19,10 +19,35 @@ export interface PaymentMethod {
   provider: string;
 }
 
+export type ProfileField =
+  | 'firstName' | 'lastName' | 'dateOfBirth' | 'phone' | 'address' | 'avatar' | 'emergencyContact';
+
+export interface ProfileStatus {
+  complete: boolean;
+  missing: ProfileField[];
+  underage: boolean;
+  minAgeYears: number;
+}
+
+export interface OnboardingInput {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  phone: string;
+  avatarUrl: string;
+  address: { label?: string; line1: string; city: string; state: string; zip: string; country: string };
+  emergencyContact: { name: string; phone: string; relation?: string };
+}
+
 export const accountApi = {
   me: () => api.get<Me>('/users/me'),
   updateProfile: (patch: Partial<Pick<Me, 'firstName' | 'lastName' | 'phone' | 'avatarUrl' | 'dateOfBirth'>>) =>
     api.patch<Me>('/users/me', patch),
+
+  // Account setup gate.
+  profileStatus: () => api.get<ProfileStatus>('/users/me/profile-status'),
+  completeOnboarding: (dto: OnboardingInput) =>
+    api.post<{ user: Me; profile: ProfileStatus }>('/users/me/onboarding', dto),
 
   addAddress: (a: Omit<Address, 'id' | 'isDefault'> & { isDefault?: boolean }) =>
     api.post<Me>('/users/me/addresses', a),

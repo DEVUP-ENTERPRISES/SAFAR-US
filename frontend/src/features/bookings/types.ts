@@ -93,4 +93,7 @@ export interface QuoteInput {
   protectionPlan?: string;
   useWallet?: boolean;
   delivery?: DeliveryRequest;
+  /** The Terms & Conditions version the guest accepted. Required by the booking
+   *  create endpoint (a booking is a contract); ignored by the quote endpoint. */
+  acceptedTermsVersion?: string;
 }

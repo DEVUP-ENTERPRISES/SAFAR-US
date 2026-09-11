@@ -70,6 +70,7 @@ export default function VehicleDetailPage() {
   const [addOnCodes, setAddOnCodes] = useState<string[]>([]);
   const [protectionPlan, setProtectionPlan] = useState('basic');
   const [payWithWallet, setPayWithWallet] = useState(false);
+  const [agreedTerms, setAgreedTerms] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState<'airport' | 'home' | 'hotel' | 'business' | ''>('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   // Airport pickups: the flight is what tells the host when to actually be
@@ -166,6 +167,9 @@ export default function VehicleDetailPage() {
     addOnCodes,
     protectionPlan,
     useWallet: payWithWallet && !!v?.listing.instantBook,
+    // The Terms version the guest is accepting on this booking. The quote
+    // endpoint ignores it; the create endpoint requires it.
+    acceptedTermsVersion: platformCfg.data?.legal?.termsVersion,
     // Only send delivery once a mode AND an address are chosen — a mode with no
     // address would be a delivery the host can't fulfil.
     delivery:
@@ -867,7 +871,27 @@ export default function VehicleDetailPage() {
             {createBooking.isError && (
               <p className="text-sm text-destructive">{createBooking.error instanceof ApiError ? createBooking.error.message : 'Booking failed'}</p>
             )}
-            <Button className="w-full rounded-xl py-6 text-base font-bold transition-transform hover:scale-[1.02] active:scale-[0.98]" size="lg" disabled={!quote.data} loading={createBooking.isPending} onClick={book}>
+            {/* A booking is a contract — the guest must accept the current Terms.
+                Only shown once signed in; before that the button saves the draft
+                and routes to login, and they accept on their way back. */}
+            {status === 'authenticated' && (
+              <label className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                  checked={agreedTerms}
+                  onChange={(e) => setAgreedTerms(e.target.checked)}
+                />
+                <span>
+                  I agree to the{' '}
+                  <a href={platformCfg.data?.legal?.termsUrl || '/legal/terms'} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">
+                    Terms &amp; Conditions
+                  </a>{' '}
+                  and rental agreement.
+                </span>
+              </label>
+            )}
+            <Button className="w-full rounded-xl py-6 text-base font-bold transition-transform hover:scale-[1.02] active:scale-[0.98]" size="lg" disabled={!quote.data || (status === 'authenticated' && !agreedTerms)} loading={createBooking.isPending} onClick={book}>
               {status !== 'authenticated'
                 ? 'Sign in to book'
                 : v.listing.instantBook

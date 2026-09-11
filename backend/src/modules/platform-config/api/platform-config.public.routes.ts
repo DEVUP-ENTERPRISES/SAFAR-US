@@ -37,6 +37,15 @@ router.get(
       pricing: cfg.pricing,
       protection: cfg.protection,
       hostTakeRateBps: cfg.commission.defaultBps,
+      // The client needs the current Terms version to display + submit on
+      // booking, plus the min age to gate account setup. Nothing hardcoded.
+      legal: {
+        termsVersion: cfg.legal.termsVersion,
+        termsUrl: cfg.legal.termsUrl,
+        privacyVersion: cfg.legal.privacyVersion,
+        privacyUrl: cfg.legal.privacyUrl,
+        minAgeYears: cfg.legal.minAgeYears,
+      },
     });
   }),
 );

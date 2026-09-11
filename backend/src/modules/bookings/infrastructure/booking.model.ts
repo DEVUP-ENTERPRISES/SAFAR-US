@@ -32,6 +32,12 @@ export interface BookingDoc {
     currency: string;
   };
   cancellationPolicy: 'flexible' | 'moderate' | 'strict';
+  /**
+   * The Terms &amp; Conditions the guest accepted to make this booking — the
+   * version they were shown, when, and from where. This is the legal record of
+   * what was agreed; a booking is not created without it.
+   */
+  terms?: { version: string; acceptedAt: Date; ip?: string };
   /** Where the host delivers the car, when the guest requested delivery. */
   delivery?: {
     mode: 'airport' | 'home' | 'hotel' | 'business';
@@ -167,6 +173,11 @@ const schema = new Schema<BookingDoc>(
       memberPlan: String,
     },
     cancellationPolicy: { type: String, default: 'moderate' },
+    terms: {
+      version: String,
+      acceptedAt: Date,
+      ip: String,
+    },
     delivery: {
       type: {
         _id: false,

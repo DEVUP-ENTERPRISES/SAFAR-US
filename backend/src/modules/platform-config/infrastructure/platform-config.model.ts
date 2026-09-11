@@ -169,6 +169,18 @@ export interface PlatformConfigDoc {
   risk: {
     bands: { block: number; high: number; medium: number };
   };
+  /**
+   * Legal / consent policy. `termsVersion` is the version a booking must accept;
+   * bumping it forces every guest to re-accept the next time they book.
+   * `minAgeYears` gates account setup and, by extension, booking eligibility.
+   */
+  legal: {
+    termsVersion: string;
+    termsUrl: string;
+    privacyVersion: string;
+    privacyUrl: string;
+    minAgeYears: number;
+  };
   /** Notification routing matrix: which channels each category may use. */
   notifications: {
     categoryChannels: Record<'trips' | 'messages' | 'payments' | 'promotions' | 'reviews' | 'account', { push: boolean; email: boolean; sms: boolean }>;
@@ -310,6 +322,13 @@ export interface PlatformConfigDoc {
 const schema = new Schema<PlatformConfigDoc>(
   {
     _id: { type: String, default: 'platform' },
+    legal: {
+      termsVersion: { type: String, default: '2026-09-01' },
+      termsUrl: { type: String, default: '/legal' },
+      privacyVersion: { type: String, default: '2026-09-01' },
+      privacyUrl: { type: String, default: '/legal' },
+      minAgeYears: { type: Number, default: 18 },
+    },
     deposit: {
       enabled: { type: Boolean, default: true },
       minCents: { type: Number, default: 25000 },   // $250 floor

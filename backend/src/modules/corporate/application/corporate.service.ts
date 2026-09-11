@@ -7,6 +7,7 @@ import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { pricingService } from '../../pricing/application/pricing.service';
 import { bookingService } from '../../bookings/application/booking.service';
 import { bookingReportingService } from '../../bookings/application/booking-reporting.service';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { NotFoundError, ForbiddenError, ConflictError, ValidationError } from '../../../core/errors/app-error';
 
 export interface OrgContext {
@@ -189,9 +190,17 @@ export class CorporateService {
     }
     if (req.status !== 'approved') throw new ConflictError('Request is not approved', 'NOT_APPROVED');
 
+    // A corporate booking accepts the platform's current Terms on approval —
+    // the approver is acting under the org's agreement on the employee's behalf.
+    const { legal } = await platformConfigService.get();
     const booking = await bookingService.create(
       req.employeeUserId,
-      { vehicleId: req.vehicleId, start: req.start.toISOString(), end: req.end.toISOString() },
+      {
+        vehicleId: req.vehicleId,
+        start: req.start.toISOString(),
+        end: req.end.toISOString(),
+        acceptedTermsVersion: legal.termsVersion,
+      },
       `corp-${req._id}`,
       { orgId: ctx.org._id, costCenterId: req.costCenterId },
     );

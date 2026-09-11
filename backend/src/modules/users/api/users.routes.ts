@@ -32,6 +32,48 @@ router.patch(
   }),
 );
 
+// ── Account setup gate ──────────────────────────────────────────────────
+
+/** After login the client calls this; if `complete` is false it routes the
+ *  guest to setup before letting them into the app. */
+router.get(
+  '/me/profile-status',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await userService.profileStatus(req.principal!.userId));
+  }),
+);
+
+const onboardingSchema = z.object({
+  firstName: z.string().trim().min(1).max(60),
+  lastName: z.string().trim().min(1).max(60),
+  dateOfBirth: z.string().min(4), // service validates it parses and clears min age
+  phone: z.string().trim().min(6).max(20),
+  avatarUrl: z.string().url(),
+  address: z.object({
+    label: z.string().max(40).optional(),
+    line1: z.string().trim().min(2).max(200),
+    city: z.string().trim().min(1).max(120),
+    state: z.string().trim().min(1).max(120),
+    zip: z.string().trim().min(2).max(20),
+    country: z.string().trim().min(2).max(60),
+  }),
+  emergencyContact: z.object({
+    name: z.string().trim().min(1).max(80),
+    phone: z.string().trim().min(6).max(20),
+    relation: z.string().trim().max(40).optional(),
+  }),
+});
+
+router.post(
+  '/me/onboarding',
+  authenticate,
+  validate({ body: onboardingSchema }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await userService.completeOnboarding(req.principal!.userId, req.body));
+  }),
+);
+
 // ── Notification preferences ────────────────────────────────────────────
 const catBool = z.boolean();
 const notifPrefsSchema = z.object({
