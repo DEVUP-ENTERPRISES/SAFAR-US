@@ -1,4 +1,5 @@
 import { PlatformConfigModel, type PlatformConfigDoc } from '../infrastructure/platform-config.model';
+import { ConfigVersionModel, type ConfigVersionDoc } from '../infrastructure/config-version.model';
 import {
   CommissionRuleModel,
   SCOPE_SPECIFICITY,
@@ -97,6 +98,7 @@ export class PlatformConfigService {
   private withDefaults(doc: Partial<PlatformConfigDoc>): PlatformConfigDoc {
     return {
       ...doc,
+      configVersion: doc.configVersion ?? 0,
       legal: {
         termsVersion: '2026-09-01',
         termsUrl: '/legal',
@@ -235,21 +237,19 @@ export class PlatformConfigService {
     } as PlatformConfigDoc;
   }
 
-  /** Patch the config. Guard-railed, audited, and hot — takes effect at once. */
-  async update(patch: Record<string, unknown>, actorId: string): Promise<PlatformConfigDoc> {
+  /**
+   * Patch the config. Guard-railed, audited, hot — and now VERSIONED: every
+   * publish increments `configVersion` and writes a full immutable snapshot to
+   * the history ledger, so any change can be inspected or rolled back and any
+   * old booking can be reconstructed against the exact economics it priced on.
+   */
+  async update(
+    patch: Record<string, unknown>,
+    actorId: string,
+    reason?: string,
+  ): Promise<PlatformConfigDoc> {
     const current = await this.get();
-
-    // Guard rails: a fat-fingered 90% take rate must not be possible.
-    const c = patch.commission as PlatformConfigDoc['commission'] | undefined;
-    if (c) {
-      const min = c.minBps ?? current.commission.minBps;
-      const max = c.maxBps ?? current.commission.maxBps;
-      const def = c.defaultBps ?? current.commission.defaultBps;
-      if (min > max) throw new ValidationError('commission.minBps cannot exceed maxBps');
-      if (def < min || def > max) {
-        throw new ValidationError(`commission.defaultBps must be between ${min} and ${max} bps`);
-      }
-    }
+    this.assertGuardRails(patch, current);
 
     // Shallow-merge each section over the current values, so a partial update
     // (e.g. just commission.defaultBps) never drops its sibling fields.
@@ -262,16 +262,176 @@ export class PlatformConfigService {
           : v;
     }
 
+    const nextVersion = (current.configVersion ?? 0) + 1;
     const doc = await PlatformConfigModel.findByIdAndUpdate(
       'platform',
-      { $set: { ...merged, updatedBy: actorId } },
+      { $set: { ...merged, updatedBy: actorId, configVersion: nextVersion } },
       { new: true, upsert: true },
     ).lean<PlatformConfigDoc>();
 
     await this.invalidate();
-    emit(EVENTS.PLATFORM_CONFIG_UPDATED, 'platform', { actorId, keys: Object.keys(patch) });
-    logger.info({ actorId, keys: Object.keys(patch) }, '⚙️  Platform config updated (hot)');
+    // Snapshot AFTER invalidation so the ledger records the fully-defaulted live
+    // config, not a partial. Best-effort: a failed snapshot must not fail the
+    // change (the change is already saved and hot), but it is logged loudly.
+    await this.writeSnapshot({
+      version: nextVersion,
+      config: this.withDefaults(doc!),
+      actorId,
+      reason,
+      changedKeys: Object.keys(patch),
+      status: 'published',
+    }).catch((err) =>
+      logger.error({ err: (err as Error).message, version: nextVersion }, 'config snapshot failed'),
+    );
+
+    emit(EVENTS.PLATFORM_CONFIG_UPDATED, 'platform', { actorId, keys: Object.keys(patch), version: nextVersion });
+    logger.info({ actorId, keys: Object.keys(patch), version: nextVersion }, '⚙️  Platform config updated (hot, versioned)');
     return doc!;
+  }
+
+  /** Guard rails shared by update and rollback — a fat-fingered rate is refused. */
+  private assertGuardRails(patch: Record<string, unknown>, current: PlatformConfigDoc): void {
+    const c = patch.commission as PlatformConfigDoc['commission'] | undefined;
+    if (c) {
+      const min = c.minBps ?? current.commission.minBps;
+      const max = c.maxBps ?? current.commission.maxBps;
+      const def = c.defaultBps ?? current.commission.defaultBps;
+      if (min > max) throw new ValidationError('commission.minBps cannot exceed maxBps');
+      if (def < min || def > max) {
+        throw new ValidationError(`commission.defaultBps must be between ${min} and ${max} bps`);
+      }
+    }
+  }
+
+  private async writeSnapshot(input: {
+    version: number;
+    config: PlatformConfigDoc;
+    actorId: string;
+    reason?: string;
+    changedKeys: string[];
+    status: ConfigVersionDoc['status'];
+    restoredFromVersion?: number;
+  }): Promise<ConfigVersionDoc> {
+    const now = new Date();
+    return ConfigVersionModel.create({
+      version: input.version,
+      status: input.status,
+      snapshot: input.config as unknown as Record<string, unknown>,
+      isPatch: false,
+      actorId: input.actorId,
+      reason: input.reason,
+      changedKeys: input.changedKeys,
+      effectiveFrom: now,
+      publishedAt: now,
+      restoredFromVersion: input.restoredFromVersion,
+    });
+  }
+
+  // ── Versioning: history, rollback, scheduling ─────────────────────────
+
+  /** Published (and rolled-back) config versions, newest first. */
+  async listVersions(limit = 50): Promise<ConfigVersionDoc[]> {
+    return ConfigVersionModel.find({ status: { $in: ['published', 'rolled_back', 'superseded'] } })
+      .sort({ version: -1 })
+      .limit(Math.min(limit, 200))
+      .lean<ConfigVersionDoc[]>();
+  }
+
+  async getVersion(version: number): Promise<ConfigVersionDoc | null> {
+    return ConfigVersionModel.findOne({ version }).sort({ version: -1 }).lean<ConfigVersionDoc>();
+  }
+
+  /** Staged (future-effective) changes not yet promoted. */
+  async listScheduled(): Promise<ConfigVersionDoc[]> {
+    return ConfigVersionModel.find({ status: 'scheduled' }).sort({ effectiveFrom: 1 }).lean<ConfigVersionDoc[]>();
+  }
+
+  /**
+   * Restore an earlier version by RE-PUBLISHING its snapshot as a new version.
+   * History is never rewritten — a rollback is itself a versioned change, so the
+   * ledger shows exactly who reverted to what and when.
+   */
+  async rollback(toVersion: number, actorId: string, reason?: string): Promise<PlatformConfigDoc> {
+    const target = await ConfigVersionModel.findOne({ version: toVersion, isPatch: false }).lean<ConfigVersionDoc>();
+    if (!target) throw new ValidationError(`No config version ${toVersion} to roll back to`);
+
+    const snapshot = this.stripMeta(target.snapshot);
+    const doc = await this.update(snapshot, actorId, reason ?? `Rollback to version ${toVersion}`);
+    // Tag the just-written version as a rollback for the audit trail.
+    await ConfigVersionModel.updateOne(
+      { version: doc.configVersion },
+      { $set: { status: 'published', restoredFromVersion: toVersion } },
+    ).catch(() => undefined);
+    return doc;
+  }
+
+  /**
+   * Stage a change for a future date. It is stored but NOT applied; the
+   * scheduler (applyDueScheduled, run from the jobs plane) promotes it via the
+   * normal update() path once `effectiveFrom` passes, so it snapshots and
+   * versions exactly like a manual publish.
+   */
+  async scheduleUpdate(
+    patch: Record<string, unknown>,
+    effectiveFrom: Date,
+    actorId: string,
+    reason?: string,
+  ): Promise<ConfigVersionDoc> {
+    if (effectiveFrom.getTime() <= Date.now()) {
+      throw new ValidationError('effectiveFrom must be in the future — apply it now with a normal update instead.');
+    }
+    this.assertGuardRails(patch, await this.get());
+    return ConfigVersionModel.create({
+      version: -1, // assigned at promotion
+      status: 'scheduled',
+      snapshot: patch,
+      isPatch: true,
+      actorId,
+      reason,
+      changedKeys: Object.keys(patch),
+      effectiveFrom,
+    });
+  }
+
+  /** Cancel a staged change before it comes due. */
+  async cancelScheduled(id: string): Promise<{ cancelled: boolean }> {
+    const res = await ConfigVersionModel.deleteOne({ _id: id, status: 'scheduled' });
+    return { cancelled: res.deletedCount > 0 };
+  }
+
+  /**
+   * Promote any staged change whose time has come. Idempotent and safe to run
+   * on a schedule: each due patch is applied through update() (so it versions
+   * and snapshots) and then the staging row is marked superseded.
+   */
+  async applyDueScheduled(now = new Date()): Promise<number> {
+    const due = await ConfigVersionModel.find({ status: 'scheduled', effectiveFrom: { $lte: now } })
+      .sort({ effectiveFrom: 1 })
+      .lean<ConfigVersionDoc[]>();
+    let applied = 0;
+    for (const row of due) {
+      // Claim it first so two schedulers cannot apply the same row twice.
+      const claim = await ConfigVersionModel.updateOne(
+        { _id: row._id, status: 'scheduled' },
+        { $set: { status: 'superseded' } },
+      );
+      if (claim.modifiedCount === 0) continue;
+      try {
+        await this.update(row.snapshot, row.actorId, row.reason ?? 'Scheduled change applied');
+        applied += 1;
+      } catch (err) {
+        logger.error({ err: (err as Error).message, id: row._id }, 'scheduled config change failed to apply');
+      }
+    }
+    if (applied) logger.info({ applied }, '⚙️  applied scheduled config changes');
+    return applied;
+  }
+
+  /** Drop persistence/meta keys so a stored snapshot can be re-applied as a patch. */
+  private stripMeta(snapshot: Record<string, unknown>): Record<string, unknown> {
+    const out = { ...snapshot };
+    for (const k of ['_id', 'configVersion', 'updatedBy', 'createdAt', 'updatedAt', '__v']) delete out[k];
+    return out;
   }
 
   // ── Commission rules ────────────────────────────────────────────────

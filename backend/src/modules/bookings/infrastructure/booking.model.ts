@@ -30,6 +30,17 @@ export interface BookingDoc {
     hostEarnings: MoneyField;
     total: MoneyField;
     currency: string;
+    commissionBps?: number;
+    commissionSource?: string;
+    /** The platform-config version this price was computed against — the anchor
+     *  that makes the snapshot reconstructable after the live config moves on. */
+    pricingConfigVersion?: number;
+    taxLines?: { ruleId: string; label: string; kind: string; scope: string; rateBps: number; amount: number }[];
+    taxTotal?: MoneyField;
+    surgeDays?: number;
+    surgeSource?: string;
+    memberSavings?: MoneyField;
+    memberPlan?: string;
   };
   cancellationPolicy: 'flexible' | 'moderate' | 'strict';
   /**
@@ -167,6 +178,14 @@ const schema = new Schema<BookingDoc>(
       // to explain a rate, and no record that surge was ever disclosed.
       commissionBps: Number,
       commissionSource: String,
+      // The exact config version behind these numbers, plus the per-authority
+      // tax lines, so a finished booking's price is fully reconstructable.
+      pricingConfigVersion: Number,
+      taxLines: {
+        type: [{ _id: false, ruleId: String, label: String, kind: String, scope: String, rateBps: Number, amount: Number }],
+        default: undefined,
+      },
+      taxTotal: moneySchema,
       surgeDays: Number,
       surgeSource: String,
       memberSavings: moneySchema,

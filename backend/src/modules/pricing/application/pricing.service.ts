@@ -223,6 +223,7 @@ export class PricingService implements IPricingContract {
       // Which rate applied and why — makes every quote explainable in support.
       commissionBps: resolved.bps,
       commissionSource: resolved.source,
+      pricingConfigVersion: cfg.configVersion,
       surgeDays,
       surgeSource,
       memberSavings,

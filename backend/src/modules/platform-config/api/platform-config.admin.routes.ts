@@ -30,6 +30,8 @@ router.put(
   authorize('platform:manage'),
   validate({
     body: z.object({
+      /** Optional note recorded on the version this publish creates. */
+      reason: z.string().max(300).optional(),
       deposit: z
         .object({
           enabled: z.boolean().optional(),
@@ -282,7 +284,87 @@ router.put(
     }),
   }),
   asyncHandler(async (req, res) => {
-    sendSuccess(res, await platformConfigService.update(req.body, req.principal!.userId));
+    // Keep the audit note out of the config body — it belongs on the version,
+    // not merged into economics.
+    const { reason, ...patch } = req.body as Record<string, unknown> & { reason?: string };
+    sendSuccess(res, await platformConfigService.update(patch, req.principal!.userId, reason));
+  }),
+);
+
+// ── Config versioning: history, rollback, scheduling ──────────────────
+
+/** Published config history, newest first. */
+router.get(
+  '/config/versions',
+  authorize('admin:read'),
+  validate({ query: z.object({ limit: z.coerce.number().int().min(1).max(200).optional() }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await platformConfigService.listVersions(req.query.limit ? Number(req.query.limit) : undefined));
+  }),
+);
+
+/** One historical version's full snapshot — the economics exactly as they were. */
+router.get(
+  '/config/versions/:version',
+  authorize('admin:read'),
+  asyncHandler(async (req, res) => {
+    const v = await platformConfigService.getVersion(Number(req.params.version));
+    if (!v) { sendSuccess(res, null, 404); return; }
+    sendSuccess(res, v);
+  }),
+);
+
+/** Restore an earlier version (itself recorded as a new version). */
+router.post(
+  '/config/rollback',
+  authorize('platform:manage'),
+  validate({ body: z.object({ toVersion: z.number().int().min(1), reason: z.string().max(300).optional() }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await platformConfigService.rollback(req.body.toVersion, req.principal!.userId, req.body.reason));
+  }),
+);
+
+/** Staged (future-effective) changes not yet applied. */
+router.get(
+  '/config/scheduled',
+  authorize('admin:read'),
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, await platformConfigService.listScheduled());
+  }),
+);
+
+/**
+ * Stage a config change for a future date. The patch is validated for integrity
+ * by the service (guard rails) and stored; the scheduler applies it through the
+ * normal versioned publish path when it comes due.
+ */
+router.post(
+  '/config/schedule',
+  authorize('platform:manage'),
+  validate({
+    body: z.object({
+      effectiveFrom: z.coerce.date(),
+      reason: z.string().max(300).optional(),
+      patch: z.record(z.unknown()),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    const staged = await platformConfigService.scheduleUpdate(
+      req.body.patch as Record<string, unknown>,
+      req.body.effectiveFrom,
+      req.principal!.userId,
+      req.body.reason,
+    );
+    sendSuccess(res, staged, 201);
+  }),
+);
+
+/** Cancel a staged change before it comes due. */
+router.delete(
+  '/config/scheduled/:id',
+  authorize('platform:manage'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await platformConfigService.cancelScheduled(req.params.id));
   }),
 );
 

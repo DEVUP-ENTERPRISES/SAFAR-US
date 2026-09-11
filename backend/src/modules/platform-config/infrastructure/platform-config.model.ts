@@ -315,6 +315,9 @@ export interface PlatformConfigDoc {
     occupancyThresholds: { occupancyPct: number; multiplierBps: number }[];
   };
   updatedBy?: string;
+  /** Monotonic version of the live economics config, bumped on every publish.
+   *  A booking stamps this so its price can be reconstructed exactly. */
+  configVersion?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -532,6 +535,7 @@ const schema = new Schema<PlatformConfigDoc>(
       },
     },
     updatedBy: String,
+    configVersion: { type: Number, default: 0 },
   },
   { timestamps: true, _id: false, minimize: false },
 );

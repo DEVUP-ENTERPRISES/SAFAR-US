@@ -29,6 +29,12 @@ export interface PriceBreakdown {
   commissionBps?: number;
   /** Which commission rule produced that rate, e.g. "category:luxury" or "default". */
   commissionSource?: string;
+  /**
+   * The platform-config version these numbers were computed against. Stamped
+   * onto the booking so the price is reconstructable against the exact economics
+   * that produced it, no matter how many times the live config changes later.
+   */
+  pricingConfigVersion?: number;
   /** How many days of the trip were surged, and why. Shown to the guest. */
   surgeDays?: number;
   surgeSource?: string;

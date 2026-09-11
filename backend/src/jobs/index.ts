@@ -7,6 +7,7 @@ import { depositService } from '../modules/payments/application/deposit.service'
 import { documentComplianceService } from '../modules/documents/application/document-compliance.service';
 import { maintenanceService } from '../modules/maintenance/application/maintenance.service';
 import { reviewService } from '../modules/reviews/application/review.service';
+import { platformConfigService } from '../modules/platform-config/application/platform-config.service';
 
 const QUEUE = 'cato-maintenance';
 
@@ -36,6 +37,7 @@ export async function initJobs(): Promise<void> {
   await queue.add('maintenance-reminders', {}, { repeat: { every: 6 * 60 * 60_000 }, jobId: 'maintenance-reminders' });
   await queue.add('release-reviews', {}, { repeat: { every: 60 * 60_000 }, jobId: 'release-reviews' });
   await queue.add('retry-webhooks', {}, { repeat: { every: 5 * 60_000 }, jobId: 'retry-webhooks' });
+  await queue.add('apply-scheduled-config', {}, { repeat: { every: 5 * 60_000 }, jobId: 'apply-scheduled-config' });
 
   workerRef = makeWorker(QUEUE, async (job) => {
     switch (job.name) {
@@ -84,6 +86,12 @@ export async function initJobs(): Promise<void> {
       case 'retry-webhooks': {
         const r = await webhookRetryService.retryFailed();
         return r;
+      }
+      // Promote any config change staged for a time that has now passed, through
+      // the normal versioned publish path.
+      case 'apply-scheduled-config': {
+        const applied = await platformConfigService.applyDueScheduled();
+        return { applied };
       }
       default:
         return null;
