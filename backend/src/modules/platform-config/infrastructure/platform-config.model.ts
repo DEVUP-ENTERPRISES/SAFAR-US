@@ -5,6 +5,14 @@ import { Schema, model } from 'mongoose';
  * here — NOT as a constant in code — so finance can retune the marketplace
  * without a deploy. Reads are Redis-cached and invalidated on write.
  */
+/** One check type's frequency + validity policy. See `verification` below. */
+export interface VerificationPolicy {
+  required: boolean;
+  maxPerPeriod: number;
+  periodDays: number;
+  validityDays: number;
+}
+
 export interface PlatformConfigDoc {
   _id: string; // always 'platform'
   /**
@@ -181,6 +189,25 @@ export interface PlatformConfigDoc {
     privacyUrl: string;
     minAgeYears: number;
   };
+  /**
+   * Verification / eligibility policy — admin-configurable, so CATO can change
+   * how often an expensive check runs and how long a passing result is trusted
+   * WITHOUT a code change. Each check type carries the same four levers:
+   *
+   *   required      — is a valid result a booking requirement at all
+   *   maxPerPeriod  — how many times it may be run within `periodDays`
+   *   periodDays    — the rolling window that frequency is counted over
+   *   validityDays  — how long a passing result stays good before a recheck
+   *
+   * Example the business asked for: MVR at most once every two months →
+   * { maxPerPeriod: 1, periodDays: 60 }. A still-valid result is REUSED rather
+   * than re-run, so a new booking does not trigger a new paid check.
+   */
+  verification: {
+    mvr: VerificationPolicy;
+    identity: VerificationPolicy;
+    background: VerificationPolicy;
+  };
   /** Notification routing matrix: which channels each category may use. */
   notifications: {
     categoryChannels: Record<'trips' | 'messages' | 'payments' | 'promotions' | 'reviews' | 'account', { push: boolean; email: boolean; sms: boolean }>;
@@ -331,6 +358,26 @@ const schema = new Schema<PlatformConfigDoc>(
       privacyVersion: { type: String, default: '2026-09-01' },
       privacyUrl: { type: String, default: '/legal' },
       minAgeYears: { type: Number, default: 18 },
+    },
+    verification: {
+      mvr: {
+        required: { type: Boolean, default: false },
+        maxPerPeriod: { type: Number, default: 1 },
+        periodDays: { type: Number, default: 60 },
+        validityDays: { type: Number, default: 365 },
+      },
+      identity: {
+        required: { type: Boolean, default: true },
+        maxPerPeriod: { type: Number, default: 5 },
+        periodDays: { type: Number, default: 30 },
+        validityDays: { type: Number, default: 730 },
+      },
+      background: {
+        required: { type: Boolean, default: false },
+        maxPerPeriod: { type: Number, default: 1 },
+        periodDays: { type: Number, default: 180 },
+        validityDays: { type: Number, default: 365 },
+      },
     },
     deposit: {
       enabled: { type: Boolean, default: true },

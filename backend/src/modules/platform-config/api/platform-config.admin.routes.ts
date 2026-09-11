@@ -12,6 +12,15 @@ const bps = z.number().int().min(0).max(10000);
 const cents = z.number().int().min(0);
 const pct = z.number().int().min(0).max(100);
 const tier = z.enum(['new', 'bronze', 'silver', 'gold']);
+// A verification check's frequency + validity policy (MVR/identity/background).
+const verificationPolicy = z
+  .object({
+    required: z.boolean().optional(),
+    maxPerPeriod: z.number().int().min(0).max(50).optional(),
+    periodDays: z.number().int().min(1).max(3650).optional(),
+    validityDays: z.number().int().min(1).max(3650).optional(),
+  })
+  .optional();
 
 // ── Platform economics ────────────────────────────────────────────────
 
@@ -32,6 +41,11 @@ router.put(
     body: z.object({
       /** Optional note recorded on the version this publish creates. */
       reason: z.string().max(300).optional(),
+      // Verification frequency/validity policy — e.g. MVR at most once per 60
+      // days. Admin-editable so CATO retunes it without a code change.
+      verification: z
+        .object({ mvr: verificationPolicy, identity: verificationPolicy, background: verificationPolicy })
+        .optional(),
       deposit: z
         .object({
           enabled: z.boolean().optional(),

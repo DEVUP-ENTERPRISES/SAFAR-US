@@ -1,5 +1,7 @@
 import { UserModel } from '../../users/infrastructure/user.model';
 import { KycModel } from '../../kyc/infrastructure/kyc.model';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { verificationPolicyService } from '../../kyc/application/verification-policy.service';
 
 export type EligibilityBlocker =
   | 'account_suspended'
@@ -10,7 +12,9 @@ export type EligibilityBlocker =
   | 'identity_rejected'
   | 'licence_expired'
   | 'under_review'
-  | 'restricted';
+  | 'restricted'
+  | 'mvr_required'
+  | 'background_required';
 
 export interface Eligibility {
   /** May the guest have a car handed to them? */
@@ -33,6 +37,8 @@ export const BLOCKER_COPY: Record<EligibilityBlocker, string> = {
   licence_expired: 'Your licence expires before this trip ends.',
   under_review: 'We’re reviewing your account. This usually takes a few hours.',
   restricted: 'Your account is limited. Contact support to lift this.',
+  mvr_required: 'A current driving-record check is required. This will be requested before your trip.',
+  background_required: 'A background check is required before you can book.',
 };
 
 /**
@@ -76,6 +82,16 @@ export class EligibilityService {
       if (new Date(kyc.licenceExpiry).getTime() < tripEnd.getTime()) {
         blockers.push('licence_expired');
       }
+    }
+
+    // Config-driven checks (MVR / background). Off by default, so this costs
+    // nothing until an admin turns a check on; when on, a still-valid result is
+    // reused, so it never blocks a guest who has already passed within validity.
+    const vcfg = (await platformConfigService.get()).verification;
+    for (const type of ['mvr', 'background'] as const) {
+      if (!vcfg[type].required) continue;
+      const valid = await verificationPolicyService.currentValid(userId, type);
+      if (!valid) blockers.push(type === 'mvr' ? 'mvr_required' : 'background_required');
     }
 
     // Only a hard-stopped account is refused outright. Someone under review

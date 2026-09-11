@@ -107,6 +107,11 @@ export class PlatformConfigService {
         minAgeYears: 18,
         ...(doc.legal ?? {}),
       },
+      verification: {
+        mvr: { required: false, maxPerPeriod: 1, periodDays: 60, validityDays: 365, ...(doc.verification?.mvr ?? {}) },
+        identity: { required: true, maxPerPeriod: 5, periodDays: 30, validityDays: 730, ...(doc.verification?.identity ?? {}) },
+        background: { required: false, maxPerPeriod: 1, periodDays: 180, validityDays: 365, ...(doc.verification?.background ?? {}) },
+      },
       deposit: {
         enabled: true,
         minCents: 25000,
