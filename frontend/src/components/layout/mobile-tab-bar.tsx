@@ -11,7 +11,7 @@ import { useFavoriteIds } from '@/features/favorites/hooks';
 import { useUnreadMessages } from '@/features/messaging/hooks';
 
 /**
- * The phone navigation bar.
+ * The GUEST phone navigation bar (host mode has its own — HostMobileTabBar).
  *
  * Six equal tabs — no lifted centre, nothing oversized. Product call: the core
  * loop of a rental marketplace is browse → search → save → trip → talk →
