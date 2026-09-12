@@ -55,7 +55,7 @@ export default function AboutPage() {
     <div className="-mt-6">
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
-        <div className="mx-auto max-w-6xl px-5 pb-0 pt-24 sm:pt-32">
+        <div className="mx-auto max-w-6xl px-5 pb-20 pt-24 sm:pb-28 sm:pt-32">
           <Reveal>
             <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-soft backdrop-blur">
               <PlaneTakeoff className="h-3.5 w-3.5" /> Airport mobility, reimagined
@@ -84,24 +84,32 @@ export default function AboutPage() {
               </Link>
             </div>
           </Reveal>
-          {/* People shot — pulled up into the next section for depth. */}
-          <Reveal delay={300} className="relative z-10 mt-14 translate-y-16 sm:translate-y-20">
-            <div className="overflow-hidden rounded-[1.75rem] border border-white/15 shadow-2xl shadow-black/40 ring-1 ring-white/10">
-              <Image
-                src="/newsections/cato-hero-people.webp"
-                alt="CatoDrive concierge delivering a car to a traveler at the terminal"
-                width={1600}
-                height={569}
-                priority
-                sizes="(min-width: 1152px) 1100px, 100vw"
-                className="h-auto w-full object-cover"
-              />
-            </div>
-          </Reveal>
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl space-y-28 px-5 pb-24 pt-40 sm:pt-48">
+      {/* People shot — overlaps the seam between hero and content. Kept OUTSIDE
+          the hero section (which is overflow-hidden for the grain texture and
+          full-bleed trick) — a translated element bleeding past a clipped
+          section gets cut off, which is exactly what was chopping this photo
+          in half on mobile. A real negative margin does the overlap safely,
+          and a responsive aspect ratio keeps it a real photo at every width
+          instead of squashing into a thin strip on small screens. */}
+      <div className="relative z-10 mx-auto -mt-14 max-w-6xl px-5 sm:-mt-20">
+        <Reveal delay={300}>
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.75rem] border border-border shadow-2xl shadow-black/20 sm:aspect-[16/9] lg:aspect-[21/9]">
+            <Image
+              src="/newsections/cato-hero-people.webp"
+              alt="CatoDrive concierge delivering a car to a traveler at the terminal"
+              fill
+              priority
+              sizes="(min-width: 1152px) 1100px, 100vw"
+              className="object-cover"
+            />
+          </div>
+        </Reveal>
+      </div>
+
+      <div className="mx-auto max-w-6xl space-y-28 px-5 pb-24 pt-16 sm:pt-20">
         {/* Traction — shared with the homepage. */}
         <TractionStats />
 
