@@ -92,6 +92,12 @@ export function Navbar() {
                 Explore
               </Link>
               <Link
+                href="/about"
+                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
+              >
+                How it works
+              </Link>
+              <Link
                 href="/host"
                 className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
               >
