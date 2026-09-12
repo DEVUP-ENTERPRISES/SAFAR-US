@@ -1,35 +1,26 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   PlaneTakeoff, Car, Banknote, Settings2, ShieldCheck, Star, Sparkles,
-  ArrowRight, TrendingUp, Briefcase, Building2, Users, CheckCircle2,
-  Camera, Wallet, ClipboardCheck, Quote,
+  ArrowRight, CheckCircle2, Camera, Wallet, ClipboardCheck, Quote,
 } from 'lucide-react';
 import { Reveal } from '@/components/ui/reveal';
+import { SectionEyebrow, TractionStats, AudienceSection, BRAND } from '@/features/marketing/sections';
 
 /**
  * About CatoDrive — the brand story, the traction, and the owner economics.
  *
  * The booking experience is the homepage; this is where the pitch lives. Built
  * on the same dark hero-mesh / display-type / Reveal system as the homepage so
- * the two read as one brand, with scroll-triggered count-ups and numbered
- * frames doing the heavy lifting rather than a component library.
+ * the two read as one brand. The traction and audience blocks come from the
+ * shared marketing module, so they stay identical to the ones on the homepage.
  *
- * Every figure here is CatoDrive marketing copy supplied by the business
- * (revenue, ratings, owner net, liability). Confirm current numbers before each
- * campaign — stale claims on a rental site are a trust and legal risk.
+ * Every figure here is CatoDrive marketing copy supplied by the business.
+ * Confirm current numbers before each campaign — stale claims on a rental site
+ * are a trust and legal risk.
  */
-
-const BRAND = 'CatoDrive';
-
-const STATS = [
-  { prefix: '$', value: 307, suffix: 'K', decimals: 0, label: '2025 Fleet Revenue' },
-  { prefix: '', value: 4.96, suffix: '★', decimals: 2, label: 'Rating', sub: '2,053 reviews' },
-  { prefix: '', value: 75, suffix: '+', decimals: 0, label: 'Vehicles Under Management' },
-  { prefix: '', value: 2607, suffix: '+', decimals: 0, label: 'Trips Completed', comma: true },
-] as const;
 
 const PILLARS = [
   { n: '01', icon: PlaneTakeoff, title: 'Free Terminal Valet', body: 'Car delivered straight to your terminal at DFW International and Love Field. Returned the same way. No shuttles. No satellite lots. Ever.' },
@@ -52,13 +43,6 @@ const TESTIMONIALS = [
   { quote: 'They told me 18-month payback. I hit breakeven in 14. The airport market is insane right now.', mono: 'DI', name: 'DFW Investor', meta: '3 vehicles' },
 ] as const;
 
-const AUDIENCES = [
-  { icon: TrendingUp, title: 'Asset Partners', body: 'List a vehicle you already own. Net $1,029–$1,841/month — you keep 80% of every booking.', href: '/host', cta: 'Become a partner' },
-  { icon: Briefcase, title: 'Business Travelers', body: 'Car delivered to your terminal at DFW or Love Field, 5–15% below market rate. Paperless end-to-end. Zero friction.', href: '/search', cta: 'Book a car' },
-  { icon: Building2, title: 'Corporate Accounts', body: 'B2B fleet accounts for enterprises and staffing agencies, auto-repair loaner programs, and white-glove SUV delivery to private terminals.', href: '/corporate', cta: 'Talk to us' },
-  { icon: Users, title: 'Enterprise & Volume', body: 'Volume pricing, dedicated account management, consolidated billing, and priority terminal delivery for regular DFW travel.', href: '/corporate', cta: 'Corporate portal' },
-] as const;
-
 const RISKS = [
   { scenario: 'Renter damages the vehicle', detail: '$750K liability + collision coverage per trip. The owner does not pay and never files directly.', owner: 'CatoDrive' as const },
   { scenario: 'The car sits empty', detail: 'We manage pricing, listing optimization and the booking pipeline 24/7. Your exposure is zero.', owner: 'CatoDrive' as const },
@@ -71,7 +55,7 @@ export default function AboutPage() {
     <div className="-mt-6">
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
-        <div className="mx-auto max-w-6xl px-5 py-24 sm:py-32">
+        <div className="mx-auto max-w-6xl px-5 pb-0 pt-24 sm:pt-32">
           <Reveal>
             <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-soft backdrop-blur">
               <PlaneTakeoff className="h-3.5 w-3.5" /> Airport mobility, reimagined
@@ -80,9 +64,7 @@ export default function AboutPage() {
           <Reveal delay={80}>
             <h1 className="display mt-7 max-w-4xl text-[2.7rem] leading-[0.98] text-white sm:text-[4rem] lg:text-[4.9rem]">
               Airport mobility is trapped in{' '}
-              <span className="relative whitespace-nowrap">
-                <span className="text-white/30 line-through decoration-primary/70 decoration-4">1995</span>
-              </span>.
+              <span className="text-white/30 line-through decoration-primary/70 decoration-4">1995</span>.
             </h1>
           </Reveal>
           <Reveal delay={160}>
@@ -102,25 +84,26 @@ export default function AboutPage() {
               </Link>
             </div>
           </Reveal>
+          {/* People shot — pulled up into the next section for depth. */}
+          <Reveal delay={300} className="relative z-10 mt-14 translate-y-16 sm:translate-y-20">
+            <div className="overflow-hidden rounded-[1.75rem] border border-white/15 shadow-2xl shadow-black/40 ring-1 ring-white/10">
+              <Image
+                src="/newsections/cato-hero-people.webp"
+                alt="CatoDrive concierge delivering a car to a traveler at the terminal"
+                width={1600}
+                height={569}
+                priority
+                sizes="(min-width: 1152px) 1100px, 100vw"
+                className="h-auto w-full object-cover"
+              />
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl space-y-28 px-5 py-24">
-        {/* ── TRACTION ───────────────────────────────────────────────── */}
-        <section>
-          <Reveal className="mx-auto max-w-2xl text-center">
-            <SectionEyebrow>Proven traction · Zero outside capital</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">The numbers, unedited.</h2>
-            <p className="mt-4 text-lg text-muted-foreground">Real figures from a real fleet — 100% bootstrapped.</p>
-          </Reveal>
-          <div className="mt-14 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {STATS.map((s, i) => (
-              <Reveal key={s.label} delay={i * 90}>
-                <StatCard {...s} />
-              </Reveal>
-            ))}
-          </div>
-        </section>
+      <div className="mx-auto max-w-6xl space-y-28 px-5 pb-24 pt-40 sm:pt-48">
+        {/* Traction — shared with the homepage. */}
+        <TractionStats />
 
         {/* ── THE SOLUTION ───────────────────────────────────────────── */}
         <section>
@@ -135,7 +118,7 @@ export default function AboutPage() {
               airports — and turned it into a passive-income engine for vehicle owners.
             </p>
           </Reveal>
-          <div className="mt-14 grid gap-4 sm:grid-cols-2">
+          <div className="mt-12 grid gap-4 sm:grid-cols-2">
             {PILLARS.map((p, i) => (
               <Reveal key={p.n} delay={i * 80}>
                 <FrameCard {...p} />
@@ -153,7 +136,7 @@ export default function AboutPage() {
               From vehicle to passive income — {BRAND} handles 100% of operations, from listing to payout.
             </p>
           </Reveal>
-          <ol className="mt-14 space-y-3">
+          <ol className="mt-12 space-y-3">
             {STEPS.map((s, i) => (
               <Reveal key={s.n} as="li" delay={i * 70}>
                 <StepRow {...s} last={i === STEPS.length - 1} />
@@ -174,7 +157,7 @@ export default function AboutPage() {
               <span className="ms-2">Here’s what our partners say.</span>
             </p>
           </Reveal>
-          <div className="mt-14 grid gap-4 md:grid-cols-3">
+          <div className="mt-12 grid gap-4 md:grid-cols-3">
             {TESTIMONIALS.map((t, i) => (
               <Reveal key={t.mono} delay={i * 90}>
                 <TestimonialCard {...t} />
@@ -183,37 +166,20 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* ── WHO WE SERVE ───────────────────────────────────────────── */}
-        <section>
-          <Reveal className="max-w-3xl">
-            <SectionEyebrow>Who {BRAND} serves</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Two sides of one platform.</h2>
-            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-              Travel without hassle. Earn without effort.
-            </p>
-          </Reveal>
-          <div className="mt-14 grid gap-4 sm:grid-cols-2">
-            {AUDIENCES.map((a, i) => (
-              <Reveal key={a.title} delay={i * 80}>
-                <AudienceCard {...a} />
-              </Reveal>
-            ))}
-          </div>
-        </section>
+        {/* Who we serve — shared with the homepage (image cards). */}
+        <AudienceSection />
 
         {/* ── RISK & RESPONSIBILITY ──────────────────────────────────── */}
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Risk &amp; responsibility</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">
-              Every risk has an owner. Most of them are us.
-            </h2>
+            <h2 className="display mt-4 text-4xl sm:text-5xl">Every risk has an owner. Most of them are us.</h2>
             <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
               Backed by a commercial policy with <span className="font-semibold text-foreground">$750K liability per trip</span>.
               The owner never files a claim directly.
             </p>
           </Reveal>
-          <div className="mt-14 overflow-hidden rounded-3xl border border-border">
+          <div className="mt-12 overflow-hidden rounded-3xl border border-border">
             {RISKS.map((r, i) => (
               <Reveal key={r.scenario} delay={i * 60}>
                 <RiskRow {...r} first={i === 0} />
@@ -222,23 +188,33 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* ── CLOSING CTA ────────────────────────────────────────────── */}
+        {/* ── CLOSING CTA (image background) ─────────────────────────── */}
         <Reveal>
-          <section className="grain relative isolate overflow-hidden rounded-[2rem] hero-mesh px-6 py-16 text-center sm:px-12 sm:py-20">
-            <Sparkles className="mx-auto h-8 w-8 text-primary-soft" />
-            <h2 className="display mx-auto mt-5 max-w-2xl text-4xl text-white sm:text-5xl">
-              Your car could be earning next month.
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-white/70">
-              List the vehicle you already own, or book a car delivered to your terminal. Either way, {BRAND} does the work.
-            </p>
-            <div className="mt-9 flex flex-wrap justify-center gap-3">
-              <Link href="/host" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
-                Become an Asset Partner <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-              <Link href="/search" className="inline-flex h-14 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-7 py-3.5 text-base font-bold text-white backdrop-blur transition-colors hover:bg-white/10">
-                Book a car
-              </Link>
+          <section className="relative isolate overflow-hidden rounded-[2rem] px-6 py-20 text-center sm:px-12 sm:py-24">
+            <Image
+              src="/newsections/become_asset_partner.webp"
+              alt=""
+              fill
+              sizes="(min-width: 1152px) 1100px, 100vw"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/80 to-ink/70" />
+            <div className="relative">
+              <Sparkles className="mx-auto h-8 w-8 text-primary-soft" />
+              <h2 className="display mx-auto mt-5 max-w-2xl text-4xl text-white sm:text-5xl">
+                Your car could be earning next month.
+              </h2>
+              <p className="mx-auto mt-4 max-w-xl text-lg text-white/75">
+                List the vehicle you already own, or book a car delivered to your terminal. Either way, {BRAND} does the work.
+              </p>
+              <div className="mt-9 flex flex-wrap justify-center gap-3">
+                <Link href="/host" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
+                  Become an Asset Partner <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+                <Link href="/search" className="inline-flex h-14 items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-7 py-3.5 text-base font-bold text-white backdrop-blur transition-colors hover:bg-white/20">
+                  Book a car
+                </Link>
+              </div>
             </div>
           </section>
         </Reveal>
@@ -249,35 +225,9 @@ export default function AboutPage() {
 
 /* ── Pieces ─────────────────────────────────────────────────────────── */
 
-function SectionEyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-primary">
-      <span className="h-px w-6 bg-primary/50" /> {children}
-    </span>
-  );
-}
-
-function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label, sub }: {
-  prefix?: string; value: number; suffix?: string; decimals?: number; comma?: boolean; label: string; sub?: string;
-}) {
-  return (
-    <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10">
-      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/10 blur-2xl transition-opacity duration-500 group-hover:opacity-80" />
-      <p className="numeric text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
-        {prefix}
-        <CountUp value={value} decimals={decimals} comma={comma} />
-        {suffix}
-      </p>
-      <p className="mt-3 text-sm font-medium text-foreground">{label}</p>
-      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
-    </div>
-  );
-}
-
 function FrameCard({ n, icon: Icon, title, body }: { n: string; icon: typeof Car; title: string; body: string }) {
   return (
     <article className="group relative h-full overflow-hidden rounded-3xl border border-border bg-card p-7 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10">
-      {/* Ghost number */}
       <span className="numeric pointer-events-none absolute -right-2 -top-5 text-[7rem] font-black leading-none text-foreground/[0.04] transition-colors duration-500 group-hover:text-primary/10">
         {n}
       </span>
@@ -332,26 +282,6 @@ function TestimonialCard({ quote, mono, name, meta }: { quote: string; mono: str
   );
 }
 
-function AudienceCard({ icon: Icon, title, body, href, cta }: {
-  icon: typeof Car; title: string; body: string; href: string; cta: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex h-full flex-col rounded-3xl border border-border bg-card p-7 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
-    >
-      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
-        <Icon className="h-6 w-6" />
-      </span>
-      <h3 className="display mt-5 text-xl">{title}</h3>
-      <p className="mt-2.5 flex-1 text-[15px] leading-relaxed text-muted-foreground">{body}</p>
-      <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
-        {cta} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-      </span>
-    </Link>
-  );
-}
-
 function RiskRow({ scenario, detail, owner, first }: {
   scenario: string; detail: string; owner: 'CatoDrive' | 'Owner'; first: boolean;
 }) {
@@ -373,55 +303,4 @@ function RiskRow({ scenario, detail, owner, first }: {
       </span>
     </div>
   );
-}
-
-/**
- * Count up to a value once the element scrolls into view. Honors reduced motion
- * by showing the final value immediately.
- */
-function CountUp({ value, decimals = 0, comma, durationMs = 1300 }: {
-  value: number; decimals?: number; comma?: boolean; durationMs?: number;
-}) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const [display, setDisplay] = useState(0);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setDisplay(value);
-      return;
-    }
-    let raf = 0;
-    let start = 0;
-    const run = (t: number) => {
-      if (!start) start = t;
-      const p = Math.min((t - start) / durationMs, 1);
-      // easeOutExpo — fast then settles, which reads as confident.
-      const eased = p === 1 ? 1 : 1 - Math.pow(2, -10 * p);
-      setDisplay(value * eased);
-      if (p < 1) raf = requestAnimationFrame(run);
-    };
-    const obs = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          raf = requestAnimationFrame(run);
-          obs.disconnect();
-        }
-      },
-      { threshold: 0.4 },
-    );
-    obs.observe(el);
-    return () => {
-      obs.disconnect();
-      cancelAnimationFrame(raf);
-    };
-  }, [value, durationMs]);
-
-  const formatted = display.toLocaleString('en-US', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-    useGrouping: !!comma,
-  });
-  return <span ref={ref}>{formatted}</span>;
 }

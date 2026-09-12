@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
 import { SearchBarFields } from '@/features/search/search-bar-fields';
 import { CategoryCarousel } from '@/features/vehicles/components/category-carousel';
+import { TractionStats, AudienceSection } from '@/features/marketing/sections';
 import { useTrending, useRecommendations, useFacets } from '@/features/vehicles/hooks';
 import { useAuthStore } from '@/features/auth/store';
 import { useIsHost } from '@/features/host/hooks';
@@ -328,6 +329,11 @@ export default function HomePage() {
             ))}
           </div>
         </section>
+
+        {/* ── Traction + who we serve (shared with the About page) ───── */}
+        <TractionStats heading="Backed by real numbers." />
+
+        <AudienceSection heading="Built for two kinds of people." />
 
         {/* ── Host CTA ───────────────────────────────────────────────── */}
         <Reveal as="section" className="relative isolate grain overflow-hidden rounded-3xl hero-mesh px-8 py-14 sm:px-16 sm:py-16">
