@@ -46,8 +46,44 @@ export interface PlatformConfig {
     maxMultiplierBps: number;
     occupancyThresholds: { occupancyPct: number; multiplierBps: number }[];
   };
+  legal: {
+    termsVersion: string;
+    termsUrl: string;
+    privacyVersion: string;
+    privacyUrl: string;
+    minAgeYears: number;
+  };
+  verification: {
+    mvr: VerificationPolicy;
+    identity: VerificationPolicy;
+    background: VerificationPolicy;
+  };
+  /** Monotonic version, bumped on every publish. Read-only. */
+  configVersion?: number;
   updatedBy?: string;
   updatedAt?: string;
+}
+
+export interface VerificationPolicy {
+  required: boolean;
+  maxPerPeriod: number;
+  periodDays: number;
+  validityDays: number;
+}
+
+export interface ConfigVersion {
+  _id: string;
+  version: number;
+  status: 'published' | 'scheduled' | 'superseded' | 'rolled_back';
+  snapshot: Record<string, unknown>;
+  isPatch: boolean;
+  actorId: string;
+  reason?: string;
+  changedKeys: string[];
+  effectiveFrom: string;
+  publishedAt?: string;
+  restoredFromVersion?: number;
+  createdAt: string;
 }
 
 export type CommissionScope = 'global' | 'category' | 'hostTier' | 'host';
@@ -212,8 +248,20 @@ export const adminApi = {
 
   // Platform economics — every rate the business runs on, tunable live.
   config: () => api.get<PlatformConfig>('/admin/config'),
-  saveConfig: (patch: Partial<PlatformConfig>) =>
+  saveConfig: (patch: Partial<PlatformConfig> & { reason?: string }) =>
     api.raw<PlatformConfig>('/admin/config', { method: 'PUT', body: patch }).then((r) => r.data),
+
+  // ── Config versioning / history / rollback / scheduling ──
+  configVersions: (limit?: number) =>
+    api.get<ConfigVersion[]>('/admin/config/versions', limit ? { limit } : undefined),
+  configVersion: (version: number) => api.get<ConfigVersion>(`/admin/config/versions/${version}`),
+  rollbackConfig: (toVersion: number, reason?: string) =>
+    api.post<PlatformConfig>('/admin/config/rollback', { toVersion, reason }),
+  scheduledConfig: () => api.get<ConfigVersion[]>('/admin/config/scheduled'),
+  scheduleConfig: (patch: Partial<PlatformConfig>, effectiveFrom: string, reason?: string) =>
+    api.post<ConfigVersion>('/admin/config/schedule', { patch, effectiveFrom, reason }),
+  cancelScheduledConfig: (id: string) =>
+    api.raw(`/admin/config/scheduled/${id}`, { method: 'DELETE' }).then((r) => r.data),
 
   // Commission rule engine.
   commissionRules: () => api.get<CommissionRule[]>('/admin/commission-rules'),

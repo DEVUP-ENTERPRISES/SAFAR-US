@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Percent, Clock, Gift, Users, ShieldCheck, Save } from 'lucide-react';
+import { Percent, Clock, Gift, Users, ShieldCheck, Save, Scale, IdCard, History, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,17 @@ export default function AdminEconomicsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['platform-config'] });
       qc.invalidateQueries({ queryKey: ['commission-preview'] });
+      qc.invalidateQueries({ queryKey: ['config-versions'] });
+    },
+  });
+
+  const versions = useQuery({ queryKey: ['config-versions'], queryFn: () => adminApi.configVersions(20) });
+  const rollback = useMutation({
+    mutationFn: ({ toVersion, reason }: { toVersion: number; reason?: string }) =>
+      adminApi.rollbackConfig(toVersion, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['platform-config'] });
+      qc.invalidateQueries({ queryKey: ['config-versions'] });
     },
   });
 
@@ -56,6 +67,8 @@ export default function AdminEconomicsPage() {
         rewards: draft.rewards,
         referral: draft.referral,
         protection: draft.protection,
+        legal: draft.legal,
+        verification: draft.verification,
       });
     }
   };
@@ -112,6 +125,66 @@ export default function AdminEconomicsPage() {
             <Input type="number" step="0.5" value={toPct(draft.tax.bps)}
               onChange={(e) => set((d) => { d.tax.bps = toBps(e.target.value); })} />
           </Field>
+        </CardContent>
+      </Card>
+
+      {/* Legal & eligibility */}
+      <Card className="rounded-2xl shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Scale className="h-5 w-5 text-primary" /> Legal &amp; eligibility</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-3">
+          <Field label="Terms version" hint="Bump to force every guest to re-accept on their next booking.">
+            <Input value={draft.legal.termsVersion}
+              onChange={(e) => set((d) => { d.legal.termsVersion = e.target.value; })} />
+          </Field>
+          <Field label="Terms URL" hint="Where the guest reads the agreement.">
+            <Input value={draft.legal.termsUrl}
+              onChange={(e) => set((d) => { d.legal.termsUrl = e.target.value; })} />
+          </Field>
+          <Field label="Minimum age" hint="Gates account setup and booking.">
+            <Input type="number" min={16} max={99} value={draft.legal.minAgeYears}
+              onChange={(e) => set((d) => { d.legal.minAgeYears = Number(e.target.value); })} />
+          </Field>
+        </CardContent>
+      </Card>
+
+      {/* Verification frequency */}
+      <Card className="rounded-2xl shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><IdCard className="h-5 w-5 text-primary" /> Verification policy</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            How often an expensive check may run and how long a pass is trusted. A still-valid result is reused —
+            e.g. MVR at most once per 60 days.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {(['mvr', 'identity', 'background'] as const).map((k) => (
+            <div key={k} className="rounded-xl border border-border/60 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="font-semibold capitalize">{k === 'mvr' ? 'MVR (driving record)' : k}</span>
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.verification[k].required}
+                    onChange={(e) => set((d) => { d.verification[k].required = e.target.checked; })} />
+                  Required to book
+                </label>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field label="Max per period">
+                  <Input type="number" min={0} max={50} value={draft.verification[k].maxPerPeriod}
+                    onChange={(e) => set((d) => { d.verification[k].maxPerPeriod = Number(e.target.value); })} />
+                </Field>
+                <Field label="Period (days)">
+                  <Input type="number" min={1} max={3650} value={draft.verification[k].periodDays}
+                    onChange={(e) => set((d) => { d.verification[k].periodDays = Number(e.target.value); })} />
+                </Field>
+                <Field label="Valid for (days)">
+                  <Input type="number" min={1} max={3650} value={draft.verification[k].validityDays}
+                    onChange={(e) => set((d) => { d.verification[k].validityDays = Number(e.target.value); })} />
+                </Field>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
@@ -194,6 +267,62 @@ export default function AdminEconomicsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Config history & rollback */}
+      <Card className="rounded-2xl shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><History className="h-5 w-5 text-primary" /> Change history</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Every publish is versioned. Roll back to any earlier version — the rollback is itself recorded as a new
+            version, so history is never rewritten.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {versions.isLoading && <Skeleton className="h-24 w-full rounded-xl" />}
+          {versions.data?.length === 0 && (
+            <p className="text-sm text-muted-foreground">No versions yet — your next save creates version 1.</p>
+          )}
+          {versions.data?.map((v) => {
+            const isCurrent = v.version === data.configVersion;
+            return (
+              <div key={v._id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 p-3">
+                <span className="numeric flex h-9 min-w-9 items-center justify-center rounded-lg bg-muted px-2 text-sm font-bold">
+                  v{v.version}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">
+                    {v.reason || (v.restoredFromVersion ? `Rolled back to v${v.restoredFromVersion}` : v.changedKeys.join(', ') || 'Update')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(v.publishedAt || v.createdAt).toLocaleString()} · {v.actorId.slice(0, 8)}
+                  </p>
+                </div>
+                {isCurrent ? (
+                  <span className="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">Current</span>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    loading={rollback.isPending && rollback.variables?.toVersion === v.version}
+                    onClick={async () => {
+                      const { ok } = await confirm({
+                        title: `Roll back to version ${v.version}?`,
+                        description: 'The marketplace will price on these older economics from the next quote. This is recorded as a new version.',
+                        confirmLabel: 'Roll back',
+                        tone: 'destructive',
+                        requireText: 'ROLLBACK',
+                      });
+                      if (ok) rollback.mutate({ toVersion: v.version, reason: `Rollback to v${v.version}` });
+                    }}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Roll back
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
     </div>
   );
 }
