@@ -264,7 +264,9 @@ function Account() {
                 <p className="text-base font-bold flex flex-wrap items-center gap-x-2 gap-y-1">
                   {shortUa(s.userAgent)} {s.current && <Badge tone="success" className="ms-3 text-[10px] uppercase tracking-widest"><Star className="me-1 h-3 w-3 inline" /> This device</Badge>}
                 </p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">{s.ip ?? 'unknown IP'} · since {formatDate(s.createdAt)}</p>
+                {/* No raw IP address — it overflows on mobile and is data we
+                    don't need to put on screen. Just when the session started. */}
+                <p className="mt-1 text-sm font-medium text-muted-foreground">Active since {formatDate(s.createdAt)}</p>
               </div>
               {!s.current && <Button size="sm" variant="ghost" className="text-destructive font-bold rounded-full hover:bg-destructive/10" loading={revoke.isPending} onClick={async () => { const { ok } = await confirm({ title: 'Revoke this session?', description: 'That device will be signed out immediately.', confirmLabel: 'Revoke session', tone: 'destructive' }); if (ok) revoke.mutate(s.id); }}>Revoke</Button>}
             </div>

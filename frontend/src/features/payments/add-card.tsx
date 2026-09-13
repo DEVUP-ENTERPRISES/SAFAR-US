@@ -44,10 +44,10 @@ export function AddCard({ onSaved }: { onSaved?: () => void }) {
       <Card className="border-dashed">
         <CardContent className="flex items-start gap-3 py-5 text-sm text-muted-foreground">
           <CreditCard className="mt-0.5 h-5 w-5 shrink-0" />
-          <p>
-            Card payments are not configured yet. Set{' '}
-            <code className="rounded bg-muted px-1">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> to enable them.
-          </p>
+          {/* Never surface internal config (env var names, provider setup) to a
+              guest — that is reconnaissance for an attacker. Just say it's not
+              available yet. */}
+          <p className="break-words">Card payments are coming soon — you’ll be able to securely save a card here shortly.</p>
         </CardContent>
       </Card>
     );

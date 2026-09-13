@@ -16,4 +16,10 @@ export const authApi = {
   google: (idToken: string) =>
     api.post<AuthResult>('/auth/oauth/google', { idToken }, { auth: false }),
   me: () => api.get<Me>('/users/me'),
+
+  /** Forgot password: request a reset code, then set a new password with it. */
+  forgotPassword: (email: string) =>
+    api.post<{ sent: boolean; devCode?: string }>('/auth/password/forgot', { email }, { auth: false }),
+  resetPassword: (email: string, code: string, password: string) =>
+    api.post<{ reset: boolean }>('/auth/password/reset', { email, code, password }, { auth: false }),
 };

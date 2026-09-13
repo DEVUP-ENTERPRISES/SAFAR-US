@@ -23,7 +23,7 @@ import { accountApi } from './api';
  * page itself, auth screens, legal docs, and sign-out — so the redirect never
  * loops or traps someone trying to read the Terms or log out.
  */
-const OPEN_PREFIXES = ['/account/setup', '/login', '/register', '/legal', '/logout', '/verify-email'];
+const OPEN_PREFIXES = ['/account/setup', '/login', '/register', '/forgot-password', '/legal', '/logout', '/verify-email'];
 
 export function ProfileGate() {
   const status = useAuthStore((s) => s.status);

@@ -149,6 +149,59 @@ export class AuthService {
     return { sent: true, devCode: config.isProd ? undefined : code };
   }
 
+  /**
+   * Forgot password — step 1: issue a reset code to the email.
+   *
+   * Enumeration-safe: the response is identical whether or not an account
+   * exists, so this endpoint can't be used to discover who has an account. The
+   * code is only actually sent when there is a user with a password to reset.
+   * Email may be unconfigured in this environment; the code still issues (and
+   * is returned in non-prod for testing) so the flow is fully testable now.
+   */
+  async requestPasswordReset(email: string): Promise<{ sent: boolean; devCode?: string }> {
+    const user = await userRepository.findByEmail(email, true);
+    // Only issue for a real, active account that actually has a password.
+    if (user && user.status === 'active' && user.passwordHash) {
+      const code = await otpService.request('password_reset', email);
+      const res = await channelProviders.email.send({
+        target: { userId: user._id, email },
+        templateKey: 'auth.password_reset',
+        title: `Reset your ${config.app.name} password`,
+        body: `Your password reset code is ${code}. It expires in 5 minutes. If you didn't request this, ignore this email and your password stays unchanged.`,
+      });
+      if (!res.ok && config.isProd) {
+        logger.error({ email, error: res.error }, 'password reset email failed to send');
+      }
+      logger.info({ email, delivered: res.ok }, '🔑 password reset code issued');
+      // Return the code in non-prod ONLY, and only when one was really issued.
+      return { sent: true, devCode: config.isProd ? undefined : code };
+    }
+    // Same shape for a non-existent/ineligible account — no signal to an attacker.
+    return { sent: true };
+  }
+
+  /**
+   * Forgot password — step 2: verify the code and set the new password.
+   *
+   * On success every existing session is revoked: a password reset is exactly
+   * the moment you want to kick out anyone who might have had access, including
+   * whoever the reset was protecting against.
+   */
+  async resetPassword(email: string, code: string, newPassword: string): Promise<{ reset: boolean }> {
+    // Throws on a bad/expired code (attempt-capped inside otpService).
+    await otpService.verify('password_reset', email, code);
+    const user = await userRepository.findByEmail(email, true);
+    if (!user || user.status !== 'active') {
+      throw new UnauthorizedError('This reset link is no longer valid.');
+    }
+    const passwordHash = await hashPassword(newPassword);
+    await userRepository.updatePasswordHash(user._id, passwordHash);
+    // Sign out everywhere — old sessions must not survive a reset.
+    await sessionStore.revokeAllForUser(user._id);
+    logger.info({ userId: user._id }, '🔑 password reset completed; all sessions revoked');
+    return { reset: true };
+  }
+
   /** Passwordless phone: send an SMS OTP. */
   async requestPhoneOtp(phone: string): Promise<{ sent: boolean; devCode?: string }> {
     const code = await otpService.request('phone', phone);

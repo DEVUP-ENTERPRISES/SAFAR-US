@@ -5,7 +5,7 @@ import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { validate } from '../../../shared/middleware/validate';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { authLimiter } from '../../../shared/middleware/auth-rate-limit';
-import { loginSchema, refreshSchema, registerSchema, otpRequestSchema, otpVerifySchema } from '../dto/auth.schemas';
+import { loginSchema, refreshSchema, registerSchema, otpRequestSchema, otpVerifySchema, forgotPasswordSchema, resetPasswordSchema } from '../dto/auth.schemas';
 import { authService } from '../application/auth.service';
 import { sendSuccess } from '../../../shared/http/api-response';
 
@@ -43,6 +43,21 @@ router.post(
   authLimiter,
   validate({ body: otpVerifySchema }),
   asyncHandler((req, res) => authController.verifyOtp(req, res)),
+);
+
+// Forgot password: request a reset code, then reset with it. Rate-limited like
+// every other credential endpoint so it can't be used to spam or brute-force.
+router.post(
+  '/password/forgot',
+  authLimiter,
+  validate({ body: forgotPasswordSchema }),
+  asyncHandler((req, res) => authController.forgotPassword(req, res)),
+);
+router.post(
+  '/password/reset',
+  authLimiter,
+  validate({ body: resetPasswordSchema }),
+  asyncHandler((req, res) => authController.resetPassword(req, res)),
 );
 
 router.post(

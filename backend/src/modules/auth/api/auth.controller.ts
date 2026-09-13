@@ -41,6 +41,17 @@ export class AuthController {
     sendSuccess(res, result);
   }
 
+  async forgotPassword(req: Request, res: Response): Promise<void> {
+    const result = await authService.requestPasswordReset((req.body as { email: string }).email);
+    sendSuccess(res, result);
+  }
+
+  async resetPassword(req: Request, res: Response): Promise<void> {
+    const { email, code, password } = req.body as { email: string; code: string; password: string };
+    const result = await authService.resetPassword(email, code, password);
+    sendSuccess(res, result);
+  }
+
   async requestPhoneOtp(req: Request, res: Response): Promise<void> {
     sendSuccess(res, await authService.requestPhoneOtp((req.body as { phone: string }).phone));
   }

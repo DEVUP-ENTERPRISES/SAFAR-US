@@ -21,7 +21,7 @@ import { InstallPrompt } from '@/features/pwa/install-prompt';
 export function AppChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? '';
   const isHost = useIsHost();
-  const isAuth = pathname === '/login' || pathname === '/register';
+  const isAuth = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
 
   if (isAuth) return <>{children}</>;
 

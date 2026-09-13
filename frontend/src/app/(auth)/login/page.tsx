@@ -65,6 +65,9 @@ function LoginInner() {
             </Field>
             <Field label="Password" htmlFor="password" error={formState.errors.password?.message}>
               <Input id="password" type="password" autoComplete="current-password" {...register('password')} />
+              <Link href="/forgot-password" className="mt-2 inline-block text-sm font-semibold text-primary hover:underline">
+                Forgot password?
+              </Link>
             </Field>
 
             {mfaRequired && (
