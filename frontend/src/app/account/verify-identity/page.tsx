@@ -94,7 +94,7 @@ function VerifyIdentity() {
 
       <PageHeader
         title="Verify your identity"
-        description="A one-time check before your first booking — it keeps the community safe and unlocks trips."
+        description="Every driver on CATO is identity-verified against a government-issued ID. It's mandatory before you can book — so hosts and guests always know exactly who they're dealing with."
       />
 
       {/* ── Terminal & in-progress states ─────────────────────────── */}
@@ -146,7 +146,7 @@ function VerifyIdentity() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>Every driver is verified so hosts know exactly who’s behind the wheel — and so you can trust the guests and hosts you meet. It takes about two minutes.</p>
+              <p>Every driver is checked against a government-issued ID so hosts know exactly who’s behind the wheel — and so you can trust the guests and hosts you meet. It’s how we keep fraud and unsafe drivers off the platform.</p>
               <p>Your license images are handled by our verification partner and are never shared with hosts or stored on your profile.</p>
             </CardContent>
           </Card>
