@@ -15,7 +15,11 @@ export function Skeleton({ className }: { className?: string }) {
       className={cn('relative overflow-hidden rounded-md bg-muted', className)}
       aria-hidden="true"
     >
-      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-foreground/[0.07] to-transparent" />
+      {/* A branded sweep: a faint teal sheen (has hue, so it reads on the near
+          white light track too) layered with a foreground sheen for contrast in
+          both themes. */}
+      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-primary/[0.16] to-transparent" />
+      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-foreground/[0.06] to-transparent [animation-delay:150ms]" />
     </div>
   );
 }

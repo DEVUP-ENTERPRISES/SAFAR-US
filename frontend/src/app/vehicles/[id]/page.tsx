@@ -23,6 +23,7 @@ import { SimilarCars } from '@/features/vehicles/components/similar-cars';
 import { usePlatformConfig, describeCancellation } from '@/features/platform/config';
 import { useRecentlyViewed } from '@/features/vehicles/recently-viewed';
 import { useQuote, useCreateBooking } from '@/features/bookings/hooks';
+import { TripLoader } from '@/features/loading/trip-loader';
 import { useAuthStore } from '@/features/auth/store';
 import { walletApi } from '@/features/wallet/api';
 import { WishlistButton } from '@/features/favorites/wishlist-button';
@@ -263,6 +264,7 @@ export default function VehicleDetailPage() {
 
   return (
     <div className="space-y-6 sm:space-y-10 pb-20">
+      {createBooking.isPending && <TripLoader overlay label="Confirming your booking…" />}
       {lightbox !== null && (
         <PhotoLightbox
           photos={photos}

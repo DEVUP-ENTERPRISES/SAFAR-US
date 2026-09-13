@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TripLoader } from '@/features/loading/trip-loader';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { Select } from '@/components/ui/select';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
@@ -512,11 +513,7 @@ function SearchInner() {
       </div>
 
       {/* ── Results ───────────────────────────────────────────────────── */}
-      {isLoading && (
-        <div className={cn(view === 'map' ? 'space-y-4' : 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4')}>
-          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-72 w-full rounded-2xl" />)}
-        </div>
-      )}
+      {isLoading && <TripLoader />}
       {isError && <ErrorState message="Couldn’t load cars." retry={() => refetch()} />}
       {data && data.length === 0 && (
         <EmptyState title="No cars match your filters" description="Try widening your search or clearing filters." action={<Button variant="outline" onClick={clear}>Clear filters</Button>} />

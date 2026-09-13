@@ -84,6 +84,18 @@ const config: Config = {
           '0%,100%': { transform: 'translateX(0)' },
           '50%': { transform: 'translateX(5px)' },
         },
+        // Subtle content entrance on route change (page transitions).
+        'page-in': {
+          from: { opacity: '0', transform: 'translateY(8px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        // A road rushing past under the loading car (background-position sweep).
+        road: { to: { backgroundPositionX: '-56px' } },
+        // The car gently bobs as it "drives".
+        drive: {
+          '0%,100%': { transform: 'translateY(0) rotate(0deg)' },
+          '50%': { transform: 'translateY(-3px) rotate(-1.5deg)' },
+        },
       },
       animation: {
         shimmer: 'shimmer 1.5s infinite',
@@ -92,6 +104,9 @@ const config: Config = {
         'scale-in': 'scale-in 0.2s ease-out',
         'slide-in-right': 'slide-in-right 0.35s cubic-bezier(0.16,1,0.3,1)',
         'nudge-x': 'nudge-x 1.5s ease-in-out infinite',
+        'page-in': 'page-in 0.35s cubic-bezier(0.16,1,0.3,1)',
+        road: 'road 0.6s linear infinite',
+        drive: 'drive 1s ease-in-out infinite',
       },
     },
   },
