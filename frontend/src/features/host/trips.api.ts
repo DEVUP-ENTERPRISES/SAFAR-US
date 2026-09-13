@@ -8,6 +8,21 @@ export interface HostTrip {
   period: { start: string; end: string };
   earnings: number;
   currency: string;
+  receipt: {
+    issuedAt: string;
+    days: number;
+    base: number;
+    cleaningFee: number;
+    delivery: number;
+    protection: number;
+    protectionPlan?: string;
+    discount: number;
+    subtotal: number;
+    commission: number;
+    tax: number;
+    hostEarnings: number;
+    total: number;
+  };
   pickupAddress?: string;
   isDelivery: boolean;
   delivery?: { mode: string; address: string; flightNumber?: string; terminal?: string; arrivesAt?: string };

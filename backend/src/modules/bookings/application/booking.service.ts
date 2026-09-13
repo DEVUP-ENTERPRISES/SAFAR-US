@@ -1428,6 +1428,36 @@ export class BookingService {
   }
 
   /**
+   * Public receipt verification, for the QR code on a receipt.
+   *
+   * Keyed by the booking's UUID (unguessable — no enumeration), and returns
+   * only what confirms a receipt is genuine: the code, its status, the dates
+   * and the total. No names, no vehicle, no PII — anyone can scan the QR and
+   * confirm the receipt without exposing the people on it.
+   */
+  async publicVerify(bookingId: string): Promise<{
+    valid: boolean;
+    code?: string;
+    status?: string;
+    period?: { start: Date; end: Date };
+    total?: number;
+    currency?: string;
+    issuedAt?: Date;
+  }> {
+    const b = await BookingModel.findOne({ _id: bookingId, deletedAt: null }).lean<BookingDoc>();
+    if (!b) return { valid: false };
+    return {
+      valid: true,
+      code: b.code,
+      status: b.status,
+      period: b.period,
+      total: b.priceBreakdown.total.amount,
+      currency: b.priceBreakdown.currency,
+      issuedAt: b.createdAt,
+    };
+  }
+
+  /**
    * Add an approved driver to the trip. Only the guest can, and only before the
    * trip ends — a driver added after the fact wouldn't have been covered.
    * Capped so the field can't be used to store arbitrary data.

@@ -14,6 +14,22 @@ export interface HostTrip {
   period: { start: Date; end: Date };
   earnings: number;
   currency: string;
+  /** The full financial breakdown behind this trip — powers the receipt. */
+  receipt: {
+    issuedAt: Date;
+    days: number;
+    base: number;
+    cleaningFee: number;
+    delivery: number;
+    protection: number;
+    protectionPlan?: string;
+    discount: number;
+    subtotal: number;
+    commission: number;
+    tax: number;
+    hostEarnings: number;
+    total: number;
+  };
   pickupAddress?: string;
   isDelivery: boolean;
   /**
@@ -172,6 +188,21 @@ export class HostTripsService {
         period: b.period,
         earnings: b.priceBreakdown.hostEarnings.amount,
         currency: b.priceBreakdown.currency,
+        receipt: {
+          issuedAt: b.createdAt,
+          days: b.priceBreakdown.days,
+          base: b.priceBreakdown.base.amount,
+          cleaningFee: b.priceBreakdown.cleaningFee?.amount ?? 0,
+          delivery: b.priceBreakdown.delivery?.amount ?? 0,
+          protection: b.priceBreakdown.protection?.amount ?? 0,
+          protectionPlan: b.priceBreakdown.protectionPlan,
+          discount: b.priceBreakdown.discount?.amount ?? 0,
+          subtotal: b.priceBreakdown.subtotal.amount,
+          commission: b.priceBreakdown.commission.amount,
+          tax: b.priceBreakdown.tax.amount,
+          hostEarnings: b.priceBreakdown.hostEarnings.amount,
+          total: b.priceBreakdown.total.amount,
+        },
         pickupAddress: b.delivery?.address ?? v?.location?.address,
         isDelivery: !!b.delivery,
         delivery: b.delivery

@@ -58,6 +58,14 @@ export const bookingApi = {
   /** Replacement cars after a host cancellation, each priced net of the guarantee. */
   rebookingOptions: (id: string) => api.get<RebookingOptions>(`/bookings/${id}/rebooking-options`),
   rebook: (id: string, vehicleId: string) => api.post<Booking>(`/bookings/${id}/rebook`, { vehicleId }),
+
+  /** Public receipt verification (for the receipt QR code). No auth. */
+  verify: (id: string) =>
+    api.get<{ valid: boolean; code?: string; status?: string; period?: { start: string; end: string }; total?: number; currency?: string; issuedAt?: string }>(
+      `/bookings/verify/${id}`,
+      undefined,
+      false,
+    ),
 };
 
 export interface RebookingOption {

@@ -25,6 +25,15 @@ router.get(
   }),
 );
 
+// Public receipt verification for the QR code — keyed by the unguessable UUID,
+// returns no PII. No auth: anyone holding the receipt can verify it.
+router.get(
+  '/verify/:id',
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.publicVerify(req.params.id));
+  }),
+);
+
 router.post(
   '/quote',
   // Optional: a signed-in guest gets membership pricing and a price lock; a
