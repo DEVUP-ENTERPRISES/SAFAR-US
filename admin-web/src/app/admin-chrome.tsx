@@ -47,7 +47,14 @@ function AdminShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-3.5rem)]">
+    // Plain flex row that grows with its content — NOT a second min-height and
+    // NOT flex-1. A stacked min-h-[calc(100vh-3.5rem)] over the outer
+    // min-h-screen overshot the viewport (topbar border) → a scrollbar over
+    // empty space; flex-1 pinned the row to viewport height so the sticky
+    // sidebar had no room and scrolled away with the content. Growing with
+    // content lets the sidebar stick and keeps short pages scrollbar-free
+    // (the outer min-h-screen fills the rest).
+    <div className="flex">
       <AdminSidebar />
       {/* Full width — operator tables need the room the consumer container denies. */}
       <main className="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-6">{children}</main>

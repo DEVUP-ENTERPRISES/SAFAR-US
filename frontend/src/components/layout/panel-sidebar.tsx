@@ -58,9 +58,9 @@ export function PanelSidebar({
     // at top-16 (64px) parked the sidebar UNDER it and clipped its header; the
     // height calc used a third, unrelated offset, so it also overran the
     // viewport and cut off the last nav item. Both now derive from 5rem.
-    <aside className="sticky top-20 hidden h-[calc(100vh-5.5rem)] w-60 shrink-0 overflow-y-auto overscroll-contain border-e border-border py-6 pe-4 md:block">
+    <aside className="hide-scrollbar sticky top-20 hidden h-[calc(100vh-5.5rem)] w-60 shrink-0 overflow-y-auto overscroll-contain border-e border-border py-5 pe-4 md:block">
       {/* Panel brand header — makes it unmistakable which panel you're in. */}
-      <div className="mb-8 flex items-center gap-3 px-3">
+      <div className="mb-5 flex items-center gap-3 px-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20">
           <Icon className="h-5 w-5" />
         </span>
@@ -71,11 +71,11 @@ export function PanelSidebar({
       </div>
 
       {groups.map((g) => (
-        <div key={g.name} className="mb-6">
-          <p className="px-3 pb-2.5 text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">
+        <div key={g.name} className="mb-4">
+          <p className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">
             {g.name}
           </p>
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {g.items.map((n) => {
               const NavIcon = icons[n.slug] ?? FallbackIcon;
               const active = exactPaths.includes(n.path)
@@ -87,7 +87,7 @@ export function PanelSidebar({
                   href={n.path}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all',
+                    'relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all',
                     active
                       ? 'bg-primary/10 text-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] ring-1 ring-primary/20'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground',
