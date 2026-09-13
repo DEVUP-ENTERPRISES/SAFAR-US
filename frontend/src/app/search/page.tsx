@@ -513,7 +513,11 @@ function SearchInner() {
       </div>
 
       {/* ── Results ───────────────────────────────────────────────────── */}
-      {isLoading && <TripLoader />}
+      {isLoading && (
+        <div className="grid min-h-[55vh] place-items-center">
+          <TripLoader />
+        </div>
+      )}
       {isError && <ErrorState message="Couldn’t load cars." retry={() => refetch()} />}
       {data && data.length === 0 && (
         <EmptyState title="No cars match your filters" description="Try widening your search or clearing filters." action={<Button variant="outline" onClick={clear}>Clear filters</Button>} />
