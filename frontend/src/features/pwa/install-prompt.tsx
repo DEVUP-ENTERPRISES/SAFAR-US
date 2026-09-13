@@ -130,7 +130,11 @@ export function InstallPrompt() {
     setMode('hidden');
   };
 
-  if (mode === 'hidden') return null;
+  // Render only on the home page. The component is mounted app-wide (persistent
+  // chrome), so without this a bar shown on home stayed visible after a
+  // client-side navigation to /account etc. — which is the "showing on other
+  // tabs" bug. Gating the render keeps it strictly a home-page prompt.
+  if (mode === 'hidden' || pathname !== '/') return null;
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-[60] flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] lg:justify-end lg:px-6">
