@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import QRCode from 'qrcode';
 import { ArrowLeft, Download, ShieldCheck, Car, CalendarDays, Gauge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,7 +35,10 @@ function Receipt() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const url = `${window.location.origin}/verify/${bookingId}`;
-    QRCode.toDataURL(url, { margin: 1, width: 240, errorCorrectionLevel: 'M', color: { dark: '#12100e', light: '#ffffff' } })
+    // Dynamically imported and fully guarded: a QR failure must never take the
+    // receipt down.
+    import('qrcode')
+      .then((QR) => QR.toDataURL(url, { margin: 1, width: 240, errorCorrectionLevel: 'M', color: { dark: '#12100e', light: '#ffffff' } }))
       .then(setQr)
       .catch(() => setQr(null));
   }, [bookingId]);
@@ -44,7 +46,17 @@ function Receipt() {
   if (isLoading) return <Skeleton className="h-[80vh] w-full rounded-2xl" />;
   if (isError || !t) return <ErrorState message="Receipt not found." />;
 
-  const r = t.receipt;
+  // The detailed breakdown is a newer API field. If the backend serving this
+  // hasn't shipped it yet, fall back to what every version returns (the host's
+  // earnings) so the receipt still renders instead of crashing.
+  const hasBreakdown = !!t.receipt;
+  const r = t.receipt ?? {
+    issuedAt: t.period.start,
+    days: 0,
+    base: 0, cleaningFee: 0, delivery: 0, protection: 0, protectionPlan: undefined as string | undefined,
+    discount: 0, subtotal: t.earnings, commission: 0, tax: 0,
+    hostEarnings: t.earnings, total: t.earnings,
+  };
   const m = (n: number) => formatMoney({ amount: n, currency: t.currency });
   const paid = ['paid', 'confirmed', 'in_progress', 'completed'].includes(t.status);
 
@@ -95,27 +107,31 @@ function Receipt() {
         {/* Parties + trip */}
         <div className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2">
           <Cell icon={<Car className="h-4 w-4" />} label="Vehicle" value={`${t.vehicle.make} ${t.vehicle.model} ${t.vehicle.year}`} sub={t.vehicle.plate} />
-          <Cell icon={<CalendarDays className="h-4 w-4" />} label="Trip dates" value={formatDateRange(t.period.start, t.period.end)} sub={`${r.days} day${r.days === 1 ? '' : 's'}`} />
+          <Cell icon={<CalendarDays className="h-4 w-4" />} label="Trip dates" value={formatDateRange(t.period.start, t.period.end)} sub={hasBreakdown ? `${r.days} day${r.days === 1 ? '' : 's'}` : undefined} />
           <Cell label="Guest" value={t.guest.name} sub={`Guest ID · ${t.guest._id.slice(0, 8)}`} />
           <Cell icon={<Gauge className="h-4 w-4" />} label="Mileage" value={t.mileage.includedKm === 0 ? 'Unlimited' : `${t.mileage.includedKm} km included`} sub={t.mileage.overageFeePerKm ? `${m(t.mileage.overageFeePerKm)}/km over` : undefined} />
         </div>
 
         {/* Financials */}
         <div className="px-7 py-5">
-          <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground">Guest charges</p>
-          <Line label={`Rental · ${r.days} day${r.days === 1 ? '' : 's'}`} value={m(r.base)} />
-          {r.cleaningFee > 0 && <Line label="Cleaning fee" value={m(r.cleaningFee)} muted />}
-          {r.delivery > 0 && <Line label="Delivery" value={m(r.delivery)} muted />}
-          {r.protection > 0 && <Line label={`Protection${r.protectionPlan ? ` · ${r.protectionPlan}` : ''}`} value={m(r.protection)} muted />}
-          {r.discount > 0 && <Line label="Discounts" value={m(r.discount)} muted sign="-" />}
-          <div className="my-1 border-t border-dashed border-border" />
-          {r.tax > 0 && <Line label="Tax collected" value={m(r.tax)} muted />}
-          <Line label="Guest total" value={m(r.total)} />
+          {hasBreakdown && (
+            <>
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground">Guest charges</p>
+              <Line label={`Rental · ${r.days} day${r.days === 1 ? '' : 's'}`} value={m(r.base)} />
+              {r.cleaningFee > 0 && <Line label="Cleaning fee" value={m(r.cleaningFee)} muted />}
+              {r.delivery > 0 && <Line label="Delivery" value={m(r.delivery)} muted />}
+              {r.protection > 0 && <Line label={`Protection${r.protectionPlan ? ` · ${r.protectionPlan}` : ''}`} value={m(r.protection)} muted />}
+              {r.discount > 0 && <Line label="Discounts" value={m(r.discount)} muted sign="-" />}
+              <div className="my-1 border-t border-dashed border-border" />
+              {r.tax > 0 && <Line label="Tax collected" value={m(r.tax)} muted />}
+              <Line label="Guest total" value={m(r.total)} />
 
-          <p className="mb-1 mt-5 text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground">Your payout</p>
-          <Line label="Trip subtotal" value={m(r.subtotal)} muted />
-          <Line label="Platform commission" value={m(r.commission)} muted sign="-" />
-          <div className="my-2 border-t-2 border-dashed border-border" />
+              <p className="mb-1 mt-5 text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground">Your payout</p>
+              <Line label="Trip subtotal" value={m(r.subtotal)} muted />
+              <Line label="Platform commission" value={m(r.commission)} muted sign="-" />
+              <div className="my-2 border-t-2 border-dashed border-border" />
+            </>
+          )}
           <div className="flex items-baseline justify-between">
             <span className="text-base font-black">Your earnings</span>
             <span className="numeric text-2xl font-black tabular-nums text-primary">{m(r.hostEarnings)}</span>
