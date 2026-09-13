@@ -48,9 +48,9 @@ router.get(
 router.get(
   '/verification/:userId/:type/can-run',
   authorize('kyc:review'),
-  validate({ params: z.object({ userId: z.string(), type: z.enum(['mvr', 'identity', 'background']) }) }),
+  validate({ params: z.object({ userId: z.string(), type: z.enum(['identity', 'mvr', 'background', 'insurance']) }) }),
   asyncHandler(async (req, res) => {
-    sendSuccess(res, await verificationPolicyService.canRun(req.params.userId, req.params.type as 'mvr' | 'identity' | 'background'));
+    sendSuccess(res, await verificationPolicyService.canRun(req.params.userId, req.params.type as 'identity' | 'mvr' | 'background' | 'insurance'));
   }),
 );
 
@@ -60,7 +60,7 @@ router.post(
   '/verification/:userId/:type',
   authorize('kyc:review'),
   validate({
-    params: z.object({ userId: z.string(), type: z.enum(['mvr', 'identity', 'background']) }),
+    params: z.object({ userId: z.string(), type: z.enum(['identity', 'mvr', 'background', 'insurance']) }),
     body: z.object({
       result: z.enum(['pending', 'passed', 'failed', 'error']),
       provider: z.string().max(40).optional(),
@@ -72,7 +72,7 @@ router.post(
   asyncHandler(async (req, res) => {
     sendSuccess(
       res,
-      await verificationPolicyService.record(req.params.userId, req.params.type as 'mvr' | 'identity' | 'background', req.body),
+      await verificationPolicyService.record(req.params.userId, req.params.type as 'identity' | 'mvr' | 'background' | 'insurance', req.body),
       201,
     );
   }),

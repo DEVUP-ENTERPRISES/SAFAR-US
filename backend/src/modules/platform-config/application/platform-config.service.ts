@@ -108,9 +108,10 @@ export class PlatformConfigService {
         ...(doc.legal ?? {}),
       },
       verification: {
-        mvr: { required: false, maxPerPeriod: 1, periodDays: 60, validityDays: 365, ...(doc.verification?.mvr ?? {}) },
-        identity: { required: true, maxPerPeriod: 5, periodDays: 30, validityDays: 730, ...(doc.verification?.identity ?? {}) },
-        background: { required: false, maxPerPeriod: 1, periodDays: 180, validityDays: 365, ...(doc.verification?.background ?? {}) },
+        identity: { required: true, trigger: 'on_signup', provider: 'stripe_identity', maxPerPeriod: 5, periodDays: 30, validityDays: 730, ...(doc.verification?.identity ?? {}) },
+        mvr: { required: false, trigger: 'on_first_booking', provider: 'checkr', maxPerPeriod: 1, periodDays: 60, validityDays: 365, ...(doc.verification?.mvr ?? {}) },
+        background: { required: false, trigger: 'manual', provider: 'checkr', maxPerPeriod: 1, periodDays: 180, validityDays: 365, ...(doc.verification?.background ?? {}) },
+        insurance: { required: false, trigger: 'on_first_booking', provider: 'manual', maxPerPeriod: 1, periodDays: 365, validityDays: 365, ...(doc.verification?.insurance ?? {}) },
       },
       deposit: {
         enabled: true,

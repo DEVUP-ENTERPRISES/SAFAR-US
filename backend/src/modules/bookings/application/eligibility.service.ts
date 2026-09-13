@@ -14,7 +14,8 @@ export type EligibilityBlocker =
   | 'under_review'
   | 'restricted'
   | 'mvr_required'
-  | 'background_required';
+  | 'background_required'
+  | 'insurance_required';
 
 export interface Eligibility {
   /** May the guest have a car handed to them? */
@@ -39,6 +40,7 @@ export const BLOCKER_COPY: Record<EligibilityBlocker, string> = {
   restricted: 'Your account is limited. Contact support to lift this.',
   mvr_required: 'A current driving-record check is required. This will be requested before your trip.',
   background_required: 'A background check is required before you can book.',
+  insurance_required: 'Proof of insurance is required before you can book.',
 };
 
 /**
@@ -84,14 +86,19 @@ export class EligibilityService {
       }
     }
 
-    // Config-driven checks (MVR / background). Off by default, so this costs
-    // nothing until an admin turns a check on; when on, a still-valid result is
-    // reused, so it never blocks a guest who has already passed within validity.
+    // Config-driven checks (MVR / background / insurance). Off by default, so
+    // this costs nothing until an admin turns a check on. The trigger decides
+    // WHERE a check is enforced: only booking-time triggers gate a booking —
+    // an 'on_signup' or 'manual' check is not the booking flow's job. A
+    // still-valid result is reused, so it never blocks a guest who already
+    // passed within its validity window.
     const vcfg = (await platformConfigService.get()).verification;
-    for (const type of ['mvr', 'background'] as const) {
-      if (!vcfg[type].required) continue;
+    for (const type of ['mvr', 'background', 'insurance'] as const) {
+      const pol = vcfg[type];
+      if (!pol.required) continue;
+      if (pol.trigger !== 'on_first_booking' && pol.trigger !== 'on_every_booking') continue;
       const valid = await verificationPolicyService.currentValid(userId, type);
-      if (!valid) blockers.push(type === 'mvr' ? 'mvr_required' : 'background_required');
+      if (!valid) blockers.push(`${type}_required` as EligibilityBlocker);
     }
 
     // Only a hard-stopped account is refused outright. Someone under review

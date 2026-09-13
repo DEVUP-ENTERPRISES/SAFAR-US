@@ -16,6 +16,8 @@ const tier = z.enum(['new', 'bronze', 'silver', 'gold']);
 const verificationPolicy = z
   .object({
     required: z.boolean().optional(),
+    trigger: z.enum(['on_signup', 'on_first_booking', 'on_every_booking', 'manual']).optional(),
+    provider: z.string().min(1).max(40).optional(),
     maxPerPeriod: z.number().int().min(0).max(50).optional(),
     periodDays: z.number().int().min(1).max(3650).optional(),
     validityDays: z.number().int().min(1).max(3650).optional(),
@@ -44,7 +46,12 @@ router.put(
       // Verification frequency/validity policy — e.g. MVR at most once per 60
       // days. Admin-editable so CATO retunes it without a code change.
       verification: z
-        .object({ mvr: verificationPolicy, identity: verificationPolicy, background: verificationPolicy })
+        .object({
+          identity: verificationPolicy,
+          mvr: verificationPolicy,
+          background: verificationPolicy,
+          insurance: verificationPolicy,
+        })
         .optional(),
       deposit: z
         .object({

@@ -135,7 +135,7 @@ export class VerificationPolicyService {
 
   /** All check types at once, for an admin verification panel. */
   async fullStatus(userId: string, now = new Date()): Promise<VerificationStatus[]> {
-    const types: VerificationType[] = ['mvr', 'identity', 'background'];
+    const types: VerificationType[] = ['identity', 'mvr', 'background', 'insurance'];
     return Promise.all(types.map((t) => this.statusFor(userId, t, now)));
   }
 

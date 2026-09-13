@@ -54,9 +54,10 @@ export interface PlatformConfig {
     minAgeYears: number;
   };
   verification: {
-    mvr: VerificationPolicy;
     identity: VerificationPolicy;
+    mvr: VerificationPolicy;
     background: VerificationPolicy;
+    insurance: VerificationPolicy;
   };
   /** Monotonic version, bumped on every publish. Read-only. */
   configVersion?: number;
@@ -64,8 +65,12 @@ export interface PlatformConfig {
   updatedAt?: string;
 }
 
+export type VerificationTrigger = 'on_signup' | 'on_first_booking' | 'on_every_booking' | 'manual';
+
 export interface VerificationPolicy {
   required: boolean;
+  trigger: VerificationTrigger;
+  provider: string;
   maxPerPeriod: number;
   periodDays: number;
   validityDays: number;

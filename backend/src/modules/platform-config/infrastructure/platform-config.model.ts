@@ -6,8 +6,25 @@ import { Schema, model } from 'mongoose';
  * without a deploy. Reads are Redis-cached and invalidated on write.
  */
 /** One check type's frequency + validity policy. See `verification` below. */
+/**
+ * When a check is initiated — the admin-configurable timing the business asked
+ * for. "Stripe Identity once at signup", "MVR on the first booking then every
+ * 2 months" and so on are all expressed as a trigger plus the validity window
+ * (a check older than validityDays is re-run when its trigger next fires).
+ */
+export type VerificationTrigger =
+  | 'on_signup'         // once, when the account is created / first login
+  | 'on_first_booking'  // the first time the guest books
+  | 'on_every_booking'  // checked at every booking (reused if still valid)
+  | 'manual';           // only when ops requests it
+
 export interface VerificationPolicy {
   required: boolean;
+  /** When the check fires. */
+  trigger: VerificationTrigger;
+  /** Which provider runs it (stripe_identity, checkr, verisk, manual, …) —
+   *  admin-selectable so the service behind a check can change without code. */
+  provider: string;
   maxPerPeriod: number;
   periodDays: number;
   validityDays: number;
@@ -204,9 +221,10 @@ export interface PlatformConfigDoc {
    * than re-run, so a new booking does not trigger a new paid check.
    */
   verification: {
-    mvr: VerificationPolicy;
     identity: VerificationPolicy;
+    mvr: VerificationPolicy;
     background: VerificationPolicy;
+    insurance: VerificationPolicy;
   };
   /** Notification routing matrix: which channels each category may use. */
   notifications: {
@@ -360,22 +378,36 @@ const schema = new Schema<PlatformConfigDoc>(
       minAgeYears: { type: Number, default: 18 },
     },
     verification: {
-      mvr: {
-        required: { type: Boolean, default: false },
-        maxPerPeriod: { type: Number, default: 1 },
-        periodDays: { type: Number, default: 60 },
-        validityDays: { type: Number, default: 365 },
-      },
       identity: {
         required: { type: Boolean, default: true },
+        trigger: { type: String, default: 'on_signup' },
+        provider: { type: String, default: 'stripe_identity' },
         maxPerPeriod: { type: Number, default: 5 },
         periodDays: { type: Number, default: 30 },
         validityDays: { type: Number, default: 730 },
       },
+      mvr: {
+        required: { type: Boolean, default: false },
+        trigger: { type: String, default: 'on_first_booking' },
+        provider: { type: String, default: 'checkr' },
+        maxPerPeriod: { type: Number, default: 1 },
+        periodDays: { type: Number, default: 60 },
+        validityDays: { type: Number, default: 365 },
+      },
       background: {
         required: { type: Boolean, default: false },
+        trigger: { type: String, default: 'manual' },
+        provider: { type: String, default: 'checkr' },
         maxPerPeriod: { type: Number, default: 1 },
         periodDays: { type: Number, default: 180 },
+        validityDays: { type: Number, default: 365 },
+      },
+      insurance: {
+        required: { type: Boolean, default: false },
+        trigger: { type: String, default: 'on_first_booking' },
+        provider: { type: String, default: 'manual' },
+        maxPerPeriod: { type: Number, default: 1 },
+        periodDays: { type: Number, default: 365 },
         validityDays: { type: Number, default: 365 },
       },
     },

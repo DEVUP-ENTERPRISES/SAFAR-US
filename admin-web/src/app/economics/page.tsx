@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Percent, Clock, Gift, Users, ShieldCheck, Save, Scale, IdCard, History, RotateCcw } from 'lucide-react';
+import { Percent, Clock, Gift, Users, ShieldCheck, Save, Scale, IdCard, History, RotateCcw, Car, Umbrella, UserSearch } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
@@ -18,6 +19,22 @@ const toDollars = (cents: number) => (cents / 100).toFixed(2);
 const toCents = (dollars: string) => Math.round(Number(dollars) * 100);
 const toPct = (bps: number) => (bps / 100).toString();
 const toBps = (pct: string) => Math.round(Number(pct) * 100);
+
+/** When each verification check fires — the admin-facing labels. */
+const TRIGGER_LABEL: Record<string, string> = {
+  on_signup: 'Once at signup',
+  on_first_booking: 'On first booking',
+  on_every_booking: 'Every booking',
+  manual: 'Manual (ops only)',
+};
+
+/** Presentation for each configurable verification service. */
+const VERIFICATION_META = {
+  identity: { label: 'Identity', hint: 'Government ID + selfie.', icon: IdCard },
+  mvr: { label: 'Driving record (MVR)', hint: 'Motor-vehicle report.', icon: Car },
+  background: { label: 'Background check', hint: 'Criminal / watchlist screen.', icon: UserSearch },
+  insurance: { label: 'Insurance', hint: 'Proof of personal coverage.', icon: Umbrella },
+} as const;
 
 export default function AdminEconomicsPage() {
   const qc = useQueryClient();
@@ -149,42 +166,63 @@ export default function AdminEconomicsPage() {
         </CardContent>
       </Card>
 
-      {/* Verification frequency */}
+      {/* Verification services — when each check runs, who runs it, how often */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><IdCard className="h-5 w-5 text-primary" /> Verification policy</CardTitle>
+          <CardTitle className="flex items-center gap-2"><IdCard className="h-5 w-5 text-primary" /> Verification services</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            How often an expensive check may run and how long a pass is trusted. A still-valid result is reused —
-            e.g. MVR at most once per 60 days.
+            When each check fires, which provider runs it, and how long a pass is trusted — all configurable, nothing
+            hardcoded. A still-valid result is reused, so a repeat trip never triggers (or pays for) a fresh check.
+            E.g. identity once at signup; MVR on the first booking, re-checked every 60 days.
           </p>
         </CardHeader>
-        <CardContent className="space-y-5">
-          {(['mvr', 'identity', 'background'] as const).map((k) => (
-            <div key={k} className="rounded-xl border border-border/60 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="font-semibold capitalize">{k === 'mvr' ? 'MVR (driving record)' : k}</span>
-                <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.verification[k].required}
-                    onChange={(e) => set((d) => { d.verification[k].required = e.target.checked; })} />
-                  Required to book
-                </label>
+        <CardContent className="space-y-4">
+          {(['identity', 'mvr', 'background', 'insurance'] as const).map((k) => {
+            const meta = VERIFICATION_META[k];
+            const pol = draft.verification[k];
+            return (
+              <div key={k} className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <meta.icon className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-semibold leading-tight">{meta.label}</p>
+                      <p className="text-xs text-muted-foreground">{meta.hint}</p>
+                    </div>
+                  </div>
+                  <label className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${pol.required ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}>
+                    <input type="checkbox" className="h-3.5 w-3.5 accent-primary" checked={pol.required}
+                      onChange={(e) => set((d) => { d.verification[k].required = e.target.checked; })} />
+                    Required to book
+                  </label>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                  <Field label="When it runs">
+                    <Select value={pol.trigger}
+                      onChange={(e) => set((d) => { d.verification[k].trigger = e.target.value as PlatformConfig['verification']['identity']['trigger']; })}>
+                      {Object.entries(TRIGGER_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </Select>
+                  </Field>
+                  <Field label="Provider" hint="Service that runs it.">
+                    <Input value={pol.provider}
+                      onChange={(e) => set((d) => { d.verification[k].provider = e.target.value; })} />
+                  </Field>
+                  <Field label="Max / period">
+                    <Input type="number" min={0} max={50} value={pol.maxPerPeriod}
+                      onChange={(e) => set((d) => { d.verification[k].maxPerPeriod = Number(e.target.value); })} />
+                  </Field>
+                  <Field label="Period (days)">
+                    <Input type="number" min={1} max={3650} value={pol.periodDays}
+                      onChange={(e) => set((d) => { d.verification[k].periodDays = Number(e.target.value); })} />
+                  </Field>
+                  <Field label="Valid (days)">
+                    <Input type="number" min={1} max={3650} value={pol.validityDays}
+                      onChange={(e) => set((d) => { d.verification[k].validityDays = Number(e.target.value); })} />
+                  </Field>
+                </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Field label="Max per period">
-                  <Input type="number" min={0} max={50} value={draft.verification[k].maxPerPeriod}
-                    onChange={(e) => set((d) => { d.verification[k].maxPerPeriod = Number(e.target.value); })} />
-                </Field>
-                <Field label="Period (days)">
-                  <Input type="number" min={1} max={3650} value={draft.verification[k].periodDays}
-                    onChange={(e) => set((d) => { d.verification[k].periodDays = Number(e.target.value); })} />
-                </Field>
-                <Field label="Valid for (days)">
-                  <Input type="number" min={1} max={3650} value={draft.verification[k].validityDays}
-                    onChange={(e) => set((d) => { d.verification[k].validityDays = Number(e.target.value); })} />
-                </Field>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
 

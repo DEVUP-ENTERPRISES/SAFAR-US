@@ -12,7 +12,7 @@ import { uuid } from '../../../shared/utils/uuid';
  * (platform-config.verification), so CATO changes "MVR at most once per two
  * months" without a deploy. This ledger only records what happened and when.
  */
-export type VerificationType = 'mvr' | 'identity' | 'background';
+export type VerificationType = 'identity' | 'mvr' | 'background' | 'insurance';
 export type VerificationResult = 'pending' | 'passed' | 'failed' | 'error';
 
 export interface VerificationCheckDoc {
