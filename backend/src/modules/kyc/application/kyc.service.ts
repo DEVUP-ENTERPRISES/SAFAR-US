@@ -112,10 +112,12 @@ export class KycService {
   }
 
   // ── Admin / ops review ──────────────────────────────────────────────
-  async adminList(opts: { status?: string; limit?: number; skip?: number }): Promise<{ items: KycDoc[]; total: number }> {
+  async adminList(opts: { status?: string; userId?: string; limit?: number; skip?: number }): Promise<{ items: KycDoc[]; total: number }> {
     const limit = Math.min(opts.limit ?? 20, 50);
     const filter: Record<string, unknown> = {};
     if (opts.status) filter.status = opts.status;
+    // Pull one person's KYC — used when an admin drills in from a user/host row.
+    if (opts.userId) filter.userId = opts.userId;
     const [items, total] = await Promise.all([
       KycModel.find(filter).sort({ createdAt: -1 }).skip(opts.skip ?? 0).limit(limit).lean<KycDoc[]>(),
       KycModel.countDocuments(filter),

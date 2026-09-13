@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Chip } from '@/components/ui/chip';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import Link from 'next/link';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi } from '@/features/admin/api';
+import { adminPath } from '@/lib/admin-path';
 
 const STATUS_TONE: Record<string, 'success' | 'warning' | 'destructive' | 'muted'> = {
   active: 'success', suspended: 'warning', banned: 'destructive',
@@ -86,6 +88,9 @@ export default function AdminUsersPage() {
     { header: 'Status', cell: (u) => <Badge tone={STATUS_TONE[u.status] ?? 'muted'}>{u.status}</Badge> },
     { header: 'Actions', className: 'text-end', cell: (u) => (
       <div className="flex justify-end gap-2">
+        <Link href={adminPath(`kyc?user=${u._id}`)}>
+          <Button size="sm" variant="outline">KYC</Button>
+        </Link>
         {u.status !== 'active' && (
           <Button size="sm" loading={setUserStatus.isPending} onClick={() => activate(u)}>Activate</Button>
         )}

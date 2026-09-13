@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,13 +11,20 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { formatDate } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
+import { adminPath } from '@/lib/admin-path';
 import { SecureDoc } from '@/features/media/secure-doc';
 
 export default function AdminKycPage() {
   const qc = useQueryClient();
   const confirm = useConfirm();
+  // A ?user=<id> drill-in (from the users/hosts pages) shows that person's KYC
+  // in every status; otherwise the status filter drives the queue.
+  const userId = useSearchParams().get('user') ?? undefined;
   const [status, setStatus] = useState('pending');
-  const { data, isLoading } = useQuery({ queryKey: ['admin-kyc', status], queryFn: () => adminApi.kyc({ status }) });
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-kyc', status, userId],
+    queryFn: () => adminApi.kyc(userId ? { userId } : { status }),
+  });
   const review = useMutation({
     // The backend accepts a reason — we now actually send it so rejections are explainable.
     mutationFn: ({ id, d, reason }: { id: string; d: 'approved' | 'rejected'; reason?: string }) =>
@@ -68,11 +77,20 @@ export default function AdminKycPage() {
   return (
     <div className="space-y-5">
       <h1 className="display text-display-sm">KYC review</h1>
-      <div className="flex gap-2">
-        {['pending', 'approved', 'rejected', ''].map((s) => (
-          <Chip key={s || 'all'} active={status === s} onClick={() => setStatus(s)} className="capitalize">{s || 'All'}</Chip>
-        ))}
-      </div>
+      {userId ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3 text-sm">
+          <span className="text-muted-foreground">
+            Showing KYC for user <span className="font-mono text-foreground">{userId.slice(0, 8)}</span> — every status.
+          </span>
+          <Link href={adminPath('kyc')} className="font-semibold text-primary hover:underline">← Back to the full queue</Link>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          {['pending', 'approved', 'rejected', ''].map((s) => (
+            <Chip key={s || 'all'} active={status === s} onClick={() => setStatus(s)} className="capitalize">{s || 'All'}</Chip>
+          ))}
+        </div>
+      )}
       <DataTable columns={columns} rows={data} isLoading={isLoading} emptyTitle="No KYC submissions" />
     </div>
   );

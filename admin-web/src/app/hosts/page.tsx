@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Chip } from '@/components/ui/chip';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import Link from 'next/link';
 import { Rating } from '@/components/ui/rating';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi } from '@/features/admin/api';
+import { adminPath } from '@/lib/admin-path';
 
 const TONE: Record<string, 'success' | 'warning' | 'destructive'> = {
   verified: 'success', pending: 'warning', rejected: 'destructive',
@@ -51,6 +53,11 @@ export default function AdminHostsPage() {
     { header: 'Status', cell: (h) => <Badge tone={TONE[h.verificationStatus] ?? 'muted'}>{h.verificationStatus}</Badge> },
     { header: 'Actions', className: 'text-end', cell: (h) => (
       <div className="flex justify-end gap-2">
+        {h.userId && (
+          <Link href={adminPath(`kyc?user=${h.userId}`)}>
+            <Button size="sm" variant="outline">KYC</Button>
+          </Link>
+        )}
         {h.verificationStatus !== 'verified' && (
           <Button size="sm" loading={setVerification.isPending} onClick={() => decide(h, true)}>Approve</Button>
         )}

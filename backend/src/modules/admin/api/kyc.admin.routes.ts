@@ -13,8 +13,12 @@ router.get(
   '/kyc',
   authorize('kyc:review'),
   asyncHandler(async (req, res) => {
+    const userId = req.query.userId as string | undefined;
     const result = await kycService.adminList({
-      status: (req.query.status as string) ?? 'pending',
+      // When drilling into one person, show their KYC in any status rather than
+      // defaulting to the pending queue.
+      status: userId ? (req.query.status as string) || undefined : (req.query.status as string) ?? 'pending',
+      userId,
       limit: req.query.limit ? Number(req.query.limit) : undefined,
       skip: req.query.skip ? Number(req.query.skip) : undefined,
     });
