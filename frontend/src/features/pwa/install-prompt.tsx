@@ -66,9 +66,10 @@ export function InstallPrompt() {
     let timer: ReturnType<typeof setTimeout>;
 
     const showAfterDelay = (next: 'android' | 'ios') => {
+      // Short enough to feel prompt, long enough not to fight first paint.
       timer = setTimeout(() => {
         if (!cancelled) setMode(next);
-      }, 2500);
+      }, 900);
     };
 
     const onBIP = (e: Event) => {
@@ -144,8 +145,8 @@ export function InstallPrompt() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[15px] font-bold leading-tight">Install CATO Drive</p>
-            <p className="mt-0.5 text-[12.5px] leading-snug text-white/50">
-              One-tap booking, curbside delivery.
+            <p className="mt-0.5 text-[12.5px] leading-snug text-white/55">
+              Book premium cars delivered curbside — right from your home screen. No app store, no clutter.
             </p>
           </div>
           <button
