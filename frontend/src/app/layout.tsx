@@ -74,7 +74,10 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
   },
-  icons: { icon: '/icon.png', shortcut: '/icon.png', apple: '/icon.png' },
+  icons: { icon: '/icon.png', shortcut: '/icon.png', apple: '/icons/apple-touch-icon.png' },
+  manifest: '/manifest.webmanifest',
+  // Makes iOS treat an added-to-home-screen CATO like a standalone app.
+  appleWebApp: { capable: true, title: 'CATO Drive', statusBarStyle: 'default' },
   openGraph: {
     type: 'website',
     siteName: BRAND,

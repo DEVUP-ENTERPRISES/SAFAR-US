@@ -8,6 +8,8 @@ import { MobileTabBar } from './mobile-tab-bar';
 import { HostMobileTabBar } from './host-mobile-tab-bar';
 import { CompareBar } from '@/features/vehicles/components/compare-bar';
 import { useIsHost } from '@/features/host/hooks';
+import { RegisterServiceWorker } from '@/features/pwa/register-sw';
+import { InstallPrompt } from '@/features/pwa/install-prompt';
 
 /**
  * Decides which chrome a route gets.
@@ -34,6 +36,8 @@ export function AppChrome({ children }: { children: ReactNode }) {
       <Footer />
       <CompareBar />
       {hostMode ? <HostMobileTabBar /> : <MobileTabBar />}
+      <RegisterServiceWorker />
+      <InstallPrompt />
     </>
   );
 }
