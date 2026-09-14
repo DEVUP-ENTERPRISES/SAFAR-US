@@ -20,6 +20,18 @@ export const MIN_LISTING_PHOTOS = 4;
 export class VehicleService implements IVehicleContract {
   async create(userId: string, dto: CreateVehicleDto): Promise<VehicleDoc> {
     const host = await hostService.requireHostForUser(userId);
+    // Onboarding gate: a host must be reviewed and APPROVED by an admin (which
+    // is where their identity/documents are checked) before they can list a
+    // car. Without this, an unverified account could put a vehicle in front of
+    // guests — an insurance and trust hole. The car still goes through its own
+    // verification afterwards; this is the gate on the person behind it.
+    if (host.verificationStatus !== 'verified') {
+      throw new ForbiddenError(
+        host.verificationStatus === 'rejected'
+          ? 'Your host application was not approved, so you can’t list a vehicle. Contact support.'
+          : 'Your host account is pending approval. You can list a vehicle once an admin has verified your identity.',
+      );
+    }
     const vehicle = await VehicleModel.create({
       hostId: host._id,
       make: dto.make,

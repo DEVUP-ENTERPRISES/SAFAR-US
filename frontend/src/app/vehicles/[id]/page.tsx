@@ -24,6 +24,7 @@ import { usePlatformConfig, describeCancellation } from '@/features/platform/con
 import { useRecentlyViewed } from '@/features/vehicles/recently-viewed';
 import { useQuote, useCreateBooking } from '@/features/bookings/hooks';
 import { TripLoader } from '@/features/loading/trip-loader';
+import { TermsModal } from '@/features/bookings/components/terms-modal';
 import { useAuthStore } from '@/features/auth/store';
 import { walletApi } from '@/features/wallet/api';
 import { WishlistButton } from '@/features/favorites/wishlist-button';
@@ -72,6 +73,7 @@ export default function VehicleDetailPage() {
   const [protectionPlan, setProtectionPlan] = useState('basic');
   const [payWithWallet, setPayWithWallet] = useState(false);
   const [agreedTerms, setAgreedTerms] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState<'airport' | 'home' | 'hotel' | 'business' | ''>('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   // Airport pickups: the flight is what tells the host when to actually be
@@ -197,6 +199,26 @@ export default function VehicleDetailPage() {
       (deliveryMode !== 'airport' || flightNumber.trim().length >= 3));
   const canQuote = start && end && deliveryReady;
   const runQuote = () => canQuote && quote.mutate(selection());
+  // The actual booking, run only after the guest has accepted the Terms.
+  const proceed = async () => {
+    const b = await createBooking.mutateAsync(selection());
+
+    // The bank wants the cardholder. Finish the challenge here rather than
+    // sending them to a bookings list that would show the trip as unpaid with
+    // no way to fix it.
+    if (b.requiresAction && b.clientSecret) {
+      const ok = await confirmCardPayment(b.clientSecret);
+      if (!ok) {
+        toast({
+          tone: 'error',
+          title: 'Your bank did not approve the payment',
+          description: 'The trip is held. Try again from your bookings, or use another card.',
+        });
+      }
+    }
+    router.push(`/bookings?highlight=${b._id}`);
+  };
+
   const book = async () => {
     if (status !== 'authenticated') {
       // Keep the whole selection, not just the URL. Coming back to this car
@@ -218,22 +240,13 @@ export default function VehicleDetailPage() {
       });
       return router.push(`/login?next=${encodeURIComponent(`/vehicles/${v?._id ?? ''}`)}`);
     }
-    const b = await createBooking.mutateAsync(selection());
-
-    // The bank wants the cardholder. Finish the challenge here rather than
-    // sending them to a bookings list that would show the trip as unpaid with
-    // no way to fix it.
-    if (b.requiresAction && b.clientSecret) {
-      const ok = await confirmCardPayment(b.clientSecret);
-      if (!ok) {
-        toast({
-          tone: 'error',
-          title: 'Your bank did not approve the payment',
-          description: 'The trip is held. Try again from your bookings, or use another card.',
-        });
-      }
+    // A booking is a contract: pop the Terms and require explicit acceptance
+    // before anything is charged. Acceptance is recorded on the booking.
+    if (!agreedTerms) {
+      setShowTerms(true);
+      return;
     }
-    router.push(`/bookings?highlight=${b._id}`);
+    await proceed();
   };
   const toggleAddOn = (code: string) =>
     setAddOnCodes((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
@@ -265,6 +278,17 @@ export default function VehicleDetailPage() {
   return (
     <div className="space-y-6 sm:space-y-10 pb-20">
       {createBooking.isPending && <TripLoader overlay label="Confirming your booking…" />}
+      <TermsModal
+        open={showTerms}
+        version={platformCfg.data?.legal?.termsVersion}
+        termsUrl={platformCfg.data?.legal?.termsUrl}
+        onClose={() => setShowTerms(false)}
+        onAccept={() => {
+          setAgreedTerms(true);
+          setShowTerms(false);
+          void proceed();
+        }}
+      />
       {lightbox !== null && (
         <PhotoLightbox
           photos={photos}
@@ -873,33 +897,24 @@ export default function VehicleDetailPage() {
             {createBooking.isError && (
               <p className="text-sm text-destructive">{createBooking.error instanceof ApiError ? createBooking.error.message : 'Booking failed'}</p>
             )}
-            {/* A booking is a contract — the guest must accept the current Terms.
-                Only shown once signed in; before that the button saves the draft
-                and routes to login, and they accept on their way back. */}
-            {status === 'authenticated' && (
-              <label className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-                  checked={agreedTerms}
-                  onChange={(e) => setAgreedTerms(e.target.checked)}
-                />
-                <span>
-                  I agree to the{' '}
-                  <a href={platformCfg.data?.legal?.termsUrl || '/legal/terms'} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">
-                    Terms &amp; Conditions
-                  </a>{' '}
-                  and rental agreement.
-                </span>
-              </label>
-            )}
-            <Button className="w-full rounded-xl py-6 text-base font-bold transition-transform hover:scale-[1.02] active:scale-[0.98]" size="lg" disabled={!quote.data || (status === 'authenticated' && !agreedTerms)} loading={createBooking.isPending} onClick={book}>
+            <Button className="w-full rounded-xl py-6 text-base font-bold transition-transform hover:scale-[1.02] active:scale-[0.98]" size="lg" disabled={!quote.data} loading={createBooking.isPending} onClick={book}>
               {status !== 'authenticated'
                 ? 'Sign in to book'
                 : v.listing.instantBook
                   ? 'Continue'
                   : 'Request to book'}
             </Button>
+            {/* A booking is a contract — tapping the button opens the Terms
+                popup, and the version accepted is recorded on the booking. */}
+            {status === 'authenticated' && !agreedTerms && (
+              <p className="text-center text-xs text-muted-foreground">
+                By continuing you’ll review and accept the{' '}
+                <a href={platformCfg.data?.legal?.termsUrl || '/legal'} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">
+                  Terms &amp; Conditions
+                </a>
+                .
+              </p>
+            )}
             
             <p className="text-center text-sm font-medium text-muted-foreground">You won&apos;t be charged yet</p>
             
