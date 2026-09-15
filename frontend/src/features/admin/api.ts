@@ -235,6 +235,14 @@ export const adminApi = {
   reviewAssetPartnerApplication: (id: string, decision: 'approved' | 'rejected', notes?: string) =>
     api.post(`/admin/asset-partner-applications/${id}/review`, { decision, notes }),
 
+  // Contact page leads — every inbound inquiry (asset partner, investor,
+  // corporate, general) lands here so ops sees who's reaching out in one place.
+  contactInquiries: (q: Q = {}) => api.get<any[]>('/admin/contact-inquiries', q),
+  contactInquiryCounts: () => api.get<Record<string, number>>('/admin/contact-inquiries/counts'),
+  contactInquiry: (id: string) => api.get<any>(`/admin/contact-inquiries/${id}`),
+  respondContactInquiry: (id: string, notes?: string) =>
+    api.post(`/admin/contact-inquiries/${id}/respond`, { notes }),
+
   vehicles: (q: Q = {}) => api.get<any[]>('/admin/vehicles', q),
   vehicleAction: (id: string, action: 'approve' | 'suspend' | 'reject') =>
     api.post(`/admin/vehicles/${id}/action`, { action }),

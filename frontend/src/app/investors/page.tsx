@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { ArrowRight, ArrowDown, ChevronDown, Building2, Wrench, Plane, Globe2, RefreshCw, FileBarChart, Eye, ShieldCheck, Scale, TrendingUp, Phone, Mail, AlertTriangle } from 'lucide-react';
 import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, CountUp, BRAND } from '@/features/marketing/sections';
@@ -137,9 +138,13 @@ export default function InvestorsPage() {
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-10 flex flex-wrap gap-3">
-              <a href="mailto:shoaib@catodrive.com?subject=Request%20the%20CatoDrive%20Deck" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
+              {/* Routes through the trackable contact form (pre-selected to
+                  "Investing") rather than a bare mailto:, so every deck
+                  request is a durable, admin-visible lead — not just an
+                  email that only ever lives in an inbox. */}
+              <Link href="/contact?interest=investor" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
                 Request the Full Deck <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </a>
+              </Link>
               <a href="#traction" className="inline-flex h-14 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-7 py-3.5 text-base font-bold text-white backdrop-blur transition-colors hover:bg-white/10">
                 See the Numbers <ArrowDown className="h-4 w-4" />
               </a>

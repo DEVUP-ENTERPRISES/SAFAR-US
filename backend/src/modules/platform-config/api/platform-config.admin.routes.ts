@@ -43,6 +43,8 @@ router.put(
     body: z.object({
       /** Optional note recorded on the version this publish creates. */
       reason: z.string().max(300).optional(),
+      // Where public-site lead forms notify staff.
+      contact: z.object({ notifyEmail: z.string().email().optional() }).optional(),
       // Verification frequency/validity policy — e.g. MVR at most once per 60
       // days. Admin-editable so CATO retunes it without a code change.
       verification: z

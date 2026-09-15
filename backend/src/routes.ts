@@ -38,6 +38,7 @@ import { corporateRoutes } from './modules/corporate/api/corporate.routes';
 import { rewardsRoutes } from './modules/rewards/api/rewards.routes';
 import { referralRoutes } from './modules/referral/api/referral.routes';
 import { assetPartnerApplicationRoutes } from './modules/asset-partners/api/asset-partner-application.routes';
+import { contactInquiryRoutes } from './modules/contact/api/contact-inquiry.routes';
 
 /**
  * Mounts every module's router under the versioned API prefix.
@@ -67,6 +68,7 @@ export function buildApiRouter(): Router {
   api.use('/', riskRoutes);
   api.use('/', complianceRoutes);
   api.use('/', assetPartnerApplicationRoutes);
+  api.use('/', contactInquiryRoutes);
   api.use('/saved-searches', savedSearchRoutes);
   api.use('/documents', documentsRoutes);
   api.use('/earnings', earningsRoutes);

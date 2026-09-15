@@ -206,6 +206,13 @@ export interface PlatformConfigDoc {
     privacyUrl: string;
     minAgeYears: number;
   };
+  /** Where public-site lead forms (Contact, Asset Partner, Investor deck
+   *  requests) notify staff — admin-editable so the destination can change
+   *  without a deploy. Every inbound lead is also a durable, admin-visible
+   *  record regardless of whether this email actually sends. */
+  contact: {
+    notifyEmail: string;
+  };
   /**
    * Verification / eligibility policy — admin-configurable, so CATO can change
    * how often an expensive check runs and how long a passing result is trusted
@@ -376,6 +383,9 @@ const schema = new Schema<PlatformConfigDoc>(
       privacyVersion: { type: String, default: '2026-09-01' },
       privacyUrl: { type: String, default: '/legal' },
       minAgeYears: { type: Number, default: 18 },
+    },
+    contact: {
+      notifyEmail: { type: String, default: 'shoaib@catodrive.com' },
     },
     verification: {
       identity: {

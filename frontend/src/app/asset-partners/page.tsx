@@ -365,6 +365,11 @@ export default function AssetPartnersPage() {
               <ContactCell icon={ClipboardCheck} label="Eligibility" value="2018+ · under 130,000 mi · clean title · SUV preferred" />
             </div>
           </Reveal>
+          <Reveal delay={140}>
+            <Link href="/contact?interest=asset_partner" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+              Or send us a message <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </Reveal>
         </section>
 
         {/* ── CLOSING CTA ────────────────────────────────────────────── */}
