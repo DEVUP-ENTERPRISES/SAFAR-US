@@ -58,6 +58,19 @@ const FUNDS = [
   { label: 'Marketing & working capital', pct: 20 },
 ] as const;
 
+const FIN_STATS = [
+  { value: '$716,755', label: '2026 YTD revenue', sub: 'Verified' },
+  { value: '$1.2M+', label: 'Full-year projection', sub: 'Q4 2026 target' },
+  { value: '$78,734', label: 'Confirmed pipeline', sub: 'Upcoming bookings' },
+  { value: '$10.08M', label: '700-vehicle revenue goal', sub: '700 × $1,200/mo × 12' },
+] as const;
+
+const TRAJECTORY = [
+  { value: '$307K', meta: '2025 · 72 vehicles' },
+  { value: '$1.2M', meta: '2026 · 100+ vehicles' },
+  { value: '$10.08M', meta: '700-vehicle target' },
+] as const;
+
 const EXITS = [
   { label: 'Base · 8×', moic: '3.8× MOIC', value: '$1.92M', detail: '$8M revenue → $64M enterprise value', strong: false },
   { label: 'Strong · 8×', moic: '4.8× MOIC', value: '$2.4M', detail: '$10M revenue → $80M enterprise value', strong: true },
@@ -242,13 +255,42 @@ export default function InvestorsPage() {
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Step 03 · Financial performance</SectionEyebrow>
             <h2 className="display mt-4 text-4xl sm:text-5xl">$716K earned in 2026 · $1.2M full-year target.</h2>
-            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-              2026 YTD revenue: $716,755 (verified). Full-year projection: $1.2M+ (Q4 2026 target). Confirmed
-              pipeline: $78,734 upcoming bookings. 700-vehicle revenue goal: $10.08M (700 × $1,200/mo × 12).
-            </p>
-            <p className="mt-3 text-lg text-muted-foreground">
-              Trajectory: $307K (2025, 72 vehicles) → $1.2M (2026, 100+ vehicles) → $10.08M (700-vehicle target).
-            </p>
+          </Reveal>
+
+          {/* Four figures, each its own labeled line — not a paragraph of
+              run-on numbers a phone has to parse word by word. */}
+          <div className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {FIN_STATS.map((s, i) => (
+              <Reveal key={s.label} delay={i * 70}>
+                <div className="h-full rounded-2xl border border-border bg-card p-5 shadow-card">
+                  <p className="numeric text-2xl font-extrabold tracking-tight text-foreground sm:text-[1.7rem]">{s.value}</p>
+                  <p className="mt-1.5 text-sm font-semibold text-foreground">{s.label}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{s.sub}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+
+          {/* The trajectory, as a flow of milestones with a real arrow between
+              them — reads top-to-bottom on a phone, left-to-right on desktop,
+              instead of an arrow-separated run-on sentence. */}
+          <Reveal delay={280}>
+            <div className="mt-6 flex flex-col items-stretch gap-2 rounded-2xl border border-border bg-card p-5 shadow-card sm:flex-row sm:items-center sm:gap-3">
+              {TRAJECTORY.map((t, i) => (
+                <div key={t.value} className="flex flex-col items-stretch gap-2 sm:flex-1 sm:flex-row sm:items-center sm:gap-3">
+                  <div className="flex-1 rounded-xl bg-muted/50 px-4 py-3 text-center">
+                    <p className="numeric text-xl font-extrabold text-foreground sm:text-2xl">{t.value}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{t.meta}</p>
+                  </div>
+                  {i < TRAJECTORY.length - 1 && (
+                    <span className="flex items-center justify-center text-primary">
+                      <ArrowDown className="h-4 w-4 sm:hidden" />
+                      <ArrowRight className="hidden h-4 w-4 sm:block" />
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </Reveal>
 
           {/* Use of funds */}
