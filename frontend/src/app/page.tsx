@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   ShieldCheck, Zap, Sparkles, ArrowRight, Star, CarFront, KeyRound, Route, BadgeCheck,
+  Search, UserCheck, FileCheck2, Lock, CreditCard, Ban, ClipboardList,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/ui/reveal';
@@ -23,6 +24,26 @@ const STEPS = [
   { icon: KeyRound, image: '/sections/book-in-seconds.webp', title: 'Book in seconds', body: 'Instant Book cars confirm immediately. No back-and-forth, no waiting.' },
   { icon: Route, image: '/sections/hit-the-road.webp', title: 'Hit the road', body: 'Pick it up, or have it delivered to your door, hotel, or the airport.' },
 ];
+
+// The reservation, one step deeper than STEPS — what actually happens
+// between "Book in seconds" and "Hit the road": the exact vehicle gets
+// locked to the reservation, identity gets checked, and the card only
+// gets charged once the trip is confirmed.
+const RESERVATION_FLOW = [
+  { icon: Search, label: 'Choose', body: 'The exact car — real photos, real plate. Not a class or a placeholder.' },
+  { icon: UserCheck, label: 'Verify', body: 'Identity checked in the flow. No separate office visit.' },
+  { icon: FileCheck2, label: 'Documents', body: 'License and insurance on file before pickup, not at the curb.' },
+  { icon: Lock, label: 'Hold', body: 'The card is authorized, not charged. The vehicle is locked to you.' },
+  { icon: CreditCard, label: 'Capture', body: 'Charged only once the reservation is confirmed and the trip is set.' },
+] as const;
+
+const RESERVATION_TRUST = [
+  { icon: CarFront, label: 'Exact vehicle, not a class' },
+  { icon: Ban, label: 'No double bookings' },
+  { icon: UserCheck, label: 'Verified in the flow' },
+  { icon: Lock, label: 'Held, then charged' },
+  { icon: ClipboardList, label: 'Everything on the reservation' },
+] as const;
 
 /**
  * The connector between two cards in a three-step row — an arrow that sits in
@@ -287,6 +308,65 @@ export default function HomePage() {
                 {i < STEPS.length - 1 && <StepConnector />}
               </div>
             ))}
+          </div>
+        </Reveal>
+
+        {/* ── The reservation, step by step ─────────────────────────── */}
+        <Reveal as="section" className="relative isolate overflow-hidden rounded-3xl hero-mesh px-6 py-14 sm:px-10 sm:py-16 lg:px-14">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-soft backdrop-blur">
+              One reservation, end to end
+            </span>
+            <h2 className="display mt-6 text-[2.4rem] leading-[1.02] text-white sm:text-5xl">
+              Pick the exact car. Get it at the curb.
+            </h2>
+            <p className="mt-5 text-lg leading-relaxed text-white/70">
+              Not a request form that somebody calls you back about. A real reservation, on a real
+              vehicle, held the moment you book it.
+            </p>
+          </div>
+
+          {/* The 5-step flow — numbered, connected, reads left-to-right on
+              desktop and top-to-bottom on mobile. */}
+          <div className="mt-12 grid gap-6 sm:grid-cols-5 sm:gap-4">
+            {RESERVATION_FLOW.map((s, i) => (
+              <div key={s.label} className="relative flex sm:flex-col sm:items-start gap-4 sm:gap-0">
+                <div className="flex flex-col items-center sm:items-start">
+                  <span className="numeric flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15">
+                    <s.icon className="h-5 w-5" />
+                  </span>
+                  {i < RESERVATION_FLOW.length - 1 && (
+                    <span className="mt-2 hidden h-px flex-1 w-full bg-gradient-to-r from-white/25 to-transparent sm:block" />
+                  )}
+                </div>
+                <div className="pb-1 sm:pt-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-primary-soft">{s.label}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-white/65">{s.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* The money callout — the whole point of Hold → Capture. */}
+          <div className="mt-10 inline-flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/10 px-5 py-3.5">
+            <Lock className="h-4 w-4 shrink-0 text-primary-soft" />
+            <p className="text-sm font-bold uppercase tracking-wider text-primary-soft">
+              The money never moved until it had to.
+            </p>
+          </div>
+
+          {/* Trust points + CTA. */}
+          <div className="mt-10 flex flex-col gap-8 border-t border-white/10 pt-10 lg:flex-row lg:items-center lg:justify-between">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-5">
+              {RESERVATION_TRUST.map((t) => (
+                <span key={t.label} className="flex items-center gap-2 text-sm font-medium text-white/75">
+                  <t.icon className="h-4 w-4 shrink-0 text-primary-soft" /> {t.label}
+                </span>
+              ))}
+            </div>
+            <Link href="/search" className="group inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
+              Book Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
           </div>
         </Reveal>
 
