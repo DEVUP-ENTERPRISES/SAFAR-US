@@ -6,6 +6,7 @@ import Image from 'next/image';
 import {
   ArrowRight, ArrowDown, ShieldCheck, Car, Camera, ClipboardCheck, Settings2, Wallet,
   Star, Quote, ChevronDown, CheckCircle2, Gauge, Calendar, FileCheck, Sparkles,
+  Phone, Mail, Clock,
 } from 'lucide-react';
 import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, CountUp, BRAND } from '@/features/marketing/sections';
@@ -350,6 +351,22 @@ export default function AssetPartnersPage() {
           </div>
         </section>
 
+        {/* ── CONTACT ─────────────────────────────────────────────────── */}
+        <section>
+          <Reveal className="max-w-3xl">
+            <SectionEyebrow>Questions?</SectionEyebrow>
+            <h2 className="display mt-4 text-4xl sm:text-5xl">Talk to the partnerships team.</h2>
+          </Reveal>
+          <Reveal delay={80}>
+            <div className="mt-10 grid gap-px overflow-hidden rounded-3xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+              <ContactCell icon={Phone} label="Call / Text" value="(214) 814-0402" href="tel:+12148140402" />
+              <ContactCell icon={Mail} label="Email" value="shoaib@catodrive.com" href="mailto:shoaib@catodrive.com" />
+              <ContactCell icon={Clock} label="Response Time" value="We review every application and respond within 2–3 business days." />
+              <ContactCell icon={ClipboardCheck} label="Eligibility" value="2018+ · under 130,000 mi · clean title · SUV preferred" />
+            </div>
+          </Reveal>
+        </section>
+
         {/* ── CLOSING CTA ────────────────────────────────────────────── */}
         <Reveal>
           <section className="relative isolate overflow-hidden rounded-[2rem] px-6 py-20 text-center sm:px-12 sm:py-24">
@@ -502,5 +519,24 @@ function FaqRow({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: boo
         </div>
       </div>
     </div>
+  );
+}
+
+function ContactCell({ icon: Icon, label, value, href }: {
+  icon: typeof Phone; label: string; value: string; href?: string;
+}) {
+  const content = (
+    <>
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <Icon className="h-4.5 w-4.5" />
+      </span>
+      <p className="mt-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={`mt-1 text-[15px] leading-snug text-foreground ${href ? 'font-semibold' : ''}`}>{value}</p>
+    </>
+  );
+  return href ? (
+    <a href={href} className="bg-card p-6 transition-colors hover:bg-primary/[0.04]">{content}</a>
+  ) : (
+    <div className="bg-card p-6">{content}</div>
   );
 }

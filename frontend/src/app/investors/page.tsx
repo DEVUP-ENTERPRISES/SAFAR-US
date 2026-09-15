@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, ArrowDown, ChevronDown, Building2, Wrench, Plane, Globe2, RefreshCw, FileBarChart, Eye, ShieldCheck, Scale, TrendingUp } from 'lucide-react';
+import { ArrowRight, ArrowDown, ChevronDown, Building2, Wrench, Plane, Globe2, RefreshCw, FileBarChart, Eye, ShieldCheck, Scale, TrendingUp, Phone, Mail, AlertTriangle } from 'lucide-react';
 import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, CountUp, BRAND } from '@/features/marketing/sections';
 
@@ -18,10 +18,9 @@ import { SectionEyebrow, CountUp, BRAND } from '@/features/marketing/sections';
  * live-data capability that doesn't exist.
  *
  * All figures are business-supplied. "Request the Full Deck" is a mailto:
- * for now — swap to the Investment Inquiry application once that's built.
- * The accredited-investor FAQ answer is deliberately hedged (see FAQ_ITEMS)
- * and should be reviewed by securities counsel before this page is used to
- * solicit real investment.
+ * to CatoDrive's Investor Relations contact for now — swap to the
+ * Investment Inquiry application once that's built. The Reg D Notice and
+ * IR contact are business-supplied verbatim.
  */
 
 const ROUND_TERMS = [
@@ -38,11 +37,15 @@ const TRACTION = [
   { value: 0, prefix: '$', suffix: '', label: 'Outside capital raised' },
 ] as const;
 
+// Short labels on purpose: at 4 columns on a ~390px phone, each bar has
+// roughly 60px to work with once page/card padding and gaps are subtracted —
+// "2026 target" doesn't fit there, "Target" does. The surrounding heading and
+// copy already establish "2026", so nothing is lost.
 const GROWTH = [
   { year: '2023', value: 1574, display: '$1,574', target: false },
   { year: '2025', value: 307000, display: '$307K', target: false },
-  { year: '2026 YTD', value: 716755, display: '$716K+', target: false },
-  { year: '2026 target', value: 1_200_000, display: '$1.2M', target: true },
+  { year: 'YTD ’26', value: 716755, display: '$716K+', target: false },
+  { year: 'Target', value: 1_200_000, display: '$1.2M', target: true },
 ] as const;
 
 const VISION = [
@@ -86,12 +89,13 @@ const RIGHTS = [
 ] as const;
 
 /**
- * Composed strictly from facts already stated elsewhere on this page, with
- * one deliberate exception (accreditation) — see the file header.
+ * Composed strictly from facts already stated elsewhere on this page. The
+ * accreditation answer now mirrors CatoDrive's own Reg D Notice verbatim
+ * (see the RegDNotice component) rather than a hedged paraphrase.
  */
 const FAQ_ITEMS = [
   { q: 'What exactly am I investing in?', a: 'A SAFE (Simple Agreement for Future Equity) — Late Seed stage, converting at a $16.8M pre-money valuation cap at the next priced round. CatoDrive is targeting a Series A in Q4 2026.' },
-  { q: 'Do I have to be an accredited investor?', a: 'Offerings of this kind are typically limited to accredited investors under SEC Regulation D. Eligibility is confirmed as part of the formal subscription process — request the full deck and speak with CatoDrive’s team to confirm your status before committing.' },
+  { q: 'Do I have to be an accredited investor?', a: 'Certain investments are restricted to accredited investors. This page is an expression of interest only — not an offer or sale of securities. Eligibility is confirmed as part of the formal subscription process; request the full deck and speak with CatoDrive’s Investor Relations team to confirm your status before committing.' },
   { q: 'What’s the minimum investment and what equity does it represent?', a: 'The minimum investment is $21,000, representing approximately 0.125% equity. The round offers roughly 3% total equity.' },
   { q: 'How is the $504,000 used?', a: '45% platform development (the consumer marketplace app and white-label SaaS), 35% a fleet staging facility (rent and operations), and 20% marketing and working capital.' },
   { q: 'What rights do investors receive?', a: 'Pro-rata rights on future rounds, quarterly financial reporting, anti-dilution protection, and a most-favored-nation (MFN) clause. Investors at $100,000 or above also receive board-observer rights.' },
@@ -133,7 +137,7 @@ export default function InvestorsPage() {
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-10 flex flex-wrap gap-3">
-              <a href="mailto:invest@catodrive.com?subject=Request%20the%20CatoDrive%20Deck" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
+              <a href="mailto:shoaib@catodrive.com?subject=Request%20the%20CatoDrive%20Deck" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
                 Request the Full Deck <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </a>
               <a href="#traction" className="inline-flex h-14 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-7 py-3.5 text-base font-bold text-white backdrop-blur transition-colors hover:bg-white/10">
@@ -204,8 +208,8 @@ export default function InvestorsPage() {
           </Reveal>
 
           <Reveal delay={100}>
-            <div className="mt-12 rounded-3xl border border-border bg-card p-8 shadow-card">
-              <div className="flex items-end gap-4 sm:gap-8" style={{ height: 220 }}>
+            <div className="mt-12 rounded-3xl border border-border bg-card p-4 shadow-card sm:p-8">
+              <div className="flex items-end gap-2 sm:gap-8" style={{ height: 220 }}>
                 {GROWTH.map((g) => (
                   <GrowthBar key={g.year} {...g} />
                 ))}
@@ -351,6 +355,43 @@ export default function InvestorsPage() {
           </div>
         </section>
 
+        {/* ── CONTACT + COMPLIANCE ────────────────────────────────────── */}
+        <section>
+          <Reveal className="max-w-3xl">
+            <SectionEyebrow>Investor Relations</SectionEyebrow>
+            <h2 className="display mt-4 text-4xl sm:text-5xl">Talk to the team behind the round.</h2>
+          </Reveal>
+
+          <div className="mt-10 grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+            <Reveal>
+              <div className="flex h-full flex-col justify-between rounded-3xl border border-border bg-card p-7 shadow-card">
+                <div>
+                  <p className="text-lg font-bold text-foreground">Shoaib Mirza Baig</p>
+                  <p className="text-sm text-muted-foreground">Head of Investor Relations</p>
+                </div>
+                <div className="mt-6 space-y-3">
+                  <a href="mailto:shoaib@catodrive.com" className="flex items-center gap-3 rounded-xl border border-border p-3.5 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04]">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Mail className="h-4 w-4" /></span>
+                    shoaib@catodrive.com
+                  </a>
+                  <a href="tel:+12148140402" className="flex items-center gap-3 rounded-xl border border-border p-3.5 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04]">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Phone className="h-4 w-4" /></span>
+                    (214) 814-0402
+                  </a>
+                </div>
+                <p className="mt-5 rounded-xl bg-muted/50 p-3.5 text-xs leading-relaxed text-muted-foreground">
+                  <span className="font-semibold text-foreground">The Round: </span>
+                  $504,000 SAFE · Late Seed · $16.8M pre-money · $21,000 minimum.
+                </p>
+              </div>
+            </Reveal>
+
+            <Reveal delay={80}>
+              <RegDNotice />
+            </Reveal>
+          </div>
+        </section>
+
         {/* ── FAQ ─────────────────────────────────────────────────────── */}
         <section>
           <Reveal className="mx-auto max-w-2xl text-center">
@@ -420,7 +461,7 @@ function LiveTicker() {
           Live pace
         </span>
       </div>
-      <p className="numeric mt-2 text-5xl font-black tracking-tight text-white sm:text-6xl">{formatted}</p>
+      <p className="numeric mt-2 text-[2.1rem] font-black leading-none tracking-tight text-white sm:text-5xl lg:text-6xl">{formatted}</p>
       <p className="mt-3 text-xs leading-relaxed text-white/50">
         Illustrative — calculated from {BRAND}’s verified 2026 year-to-date revenue ($716,755), extrapolated at a constant run-rate since January 1, 2026.
       </p>
@@ -432,8 +473,8 @@ function GrowthBar({ year, value, display, target }: { year: string; value: numb
   const maxSqrt = Math.sqrt(1_200_000);
   const heightPct = Math.max((Math.sqrt(value) / maxSqrt) * 100, 4);
   return (
-    <div className="flex h-full flex-1 flex-col items-center justify-end gap-2.5">
-      <span className={`numeric text-sm font-bold ${target ? 'text-primary' : 'text-foreground'}`}>{display}</span>
+    <div className="flex h-full flex-1 flex-col items-center justify-end gap-1.5 sm:gap-2.5">
+      <span className={`numeric whitespace-nowrap text-[11px] font-bold sm:text-sm ${target ? 'text-primary' : 'text-foreground'}`}>{display}</span>
       <div
         className={
           target
@@ -442,7 +483,23 @@ function GrowthBar({ year, value, display, target }: { year: string; value: numb
         }
         style={{ height: `${heightPct}%` }}
       />
-      <span className="text-xs text-muted-foreground">{year}</span>
+      <span className="whitespace-nowrap text-[10px] text-muted-foreground sm:text-xs">{year}</span>
+    </div>
+  );
+}
+
+/** CatoDrive's own Reg D Notice, verbatim — not paraphrased. */
+function RegDNotice() {
+  return (
+    <div className="flex h-full flex-col rounded-3xl border border-amber-500/25 bg-amber-500/[0.05] p-7">
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+        <AlertTriangle className="h-5 w-5" />
+      </span>
+      <p className="mt-4 text-sm font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Reg D Notice</p>
+      <p className="mt-2 text-[15px] leading-relaxed text-foreground">
+        Certain investments are restricted to accredited investors. Expression of interest only — not an offer or
+        sale of securities.
+      </p>
     </div>
   );
 }
