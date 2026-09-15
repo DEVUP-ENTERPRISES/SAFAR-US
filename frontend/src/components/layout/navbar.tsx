@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, Menu, X, Car, Info, HelpCircle, FileText, ShieldCheck, Calculator, Sparkles } from 'lucide-react';
+import { Search, Menu, X, Car, Info, HelpCircle, FileText, ShieldCheck, Calculator, Sparkles, TrendingUp } from 'lucide-react';
 import { config } from '@/lib/config';
 import { Logo } from '@/components/layout/logo';
 import { useAuthStore } from '@/features/auth/store';
@@ -112,6 +112,14 @@ export function Navbar() {
                 {/* Don't invite an existing host to "become" one. */}
                 {isHost ? 'Host dashboard' : 'Become a host'}
               </Link>
+              {/* Lower-frequency destination — only at wider widths so it
+                  doesn't crowd the primary consumer/partner links. */}
+              <Link
+                href="/investors"
+                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary lg:block"
+              >
+                Investors
+              </Link>
             </>
           )}
 
@@ -125,12 +133,11 @@ export function Navbar() {
               <UserMenu />
             </div>
           ) : (
-            <div className="hidden sm:flex items-center gap-2 ms-2">
+            <div className="hidden sm:flex items-center ms-2">
+              {/* One entry point, not two — /login itself offers "New to CATO?
+                  Sign up" for anyone who isn't a returning user yet. */}
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="rounded-full font-semibold hover:bg-primary/10 hover:text-primary">Log in</Button>
-              </Link>
-              <Link href="/register">
-                <Button size="sm" className="rounded-full px-5 font-semibold shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5">Sign up</Button>
+                <Button size="sm" className="rounded-full px-5 font-semibold shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5">Log in</Button>
               </Link>
             </div>
           )}
@@ -165,12 +172,9 @@ export function Navbar() {
             
             <div className="flex-1 overflow-y-auto py-4">
               {!authed && (
-                <div className="px-4 pb-6 space-y-3 border-b border-border mb-4">
+                <div className="px-4 pb-6 border-b border-border mb-4">
                   <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full justify-start text-base py-6">Log in</Button>
-                  </Link>
-                  <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full justify-start text-base py-6">Sign up</Button>
+                    <Button className="w-full justify-start text-base py-6">Log in</Button>
                   </Link>
                 </div>
               )}
@@ -183,6 +187,10 @@ export function Navbar() {
                 <Link href="/host" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
                   <Car className="h-5 w-5 text-muted-foreground" />
                   {isHost ? 'Host dashboard' : 'Become a host'}
+                </Link>
+                <Link href="/investors" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
+                  <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                  Investors
                 </Link>
                 <Link href="/about" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
                   <Info className="h-5 w-5 text-muted-foreground" />
