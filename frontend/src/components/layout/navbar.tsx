@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, Menu, X, Car, Info, HelpCircle, FileText, ShieldCheck, Calculator } from 'lucide-react';
+import { Search, Menu, X, Car, Info, HelpCircle, FileText, ShieldCheck, Calculator, Sparkles } from 'lucide-react';
 import { config } from '@/lib/config';
 import { Logo } from '@/components/layout/logo';
 import { useAuthStore } from '@/features/auth/store';
@@ -97,6 +97,14 @@ export function Navbar() {
               >
                 How it works
               </Link>
+              {/* Primary acquisition path — own the car, CATO runs it. Leads
+                  over the self-managed host flow. */}
+              <Link
+                href="/asset-partners"
+                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold text-primary transition-all hover:bg-primary/10 sm:block"
+              >
+                Asset Partners
+              </Link>
               <Link
                 href="/host"
                 className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
@@ -168,6 +176,10 @@ export function Navbar() {
               )}
               
               <nav className="px-2 space-y-1">
+                <Link href="/asset-partners" className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-primary rounded-xl hover:bg-primary/10" onClick={() => setMobileMenuOpen(false)}>
+                  <Sparkles className="h-5 w-5" />
+                  Asset Partners
+                </Link>
                 <Link href="/host" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
                   <Car className="h-5 w-5 text-muted-foreground" />
                   {isHost ? 'Host dashboard' : 'Become a host'}
