@@ -124,29 +124,41 @@ describe('asset partner application', () => {
 
       const dash = await assetPartnerApplicationService.dashboardFor(other._id);
       expect(dash.applications).toHaveLength(0);
-      expect(dash.partner.approved).toBe(false);
+      expect(dash.partner).toBeUndefined();
     });
 
-    // "Not started" is not "$0 earned" — reporting zeroed money to an applicant
-    // who has no host account yet would read as "my car earned nothing".
-    it('reports no earnings at all until a host account exists', async () => {
+    // "Not started" is not "$0 earned" — reporting zeroed money to someone who
+    // is not in the programme yet would read as "my car earned nothing".
+    it('reports no money at all until they are in the programme', async () => {
       await assetPartnerApplicationService.create(baseDto(), {});
       const user = await UserModel.create({ email: 'jordan@example.com', roles: ['guest'] });
 
       const dash = await assetPartnerApplicationService.dashboardFor(user._id);
-      expect(dash.earnings).toBeUndefined();
+      expect(dash.partner).toBeUndefined();
+      expect(dash.currentStatement).toBeUndefined();
       expect(dash.vehicles).toEqual([]);
     });
 
-    it('reflects approval once the application is approved', async () => {
+    it('enrols a partner on approval and starts them in onboarding, not active', async () => {
       const user = await UserModel.create({ email: 'jordan@example.com', roles: ['guest'] });
       const app = await assetPartnerApplicationService.create(baseDto(), {});
       await assetPartnerApplicationService.review(app._id, ADMIN, 'approved');
 
       const dash = await assetPartnerApplicationService.dashboardFor(user._id);
-      expect(dash.partner.approved).toBe(true);
-      expect(dash.partner.hostVerified).toBe(true);
-      expect(dash.earnings).toBeDefined();
+      expect(dash.partner).toBeDefined();
+      // Approved on paper is not live: the car still has to be inspected.
+      expect(dash.partner!.status).toBe('onboarding');
+      expect(dash.partner!.partnerType).toBe('individual');
+      expect(dash.currentStatement).toBeDefined();
+    });
+
+    it('carries the fleet partner type through to the programme', async () => {
+      const user = await UserModel.create({ email: 'jordan@example.com', roles: ['guest'] });
+      const app = await assetPartnerApplicationService.create(baseDto({ partnerType: 'fleet' }), {});
+      await assetPartnerApplicationService.review(app._id, ADMIN, 'approved');
+
+      const dash = await assetPartnerApplicationService.dashboardFor(user._id);
+      expect(dash.partner!.partnerType).toBe('fleet');
     });
   });
 

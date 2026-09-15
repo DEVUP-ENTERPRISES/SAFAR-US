@@ -21,6 +21,15 @@ export interface SeasonalRule {
 export interface VehicleDoc {
   _id: string;
   hostId: string;
+  /**
+   * Set when this car is in the managed Asset Partner programme.
+   *
+   * hostId alone cannot answer "is this car partner-managed": a partner's Host
+   * record is just the marketplace seller identity, and the same person could
+   * hold cars outside the programme. Partner statements are computed per
+   * vehicle, so the link has to live on the vehicle.
+   */
+  assetPartnerId?: string;
   hostIsSuperhost: boolean;
   fleetId?: string;
   make: string;
@@ -147,6 +156,7 @@ const schema = new Schema<VehicleDoc>(
   {
     _id: { type: String, default: () => uuid() },
     hostId: { type: String, required: true },
+    assetPartnerId: String,
     hostIsSuperhost: { type: Boolean, default: false },
     fleetId: { type: String },
     make: { type: String, required: true },
@@ -265,6 +275,8 @@ schema.index({ location: '2dsphere' });
 schema.index({ status: 1, location: '2dsphere' });
 schema.index({ status: 1, verificationStatus: 1 });
 schema.index({ hostId: 1, status: 1 });
+// Every partner statement starts by finding that partner's vehicles.
+schema.index({ assetPartnerId: 1 });
 // Ops dashboards query "which cars are down / in maintenance / blocked".
 schema.index({ operationalState: 1 });
 schema.index({ fleetId: 1 });

@@ -76,9 +76,21 @@ export class PlatformConfigService {
       }
     }
 
-    const doc =
-      (await PlatformConfigModel.findById('platform').lean<PlatformConfigDoc>()) ??
-      (await PlatformConfigModel.create({ _id: 'platform' })).toObject();
+    /*
+     * Upsert, never find-then-create.
+     *
+     * There is exactly one config document, and any number of callers can want
+     * it at once on a cold cache — the partner dashboard alone asks for it
+     * seven times in parallel while building a statement history. A
+     * findById-then-create raced and the losers hit a duplicate _id error,
+     * failing whatever request they were serving. The upsert is idempotent, so
+     * concurrent first reads all just get the document.
+     */
+    const doc = await PlatformConfigModel.findOneAndUpdate(
+      { _id: 'platform' },
+      { $setOnInsert: { _id: 'platform' } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).lean<PlatformConfigDoc>();
 
     const full = this.withDefaults(doc);
     await kv()
@@ -126,6 +138,16 @@ export class PlatformConfigService {
         ...(doc.deposit ?? {}),
       },
       commission: { defaultBps: 2000, minBps: 0, maxBps: 4000, ...(doc.commission ?? {}) },
+      assetPartner: {
+        managementFeeBps: 2000,
+        insuranceMonthlyCents: 13_700,
+        detailingMonthlyCents: 5_000,
+        deductibleCapCents: 100_000,
+        maintenanceApprovalCents: 50_000,
+        payoutDayOfMonth: 5,
+        payoutMethod: 'check' as const,
+        ...(doc.assetPartner ?? {}),
+      },
       serviceFee: { bps: 0, maxCents: 0, ...(doc.serviceFee ?? {}) },
       tax: { bps: 0, ...(doc.tax ?? {}) },
       pricing: { earlyBirdMinDaysAhead: 30, lastMinuteMaxHoursAhead: 48, ...(doc.pricing ?? {}) },

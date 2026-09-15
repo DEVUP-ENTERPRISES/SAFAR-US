@@ -55,6 +55,32 @@ export interface PlatformConfigDoc {
     maxBps: number;
   };
   /**
+   * Asset Partner programme terms — the DEFAULTS every partner inherits.
+   *
+   * Separate from `commission` on purpose: a partner is not a host on a
+   * different rate. The management fee is only one of three deductions, and
+   * the other two are recurring monthly costs per vehicle that a commission
+   * rate cannot express at all.
+   *
+   * Values default to the terms published on /asset-partners. A negotiated
+   * partner overrides individual fields on their own record.
+   */
+  assetPartner: {
+    /** Management fee on gross booking revenue. 2000 = the published 20%. */
+    managementFeeBps: number;
+    /** Roamly fleet insurance, per vehicle per month, in minor units. */
+    insuranceMonthlyCents: number;
+    /** Professional detailing, per vehicle per month, in minor units. */
+    detailingMonthlyCents: number;
+    /** Partner's damage exposure ceiling per incident (Addendum No. 1). */
+    deductibleCapCents: number;
+    /** Maintenance at or below this proceeds without interrupting the partner. */
+    maintenanceApprovalCents: number;
+    /** Partner payouts run monthly on this day. */
+    payoutDayOfMonth: number;
+    payoutMethod: 'check' | 'zelle';
+  };
+  /**
    * The platform's service fee, charged to the GUEST on top of the trip.
    *
    * Distinct from `commission`, which is taken out of what the host earns. This
@@ -445,6 +471,16 @@ const schema = new Schema<PlatformConfigDoc>(
       defaultBps: { type: Number, default: 2000 }, // 20%
       minBps: { type: Number, default: 0 },
       maxBps: { type: Number, default: 4000 }, // 40% ceiling — a typo can't take 90%
+    },
+    // Defaults are the terms published on /asset-partners.
+    assetPartner: {
+      managementFeeBps: { type: Number, default: 2000 }, // 20%
+      insuranceMonthlyCents: { type: Number, default: 13_700 }, // $137 Roamly
+      detailingMonthlyCents: { type: Number, default: 5_000 }, // $50
+      deductibleCapCents: { type: Number, default: 100_000 }, // $1,000 cap
+      maintenanceApprovalCents: { type: Number, default: 50_000 }, // above $500 → ask
+      payoutDayOfMonth: { type: Number, default: 5 }, // "on the 5th"
+      payoutMethod: { type: String, default: 'check', enum: ['check', 'zelle'] },
     },
     serviceFee: {
       bps: { type: Number, default: 0 }, // off until an admin sets it

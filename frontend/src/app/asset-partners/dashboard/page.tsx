@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight, Car, Wallet, TrendingUp, CalendarClock, CheckCircle2, Clock,
-  FileText, Phone, Mail, Banknote,
+  FileText, Phone, Mail,
 } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,8 @@ import {
   type ApplicationStatus,
   type PartnerApplication,
   type PartnerDashboard,
+  type PartnerStatement,
+  type PartnerStatus,
   type PartnerVehicleSummary,
 } from '@/features/asset-partners/api';
 
@@ -78,6 +80,17 @@ function stageIndex(app: PartnerApplication, isEarning: boolean): number {
   if (app.status === 'under_review') return 1;
   return 0;
 }
+
+/** Programme membership status, as the partner should read it. */
+const PARTNER_STATUS_META: Record<
+  PartnerStatus,
+  { label: string; tone: 'default' | 'success' | 'warning' | 'destructive' | 'muted' }
+> = {
+  onboarding: { label: 'Onboarding', tone: 'warning' },
+  active: { label: 'Active', tone: 'success' },
+  suspended: { label: 'Suspended', tone: 'destructive' },
+  exited: { label: 'Exited', tone: 'muted' },
+};
 
 export default function Page() {
   return (
@@ -169,55 +182,61 @@ function NotAppliedYet() {
 }
 
 function Applied({ data, isEarning }: { data: PartnerDashboard; isEarning: boolean }) {
-  const e = data.earnings;
-  const cur = e?.currency ?? 'USD';
+  const s = data.currentStatement;
+  const cur = s?.currency ?? 'USD';
   const money = (v: number) => formatMoney({ amount: v, currency: cur });
+  // Closed months only — the running month is already shown in full above and
+  // would read as a dip in the chart while it is still filling up.
+  const closed = (data.history ?? []).filter((h) => h.final).slice().reverse();
 
   return (
     <div className="space-y-8">
-      {/* Earnings lead once there is something to report. Before that they are
-          noise — a row of $0 tiles reads as "my car earned nothing". */}
-      {isEarning && e && (
+      {isEarning && s && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatTile
-              label="Available now"
-              value={money(e.currentBalance)}
-              sub="Ready to pay out"
+              label="Your net this month"
+              value={money(s.totals.net)}
+              sub={s.final ? 'Final' : 'Still running'}
               icon={<Wallet className="h-5 w-5" />}
-              tone="success"
+              tone={s.totals.net >= 0 ? 'success' : 'warning'}
               emphasis
             />
             <StatTile
-              label="Next payout"
-              value={data.nextPayout ? money(data.nextPayout.amount) : '—'}
-              sub={data.nextPayout ? formatDate(data.nextPayout.scheduledFor) : 'Nothing scheduled'}
+              label="Paid on"
+              value={formatDate(s.payoutDate)}
+              sub={`By ${s.payoutMethod}`}
               icon={<CalendarClock className="h-5 w-5" />}
             />
             <StatTile
-              label="Paid out"
-              value={money(e.paidOut)}
-              sub="Already in your account"
-              icon={<Banknote className="h-5 w-5" />}
+              label="Gross bookings"
+              value={money(s.totals.gross)}
+              sub={`${s.totals.trips} completed trip${s.totals.trips === 1 ? '' : 's'}`}
+              icon={<TrendingUp className="h-5 w-5" />}
             />
             <StatTile
-              label="Lifetime earnings"
-              value={money(e.lifetimeEarnings)}
-              sub={`${e.completedTrips} payout${e.completedTrips === 1 ? '' : 's'}`}
-              icon={<TrendingUp className="h-5 w-5" />}
+              label="Vehicles earning"
+              value={String(s.lines.length)}
+              sub={`${s.terms.managementFeeBps / 100}% management fee`}
+              icon={<Car className="h-5 w-5" />}
             />
           </div>
 
-          {e.monthly.length > 0 && (
+          {/* Every deduction, itemised. The partner agreement promises a
+              monthly statement showing insurance and detailing separately —
+              showing only a net figure would make it unverifiable. */}
+          <StatementCard statement={s} />
+
+          {closed.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <TrendingUp className="h-5 w-5 text-primary" /> Monthly earnings
+                  <TrendingUp className="h-5 w-5 text-primary" /> Your net by month
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <BarChart
-                  data={e.monthly.map((m) => ({ label: m.month, value: m.amount }))}
+                  data={closed.map((h) => ({ label: h.period.slice(5), value: h.totals.net }))}
                   currency={cur}
                 />
               </CardContent>
@@ -235,6 +254,26 @@ function Applied({ data, isEarning }: { data: PartnerDashboard; isEarning: boole
         </>
       )}
 
+      {/* Programme membership, once they are in it. */}
+      {data.partner && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-5">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Programme status
+              </p>
+              <p className="mt-1 truncate font-semibold">
+                {data.partner.displayName} ·{' '}
+                <span className="capitalize text-muted-foreground">{data.partner.partnerType}</span>
+              </p>
+            </div>
+            <Badge tone={PARTNER_STATUS_META[data.partner.status].tone}>
+              {PARTNER_STATUS_META[data.partner.status].label}
+            </Badge>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Application status — always shown. Once earning it is history; before
           that it is the entire point of the page. */}
       <section>
@@ -249,6 +288,90 @@ function Applied({ data, isEarning }: { data: PartnerDashboard; isEarning: boole
       </section>
 
       <PartnerSupport />
+    </div>
+  );
+}
+
+/**
+ * The monthly statement, itemised.
+ *
+ * The management fee alone is not what a partner pays: fleet insurance and
+ * detailing are recurring monthly costs per vehicle, charged whether or not
+ * the car was rented. Showing only a net number would leave the agreement
+ * unverifiable, and would make an idle month look inexplicable.
+ */
+function StatementCard({ statement }: { statement: PartnerStatement }) {
+  const money = (v: number) => formatMoney({ amount: v, currency: statement.currency });
+  const t = statement.totals;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg">
+          <span className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" /> Statement · {statement.period}
+          </span>
+          <Badge tone={statement.final ? 'muted' : 'warning'}>
+            {statement.final ? 'Final' : 'In progress'}
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2.5 text-sm">
+        <Row label="Gross booking revenue" value={money(t.gross)} />
+        <Row
+          label={`Management fee (${statement.terms.managementFeeBps / 100}%)`}
+          value={`−${money(t.managementFee)}`}
+          muted
+        />
+        <Row label="Fleet insurance" value={`−${money(t.insurance)}`} muted />
+        <Row label="Professional detailing" value={`−${money(t.detailing)}`} muted />
+        <div className="border-t border-border pt-2.5">
+          <Row label="Your net" value={money(t.net)} strong />
+        </div>
+
+        {statement.lines.length > 1 && (
+          <div className="mt-4 space-y-2 border-t border-border pt-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Per vehicle
+            </p>
+            {statement.lines.map((l) => (
+              <Row key={l.vehicleId} label={l.label} value={money(l.net)} />
+            ))}
+          </div>
+        )}
+
+        <p className="pt-2 text-xs leading-relaxed text-muted-foreground">
+          Paid {formatDate(statement.payoutDate)} by {statement.payoutMethod}. Insurance and
+          detailing are charged monthly per vehicle while it is in the programme, whether or not it
+          was booked.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function Row({
+  label,
+  value,
+  strong,
+  muted,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  muted?: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <span className="text-muted-foreground">{label}</span>
+      <span
+        className={cn(
+          strong ? 'font-bold' : 'font-medium',
+          muted && 'text-muted-foreground',
+        )}
+      >
+        {value}
+      </span>
     </div>
   );
 }
@@ -275,8 +398,12 @@ function VehicleCard({ vehicle, currency }: { vehicle: PartnerVehicleSummary; cu
           <Badge tone={live ? 'success' : 'muted'}>{live ? 'Live' : vehicle.status.replace(/_/g, ' ')}</Badge>
         </div>
         <div className="flex items-baseline justify-between border-t border-border pt-3">
-          <span className="text-sm text-muted-foreground">Earned</span>
-          <span className="font-bold">{formatMoney({ amount: vehicle.revenue, currency })}</span>
+          <span className="text-sm text-muted-foreground">Your net this month</span>
+          <span className="font-bold">{formatMoney({ amount: vehicle.net, currency })}</span>
+        </div>
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm text-muted-foreground">Gross</span>
+          <span className="font-medium">{formatMoney({ amount: vehicle.gross, currency })}</span>
         </div>
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-muted-foreground">Trips</span>

@@ -65,6 +65,19 @@ router.put(
         })
         .optional(),
       commission: z.object({ defaultBps: bps.optional(), minBps: bps.optional(), maxBps: bps.optional() }).optional(),
+      // Asset Partner programme defaults. A management fee is only one of the
+      // three deductions — the other two are monthly per-vehicle costs.
+      assetPartner: z
+        .object({
+          managementFeeBps: bps.optional(),
+          insuranceMonthlyCents: z.number().int().min(0).optional(),
+          detailingMonthlyCents: z.number().int().min(0).optional(),
+          deductibleCapCents: z.number().int().min(0).optional(),
+          maintenanceApprovalCents: z.number().int().min(0).optional(),
+          payoutDayOfMonth: z.number().int().min(1).max(28).optional(),
+          payoutMethod: z.enum(['check', 'zelle']).optional(),
+        })
+        .optional(),
       // Charged to the guest on top; commission above comes out of host pay.
       serviceFee: z
         .object({ bps: bps.optional(), maxCents: z.number().int().min(0).optional() })

@@ -237,6 +237,18 @@ export const adminApi = {
   reviewAssetPartnerApplication: (id: string, decision: 'approved' | 'rejected', notes?: string) =>
     api.post(`/admin/asset-partner-applications/${id}/review`, { decision, notes }),
 
+  // The programme itself — members, lifecycle and negotiated terms. Separate
+  // from the intake queue above, and from hosts: a partner is paid a monthly
+  // net after a management fee, insurance and detailing, which no host is.
+  assetPartners: (q: Q = {}) => api.get<any[]>('/admin/asset-partners', q),
+  assetPartner: (id: string) => api.get<any>(`/admin/asset-partners/${id}`),
+  assetPartnerStatement: (id: string, period?: string) =>
+    api.get<any>(`/admin/asset-partners/${id}/statement`, period ? { period } : {}),
+  setAssetPartnerStatus: (id: string, status: string, reason?: string) =>
+    api.post(`/admin/asset-partners/${id}/status`, { status, reason }),
+  setAssetPartnerTerms: (id: string, terms: Record<string, number | string | undefined>) =>
+    api.patch(`/admin/asset-partners/${id}/terms`, terms),
+
   // Contact page leads — every inbound inquiry (asset partner, investor,
   // corporate, general) lands here so ops sees who's reaching out in one place.
   contactInquiries: (q: Q = {}) => api.get<any[]>('/admin/contact-inquiries', q),

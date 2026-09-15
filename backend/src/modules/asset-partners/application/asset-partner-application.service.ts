@@ -7,9 +7,12 @@ import type { CreateApplicationDto } from '../dto/asset-partner-application.sche
 import { UserModel } from '../../users/infrastructure/user.model';
 import { hostService } from '../../hosts/application/host.service';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
-import { earningsService } from '../../earnings/application/earnings.service';
-import { hostAnalyticsService } from '../../earnings/application/host-analytics.service';
-import { payoutService } from '../../payouts/application/payout.service';
+import { assetPartnerService } from './asset-partner.service';
+import {
+  assetPartnerStatementService,
+  type PartnerStatement,
+} from './asset-partner-statement.service';
+import type { AssetPartnerDoc } from '../infrastructure/asset-partner.model';
 import { NotFoundError, ConflictError } from '../../../core/errors/app-error';
 import { randomId } from '../../../shared/utils/uuid';
 import { logger } from '../../../infrastructure/logging/logger';
@@ -29,18 +32,28 @@ export interface PartnerVehicleSummary {
   status: string;
   photo?: string;
   trips: number;
-  /** Host earnings from this vehicle, in minor units. */
-  revenue: number;
+  /** Gross booking revenue this car produced this month, in minor units. */
+  gross: number;
+  /** Partner net for this car this month — gross less fee, insurance, detailing. */
+  net: number;
 }
 
 /** What the partner's own dashboard renders — see dashboardFor(). */
 export interface PartnerDashboard {
   applications: AssetPartnerApplicationDoc[];
-  partner: { approved: boolean; hostId?: string; hostVerified: boolean };
-  /** Absent until they hold a host account — nothing can have been earned yet. */
-  earnings?: Awaited<ReturnType<typeof earningsService.dashboard>>;
+  /** Programme membership. Absent until an application is approved. */
+  partner?: Pick<
+    AssetPartnerDoc,
+    '_id' | 'status' | 'partnerType' | 'displayName' | 'approvedAt' | 'activatedAt'
+  >;
+  /**
+   * This month so far, on PARTNER terms — gross less management fee, fleet
+   * insurance and detailing. Absent until they are in the programme.
+   */
+  currentStatement?: PartnerStatement;
+  /** Recent closed months, newest first — the earnings history. */
+  history?: PartnerStatement[];
   vehicles: PartnerVehicleSummary[];
-  nextPayout?: { amount: number; currency: string; scheduledFor: Date };
 }
 
 export class AssetPartnerApplicationService {
@@ -109,9 +122,9 @@ export class AssetPartnerApplicationService {
    * someone who applied first and registered afterwards — the common path —
    * could never see their own application again.
    *
-   * Earnings are only meaningful once they hold a host account, so everything
-   * past `applications` is optional and the page renders the stage they are
-   * actually at.
+   * Money is reported on PARTNER terms — gross less the management fee, fleet
+   * insurance and detailing — never host earnings, which omit the two
+   * recurring costs and would overstate what the partner actually receives.
    */
   async dashboardFor(userId: string): Promise<PartnerDashboard> {
     const user = await UserModel.findOne({ _id: userId, deletedAt: null }).lean();
@@ -126,21 +139,13 @@ export class AssetPartnerApplicationService {
       .sort({ createdAt: -1 })
       .lean<AssetPartnerApplicationDoc[]>();
 
-    const host = await hostService.getByUserId(userId);
-    const approved = applications.some((a) => a.status === 'approved');
+    const partner = await assetPartnerService.getByUserId(userId);
 
-    const partner = {
-      approved,
-      hostId: host?._id,
-      hostVerified: host?.verificationStatus === 'verified',
-    };
+    // Still an applicant. Nothing is owed, and reporting zeroed money here
+    // would read as "my car earned nothing" rather than "not started yet".
+    if (!partner) return { applications, vehicles: [] };
 
-    // No host account yet — they are still an applicant, and there is nothing
-    // to earn from. Returning empty here rather than zeroed money keeps the UI
-    // honest: "not started" is not the same as "$0 earned".
-    if (!host) return { applications, partner, vehicles: [] };
-
-    const vehicles = await VehicleModel.find({ hostId: host._id })
+    const vehicles = await VehicleModel.find({ assetPartnerId: partner._id })
       .select('_id year make model trim status photos')
       .lean<
         {
@@ -154,24 +159,27 @@ export class AssetPartnerApplicationService {
         }[]
       >();
 
-    const [earnings, revenue, payouts] = await Promise.all([
-      earningsService.dashboard(host._id),
-      hostAnalyticsService.perVehicleRevenue(vehicles.map((v) => v._id)),
-      payoutService.listForHost(host._id),
+    const [currentStatement, history] = await Promise.all([
+      assetPartnerStatementService.statement(partner),
+      assetPartnerStatementService.history(partner, 6),
     ]);
 
-    const byVehicle = new Map(revenue.map((r) => [r._id, r]));
-
-    // The soonest scheduled payout — "when do I get paid" is the question a
-    // passive owner opens this page to answer.
-    const nextPayout = payouts
-      .filter((p) => p.status === 'scheduled')
-      .sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime())[0];
+    // Per-vehicle figures come off the same statement the totals do, so a car's
+    // row can never disagree with the month it belongs to.
+    const byVehicle = new Map(currentStatement.lines.map((l) => [l.vehicleId, l]));
 
     return {
       applications,
-      partner,
-      earnings,
+      partner: {
+        _id: partner._id,
+        status: partner.status,
+        partnerType: partner.partnerType,
+        displayName: partner.displayName,
+        approvedAt: partner.approvedAt,
+        activatedAt: partner.activatedAt,
+      },
+      currentStatement,
+      history,
       vehicles: vehicles.map((v) => ({
         _id: v._id,
         year: v.year,
@@ -181,15 +189,10 @@ export class AssetPartnerApplicationService {
         status: v.status,
         photo: (v.photos ?? []).find((p) => p.isCover)?.url ?? v.photos?.[0]?.url,
         trips: byVehicle.get(v._id)?.trips ?? 0,
-        revenue: byVehicle.get(v._id)?.revenue ?? 0,
+        /** Partner net for this vehicle this month, not host earnings. */
+        net: byVehicle.get(v._id)?.net ?? 0,
+        gross: byVehicle.get(v._id)?.gross ?? 0,
       })),
-      nextPayout: nextPayout
-        ? {
-            amount: nextPayout.amount,
-            currency: nextPayout.currency,
-            scheduledFor: nextPayout.scheduledFor,
-          }
-        : undefined,
     };
   }
 
@@ -247,6 +250,14 @@ export class AssetPartnerApplicationService {
     if (decision === 'approved') {
       const user = await UserModel.findOne({ email: app.email, deletedAt: null }).lean();
       if (user) {
+        /*
+         * The Host record is marketplace plumbing — the seller identity a
+         * Vehicle hangs off so partner cars are bookable like any other car.
+         * Programme membership is the AssetPartner record: its own lifecycle
+         * (onboarding → active → suspended → exited) and its own commercial
+         * terms. host.verificationStatus used to carry both jobs and could
+         * express neither.
+         */
         let host = await hostService.getByUserId(user._id);
         if (!host) {
           host = await hostService.onboard(user._id, app.businessName || app.fullName);
@@ -255,6 +266,17 @@ export class AssetPartnerApplicationService {
           await hostService.setVerification(host._id, 'verified');
         }
         hostVerified = true;
+
+        await assetPartnerService.enrol({
+          userId: user._id,
+          hostId: host._id,
+          applicationId: app._id,
+          partnerType: app.partnerType,
+          displayName: app.businessName || app.fullName,
+          businessName: app.businessName,
+          email: app.email,
+          phone: app.phone,
+        });
       }
     }
 

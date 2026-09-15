@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Users, BadgeCheck, Car, CalendarCheck, ShieldAlert, LifeBuoy,
   ScanFace, Flag, ScrollText, LayoutGrid, Shield, Percent, SlidersHorizontal, TrendingUp, Star, Layers, Building2, Banknote, Route,
+  ClipboardCheck, Handshake,
 } from 'lucide-react';
 import { PanelSidebar, type PanelNavItem } from '@/components/layout/panel-sidebar';
 import { adminApi, type AdminNavItem } from '@/features/admin/api';
@@ -32,6 +33,10 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   reviews: Star,
   trips: Route,
   audit: ScrollText,
+  // The intake queue vs the programme itself — distinct icons, because they
+  // sit next to each other and are different jobs.
+  'asset-partners': ClipboardCheck,
+  partners: Handshake,
 };
 
 export function AdminSidebar() {
