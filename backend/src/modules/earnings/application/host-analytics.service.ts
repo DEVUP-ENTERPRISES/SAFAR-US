@@ -66,7 +66,14 @@ export class HostAnalyticsService {
   }
 
   /** Revenue + trip count per vehicle, from bookings that generated income. */
-  private async perVehicleRevenue(
+  /**
+   * Host earnings and trip count per vehicle.
+   *
+   * Public because the Asset Partner dashboard answers the same question for a
+   * passive owner ("what is each of my cars actually earning"). One aggregate,
+   * not two that can disagree.
+   */
+  async perVehicleRevenue(
     vehicleIds: string[],
   ): Promise<{ _id: string; trips: number; revenue: number }[]> {
     if (vehicleIds.length === 0) return [];

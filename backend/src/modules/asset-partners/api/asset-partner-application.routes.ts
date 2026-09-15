@@ -2,10 +2,10 @@ import { Router } from 'express';
 import { assetPartnerApplicationService } from '../application/asset-partner-application.service';
 import { createApplicationSchema } from '../dto/asset-partner-application.schemas';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
-import { authenticateOptional } from '../../../shared/middleware/authenticate';
+import { authenticate, authenticateOptional } from '../../../shared/middleware/authenticate';
 import { authLimiter } from '../../../shared/middleware/auth-rate-limit';
 import { validate } from '../../../shared/middleware/validate';
-import { sendCreated } from '../../../shared/http/api-response';
+import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 
@@ -28,6 +28,22 @@ router.post(
       userAgent: req.header('user-agent'),
     });
     sendCreated(res, { reference: app.reference, status: app.status });
+  }),
+);
+
+/**
+ * The partner's own dashboard: their applications and, once they hold a host
+ * account, what their cars are earning.
+ *
+ * Before this, an applicant got a reference number on submit and then had no
+ * way to ever see the application again — the only view of it was the admin
+ * queue. Signed in, because it returns their own personal and earnings data.
+ */
+router.get(
+  '/asset-partners/dashboard',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerApplicationService.dashboardFor(req.principal!.userId));
   }),
 );
 

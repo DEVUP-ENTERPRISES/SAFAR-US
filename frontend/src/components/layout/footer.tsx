@@ -18,6 +18,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     title: 'Hosting',
     links: [
       { label: 'Asset Partners', href: '/asset-partners' },
+      { label: 'Partner dashboard', href: '/asset-partners/dashboard' },
       { label: 'Become a host', href: '/host' },
       { label: 'List your car', href: '/host/listings/new' },
       { label: 'Host earnings', href: '/host/earnings' },

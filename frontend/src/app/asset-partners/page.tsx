@@ -126,6 +126,16 @@ export default function AssetPartnersPage() {
               </a>
             </div>
           </Reveal>
+          {/* Returning partners land on this page too — give them the way back
+              to their own application and earnings rather than only a pitch. */}
+          <Reveal delay={300}>
+            <Link
+              href="/asset-partners/dashboard"
+              className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary-soft hover:underline"
+            >
+              Already applied? Track your application <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </Reveal>
         </div>
       </section>
 

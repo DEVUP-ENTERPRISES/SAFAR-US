@@ -196,9 +196,20 @@ export default function AssetPartnerApplyPage() {
             business days to schedule your vehicle assessment.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Questions in the meantime? Email <a href="mailto:partners@catodrive.com" className="font-medium text-primary underline">partners@catodrive.com</a>.
+            Questions in the meantime? Email <a href="mailto:shoaib@catodrive.com" className="font-medium text-primary underline">shoaib@catodrive.com</a>{' '}
+            or call <a href="tel:+12148140402" className="font-medium text-primary underline">(214) 814-0402</a>.
           </p>
           <p className="numeric mt-6 text-lg font-bold text-primary">Reference: {reference}</p>
+          {/* Somewhere to actually go next. Without this the reference number
+              was the only trace of the application the applicant ever saw. */}
+          <Link href="/asset-partners/dashboard" className="mt-8 inline-block">
+            <Button size="lg" className="rounded-xl">
+              Track your application <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Sign in with this email to follow your application and, once you’re live, your earnings.
+          </p>
           <Link href="/asset-partners" className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> Back to Asset Partners
           </Link>

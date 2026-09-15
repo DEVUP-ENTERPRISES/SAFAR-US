@@ -92,6 +92,64 @@ describe('asset partner application', () => {
     await expect(assetPartnerApplicationService.review(app._id, ADMIN, 'rejected')).rejects.toThrow();
   });
 
+  describe('partner dashboard', () => {
+    /*
+     * The intake form is public and never asks for a password, so the common
+     * path is: apply while signed out, register afterwards. Matching only on
+     * submittedByUserId would leave that person permanently unable to see the
+     * application they just filed.
+     */
+    it('finds an application submitted before the applicant had an account', async () => {
+      await assetPartnerApplicationService.create(baseDto(), {}); // signed out
+      const user = await UserModel.create({ email: 'jordan@example.com', roles: ['guest'] });
+
+      const dash = await assetPartnerApplicationService.dashboardFor(user._id);
+      expect(dash.applications).toHaveLength(1);
+      expect(dash.applications[0].email).toBe('jordan@example.com');
+    });
+
+    it('finds an application submitted while signed in, whatever email was typed', async () => {
+      const user = await UserModel.create({ email: 'work@example.com', roles: ['guest'] });
+      await assetPartnerApplicationService.create(baseDto({ email: 'personal@example.com' }), {
+        userId: user._id,
+      });
+
+      const dash = await assetPartnerApplicationService.dashboardFor(user._id);
+      expect(dash.applications).toHaveLength(1);
+    });
+
+    it('never returns someone else’s application', async () => {
+      await assetPartnerApplicationService.create(baseDto(), {});
+      const other = await UserModel.create({ email: 'someone.else@example.com', roles: ['guest'] });
+
+      const dash = await assetPartnerApplicationService.dashboardFor(other._id);
+      expect(dash.applications).toHaveLength(0);
+      expect(dash.partner.approved).toBe(false);
+    });
+
+    // "Not started" is not "$0 earned" — reporting zeroed money to an applicant
+    // who has no host account yet would read as "my car earned nothing".
+    it('reports no earnings at all until a host account exists', async () => {
+      await assetPartnerApplicationService.create(baseDto(), {});
+      const user = await UserModel.create({ email: 'jordan@example.com', roles: ['guest'] });
+
+      const dash = await assetPartnerApplicationService.dashboardFor(user._id);
+      expect(dash.earnings).toBeUndefined();
+      expect(dash.vehicles).toEqual([]);
+    });
+
+    it('reflects approval once the application is approved', async () => {
+      const user = await UserModel.create({ email: 'jordan@example.com', roles: ['guest'] });
+      const app = await assetPartnerApplicationService.create(baseDto(), {});
+      await assetPartnerApplicationService.review(app._id, ADMIN, 'approved');
+
+      const dash = await assetPartnerApplicationService.dashboardFor(user._id);
+      expect(dash.partner.approved).toBe(true);
+      expect(dash.partner.hostVerified).toBe(true);
+      expect(dash.earnings).toBeDefined();
+    });
+  });
+
   afterEach(async () => {
     await AssetPartnerApplicationModel.deleteMany({});
     await UserModel.deleteMany({});
