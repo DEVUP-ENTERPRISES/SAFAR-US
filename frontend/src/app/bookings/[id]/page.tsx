@@ -32,6 +32,7 @@ import { ApiError } from '@/lib/api/types';
 const STATE: Record<string, { tone: 'success' | 'warning' | 'destructive' | 'muted' | 'default'; label: string; detail: string }> = {
   pending_approval: { tone: 'warning', label: 'Waiting on the host', detail: 'The host is reviewing your request. You haven’t been charged yet.' },
   pending_verification: { tone: 'warning', label: 'Verifying your identity', detail: 'We’re confirming your licence. Your card is authorised but not charged.' },
+  pending_payment: { tone: 'warning', label: 'Payment incomplete', detail: 'Your dates are held but the payment didn’t finish. This trip isn’t confirmed until it does.' },
   paid: { tone: 'success', label: 'Confirmed', detail: 'You’re booked. The host will meet you at pickup.' },
   confirmed: { tone: 'success', label: 'Confirmed', detail: 'You’re booked. The host will meet you at pickup.' },
   in_progress: { tone: 'default', label: 'Trip in progress', detail: 'Enjoy the drive — return it on time to avoid late fees.' },
@@ -43,8 +44,8 @@ const STATE: Record<string, { tone: 'success' | 'warning' | 'destructive' | 'mut
   cancelled_system: { tone: 'muted', label: 'Cancelled', detail: 'This booking was cancelled.' },
 };
 
-const CANCELLABLE = ['pending_approval', 'pending_verification', 'confirmed', 'paid'];
-const CHATTABLE = ['pending_approval', 'pending_verification', 'confirmed', 'paid', 'in_progress', 'completed'];
+const CANCELLABLE = ['pending_approval', 'pending_verification', 'pending_payment', 'confirmed', 'paid'];
+const CHATTABLE = ['pending_approval', 'pending_verification', 'pending_payment', 'confirmed', 'paid', 'in_progress', 'completed'];
 
 function BookingDetail({ id }: { id: string }) {
   const qc = useQueryClient();
@@ -83,11 +84,19 @@ function BookingDetail({ id }: { id: string }) {
   });
 
   if (booking.isLoading) {
-    return <div className="mx-auto max-w-3xl space-y-4 py-6"><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>;
+    return (
+      <div className="mx-auto max-w-6xl space-y-6 py-6">
+        <Skeleton className="h-52 w-full rounded-2xl" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2"><Skeleton className="h-64 w-full rounded-2xl" /></div>
+          <Skeleton className="h-72 w-full rounded-2xl" />
+        </div>
+      </div>
+    );
   }
   if (booking.isError || !booking.data) {
     return (
-      <div className="mx-auto max-w-3xl py-6">
+      <div className="mx-auto max-w-6xl py-6">
         <ErrorState message="We couldn’t find that booking." />
         <Link href="/bookings" className="mt-4 inline-block text-sm font-medium text-primary underline">Back to my trips</Link>
       </div>
@@ -114,151 +123,199 @@ function BookingDetail({ id }: { id: string }) {
     if (ok && reason) cancel.mutate(reason);
   };
 
+  const p = b.priceBreakdown;
+
   return (
-    <div className="mx-auto max-w-3xl space-y-5 py-6 pb-24">
-      <Link href="/bookings" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+    /*
+      Two columns from lg, one below.
+
+      This was a single max-w-3xl stack of identically-weighted cards: on a
+      laptop it read as a narrow ribbon with dead space either side, and the
+      status, the car and the price all carried the same visual weight, so
+      nothing answered "what is happening with my trip" at a glance.
+
+      Now the summary leads, and what the guest can DO about it (pay, cancel,
+      get help) stays in a sticky rail rather than being buried under the chat.
+    */
+    <div className="mx-auto max-w-6xl space-y-6 py-6 pb-24">
+      <Link href="/bookings" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> My trips
       </Link>
 
-      {/* The approach — who has set off, live map, and how to find the car.
-          This is the screen a guest is actually on in the half hour before
-          pickup, which is why it sits above everything else. The panel hides
-          itself outside the window. */}
-      <TrackingPanel bookingId={id} role="guest" />
-
-      {/* "When do I get my $500 back" — the most common post-trip question in
-          this category, previously answerable only by an API nobody called. */}
-      {/* The handover moment. Shown only once the booking is actually
-          collectable — a code on a pending request means nothing. */}
-      {['paid', 'confirmed', 'in_progress'].includes(String(b.status)) && <PickupCode bookingId={id} />}
-
-      <DepositStatus bookingId={id} />
-
-      {/* Post-trip charges, itemised and disputable. Previously a guest saw
-          only a notification that money had been taken. */}
-      {(b.incidentals?.length ?? 0) > 0 && (
-        <IncidentalCharges
-          bookingId={id}
-          items={b.incidentals!}
-          currency={b.priceBreakdown?.currency ?? 'USD'}
-        />
-      )}
-
-      {/* Status first — the question the guest opened this page to answer. */}
-      <Card>
-        <CardContent className="py-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <Badge tone={state.tone}>{state.label}</Badge>
-              <p className="mt-2 text-sm text-muted-foreground">{state.detail}</p>
-            </div>
-            <span className="font-mono text-xs text-muted-foreground">{b.code}</span>
+      {/* ── Summary: status, car and dates in one glance ───────────────── */}
+      <Card className="overflow-hidden">
+        <div className="grid gap-0 sm:grid-cols-[minmax(0,260px)_1fr]">
+          <div className="relative h-44 w-full bg-muted sm:h-full sm:min-h-[200px]">
+            {v?.photos?.[0]?.url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={v.photos[0].url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <div className="absolute inset-0 grid place-items-center text-muted-foreground">
+                <Car className="h-8 w-8" />
+              </div>
+            )}
           </div>
 
-          {b.status === 'cancelled_host' && (
-            <Button className="mt-4" onClick={() => router.push(`/bookings/${id}/rebook`)}>
-              Find a replacement car
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+          <div className="min-w-0 p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Badge tone={state.tone}>{state.label}</Badge>
+              <span className="font-mono text-xs text-muted-foreground">{b.code}</span>
+            </div>
 
-      {/* The car */}
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Car className="h-5 w-5 text-primary" /> Your car</CardTitle></CardHeader>
-        <CardContent className="flex gap-4">
-          {v?.photos?.[0]?.url ? (
-            <img src={v.photos[0].url} alt="" className="h-24 w-32 shrink-0 rounded-xl object-cover" />
-          ) : (
-            <div className="h-24 w-32 shrink-0 rounded-xl bg-muted" />
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold">{v ? `${v.year} ${v.make} ${v.model}` : 'Loading…'}</p>
+            <h1 className="display mt-3 truncate text-2xl">
+              {v ? `${v.year} ${v.make} ${v.model}` : 'Loading…'}
+            </h1>
             {v?.location?.city && (
-              <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" /> {v.location.city}
+              <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5 shrink-0" /> {v.location.city}
               </p>
             )}
-            <Link href={`/vehicles/${b.vehicleId}`} className="mt-2 inline-block text-sm font-medium text-primary hover:underline">
-              View listing
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* When + where */}
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Calendar className="h-5 w-5 text-primary" /> Trip details</CardTitle></CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <Row label="Pick-up" value={formatDate(b.period.start)} />
-          <Row label="Return" value={formatDate(b.period.end)} />
-          {b.delivery?.address && <Row label="Delivered to" value={b.delivery.address} />}
-          {b.additionalDrivers?.length ? (
-            <Row label="Additional drivers" value={b.additionalDrivers.map((d: { name: string }) => d.name).join(', ')} />
-          ) : null}
-        </CardContent>
-      </Card>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{state.detail}</p>
 
-      {/* What it cost */}
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Receipt className="h-5 w-5 text-primary" /> Payment</CardTitle></CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <Row label="Trip total" value={formatMoney(b.priceBreakdown.total)} strong />
-          <div className="pt-2">
-            <Button variant="outline" size="sm" onClick={() => router.push(`/bookings/${id}/receipt`)}>
-              View full receipt
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* The close-out promise, in a date. */}
-      {b.status === 'completed' && settlement.data && (
-        <Card className={settlement.data.closed ? 'border-success/40 bg-success/5' : undefined}>
-          <CardContent className="flex items-start gap-3 py-5">
-            <Lock className={cn('mt-0.5 h-5 w-5 shrink-0', settlement.data.closed ? 'text-success' : 'text-muted-foreground')} />
-            <div>
-              <p className="font-semibold">
-                {settlement.data.closed
-                  ? 'This trip is closed'
-                  : settlement.data.openClaims > 0
-                    ? 'A claim is being reviewed'
-                    : 'Final checks'}
-              </p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {settlement.data.closed
-                  ? 'No further charges can be made for this trip. You’re done.'
-                  : settlement.data.openClaims > 0
-                    ? 'We’ll let you know the outcome. Nothing is charged until it’s resolved.'
-                    : `Your host has ${settlement.data.hoursRemaining}h left to report any damage. After that, this trip can’t be charged again.`}
-              </p>
+            {/* The two dates that define the trip, given equal billing. */}
+            <div className="mt-5 grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+              <DateBlock label="Pick-up" value={formatDate(b.period.start)} />
+              <DateBlock label="Return" value={formatDate(b.period.end)} />
             </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Talk to the host — the thing that was missing entirely. */}
-      {canChat && (
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><MessageSquare className="h-5 w-5 text-primary" /> Message your host</CardTitle></CardHeader>
-          <CardContent><ChatPanel bookingId={id} /></CardContent>
-        </Card>
-      )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href={`/vehicles/${b.vehicleId}`}>
+                <Button variant="outline" size="sm">View listing</Button>
+              </Link>
+              {b.status === 'cancelled_host' && (
+                <Button size="sm" onClick={() => router.push(`/bookings/${id}/rebook`)}>
+                  Find a replacement car
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </Card>
 
-      {/* Actions */}
-      <div className="flex flex-wrap gap-3">
-        {b.tripId && (b.status === 'in_progress' || b.status === 'paid' || b.status === 'confirmed') && (
-          <Button onClick={() => router.push(`/trips/${b.tripId}`)}>
-            <ShieldCheck className="h-4 w-4" /> Go to trip
-          </Button>
-        )}
-        {canCancel && (
-          <Button variant="outline" loading={cancel.isPending} onClick={onCancel}>
-            <XCircle className="h-4 w-4" /> Cancel trip
-          </Button>
-        )}
-        <Button variant="outline" onClick={() => router.push('/support')}>Get help</Button>
+      {/* Time-critical and full width: this is the screen a guest is actually
+          on in the half hour before pickup. Both hide themselves outside
+          their window. */}
+      <TrackingPanel bookingId={id} role="guest" />
+      {['paid', 'confirmed', 'in_progress'].includes(String(b.status)) && <PickupCode bookingId={id} />}
+
+      <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+        {/* ── Main column ──────────────────────────────────────────────── */}
+        <div className="space-y-6 lg:col-span-2">
+          <DepositStatus bookingId={id} />
+
+          {/* Post-trip charges, itemised and disputable. */}
+          {(b.incidentals?.length ?? 0) > 0 && (
+            <IncidentalCharges
+              bookingId={id}
+              items={b.incidentals!}
+              currency={b.priceBreakdown?.currency ?? 'USD'}
+            />
+          )}
+
+          {/* Only the details the summary above does not already carry. */}
+          {(b.delivery?.address || b.additionalDrivers?.length) && (
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Calendar className="h-5 w-5 text-primary" /> Trip details</CardTitle></CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {b.delivery?.address && <Row label="Delivered to" value={b.delivery.address} />}
+                {b.additionalDrivers?.length ? (
+                  <Row label="Additional drivers" value={b.additionalDrivers.map((d: { name: string }) => d.name).join(', ')} />
+                ) : null}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* The close-out promise, in a date. */}
+          {b.status === 'completed' && settlement.data && (
+            <Card className={settlement.data.closed ? 'border-success/40 bg-success/5' : undefined}>
+              <CardContent className="flex items-start gap-3 py-5">
+                <Lock className={cn('mt-0.5 h-5 w-5 shrink-0', settlement.data.closed ? 'text-success' : 'text-muted-foreground')} />
+                <div>
+                  <p className="font-semibold">
+                    {settlement.data.closed
+                      ? 'This trip is closed'
+                      : settlement.data.openClaims > 0
+                        ? 'A claim is being reviewed'
+                        : 'Final checks'}
+                  </p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {settlement.data.closed
+                      ? 'No further charges can be made for this trip. You’re done.'
+                      : settlement.data.openClaims > 0
+                        ? 'We’ll let you know the outcome. Nothing is charged until it’s resolved.'
+                        : `Your host has ${settlement.data.hoursRemaining}h left to report any damage. After that, this trip can’t be charged again.`}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {canChat && (
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><MessageSquare className="h-5 w-5 text-primary" /> Message your host</CardTitle></CardHeader>
+              <CardContent><ChatPanel bookingId={id} /></CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* ── Rail: what it cost, and what you can do ──────────────────── */}
+        <aside className="space-y-4 lg:sticky lg:top-24">
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Receipt className="h-5 w-5 text-primary" /> Payment</CardTitle></CardHeader>
+            <CardContent className="space-y-2.5 text-sm">
+              <Row label={`${p.days} ${p.days === 1 ? 'day' : 'days'}`} value={formatMoney(p.base)} />
+              {p.cleaningFee?.amount > 0 && <Row label="Cleaning" value={formatMoney(p.cleaningFee)} />}
+              {p.delivery?.amount > 0 && <Row label="Delivery" value={formatMoney(p.delivery)} />}
+              {p.addOnsTotal?.amount > 0 && <Row label="Extras" value={formatMoney(p.addOnsTotal)} />}
+              {p.protection?.amount > 0 && <Row label="Protection" value={formatMoney(p.protection)} />}
+              {p.serviceFee?.amount > 0 && <Row label="Service fee" value={formatMoney(p.serviceFee)} />}
+              {p.discount?.amount > 0 && <Row label="Discount" value={`−${formatMoney(p.discount)}`} />}
+              <div className="border-t border-border pt-2.5">
+                <Row label="Total" value={formatMoney(p.total)} strong />
+              </div>
+              <Button variant="outline" size="sm" className="mt-1 w-full" onClick={() => router.push(`/bookings/${id}/receipt`)}>
+                View full receipt
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Full-width stacked buttons, not a wrapping row — these were the
+              last thing on a long page and easy to miss entirely. */}
+          <Card>
+            <CardContent className="space-y-2 py-5">
+              {b.tripId && (b.status === 'in_progress' || b.status === 'paid' || b.status === 'confirmed') && (
+                <Button className="w-full" onClick={() => router.push(`/trips/${b.tripId}`)}>
+                  <ShieldCheck className="h-4 w-4" /> Go to trip
+                </Button>
+              )}
+              <Button variant="outline" className="w-full" onClick={() => router.push('/support')}>
+                Get help
+              </Button>
+              {canCancel && (
+                <Button
+                  variant="outline"
+                  className="w-full text-destructive hover:text-destructive"
+                  loading={cancel.isPending}
+                  onClick={onCancel}
+                >
+                  <XCircle className="h-4 w-4" /> Cancel trip
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </aside>
       </div>
+    </div>
+  );
+}
+
+/** A labelled date, sized so pick-up and return read as a pair. */
+function DateBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-0.5 font-semibold">{value}</p>
     </div>
   );
 }
