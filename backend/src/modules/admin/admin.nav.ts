@@ -29,6 +29,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'dashboard', path: A(), apiPath: '/admin/metrics', label: 'Dashboard', group: 'Overview', permission: 'admin:read' },
   { slug: 'analytics', path: A('analytics'), apiPath: '/admin/analytics', label: 'Analytics', group: 'Overview', permission: 'analytics:read' },
 
+  // Asset Partners is CATO's primary acquisition path — listed first.
+  { slug: 'asset-partners', path: A('asset-partners'), apiPath: '/admin/asset-partner-applications', label: 'Asset Partner Applications', group: 'People', permission: 'admin:read' },
   { slug: 'users', path: A('users'), apiPath: '/admin/users', label: 'User Management', group: 'People', permission: 'admin:read' },
   { slug: 'kyc', path: A('kyc'), apiPath: '/admin/kyc', label: 'KYC Review', group: 'People', permission: 'kyc:review' },
   { slug: 'hosts', path: A('hosts'), apiPath: '/admin/hosts', label: 'Host Management', group: 'People', permission: 'admin:read' },

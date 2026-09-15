@@ -227,6 +227,14 @@ export const adminApi = {
   setHostVerification: (id: string, status: string) =>
     api.post(`/admin/hosts/${id}/verification`, { status }),
 
+  // Asset Partner applications — the primary acquisition intake. Approving is
+  // the gate: the reviewed applicant's host account is verified so
+  // vehicle.service will let them list a car.
+  assetPartnerApplications: (q: Q = {}) => api.get<any[]>('/admin/asset-partner-applications', q),
+  assetPartnerApplication: (id: string) => api.get<any>(`/admin/asset-partner-applications/${id}`),
+  reviewAssetPartnerApplication: (id: string, decision: 'approved' | 'rejected', notes?: string) =>
+    api.post(`/admin/asset-partner-applications/${id}/review`, { decision, notes }),
+
   vehicles: (q: Q = {}) => api.get<any[]>('/admin/vehicles', q),
   vehicleAction: (id: string, action: 'approve' | 'suspend' | 'reject') =>
     api.post(`/admin/vehicles/${id}/action`, { action }),

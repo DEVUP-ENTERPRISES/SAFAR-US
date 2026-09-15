@@ -21,6 +21,7 @@ import { navAdminRoutes } from './api/nav.admin.routes';
 import { oversightAdminRoutes } from './api/oversight.admin.routes';
 import { platformConfigAdminRoutes } from '../platform-config/api/platform-config.admin.routes';
 import { growthAdminRoutes } from '../platform-config/api/growth.admin.routes';
+import { assetPartnerApplicationAdminRoutes } from '../asset-partners/api/asset-partner-application.admin.routes';
 
 /**
  * Admin BFF. A single base gate (authenticated + admin:read) protects the
@@ -50,6 +51,7 @@ export function buildAdminRouter(): Router {
   admin.use(metricsAdminRoutes);
   admin.use(usersAdminRoutes);
   admin.use(hostsAdminRoutes);
+  admin.use(assetPartnerApplicationAdminRoutes);
   admin.use(vehiclesAdminRoutes);
   admin.use(bookingsAdminRoutes);
   admin.use(claimsAdminRoutes);

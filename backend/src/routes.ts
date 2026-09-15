@@ -37,6 +37,7 @@ import { mapsRoutes } from './modules/maps/api/maps.routes';
 import { corporateRoutes } from './modules/corporate/api/corporate.routes';
 import { rewardsRoutes } from './modules/rewards/api/rewards.routes';
 import { referralRoutes } from './modules/referral/api/referral.routes';
+import { assetPartnerApplicationRoutes } from './modules/asset-partners/api/asset-partner-application.routes';
 
 /**
  * Mounts every module's router under the versioned API prefix.
@@ -65,6 +66,7 @@ export function buildApiRouter(): Router {
   // Mounted at the root: it serves both /trust/me and /admin/risk/*.
   api.use('/', riskRoutes);
   api.use('/', complianceRoutes);
+  api.use('/', assetPartnerApplicationRoutes);
   api.use('/saved-searches', savedSearchRoutes);
   api.use('/documents', documentsRoutes);
   api.use('/earnings', earningsRoutes);

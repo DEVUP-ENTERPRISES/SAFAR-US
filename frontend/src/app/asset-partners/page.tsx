@@ -17,10 +17,9 @@ import { SectionEyebrow, CountUp, BRAND } from '@/features/marketing/sections';
  * and Corporate/Fleet remain as v2/v3 surfaces, unchanged by this page.
  *
  * All figures are business-supplied (owner economics, fleet revenue, vehicle
- * tiers, testimonials) — confirm before each campaign. "Apply Now" currently
- * routes into the existing host-onboarding flow (the real mechanism today:
- * register → admin approval → list a vehicle); swap to a dedicated Asset
- * Partner application once that flow is designed.
+ * tiers, testimonials) — confirm before each campaign. "Apply Now" routes to
+ * the dedicated Asset Partner intake form (/asset-partners/apply), which
+ * submits a real application for admin review.
  */
 
 const STATS = [
@@ -118,7 +117,7 @@ export default function AssetPartnersPage() {
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-10 flex flex-wrap gap-3">
-              <Link href="/host" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
+              <Link href="/asset-partners/apply" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
                 Apply Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <a href="#numbers" className="inline-flex h-14 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-7 py-3.5 text-base font-bold text-white backdrop-blur transition-colors hover:bg-white/10">
@@ -371,7 +370,7 @@ export default function AssetPartnersPage() {
                 List the vehicle you already own — {BRAND} does the rest.
               </p>
               <div className="mt-9 flex flex-wrap justify-center gap-3">
-                <Link href="/host" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
+                <Link href="/asset-partners/apply" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
                   Apply Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
