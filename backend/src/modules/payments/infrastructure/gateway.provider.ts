@@ -16,4 +16,11 @@ export const paymentGateway: PaymentGateway = stripe ?? new MockGateway();
 /** Concrete Stripe instance for webhook signature verification (null in dev). */
 export const stripeGateway = stripe;
 
-logger.info(`Payment gateway: ${config.stripe.enabled ? 'Stripe (live)' : 'Mock (dev)'}`);
+// Loud, because the mock confirms every booking without charging a card. An
+// info line here is indistinguishable from healthy boot noise, and "why did
+// that booking confirm without payment?" is the question it should answer.
+if (config.stripe.enabled) {
+  logger.info('Payment gateway: Stripe');
+} else {
+  logger.warn('Payment gateway: MOCK — no STRIPE_SECRET_KEY. Every booking will confirm WITHOUT charging a card.');
+}

@@ -236,7 +236,13 @@ export const envSchemaWithProdGuards = envSchema.superRefine((env, ctx) => {
   //    authoritative source of payment status, and without the signing secret
   //    it cannot be verified — a forged POST could mark a booking paid. If the
   //    secret key is present in production, the webhook secret must be too.
-  if (env.STRIPE_SECRET_KEY) {
+  //    No key at all is the worst case of the same failure: the gateway falls
+  //    back to MockGateway, which returns `succeeded` for every intent without
+  //    contacting a card. Production would confirm real trips having charged
+  //    nobody, and nothing in the logs would look wrong.
+  if (!env.STRIPE_SECRET_KEY) {
+    fail('STRIPE_SECRET_KEY', 'required in production — without it payments fall back to the mock gateway, which confirms every booking without charging a card');
+  } else {
     if (!env.STRIPE_WEBHOOK_SECRET) {
       fail('STRIPE_WEBHOOK_SECRET', 'required when STRIPE_SECRET_KEY is set — unverified webhooks let anyone mark a booking paid');
     }
@@ -244,8 +250,13 @@ export const envSchemaWithProdGuards = envSchema.superRefine((env, ctx) => {
       fail('STRIPE_SECRET_KEY', 'looks like a placeholder');
     }
     // A test key in production takes real bookings that never charge a card.
-    if (env.STRIPE_SECRET_KEY.startsWith('sk_test_')) {
-      fail('STRIPE_SECRET_KEY', 'is a TEST key — production must use a live key (sk_live_)');
+    // Restricted keys (rk_) are as valid as secret keys (sk_) and were missed
+    // by a check that only looked for sk_test_, so a test key could ship.
+    if (/^(sk|rk)_test_/.test(env.STRIPE_SECRET_KEY)) {
+      fail('STRIPE_SECRET_KEY', 'is a TEST key — production must use a live key (sk_live_ or rk_live_)');
+    }
+    if (!/^(sk|rk)_live_/.test(env.STRIPE_SECRET_KEY)) {
+      fail('STRIPE_SECRET_KEY', 'must be a live Stripe key (sk_live_ or rk_live_)');
     }
   }
 

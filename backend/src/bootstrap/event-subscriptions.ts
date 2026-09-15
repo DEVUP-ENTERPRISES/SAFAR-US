@@ -54,16 +54,49 @@ export function registerEventSubscribers(): void {
   };
 
   eventBus.subscribe(EVENTS.BOOKING_CREATED, async (e) => {
-    const p = e.payload as { bookingId: string; guestId: string; hostId: string; instantBook: boolean };
-    await notificationService.send({
-      userId: p.guestId,
-      priority: 'high',
-      deepLink: `/bookings/${p.bookingId}`,
-      templateKey: 'booking.created',
-      title: 'Booking requested',
-      body: p.instantBook ? 'Your booking is confirmed!' : 'Waiting for host approval.',
-      data: { bookingId: p.bookingId },
-    });
+    const p = e.payload as {
+      bookingId: string;
+      guestId: string;
+      hostId: string;
+      instantBook: boolean;
+      status: string;
+    };
+
+    /*
+     * What the guest is told must match what the booking actually is.
+     *
+     * This branched on `instantBook` — a property of the listing, not of the
+     * booking — so a trip left at pending_verification with a card that never
+     * cleared still told the guest "Your booking is confirmed!". A guest who
+     * believes that shows up at an airport for a car nobody is bringing.
+     *
+     * A genuinely paid booking is announced by BOOKING_CONFIRMED, which fires
+     * immediately after this one. Saying it here too would be both duplicated
+     * and, whenever the money had not moved, false — so this stays quiet.
+     */
+    const GUEST_MESSAGE: Record<string, { title: string; body: string }> = {
+      pending_approval: { title: 'Booking requested', body: 'Waiting for host approval.' },
+      pending_payment: {
+        title: 'Payment not completed',
+        body: 'Your trip is being held but is not confirmed yet. Finish payment to confirm it.',
+      },
+      pending_verification: {
+        title: 'Verification needed',
+        body: 'Your trip is being held. Finish your identity checks to confirm it.',
+      },
+    };
+    const message = GUEST_MESSAGE[p.status];
+    if (message) {
+      await notificationService.send({
+        userId: p.guestId,
+        priority: 'high',
+        deepLink: `/bookings/${p.bookingId}`,
+        templateKey: 'booking.created',
+        title: message.title,
+        body: message.body,
+        data: { bookingId: p.bookingId },
+      });
+    }
     if (!p.instantBook) {
       // Critical: this is the message whose absence silently expires bookings.
       // It has to leave the app — push, SMS and email.

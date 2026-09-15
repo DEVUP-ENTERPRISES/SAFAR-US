@@ -102,9 +102,16 @@ export class PaymentService implements IPaymentContract {
       intentId: intent.intentId,
       clientSecret: intent.clientSecret,
       status: payment.status,
-      // The client must finish a 3-D Secure challenge; the booking is not paid
-      // until it does. Surfaced rather than swallowed.
-      requiresAction: intent.status === 'requires_action' || intent.status === 'requires_confirmation',
+      /*
+       * ONLY a 3-D Secure challenge. `requires_confirmation` was included here
+       * too, but that state is not a challenge — it is an intent that was never
+       * confirmed because the guest had no saved card. The client answers this
+       * flag with stripe.handleNextAction(), which is valid only for
+       * requires_action and throws an IntegrationError on anything else, so
+       * every cardless booking crashed the checkout instead of asking for a
+       * card. Those bookings are already held as pending_payment by the caller.
+       */
+      requiresAction: intent.status === 'requires_action',
     };
   }
 

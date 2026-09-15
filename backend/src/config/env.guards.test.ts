@@ -21,6 +21,8 @@ const GOOD: Record<string, string> = {
   ADMIN_EMAIL: 'admin@cato.com',
   ADMIN_PASSWORD: 'a-strong-admin-pass-123',
   TRUST_PROXY_HOPS: '2',
+  STRIPE_SECRET_KEY: 'sk_live_realish_key_value',
+  STRIPE_WEBHOOK_SECRET: 'whsec_realish_value',
 };
 
 /** Parse and return the set of field paths that failed, or [] on success. */
@@ -60,9 +62,9 @@ describe('production env guards', () => {
   });
 
   it('requires a Stripe webhook secret when the Stripe key is set', () => {
-    expect(failedFields({ ...GOOD, STRIPE_SECRET_KEY: 'sk_live_realish_key_value' })).toContain(
-      'STRIPE_WEBHOOK_SECRET',
-    );
+    const noWebhook = { ...GOOD };
+    delete noWebhook.STRIPE_WEBHOOK_SECRET;
+    expect(failedFields(noWebhook)).toContain('STRIPE_WEBHOOK_SECRET');
   });
 
   it('rejects a Stripe TEST key in production', () => {
@@ -72,6 +74,28 @@ describe('production env guards', () => {
       STRIPE_WEBHOOK_SECRET: 'whsec_abc',
     });
     expect(fields).toContain('STRIPE_SECRET_KEY');
+  });
+
+  // A restricted key is as valid as a secret key, so a test one must be
+  // rejected the same way. The check only looked for sk_test_, so rk_test_
+  // would have shipped to production and charged nobody.
+  it('rejects a RESTRICTED Stripe test key in production', () => {
+    expect(failedFields({ ...GOOD, STRIPE_SECRET_KEY: 'rk_test_abc' })).toContain(
+      'STRIPE_SECRET_KEY',
+    );
+  });
+
+  it('accepts a restricted LIVE Stripe key', () => {
+    expect(failedFields({ ...GOOD, STRIPE_SECRET_KEY: 'rk_live_realish_key_value' })).toEqual([]);
+  });
+
+  // The worst case: no key at all means MockGateway, which reports every
+  // intent as succeeded without contacting a card.
+  it('refuses to boot production with no Stripe key at all', () => {
+    const noStripe = { ...GOOD };
+    delete noStripe.STRIPE_SECRET_KEY;
+    delete noStripe.STRIPE_WEBHOOK_SECRET;
+    expect(failedFields(noStripe)).toContain('STRIPE_SECRET_KEY');
   });
 
   it('requires the admin to be provisioned', () => {

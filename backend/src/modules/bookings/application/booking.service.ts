@@ -351,6 +351,10 @@ export class BookingService {
         guestId,
         hostId: vehicle.hostId,
         instantBook: vehicle.instantBook,
+        // What the booking actually IS, not what the listing allows. Telling a
+        // guest their trip is confirmed off `instantBook` alone announced a
+        // confirmation for a booking whose card had not cleared.
+        status,
         verificationBlockers: eligibility.blockers,
       });
       if (status === 'paid') {
