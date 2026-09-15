@@ -2,29 +2,36 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Fraunces, Inter } from 'next/font/google';
+import { ArrowRight, ArrowLeft, CheckCircle2, Sparkles, Camera } from 'lucide-react';
+import { Reveal } from '@/components/ui/reveal';
+import { Card, CardContent } from '@/components/ui/card';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Chip } from '@/components/ui/chip';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { useAuthStore } from '@/features/auth/store';
 import { uploadFiles } from '@/features/media/upload';
 import { assetPartnerApi, type CreateAssetPartnerApplicationInput } from '@/features/asset-partners/api';
 import { ApiError } from '@/lib/api/types';
-import styles from './apply.module.css';
-
-const fraunces = Fraunces({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-fraunces' });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-inter' });
+import { BRAND } from '@/features/marketing/sections';
 
 /**
- * The Asset Partner Vehicle Intake — a 6-step qualification form, ported from
- * the supplied design. Deliberately its own dark/brass/serif identity, apart
- * from the app's teal marketplace brand: this is a vetting flow, not a
- * booking surface.
+ * The Asset Partner Vehicle Intake — a 6-step qualification form.
  *
- * No login required (the form never asks for a password) — it's a lead, not
- * an account. Real submission hits POST /asset-partner-applications; the
- * server generates the reference shown on confirmation. Photos are optional
- * (the form itself allows emailing them later); when the visitor happens to
- * be signed in, a selected photo is uploaded for real, otherwise it's simply
- * marked chosen and left for the follow-up.
+ * Built entirely in CATO's own design system (hero-mesh, primary teal,
+ * Archivo display type, the app's real Field/Input/Select/Chip/Button
+ * primitives, Reveal motion) — not a skin ported from the reference mockup.
+ * Same brand as every other page on the site, because this is CATO's own
+ * intake, not a separate product.
+ *
+ * No login required — it's a lead, not an account. Real submission hits
+ * POST /asset-partner-applications; the server generates the reference shown
+ * on confirmation. Photos are optional; a signed-in visitor's photo uploads
+ * for real, otherwise it's simply marked chosen and left for the follow-up
+ * (the form says so).
  */
 
 const TOTAL_STEPS = 6;
@@ -59,10 +66,19 @@ const EMPTY: FormState = {
 
 const PHOTO_SLOTS = ['Front', 'Rear', 'Sides', 'Interior', 'Odometer', 'Damage'] as const;
 
+const STEP_TITLES = [
+  { eyebrow: '01 — About you', title: 'Partner information', desc: 'Who we’ll be working with. If you’re applying on behalf of a business or a small fleet, use the business fields.' },
+  { eyebrow: '02 — The vehicle', title: 'Vehicle details', desc: 'Applying with more than one vehicle? Submit this form for your primary vehicle and list the rest in the notes field at the end.' },
+  { eyebrow: '03 — Ownership', title: 'Ownership & title', desc: 'This confirms you’re able to enter into an Asset Partner agreement for this vehicle.' },
+  { eyebrow: '04 — Condition', title: 'Vehicle condition', desc: 'Answer honestly — every vehicle is physically inspected before approval regardless of these answers.' },
+  { eyebrow: '05 — Insurance', title: 'Current insurance', desc: `${BRAND} maintains commercial coverage while your vehicle is active on the platform. We still need your personal policy on file.` },
+  { eyebrow: '06 — Preferences & agreement', title: 'Availability & final details', desc: 'Last step. Tell us your availability, then confirm the details below.' },
+] as const;
+
 export default function AssetPartnerApplyPage() {
   const notify = useToast();
   const authed = useAuthStore((s) => s.status === 'authenticated');
-  const [phase, setPhase] = useState<'hero' | 'form' | 'confirm'>('hero');
+  const [phase, setPhase] = useState<'form' | 'confirm'>('form');
   const [step, setStep] = useState(1);
   const [f, setF] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Set<string>>(new Set());
@@ -104,7 +120,6 @@ export default function AssetPartnerApplyPage() {
   const pickPhoto = async (slot: string, file: File | undefined) => {
     if (!file) return;
     if (!authed) {
-      // Not signed in: the form allows emailing photos later — just mark chosen.
       setPhotos((p) => ({ ...p, [slot]: 'pending' }));
       return;
     }
@@ -168,302 +183,290 @@ export default function AssetPartnerApplyPage() {
     }
   };
 
+  if (phase === 'confirm') {
+    return (
+      <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-4 py-16 text-center">
+        <Reveal>
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-success/10 text-success ring-1 ring-success/20">
+            <CheckCircle2 className="h-8 w-8" />
+          </span>
+          <h1 className="display mt-6 text-3xl">Application received</h1>
+          <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+            Thanks — a member of the {BRAND} partnerships team will review your submission and reach out within 2–3
+            business days to schedule your vehicle assessment.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Questions in the meantime? Email <a href="mailto:partners@catodrive.com" className="font-medium text-primary underline">partners@catodrive.com</a>.
+          </p>
+          <p className="numeric mt-6 text-lg font-bold text-primary">Reference: {reference}</p>
+          <Link href="/asset-partners" className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> Back to Asset Partners
+          </Link>
+        </Reveal>
+      </div>
+    );
+  }
+
+  const { eyebrow, title, desc } = STEP_TITLES[step - 1];
+
   return (
-    <div className={`${styles.wrap} ${fraunces.variable} ${inter.variable} ${styles.sans}`}>
-      <div className={styles.grain} />
+    <div className="-mt-6">
+      {/* Progress header, on-brand hero-mesh */}
+      <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
+        <div className="mx-auto max-w-2xl px-5 py-10 sm:py-12">
+          <div className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-2 font-semibold text-white/70">
+              <Sparkles className="h-4 w-4 text-primary-soft" /> Asset Partner Intake
+            </span>
+            <span className="font-bold text-white">Step {step} of {TOTAL_STEPS}</span>
+          </div>
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${(step / TOTAL_STEPS) * 100}%` }} />
+          </div>
+        </div>
+      </section>
 
-      {phase === 'hero' && (
-        <section className={styles.hero}>
-          <div className={styles.heroInner}>
-            <div className={styles.mark}>
-              <span className={`${styles.markBadge} ${styles.serif}`}>C</span>
-              <span className={`${styles.markWord} ${styles.serif}`}>Cato<b>Drive</b></span>
-            </div>
+      <div className="mx-auto max-w-2xl px-5 pb-24 pt-10">
+        <Reveal key={step}>
+          <span className="text-xs font-bold uppercase tracking-[0.15em] text-primary">{eyebrow}</span>
+          <h1 className="display mt-2 text-3xl sm:text-4xl">{title}</h1>
+          <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground">{desc}</p>
 
-            <h1 className={`${styles.h1} ${styles.serif}`}>Put your vehicle to work in Dallas–Fort Worth</h1>
-            <p className={styles.lede}>
-              CatoDrive delivers premium vehicles across DFW — the airport, Love Field, hotels, and doorsteps — with
-              white-glove service. As an Asset Partner, your vehicle joins that fleet and earns while we handle the
-              driving, delivery, and care.
-            </p>
-
-            <div className={styles.heroFacts}>
-              <div className={styles.heroFact}><span className={`${styles.num} ${styles.serif}`}>75+</span><span className={styles.lbl}>vehicles in the current fleet</span></div>
-              <div className={styles.heroFact}><span className={`${styles.num} ${styles.serif}`}>DFW</span><span className={styles.lbl}>Airport, Love Field &amp; hotel delivery</span></div>
-              <div className={styles.heroFact}><span className={`${styles.num} ${styles.serif}`}>10 min</span><span className={styles.lbl}>to complete this intake form</span></div>
-            </div>
-
-            <div className={styles.process}>
-              {[
-                ['01', 'Submit this intake form', 'Tell us about you and your vehicle — about 10 minutes.'],
-                ['02', 'Vehicle assessment', 'Our team reviews eligibility and schedules an in-person inspection.'],
-                ['03', 'Onboarding & agreement', 'We confirm terms, photograph the vehicle, and set your availability.'],
-                ['04', 'Start earning', 'Your vehicle goes live on the CatoDrive fleet.'],
-              ].map(([n, t, d]) => (
-                <div key={n} className={styles.processRow}>
-                  <div className={`${styles.stepNo} ${styles.serif}`}>{n}</div>
-                  <div className={styles.processTxt}><b>{t}</b><span>{d}</span></div>
+          <div className="mt-9 space-y-6">
+            {step === 1 && (
+              <>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="Full legal name *" error={errors.has('fullName') ? 'Enter your full legal name.' : undefined}>
+                    <Input value={f.fullName} onChange={(e) => { set('fullName')(e.target.value); clearErr('fullName'); }} placeholder="Jordan Ramirez" />
+                  </Field>
+                  <Field label="Business name (optional)">
+                    <Input value={f.businessName} onChange={(e) => set('businessName')(e.target.value)} placeholder="Ramirez Fleet Holdings LLC" />
+                  </Field>
                 </div>
-              ))}
-            </div>
+                <ChoiceField label="Partner type *" error={errors.has('partnerType')} value={f.partnerType} onChange={(v) => { set('partnerType')(v); clearErr('partnerType'); }} options={[['individual', 'Individual owner'], ['business', 'Business owner'], ['fleet', 'Fleet operator (3+ vehicles)']]} />
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="Email address *" error={errors.has('email') ? 'Enter a valid email address.' : undefined}>
+                    <Input type="email" value={f.email} onChange={(e) => { set('email')(e.target.value); clearErr('email'); }} placeholder="jordan@email.com" />
+                  </Field>
+                  <Field label="Phone number *" error={errors.has('phone') ? 'Enter a valid phone number.' : undefined}>
+                    <Input type="tel" value={f.phone} onChange={(e) => { set('phone')(e.target.value); clearErr('phone'); }} placeholder="(214) 555-0142" />
+                  </Field>
+                </div>
+                <Field label="Mailing address *" error={errors.has('address') ? 'Required.' : undefined}>
+                  <Input value={f.address} onChange={(e) => { set('address')(e.target.value); clearErr('address'); }} placeholder="Street address" />
+                </Field>
+                <div className="grid gap-5 sm:grid-cols-3">
+                  <Field label="City *" error={errors.has('city') ? 'Required.' : undefined}>
+                    <Input value={f.city} onChange={(e) => { set('city')(e.target.value); clearErr('city'); }} />
+                  </Field>
+                  <Field label="State *" error={errors.has('state') ? 'Required.' : undefined}>
+                    <Input value={f.state} onChange={(e) => { set('state')(e.target.value.toUpperCase().slice(0, 2)); clearErr('state'); }} />
+                  </Field>
+                  <Field label="ZIP *" error={errors.has('zip') ? 'Required.' : undefined}>
+                    <Input value={f.zip} onChange={(e) => { set('zip')(e.target.value); clearErr('zip'); }} placeholder="75201" />
+                  </Field>
+                </div>
+                <Field label="How did you hear about CatoDrive? (optional)">
+                  <Select value={f.referral} onChange={(e) => set('referral')(e.target.value)}>
+                    <option value="">Select one…</option>
+                    {['Existing CatoDrive renter', 'Another Asset Partner / referral', 'Social media', 'Search engine', 'DFW Airport / hotel signage', 'Other'].map((o) => <option key={o} value={o}>{o}</option>)}
+                  </Select>
+                </Field>
+              </>
+            )}
 
-            <button className={styles.ctaStart} onClick={() => setPhase('form')}>Start the intake form →</button>
-          </div>
-        </section>
-      )}
+            {step === 2 && (
+              <>
+                <div className="grid gap-5 sm:grid-cols-3">
+                  <Field label="Year *" error={errors.has('vYear') ? 'Required.' : undefined}><Input value={f.vYear} onChange={(e) => { set('vYear')(e.target.value); clearErr('vYear'); }} placeholder="2024" /></Field>
+                  <Field label="Make *" error={errors.has('vMake') ? 'Required.' : undefined}><Input value={f.vMake} onChange={(e) => { set('vMake')(e.target.value); clearErr('vMake'); }} placeholder="BMW" /></Field>
+                  <Field label="Model *" error={errors.has('vModel') ? 'Required.' : undefined}><Input value={f.vModel} onChange={(e) => { set('vModel')(e.target.value); clearErr('vModel'); }} placeholder="5 Series" /></Field>
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="Trim (optional)"><Input value={f.vTrim} onChange={(e) => set('vTrim')(e.target.value)} placeholder="530i M Sport" /></Field>
+                  <Field label="Current mileage *" error={errors.has('vMileage') ? 'Required.' : undefined}><Input type="number" value={f.vMileage} onChange={(e) => { set('vMileage')(e.target.value); clearErr('vMileage'); }} placeholder="18,400" /></Field>
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="Exterior color"><Input value={f.vExtColor} onChange={(e) => set('vExtColor')(e.target.value)} placeholder="Alpine White" /></Field>
+                  <Field label="Interior color"><Input value={f.vIntColor} onChange={(e) => set('vIntColor')(e.target.value)} placeholder="Cognac" /></Field>
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="VIN *" error={errors.has('vin') ? 'Enter a valid 17-character VIN.' : undefined}><Input value={f.vin} onChange={(e) => { set('vin')(e.target.value.toUpperCase().slice(0, 17)); clearErr('vin'); }} placeholder="17-character VIN" /></Field>
+                  <Field label="License plate / state *" error={errors.has('plate') ? 'Required.' : undefined}><Input value={f.plate} onChange={(e) => { set('plate')(e.target.value); clearErr('plate'); }} placeholder="ABC-1234 / TX" /></Field>
+                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Eligibility guideline: {BRAND}’s fleet is positioned as premium / white-glove, which typically means
+                  late-model vehicles with moderate mileage. Exact age and mileage cutoffs are confirmed during vehicle
+                  assessment.
+                </p>
+              </>
+            )}
 
-      {phase === 'form' && (
-        <div className={styles.formWrap}>
-          <div className={styles.progressShell}>
-            <div className={styles.progressLabel}>
-              <span>Asset Partner Intake</span>
-              <b>Step {step} of {TOTAL_STEPS}</b>
-            </div>
-            <div className={styles.progressTrack}>
-              <div className={styles.progressFill} style={{ width: `${(step / TOTAL_STEPS) * 100}%` }} />
-            </div>
-          </div>
+            {step === 3 && (
+              <>
+                <ChoiceField label="Ownership status *" error={errors.has('ownership')} value={f.ownership} onChange={(v) => { set('ownership')(v); clearErr('ownership'); }} options={[['owned', 'Owned free & clear'], ['financed', 'Financed'], ['leased', 'Leased']]} />
+                {(f.ownership === 'financed' || f.ownership === 'leased') && (
+                  <Card className="border-primary/20 bg-primary/[0.04]">
+                    <CardContent className="space-y-4 py-5">
+                      <div className="grid gap-5 sm:grid-cols-2">
+                        <Field label="Lienholder / lender name"><Input value={f.lienholder} onChange={(e) => set('lienholder')(e.target.value)} placeholder="e.g., Chase Auto Finance" /></Field>
+                        <Field label="Loan / lease account (last 4, optional)"><Input value={f.lienAcct} onChange={(e) => set('lienAcct')(e.target.value.slice(0, 4))} placeholder="••••1234" /></Field>
+                      </div>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        If financed or leased, most lenders require written consent before a vehicle is used for
+                        commercial rental. {BRAND} will request a lien release or lender consent letter during onboarding.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                <Field label="Estimated current market value (optional)" hint="A starting point only — CatoDrive uses an independent valuation guide during assessment.">
+                  <Input value={f.marketValue} onChange={(e) => set('marketValue')(e.target.value)} placeholder="$38,000" />
+                </Field>
+              </>
+            )}
 
-          {step === 1 && (
-            <div className={styles.step}>
-              <Head eyebrow="01 — About you" title="Partner information" desc="Who we’ll be working with. If you’re applying on behalf of a business or a small fleet, use the business fields." />
-              <div className={styles.row2}>
-                <Text label="Full legal name" req err={errors.has('fullName')} value={f.fullName} onChange={(v) => { set('fullName')(v); clearErr('fullName'); }} placeholder="Jordan Ramirez" />
-                <Text label="Business name" opt value={f.businessName} onChange={set('businessName')} placeholder="Ramirez Fleet Holdings LLC" />
-              </div>
-              <Choices label="Partner type" req err={errors.has('partnerType')} value={f.partnerType} onChange={(v) => { set('partnerType')(v); clearErr('partnerType'); }} options={[['individual', 'Individual owner'], ['business', 'Business owner'], ['fleet', 'Fleet operator (3+ vehicles)']]} />
-              <div className={styles.row2}>
-                <Text label="Email address" req err={errors.has('email')} type="email" value={f.email} onChange={(v) => { set('email')(v); clearErr('email'); }} placeholder="jordan@email.com" />
-                <Text label="Phone number" req err={errors.has('phone')} type="tel" value={f.phone} onChange={(v) => { set('phone')(v); clearErr('phone'); }} placeholder="(214) 555-0142" />
-              </div>
-              <Text label="Mailing address" req err={errors.has('address')} value={f.address} onChange={(v) => { set('address')(v); clearErr('address'); }} placeholder="Street address" />
-              <div className={styles.row3}>
-                <Text label="City" req err={errors.has('city')} value={f.city} onChange={(v) => { set('city')(v); clearErr('city'); }} />
-                <Text label="State" req err={errors.has('state')} value={f.state} onChange={(v) => { set('state')(v.toUpperCase().slice(0, 2)); clearErr('state'); }} />
-                <Text label="ZIP" req err={errors.has('zip')} value={f.zip} onChange={(v) => { set('zip')(v); clearErr('zip'); }} placeholder="75201" />
-              </div>
-              <Select label="How did you hear about CatoDrive?" opt value={f.referral} onChange={set('referral')} options={['Existing CatoDrive renter', 'Another Asset Partner / referral', 'Social media', 'Search engine', 'DFW Airport / hotel signage', 'Other']} />
-            </div>
-          )}
+            {step === 4 && (
+              <>
+                <ChoiceField label="Has this vehicle been in an accident? *" error={errors.has('accident')} value={f.accident} onChange={(v) => { set('accident')(v as YN); clearErr('accident'); }} options={[['no', 'No'], ['yes', 'Yes']]} />
+                {f.accident === 'yes' && (
+                  <Card className="border-primary/20 bg-primary/[0.04]">
+                    <CardContent className="py-5">
+                      <Field label="Briefly describe">
+                        <Textarea value={f.accidentDetail} onChange={(e) => set('accidentDetail')(e.target.value)} placeholder="Date, extent of damage, and whether it was professionally repaired" />
+                      </Field>
+                    </CardContent>
+                  </Card>
+                )}
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <ChoiceField label="Smoke-free vehicle? *" error={errors.has('smokeFree')} value={f.smokeFree} onChange={(v) => { set('smokeFree')(v as YN); clearErr('smokeFree'); }} options={[['yes', 'Yes'], ['no', 'No']]} />
+                  <ChoiceField label="Pet-free vehicle? *" error={errors.has('petFree')} value={f.petFree} onChange={(v) => { set('petFree')(v as YN); clearErr('petFree'); }} options={[['yes', 'Yes'], ['no', 'No']]} />
+                </div>
+                <ChoiceField label="Recent maintenance records available?" value={f.maintRecords} onChange={(v) => set('maintRecords')(v as YN)} options={[['yes', 'Yes'], ['no', 'No']]} />
 
-          {step === 2 && (
-            <div className={styles.step}>
-              <Head eyebrow="02 — The vehicle" title="Vehicle details" desc="Applying with more than one vehicle? Submit this form for your primary vehicle and list the rest in the notes field at the end — our team will follow up for each one." />
-              <div className={styles.row3}>
-                <Text label="Year" req err={errors.has('vYear')} value={f.vYear} onChange={(v) => { set('vYear')(v); clearErr('vYear'); }} placeholder="2024" />
-                <Text label="Make" req err={errors.has('vMake')} value={f.vMake} onChange={(v) => { set('vMake')(v); clearErr('vMake'); }} placeholder="BMW" />
-                <Text label="Model" req err={errors.has('vModel')} value={f.vModel} onChange={(v) => { set('vModel')(v); clearErr('vModel'); }} placeholder="5 Series" />
-              </div>
-              <div className={styles.row2}>
-                <Text label="Trim" opt value={f.vTrim} onChange={set('vTrim')} placeholder="530i M Sport" />
-                <Text label="Current mileage" req err={errors.has('vMileage')} type="number" value={f.vMileage} onChange={(v) => { set('vMileage')(v); clearErr('vMileage'); }} placeholder="18,400" />
-              </div>
-              <div className={styles.row2}>
-                <Text label="Exterior color" value={f.vExtColor} onChange={set('vExtColor')} placeholder="Alpine White" />
-                <Text label="Interior color" value={f.vIntColor} onChange={set('vIntColor')} placeholder="Cognac" />
-              </div>
-              <div className={styles.row2}>
-                <Text label="VIN" req err={errors.has('vin')} value={f.vin} onChange={(v) => { set('vin')(v.toUpperCase().slice(0, 17)); clearErr('vin'); }} placeholder="17-character VIN" />
-                <Text label="License plate / state" req err={errors.has('plate')} value={f.plate} onChange={(v) => { set('plate')(v); clearErr('plate'); }} placeholder="ABC-1234 / TX" />
-              </div>
-              <p className={styles.hint}>Eligibility guideline: CatoDrive’s fleet is positioned as premium / white-glove, which typically means late-model vehicles with moderate mileage. Exact age and mileage cutoffs are confirmed during vehicle assessment.</p>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className={styles.step}>
-              <Head eyebrow="03 — Ownership" title="Ownership & title" desc="This confirms you’re able to enter into an Asset Partner agreement for this vehicle." />
-              <Choices label="Ownership status" req err={errors.has('ownership')} value={f.ownership} onChange={(v) => { set('ownership')(v); clearErr('ownership'); }} options={[['owned', 'Owned free & clear'], ['financed', 'Financed'], ['leased', 'Leased']]} />
-              {(f.ownership === 'financed' || f.ownership === 'leased') && (
-                <div className={styles.conditional}>
-                  <div className={styles.row2}>
-                    <Text label="Lienholder / lender name" value={f.lienholder} onChange={set('lienholder')} placeholder="e.g., Chase Auto Finance" />
-                    <Text label="Loan / lease account (last 4)" opt value={f.lienAcct} onChange={(v) => set('lienAcct')(v.slice(0, 4))} placeholder="••••1234" />
+                <div>
+                  <label className="text-sm font-medium text-foreground">Vehicle photos <span className="font-normal text-muted-foreground">(optional — you can also email these later)</span></label>
+                  <div className="mt-3 grid grid-cols-3 gap-3">
+                    {PHOTO_SLOTS.map((slot) => {
+                      const p = photos[slot];
+                      const filled = !!p;
+                      return (
+                        <label
+                          key={slot}
+                          className={`relative flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border-2 border-dashed p-4 text-center transition-colors ${
+                            filled ? 'border-success bg-success/5' : 'border-border hover:border-primary/40'
+                          }`}
+                        >
+                          <input type="file" accept="image/*" className="absolute inset-0 cursor-pointer opacity-0" onChange={(e) => pickPhoto(slot, e.target.files?.[0])} />
+                          {p === 'pending' ? (
+                            <span className="h-5 w-5 animate-pulse rounded-full bg-muted-foreground/30" />
+                          ) : filled ? (
+                            <CheckCircle2 className="h-5 w-5 text-success" />
+                          ) : (
+                            <Camera className="h-5 w-5 text-muted-foreground" />
+                          )}
+                          <span className={`text-xs font-medium ${filled ? 'text-success' : 'text-muted-foreground'}`}>{slot}</span>
+                        </label>
+                      );
+                    })}
                   </div>
-                  <p className={styles.hint}>If financed or leased, most lenders require written consent before a vehicle is used for commercial rental. CatoDrive will request a lien release or lender consent letter during onboarding.</p>
                 </div>
-              )}
-              <Text label="Estimated current market value" opt value={f.marketValue} onChange={set('marketValue')} placeholder="$38,000" hint="A starting point only — CatoDrive uses an independent valuation guide during assessment." />
-            </div>
-          )}
+              </>
+            )}
 
-          {step === 4 && (
-            <div className={styles.step}>
-              <Head eyebrow="04 — Condition" title="Vehicle condition" desc="Answer honestly — every vehicle is physically inspected before approval regardless of these answers." />
-              <Choices label="Has this vehicle been in an accident?" req err={errors.has('accident')} value={f.accident} onChange={(v) => { set('accident')(v as YN); clearErr('accident'); }} options={[['no', 'No'], ['yes', 'Yes']]} />
-              {f.accident === 'yes' && (
-                <div className={styles.conditional}>
-                  <Textarea label="Briefly describe" value={f.accidentDetail} onChange={set('accidentDetail')} placeholder="Date, extent of damage, and whether it was professionally repaired" />
+            {step === 5 && (
+              <>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="Insurance carrier *" error={errors.has('insCarrier') ? 'Required.' : undefined}><Input value={f.insCarrier} onChange={(e) => { set('insCarrier')(e.target.value); clearErr('insCarrier'); }} placeholder="e.g., State Farm" /></Field>
+                  <Field label="Policy number *" error={errors.has('insPolicy') ? 'Required.' : undefined}><Input value={f.insPolicy} onChange={(e) => { set('insPolicy')(e.target.value); clearErr('insPolicy'); }} placeholder="Policy number" /></Field>
                 </div>
-              )}
-              <div className={styles.row2}>
-                <Choices label="Smoke-free vehicle?" req err={errors.has('smokeFree')} value={f.smokeFree} onChange={(v) => { set('smokeFree')(v as YN); clearErr('smokeFree'); }} options={[['yes', 'Yes'], ['no', 'No']]} />
-                <Choices label="Pet-free vehicle?" req err={errors.has('petFree')} value={f.petFree} onChange={(v) => { set('petFree')(v as YN); clearErr('petFree'); }} options={[['yes', 'Yes'], ['no', 'No']]} />
-              </div>
-              <Choices label="Recent maintenance records available?" value={f.maintRecords} onChange={(v) => set('maintRecords')(v as YN)} options={[['yes', 'Yes'], ['no', 'No']]} />
+                <ChoiceField
+                  label="Coverage type *" error={errors.has('coverageType')} value={f.coverageType}
+                  onChange={(v) => { set('coverageType')(v); clearErr('coverageType'); }}
+                  options={[['full', 'Full coverage (comprehensive & collision)'], ['liability', 'Liability only'], ['unsure', 'Not sure']]}
+                  hint="Full coverage is typically required to list a vehicle as an Asset Partner, since liability-only insurance doesn’t cover damage to the vehicle itself."
+                />
+                <Field label="Policy expiration date (optional)">
+                  <Input type="date" value={f.insExpiry} onChange={(e) => set('insExpiry')(e.target.value)} />
+                </Field>
+              </>
+            )}
 
-              <div className={styles.field} style={{ marginTop: 32 }}>
-                <label>Vehicle photos <span className={styles.opt}>(optional — you can also email these later)</span></label>
-                <div className={styles.uploadGrid}>
-                  {PHOTO_SLOTS.map((slot) => {
-                    const p = photos[slot];
-                    const filled = !!p;
-                    return (
-                      <label key={slot} className={`${styles.uploadBox} ${filled ? styles.uploadFilled : ''}`}>
-                        <input type="file" accept="image/*" onChange={(e) => pickPhoto(slot, e.target.files?.[0])} />
-                        <div className={styles.uploadIc}>{p === 'pending' ? '…' : filled ? '✓' : '◈'}</div>
-                        <div className={styles.uploadTx}>{slot}</div>
-                      </label>
-                    );
-                  })}
+            {step === 6 && (
+              <>
+                <ChoiceField label="Vehicle availability *" error={errors.has('availability')} value={f.availability} onChange={(v) => { set('availability')(v); clearErr('availability'); }} options={[['fulltime', 'Full-time on the fleet'], ['parttime', 'Part-time / set schedule'], ['seasonal', 'Seasonal only']]} />
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="Preferred pickup / delivery zone (optional)">
+                    <Select value={f.zone} onChange={(e) => set('zone')(e.target.value)}>
+                      <option value="">Select a zone…</option>
+                      {['Downtown / Uptown Dallas', 'DFW Airport area', 'Love Field area', 'Fort Worth', 'Plano / Frisco', 'Other DFW area'].map((o) => <option key={o} value={o}>{o}</option>)}
+                    </Select>
+                  </Field>
+                  <Field label="Target start date (optional)">
+                    <Input type="date" value={f.startDate} onChange={(e) => set('startDate')(e.target.value)} />
+                  </Field>
                 </div>
-              </div>
-            </div>
-          )}
+                <Field label="Notes (optional)">
+                  <Textarea value={f.notes} onChange={(e) => set('notes')(e.target.value)} placeholder="Additional vehicles, questions, scheduling constraints" />
+                </Field>
 
-          {step === 5 && (
-            <div className={styles.step}>
-              <Head eyebrow="05 — Insurance" title="Current insurance" desc="CatoDrive maintains commercial coverage while your vehicle is active on the platform. We still need your personal policy on file." />
-              <div className={styles.row2}>
-                <Text label="Insurance carrier" req err={errors.has('insCarrier')} value={f.insCarrier} onChange={(v) => { set('insCarrier')(v); clearErr('insCarrier'); }} placeholder="e.g., State Farm" />
-                <Text label="Policy number" req err={errors.has('insPolicy')} value={f.insPolicy} onChange={(v) => { set('insPolicy')(v); clearErr('insPolicy'); }} placeholder="Policy number" />
-              </div>
-              <Choices
-                label="Coverage type" req err={errors.has('coverageType')} value={f.coverageType}
-                onChange={(v) => { set('coverageType')(v); clearErr('coverageType'); }}
-                options={[['full', 'Full coverage (comprehensive & collision)'], ['liability', 'Liability only'], ['unsure', 'Not sure']]}
-                hint="Full coverage (comprehensive and collision) is typically required to list a vehicle as an Asset Partner, since liability-only insurance doesn’t cover damage to the vehicle itself."
-              />
-              <Text label="Policy expiration date" opt type="date" value={f.insExpiry} onChange={set('insExpiry')} />
-            </div>
-          )}
+                <Card>
+                  <CardContent className="divide-y divide-border py-2">
+                    <Ack checked={f.ackAccurate} onChange={(v) => { set('ackAccurate')(v); clearErr('acks'); }} bold="I certify" rest="that the information provided in this form is true and accurate to the best of my knowledge." />
+                    <Ack checked={f.ackInspection} onChange={(v) => { set('ackInspection')(v); clearErr('acks'); }} bold="I understand" rest={`${BRAND} will conduct an in-person vehicle inspection before final approval, and that submitting this form does not guarantee acceptance into the Asset Partner program.`} />
+                    <Ack checked={f.ackTerms} onChange={(v) => { set('ackTerms')(v); clearErr('acks'); }} bold="I have read and agree" rest="to the CatoDrive Asset Partner Program Terms, including vehicle eligibility requirements and revenue-share structure, to be confirmed in writing before onboarding." />
+                  </CardContent>
+                </Card>
+                {errors.has('acks') && <p className="text-sm text-destructive">All three acknowledgements are required.</p>}
 
-          {step === 6 && (
-            <div className={styles.step}>
-              <Head eyebrow="06 — Preferences & agreement" title="Availability & final details" desc="Last step. Tell us your availability, then confirm the details below." />
-              <Choices label="Vehicle availability" req err={errors.has('availability')} value={f.availability} onChange={(v) => { set('availability')(v); clearErr('availability'); }} options={[['fulltime', 'Full-time on the fleet'], ['parttime', 'Part-time / set schedule'], ['seasonal', 'Seasonal only']]} />
-              <div className={styles.row2}>
-                <Select label="Preferred pickup / delivery zone" opt value={f.zone} onChange={set('zone')} options={['Downtown / Uptown Dallas', 'DFW Airport area', 'Love Field area', 'Fort Worth', 'Plano / Frisco', 'Other DFW area']} />
-                <Text label="Target start date" opt type="date" value={f.startDate} onChange={set('startDate')} />
-              </div>
-              <Textarea label="Notes" opt value={f.notes} onChange={set('notes')} placeholder="Additional vehicles, questions, scheduling constraints" />
-
-              <div style={{ marginTop: 8, borderTop: '1px solid var(--border-soft)', paddingTop: 8 }}>
-                <Ack checked={f.ackAccurate} onChange={(v) => { set('ackAccurate')(v); clearErr('acks'); }} bold="I certify" rest="that the information provided in this form is true and accurate to the best of my knowledge." />
-                <Ack checked={f.ackInspection} onChange={(v) => { set('ackInspection')(v); clearErr('acks'); }} bold="I understand" rest="CatoDrive will conduct an in-person vehicle inspection before final approval, and that submitting this form does not guarantee acceptance into the Asset Partner program." />
-                <Ack checked={f.ackTerms} onChange={(v) => { set('ackTerms')(v); clearErr('acks'); }} bold="I have read and agree" rest="to the CatoDrive Asset Partner Program Terms, including vehicle eligibility requirements and revenue-share structure, to be confirmed in writing before onboarding." />
-                {errors.has('acks') && <p className={styles.errMsg}>All three acknowledgements are required.</p>}
-              </div>
-
-              <div className={styles.row2} style={{ marginTop: 24 }}>
-                <Text label="Typed signature (full legal name)" req err={errors.has('signature')} value={f.signature} onChange={(v) => { set('signature')(v); clearErr('signature'); }} placeholder="Type your full name" />
-                <Text label="Date" req err={errors.has('signDate')} type="date" value={f.signDate} onChange={(v) => { set('signDate')(v); clearErr('signDate'); }} />
-              </div>
-            </div>
-          )}
-
-          <div className={styles.navRow}>
-            <button type="button" className={`${styles.btn} ${styles.btnGhost}`} style={{ visibility: step === 1 ? 'hidden' : 'visible' }} onClick={goBack}>← Back</button>
-            <button type="button" className={`${styles.btn} ${styles.btnPrimary}`} onClick={goNext} disabled={submitting}>
-              {submitting ? 'Submitting…' : step === TOTAL_STEPS ? 'Submit application →' : 'Continue →'}
-            </button>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="Typed signature (full legal name) *" error={errors.has('signature') ? 'Required.' : undefined}><Input value={f.signature} onChange={(e) => { set('signature')(e.target.value); clearErr('signature'); }} placeholder="Type your full name" /></Field>
+                  <Field label="Date *" error={errors.has('signDate') ? 'Required.' : undefined}><Input type="date" value={f.signDate} onChange={(e) => { set('signDate')(e.target.value); clearErr('signDate'); }} /></Field>
+                </div>
+              </>
+            )}
           </div>
+        </Reveal>
+
+        <div className="mt-10 flex items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={goBack}
+            className={`flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground ${step === 1 ? 'invisible' : ''}`}
+          >
+            <ArrowLeft className="h-4 w-4" /> Back
+          </button>
+          <Button onClick={goNext} loading={submitting} size="lg" className="min-w-[10rem]">
+            {step === TOTAL_STEPS ? 'Submit application' : 'Continue'} <ArrowRight className="h-4 w-4" />
+          </Button>
         </div>
-      )}
-
-      {phase === 'confirm' && (
-        <div className={styles.confirm}>
-          <div className={styles.confirmIc}>✓</div>
-          <h2 className={styles.serif}>Application received</h2>
-          <p>Thanks — a member of the CatoDrive partnerships team will review your submission and reach out within 2–3 business days to schedule your vehicle assessment.</p>
-          <p>Questions in the meantime? Email <a href="mailto:partners@catodrive.com">partners@catodrive.com</a>.</p>
-          <div className={`${styles.refnum} ${styles.serif}`}>Reference: {reference}</div>
-          <p style={{ marginTop: 28 }}><Link href="/asset-partners" style={{ color: 'var(--brass-bright)' }}>← Back to Asset Partners</Link></p>
-        </div>
-      )}
-
-      <footer className={styles.footer}>CatoDrive, Inc. · Dallas–Fort Worth, Texas · Asset Partner Program</footer>
+      </div>
     </div>
   );
 }
 
-/* ── Field pieces ─────────────────────────────────────────────────── */
-
-function Head({ eyebrow, title, desc }: { eyebrow: string; title: string; desc: string }) {
-  return (
-    <div className={styles.stepHead}>
-      <div className={styles.stepEyebrow}>{eyebrow}</div>
-      <h2 className={styles.serif}>{title}</h2>
-      <p>{desc}</p>
-    </div>
-  );
-}
-
-function Text({ label, req, opt, err, type = 'text', value, onChange, placeholder, hint }: {
-  label: string; req?: boolean; opt?: boolean; err?: boolean; type?: string;
-  value: string; onChange: (v: string) => void; placeholder?: string; hint?: string;
+function ChoiceField({ label, error, value, onChange, options, hint }: {
+  label: string; error?: boolean; value: string; onChange: (v: string) => void; options: [string, string][]; hint?: string;
 }) {
   return (
-    <div className={`${styles.field} ${err ? styles.fieldInvalid : ''}`}>
-      <label>{label} {req && <span className={styles.req}>*</span>}{opt && <span className={styles.opt}>(optional)</span>}</label>
-      <input className={styles.input} type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
-      {hint && <p className={styles.hint}>{hint}</p>}
-      {err && <p className={styles.errMsg}>Required.</p>}
-    </div>
-  );
-}
-
-function Textarea({ label, opt, value, onChange, placeholder }: {
-  label: string; opt?: boolean; value: string; onChange: (v: string) => void; placeholder?: string;
-}) {
-  return (
-    <div className={styles.field}>
-      <label>{label} {opt && <span className={styles.opt}>(optional)</span>}</label>
-      <textarea className={styles.textarea} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
-    </div>
-  );
-}
-
-function Select({ label, opt, value, onChange, options }: {
-  label: string; opt?: boolean; value: string; onChange: (v: string) => void; options: string[];
-}) {
-  return (
-    <div className={styles.field}>
-      <label>{label} {opt && <span className={styles.opt}>(optional)</span>}</label>
-      <select className={styles.select} value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">Select one…</option>
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
-  );
-}
-
-function Choices({ label, req, err, value, onChange, options, hint }: {
-  label: string; req?: boolean; err?: boolean; value: string; onChange: (v: string) => void;
-  options: [string, string][]; hint?: string;
-}) {
-  return (
-    <div className={`${styles.field} ${err ? styles.fieldInvalid : ''}`}>
-      <label>{label} {req && <span className={styles.req}>*</span>}</label>
-      <div className={styles.choiceGroup}>
+    <div className="space-y-2">
+      <label className="text-sm font-medium text-foreground">{label}</label>
+      <div className="flex flex-wrap gap-2">
         {options.map(([v, l]) => (
-          <label key={v} className={`${styles.choice} ${value === v ? styles.choiceChecked : ''}`}>
-            <input type="radio" checked={value === v} onChange={() => onChange(v)} />
-            {l}
-          </label>
+          <Chip key={v} active={value === v} onClick={() => onChange(v)} type="button">{l}</Chip>
         ))}
       </div>
-      {hint && <p className={styles.hint}>{hint}</p>}
-      {err && <p className={styles.errMsg}>Select an option.</p>}
+      {hint && !error && <p className="text-xs text-muted-foreground">{hint}</p>}
+      {error && <p className="text-xs text-destructive">Select an option.</p>}
     </div>
   );
 }
 
 function Ack({ checked, onChange, bold, rest }: { checked: boolean; onChange: (v: boolean) => void; bold: string; rest: string }) {
   return (
-    <div className={styles.checkRow}>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <label onClick={() => onChange(!checked)}><b>{bold}</b> {rest}</label>
-    </div>
+    <label className="flex cursor-pointer items-start gap-3 py-3.5">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-primary" />
+      <span className="text-sm leading-relaxed text-muted-foreground"><b className="font-semibold text-foreground">{bold}</b> {rest}</span>
+    </label>
   );
 }
+
