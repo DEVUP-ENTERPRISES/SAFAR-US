@@ -56,8 +56,16 @@ function AdminShell({ children }: { children: ReactNode }) {
     // (the outer min-h-screen fills the rest).
     <div className="flex">
       <AdminSidebar />
-      {/* Full width — operator tables need the room the consumer container denies. */}
-      <main className="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-6">{children}</main>
+      {/*
+        ms-60 reserves the pinned sidebar's gutter. The sidebar is `fixed`, so
+        it occupies no layout space — without this the content would run
+        underneath it. Only from md, where the sidebar is visible at all; below
+        that it is the bottom nav and there is no gutter to reserve.
+
+        Full width otherwise — operator tables need the room the consumer
+        container denies.
+      */}
+      <main className="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 md:ms-60 md:pb-6">{children}</main>
     </div>
   );
 }

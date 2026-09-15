@@ -126,6 +126,7 @@ export class PlatformConfigService {
         ...(doc.deposit ?? {}),
       },
       commission: { defaultBps: 2000, minBps: 0, maxBps: 4000, ...(doc.commission ?? {}) },
+      serviceFee: { bps: 0, maxCents: 0, ...(doc.serviceFee ?? {}) },
       tax: { bps: 0, ...(doc.tax ?? {}) },
       pricing: { earlyBirdMinDaysAhead: 30, lastMinuteMaxHoursAhead: 48, ...(doc.pricing ?? {}) },
       cancellation: {

@@ -79,6 +79,7 @@ export default function AdminEconomicsPage() {
     if (ok) {
       save.mutate({
         commission: draft.commission,
+        serviceFee: draft.serviceFee,
         tax: draft.tax,
         payout: draft.payout,
         rewards: draft.rewards,
@@ -141,6 +142,44 @@ export default function AdminEconomicsPage() {
           <Field label="Tax on commission %" hint="US launch = 0.">
             <Input type="number" step="0.5" value={toPct(draft.tax.bps)}
               onChange={(e) => set((d) => { d.tax.bps = toBps(e.target.value); })} />
+          </Field>
+        </CardContent>
+      </Card>
+
+      {/*
+        Service fee — deliberately its own card, not another column in
+        Commission. The two are opposite sides of the take rate and confusing
+        them is expensive: commission comes OUT of what the host is paid, this
+        goes ON TOP of what the guest pays.
+      */}
+      <Card className="rounded-2xl shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Percent className="h-5 w-5 text-primary" /> Guest service fee
+          </CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Charged to the guest on top of the trip and shown as its own line at checkout. Separate
+            from commission above, which is taken out of host earnings. Set to 0 to charge no fee.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <Field label="Service fee %" hint="Percent of the trip subtotal. e.g. 3.5">
+            <Input
+              type="number"
+              step="0.1"
+              min={0}
+              value={toPct(draft.serviceFee.bps)}
+              onChange={(e) => set((d) => { d.serviceFee.bps = toBps(e.target.value); })}
+            />
+          </Field>
+          <Field label="Cap ($)" hint="Never charge more than this on one trip. 0 = no cap.">
+            <Input
+              type="number"
+              min={0}
+              step="1"
+              value={draft.serviceFee.maxCents / 100}
+              onChange={(e) => set((d) => { d.serviceFee.maxCents = Math.round(Number(e.target.value) * 100); })}
+            />
           </Field>
         </CardContent>
       </Card>

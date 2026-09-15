@@ -208,8 +208,22 @@ export class PricingService implements IPricingContract {
         input.delivery?.mode === 'airport' ? extractAirportCode(input.delivery.address) : undefined,
     });
 
-    // Guest pays host-side + protection + rental tax.
-    const total = addMoney(addMoney(subtotal, protection), taxTotal);
+    /*
+     * Platform service fee — the guest's side of the take rate.
+     *
+     * Charged ON TOP of the host-side subtotal, so it never reduces what the
+     * host is paid (that is `commission`, above). Computed before rental tax
+     * and deliberately NOT part of the taxable subtotal: it is our fee, not
+     * part of the rental the state levies on.
+     */
+    const feeRaw = applyBps(subtotal, cfg.serviceFee.bps);
+    const serviceFee =
+      cfg.serviceFee.maxCents > 0 && feeRaw.amount > cfg.serviceFee.maxCents
+        ? money(cfg.serviceFee.maxCents, currency)
+        : feeRaw;
+
+    // Guest pays host-side + protection + service fee + rental tax.
+    const total = addMoney(addMoney(addMoney(subtotal, protection), serviceFee), taxTotal);
 
     // Balance guard on the host-side split (protection handled separately at charge).
     const recomposed = sumMoney([hostEarnings, commission, tax], currency);
@@ -217,6 +231,7 @@ export class PricingService implements IPricingContract {
 
     return {
       days, base, cleaningFee, discount, addOnsTotal, delivery, protection,
+      serviceFee,
       taxLines, taxTotal,
       protectionPlan: plan.code, selectedAddOns,
       subtotal, commission, tax, hostEarnings, total, currency,

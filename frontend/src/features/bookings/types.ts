@@ -12,6 +12,8 @@ export interface PriceBreakdown {
   addOnsTotal: Money;
   delivery: Money;
   protection: Money;
+  /** Platform service fee charged on top. Zero unless an admin configured one. */
+  serviceFee: Money;
   protectionPlan: string;
   selectedAddOns: { code: string; label: string; amount: Money }[];
   subtotal: Money;
@@ -36,6 +38,9 @@ export interface PriceBreakdown {
  */
 export type BookingStatus =
   | 'pending_verification'
+  /** Held, but the money has not moved — a 3-D Secure challenge, or no saved
+   *  card. Not a confirmed trip, and must never be shown as one. */
+  | 'pending_payment'
   | 'pending_approval'
   | 'confirmed'
   | 'paid'

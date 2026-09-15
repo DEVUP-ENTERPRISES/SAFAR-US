@@ -82,7 +82,26 @@ export default function VehicleDetailPage() {
   const [terminal, setTerminal] = useState('');
   const [arrivesAt, setArrivesAt] = useState('');
   const [couponCode, setCouponCode] = useState('');
+  // Mobile only: the booking panel is a bottom sheet rather than a block the
+  // guest has to scroll past the reviews to reach.
+  const [sheetOpen, setSheetOpen] = useState(false);
   const quote = useQuote();
+  // While the sheet is up it owns the screen: the page behind it must not
+  // scroll (otherwise flicking the sheet scrolls the reviews underneath), and
+  // Escape has to close it like any other dialog.
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSheetOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [sheetOpen]);
   const createBooking = useCreateBooking();
   const toast = useToast();
 
@@ -276,7 +295,8 @@ export default function VehicleDetailPage() {
   const cancelTerms = describeCancellation(v.listing.cancellationPolicy, platformCfg.data);
 
   return (
-    <div className="space-y-6 sm:space-y-10 pb-20">
+    // pb clears the fixed mobile price bar; from lg there is no bar.
+    <div className="space-y-6 pb-32 sm:space-y-10 lg:pb-20">
       {createBooking.isPending && <TripLoader overlay label="Confirming your booking…" />}
       <TermsModal
         open={showTerms}
@@ -663,9 +683,54 @@ export default function VehicleDetailPage() {
         </div>
       </div>
 
-      {/* Booking widget */}
+      {/*
+        Booking widget — one panel, two presentations.
+
+        Desktop: a sticky card in the second column, so the price and the
+        book button stay on screen while the guest reads down the page.
+
+        Mobile: a bottom sheet the guest opens from the price bar. It used to
+        render inline below the reviews, which meant choosing dates and seeing
+        the total were at opposite ends of a very long page — the guest had to
+        scroll up and down to book.
+
+        Deliberately NOT two copies of the markup: the dates, protection and
+        promo code are component state, and a duplicated tree is how the two
+        surfaces silently drift apart.
+      */}
       <div className="relative">
-        <div className="sticky top-24 rounded-3xl border border-border bg-card p-6 shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+        {/* Scrim — mobile only; on desktop the panel is always visible. */}
+        {sheetOpen && (
+          <div
+            className="fixed inset-0 z-[60] animate-fade-in bg-black/50 lg:hidden"
+            onClick={() => setSheetOpen(false)}
+            aria-hidden
+          />
+        )}
+        <div
+          role={sheetOpen ? 'dialog' : undefined}
+          aria-modal={sheetOpen ? true : undefined}
+          aria-label="Booking options"
+          className={cn(
+            'border border-border bg-card shadow-[0_8px_30px_rgb(0,0,0,0.08)]',
+            // Mobile: a bottom sheet when open, absent when closed.
+            sheetOpen
+              ? 'fixed inset-x-0 bottom-0 z-[70] max-h-[88vh] animate-sheet-up overflow-y-auto rounded-t-3xl px-5 pb-safe pt-2'
+              : 'hidden',
+            // Desktop: always a sticky card, whatever the sheet is doing.
+            'lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-24 lg:z-auto lg:block lg:max-h-none',
+            'lg:animate-none lg:overflow-visible lg:rounded-3xl lg:p-6',
+          )}
+        >
+          {/* The grab handle. Pulling or tapping it puts the sheet away. */}
+          <div className="sticky top-0 z-10 -mx-5 mb-3 bg-card px-5 pb-2 pt-1 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setSheetOpen(false)}
+              aria-label="Close booking options"
+              className="mx-auto block h-1.5 w-11 rounded-full bg-muted-foreground/30 transition-colors hover:bg-muted-foreground/50"
+            />
+          </div>
           <div className="space-y-6">
             <div className="flex items-baseline justify-between gap-2">
               <span className="flex items-baseline gap-1">
@@ -841,6 +906,7 @@ export default function VehicleDetailPage() {
                 {quote.data.delivery?.amount > 0 && <Row label="Delivery" value={formatMoney(quote.data.delivery)} />}
                 {quote.data.selectedAddOns?.map((a) => <Row key={a.code} label={a.label} value={formatMoney(a.amount)} />)}
                 {quote.data.protection.amount > 0 && <Row label="Protection" value={formatMoney(quote.data.protection)} />}
+                {quote.data.serviceFee?.amount > 0 && <Row label="Service fee" value={formatMoney(quote.data.serviceFee)} />}
                 {quote.data.discount.amount > 0 && <Row label="Discount" value={`−${formatMoney(quote.data.discount)}`} />}
                 <div className="mt-2 flex justify-between border-t border-border pt-2 font-semibold">
                   <span>Total</span><span>{formatMoney(quote.data.total)}</span>
@@ -923,36 +989,49 @@ export default function VehicleDetailPage() {
                <p className="text-[13px] text-muted-foreground mt-0.5">Full refund before trip starts.</p>
             </div>
           </div>
-        {/* Mobile sticky booking bar */}
-        <div className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-between border-t border-border bg-card p-4 shadow-[0_-8px_30px_rgb(0,0,0,0.08)] sm:hidden pb-safe">
-          <div>
-            {quote.data ? (
-              <>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-[15px] text-muted-foreground line-through decoration-muted-foreground/50">{formatMoney(quote.data.base)}</span>
-                  <span className="text-xl font-bold underline decoration-2 underline-offset-4">{formatMoney(quote.data.total)} total</span>
-                </div>
-                <p className="mt-0.5 text-[13px] font-medium text-muted-foreground">Before taxes</p>
-              </>
-            ) : (
+        </div>
+      </div>
+    </div>
+
+      {/*
+        Mobile price bar — the only way into the booking sheet.
+
+        It sits outside the two-column grid on purpose: it used to be nested
+        inside the booking panel, so hiding that panel on mobile took the bar
+        with it. Hidden from `lg` up, where the sticky panel does this job.
+      */}
+      <div className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-between gap-3 border-t border-border bg-card p-4 pb-safe shadow-[0_-8px_30px_rgb(0,0,0,0.08)] lg:hidden">
+        <div className="min-w-0">
+          {quote.data ? (
+            <>
+              <div className="flex items-baseline gap-1.5">
+                <span className="truncate text-xl font-bold">{formatMoney(quote.data.total)}</span>
+                <span className="text-[13px] font-medium text-muted-foreground">total</span>
+              </div>
+              <p className="mt-0.5 text-[13px] font-medium text-muted-foreground">
+                {days} {days === 1 ? 'day' : 'days'} · before taxes
+              </p>
+            </>
+          ) : (
+            <>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-xl font-bold">{formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency })}</span>
                 <span className="text-[15px] font-medium text-muted-foreground">/ day</span>
               </div>
-            )}
-          </div>
-          <Button 
-            className="rounded-xl px-8 py-6 text-[17px] font-bold transition-transform active:scale-95 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100" 
-            style={quote.data ? { backgroundColor: '#635BFF', color: 'white' } : {}}
-            onClick={book}
-            disabled={!quote.data}
-          >
-            Continue
-          </Button>
+              <p className="mt-0.5 text-[13px] font-medium text-muted-foreground">Add dates for a total</p>
+            </>
+          )}
         </div>
+        {/* Always opens the sheet — never books straight from here. The guest
+            has to see what they are agreeing to and what it costs. */}
+        <Button
+          size="lg"
+          className="shrink-0 rounded-xl px-7 py-6 text-[17px] font-bold transition-transform active:scale-95"
+          onClick={() => setSheetOpen(true)}
+        >
+          {quote.data ? 'Continue' : 'Select dates'}
+        </Button>
       </div>
-    </div>
-  </div>
 
       {/* Similar cars — full-width strip under the two-column layout */}
       <SimilarCars vehicleId={id} start={start || undefined} end={end || undefined} days={days} />

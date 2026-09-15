@@ -67,6 +67,12 @@ export function AdminSidebar() {
       icons={ICONS}
       fallbackIcon={LayoutGrid}
       exactPaths={[adminPath()]}
+      // The admin topbar is sticky at top-0 and h-14, so the nav starts at
+      // 3.5rem and fills the rest of the viewport. Pinned, because operators
+      // work down long tables and the nav has to stay reachable throughout.
+      pinned
+      top="3.5rem"
+      height="calc(100vh - 3.5rem)"
     />
   );
 }

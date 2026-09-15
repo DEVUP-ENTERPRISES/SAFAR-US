@@ -271,10 +271,14 @@ export class BookingService {
         capture: effectiveInstant && eligibility.eligible,
         total: breakdown.total,
         hostEarnings: breakdown.hostEarnings,
-        // Protection accrues to the platform, so it rides in the commission leg
-        // — keeps the ledger balanced: total = hostEarnings + commission + tax.
+        // Protection and the guest service fee both accrue to the platform, so
+        // they ride in the commission leg — keeps the ledger balanced:
+        // total = hostEarnings + commission + tax. Neither reduces host pay.
         commission: {
-          amount: breakdown.commission.amount + breakdown.protection.amount,
+          amount:
+            breakdown.commission.amount +
+            breakdown.protection.amount +
+            breakdown.serviceFee.amount,
           currency: breakdown.currency,
         },
         tax: breakdown.tax,
@@ -1373,7 +1377,17 @@ export class BookingService {
   /** Admin intervention: force-cancel with a full refund + audit reason. */
   async adminCancel(actorId: string, bookingId: string, reason: string): Promise<BookingDoc> {
     const booking = await this.getDoc(bookingId);
-    if (!['pending_verification', 'pending_approval', 'confirmed', 'paid'].includes(booking.status)) {
+    // pending_payment belongs here as much as pending_verification: it holds
+    // the vehicle's dates AND an authorisation on the guest's card, so leaving
+    // it uncancellable strands both until it expires.
+    const CANCELLABLE = [
+      'pending_verification',
+      'pending_payment',
+      'pending_approval',
+      'confirmed',
+      'paid',
+    ];
+    if (!CANCELLABLE.includes(booking.status)) {
       throw new ConflictError('Booking cannot be cancelled in its current state', 'INVALID_STATE');
     }
     const total = booking.priceBreakdown.total;

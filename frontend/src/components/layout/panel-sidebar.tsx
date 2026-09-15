@@ -29,6 +29,9 @@ export function PanelSidebar({
   icons,
   fallbackIcon: FallbackIcon,
   exactPaths = [],
+  pinned = false,
+  top = '5rem',
+  height = 'calc(100vh - 5.5rem)',
 }: {
   title: string;
   subtitle?: string;
@@ -39,6 +42,19 @@ export function PanelSidebar({
   fallbackIcon: ComponentType<{ className?: string }>;
   /** Paths that should only be active on an exact match (e.g. panel roots). */
   exactPaths?: string[];
+  /**
+   * Pin to the viewport rather than sticking within page flow.
+   *
+   * A pinned sidebar cannot be dislodged by an ancestor that happens to
+   * establish a scroll container — the failure mode `sticky` has, where the
+   * nav silently scrolls away with a long page. The caller MUST reserve the
+   * w-60 gutter itself, since a fixed element takes up no layout space.
+   */
+  pinned?: boolean;
+  /** Where the sidebar starts — the height of this panel's topbar. */
+  top?: string;
+  /** How tall it is. Defaults leave a little breathing room at the bottom. */
+  height?: string;
 }) {
   const pathname = usePathname();
 
@@ -54,11 +70,18 @@ export function PanelSidebar({
   }
 
   const desktopSidebar = (
-    // The navbar floats at top-4 and is h-14, so it occupies 16-72px. Sticking
-    // at top-16 (64px) parked the sidebar UNDER it and clipped its header; the
-    // height calc used a third, unrelated offset, so it also overran the
-    // viewport and cut off the last nav item. Both now derive from 5rem.
-    <aside className="hide-scrollbar sticky top-20 hidden h-[calc(100vh-5.5rem)] w-60 shrink-0 overflow-y-auto overscroll-contain border-e border-border py-5 pe-4 md:block">
+    // Offsets are per-panel, not hardcoded: the consumer navbar floats at top-4
+    // and is h-14 (so it occupies 16-72px), while the admin and host topbars sit
+    // flush at top-0 with their own heights. One set of numbers cannot be right
+    // for all three — a sidebar tuned for the consumer chrome left a gap under
+    // the admin topbar and ran past the bottom of the viewport.
+    <aside
+      style={{ top, height }}
+      className={cn(
+        'hide-scrollbar hidden w-60 shrink-0 overflow-y-auto overscroll-contain border-e border-border py-5 pe-4 md:block',
+        pinned ? 'fixed start-0 z-30' : 'sticky',
+      )}
+    >
       {/* Panel brand header — makes it unmistakable which panel you're in. */}
       <div className="mb-5 flex items-center gap-3 px-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20">

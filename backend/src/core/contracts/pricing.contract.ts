@@ -8,6 +8,8 @@ export interface PriceBreakdown {
   addOnsTotal: Money;
   delivery: Money; // host delivers the car to the guest — accrues to the host
   protection: Money;
+  /** Platform service fee charged to the guest on top. Zero when not configured. */
+  serviceFee: Money;
   protectionPlan: string;
   selectedAddOns: { code: string; label: string; amount: Money }[];
   subtotal: Money;

@@ -84,6 +84,13 @@ const config: Config = {
           '0%,100%': { transform: 'translateX(0)' },
           '50%': { transform: 'translateX(5px)' },
         },
+        // A bottom sheet travels its own full height, so it reads as coming up
+        // from the edge of the screen. `slide-up` is a 12px content nudge and
+        // is far too small to carry a panel.
+        'sheet-up': {
+          from: { transform: 'translateY(100%)' },
+          to: { transform: 'translateY(0)' },
+        },
         // Subtle content entrance on route change (page transitions).
         'page-in': {
           from: { opacity: '0', transform: 'translateY(8px)' },
@@ -104,6 +111,7 @@ const config: Config = {
         'scale-in': 'scale-in 0.2s ease-out',
         'slide-in-right': 'slide-in-right 0.35s cubic-bezier(0.16,1,0.3,1)',
         'nudge-x': 'nudge-x 1.5s ease-in-out infinite',
+        'sheet-up': 'sheet-up 0.32s cubic-bezier(0.16,1,0.3,1)',
         'page-in': 'page-in 0.35s cubic-bezier(0.16,1,0.3,1)',
         road: 'road 0.6s linear infinite',
         drive: 'drive 1s ease-in-out infinite',

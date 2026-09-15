@@ -10,7 +10,31 @@ import { BookingStatusBadge } from '@/features/bookings/components/status-badge'
 import { formatMoney, formatDateRange } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
 
-const STATUSES = ['', 'pending_approval', 'paid', 'in_progress', 'completed', 'cancelled'];
+/**
+ * Every state an operator needs to triage, not just the happy path.
+ *
+ * pending_verification, pending_payment and expired were missing, which meant
+ * the bookings most likely to need intervention — the ones holding a vehicle's
+ * dates and an authorisation on a card without ever confirming — could not be
+ * filtered to at all.
+ */
+const STATUSES = [
+  '',
+  'pending_verification',
+  'pending_payment',
+  'pending_approval',
+  'confirmed',
+  'paid',
+  'in_progress',
+  'completed',
+  'disputed',
+  'cancelled',
+  'declined',
+  'expired',
+];
+
+/** Mirrors adminCancel's allow-list on the server. */
+const CANCELLABLE = ['pending_verification', 'pending_payment', 'pending_approval', 'confirmed', 'paid'];
 
 export default function AdminBookingsPage() {
   const qc = useQueryClient();
@@ -28,15 +52,24 @@ export default function AdminBookingsPage() {
   // Irreversible + moves real money → confirm, force a typed ack, and record a
   // real operator reason (it lands in the booking's status history + audit log).
   const cancelBooking = async (b: any) => {
+    // Only a booking whose funds were actually captured gets refunded; the
+    // unpaid states only ever held an authorisation. Promising a refund on
+    // those told the operator money would move when none ever had.
+    const refunds = b.status === 'paid' || b.status === 'confirmed';
     const { ok, reason } = await confirm({
-      title: `Cancel booking ${b.code} and refund?`,
-      description: (
+      title: refunds ? `Cancel booking ${b.code} and refund?` : `Cancel booking ${b.code}?`,
+      description: refunds ? (
         <>
           This refunds <strong>{formatMoney(b.priceBreakdown.total)}</strong> to the guest and releases
           the vehicle&apos;s dates. Money movement <strong>cannot be undone</strong>.
         </>
+      ) : (
+        <>
+          This booking was never paid. Cancelling releases the hold on the guest&apos;s card and frees
+          the vehicle&apos;s dates. <strong>Cannot be undone.</strong>
+        </>
       ),
-      confirmLabel: 'Cancel + refund',
+      confirmLabel: refunds ? 'Cancel + refund' : 'Cancel booking',
       tone: 'destructive',
       requireText: b.code,
       reason: { label: 'Reason (recorded in the audit log)', placeholder: 'e.g. Host cancelled — vehicle unavailable', required: true },
@@ -50,7 +83,7 @@ export default function AdminBookingsPage() {
     { header: 'Total', cell: (b) => formatMoney(b.priceBreakdown.total) },
     { header: 'Status', cell: (b) => <BookingStatusBadge status={b.status} /> },
     { header: '', className: 'text-end', cell: (b) => (
-      ['pending_approval', 'confirmed', 'paid'].includes(b.status)
+      CANCELLABLE.includes(b.status)
         ? <Button size="sm" variant="outline" className="text-destructive" loading={cancel.isPending} onClick={() => cancelBooking(b)}>Cancel + refund</Button>
         : null
     ) },

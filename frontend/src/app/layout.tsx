@@ -116,7 +116,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
       className={`${fontSans.variable} ${fontDisplay.variable} ${fontMono.variable}`}
     >
-      <body className="flex min-h-screen flex-col font-sans antialiased overflow-x-hidden">
+      {/*
+        overflow-x must be `clip`, never `hidden`.
+
+        Setting overflow-x:hidden forces the computed overflow-y to `auto`, which
+        makes <body> a scroll container — and `position: sticky` resolves against
+        its nearest scrolling ancestor. Every sticky element in the app was
+        therefore sticking to the body box rather than the viewport, which is why
+        the booking panel on a vehicle page scrolled away instead of staying put.
+
+        `clip` does the same horizontal clipping (the reason this is here at all)
+        without creating a scroll container, so sticky keeps working.
+      */}
+      <body className="flex min-h-screen flex-col font-sans antialiased overflow-x-clip">
         <Providers>
           {/* Consumer chrome for the marketplace; the admin console supplies
               its own shell (see AppChrome). */}

@@ -34,6 +34,8 @@ export interface FeatureFlag {
 // ── Platform economics & commission ──────────────────────────────────
 export interface PlatformConfig {
   commission: { defaultBps: number; minBps: number; maxBps: number };
+  /** Charged to the guest on top; commission comes out of host earnings. */
+  serviceFee: { bps: number; maxCents: number };
   tax: { bps: number };
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };
   rewards: { pointValueCents: number; pointsPerDollar: number };

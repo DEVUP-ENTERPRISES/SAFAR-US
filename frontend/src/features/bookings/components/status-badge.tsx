@@ -3,6 +3,7 @@ import type { BookingStatus } from '../types';
 
 const TONE: Record<BookingStatus, 'default' | 'success' | 'warning' | 'destructive' | 'muted'> = {
   pending_verification: 'warning',
+  pending_payment: 'warning',
   pending_approval: 'warning',
   confirmed: 'default',
   paid: 'success',
@@ -24,6 +25,7 @@ const TONE: Record<BookingStatus, 'default' | 'success' | 'warning' | 'destructi
  */
 const LABEL: Record<BookingStatus, string> = {
   pending_verification: 'Verifying you',
+  pending_payment: 'Payment incomplete',
   pending_approval: 'Awaiting host',
   confirmed: 'Confirmed',
   paid: 'Confirmed',

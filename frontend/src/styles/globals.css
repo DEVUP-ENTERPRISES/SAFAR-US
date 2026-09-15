@@ -304,6 +304,13 @@ textarea {
   .link-underline:hover {
     background-size: 100% 1.5px;
   }
+
+  /* Clear of the iPhone home indicator. `pb-safe` was already in use on the
+     mobile booking bar but had never been defined, so the primary action sat
+     underneath the gesture bar on every notched device. */
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
 }
 
 /* Focus is never removed, only made to match the system. Keyboard users are

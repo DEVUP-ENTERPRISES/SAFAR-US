@@ -54,6 +54,19 @@ export interface PlatformConfigDoc {
     minBps: number;
     maxBps: number;
   };
+  /**
+   * The platform's service fee, charged to the GUEST on top of the trip.
+   *
+   * Distinct from `commission`, which is taken out of what the host earns. This
+   * is the other side of the take rate: the line the guest sees on the bill.
+   * Defaults to 0 so turning it on is always a deliberate admin act.
+   */
+  serviceFee: {
+    /** Basis points of the host-side subtotal. 350 = 3.5%. */
+    bps: number;
+    /** Never charge more than this, whatever the trip costs. 0 = no cap. */
+    maxCents: number;
+  };
   tax: {
     /** Applied to commission. US launch = 0. */
     bps: number;
@@ -432,6 +445,10 @@ const schema = new Schema<PlatformConfigDoc>(
       defaultBps: { type: Number, default: 2000 }, // 20%
       minBps: { type: Number, default: 0 },
       maxBps: { type: Number, default: 4000 }, // 40% ceiling — a typo can't take 90%
+    },
+    serviceFee: {
+      bps: { type: Number, default: 0 }, // off until an admin sets it
+      maxCents: { type: Number, default: 0 }, // 0 = uncapped
     },
     tax: {
       bps: { type: Number, default: 0 },
