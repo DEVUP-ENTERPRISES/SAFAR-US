@@ -2,10 +2,11 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { assetPartnerService } from '../application/asset-partner.service';
 import { assetPartnerStatementService } from '../application/asset-partner-statement.service';
+import { assetPartnerMaintenanceService } from '../application/asset-partner-maintenance.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
-import { sendSuccess } from '../../../shared/http/api-response';
+import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 
@@ -91,6 +92,29 @@ router.patch(
   }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await assetPartnerService.setTerms(req.params.id, req.body));
+  }),
+);
+
+/**
+ * Ops schedules maintenance on a partner-managed vehicle. Whether it needs the
+ * partner's sign-off is computed from THEIR terms, not asked for here — see
+ * assetPartnerMaintenanceService.create.
+ */
+router.post(
+  '/asset-partners/maintenance',
+  authorize('host:manage'),
+  validate({
+    body: z.object({
+      vehicleId: z.string(),
+      type: z.enum(['service', 'repair', 'inspection', 'cleaning']),
+      scheduledFor: z.coerce.date(),
+      costCents: z.number().int().min(0).optional(),
+      odometerKm: z.number().int().min(0).optional(),
+      notes: z.string().max(500).optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendCreated(res, await assetPartnerMaintenanceService.create(req.body));
   }),
 );
 

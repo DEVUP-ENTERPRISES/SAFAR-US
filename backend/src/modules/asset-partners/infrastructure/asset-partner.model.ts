@@ -85,6 +85,19 @@ export interface AssetPartnerDoc {
   /** Only what is negotiated away from the platform defaults. */
   terms: PartnerTermsOverride;
 
+  /**
+   * Where the monthly net actually goes. Separate from `terms.payoutMethod`
+   * (check vs Zelle is a negotiated TERM) — this is the recipient detail that
+   * term requires, and it is the partner's own information to keep current,
+   * not something ops negotiates.
+   */
+  payoutDetails?: {
+    /** Required once payoutMethod is 'check'. */
+    mailingAddress?: string;
+    /** Required once payoutMethod is 'zelle' — the email or phone it's sent to. */
+    zelleHandle?: string;
+  };
+
   /** Programme milestones, for the partner's own status tracker. */
   approvedAt?: Date;
   onboardedAt?: Date;
@@ -124,6 +137,10 @@ const schema = new Schema<AssetPartnerDoc>(
       maintenanceApprovalCents: Number,
       payoutMethod: { type: String, enum: ['check', 'zelle'] },
       payoutDayOfMonth: Number,
+    },
+    payoutDetails: {
+      mailingAddress: String,
+      zelleHandle: String,
     },
 
     approvedAt: Date,

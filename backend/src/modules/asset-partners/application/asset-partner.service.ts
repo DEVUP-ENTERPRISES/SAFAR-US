@@ -143,6 +143,23 @@ export class AssetPartnerService {
     return this.getById(partnerId);
   }
 
+  /**
+   * Self-service: where the partner's own money goes. Deliberately a
+   * DIFFERENT endpoint from setTerms — a partner may correct their own
+   * mailing address or Zelle handle, but must never be able to write to
+   * `terms`, which is a negotiated commercial agreement only ops can change.
+   */
+  async setPayoutDetails(
+    userId: string,
+    details: NonNullable<AssetPartnerDoc['payoutDetails']>,
+  ): Promise<AssetPartnerDoc> {
+    const partner = await this.getByUserId(userId);
+    if (!partner) throw new NotFoundError('Asset Partner');
+    await AssetPartnerModel.updateOne({ _id: partner._id }, { payoutDetails: details });
+    logger.info({ partnerId: partner._id }, 'Asset Partner payout details updated');
+    return this.getById(partner._id);
+  }
+
   async adminList(opts: { status?: PartnerStatus; limit?: number; skip?: number }): Promise<{
     items: AssetPartnerDoc[];
     total: number;

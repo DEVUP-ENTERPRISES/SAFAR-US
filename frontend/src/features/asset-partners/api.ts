@@ -60,6 +60,7 @@ export interface PartnerApplication {
   fullName: string;
   businessName?: string;
   email: string;
+  phone?: string;
   vehicle: AssetPartnerVehicle;
   availability: 'fulltime' | 'parttime' | 'seasonal';
   preferredZone?: string;
@@ -154,8 +155,82 @@ export interface PartnerDashboard {
   vehicles: PartnerVehicleSummary[];
 }
 
+export interface VehicleTripSummary {
+  bookingId: string;
+  code: string;
+  status: string;
+  start: string;
+  end: string;
+  gross: number;
+}
+
+export interface PartnerVehicleDetail extends PartnerVehicleSummary {
+  vin?: string;
+  plate?: string;
+  createdAt: string;
+  /** Recent completed trips, newest first. */
+  recentTrips: VehicleTripSummary[];
+  /** This car's net across recent months, oldest first (chart order). */
+  monthly: { period: string; net: number; gross: number }[];
+}
+
+export type MaintenanceApproval = 'not_required' | 'pending' | 'approved' | 'declined';
+
+export interface MaintenanceRequest {
+  _id: string;
+  vehicleId: string;
+  type: 'service' | 'repair' | 'inspection' | 'cleaning';
+  scheduledFor: string;
+  cost?: number;
+  odometerKm?: number;
+  notes?: string;
+  status: 'scheduled' | 'in_progress' | 'completed';
+  approval: MaintenanceApproval;
+  approvalThresholdCents?: number;
+  approvedAt?: string;
+  declineReason?: string;
+  createdAt: string;
+}
+
+export interface PayoutDetails {
+  mailingAddress?: string;
+  zelleHandle?: string;
+}
+
+/** The partner's own full membership record — payoutDetails included. */
+export interface PartnerMe {
+  partner: {
+    _id: string;
+    status: PartnerStatus;
+    partnerType: 'individual' | 'business' | 'fleet';
+    displayName: string;
+    payoutDetails?: PayoutDetails;
+  };
+  terms: ResolvedPartnerTerms;
+}
+
 export const assetPartnerApi = {
   apply: (input: CreateAssetPartnerApplicationInput) =>
     api.post<{ reference: string; status: string }>('/asset-partner-applications', input),
   dashboard: () => api.get<PartnerDashboard>('/asset-partners/dashboard'),
+  /** Null when the caller isn't enrolled — see the profile page's guard. */
+  me: () => api.get<PartnerMe | null>('/asset-partners/me'),
+
+  // The portal — vehicles, one car's own history, the statement archive.
+  vehicles: () => api.get<PartnerVehicleSummary[]>('/asset-partners/vehicles'),
+  vehicle: (id: string) => api.get<PartnerVehicleDetail>(`/asset-partners/vehicles/${id}`),
+  statements: (months = 12) => api.get<PartnerStatement[]>('/asset-partners/statements', { months }),
+
+  // Self-service payout recipient details. NOT terms — see the backend route.
+  setPayoutDetails: (details: PayoutDetails) =>
+    api.patch<{ payoutDetails: PayoutDetails }>('/asset-partners/payout-details', details),
+
+  // Maintenance approvals — the partner's yes/no on anything ops scheduled
+  // above their agreed threshold.
+  maintenance: (approval?: MaintenanceApproval) =>
+    api.get<MaintenanceRequest[]>('/asset-partners/maintenance', approval ? { approval } : {}),
+  approveMaintenance: (id: string) =>
+    api.post<MaintenanceRequest>(`/asset-partners/maintenance/${id}/approve`),
+  declineMaintenance: (id: string, reason?: string) =>
+    api.post<MaintenanceRequest>(`/asset-partners/maintenance/${id}/decline`, { reason }),
 };
