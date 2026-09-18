@@ -253,7 +253,7 @@ export interface PlatformConfigDoc {
     notifyEmail: string;
   };
   /**
-   * Verification / eligibility policy — admin-configurable, so CATO can change
+   * Verification / eligibility policy — admin-configurable, so CatoDrive can change
    * how often an expensive check runs and how long a passing result is trusted
    * WITHOUT a code change. Each check type carries the same four levers:
    *

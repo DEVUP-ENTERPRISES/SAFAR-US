@@ -12,8 +12,8 @@ import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, CountUp, BRAND } from '@/features/marketing/sections';
 
 /**
- * Asset Partners — CATO's primary acquisition page (v1 priority, per the
- * business). Someone who already owns an eligible car lists it here; CATO runs
+ * Asset Partners — CatoDrive's primary acquisition page (v1 priority, per the
+ * business). Someone who already owns an eligible car lists it here; CatoDrive runs
  * 100% of operations and pays them a monthly share. Host (self-managed listing)
  * and Corporate/Fleet remain as v2/v3 surfaces, unchanged by this page.
  *

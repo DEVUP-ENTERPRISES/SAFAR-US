@@ -946,7 +946,7 @@ export default function VehicleDetailPage() {
                     className="mt-0.5 accent-[hsl(var(--primary))]"
                   />
                   <span className="flex-1">
-                    <span className="font-medium">Pay with CATO Wallet</span>
+                    <span className="font-medium">Pay with CatoDrive Wallet</span>
                     <span className="ms-1 text-muted-foreground">
                       ({formatMoney({ amount: bal, currency: quote.data.total.currency })} available)
                     </span>

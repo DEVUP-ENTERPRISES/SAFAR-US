@@ -93,7 +93,7 @@ function Receipt() {
               <Line label="Discounts" value={`−${formatMoney(pb.discount)}`} muted />
             )}
             {pb.memberSavings && pb.memberSavings.amount > 0 && (
-              <Line label="CATO Plus savings" value={`−${formatMoney(pb.memberSavings)}`} muted />
+              <Line label="CatoDrive Plus savings" value={`−${formatMoney(pb.memberSavings)}`} muted />
             )}
           </div>
 
@@ -114,7 +114,7 @@ function Receipt() {
               <p>Demand pricing applied on {pb.surgeDays} day{pb.surgeDays === 1 ? '' : 's'}{pb.surgeSource && pb.surgeSource !== 'none' ? ` (${pb.surgeSource})` : ''}.</p>
             ) : null}
             {b.delivery && <p>Delivered to {b.delivery.address} ({b.delivery.mode}).</p>}
-            <p className="mt-1">Prices shown are what you were quoted and charged — CATO does not change a price after booking.</p>
+            <p className="mt-1">Prices shown are what you were quoted and charged — CatoDrive does not change a price after booking.</p>
           </div>
         )}
 

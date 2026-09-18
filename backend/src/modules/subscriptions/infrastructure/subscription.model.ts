@@ -2,7 +2,7 @@ import { Schema, model } from 'mongoose';
 import { uuid } from '../../../shared/utils/uuid';
 
 /**
- * CATO Plus — a paid membership for guests.
+ * CatoDrive Plus — a paid membership for guests.
  *
  * Benefits are declarative so the pricing engine can apply them without knowing
  * plan names, and admin can invent a new tier without a deploy.

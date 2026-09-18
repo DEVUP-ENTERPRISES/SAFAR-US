@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils/cn';
 
 /**
- * The CATO emblem.
+ * The CatoDrive emblem.
  *
  * A full-colour mark (road, plane, car, tyre) on a transparent background, so
  * it sits on any surface — the light navbar, the dark auth panel, an email —
@@ -15,7 +15,7 @@ export function Logo({ className = 'h-9 w-9' }: { className?: string }) {
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src="/logos/cato-logo-256.png"
-      alt="CATO"
+      alt="CatoDrive"
       width={256}
       height={256}
       className={cn('object-contain', className)}

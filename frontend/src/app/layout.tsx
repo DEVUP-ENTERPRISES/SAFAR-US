@@ -36,11 +36,11 @@ const fontMono = IBM_Plex_Mono({
 });
 
 /*
- * Owned, on-brand metadata for CATO Drive.
+ * Owned, on-brand metadata for CatoDrive.
  *
  * Every field is filled with the product's own identity rather than left to a
  * framework default, so search engines, link previews and site scanners see
- * "CATO Drive", not a generic scaffold. Nothing here advertises the build tool
+ * "CatoDrive", not a generic scaffold. Nothing here advertises the build tool
  * (and poweredByHeader is off in next.config, so no X-Powered-By header ships).
  */
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://catodrive.com';
@@ -64,7 +64,7 @@ export const metadata: Metadata = {
   // Don't announce the generator/build tool.
   generator: null,
   keywords: [
-    'CATO Drive', 'car rental', 'rent a car', 'peer to peer car rental',
+    'CatoDrive', 'car rental', 'rent a car', 'peer to peer car rental',
     'car sharing', 'book a car', 'local car rental', 'host your car', 'car hire',
   ],
   category: 'travel',
@@ -76,8 +76,8 @@ export const metadata: Metadata = {
   },
   icons: { icon: '/icon.png', shortcut: '/icon.png', apple: '/icons/apple-touch-icon.png' },
   manifest: '/manifest.webmanifest',
-  // Makes iOS treat an added-to-home-screen CATO like a standalone app.
-  appleWebApp: { capable: true, title: 'CATO Drive', statusBarStyle: 'default' },
+  // Makes iOS treat an added-to-home-screen CatoDrive like a standalone app.
+  appleWebApp: { capable: true, title: 'CatoDrive', statusBarStyle: 'default' },
   openGraph: {
     type: 'website',
     siteName: BRAND,

@@ -96,7 +96,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
               </span>
               <p className="mt-1 text-sm font-semibold text-foreground">Start the conversation</p>
               <p className="max-w-[15rem] text-xs leading-relaxed text-muted-foreground">
-                Coordinate pickup, drop-off and anything else. Messages stay private between you two on CATO Drive.
+                Coordinate pickup, drop-off and anything else. Messages stay private between you two on CatoDrive.
               </p>
             </div>
           )}
@@ -194,7 +194,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
                 submit();
               }
             }}
-            placeholder="Message on CATO Drive…"
+            placeholder="Message on CatoDrive…"
             className="max-h-32 min-h-[2.25rem] flex-1 resize-none bg-transparent py-2 text-[14.5px] leading-snug outline-none placeholder:text-muted-foreground"
           />
         </div>

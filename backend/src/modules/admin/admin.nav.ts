@@ -5,7 +5,7 @@ import { config } from '../../config';
  * truth for the sidebar (via GET /admin/nav), permission gating, and docs.
  *
  *  - slug:       stable identifier for the section
- *  - path:       front-end route (CATO web admin panel)
+ *  - path:       front-end route (CatoDrive web admin panel)
  *  - apiPath:    primary backend endpoint that powers the section
  *  - permission: RBAC permission required to see/use the section
  */
@@ -29,7 +29,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'dashboard', path: A(), apiPath: '/admin/metrics', label: 'Dashboard', group: 'Overview', permission: 'admin:read' },
   { slug: 'analytics', path: A('analytics'), apiPath: '/admin/analytics', label: 'Analytics', group: 'Overview', permission: 'analytics:read' },
 
-  // Asset Partners is CATO's primary acquisition path — listed first.
+  // Asset Partners is CatoDrive's primary acquisition path — listed first.
   { slug: 'asset-partners', path: A('asset-partners'), apiPath: '/admin/asset-partner-applications', label: 'Asset Partner Applications', group: 'People', permission: 'admin:read' },
   // The programme itself, separate from the intake queue: members, their
   // lifecycle and their negotiated terms.

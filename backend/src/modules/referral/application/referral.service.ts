@@ -76,12 +76,12 @@ export class ReferralService {
 
   private async generateCode(userId: string): Promise<string> {
     const user = await userRepository.findById(userId);
-    const base = (user?.firstName ?? 'CATO').replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'CATO';
+    const base = (user?.firstName ?? 'CatoDrive').replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 5) || 'CatoDrive';
     for (let i = 0; i < 5; i++) {
       const code = `${base}${Math.floor(1000 + Math.random() * 9000)}`;
       if (!(await ReferralCodeModel.findOne({ code }).lean())) return code;
     }
-    return `CATO${Date.now().toString(36).toUpperCase()}`;
+    return `CATODRIVE${Date.now().toString(36).toUpperCase()}`;
   }
 }
 

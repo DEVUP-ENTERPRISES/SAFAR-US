@@ -28,7 +28,7 @@ const fontMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'CATO Admin',
+  title: 'CatoDrive Admin',
   // The console must never be indexed.
   robots: { index: false, follow: false },
 };

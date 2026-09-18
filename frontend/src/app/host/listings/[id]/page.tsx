@@ -184,7 +184,7 @@ export default function ManageListingPage() {
 
   const doDelist = async () => {
     const { ok } = await confirm({
-      title: `Remove ${v.make} ${v.model} from CATO?`,
+      title: `Remove ${v.make} ${v.model} from CatoDrive?`,
       description:
         'The car stops appearing in search and can no longer be booked. Trips already booked are not cancelled — handle those first.',
       confirmLabel: 'Remove listing',

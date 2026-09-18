@@ -2,7 +2,7 @@ import { Schema, model } from 'mongoose';
 import { uuid } from '../../../shared/utils/uuid';
 
 /**
- * Append-only CATO Points ledger. Points are signed (earn > 0, redeem < 0).
+ * Append-only CatoDrive Points ledger. Points are signed (earn > 0, redeem < 0).
  * Balance and lifetime are DERIVED by summing — never a mutable counter.
  */
 export interface RewardEntryDoc {

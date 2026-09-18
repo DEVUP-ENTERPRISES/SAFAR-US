@@ -46,7 +46,7 @@ export interface EmailContent {
 }
 
 export function renderEmail(c: EmailContent): string {
-  const brand = config.notifications.brandName || 'SAFAR';
+  const brand = config.notifications.brandName || 'CatoDrive';
   // Emails need an ABSOLUTE url — they can't reach local files. Served from the
   // web app's /public. Falls back to text-only when no web URL is configured,
   // and the alt text covers the (common) case of a client blocking images.

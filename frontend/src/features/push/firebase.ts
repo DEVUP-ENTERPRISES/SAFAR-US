@@ -71,7 +71,7 @@ export async function onForegroundMessage(cb: (title: string, body: string, data
   if (!m) return () => undefined;
   return onMessage(m, (payload) => {
     cb(
-      payload.notification?.title ?? 'CATO',
+      payload.notification?.title ?? 'CatoDrive',
       payload.notification?.body ?? '',
       payload.data as Record<string, string> | undefined,
     );

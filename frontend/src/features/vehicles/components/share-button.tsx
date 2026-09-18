@@ -19,7 +19,7 @@ export function ShareButton({ title, className }: { title: string; className?: s
     const nav = typeof navigator !== 'undefined' ? navigator : undefined;
     if (nav?.share) {
       try {
-        await nav.share({ title, text: `Check out this ${title} on CATO`, url });
+        await nav.share({ title, text: `Check out this ${title} on CatoDrive`, url });
         return;
       } catch {
         // User dismissed the share sheet, or it failed — fall through to copy.

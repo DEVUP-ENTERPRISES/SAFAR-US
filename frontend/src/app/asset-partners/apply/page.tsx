@@ -21,10 +21,10 @@ import { BRAND } from '@/features/marketing/sections';
 /**
  * The Asset Partner Vehicle Intake — a 6-step qualification form.
  *
- * Built entirely in CATO's own design system (hero-mesh, primary teal,
+ * Built entirely in CatoDrive's own design system (hero-mesh, primary teal,
  * Archivo display type, the app's real Field/Input/Select/Chip/Button
  * primitives, Reveal motion) — not a skin ported from the reference mockup.
- * Same brand as every other page on the site, because this is CATO's own
+ * Same brand as every other page on the site, because this is CatoDrive's own
  * intake, not a separate product.
  *
  * No login required — it's a lead, not an account. Real submission hits

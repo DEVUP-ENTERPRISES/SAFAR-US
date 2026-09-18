@@ -223,7 +223,7 @@ export function registerEventSubscribers(): void {
       deepLink: `/bookings/${p.bookingId}`,
       templateKey: 'booking.reminder',
       title: 'Your trip is coming up',
-      body: 'Your CATO trip starts soon. Tap to view details.',
+      body: 'Your CatoDrive trip starts soon. Tap to view details.',
       data: { bookingId: p.bookingId },
     });
   });
@@ -335,7 +335,7 @@ export function registerEventSubscribers(): void {
     const p = e.payload as { bookingId: string; guestId: string; hostId: string };
     await payoutService.scheduleForBooking(p.bookingId);
 
-    // CATO Rewards: 1 point per $1 spent (× tier multiplier), idempotent per booking.
+    // CatoDrive Rewards: 1 point per $1 spent (× tier multiplier), idempotent per booking.
     try {
       const booking = await bookingService.getDoc(p.bookingId);
       const basePoints = Math.floor(booking.priceBreakdown.total.amount / 100);
@@ -350,7 +350,7 @@ export function registerEventSubscribers(): void {
       userId: p.guestId,
       templateKey: 'trip.completed',
       title: 'Trip completed',
-      body: 'Thanks for riding with CATO! You earned points — leave a review.',
+      body: 'Thanks for riding with CatoDrive! You earned points — leave a review.',
       data: { bookingId: p.bookingId },
     });
     realtimeEmitter.toUser(p.guestId, RT.NOTIFICATION, { kind: 'rewards', bookingId: p.bookingId });

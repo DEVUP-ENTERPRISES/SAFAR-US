@@ -28,7 +28,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: 'Business',
     links: [
-      { label: 'CATO for Business', href: '/corporate' },
+      { label: 'CatoDrive for Business', href: '/corporate' },
       { label: 'Corporate login', href: '/corporate/login' },
       { label: 'Cost centers', href: '/corporate/cost-centers' },
       { label: 'Invoices', href: '/corporate/invoices' },

@@ -32,7 +32,7 @@ function Wallet() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="display text-display-sm">CATO Wallet</h1>
+      <h1 className="display text-display-sm">CatoDrive Wallet</h1>
 
       {/* Balance hero */}
       <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-indigo-600 p-6 text-white shadow-lift">

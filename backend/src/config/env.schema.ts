@@ -29,7 +29,7 @@ export const envSchema = z.object({
    * when no CDN is configured. Defaults to localhost for development.
    */
   PUBLIC_API_URL: z.string().url().optional(),
-  APP_NAME: z.string().default('TURA'),
+  APP_NAME: z.string().default('CatoDrive'),
 
   /**
    * Secret base path for the admin console, e.g. `ctrl-0986-cato-admin`.
@@ -111,7 +111,7 @@ export const envSchema = z.object({
   VINAUDIT_API_KEY: optional(z.string()),
   // ── Branding, used in email footers ───────────────────────────────
   /** Shown in email headers and footers. */
-  BRAND_NAME: z.string().default('SAFAR'),
+  BRAND_NAME: z.string().default('CatoDrive'),
   /** The web app, for links in emails. Falls back to the first CORS origin. */
   WEB_URL: optional(z.string()),
   /**
@@ -142,7 +142,7 @@ export const envSchema = z.object({
   SMTP_SECURE: optional(z.coerce.boolean()),
   EMAIL_API_URL: optional(z.string().url()),
   EMAIL_API_KEY: optional(z.string()),
-  /** Envelope sender, e.g. "CATO <no-reply@cato.com>". Required either way. */
+  /** Envelope sender, e.g. "CatoDrive <no-reply@cato.com>". Required either way. */
   EMAIL_FROM: optional(z.string()),
   /** Sentry DSN. Absent = errors are logged locally only. */
   SENTRY_DSN: optional(z.string()),

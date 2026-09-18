@@ -44,7 +44,7 @@ router.post(
       userId: req.principal!.userId,
       priority: 'critical', // forces the full fan-out: push, SMS and email
       templateKey: 'system.test',
-      title: 'CATO test notification',
+      title: 'CatoDrive test notification',
       body: 'If you are reading this, the channel it arrived on is configured correctly.',
       deepLink: '/account',
     });

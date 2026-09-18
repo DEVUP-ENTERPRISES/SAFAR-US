@@ -30,7 +30,7 @@ import {
 /**
  * The Asset Partner's dashboard — an OVERVIEW, not a copy of the portal.
  *
- * An Asset Partner is a passive owner: CATO lists, prices, delivers, cleans
+ * An Asset Partner is a passive owner: CatoDrive lists, prices, delivers, cleans
  * and services the car. So this is deliberately not the host dashboard, built
  * for someone running their own calendar and pricing.
  *

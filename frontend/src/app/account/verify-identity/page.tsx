@@ -94,7 +94,7 @@ function VerifyIdentity() {
 
       <PageHeader
         title="Verify your identity"
-        description="Every driver on CATO is identity-verified against a government-issued ID. It's mandatory before you can book — so hosts and guests always know exactly who they're dealing with."
+        description="Every driver on CatoDrive is identity-verified against a government-issued ID. It's mandatory before you can book — so hosts and guests always know exactly who they're dealing with."
       />
 
       {/* ── Terminal & in-progress states ─────────────────────────── */}

@@ -2,11 +2,11 @@ import { Schema, model } from 'mongoose';
 import { uuid } from '../../../shared/utils/uuid';
 
 /**
- * A submitted Asset Partner Vehicle Intake — the lead for CATO's primary
- * acquisition path (someone lists a car they already own; CATO runs it).
+ * A submitted Asset Partner Vehicle Intake — the lead for CatoDrive's primary
+ * acquisition path (someone lists a car they already own; CatoDrive runs it).
  *
  * This is a LEAD/application, not an account: the applicant may not have a
- * CATO login yet (the intake form never asks for a password). It captures
+ * CatoDrive login yet (the intake form never asks for a password). It captures
  * everything the six-step form collects — partner info, the vehicle, title/
  * ownership, condition, insurance, and availability — plus the required
  * acknowledgements and a typed signature, so there is a durable record of

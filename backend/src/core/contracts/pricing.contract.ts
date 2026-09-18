@@ -40,7 +40,7 @@ export interface PriceBreakdown {
   /** How many days of the trip were surged, and why. Shown to the guest. */
   surgeDays?: number;
   surgeSource?: string;
-  /** Membership savings applied (CATO Plus), in minor units. */
+  /** Membership savings applied (CatoDrive Plus), in minor units. */
   memberSavings?: Money;
   memberPlan?: string;
   /**
@@ -60,7 +60,7 @@ export interface QuoteInput {
   couponCode?: string;
   addOnCodes?: string[];
   protectionPlan?: string;
-  /** Who is booking — lets membership (CATO Plus) benefits apply to the price. */
+  /** Who is booking — lets membership (CatoDrive Plus) benefits apply to the price. */
   guestId?: string;
   /** Guest asks the host to deliver the car here (adds the host's delivery fee). */
   delivery?: DeliveryRequest;

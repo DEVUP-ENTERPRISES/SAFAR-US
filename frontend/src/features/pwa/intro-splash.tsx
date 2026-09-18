@@ -84,7 +84,7 @@ export function IntroSplash() {
         }`}
         style={{ transitionDelay: '260ms' }}
       >
-        CATO DRIVE
+        CatoDrive
       </p>
 
       {/* A thin accent line draws out under it. */}

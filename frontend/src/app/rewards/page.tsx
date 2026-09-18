@@ -33,7 +33,7 @@ function Rewards() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="display text-display-sm">CATO Rewards</h1>
+      <h1 className="display text-display-sm">CatoDrive Rewards</h1>
 
       {/* Hero card */}
       <div className={`overflow-hidden rounded-2xl bg-gradient-to-br ${TIER_COLOR[data.tier.key] ?? 'from-primary to-primary'} p-6 text-white shadow-lift`}>

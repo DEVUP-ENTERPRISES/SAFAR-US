@@ -208,7 +208,7 @@ export const config = Object.freeze({
   admin: {
     email: env.ADMIN_EMAIL,
     password: env.ADMIN_PASSWORD,
-    name: env.ADMIN_NAME ?? 'CATO Admin',
+    name: env.ADMIN_NAME ?? 'CatoDrive Admin',
     enabled: !!(env.ADMIN_EMAIL && env.ADMIN_PASSWORD),
   },
 });

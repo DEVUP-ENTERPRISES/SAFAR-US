@@ -83,7 +83,7 @@ function Receipt() {
                   <Logo className="h-7 w-7" />
                 </span>
                 <div>
-                  <p className="text-[15px] font-black leading-none tracking-tight">CATO Drive</p>
+                  <p className="text-[15px] font-black leading-none tracking-tight">CatoDrive</p>
                   <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/60">Trip receipt</p>
                 </div>
               </div>
@@ -142,7 +142,7 @@ function Receipt() {
         <div className="border-t border-border bg-subtle px-7 py-4 text-[11px] leading-relaxed text-muted-foreground">
           <p className="font-mono">Booking ID · {t.bookingId}</p>
           <p className="mt-1">
-            Issued by CATO Drive. Figures are the price locked at booking and never change afterward. Any refundable
+            Issued by CatoDrive. Figures are the price locked at booking and never change afterward. Any refundable
             security deposit is authorised separately and not included here. Scan the QR to confirm this receipt is genuine.
           </p>
         </div>

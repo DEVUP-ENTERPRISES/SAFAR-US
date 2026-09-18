@@ -2,11 +2,11 @@ import { Schema, model } from 'mongoose';
 import { uuid } from '../../../shared/utils/uuid';
 
 /**
- * An Asset Partner — a vehicle owner in CATO's managed programme.
+ * An Asset Partner — a vehicle owner in CatoDrive's managed programme.
  *
  * Deliberately its OWN entity rather than a flag on Host, because the two are
  * different businesses. A host self-manages: they set their own price, run
- * their own calendar and are paid per booking. A partner does nothing — CATO
+ * their own calendar and are paid per booking. A partner does nothing — CatoDrive
  * lists, prices, delivers, cleans and services the car — and is paid a monthly
  * net after a management fee, fleet insurance and detailing.
  *
@@ -67,7 +67,7 @@ export interface PartnerTermsOverride {
 
 export interface AssetPartnerDoc {
   _id: string;
-  /** The CATO account this partner signs in with. */
+  /** The CatoDrive account this partner signs in with. */
   userId: string;
   /** Marketplace seller identity their vehicles hang off. */
   hostId: string;

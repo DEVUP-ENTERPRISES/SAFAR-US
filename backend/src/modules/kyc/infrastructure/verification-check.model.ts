@@ -9,7 +9,7 @@ import { uuid } from '../../../shared/utils/uuid';
  * result?" and "have we run too many within the configured window?".
  *
  * Frequency and validity are NOT encoded here — they live in admin config
- * (platform-config.verification), so CATO changes "MVR at most once per two
+ * (platform-config.verification), so CatoDrive changes "MVR at most once per two
  * months" without a deploy. This ledger only records what happened and when.
  */
 export type VerificationType = 'identity' | 'mvr' | 'background' | 'insurance';

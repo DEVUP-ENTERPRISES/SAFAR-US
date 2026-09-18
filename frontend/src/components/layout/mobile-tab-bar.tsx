@@ -15,7 +15,7 @@ import { useUnreadMessages } from '@/features/messaging/hooks';
  *
  * Six equal tabs — no lifted centre, nothing oversized. Product call: the core
  * loop of a rental marketplace is browse → search → save → trip → talk →
- * manage, so those are the six, and Home is the CATO mark itself so the brand
+ * manage, so those are the six, and Home is the CatoDrive mark itself so the brand
  * is present without a logo row stealing space. Everything else lives in the
  * account drawer, which hides these six on mobile so nothing shows twice.
  *

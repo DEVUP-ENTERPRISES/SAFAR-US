@@ -140,7 +140,7 @@ export function InstallPrompt() {
     <div className="fixed inset-x-0 bottom-0 z-[60] flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] lg:justify-end lg:px-6">
       <div
         role="dialog"
-        aria-label="Install CATO Drive"
+        aria-label="Install CatoDrive"
         className="animate-slide-up w-full max-w-[24rem] overflow-hidden rounded-2xl bg-[#17130f] text-white shadow-2xl shadow-black/50 ring-1 ring-white/10"
       >
         <div className="flex items-center gap-3.5 px-4 pt-4">
@@ -148,7 +148,7 @@ export function InstallPrompt() {
             <Logo className="h-8 w-8" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-bold leading-tight">Install CATO Drive</p>
+            <p className="text-[15px] font-bold leading-tight">Install CatoDrive</p>
             <p className="mt-0.5 text-[12.5px] leading-snug text-white/55">
               Book premium cars delivered curbside — right from your home screen. No app store, no clutter.
             </p>

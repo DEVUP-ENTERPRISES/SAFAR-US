@@ -77,7 +77,7 @@ async function raw<T>(path: string, opts: RequestOptions, retry = true): Promise
     // fetch throws on network failure / server unreachable / CORS block.
     throw new ApiError(
       'NETWORK_ERROR',
-      'Cannot reach the CATO server. Make sure the backend is running on port 8080.',
+      'Cannot reach the CatoDrive server. Make sure the backend is running on port 8080.',
       0,
     );
   }

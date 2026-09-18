@@ -9,8 +9,8 @@ import type { MetadataRoute } from 'next';
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/',
-    name: 'CATO Drive — Premium Car Rentals',
-    short_name: 'CATO Drive',
+    name: 'CatoDrive — Premium Car Rentals',
+    short_name: 'CatoDrive',
     description:
       'Book premium cars delivered to your terminal, or turn the car you own into income. Curbside at DFW and Love Field.',
     start_url: '/',

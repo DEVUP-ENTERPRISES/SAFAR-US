@@ -70,7 +70,7 @@ export class UserService {
     if (age < config.legal.minAgeYears) {
       throw new AppError({
         code: 'UNDERAGE',
-        message: `You must be at least ${config.legal.minAgeYears} to use CATO.`,
+        message: `You must be at least ${config.legal.minAgeYears} to use CatoDrive.`,
         httpStatus: 422,
       });
     }

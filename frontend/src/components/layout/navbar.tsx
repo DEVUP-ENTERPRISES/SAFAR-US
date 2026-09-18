@@ -97,7 +97,7 @@ export function Navbar() {
               >
                 How it works
               </Link>
-              {/* Primary acquisition path — own the car, CATO runs it. Leads
+              {/* Primary acquisition path — own the car, CatoDrive runs it. Leads
                   over the self-managed host flow. */}
               <Link
                 href="/asset-partners"
@@ -134,7 +134,7 @@ export function Navbar() {
             </div>
           ) : (
             <div className="hidden sm:flex items-center ms-2">
-              {/* One entry point, not two — /login itself offers "New to CATO?
+              {/* One entry point, not two — /login itself offers "New to CatoDrive?
                   Sign up" for anyone who isn't a returning user yet. */}
               <Link href="/login">
                 <Button size="sm" className="rounded-full px-5 font-semibold shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5">Log in</Button>

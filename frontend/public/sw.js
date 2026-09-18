@@ -1,5 +1,5 @@
 /*
- * CATO Drive service worker — deliberately conservative.
+ * CatoDrive service worker — deliberately conservative.
  *
  * The one rule that must never break: money and availability are always live.
  * The API is a different origin (api.axonycs.com), and this worker only ever
@@ -19,12 +19,12 @@ const PAGE_CACHE = `${VERSION}-pages`;
 
 const OFFLINE_HTML =
   '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-  '<title>Offline · CATO Drive</title>' +
+  '<title>Offline · CatoDrive</title>' +
   '<style>html{background:#12100e;color:#f4f1ea;font-family:system-ui,sans-serif;height:100%}' +
   'body{height:100%;margin:0;display:grid;place-items:center;text-align:center;padding:24px}' +
   '.b{max-width:22rem}h1{font-size:1.4rem;margin:.5rem 0}p{opacity:.7;line-height:1.5}' +
   'button{margin-top:1.25rem;background:#1f8f8a;color:#fff;border:0;border-radius:12px;padding:12px 22px;font-weight:700;font-size:1rem}</style>' +
-  '<div class="b"><h1>You’re offline</h1><p>CATO Drive needs a connection to show live cars and prices. ' +
+  '<div class="b"><h1>You’re offline</h1><p>CatoDrive needs a connection to show live cars and prices. ' +
   'Check your network and try again.</p><button onclick="location.reload()">Retry</button></div>';
 
 function isStaticAsset(url) {

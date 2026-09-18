@@ -45,7 +45,7 @@ function HostShell({ children }: { children: ReactNode }) {
         {/* Pitch */}
         <div className="space-y-6">
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary">
-            <Store className="h-4 w-4" /> Hosting on CATO
+            <Store className="h-4 w-4" /> Hosting on CatoDrive
           </span>
           <h1 className="display text-5xl leading-[1.05] sm:text-6xl lg:text-7xl">
             Your car can pay
@@ -73,7 +73,7 @@ function HostShell({ children }: { children: ReactNode }) {
         {/* Form */}
         <Card className="rounded-[2.5rem] shadow-soft bg-card/80 backdrop-blur border-border/50">
           <CardHeader>
-            <CardTitle>Become a CATO host</CardTitle>
+            <CardTitle>Become a CatoDrive host</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Field label="Display name" htmlFor="dn" hint="Shown to guests on your listings.">

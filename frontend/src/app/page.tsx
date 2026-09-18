@@ -273,7 +273,7 @@ export default function HomePage() {
         <Reveal as="section" className="space-y-12 sm:space-y-16 relative isolate pt-10">
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-60 pointer-events-none blur-3xl"></div>
           <div className="text-center sm:text-start">
-            <h2 className="display text-4xl text-foreground sm:text-5xl">How CATO works</h2>
+            <h2 className="display text-4xl text-foreground sm:text-5xl">How CatoDrive works</h2>
             <p className="mt-4 text-muted-foreground text-lg sm:text-xl font-medium max-w-xl">Three steps. No counter, no queue, no paperwork.</p>
           </div>
           <div className="grid gap-8 sm:gap-y-6 md:grid-cols-3 md:gap-x-12">
@@ -454,7 +454,7 @@ export default function HomePage() {
             <div className="absolute -inset-4 -z-10 rounded-[2rem] bg-primary/20 blur-3xl" />
             <Image
               src="/sections/cato-your-car.webp"
-              alt="The CATO app showing a host's weekly earnings"
+              alt="The CatoDrive app showing a host's weekly earnings"
               width={1200}
               height={800}
               sizes="(min-width: 1024px) 50vw, 100vw"

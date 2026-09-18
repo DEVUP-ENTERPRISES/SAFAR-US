@@ -44,7 +44,7 @@ export class PricingService implements IPricingContract {
     // windows) — one read, used throughout.
     const cfg = await platformConfigService.get();
 
-    // Membership (CATO Plus) benefits — resolved once, applied throughout.
+    // Membership (CatoDrive Plus) benefits — resolved once, applied throughout.
     const member = input.guestId
       ? await subscriptionService.benefitsFor(input.guestId)
       : { bookingDiscountBps: 0, waiveSurge: false, rewardsMultiplierBps: 10000 };
@@ -75,7 +75,7 @@ export class PricingService implements IPricingContract {
         category: v.category,
         day: new Date(d),
       });
-      // CATO Plus members never pay surge.
+      // CatoDrive Plus members never pay surge.
       const surgeMult = member.waiveSurge ? 10000 : surge.multiplierBps;
       if (surgeMult > 10000) {
         surgeDays++;
@@ -111,7 +111,7 @@ export class PricingService implements IPricingContract {
       discount = addMoney(discount, applyBps(base, v.pricing.promoDiscountBps));
     }
 
-    // ── Membership discount (CATO Plus). Tracked separately so we can show the
+    // ── Membership discount (CatoDrive Plus). Tracked separately so we can show the
     // guest exactly what their membership saved them on this trip.
     let memberSavings = zeroMoney(currency);
     if (member.bookingDiscountBps > 0) {

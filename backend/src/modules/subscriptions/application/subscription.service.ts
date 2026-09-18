@@ -108,7 +108,7 @@ export class SubscriptionService {
         refType: 'subscription',
         refId: intent.intentId,
         currency: 'USD',
-        description: `CATO ${plan.name} membership`,
+        description: `CatoDrive ${plan.name} membership`,
         legs: [
           { account: Account.gatewayClearing(), direction: 'credit', amount: plan.priceCents },
           { account: Account.platformRevenue(), direction: 'debit', amount: plan.priceCents },

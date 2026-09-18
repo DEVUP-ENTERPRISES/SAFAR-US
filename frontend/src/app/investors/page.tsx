@@ -7,11 +7,11 @@ import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, CountUp, BRAND } from '@/features/marketing/sections';
 
 /**
- * Investor Relations — built entirely in CATO's own design system (hero-mesh,
+ * Investor Relations — built entirely in CatoDrive's own design system (hero-mesh,
  * primary teal, Archivo display type, Reveal motion, the same numbered-frame
  * and stat-card language as /asset-partners and /about) — not a skin ported
  * from the supplied copy. Same brand as the rest of the site: this is
- * CATO's fundraising page, not a separate product.
+ * CatoDrive's fundraising page, not a separate product.
  *
  * The centerpiece is a revenue figure that visibly climbs while an investor
  * watches — labeled honestly as an illustrative YTD-pace calculation (see

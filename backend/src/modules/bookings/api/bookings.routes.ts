@@ -42,7 +42,7 @@ router.post(
   authenticateOptional,
   validate({ body: quoteSchema }),
   asyncHandler(async (req, res) => {
-    // Pass the caller so CATO Plus benefits are reflected in the quoted price.
+    // Pass the caller so CatoDrive Plus benefits are reflected in the quoted price.
     // The lock is a signed promise that this is the price they will be charged:
     // without it, a surge rule activating between "see price" and "confirm"
     // silently charges more than the screen showed.

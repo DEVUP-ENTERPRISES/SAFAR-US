@@ -58,7 +58,7 @@ export interface PartnerDashboard {
 
 export class AssetPartnerApplicationService {
   /**
-   * Public intake. The applicant may or may not have a CATO account yet — this
+   * Public intake. The applicant may or may not have a CatoDrive account yet — this
    * only ever creates a LEAD record; nothing here grants any access.
    */
   async create(
@@ -223,7 +223,7 @@ export class AssetPartnerApplicationService {
   /**
    * The approval gate. Approving is the admin decision the business asked
    * for: "only once approved can they onboard a vehicle." If the applicant
-   * already holds a CATO account, this is where that account's host profile
+   * already holds a CatoDrive account, this is where that account's host profile
    * gets created (if missing) and VERIFIED — which is exactly the flag
    * vehicle.service checks before allowing a listing.
    *

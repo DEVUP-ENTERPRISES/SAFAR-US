@@ -72,7 +72,7 @@ router.get(
   }),
 );
 
-// ── Subscription plans (CATO Plus) ────────────────────────────────────
+// ── Subscription plans (CatoDrive Plus) ────────────────────────────────────
 
 router.get(
   '/subscription-plans',

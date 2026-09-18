@@ -29,7 +29,7 @@ export default function AdminLoginPage() {
           <ShieldCheck className="h-7 w-7" />
         </span>
         <div>
-          <h1 className="display text-3xl">CATO Admin Console</h1>
+          <h1 className="display text-3xl">CatoDrive Admin Console</h1>
           <p className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
             <Lock className="h-3.5 w-3.5" /> Authorized personnel only
           </p>

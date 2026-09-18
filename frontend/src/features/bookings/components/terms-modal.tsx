@@ -74,7 +74,7 @@ export function TermsModal({
 
         {/* Scrollable agreement */}
         <div ref={bodyRef} onScroll={onScroll} className="flex-1 space-y-3 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-muted-foreground">
-          <p>By continuing, you enter into a rental agreement with the host through CATO Drive and agree to the following:</p>
+          <p>By continuing, you enter into a rental agreement with the host through CatoDrive and agree to the following:</p>
           <Term n="Eligibility" t="You hold a valid driver’s licence, meet the minimum age, and your identity has been verified. Only approved drivers may operate the vehicle." />
           <Term n="Payment & charges" t="You authorise the trip total shown at checkout, and any post-trip charges evidenced under the policy — fuel, cleaning, tolls, citations, late return or damage — at the rates published in the app." />
           <Term n="Security deposit" t="A refundable authorisation may be held against your card for the trip and released after the post-trip inspection window." />
