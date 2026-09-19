@@ -2,7 +2,7 @@
  * CatoDrive service worker — deliberately conservative.
  *
  * The one rule that must never break: money and availability are always live.
- * The API is a different origin (api.axonycs.com), and this worker only ever
+ * The API is a different origin (api.catodrive.com), and this worker only ever
  * touches SAME-origin GETs, so API/booking/pricing requests are never cached —
  * they always hit the network. No stale prices, ever.
  *
