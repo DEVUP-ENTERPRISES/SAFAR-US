@@ -76,6 +76,7 @@ export const config = Object.freeze({
   },
   db: {
     uri: env.MONGO_URI,
+    maxPoolSize: env.MONGO_MAX_POOL,
   },
   redis: {
     url: env.REDIS_URL,

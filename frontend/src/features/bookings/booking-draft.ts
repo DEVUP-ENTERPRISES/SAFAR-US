@@ -66,11 +66,3 @@ export function takeDraft(vehicleId: string): BookingDraft | null {
     return null;
   }
 }
-
-export function clearDraft(): void {
-  try {
-    sessionStorage.removeItem(KEY);
-  } catch {
-    /* nothing to do */
-  }
-}

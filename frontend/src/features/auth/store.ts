@@ -38,7 +38,3 @@ subscribeSessionExpired(() => {
     useAuthStore.setState({ user: null, status: 'unauthenticated' });
   }
 });
-
-export function hasRole(user: AuthUser | null, role: string): boolean {
-  return !!user?.roles.includes(role);
-}

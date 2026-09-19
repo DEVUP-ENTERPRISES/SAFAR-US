@@ -45,6 +45,14 @@ export const envSchema = z.object({
     .default('admin'),
 
   MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
+  /**
+   * Mongo connection pool ceiling. Was hardcoded at 20, which queues badly once
+   * concurrent bookings climb — each booking is several sequential round trips
+   * (hold → charge → create → ledger). Raise with load, but never above what
+   * the cluster tier actually permits: Atlas caps connections per tier, and
+   * exceeding it fails connections rather than queueing them.
+   */
+  MONGO_MAX_POOL: z.coerce.number().int().min(5).max(500).default(50),
   REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
 
   JWT_ACCESS_SECRET: z.string().min(16, 'JWT_ACCESS_SECRET too short'),

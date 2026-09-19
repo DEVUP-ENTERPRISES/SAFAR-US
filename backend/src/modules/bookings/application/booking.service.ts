@@ -821,16 +821,32 @@ export class BookingService {
       : null;
     const stillCovered = cfg.enabled && !!expiresAt && expiresAt.getTime() > Date.now();
 
+    /*
+     * Quote every candidate at once, not one after another.
+     *
+     * These are independent — each only needs the vehicle and the dates — but
+     * they were awaited in sequence, so the page cost six round trips of
+     * pricing (config, surge, tax, membership, commission) stacked end to end.
+     * This is a stranded guest looking at replacement cars, which is the worst
+     * possible moment to make them wait.
+     */
+    const quotes = await Promise.all(
+      vehicles.map((vehicle) =>
+        pricingService
+          .quote({
+            vehicleId: vehicle._id,
+            start: booking.period.start,
+            end: booking.period.end,
+            guestId: booking.guestId,
+          })
+          .then((quote) => ({ vehicle, quote }))
+          // One unpriceable car must not take the whole list down with it.
+          .catch(() => ({ vehicle, quote: null })),
+      ),
+    );
+
     const options = [];
-    for (const vehicle of vehicles) {
-      const quote = await pricingService
-        .quote({
-          vehicleId: vehicle._id,
-          start: booking.period.start,
-          end: booking.period.end,
-          guestId: booking.guestId,
-        })
-        .catch(() => null);
+    for (const { vehicle, quote } of quotes) {
       if (!quote) continue;
 
       const difference = Math.max(0, quote.total.amount - originalTotal.amount);

@@ -67,6 +67,24 @@ async function bootstrap(): Promise<void> {
   const app = createApp();
   const server = http.createServer(app);
 
+  /*
+   * Socket timeouts — the cheapest real defence against slow-request attacks.
+   *
+   * Node's defaults are requestTimeout 300s and headersTimeout 60s, which means
+   * one connection can hold a socket for five minutes while dribbling out a
+   * body. A few thousand of those exhausts the socket pool without ever looking
+   * like traffic, and no application-level rate limiter sees it — the request
+   * never completes, so it is never counted.
+   *
+   * keepAliveTimeout must stay BELOW any upstream load balancer's idle timeout,
+   * or the balancer reuses a connection Node is simultaneously closing and the
+   * client gets a spurious 502. ALB defaults to 60s, so 65s here is the
+   * conventional safe margin (headersTimeout must exceed keepAliveTimeout).
+   */
+  server.keepAliveTimeout = 65_000;
+  server.headersTimeout = 70_000;
+  server.requestTimeout = 30_000;
+
   const io = initRealtime(server);
 
   server.listen(config.app.port, config.app.host, () => {

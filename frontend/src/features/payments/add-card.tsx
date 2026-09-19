@@ -6,7 +6,6 @@ import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { CreditCard, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { STRIPE_PUBLISHABLE_KEY } from '@/features/kyc/stripe-identity';
 import { api } from '@/lib/api/client';
 
@@ -176,9 +175,4 @@ function CardForm({ onSaved, onCancel }: { onSaved?: () => void; onCancel: () =>
       </CardContent>
     </Card>
   );
-}
-
-/** Skeleton for the card list while it loads. */
-export function CardSkeleton() {
-  return <Skeleton className="h-20 w-full" />;
 }

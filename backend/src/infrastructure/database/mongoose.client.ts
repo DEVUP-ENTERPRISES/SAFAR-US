@@ -14,7 +14,9 @@ export async function connectMongo(): Promise<void> {
   mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected'));
 
   await mongoose.connect(config.db.uri, {
-    maxPoolSize: 20,
+    // Configurable via MONGO_MAX_POOL — see env.schema.ts for why this must
+    // track both real concurrent load and the cluster tier's connection cap.
+    maxPoolSize: config.db.maxPoolSize,
     serverSelectionTimeoutMS: 8000,
   });
 }

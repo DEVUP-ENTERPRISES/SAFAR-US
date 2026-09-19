@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, Children, isValidElement } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils/cn';
 
@@ -81,37 +81,5 @@ export function Reveal({
     >
       {children}
     </Tag>
-  );
-}
-
-/**
- * Reveals children one after another.
- *
- * A grid whose twelve cards all arrive together is a flash, not a sequence.
- * Staggering them gives the eye a path through the group. The step is capped
- * so a long list never leaves the last item waiting seconds to appear.
- */
-export function RevealGroup({
-  children,
-  step = 60,
-  max = 8,
-  className,
-}: {
-  children: ReactNode;
-  step?: number;
-  /** Beyond this many items the delay stops growing. */
-  max?: number;
-  className?: string;
-}) {
-  return (
-    <div className={className}>
-      {Children.map(children, (child, i) =>
-        isValidElement(child) ? (
-          <Reveal delay={Math.min(i, max) * step}>{child}</Reveal>
-        ) : (
-          child
-        ),
-      )}
-    </div>
   );
 }

@@ -11,16 +11,6 @@ export interface ApiSuccess<T> {
   meta?: ApiMeta;
 }
 
-export interface ApiErrorBody {
-  success: false;
-  error: {
-    code: string;
-    message: string;
-    details?: { field?: string; issue: string }[];
-    requestId?: string;
-  };
-}
-
 export interface Money {
   amount: number; // minor units
   currency: string;

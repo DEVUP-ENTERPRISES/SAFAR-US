@@ -35,6 +35,18 @@ export function connectSocket(): Socket {
   return s;
 }
 
+/**
+ * Tear the socket down completely — on logout, and whenever the identity
+ * behind it changes.
+ *
+ * Nulling the singleton is the point, not just disconnecting it. The access
+ * token is read ONCE, in the `auth` callback during the handshake; a cached
+ * socket that merely reconnects replays the original handshake identity. So a
+ * disconnect that left `socket` set meant the next person to sign in on this
+ * browser got a realtime session still authenticated as the previous user —
+ * and stayed joined to their booking and trip rooms.
+ */
 export function disconnectSocket(): void {
   socket?.disconnect();
+  socket = null;
 }
