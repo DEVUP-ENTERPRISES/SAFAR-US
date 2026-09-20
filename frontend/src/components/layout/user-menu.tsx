@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { config } from '@/lib/config';
 import {
   Car, LogOut, Wallet, Gift, User, LifeBuoy, Building2, Heart, ChevronDown, Search, BookOpen, MessageSquare, FileWarning, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store';
@@ -111,22 +112,31 @@ export function UserMenu() {
           </div>
 
           <div className="border-t border-border py-1">
-            <Link
-              href="/host"
-              onClick={() => setOpen(false)}
-              role="menuitem"
-              className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
-            >
-              <Car className="h-4 w-4 text-primary" /> Host dashboard
-            </Link>
-            <Link
-              href="/corporate"
-              onClick={() => setOpen(false)}
-              role="menuitem"
-              className="flex items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-accent"
-            >
-              <Building2 className="h-4 w-4 text-muted-foreground" /> Corporate
-            </Link>
+            {/* Asset-Partners-only launch — see config.assetPartnersOnly.
+                Both links show unconditionally to every signed-in user (there
+                is no isHost/isCorporate gate here), so they read as an
+                invitation to self-onboard, not just a shortcut for someone
+                already in that program. */}
+            {!config.assetPartnersOnly && (
+              <>
+                <Link
+                  href="/host"
+                  onClick={() => setOpen(false)}
+                  role="menuitem"
+                  className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                >
+                  <Car className="h-4 w-4 text-primary" /> Host dashboard
+                </Link>
+                <Link
+                  href="/corporate"
+                  onClick={() => setOpen(false)}
+                  role="menuitem"
+                  className="flex items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-accent"
+                >
+                  <Building2 className="h-4 w-4 text-muted-foreground" /> Corporate
+                </Link>
+              </>
+            )}
             {/* No admin link here. The console is a separate application on
                 its own hostname behind Cloudflare Access; the public app neither
                 serves it nor advertises its URL. Staff go there directly. */}

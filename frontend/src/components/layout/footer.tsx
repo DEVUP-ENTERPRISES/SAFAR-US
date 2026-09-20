@@ -2,6 +2,11 @@ import { Logo } from '@/components/layout/logo';
 import Link from 'next/link';
 import { config } from '@/lib/config';
 
+/**
+ * Host self-serve and Corporate are commented conditionally in, not deleted —
+ * see config.assetPartnersOnly. Investor Relations stays under Business
+ * either way; it isn't a self-serve product invitation.
+ */
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: 'Explore',
@@ -19,19 +24,27 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     links: [
       { label: 'Asset Partners', href: '/asset-partners' },
       { label: 'Partner dashboard', href: '/asset-partners/dashboard' },
-      { label: 'Become a host', href: '/host' },
-      { label: 'List your car', href: '/host/listings/new' },
-      { label: 'Host earnings', href: '/host/earnings' },
-      { label: 'Fleet management', href: '/host/fleet' },
+      ...(config.assetPartnersOnly
+        ? []
+        : [
+            { label: 'Become a host', href: '/host' },
+            { label: 'List your car', href: '/host/listings/new' },
+            { label: 'Host earnings', href: '/host/earnings' },
+            { label: 'Fleet management', href: '/host/fleet' },
+          ]),
     ],
   },
   {
     title: 'Business',
     links: [
-      { label: 'CatoDrive for Business', href: '/corporate' },
-      { label: 'Corporate login', href: '/corporate/login' },
-      { label: 'Cost centers', href: '/corporate/cost-centers' },
-      { label: 'Invoices', href: '/corporate/invoices' },
+      ...(config.assetPartnersOnly
+        ? []
+        : [
+            { label: 'CatoDrive for Business', href: '/corporate' },
+            { label: 'Corporate login', href: '/corporate/login' },
+            { label: 'Cost centers', href: '/corporate/cost-centers' },
+            { label: 'Invoices', href: '/corporate/invoices' },
+          ]),
       { label: 'Investor Relations', href: '/investors' },
     ],
   },

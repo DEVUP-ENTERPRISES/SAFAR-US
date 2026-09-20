@@ -105,13 +105,17 @@ export function Navbar() {
               >
                 Asset Partners
               </Link>
-              <Link
-                href="/host"
-                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
-              >
-                {/* Don't invite an existing host to "become" one. */}
-                {isHost ? 'Host dashboard' : 'Become a host'}
-              </Link>
+              {/* Asset-Partners-only launch: don't invite a NEW self-serve
+                  host. An EXISTING host still reaches their own dashboard —
+                  that isn't an invitation, it's their own listing. */}
+              {(isHost || !config.assetPartnersOnly) && (
+                <Link
+                  href="/host"
+                  className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
+                >
+                  {isHost ? 'Host dashboard' : 'Become a host'}
+                </Link>
+              )}
               {/* Lower-frequency destination — only at wider widths so it
                   doesn't crowd the primary consumer/partner links. */}
               <Link
@@ -184,10 +188,12 @@ export function Navbar() {
                   <Sparkles className="h-5 w-5" />
                   Asset Partners
                 </Link>
-                <Link href="/host" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
-                  <Car className="h-5 w-5 text-muted-foreground" />
-                  {isHost ? 'Host dashboard' : 'Become a host'}
-                </Link>
+                {(isHost || !config.assetPartnersOnly) && (
+                  <Link href="/host" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
+                    <Car className="h-5 w-5 text-muted-foreground" />
+                    {isHost ? 'Host dashboard' : 'Become a host'}
+                  </Link>
+                )}
                 <Link href="/investors" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
                   <TrendingUp className="h-5 w-5 text-muted-foreground" />
                   Investors

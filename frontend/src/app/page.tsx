@@ -17,6 +17,7 @@ import { TractionStats, AudienceSection } from '@/features/marketing/sections';
 import { useTrending, useRecommendations, useFacets } from '@/features/vehicles/hooks';
 import { useAuthStore } from '@/features/auth/store';
 import { useIsHost } from '@/features/host/hooks';
+import { config } from '@/lib/config';
 
 
 const STEPS = [
@@ -260,8 +261,11 @@ export default function HomePage() {
             <div className="rounded-2xl border border-dashed border-border py-20 text-center">
               <p className="text-muted-foreground">
                 No cars listed yet in {city}. Be the first —{' '}
-                <Link href="/host" className="font-medium text-primary underline underline-offset-4">
-                  become a host
+                <Link
+                  href={config.assetPartnersOnly ? '/asset-partners/apply' : '/host'}
+                  className="font-medium text-primary underline underline-offset-4"
+                >
+                  list your car
                 </Link>
                 .
               </p>
@@ -415,10 +419,12 @@ export default function HomePage() {
 
         <AudienceSection heading="Built for two kinds of people." />
 
-        {/* ── Host CTA ───────────────────────────────────────────────── */}
+        {/* ── Host / Asset Partner CTA ─────────────────────────────────── */}
         <Reveal as="section" className="relative isolate grain overflow-hidden rounded-3xl hero-mesh px-8 py-14 sm:px-16 sm:py-16">
           {/* An existing host shouldn't be pitched on hosting — send them to
-              their dashboard instead. */}
+              their dashboard instead. A NEW visitor sees the Asset Partner
+              pitch while config.assetPartnersOnly is on: the self-serve "list
+              it yourself" story is what's switched off, not the CTA slot. */}
           <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-14">
           <div className="max-w-xl">
             <h2 className="display text-display text-white">
@@ -439,11 +445,16 @@ export default function HomePage() {
             <p className="mt-5 text-lg text-white/70">
               {isHost
                 ? 'Check today’s trips, cash out your earnings, and keep your calendar up to date.'
-                : 'List in minutes, set your own price, and get paid out — instantly, if you want it. You stay in control of your calendar.'}
+                : config.assetPartnersOnly
+                  ? 'We list it, price it, deliver it and service it. You keep 80% of every booking — no calendar to manage.'
+                  : 'List in minutes, set your own price, and get paid out — instantly, if you want it. You stay in control of your calendar.'}
             </p>
-            <Link href={isHost ? '/host/trips' : '/host'} className="mt-8 inline-block">
+            <Link
+              href={isHost ? '/host/trips' : config.assetPartnersOnly ? '/asset-partners' : '/host'}
+              className="mt-8 inline-block"
+            >
               <Button size="lg" variant="secondary" className="rounded-full px-7">
-                {isHost ? 'Go to your dashboard' : 'Start hosting'} <ArrowRight className="h-4 w-4" />
+                {isHost ? 'Go to your dashboard' : config.assetPartnersOnly ? 'Become an Asset Partner' : 'Start hosting'} <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>

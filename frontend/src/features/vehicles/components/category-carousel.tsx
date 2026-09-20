@@ -1,4 +1,5 @@
 'use client';
+import { config } from '@/lib/config';
 
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -149,9 +150,10 @@ export function CategoryCarousel({ city }: { city: string }) {
           );
         })}
 
-        {/* Host nudge closes the row. */}
+        {/* Nudge card closes the row — points at Asset Partners while the
+            self-serve host flow is switched off; see config.assetPartnersOnly. */}
         <Link
-          href="/host"
+          href={config.assetPartnersOnly ? '/asset-partners' : '/host'}
           style={{ animationDelay: `${tiles.length * 70}ms`, animationFillMode: 'backwards' }}
           className="group animate-slide-up flex h-[220px] w-[150px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-[1.4rem] border-2 border-dashed border-border bg-card/40 p-4 text-center transition-all duration-500 hover:border-primary/50 hover:bg-card sm:w-[165px]"
         >
