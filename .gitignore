@@ -36,3 +36,8 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+
+# The India model — local-only, lives on the india-local branch, never on
+# get-ride-in or main. This entry is a structural guard: even if the folder
+# is ever present in this working tree by accident, it can never be staged.
+get-your-ride/
