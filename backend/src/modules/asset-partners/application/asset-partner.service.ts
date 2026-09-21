@@ -308,6 +308,46 @@ export class AssetPartnerService {
     ]);
     return { items, total };
   }
+
+  /**
+   * Everything ops needs to review one partner in one call.
+   *
+   * The admin detail page showed terms and the statement but nothing about
+   * the CARS or what the partner actually told us — so there was no way to
+   * check a VIN, a plate or an insurance carrier from the partner record.
+   * Applications are matched by id AND email: a partner ops added directly
+   * has no applicationId at all, but may still have applied earlier.
+   */
+  async adminDetail(partnerId: string): Promise<{
+    partner: AssetPartnerDoc;
+    terms: ResolvedPartnerTerms;
+    vehicles: unknown[];
+    applications: unknown[];
+  }> {
+    const partner = await this.getById(partnerId);
+    const [{ VehicleModel }, { AssetPartnerApplicationModel }] = await Promise.all([
+      import('../../vehicles/infrastructure/vehicle.model'),
+      import('../infrastructure/asset-partner-application.model'),
+    ]);
+
+    // Match on id or email — a directly-added partner has no applicationId.
+    const appFilter: Record<string, unknown>[] = [];
+    if (partner.applicationId) appFilter.push({ _id: partner.applicationId });
+    if (partner.email) appFilter.push({ email: partner.email.toLowerCase() });
+
+    const [terms, vehicles, applications] = await Promise.all([
+      this.termsFor(partner),
+      VehicleModel.find({ assetPartnerId: partner._id })
+        .select('_id year make model trim status vin plate photos createdAt')
+        .sort({ createdAt: -1 })
+        .lean(),
+      appFilter.length
+        ? AssetPartnerApplicationModel.find({ $or: appFilter }).sort({ createdAt: -1 }).lean()
+        : Promise.resolve([]),
+    ]);
+
+    return { partner, terms, vehicles, applications };
+  }
 }
 
 export const assetPartnerService = new AssetPartnerService();

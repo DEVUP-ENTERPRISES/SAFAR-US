@@ -72,11 +72,8 @@ router.get(
   '/asset-partners/:id',
   authorize('admin:read'),
   asyncHandler(async (req, res) => {
-    const partner = await assetPartnerService.getById(req.params.id);
-    // The terms actually in force, resolved — so ops sees the same numbers the
-    // partner's own statement is built from rather than just the overrides.
-    const terms = await assetPartnerService.termsFor(partner);
-    sendSuccess(res, { partner, terms });
+    // Terms resolved, plus their cars and any application — see adminDetail.
+    sendSuccess(res, await assetPartnerService.adminDetail(req.params.id));
   }),
 );
 

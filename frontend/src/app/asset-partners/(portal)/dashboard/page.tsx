@@ -117,6 +117,17 @@ export default function PartnerDashboardPage() {
   }
 
   const hasApplied = data.applications.length > 0;
+  /*
+   * Gating this page on applications.length alone assumed every partner
+   * arrived through the public intake form. That stopped being true the
+   * moment ops could add a partner directly (the ~20 owners who signed
+   * before the website existed) — that path creates a real partner record
+   * with ZERO applications behind it. Those accounts hit "No application
+   * yet — Apply to become a partner" on this page while their own Vehicles
+   * page correctly showed them as an enrolled partner: two pages of the
+   * same account disagreeing about whether they were in the programme.
+   */
+  const isPartner = !!data.partner;
   const isEarning = data.vehicles.length > 0;
 
   return (
@@ -130,7 +141,7 @@ export default function PartnerDashboardPage() {
             : 'Where your application stands, and what happens next.'
         }
         actions={
-          hasApplied ? (
+          hasApplied || isPartner ? (
             <Link href="/asset-partners/apply">
               <Button variant="outline">Add another vehicle</Button>
             </Link>
@@ -138,7 +149,7 @@ export default function PartnerDashboardPage() {
         }
       />
 
-      {!hasApplied ? (
+      {!hasApplied && !isPartner ? (
         <NotAppliedYet />
       ) : (
         <Applied data={data} isEarning={isEarning} pendingCount={pending.data?.length ?? 0} />
@@ -318,16 +329,22 @@ function Applied({
         </Card>
       )}
 
-      <section>
-        <h2 className="display mb-4 text-xl">
-          {data.applications.length === 1 ? 'Your application' : 'Your applications'}
-        </h2>
-        <div className="space-y-4">
-          {data.applications.map((app) => (
-            <ApplicationCard key={app._id} app={app} isEarning={isEarning} />
-          ))}
-        </div>
-      </section>
+      {/* A partner ops added directly has no application behind them at
+          all — an empty "Your applications" heading over nothing is its
+          own small broken-looking state, so this section only renders when
+          there's a real application to show. */}
+      {data.applications.length > 0 && (
+        <section>
+          <h2 className="display mb-4 text-xl">
+            {data.applications.length === 1 ? 'Your application' : 'Your applications'}
+          </h2>
+          <div className="space-y-4">
+            {data.applications.map((app) => (
+              <ApplicationCard key={app._id} app={app} isEarning={isEarning} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <PartnerSupport />
     </div>

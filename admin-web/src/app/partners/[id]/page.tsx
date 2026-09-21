@@ -290,6 +290,84 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         </CardContent>
       </Card>
 
+      {/* Their cars — ops had no way to see these from the partner record. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">
+            Vehicles {data.vehicles?.length ? `· ${data.vehicles.length}` : ''}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2.5 text-sm">
+          {data.vehicles?.length ? (
+            data.vehicles.map((v: any) => (
+              <div
+                key={v._id}
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2.5 last:border-0 last:pb-0"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium">
+                    {v.year} {v.make} {v.model}
+                    {v.trim ? ` ${v.trim}` : ''}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {v.plate ? `Plate ${v.plate}` : 'No plate on file'}
+                    {v.vin ? ` · VIN ${v.vin}` : ''}
+                  </p>
+                </div>
+                <Badge tone={v.status === 'listed' ? 'success' : 'muted'}>{v.status}</Badge>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground">
+              No vehicles onboarded yet — added once the car is photographed and inspected.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* What they actually submitted. Absent for a partner ops added directly. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Application on file</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          {data.applications?.length ? (
+            data.applications.map((a: any) => (
+              <div key={a._id} className="space-y-2 border-b border-border pb-3 last:border-0 last:pb-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone={a.status === 'approved' ? 'success' : a.status === 'rejected' ? 'destructive' : 'warning'}>
+                    {a.status}
+                  </Badge>
+                  <span className="font-mono text-xs text-muted-foreground">{a.reference}</span>
+                  <span className="text-xs text-muted-foreground">{formatDate(a.createdAt)}</span>
+                </div>
+                <Row
+                  label="Vehicle"
+                  value={`${a.vehicle?.year ?? ''} ${a.vehicle?.make ?? ''} ${a.vehicle?.model ?? ''}`.trim() || '—'}
+                />
+                <Row label="VIN" value={a.vehicle?.vin ?? '—'} />
+                <Row label="Plate" value={a.vehicle?.plate ?? '—'} />
+                <Row label="Mileage" value={a.vehicle?.mileage ? `${a.vehicle.mileage.toLocaleString()} mi` : '—'} />
+                <Row label="Ownership" value={a.ownership ?? '—'} />
+                <Row label="Insurance" value={a.insurance?.carrier ?? '—'} />
+                <Row label="Availability" value={a.availability ?? '—'} />
+                <Row label="Location" value={[a.city, a.state].filter(Boolean).join(', ') || '—'} />
+                {a.reviewNotes && (
+                  <p className="rounded-lg bg-muted/40 p-3 text-xs">
+                    <span className="font-semibold">Review note:</span> {a.reviewNotes}
+                  </p>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground">
+              Added directly by ops — no application was submitted, so there is nothing to review here.
+              Vehicle and document details come from onboarding instead.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* The statement, exactly as the partner sees it. */}
       <Card>
         <CardHeader>
