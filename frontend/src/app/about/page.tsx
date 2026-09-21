@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  PlaneTakeoff, Car, Banknote, Settings2, ShieldCheck, Star, Sparkles,
-  ArrowRight, CheckCircle2, Camera, Wallet, ClipboardCheck, Quote,
+  PlaneTakeoff, Car, Banknote, Settings2, ShieldCheck, Sparkles,
+  ArrowRight, CheckCircle2, Camera, Wallet, ClipboardCheck,
 } from 'lucide-react';
 import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, TractionStats, AudienceSection, BRAND } from '@/features/marketing/sections';
@@ -35,12 +35,6 @@ const STEPS = [
   { n: '03', icon: ClipboardCheck, title: 'Guest Books Online', body: 'A vetted traveler books online. We screen every trip. You’re never involved.', tag: 'Full vetting on every reservation' },
   { n: '04', icon: Settings2, title: 'We Manage Everything', body: 'Valet pickup, terminal delivery, cleaning, maintenance coordination — full white-glove service.', tag: '100% of operations handled' },
   { n: '05', icon: Wallet, title: 'You Get Paid', body: '80% of every booking hits your account monthly. No invoices. No chasing.', tag: 'Net $1,066–$1,878 / month' },
-] as const;
-
-const TESTIMONIALS = [
-  { quote: 'I was skeptical at first — I’d never rented my car before. CatoDrive listed it, handled every guest, and I made $1,400 my first month. I financed a second car within 90 days. Now I have six cars on the platform.', mono: 'PO', name: 'Portfolio Owner', meta: '6 vehicles · Partner since 2024' },
-  { quote: 'The car wash alone would’ve been a headache. CatoDrive handles it all. My only job is cashing the check.', mono: 'AP', name: 'Asset Partner', meta: '2 vehicles' },
-  { quote: 'They told me 18-month payback. I hit breakeven in 14. The airport market is insane right now.', mono: 'DI', name: 'DFW Investor', meta: '3 vehicles' },
 ] as const;
 
 const RISKS = [
@@ -153,26 +147,19 @@ export default function AboutPage() {
           </ol>
         </section>
 
-        {/* ── TESTIMONIALS ───────────────────────────────────────────── */}
-        <section>
-          <Reveal className="mx-auto max-w-2xl text-center">
-            <SectionEyebrow>Don’t take our word for it</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">4.96★ across 2,053 reviews.</h2>
-            <p className="mt-4 flex items-center justify-center gap-1 text-lg text-muted-foreground">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" />
-              ))}
-              <span className="ms-2">Here’s what our partners say.</span>
-            </p>
-          </Reveal>
-          <div className="mt-12 grid gap-4 md:grid-cols-3">
-            {TESTIMONIALS.map((t, i) => (
-              <Reveal key={t.mono} delay={i * 90}>
-                <TestimonialCard {...t} />
-              </Reveal>
-            ))}
-          </div>
-        </section>
+        {/*
+          The testimonials section that sat here is gone.
+
+          It ran three quotes attributed to a "Portfolio Owner", an "Asset
+          Partner" and a "DFW Investor" — people who do not exist — under a
+          row of five hardcoded amber stars. This page already carries the real
+          evidence: live traction figures above, and the risk/responsibility
+          table below that states plainly who covers what. Invented quotes
+          weakened that rather than adding to it.
+
+          If real partner quotes are collected, with names and consent, this is
+          where they go.
+        */}
 
         {/* Who we serve — shared with the homepage (image cards). */}
         <AudienceSection />
@@ -269,24 +256,6 @@ function StepRow({ n, icon: Icon, title, body, tag, last }: {
         </span>
       </div>
     </div>
-  );
-}
-
-function TestimonialCard({ quote, mono, name, meta }: { quote: string; mono: string; name: string; meta: string }) {
-  return (
-    <figure className="flex h-full flex-col rounded-3xl border border-border bg-card p-7 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-primary/10">
-      <Quote className="h-7 w-7 text-primary/30" />
-      <blockquote className="mt-4 flex-1 text-[15px] leading-relaxed text-foreground/90">“{quote}”</blockquote>
-      <figcaption className="mt-6 flex items-center gap-3 border-t border-border pt-5">
-        <span className="numeric flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-sm font-black text-primary-foreground">
-          {mono}
-        </span>
-        <span>
-          <span className="block text-sm font-semibold text-foreground">{name}</span>
-          <span className="block text-xs text-muted-foreground">{meta}</span>
-        </span>
-      </figcaption>
-    </figure>
   );
 }
 

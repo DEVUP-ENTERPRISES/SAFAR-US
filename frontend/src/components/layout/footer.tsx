@@ -73,8 +73,8 @@ export function Footer() {
               <span className="display text-xl tracking-tight">{config.appName}</span>
             </div>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              The Mobility Operating System. Book cars from trusted local hosts — or turn your car
-              into income.
+              Book a car from a trusted local host, or turn the car you already own into monthly
+              income.
             </p>
           </div>
 
@@ -102,10 +102,22 @@ export function Footer() {
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} DEVUP ECOSYSTEM PVT LTD. All rights reserved.
           </p>
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
-            <span>Terms</span>
-            <span>Privacy</span>
-            <span>Trust &amp; Safety</span>
+          {/*
+            These were <span>s — dead text. A marketplace taking card payments
+            has to put its terms and privacy policy one click from every page,
+            and /legal was reachable only from the mobile nav drawer, so on
+            desktop there was no route to them at all.
+          */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+            <Link href="/legal" className="transition-colors hover:text-foreground">
+              Terms
+            </Link>
+            <Link href="/legal" className="transition-colors hover:text-foreground">
+              Privacy
+            </Link>
+            <Link href="/insurance" className="transition-colors hover:text-foreground">
+              Trust &amp; Safety
+            </Link>
             <span>United States (USD $)</span>
           </div>
         </div>

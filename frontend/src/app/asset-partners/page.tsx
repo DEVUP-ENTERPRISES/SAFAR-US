@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   ArrowRight, ArrowDown, ShieldCheck, Car, Camera, ClipboardCheck, Settings2, Wallet,
-  Star, Quote, ChevronDown, CheckCircle2, Gauge, Calendar, FileCheck, Sparkles,
+  Star, ChevronDown, CheckCircle2, Gauge, Calendar, FileCheck, Sparkles,
   Phone, Mail, Clock,
 } from 'lucide-react';
 import { Reveal } from '@/components/ui/reveal';
@@ -75,11 +75,42 @@ const RISKS = [
   { scenario: 'Regulatory / platform changes', detail: 'We monitor TOS, airport concession rules and P2P regulations proactively.', owner: 'CatoDrive' as const },
 ] as const;
 
-const TESTIMONIALS = [
-  { quote: 'I was skeptical at first — I’d never rented my car before. CatoDrive listed it, handled every guest, and I made $1,400 my first month. I financed a second car within 90 days. Now I have six cars on the platform and it’s my best passive income stream by far.', mono: 'PO', name: 'Portfolio Owner', meta: '6 vehicles · Partner since 2024' },
-  { quote: 'The car wash alone would’ve been a headache. CatoDrive handles it all. My only job is cashing the check.', mono: 'AP', name: 'Asset Partner', meta: '2 vehicles' },
-  { quote: 'They told me 18-month payback. I hit breakeven in 14. The airport market is insane right now.', mono: 'DI', name: 'DFW Investor', meta: '3 vehicles' },
-  { quote: 'I was worried about damage. First incident, insurance covered everything. I paid nothing.', mono: 'CO', name: 'Co-host Owner', meta: 'Love Field' },
+/**
+ * The four things every prospective partner asks, answered in CatoDrive's own
+ * voice.
+ *
+ * This section used to be four testimonials — quotes attributed to a
+ * "Portfolio Owner", a "DFW Investor" and a "Co-host Owner" who are not real
+ * people, making specific financial claims ("$1,400 my first month",
+ * "breakeven in 14 months", "insurance covered everything, I paid nothing").
+ * Presenting those as customer endorsements is an FTC problem regardless of
+ * whether the underlying economics are accurate, and the insurance one asserts
+ * a claims outcome we cannot evidence.
+ *
+ * Every answer below is the same substance, stated as what the programme does
+ * rather than as something a customer said. Each figure here is also published
+ * elsewhere on this page (ECONOMICS, RISKS, FAQ), so there is one story.
+ *
+ * When real, attributable partner quotes exist, they belong here — with a real
+ * name and consent, replacing this block.
+ */
+const PARTNER_ANSWERS = [
+  {
+    q: 'Do I have to do anything?',
+    a: 'No. CatoDrive photographs the car, lists it, prices it, screens every guest, handles delivery and collection, and coordinates cleaning and maintenance. Your involvement after handover is approving anything over the maintenance threshold.',
+  },
+  {
+    q: 'What does it actually pay?',
+    a: 'You keep 80% of gross booking revenue. Insurance and detailing are itemised monthly, never bundled into a vague fee, and the full arithmetic is shown above before you apply.',
+  },
+  {
+    q: 'What if a renter damages it?',
+    a: 'Your exposure is capped per incident under Addendum No. 1 of the partner agreement, and CatoDrive absorbs unrecovered damage above that cap. The cap is stated in your agreement before you sign.',
+  },
+  {
+    q: 'Can I get my car back?',
+    a: 'It stays your car. Set blackout dates whenever you need it and it will not be booked during those windows. The exit terms are in the agreement, not buried in a policy page.',
+  },
 ] as const;
 
 const FAQ = [
@@ -333,16 +364,16 @@ export default function AssetPartnersPage() {
           </div>
         </section>
 
-        {/* ── TESTIMONIALS ───────────────────────────────────────────── */}
+        {/* ── WHAT PARTNERS ASK ──────────────────────────────────────── */}
         <section>
           <Reveal className="mx-auto max-w-2xl text-center">
-            <SectionEyebrow>Don’t take our word for it</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">4.96★ across 2,053 reviews.</h2>
+            <SectionEyebrow>Straight answers</SectionEyebrow>
+            <h2 className="display mt-4 text-4xl sm:text-5xl">The four questions everyone asks.</h2>
           </Reveal>
           <div className="mt-12 grid gap-4 sm:grid-cols-2">
-            {TESTIMONIALS.map((t, i) => (
-              <Reveal key={t.mono} delay={i * 80}>
-                <TestimonialCard {...t} />
+            {PARTNER_ANSWERS.map((t, i) => (
+              <Reveal key={t.q} delay={i * 80}>
+                <AnswerCard {...t} />
               </Reveal>
             ))}
           </div>
@@ -498,21 +529,20 @@ function RiskRow({ scenario, detail, owner, first }: {
   );
 }
 
-function TestimonialCard({ quote, mono, name, meta }: { quote: string; mono: string; name: string; meta: string }) {
+/**
+ * A question and CatoDrive's answer to it. Replaces the old TestimonialCard,
+ * which framed company claims as quotes from partners who do not exist.
+ *
+ * The card is quieter than the one it replaces: no hover lift, no coloured
+ * shadow, no gradient-filled avatar disc. This is reference material someone
+ * reads before committing their car — it should hold still while they read it.
+ */
+function AnswerCard({ q, a }: { q: string; a: string }) {
   return (
-    <figure className="flex h-full flex-col rounded-3xl border border-border bg-card p-7 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-primary/10">
-      <Quote className="h-7 w-7 text-primary/30" />
-      <blockquote className="mt-4 flex-1 text-[15px] leading-relaxed text-foreground/90">“{quote}”</blockquote>
-      <figcaption className="mt-6 flex items-center gap-3 border-t border-border pt-5">
-        <span className="numeric flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-sm font-black text-primary-foreground">
-          {mono}
-        </span>
-        <span>
-          <span className="block text-sm font-semibold text-foreground">{name}</span>
-          <span className="block text-xs text-muted-foreground">{meta}</span>
-        </span>
-      </figcaption>
-    </figure>
+    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-7 shadow-soft">
+      <h3 className="text-base font-semibold text-foreground">{q}</h3>
+      <p className="mt-3 flex-1 text-[15px] leading-relaxed text-muted-foreground">{a}</p>
+    </div>
   );
 }
 

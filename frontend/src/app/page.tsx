@@ -47,15 +47,20 @@ const RESERVATION_TRUST = [
 ] as const;
 
 /**
- * The connector between two cards in a three-step row — an arrow that sits in
- * the gap and nudges forward, so the eye is carried 1 → 2 → 3. It points right
- * between columns on desktop and down between stacked cards on mobile. Lives
- * outside the (clipped) card, inside a relative grid cell.
+ * The connector between two cards in a three-step row, carrying the eye
+ * 1 → 2 → 3. Points right between columns on desktop, down between stacked
+ * cards on mobile. Lives outside the (clipped) card, inside a relative cell.
+ *
+ * Deliberately still: it previously ran a permanent `nudge-x` on the icon and
+ * a permanent `ping` halo behind it. Two looping animations per connector,
+ * two connectors on screen, is four things moving forever on the section a
+ * visitor is trying to read — motion that communicates nothing, which is
+ * exactly what makes a page feel generated rather than designed. The arrow
+ * already states the direction; it does not need to twitch to prove it.
  */
 function StepConnector() {
-  // Three nested layers, each owning ONE transform, because rotation, the
-  // gap-centering offset, and the nudge animation all use `transform` and would
-  // otherwise clobber each other.
+  // Two nested layers, each owning ONE transform: rotation and the
+  // gap-centering offset would otherwise clobber each other.
   //
   // Vertical placement: on desktop it sits low, over the CONTENT band rather
   // than on the photo (the image is the top ~two-thirds of the card, so a
@@ -68,12 +73,8 @@ function StepConnector() {
                  md:bottom-[16%] md:start-auto md:end-0 md:top-auto md:translate-x-1/2 md:translate-y-1/2"
     >
       {/* Rotate the whole badge: down between stacked cards, right between columns. */}
-      <span className="relative grid h-9 w-9 rotate-90 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background md:rotate-0">
-        {/* A slow halo pulse so the link between cards reads as active. */}
-        <span className="absolute inset-0 rounded-full bg-primary opacity-40 animate-ping [animation-duration:2.4s]" />
-        {/* The nudge lives on the icon, inside the rotated frame, so it travels
-            in whatever direction the badge points. */}
-        <ArrowRight className="relative h-4 w-4 animate-nudge-x" />
+      <span className="grid h-9 w-9 rotate-90 place-items-center rounded-full bg-primary text-primary-foreground shadow-soft ring-4 ring-background md:rotate-0">
+        <ArrowRight className="h-4 w-4" />
       </span>
     </div>
   );
@@ -98,8 +99,15 @@ export default function HomePage() {
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-24 sm:px-6 sm:pb-24 sm:pt-32">
           <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-bold tracking-widest uppercase text-white/95 backdrop-blur-md shadow-soft">
-              <Sparkles className="h-4 w-4" /> The Mobility Operating System
+            {/*
+              Was a Sparkles icon reading "The Mobility Operating System".
+              A sparkle is the stock "AI / premium / magic" glyph and says
+              nothing about cars, and "operating system" is platform language
+              for what a visitor experiences as renting a car. The badge above
+              a headline should tell someone what this actually is.
+            */}
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-bold tracking-widest uppercase text-white/95 shadow-soft">
+              <KeyRound className="h-4 w-4" /> Self-drive car sharing
             </span>
 
             {/* The display face, and no gradient-to-transparent: that trick
@@ -274,8 +282,11 @@ export default function HomePage() {
         </Reveal>
 
         {/* ── How it works ───────────────────────────────────────────── */}
-        <Reveal as="section" className="space-y-12 sm:space-y-16 relative isolate pt-10">
-          <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-60 pointer-events-none blur-3xl"></div>
+        {/* No decorative glow behind this section. It carried a blurred radial
+            orb tinted with the brand colour, which is the stock "AI landing
+            page" backdrop and did nothing for the content — the three photos
+            are the visual interest here. */}
+        <Reveal as="section" className="space-y-12 sm:space-y-16 pt-10">
           <div className="text-center sm:text-start">
             <h2 className="display text-4xl text-foreground sm:text-5xl">How CatoDrive works</h2>
             <p className="mt-4 text-muted-foreground text-lg sm:text-xl font-medium max-w-xl">Three steps. No counter, no queue, no paperwork.</p>
@@ -415,7 +426,9 @@ export default function HomePage() {
         </section>
 
         {/* ── Traction + who we serve (shared with the About page) ───── */}
-        <TractionStats heading="Backed by real numbers." />
+        {/* excludeLive: the hero above already shows the live rating and trip
+            count from the marketplace API — see the note on TractionStats. */}
+        <TractionStats heading="Backed by real numbers." excludeLive />
 
         <AudienceSection heading="Built for two kinds of people." />
 

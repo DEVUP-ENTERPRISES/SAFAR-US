@@ -95,13 +95,17 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // Map the page 1:1 to the device and lock it like an app: no pinch-zoom, no
-  // user scaling. The layout is already responsive, so zoom served no purpose
-  // here except to let the whole page be dragged/panned around.
+  /*
+   * Pinch-zoom stays available.
+   *
+   * This previously set maximumScale:1 / userScalable:false to make the page
+   * feel app-like. That is a WCAG 1.4.4 failure: someone who needs to magnify
+   * a licence plate, a price breakdown or a pickup address simply could not.
+   * The horizontal-pan problem it was really solving is handled properly by
+   * overflow-x on the document, not by taking zoom away from everyone.
+   */
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#f8f6f2' }, // --background paper
     { media: '(prefers-color-scheme: dark)', color: '#151210' }, // --background asphalt

@@ -32,7 +32,24 @@ const STATS = [
   { prefix: '', value: 2607, suffix: '+', decimals: 0, label: 'Trips Completed', comma: true },
 ] as const;
 
-export function TractionStats({ heading = 'The numbers, unedited.' }: { heading?: string }) {
+/**
+ * Business track-record figures.
+ *
+ * `excludeLive` drops the two tiles the homepage hero already renders from the
+ * live marketplace API (rating and completed trips). Without it the homepage
+ * showed a live average rating in the hero and a hardcoded 4.96★ three
+ * sections below it — two different ratings for the same company on one
+ * screen, which reads as fabricated even when both numbers are genuine. The
+ * live figure wins there; these historical, year-labelled ones stand alone on
+ * /about where there is no hero to contradict.
+ */
+export function TractionStats({
+  heading = 'The numbers, unedited.',
+  excludeLive = false,
+}: { heading?: string; excludeLive?: boolean }) {
+  const stats = excludeLive
+    ? STATS.filter((s) => s.label !== 'Rating' && s.label !== 'Trips Completed')
+    : STATS;
   return (
     <section>
       <Reveal className="mx-auto max-w-2xl text-center">
@@ -41,7 +58,7 @@ export function TractionStats({ heading = 'The numbers, unedited.' }: { heading?
         <p className="mt-4 text-lg text-muted-foreground">Real figures from a real fleet — 100% bootstrapped.</p>
       </Reveal>
       <div className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {STATS.map((s, i) => (
+        {stats.map((s, i) => (
           <Reveal key={s.label} delay={i * 90}>
             <StatCard {...s} />
           </Reveal>

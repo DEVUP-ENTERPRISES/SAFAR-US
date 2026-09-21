@@ -96,17 +96,26 @@ html {
   scroll-behavior: smooth;
   /* Lock the page to the viewport width. Without this on <html> (not just
      <body>) mobile Safari still lets a sliver of overflow pan the whole page
-     side to side. */
-  overflow-x: hidden;
+     side to side.
+
+     `clip`, not `hidden`, for the same reason <body> uses clip (see
+     layout.tsx): overflow-x:hidden forces the computed overflow-y to auto,
+     turning the element into a scroll container — and `position: sticky`
+     resolves against its nearest scrolling ancestor. `clip` does the same
+     horizontal clipping without creating one. */
+  overflow-x: clip;
   /* No rubber-band / drift: the page can only scroll straight up and down,
      it can't be dragged around or bounce at the edges. */
   overscroll-behavior: none;
 }
 
 body {
-  /* Belt-and-braces with the className guard: nothing may exceed the screen. */
+  /* Belt-and-braces with the className guard: nothing may exceed the screen.
+     `clip` for the sticky-positioning reason documented on html above — this
+     rule was still `hidden` and would have fought the overflow-x-clip utility
+     the body element carries. */
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   font-feature-settings: 'cv11', 'ss01';
