@@ -19,6 +19,7 @@ export function AvatarUpload({
   onChange,
   size = 96,
   disabled,
+  hint,
 }: {
   url?: string | null;
   /** Used for the fallback initial when there's no photo. */
@@ -26,6 +27,12 @@ export function AvatarUpload({
   onChange: (next: { url: string; key: string } | null) => void;
   size?: number;
   disabled?: boolean;
+  /**
+   * Override the description under "Profile photo" — e.g. a page that wants
+   * to say WHO sees the photo, not just the file constraints. Falls back to
+   * the generic file-requirements copy so most callers need nothing here.
+   */
+  hint?: string;
 }) {
   const notify = useToast();
   const [busy, setBusy] = useState(false);
@@ -103,7 +110,7 @@ export function AvatarUpload({
       <div className="min-w-0">
         <p className="text-sm font-medium">Profile photo</p>
         <p className="text-xs text-muted-foreground">
-          A clear photo of your face helps guests trust you. JPG, PNG or WebP, up to 8 MB.
+          {hint ?? 'A clear photo of your face helps guests trust you. JPG, PNG or WebP, up to 8 MB.'}
         </p>
         {url && !disabled && (
           <button

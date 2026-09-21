@@ -112,14 +112,19 @@ export default function AccountSetupPage() {
         onSubmit={(e) => { e.preventDefault(); if (filled) submit.mutate(); }}
         className="space-y-8"
       >
-        {/* Photo */}
-        <section className="flex items-center gap-5">
-          <AvatarUpload url={avatar?.url} name={form.firstName} onChange={setAvatar} />
-          <div>
-            <p className="font-medium">Profile photo</p>
-            <p className="text-sm text-muted-foreground">A clear photo of your face. Hosts see this at handover.</p>
-          </div>
-        </section>
+        {/*
+          Photo. AvatarUpload already renders its own "Profile photo" label
+          and hint next to the picker — this used to wrap it in a second
+          "Profile photo" label with a slightly different sentence, so both
+          rendered side by side: the same heading and two near-identical
+          descriptions of the same thing, right next to each other.
+        */}
+        <AvatarUpload
+          url={avatar?.url}
+          name={form.firstName}
+          onChange={setAvatar}
+          hint="A clear photo of your face. Hosts see this at handover."
+        />
 
         {/* Legal identity */}
         <section className="space-y-4">

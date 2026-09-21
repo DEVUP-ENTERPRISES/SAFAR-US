@@ -76,19 +76,25 @@ export function NotificationBell() {
 
       {open && (
         /*
-         * Width was a flat w-[340px] (420px from sm up), right-anchored via
-         * `end-0` to a button that sits close to the viewport's own right
-         * edge on a phone. A fixed-width panel that wide, anchored that close
-         * to the edge, pushes its LEFT side past x:0 on anything narrower
-         * than ~375px of clearance — the panel doesn't resize, it just runs
-         * off screen, which read as "Notifications" clipped to "ons".
+         * Two different positioning strategies, not one width formula doing
+         * both jobs — the previous fix (w-[calc(100vw-2rem)]) only capped the
+         * WIDTH and kept `absolute end-0`, which anchors the panel's right
+         * edge to the BELL BUTTON's right edge, not the screen's. The bell
+         * isn't flush against the viewport edge — the avatar button sits to
+         * its right — so a width capped at "the viewport minus a gutter,"
+         * anchored to a point already inset from the edge, still pushed the
+         * panel's left side past x:0. Capping the width never fixes an
+         * anchor that was wrong to begin with.
          *
-         * calc(100vw-2rem) caps the panel at the viewport width minus the
-         * same 1rem gutter the page uses everywhere else, so on a narrow
-         * phone it shrinks to fit instead of overflowing; max-w-[420px]
-         * keeps it from growing needlessly wide once there's room to spare.
+         * Below sm: `fixed inset-x-4` pins the panel to the actual viewport
+         * edges (the same 1rem gutter the navbar itself sits in), completely
+         * independent of where the bell happens to be. It cannot overflow
+         * because it is no longer measured relative to the button at all.
+         *
+         * sm and up: back to the original anchored-dropdown feel, `absolute
+         * end-0` off the bell, with real room for a fixed 420px panel.
          */
-        <div className="absolute end-0 z-50 mt-3 w-[calc(100vw-2rem)] max-w-[420px] origin-top-right animate-scale-in overflow-hidden rounded-[1.5rem] border border-border/60 bg-card shadow-[0_12px_48px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 dark:ring-white/10">
+        <div className="fixed inset-x-4 top-[4.75rem] z-50 sm:absolute sm:inset-x-auto sm:top-auto sm:end-0 sm:mt-3 w-auto sm:w-[420px] origin-top-right animate-scale-in overflow-hidden rounded-[1.5rem] border border-border/60 bg-card shadow-[0_12px_48px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 dark:ring-white/10">
           <div className="flex items-center justify-between border-b border-border/40 bg-muted/20 px-5 py-4 backdrop-blur-sm">
             <p className="text-[17px] font-bold tracking-tight">Notifications</p>
             {unread.length > 0 && (
