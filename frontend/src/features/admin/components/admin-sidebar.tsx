@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Users, BadgeCheck, Car, CalendarCheck, ShieldAlert, LifeBuoy,
   ScanFace, Flag, ScrollText, LayoutGrid, Shield, Percent, SlidersHorizontal, TrendingUp, Star, Layers, Building2, Banknote, Route,
-  ClipboardCheck, Handshake,
+  ClipboardCheck, Handshake, Receipt,
 } from 'lucide-react';
 import { PanelSidebar, type PanelNavItem } from '@/components/layout/panel-sidebar';
 import { adminApi, type AdminNavItem } from '@/features/admin/api';
@@ -37,6 +37,8 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   // sit next to each other and are different jobs.
   'asset-partners': ClipboardCheck,
   partners: Handshake,
+  // The programme's own economics — a fee, not a commission rule.
+  'asset-partner-terms': Receipt,
 };
 
 export function AdminSidebar() {

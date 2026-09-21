@@ -29,11 +29,26 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'dashboard', path: A(), apiPath: '/admin/metrics', label: 'Dashboard', group: 'Overview', permission: 'admin:read' },
   { slug: 'analytics', path: A('analytics'), apiPath: '/admin/analytics', label: 'Analytics', group: 'Overview', permission: 'analytics:read' },
 
-  // Asset Partners is CatoDrive's primary acquisition path — listed first.
-  { slug: 'asset-partners', path: A('asset-partners'), apiPath: '/admin/asset-partner-applications', label: 'Asset Partner Applications', group: 'People', permission: 'admin:read' },
+  /*
+   * Asset Partners gets its own group, not a few entries scattered through
+   * People and Revenue.
+   *
+   * The programme is a different business from hosting and is paid by
+   * different arithmetic: a host earns per booking (subtotal − commission −
+   * tax) while a partner is paid monthly (gross − management fee − insurance
+   * − detailing). Sharing a "Commission" screen between them is how an
+   * operator edits a host rate and silently believes they changed partner
+   * economics too. Listed first because it is the primary acquisition path.
+   */
+  { slug: 'asset-partners', path: A('asset-partners'), apiPath: '/admin/asset-partner-applications', label: 'Applications', group: 'Asset Partners', permission: 'admin:read' },
   // The programme itself, separate from the intake queue: members, their
   // lifecycle and their negotiated terms.
-  { slug: 'partners', path: A('partners'), apiPath: '/admin/asset-partners', label: 'Asset Partners', group: 'People', permission: 'admin:read' },
+  { slug: 'partners', path: A('partners'), apiPath: '/admin/asset-partners', label: 'Partners', group: 'Asset Partners', permission: 'admin:read' },
+  // The programme's own economics. Backed by the same platform-config
+  // document as Platform Economics, but a deliberately separate screen: these
+  // are the partner-agreement figures, and none of them is a commission rule.
+  { slug: 'asset-partner-terms', path: A('asset-partner-terms'), apiPath: '/admin/config', label: 'Programme Terms', group: 'Asset Partners', permission: 'platform:manage' },
+
   { slug: 'contact', path: A('contact'), apiPath: '/admin/contact-inquiries', label: 'Contact Inquiries', group: 'People', permission: 'admin:read' },
   { slug: 'users', path: A('users'), apiPath: '/admin/users', label: 'User Management', group: 'People', permission: 'admin:read' },
   { slug: 'kyc', path: A('kyc'), apiPath: '/admin/kyc', label: 'KYC Review', group: 'People', permission: 'kyc:review' },

@@ -37,6 +37,20 @@ export interface PlatformConfig {
   /** Charged to the guest on top; commission comes out of host earnings. */
   serviceFee: { bps: number; maxCents: number };
   tax: { bps: number };
+  /**
+   * The Asset Partner agreement's figures. Separate from commission on
+   * purpose: a partner is paid monthly on gross − management fee − insurance
+   * − detailing, which no commission rate can express.
+   */
+  assetPartner: {
+    managementFeeBps: number;
+    insuranceMonthlyCents: number;
+    detailingMonthlyCents: number;
+    deductibleCapCents: number;
+    maintenanceApprovalCents: number;
+    payoutDayOfMonth: number;
+    payoutMethod: 'check' | 'zelle';
+  };
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };
   rewards: { pointValueCents: number; pointsPerDollar: number };
   referral: { referrerCreditCents: number; refereeCreditCents: number };
