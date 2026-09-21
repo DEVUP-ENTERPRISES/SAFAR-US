@@ -16,14 +16,25 @@ const ICONS = {
   profile: User,
 };
 
+/*
+ * mobileLabel on the three longer items below isn't a style choice — at 6
+ * equal columns, a real phone gives each one roughly 60px, and "Statements"
+ * / "Maintenance" / "Documents" at that width don't fit even at 9-10px
+ * type. Truncating them to "Stateme…" / "Maintena…" / "Documen…" (what
+ * showed before this) isn't a smaller version of the word, it's an
+ * unreadable one — the fix is a genuinely shorter word, not tighter CSS
+ * around the long one. "Dashboard", "Vehicles" and "Profile" fit as-is and
+ * don't need an override.
+ */
 const NAV: PanelNavItem[] = [
   { slug: 'dashboard', label: 'Dashboard', path: '/asset-partners/dashboard', group: 'Overview' },
   { slug: 'vehicles', label: 'Vehicles', path: '/asset-partners/vehicles', group: 'Overview' },
-  { slug: 'statements', label: 'Statements', path: '/asset-partners/statements', group: 'Money' },
-  { slug: 'maintenance', label: 'Maintenance', path: '/asset-partners/maintenance', group: 'Vehicle care' },
+  { slug: 'statements', label: 'Statements', mobileLabel: 'Earnings', path: '/asset-partners/statements', group: 'Money' },
+  { slug: 'maintenance', label: 'Maintenance', mobileLabel: 'Repairs', path: '/asset-partners/maintenance', group: 'Vehicle care' },
   {
     slug: 'documents',
     label: 'Documents',
+    mobileLabel: 'Docs',
     path: '/asset-partners/documents',
     group: 'Vehicle care',
     // Was mobile: false, leaving the mobile bar at 5 items with a real page
