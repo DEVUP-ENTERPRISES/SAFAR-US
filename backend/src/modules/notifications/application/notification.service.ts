@@ -32,6 +32,8 @@ export class NotificationService {
     body: string;
     /** Where tapping this should land, e.g. /bookings/abc123. */
     deepLink?: string;
+    /** Label for the email CTA button. Falls back to "View details". */
+    actionLabel?: string;
     data?: Record<string, unknown>;
   }): Promise<NotificationDoc> {
     const priority = input.priority ?? 'normal';
@@ -59,6 +61,7 @@ export class NotificationService {
       title: input.title,
       body: input.body,
       deepLink: input.deepLink,
+      actionLabel: input.actionLabel,
       data: input.data,
       only: input.channel && input.channel !== 'inapp' ? input.channel : undefined,
     });
@@ -77,6 +80,7 @@ export class NotificationService {
       title: string;
       body: string;
       deepLink?: string;
+      actionLabel?: string;
       data?: Record<string, unknown>;
       only?: Exclude<Channel, 'inapp'>;
     },
@@ -120,6 +124,7 @@ export class NotificationService {
           title: msg.title,
           body: msg.body,
           deepLink: msg.deepLink,
+          actionLabel: msg.actionLabel,
           data: msg.data,
         });
 

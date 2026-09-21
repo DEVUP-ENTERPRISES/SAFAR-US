@@ -112,6 +112,23 @@ export function registerEventSubscribers(): void {
     }
   });
 
+  eventBus.subscribe(EVENTS.USER_REGISTERED, async (e) => {
+    const p = e.payload as { userId: string; email?: string; firstName?: string };
+    // High priority (not the 'normal' default) is what puts this on email —
+    // 'normal' only reaches push/in-app, and a welcome email that never
+    // arrives is the first impression of the whole product.
+    await notificationService.send({
+      userId: p.userId,
+      priority: 'high',
+      deepLink: '/search',
+      actionLabel: 'Start exploring',
+      templateKey: 'account.welcome',
+      title: `Welcome to CatoDrive${p.firstName ? `, ${p.firstName}` : ''}`,
+      body: 'Your account is ready. Browse verified cars near you and book your first trip in minutes.',
+      data: { userId: p.userId },
+    });
+  });
+
   eventBus.subscribe(EVENTS.BOOKING_CONFIRMED, async (e) => {
     const p = e.payload as { bookingId: string; guestId: string; hostId: string };
     await notificationService.send({
@@ -226,6 +243,50 @@ export function registerEventSubscribers(): void {
       body: 'Your CatoDrive trip starts soon. Tap to view details.',
       data: { bookingId: p.bookingId },
     });
+  });
+
+  // A card that authorized fine at booking time can still fail minutes later
+  // (bank decline, 3DS abandoned). Unhandled, the guest never learns their
+  // trip isn't actually paid for until they're standing at the car.
+  eventBus.subscribe(EVENTS.PAYMENT_FAILED, async (e) => {
+    const p = e.payload as { bookingId: string; reason?: string };
+    try {
+      const booking = await bookingService.getDoc(p.bookingId);
+      await notificationService.send({
+        userId: booking.guestId,
+        priority: 'critical',
+        deepLink: `/bookings/${p.bookingId}`,
+        templateKey: 'payment.failed',
+        title: 'Payment didn’t go through',
+        body: p.reason
+          ? `Your card was declined: ${p.reason}. Update your payment method to keep this trip.`
+          : 'Your card was declined. Update your payment method to keep this trip.',
+        data: { bookingId: p.bookingId },
+      });
+    } catch (err) {
+      logger.warn({ err, bookingId: p.bookingId }, 'payment.failed notification failed');
+    }
+  });
+
+  // A chargeback is money already gone. The guest doesn't need telling —
+  // this reaches ops via support, since it's the one payment event with no
+  // per-user "you're fine" message that makes sense to send.
+  eventBus.subscribe(EVENTS.PAYMENT_DISPUTED, async (e) => {
+    const p = e.payload as { bookingId: string };
+    try {
+      const booking = await bookingService.getDoc(p.bookingId);
+      await notificationService.send({
+        userId: booking.hostId,
+        priority: 'high',
+        deepLink: `/host/trips?booking=${p.bookingId}`,
+        templateKey: 'payment.disputed',
+        title: 'A charge on your trip is under dispute',
+        body: 'The guest\'s bank has opened a dispute on this trip\'s charge. Our team is on it — no action needed from you right now.',
+        data: { bookingId: p.bookingId },
+      });
+    } catch (err) {
+      logger.warn({ err, bookingId: p.bookingId }, 'payment.disputed notification failed');
+    }
   });
 
   // Emergency SOS → alert the other party + support in realtime.

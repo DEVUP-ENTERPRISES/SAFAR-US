@@ -15,6 +15,16 @@ import { z } from 'zod';
 const optional = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), schema.optional());
 
+/**
+ * A real "true"/"false" string parser for env booleans.
+ *
+ * z.coerce.boolean() runs JS `Boolean(value)` on the raw string, so
+ * SMTP_SECURE=false coerces to `true` — any non-empty string is truthy. That
+ * silently flips the flag to its opposite for exactly the values an operator
+ * would type, so it is never safe to use for a boolean env var.
+ */
+const boolString = () => z.enum(['true', 'false']).transform((v) => v === 'true');
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
@@ -147,7 +157,7 @@ export const envSchema = z.object({
   SMTP_USER: optional(z.string()),
   SMTP_PASS: optional(z.string()),
   /** true for port 465 (implicit TLS). Leave false for 587 STARTTLS. */
-  SMTP_SECURE: optional(z.coerce.boolean()),
+  SMTP_SECURE: optional(boolString()),
   EMAIL_API_URL: optional(z.string().url()),
   EMAIL_API_KEY: optional(z.string()),
   /** Envelope sender, e.g. "CatoDrive <no-reply@cato.com>". Required either way. */

@@ -81,6 +81,8 @@ export interface DeliveryRequest {
   body: string;
   /** Where tapping the notification should land. */
   deepLink?: string;
+  /** Label for the email CTA button. Falls back to "View details". */
+  actionLabel?: string;
   data?: Record<string, unknown>;
 }
 

@@ -51,6 +51,7 @@ export function renderEmail(c: EmailContent): string {
   // web app's /public. Falls back to text-only when no web URL is configured,
   // and the alt text covers the (common) case of a client blocking images.
   const logoUrl = config.notifications.webUrl ? `${config.notifications.webUrl}/logos/cato-logo-256.png` : '';
+  const bannerUrl = config.notifications.webUrl ? `${config.notifications.webUrl}/email/cato-hero-banner.jpg` : '';
   const web = config.notifications.webUrl || '';
   const support = config.notifications.supportEmail;
   const address = config.notifications.companyAddress;
@@ -164,32 +165,53 @@ export function renderEmail(c: EmailContent): string {
               : ''
           }
 
-          <!-- Footer -->
+          <!-- Bottom padding under the last content row, since the banner
+               photo below is OUTSIDE this card (its own block on the page). -->
+          <tr><td style="height:12px;line-height:12px;font-size:0;">&nbsp;</td></tr>
+
+        </table>
+
+        <!-- Photo banner — its own rounded block below the message card, the
+             way a receipt sits above a brand photo rather than inside one. -->
+        ${
+          bannerUrl
+            ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;margin-top:16px;">
           <tr>
-            <td style="padding:24px 28px 26px;">
-              <div style="border-top:1px solid ${BORDER};padding-top:16px;
-                          font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                          font-size:12px;line-height:1.6;color:${MUTED};">
-                <p style="margin:0 0 6px;">
-                  You are receiving this because of activity on your ${esc(brand)} account.
-                </p>
-                ${
-                  web
-                    ? `<p style="margin:0 0 6px;">
-                        <a href="${esc(web)}/account/notifications" style="color:${BRAND};text-decoration:underline;">
-                          Choose which emails you get
-                        </a>
-                      </p>`
-                    : ''
-                }
-                <p style="margin:0 0 6px;">
-                  Questions? <a href="mailto:${esc(support)}" style="color:${BRAND};text-decoration:underline;">${esc(support)}</a>
-                </p>
-                ${address ? `<p style="margin:0;color:#9a938c;">${esc(address)}</p>` : ''}
-              </div>
+            <td style="border-radius:16px;overflow:hidden;line-height:0;">
+              <img src="${bannerUrl}" width="560" alt="${esc(brand)}"
+                   style="display:block;border:0;outline:none;text-decoration:none;width:100%;height:auto;border-radius:16px;" />
             </td>
           </tr>
+        </table>`
+            : ''
+        }
 
+        <!-- Footer — deliberately outside the card, muted, on the page
+             background: the message is the product, the footer is legal. -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+          <tr>
+            <td style="padding:20px 12px 0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+                       font-size:12px;line-height:1.7;color:${MUTED};text-align:center;">
+              <p style="margin:0 0 8px;font-weight:700;color:${BRAND};letter-spacing:-0.01em;">${esc(brand)}</p>
+              <p style="margin:0 0 6px;">
+                You are receiving this because of activity on your ${esc(brand)} account.
+              </p>
+              ${
+                web
+                  ? `<p style="margin:0 0 6px;">
+                      <a href="${esc(web)}/account/notifications" style="color:${BRAND};text-decoration:underline;">
+                        Choose which emails you get
+                      </a>
+                    </p>`
+                  : ''
+              }
+              <p style="margin:0 0 6px;">
+                Questions? <a href="mailto:${esc(support)}" style="color:${BRAND};text-decoration:underline;">${esc(support)}</a>
+              </p>
+              ${address ? `<p style="margin:0 0 6px;color:#9a938c;">${esc(address)}</p>` : ''}
+              <p style="margin:0;color:#9a938c;">&copy; ${new Date().getFullYear()} ${esc(brand)}. All rights reserved.</p>
+            </td>
+          </tr>
         </table>
       </td>
     </tr>

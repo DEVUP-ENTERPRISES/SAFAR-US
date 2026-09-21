@@ -15,6 +15,10 @@ export const authApi = {
   /** Exchange a Google ID token (from Google Identity Services) for a session. */
   google: (idToken: string) =>
     api.post<AuthResult>('/auth/oauth/google', { idToken }, { auth: false }),
+
+  /** Exchange an Apple identity token (from Sign in with Apple JS) for a session. */
+  apple: (token: string) =>
+    api.post<AuthResult>('/auth/oauth/apple', { token }, { auth: false }),
   me: () => api.get<Me>('/users/me'),
 
   /** Forgot password: request a reset code, then set a new password with it. */

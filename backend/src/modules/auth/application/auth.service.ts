@@ -9,6 +9,8 @@ import { userRepository } from '../../users/infrastructure/user.repository';
 import { tokenService, type TokenPair } from './token.service';
 import { otpService } from './otp.service';
 import { channelProviders } from '../../notifications/infrastructure/channel.providers';
+import { emit } from '../../../shared/events/event-bus';
+import { EVENTS } from '../../../core/events/event-names';
 import { sessionStore } from '../infrastructure/session.store';
 import { isRedisHealthy } from '../../../infrastructure/cache/redis.client';
 import type { RegisterDto, LoginDto } from '../dto/auth.schemas';
@@ -40,6 +42,13 @@ export class AuthService {
       const { referralService } = await import('../../referral/application/referral.service');
       await referralService.attach(user._id, dto.referralCode).catch(() => undefined);
     }
+    // Fire-and-forget: the welcome email is a side effect, not part of the
+    // transaction — a slow or failing mail send must never fail signup.
+    emit(EVENTS.USER_REGISTERED, user._id, {
+      userId: user._id,
+      email: user.email,
+      firstName: user.firstName,
+    });
     return this.issueSession(user._id, user.email, user.roles, ctx);
   }
 

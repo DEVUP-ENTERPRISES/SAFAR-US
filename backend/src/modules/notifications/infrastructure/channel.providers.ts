@@ -117,6 +117,9 @@ class SmtpEmailProvider implements ChannelProvider {
       const info = await this.mailer.sendMail({
         from: config.notifications.emailFrom,
         to: req.target.email,
+        // A reply to a receipt or a booking update must reach a human, not
+        // bounce off no-reply@ — this is the only mailbox anyone checks.
+        replyTo: config.notifications.supportEmail,
         subject: req.title,
         // Both parts, always: HTML-only mail scores worse with spam filters and
         // is unreadable in text-only clients.
@@ -150,6 +153,7 @@ function toContent(req: DeliveryRequest): EmailContent {
     title: req.title,
     body: req.body,
     actionUrl: req.deepLink ? webAbsolute(req.deepLink) : undefined,
+    actionLabel: req.actionLabel,
   };
 }
 
