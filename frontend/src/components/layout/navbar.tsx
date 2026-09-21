@@ -8,6 +8,7 @@ import { config } from '@/lib/config';
 import { Logo } from '@/components/layout/logo';
 import { useAuthStore } from '@/features/auth/store';
 import { useIsHost } from '@/features/host/hooks';
+import { useIsAssetPartner } from '@/features/asset-partners/hooks';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { ThemeToggle } from './theme-toggle';
@@ -20,6 +21,7 @@ export function Navbar() {
   const pathname = usePathname();
   const authed = status === 'authenticated';
   const isHost = useIsHost();
+  const isAssetPartner = useIsAssetPartner();
   const isSearch = pathname === '/search';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -98,24 +100,37 @@ export function Navbar() {
                 How it works
               </Link>
               {/* Primary acquisition path — own the car, CatoDrive runs it. Leads
-                  over the self-managed host flow. */}
+                  over the self-managed host flow. Once actually enrolled,
+                  this goes straight to the partner's own dashboard rather
+                  than the public pitch they no longer need. */}
               <Link
-                href="/asset-partners"
+                href={isAssetPartner ? '/asset-partners/dashboard' : '/asset-partners'}
                 className="hidden rounded-full px-4 py-1.5 text-sm font-semibold text-primary transition-all hover:bg-primary/10 sm:block"
               >
-                Asset Partners
+                {isAssetPartner ? 'Partner dashboard' : 'Asset Partners'}
               </Link>
-              {/* Asset-Partners-only launch: don't invite a NEW self-serve
-                  host. An EXISTING host still reaches their own dashboard —
-                  that isn't an invitation, it's their own listing. */}
-              {(isHost || !config.assetPartnersOnly) && (
+              {/*
+                Asset-Partners-only launch: don't invite a NEW self-serve
+                host. An EXISTING host still reaches their own dashboard —
+                that isn't an invitation, it's their own listing.
+
+                `!isAssetPartner` is load-bearing, not decoration: every Asset
+                Partner also carries a verified Host record underneath (it's
+                the marketplace-seller plumbing a Vehicle hangs off), so
+                isHost reads true for partners too. Without this, every
+                partner saw "Host dashboard" here and could reach the
+                self-serve tools — including Add a car, which lists a vehicle
+                with no assetPartnerId and bills it as an ordinary host
+                booking instead of running it through their actual terms.
+              */}
+              {(isHost || !config.assetPartnersOnly) && !isAssetPartner ? (
                 <Link
                   href="/host"
                   className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
                 >
                   {isHost ? 'Host dashboard' : 'Become a host'}
                 </Link>
-              )}
+              ) : null}
               {/* Lower-frequency destination — only at wider widths so it
                   doesn't crowd the primary consumer/partner links. */}
               <Link
@@ -184,11 +199,16 @@ export function Navbar() {
               )}
               
               <nav className="px-2 space-y-1">
-                <Link href="/asset-partners" className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-primary rounded-xl hover:bg-primary/10" onClick={() => setMobileMenuOpen(false)}>
+                <Link
+                  href={isAssetPartner ? '/asset-partners/dashboard' : '/asset-partners'}
+                  className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-primary rounded-xl hover:bg-primary/10"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   <Sparkles className="h-5 w-5" />
-                  Asset Partners
+                  {isAssetPartner ? 'Partner dashboard' : 'Asset Partners'}
                 </Link>
-                {(isHost || !config.assetPartnersOnly) && (
+                {/* See the desktop link above for why !isAssetPartner matters here. */}
+                {(isHost || !config.assetPartnersOnly) && !isAssetPartner && (
                   <Link href="/host" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
                     <Car className="h-5 w-5 text-muted-foreground" />
                     {isHost ? 'Host dashboard' : 'Become a host'}

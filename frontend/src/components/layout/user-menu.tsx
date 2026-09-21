@@ -8,6 +8,7 @@ import {
 import { useAuthStore } from '@/features/auth/store';
 import { useUnreadMessages } from '@/features/messaging/hooks';
 import { useLogout } from '@/features/auth/hooks';
+import { useIsAssetPartner } from '@/features/asset-partners/hooks';
 import { cn } from '@/lib/utils/cn';
 
 
@@ -17,6 +18,7 @@ import { cn } from '@/lib/utils/cn';
  */
 export function UserMenu() {
   const { user } = useAuthStore();
+  const isAssetPartner = useIsAssetPartner();
   const logout = useLogout();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -116,8 +118,24 @@ export function UserMenu() {
                 Both links show unconditionally to every signed-in user (there
                 is no isHost/isCorporate gate here), so they read as an
                 invitation to self-onboard, not just a shortcut for someone
-                already in that program. */}
-            {!config.assetPartnersOnly && (
+                already in that program.
+
+                !isAssetPartner on top of that: every partner also carries a
+                verified Host record as marketplace plumbing (see the note on
+                the same check in navbar.tsx), so this would otherwise offer
+                self-serve host tools to someone CatoDrive runs 100% of
+                operations for. */}
+            {isAssetPartner && (
+              <Link
+                href="/asset-partners/dashboard"
+                onClick={() => setOpen(false)}
+                role="menuitem"
+                className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+              >
+                <Car className="h-4 w-4 text-primary" /> Partner dashboard
+              </Link>
+            )}
+            {!config.assetPartnersOnly && !isAssetPartner && (
               <>
                 <Link
                   href="/host"
