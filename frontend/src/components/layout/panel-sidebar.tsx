@@ -14,6 +14,14 @@ export interface PanelNavItem {
   count?: number;
   /** Whether to show this item in the mobile bottom nav. Defaults to true. */
   mobile?: boolean;
+  /**
+   * Shorter label for the mobile bottom bar, where five items share one row
+   * and a two-or-three-word label ("Payout & profile") wraps onto a second
+   * line while its neighbours stay on one — the row's icons and labels then
+   * sit at different heights instead of a shared baseline. Falls back to
+   * `label`, so this only needs setting where the full label is too long.
+   */
+  mobileLabel?: string;
 }
 
 /**
@@ -163,7 +171,15 @@ export function PanelSidebar({
                 </span>
               )}
             </div>
-            <span className="text-[10px] font-bold">{n.label}</span>
+            {/*
+              truncate (not wrap): five items share one row on a ~360-400px
+              screen, so anything longer than one short word has to be given
+              a mobileLabel override rather than allowed to wrap — a wrapped
+              label is taller than its one-line neighbours, and the row's
+              icons stop sharing a baseline. This is the safety net for
+              whatever the next caller forgets to shorten.
+            */}
+            <span className="max-w-[70px] truncate text-[10px] font-bold">{n.mobileLabel ?? n.label}</span>
           </Link>
         );
       })}

@@ -22,7 +22,7 @@ const NAV: PanelNavItem[] = [
   { slug: 'statements', label: 'Statements', path: '/asset-partners/statements', group: 'Money' },
   { slug: 'maintenance', label: 'Maintenance', path: '/asset-partners/maintenance', group: 'Vehicle care' },
   { slug: 'documents', label: 'Documents', path: '/asset-partners/documents', group: 'Vehicle care', mobile: false },
-  { slug: 'profile', label: 'Payout & profile', path: '/asset-partners/profile', group: 'Account' },
+  { slug: 'profile', label: 'Payout & profile', mobileLabel: 'Profile', path: '/asset-partners/profile', group: 'Account' },
 ];
 
 export function PartnerSidebar() {
