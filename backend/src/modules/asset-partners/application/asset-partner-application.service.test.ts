@@ -5,7 +5,9 @@
  * car. Rejecting must never touch host verification.
  */
 import { assetPartnerApplicationService } from './asset-partner-application.service';
+import { assetPartnerService } from './asset-partner.service';
 import { AssetPartnerApplicationModel } from '../infrastructure/asset-partner-application.model';
+import { AssetPartnerModel } from '../infrastructure/asset-partner.model';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { HostModel } from '../../hosts/infrastructure/host.model';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
@@ -70,11 +72,33 @@ describe('asset partner application', () => {
     expect(host!.verificationStatus).toBe('verified');
   });
 
-  it('approval without a matching account records the decision but does not fake verification', async () => {
+  /*
+   * This used to assert the opposite — that approving someone with no account
+   * left hostVerified false and created nothing, on the reasoning that we must
+   * not "fake" verification for an account that doesn't exist.
+   *
+   * That left an approved applicant in a dead end: no partner record, no host,
+   * and nothing anywhere that would notice when they eventually registered.
+   * Approval is the decision; the account is the mechanism that carries it out,
+   * not a second gate. Enrolment now creates the missing layers — see
+   * assetPartnerService.enrolByEmail — with NO password set, so nothing is
+   * granted that the applicant cannot already prove by receiving a code at the
+   * address they applied with.
+   */
+  it('approval creates the account for an applicant who has not registered', async () => {
     const app = await assetPartnerApplicationService.create(baseDto({ email: 'nobody@example.com' }), {});
     const reviewed = await assetPartnerApplicationService.review(app._id, ADMIN, 'approved');
     expect(reviewed.status).toBe('approved');
-    expect(reviewed.hostVerified).toBe(false);
+    expect(reviewed.hostVerified).toBe(true);
+
+    const user = await UserModel.findOne({ email: 'nobody@example.com' }).lean();
+    expect(user).toBeTruthy();
+    // Created for them, not by them: no credential is set on their behalf.
+    expect(user!.passwordHash).toBeUndefined();
+
+    const partner = await AssetPartnerModel.findOne({ userId: user!._id }).lean();
+    expect(partner).toBeTruthy();
+    expect(partner!.status).toBe('onboarding');
   });
 
   it('rejection never verifies a host', async () => {
@@ -166,5 +190,75 @@ describe('asset partner application', () => {
     await AssetPartnerApplicationModel.deleteMany({});
     await UserModel.deleteMany({});
     await HostModel.deleteMany({});
+  });
+});
+
+/**
+ * Adding a partner directly — the ~20 owners who signed before the website
+ * existed and so have no application to approve.
+ */
+describe('asset partner direct add', () => {
+  const input = {
+    email: 'Owner@Example.com',
+    fullName: 'Casey Nolan',
+    phone: '2145550199',
+    partnerType: 'individual' as const,
+  };
+
+  it('creates the account, host and membership from just a name and email', async () => {
+    const { partner, accountCreated, alreadyExisted } = await assetPartnerService.addDirect(input, {
+      notify: false,
+    });
+
+    expect(alreadyExisted).toBe(false);
+    expect(accountCreated).toBe(true);
+    expect(partner.status).toBe('onboarding');
+    expect(partner.displayName).toBe('Casey Nolan');
+    // Standard platform terms until something is actually negotiated — a
+    // fresh subdocument with nothing set serializes as undefined, not {}.
+    expect(partner.terms).toBeFalsy();
+
+    // Email is normalised, so a later sign-in at owner@example.com matches.
+    const user = await UserModel.findOne({ email: 'owner@example.com' }).lean();
+    expect(user).toBeTruthy();
+    expect(user!.firstName).toBe('Casey');
+    expect(user!.lastName).toBe('Nolan');
+    // No credential is ever set on someone else's behalf.
+    expect(user!.passwordHash).toBeUndefined();
+
+    // The host layer a Vehicle hangs off must exist AND be verified, or the
+    // partner's car cannot be listed.
+    const host = await HostModel.findOne({ userId: user!._id }).lean();
+    expect(host!.verificationStatus).toBe('verified');
+    expect(partner.hostId).toBe(host!._id);
+  });
+
+  it('is idempotent — re-entering the same owner reports it, not a duplicate', async () => {
+    const first = await assetPartnerService.addDirect(input, { notify: false });
+    const second = await assetPartnerService.addDirect(input, { notify: false });
+
+    expect(second.alreadyExisted).toBe(true);
+    expect(second.partner._id).toBe(first.partner._id);
+    expect(await AssetPartnerModel.countDocuments({})).toBe(1);
+    expect(await UserModel.countDocuments({})).toBe(1);
+  });
+
+  it('links to an existing account rather than creating a second one', async () => {
+    const existing = await UserModel.create({ email: 'owner@example.com', roles: ['guest'] });
+
+    const { partner, accountCreated } = await assetPartnerService.addDirect(input, { notify: false });
+
+    expect(accountCreated).toBe(false);
+    expect(partner.userId).toBe(existing._id);
+    expect(await UserModel.countDocuments({})).toBe(1);
+  });
+
+  it('uses the business name as the display name for a business partner', async () => {
+    const { partner } = await assetPartnerService.addDirect(
+      { ...input, partnerType: 'business', businessName: 'Nolan Mobility LLC' },
+      { notify: false },
+    );
+    expect(partner.displayName).toBe('Nolan Mobility LLC');
+    expect(partner.businessName).toBe('Nolan Mobility LLC');
   });
 });

@@ -5,7 +5,6 @@ import {
 } from '../infrastructure/asset-partner-application.model';
 import type { CreateApplicationDto } from '../dto/asset-partner-application.schemas';
 import { UserModel } from '../../users/infrastructure/user.model';
-import { hostService } from '../../hosts/application/host.service';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { assetPartnerService } from './asset-partner.service';
 import {
@@ -248,35 +247,32 @@ export class AssetPartnerApplicationService {
 
     let hostVerified = false;
     if (decision === 'approved') {
-      const user = await UserModel.findOne({ email: app.email, deletedAt: null }).lean();
-      if (user) {
-        /*
-         * The Host record is marketplace plumbing — the seller identity a
-         * Vehicle hangs off so partner cars are bookable like any other car.
-         * Programme membership is the AssetPartner record: its own lifecycle
-         * (onboarding → active → suspended → exited) and its own commercial
-         * terms. host.verificationStatus used to carry both jobs and could
-         * express neither.
-         */
-        let host = await hostService.getByUserId(user._id);
-        if (!host) {
-          host = await hostService.onboard(user._id, app.businessName || app.fullName);
-        }
-        if (host.verificationStatus !== 'verified') {
-          await hostService.setVerification(host._id, 'verified');
-        }
-        hostVerified = true;
-
-        await assetPartnerService.enrol({
-          userId: user._id,
-          hostId: host._id,
-          applicationId: app._id,
-          partnerType: app.partnerType,
-          displayName: app.businessName || app.fullName,
-          businessName: app.businessName,
-          email: app.email,
-          phone: app.phone,
-        });
+      /*
+       * Enrolment runs through the one shared path (see enrolByEmail), which
+       * creates the User and Host layers a partner record needs.
+       *
+       * This previously only enrolled applicants who ALREADY held an account
+       * and silently did nothing otherwise — approving them recorded the
+       * decision, left hostVerified false, and created no partner record, with
+       * a comment saying ops would follow up once the applicant registered.
+       * Nothing made that follow-up happen, so an approved applicant who had
+       * not registered was approved into a dead end. They are approved; the
+       * account is the mechanism, not another gate.
+       */
+      const { accountCreated } = await assetPartnerService.enrolByEmail({
+        email: app.email,
+        fullName: app.fullName,
+        businessName: app.businessName,
+        phone: app.phone,
+        partnerType: app.partnerType,
+        applicationId: app._id,
+      });
+      hostVerified = true;
+      if (accountCreated) {
+        logger.info(
+          { reference: app.reference },
+          'Account created for approved applicant who had not registered',
+        );
       }
     }
 

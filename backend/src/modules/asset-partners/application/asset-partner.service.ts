@@ -6,6 +6,8 @@ import {
   type PayoutMethod,
 } from '../infrastructure/asset-partner.model';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { userRepository } from '../../users/infrastructure/user.repository';
+import { hostService } from '../../hosts/application/host.service';
 import { NotFoundError, ConflictError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
 
@@ -76,6 +78,135 @@ export class AssetPartnerService {
       '🤝 Asset Partner enrolled',
     );
     return doc.toObject();
+  }
+
+  /**
+   * Put someone in the programme from their EMAIL, creating whatever identity
+   * is missing underneath.
+   *
+   * Two callers need this and must not drift apart: approving an application,
+   * and ops adding a partner directly (the ~20 owners who joined before the
+   * website existed and so have no account to approve against).
+   *
+   * Three layers have to exist before a partner record can:
+   *   User   — the account they sign in with
+   *   Host   — the marketplace seller identity a Vehicle hangs off
+   *   Partner— programme membership, lifecycle and terms
+   *
+   * The account is deliberately created WITHOUT a password. passwordHash is
+   * optional on User, and verifyEmailOtp issues a session for an existing
+   * passwordless account, so the partner claims it by asking for an email code
+   * — no invite token to mint, expire or leak. Ops never sets, sees or
+   * transports a password on someone else's behalf.
+   *
+   * Idempotent at every layer: re-running it for the same email returns the
+   * existing membership rather than creating a second one.
+   */
+  async enrolByEmail(input: {
+    email: string;
+    /** Their name, for the host display name and the partner record. */
+    fullName: string;
+    businessName?: string;
+    phone?: string;
+    partnerType: PartnerType;
+    applicationId?: string;
+  }): Promise<{ partner: AssetPartnerDoc; userId: string; accountCreated: boolean }> {
+    const email = input.email.toLowerCase().trim();
+    const displayName = input.businessName || input.fullName;
+
+    let user = await userRepository.findByEmail(email);
+    const accountCreated = !user;
+    if (!user) {
+      user = await userRepository.create({
+        email,
+        firstName: input.fullName.split(' ')[0],
+        lastName: input.fullName.split(' ').slice(1).join(' ') || undefined,
+        phone: input.phone,
+        // Ops vouched for this person off-platform; the address is not proven
+        // until they actually receive a code at it, which claiming the account
+        // requires them to do.
+        emailVerified: false,
+      });
+    }
+
+    // onboard() throws if they are already a host, so check first — many of
+    // these owners already exist as hosts from the pre-website fleet.
+    let host = await hostService.getByUserId(user._id);
+    if (!host) host = await hostService.onboard(user._id, displayName);
+    if (host.verificationStatus !== 'verified') {
+      // This is the flag vehicle.service checks before allowing a listing.
+      await hostService.setVerification(host._id, 'verified');
+    }
+
+    const partner = await this.enrol({
+      userId: user._id,
+      hostId: host._id,
+      applicationId: input.applicationId,
+      partnerType: input.partnerType,
+      displayName,
+      businessName: input.businessName,
+      email,
+      phone: input.phone,
+    });
+
+    return { partner, userId: user._id, accountCreated };
+  }
+
+  /**
+   * Ops adds a partner they already have an agreement with, outside the
+   * application flow. Wraps enrolByEmail and tells the partner they can sign
+   * in, since unlike an applicant they never asked for anything and would
+   * otherwise have no idea an account exists.
+   *
+   * `alreadyExisted` is returned rather than throwing on a duplicate: with
+   * ~20 owners to enter by hand, re-entering one is an ordinary mistake, and
+   * the useful answer is "that's already done" instead of an error.
+   */
+  async addDirect(
+    input: {
+      email: string;
+      fullName: string;
+      businessName?: string;
+      phone?: string;
+      partnerType: PartnerType;
+    },
+    opts: { notify?: boolean } = {},
+  ): Promise<{ partner: AssetPartnerDoc; alreadyExisted: boolean; accountCreated: boolean }> {
+    const before = await AssetPartnerModel.findOne({
+      email: input.email.toLowerCase().trim(),
+    }).lean<AssetPartnerDoc>();
+
+    const { partner, userId, accountCreated } = await this.enrolByEmail(input);
+    const alreadyExisted = !!before;
+
+    if (!alreadyExisted && opts.notify !== false) {
+      // Fire-and-forget: a mail failure must not lose the enrolment, which is
+      // the durable thing. Ops can resend; they cannot un-lose a record.
+      const { notificationService } = await import(
+        '../../notifications/application/notification.service'
+      );
+      void notificationService
+        .send({
+          userId,
+          priority: 'high',
+          deepLink: '/asset-partners/dashboard',
+          actionLabel: 'Open your partner portal',
+          templateKey: 'account.partner_added',
+          title: `You're set up on ${'CatoDrive'}`,
+          body:
+            'Your Asset Partner account is ready. Sign in with this email address — ' +
+            'choose "email me a code", no password needed — to add your payout details ' +
+            'and track what your vehicles earn.',
+          data: { partnerId: partner._id },
+        })
+        .catch(() => undefined);
+    }
+
+    logger.info(
+      { partnerId: partner._id, alreadyExisted, accountCreated },
+      '🤝 Asset Partner added directly by ops',
+    );
+    return { partner, alreadyExisted, accountCreated };
   }
 
   async getByUserId(userId: string): Promise<AssetPartnerDoc | null> {

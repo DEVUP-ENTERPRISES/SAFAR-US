@@ -16,6 +16,45 @@ const router = Router();
  * a host does not, and ops needs to act on both.
  */
 
+/**
+ * Add a partner directly, without an application.
+ *
+ * The intake form is for strangers. These are owners the business already has
+ * a signed agreement with — the fleet that predates the website — and making
+ * ops fill in a prospect questionnaire on their behalf would invent answers
+ * nobody gave.
+ *
+ * So this asks only for what ops genuinely knows: who they are, how to reach
+ * them, and what kind of partner they are. Everything else — payout details,
+ * mailing address, documents — is the partner's own to supply from their
+ * portal once they sign in, which is both less work for ops and more accurate
+ * than ops guessing.
+ *
+ * host:manage, not admin:read: this creates an account and grants programme
+ * membership.
+ */
+router.post(
+  '/asset-partners',
+  authorize('host:manage'),
+  validate({
+    body: z.object({
+      email: z.string().email(),
+      fullName: z.string().min(2).max(120),
+      businessName: z.string().max(120).optional(),
+      phone: z.string().min(6).max(20).optional(),
+      partnerType: z.enum(['individual', 'business', 'fleet']),
+      /** Skip the sign-in email — for backfilling records quietly. */
+      notify: z.boolean().optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    const result = await assetPartnerService.addDirect(req.body, {
+      notify: req.body.notify !== false,
+    });
+    sendCreated(res, result);
+  }),
+);
+
 router.get(
   '/asset-partners',
   authorize('admin:read'),

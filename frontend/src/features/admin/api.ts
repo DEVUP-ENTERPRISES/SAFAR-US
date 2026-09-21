@@ -255,6 +255,24 @@ export const adminApi = {
   // from the intake queue above, and from hosts: a partner is paid a monthly
   // net after a management fee, insurance and detailing, which no host is.
   assetPartners: (q: Q = {}) => api.get<any[]>('/admin/asset-partners', q),
+
+  /**
+   * Add a partner who never applied — the owners who signed before the site
+   * existed. Only what ops actually knows; the partner supplies payout
+   * details and documents themselves from their portal.
+   */
+  addAssetPartner: (input: {
+    email: string;
+    fullName: string;
+    businessName?: string;
+    phone?: string;
+    partnerType: 'individual' | 'business' | 'fleet';
+    notify?: boolean;
+  }) =>
+    api.post<{ partner: { _id: string; displayName: string }; alreadyExisted: boolean; accountCreated: boolean }>(
+      '/admin/asset-partners',
+      input,
+    ),
   assetPartner: (id: string) => api.get<any>(`/admin/asset-partners/${id}`),
   assetPartnerStatement: (id: string, period?: string) =>
     api.get<any>(`/admin/asset-partners/${id}/statement`, period ? { period } : {}),
