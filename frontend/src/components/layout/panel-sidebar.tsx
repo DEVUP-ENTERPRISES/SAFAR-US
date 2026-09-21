@@ -174,7 +174,18 @@ export function PanelSidebar({
      * phone's width before any padding). flex-1 forces genuinely equal
      * columns regardless of item count.
      */
-    <nav className="fixed inset-x-0 bottom-0 z-50 flex h-16 items-stretch border-t border-border bg-card/95 pb-safe backdrop-blur md:hidden">
+    /*
+     * Matched to the guest tab bar's actual treatment (mobile-tab-bar.tsx),
+     * not just visually similar to it — this bar and that one sit on
+     * different routes of the same product, and someone switching between a
+     * partner's own pages and the rest of the site was getting two visibly
+     * different bottom bars: this one plain bg-card/95 with a full-opacity
+     * border, that one the richer `.glass` treatment (saturated blur) with a
+     * softer border/60. One of them read as the "real" nav and the other as
+     * a cheaper stand-in, for no product reason — they're the same kind of
+     * chrome.
+     */
+    <nav className="glass fixed inset-x-0 bottom-0 z-50 flex h-16 items-stretch border-t border-border/60 pb-safe md:hidden">
       {mobileItems.map((n) => {
         const NavIcon = icons[n.slug] ?? FallbackIcon;
         const active = exactPaths.includes(n.path)
@@ -185,6 +196,7 @@ export function PanelSidebar({
           <Link
             key={n.slug}
             href={n.path}
+            aria-current={active ? 'page' : undefined}
             className={cn(
               // min-w-0 is load-bearing, not decoration: flex items default
               // to min-width:auto, which stops a child from shrinking below
@@ -194,12 +206,16 @@ export function PanelSidebar({
               // truncating — flex-1 was setting the INTENDED width, but the
               // browser was overriding it back to "however wide the text
               // wants to be," which is exactly why the labels ran together.
-              'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-0.5 transition-colors',
+              'relative flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-0.5 transition-colors',
               active ? 'text-primary' : 'text-muted-foreground/70 hover:text-foreground'
             )}
           >
             <div className="relative">
-              <NavIcon className="h-6 w-6" />
+              {/* [1.4rem], matching the guest bar's icon size exactly — this
+                  was h-6 w-6 (24px), a hair bigger than the guest bar's
+                  22.4px, which is small enough to not obviously clash on its
+                  own but adds up with everything else that didn't match. */}
+              <NavIcon className="h-[1.4rem] w-[1.4rem]" />
               {typeof n.count === 'number' && n.count > 0 && (
                 <span className="absolute -end-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
                   {n.count > 99 ? '99+' : n.count}
@@ -213,8 +229,7 @@ export function PanelSidebar({
               label is taller than its one-line neighbours, and the row's
               icons stop sharing a baseline. This is the safety net for
               whatever the next caller forgets to shorten.
-            */}
-            {/*
+
               w-full, not max-w-[70px]: a flat 70px cap only clips a label
               once it EXCEEDS 70px — on a narrow phone with 6 columns, a
               column can be genuinely narrower than that (390px / 6 columns
@@ -222,8 +237,19 @@ export function PanelSidebar({
               being clipped at all and visually spilled past its own column.
               w-full ties truncation to this column's REAL width at any
               screen size, whatever that number happens to be.
+
+              font-semibold (was font-bold): matches the guest bar's label
+              weight — bold read heavier/denser next to it for no reason tied
+              to this bar being any more important.
             */}
-            <span className="w-full truncate text-center text-[10px] font-bold">{n.mobileLabel ?? n.label}</span>
+            <span className="w-full truncate text-center text-[10px] font-semibold tracking-tight">
+              {n.mobileLabel ?? n.label}
+            </span>
+            {/* Active-tab indicator, the same top underline the guest bar
+                uses — this bar showed activeness only via icon/label colour,
+                so the two bars disagreed on how "you are here" is signalled
+                even though they're the same UI pattern. */}
+            {active && <span className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-primary" />}
           </Link>
         );
       })}
