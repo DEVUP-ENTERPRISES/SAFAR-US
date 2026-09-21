@@ -21,6 +21,35 @@ interface RequestOptions {
 
 let refreshInFlight: Promise<boolean> | null = null;
 
+/*
+ * Cross-tab mutex around the refresh call.
+ *
+ * `refreshInFlight` only dedupes concurrent 401s WITHIN one tab — it is a
+ * module-level variable, and every tab/window runs its own copy of this
+ * module. Two tabs whose access tokens expire around the same moment (the
+ * access TTL is 15 minutes, so this is routine, not rare) each read the SAME
+ * refresh token from localStorage and each call /auth/token/refresh with it.
+ * The backend rotates the refresh token on every use and treats a second use
+ * of an already-rotated token as theft — it revokes the WHOLE session, not
+ * just that request. So two ordinary tabs refreshing a moment apart could log
+ * the person out everywhere, which is indistinguishable from a real security
+ * event but isn't one.
+ *
+ * The Web Locks API is a real cross-tab/cross-window mutex the browser
+ * arbitrates, not a localStorage flag this code would have to poll and could
+ * race on itself. Only one tab's callback runs at a time under a given lock
+ * name; every other requester queues until it releases. Support is broad
+ * enough for this app's targets (Chrome/Edge/Firefox, Safari 15.4+); where
+ * it's missing, this degrades to the single-tab-only guard that existed
+ * before — no worse than the prior behaviour, not a regression.
+ */
+async function withCrossTabLock<T>(name: string, fn: () => Promise<T>): Promise<T> {
+  if (typeof navigator !== 'undefined' && navigator.locks) {
+    return navigator.locks.request(name, fn);
+  }
+  return fn();
+}
+
 function buildUrl(path: string, query?: RequestOptions['query']): string {
   const url = new URL(config.apiUrl + path);
   if (query) {
@@ -34,14 +63,21 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
 async function attemptRefresh(): Promise<boolean> {
   const refreshToken = tokenStore.getRefresh();
   if (!refreshToken) return false;
-  // Single-flight: concurrent 401s share one refresh call.
+  // Single-flight within this tab: concurrent 401s here share one call.
   if (!refreshInFlight) {
-    refreshInFlight = (async () => {
+    refreshInFlight = withCrossTabLock('cato-token-refresh', async () => {
       try {
+        // Re-read after acquiring the lock — while this tab was queued,
+        // another tab may have already refreshed and written new tokens to
+        // localStorage. Using THIS closure's now-stale `refreshToken` would
+        // be exactly the reuse the lock exists to prevent.
+        const current = tokenStore.getRefresh();
+        if (current !== refreshToken) return true; // another tab already did it
+
         const res = await fetch(buildUrl('/auth/token/refresh'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken }),
+          body: JSON.stringify({ refreshToken: current }),
         });
         if (!res.ok) return false;
         const json = (await res.json()) as ApiSuccess<{ accessToken: string; refreshToken: string }>;
@@ -52,7 +88,7 @@ async function attemptRefresh(): Promise<boolean> {
       } finally {
         setTimeout(() => (refreshInFlight = null), 0);
       }
-    })();
+    });
   }
   return refreshInFlight;
 }
