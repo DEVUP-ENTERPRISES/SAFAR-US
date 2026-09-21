@@ -40,12 +40,23 @@ export function MobileTabBar() {
   const upcoming = list.filter((b) => UPCOMING.has(b.status)).length;
   const saved = user ? (favourites.data?.length ?? 0) : 0;
 
-  // Chrome for browsing — hidden where the screen is already a full-height
-  // workspace it would only cover.
+  /*
+   * Chrome for browsing — hidden where the screen is already a full-height
+   * workspace it would only cover, OR where the page renders its own fixed
+   * bottom action bar.
+   *
+   * /vehicles/[id] and /bookings/[id]/rebook both do the latter: a price/
+   * booking bar pinned to the same inset-x-0 bottom-0 as this nav. Two fixed
+   * bars at the same edge fight for the same strip of screen — the gap this
+   * nav's own spacer reserves opens up above whichever bar actually painted
+   * on top, which is what read as a broken/empty band under the page content.
+   */
   const hidden =
     pathname.startsWith('/host/listings/new') ||
     pathname.startsWith('/trips/') ||
-    pathname.startsWith('/messages');
+    pathname.startsWith('/messages') ||
+    pathname.startsWith('/vehicles/') ||
+    /^\/bookings\/[^/]+\/rebook$/.test(pathname);
   if (hidden) return null;
 
   const isOn = (href: string) =>
