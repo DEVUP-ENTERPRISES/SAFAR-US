@@ -186,7 +186,15 @@ export function PanelSidebar({
             key={n.slug}
             href={n.path}
             className={cn(
-              'flex flex-1 flex-col items-center justify-center gap-1 transition-colors',
+              // min-w-0 is load-bearing, not decoration: flex items default
+              // to min-width:auto, which stops a child from shrinking below
+              // its own content's natural width. Without it, a label like
+              // "Statements" or "Maintenance" refuses to respect its 1/6
+              // share of the row and pushes into the next column instead of
+              // truncating — flex-1 was setting the INTENDED width, but the
+              // browser was overriding it back to "however wide the text
+              // wants to be," which is exactly why the labels ran together.
+              'flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-0.5 transition-colors',
               active ? 'text-primary' : 'text-muted-foreground/70 hover:text-foreground'
             )}
           >
@@ -206,7 +214,16 @@ export function PanelSidebar({
               icons stop sharing a baseline. This is the safety net for
               whatever the next caller forgets to shorten.
             */}
-            <span className="max-w-[70px] truncate text-[10px] font-bold">{n.mobileLabel ?? n.label}</span>
+            {/*
+              w-full, not max-w-[70px]: a flat 70px cap only clips a label
+              once it EXCEEDS 70px — on a narrow phone with 6 columns, a
+              column can be genuinely narrower than that (390px / 6 columns
+              is ~65px before padding), so a "70px-or-less" label was never
+              being clipped at all and visually spilled past its own column.
+              w-full ties truncation to this column's REAL width at any
+              screen size, whatever that number happens to be.
+            */}
+            <span className="w-full truncate text-center text-[10px] font-bold">{n.mobileLabel ?? n.label}</span>
           </Link>
         );
       })}
