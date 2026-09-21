@@ -21,7 +21,17 @@ const NAV: PanelNavItem[] = [
   { slug: 'vehicles', label: 'Vehicles', path: '/asset-partners/vehicles', group: 'Overview' },
   { slug: 'statements', label: 'Statements', path: '/asset-partners/statements', group: 'Money' },
   { slug: 'maintenance', label: 'Maintenance', path: '/asset-partners/maintenance', group: 'Vehicle care' },
-  { slug: 'documents', label: 'Documents', path: '/asset-partners/documents', group: 'Vehicle care', mobile: false },
+  {
+    slug: 'documents',
+    label: 'Documents',
+    path: '/asset-partners/documents',
+    group: 'Vehicle care',
+    // Was mobile: false, leaving the mobile bar at 5 items with a real page
+    // (title deeds, agreements, insurance docs) reachable only from the
+    // desktop sidebar. The mobile bar now takes 6 (see panel-sidebar.tsx —
+    // it was hard-capped at 5 with no route behind that number), so there's
+    // room for it without crowding anything else out.
+  },
   { slug: 'profile', label: 'Payout & profile', mobileLabel: 'Profile', path: '/asset-partners/profile', group: 'Account' },
 ];
 

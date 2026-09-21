@@ -21,7 +21,16 @@ import { PartnerSidebar } from '@/features/asset-partners/components/partner-sid
 export default function AssetPartnerPortalLayout({ children }: { children: ReactNode }) {
   return (
     <AuthGuard>
-      <div className="flex gap-8 pb-24 md:pb-0">
+      {/*
+        pb-24 (a flat 96px) used to reserve clearance for PartnerSidebar's
+        mobile bar — its real height is 4rem (64px) plus the safe-area inset,
+        the same formula the guest tab bar reserves for itself (see
+        mobile-tab-bar.tsx). 96px was neither: bigger than the bar on an
+        ordinary phone (visible dead space below the content) and not
+        necessarily enough on a device with a tall safe-area inset either,
+        since a flat class can't respond to env().
+      */}
+      <div className="flex gap-8 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
         <PartnerSidebar />
         <div className="min-w-0 flex-1">{children}</div>
       </div>

@@ -124,7 +124,16 @@ function HostShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex gap-8 pb-24 md:pb-0">
+    /*
+     * No pb-24 here. It used to reserve clearance for PanelSidebar's own
+     * mobile bar, back when HostSidebar rendered one — now that it's
+     * suppressed (showMobileNav={false} on HostSidebar, since
+     * HostMobileTabBar already covers this route), the only bottom bar left
+     * is HostMobileTabBar, which reserves its own clearance via its own
+     * spacer div (see host-mobile-tab-bar.tsx). Keeping pb-24 on top of that
+     * would just be redundant padding stacked under redundant padding.
+     */
+    <div className="flex gap-8">
       <HostSidebar />
       <div className="min-w-0 flex-1">{children}</div>
     </div>

@@ -40,6 +40,7 @@ export function PanelSidebar({
   pinned = false,
   top = '5rem',
   height = 'calc(100vh - 5.5rem)',
+  showMobileNav = true,
 }: {
   title: string;
   subtitle?: string;
@@ -63,6 +64,16 @@ export function PanelSidebar({
   top?: string;
   /** How tall it is. Defaults leave a little breathing room at the bottom. */
   height?: string;
+  /**
+   * False when the caller already has its own dedicated mobile bottom bar
+   * elsewhere in the tree — HostSidebar is the one caller that does
+   * (HostMobileTabBar, rendered by AppChrome for every /host/* route). Both
+   * are `fixed inset-x-0 bottom-0`, so without this every host dashboard
+   * page mounted two bottom navs stacked on top of each other on mobile: the
+   * same double-fixed-bar bug already found and fixed on the Asset Partner
+   * portal and on /vehicles/[id], just one more place it was hiding.
+   */
+  showMobileNav?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -144,22 +155,38 @@ export function PanelSidebar({
     </aside>
   );
 
-  const mobileItems = items.filter((i) => i.mobile !== false).slice(0, 5);
+  /*
+   * 6, matching the guest tab bar's own convention (see mobile-tab-bar.tsx),
+   * not 5 — this was an arbitrary lower cap with no route behind it, and it
+   * silently dropped a real page (Documents) off the partner nav even though
+   * nothing about the layout required stopping at 5.
+   */
+  const mobileItems = items.filter((i) => i.mobile !== false).slice(0, 6);
 
   const mobileNav = (
-    <nav className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-border bg-card/95 px-2 pb-safe pt-2 backdrop-blur md:hidden">
+    /*
+     * items-stretch + flex-1 per item (not items-center + justify-around +
+     * min-w-[64px]) — the same pattern mobile-tab-bar.tsx already uses for
+     * the guest nav. min-w+justify-around gives every item its OWN width and
+     * lets the row distribute the leftover space as gaps, so the columns
+     * don't line up between this bar and any other bottom bar on the site,
+     * and it gets tight fast once a 6th item is added (6 x 64px is most of a
+     * phone's width before any padding). flex-1 forces genuinely equal
+     * columns regardless of item count.
+     */
+    <nav className="fixed inset-x-0 bottom-0 z-50 flex h-16 items-stretch border-t border-border bg-card/95 pb-safe backdrop-blur md:hidden">
       {mobileItems.map((n) => {
         const NavIcon = icons[n.slug] ?? FallbackIcon;
         const active = exactPaths.includes(n.path)
           ? pathname === n.path
           : pathname === n.path || pathname.startsWith(`${n.path}/`);
-        
+
         return (
           <Link
             key={n.slug}
             href={n.path}
             className={cn(
-              'flex flex-col items-center justify-center gap-1 min-w-[64px] px-2 py-1 transition-colors',
+              'flex flex-1 flex-col items-center justify-center gap-1 transition-colors',
               active ? 'text-primary' : 'text-muted-foreground/70 hover:text-foreground'
             )}
           >
@@ -189,7 +216,7 @@ export function PanelSidebar({
   return (
     <>
       {desktopSidebar}
-      {mobileNav}
+      {showMobileNav && mobileNav}
     </>
   );
 }

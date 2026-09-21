@@ -41,6 +41,10 @@ export function HostSidebar() {
       icons={ICONS}
       fallbackIcon={LayoutGrid}
       exactPaths={['/host']}
+      // HostMobileTabBar already covers the mobile bottom nav for every
+      // /host/* route (rendered by AppChrome) — without this, that bar and
+      // PanelSidebar's own default one stacked on top of each other.
+      showMobileNav={false}
     />
   );
 }
