@@ -13,7 +13,7 @@
  *     minimal offline page) only when truly offline
  *   - everything else → straight to the network
  */
-const VERSION = 'cato-v1';
+const VERSION = 'cato-v2';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 
@@ -92,8 +92,12 @@ self.addEventListener('fetch', (event) => {
         const cached = await caches.match(request);
         const network = fetch(request)
           .then((res) => {
+            // Clone synchronously, before returning res — the browser starts
+            // consuming the returned body immediately, and cloning after that
+            // race started threw "Response body is already used".
             if (res && res.status === 200) {
-              caches.open(STATIC_CACHE).then((c) => c.put(request, res.clone()));
+              const copy = res.clone();
+              caches.open(STATIC_CACHE).then((c) => c.put(request, copy));
             }
             return res;
           })
