@@ -1,4 +1,5 @@
 import { TripModel, type TripDoc } from '../infrastructure/trip.model';
+import type { CaptainAbility } from '../../hosts/infrastructure/host-staff.model';
 import { bookingService } from '../../bookings/application/booking.service';
 import { incidentalsService } from '../../bookings/application/incidentals.service';
 import { depositService } from '../../payments/application/deposit.service';
@@ -23,7 +24,10 @@ export class TripService {
     handover: { odometerStart?: number; fuelStart?: number; notes?: string },
   ): Promise<TripDoc> {
     const booking = await bookingService.getDoc(bookingId);
-    if (booking.guestId !== userId && !(await this.isHost(userId, booking.hostId))) {
+    if (
+      booking.guestId !== userId &&
+      !(await this.isHost(userId, booking.hostId, booking.vehicleId, 'trip:handover'))
+    ) {
       throw new ForbiddenError('Not a participant of this booking');
     }
     if (booking.status !== 'paid') {
@@ -79,7 +83,10 @@ export class TripService {
     ret: { odometerEnd?: number; fuelEnd?: number; notes?: string },
   ): Promise<TripDoc> {
     const trip = await this.getDoc(tripId);
-    if (trip.guestId !== userId && !(await this.isHost(userId, trip.hostId))) {
+    if (
+      trip.guestId !== userId &&
+      !(await this.isHost(userId, trip.hostId, trip.vehicleId, 'trip:handover'))
+    ) {
       throw new ForbiddenError('Not a participant of this trip');
     }
     if (trip.status !== 'active') throw new ConflictError('Trip is not active', 'INVALID_STATE');
@@ -223,7 +230,9 @@ export class TripService {
    */
   async confirmLicense(userId: string, tripId: string): Promise<TripDoc> {
     const trip = await this.getDoc(tripId);
-    if (!(await this.isHost(userId, trip.hostId))) throw new ForbiddenError('Host only');
+    if (!(await this.isHost(userId, trip.hostId, trip.vehicleId, 'trip:handover'))) {
+      throw new ForbiddenError('Host only');
+    }
     await TripModel.updateOne(
       { _id: tripId },
       { licenseConfirmed: true, licenseConfirmedAt: new Date() },
@@ -257,7 +266,9 @@ export class TripService {
     input: { odometerStart: number; fuelStart?: number; notes?: string },
   ): Promise<TripDoc> {
     const trip = await this.getDoc(tripId);
-    if (!(await this.isHost(userId, trip.hostId))) throw new ForbiddenError('Host only');
+    if (!(await this.isHost(userId, trip.hostId, trip.vehicleId, 'trip:handover'))) {
+      throw new ForbiddenError('Host only');
+    }
     await TripModel.updateOne(
       { _id: tripId },
       { handover: { at: new Date(), ...input } },
@@ -341,7 +352,7 @@ export class TripService {
   async verifyPickup(principal: Principal, tripId: string, code: string): Promise<TripDoc> {
     const trip = await this.getDoc(tripId);
     const isAdmin = principal.permissions.includes('*') || principal.permissions.includes('booking:read:any');
-    if (!isAdmin && !(await this.isHost(principal.userId, trip.hostId))) {
+    if (!isAdmin && !(await this.isHost(principal.userId, trip.hostId, trip.vehicleId, 'trip:handover'))) {
       throw new ForbiddenError('Only the host verifies pickup');
     }
     if (!(await bookingService.checkPickupCode(trip.bookingId, code))) {
@@ -357,10 +368,24 @@ export class TripService {
     return trip;
   }
 
-  private async isHost(userId: string, hostId: string): Promise<boolean> {
+  /**
+   * The owner, or a Captain standing in for them on this car with the right
+   * ability. `ability` defaults to the loosest read — enough to open the trip
+   * — since most call sites gate a stricter action on top of this afterward.
+   */
+  private async isHost(
+    userId: string,
+    hostId: string,
+    vehicleId?: string,
+    ability: CaptainAbility = 'trip:view',
+  ): Promise<boolean> {
     const { hostService } = await import('../../hosts/application/host.service');
     const host = await hostService.getByUserId(userId);
-    return !!host && host._id === hostId;
+    if (host && host._id === hostId) return true;
+
+    const { hostStaffService } = await import('../../hosts/application/host-staff.service');
+    const { allowed } = await hostStaffService.can(userId, ability, hostId, vehicleId);
+    return allowed;
   }
 
   /** Public participant check (used by the realtime gateway). */
@@ -371,7 +396,7 @@ export class TripService {
   /** Is this user a participant (guest or host) of the trip's booking? */
   async isParticipant(userId: string, tripId: string): Promise<boolean> {
     const trip = await this.getDoc(tripId);
-    return trip.guestId === userId || (await this.isHost(userId, trip.hostId));
+    return trip.guestId === userId || (await this.isHost(userId, trip.hostId, trip.vehicleId));
   }
 }
 

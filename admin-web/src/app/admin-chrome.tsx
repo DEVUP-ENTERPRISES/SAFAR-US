@@ -70,11 +70,23 @@ function AdminShell({ children }: { children: ReactNode }) {
   );
 }
 
+const HF_SLUG = process.env.NEXT_PUBLIC_HOUSE_FLEET_SLUG || '';
+
 export function AdminChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  // House Fleet is a separate portal with its own login and its own auth —
-  // it must never be wrapped in the admin's AuthGuard/AdminShell.
-  if (pathname?.startsWith('/hf')) {
+  /*
+   * House Fleet is a separate portal with its own login and its own auth —
+   * it must never be wrapped in the admin's AuthGuard/AdminShell.
+   *
+   * middleware.ts rewrites `/{HF_SLUG}/...` to `/hf/...` internally, but that
+   * rewrite is invisible to the client: usePathname() reports the URL the
+   * browser actually has in its address bar (the slug path), never the
+   * rewritten destination. Checking for '/hf' here always missed — the
+   * moment this component hydrated, it saw the slug path, fell through to
+   * the admin branch below, and AuthGuard bounced an unauthenticated visitor
+   * straight to the admin login. Check the same slug the middleware does.
+   */
+  if (HF_SLUG && pathname?.startsWith(`/${HF_SLUG}`)) {
     return <>{children}</>;
   }
   // The admin login page is public — everything else requires an admin session.

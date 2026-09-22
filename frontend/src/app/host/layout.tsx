@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Store, Check } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,15 +14,34 @@ import { ErrorState } from '@/components/ui/states';
 import { useHostMe, useOnboardHost, isNotAHost } from '@/features/host/hooks';
 import { useIsAssetPartner } from '@/features/asset-partners/hooks';
 import { HostSidebar } from '@/features/host/components/host-sidebar';
+import { captainApi } from '@/features/host/team-api';
 
 function HostShell({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const hostQuery = useHostMe();
   const isAssetPartner = useIsAssetPartner();
   const onboard = useOnboardHost();
   const [displayName, setDisplayName] = useState('');
 
   const notAHost = isNotAHost(hostQuery.error);
+  // A Captain has no fleet of their own, but does have the run of a trip's
+  // handover screens on the cars assigned to them — that page is theirs too,
+  // not just their own /captain queue.
+  const isTripRoute = pathname?.startsWith('/host/trips') ?? false;
+
+  // Only asked once we know they have no fleet of their own — a real host is
+  // never a Captain, so this would be a wasted round trip for everyone else.
+  const captainQuery = useQuery({
+    queryKey: ['captain-queue'],
+    queryFn: () => captainApi.queue(),
+    enabled: notAHost,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (notAHost && captainQuery.data && !isTripRoute) router.replace('/captain');
+  }, [notAHost, captainQuery.data, isTripRoute, router]);
 
   /*
    * An Asset Partner always has a Host record underneath — it is the
@@ -62,6 +82,15 @@ function HostShell({ children }: { children: ReactNode }) {
         retry={() => hostQuery.refetch()}
       />
     );
+  }
+
+  // A Captain has no Host record of their own, so they land here looking like
+  // a brand new signup. They are not — a trip route is theirs to view bare
+  // (no host sidebar, since most of it doesn't apply to them); anywhere else
+  // they're mid-redirect to their own queue.
+  if (notAHost && captainQuery.data && isTripRoute) return <>{children}</>;
+  if (notAHost && (captainQuery.isPending || captainQuery.data)) {
+    return <Skeleton className="h-64 w-full" />;
   }
 
   // Confirmed not a host → onboarding.
@@ -142,9 +171,12 @@ function HostShell({ children }: { children: ReactNode }) {
 
 export default function HostLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  // Login is public; /host/bridge must render bare too — it's the page that
-  // STORES the session, so guarding it would bounce it before it can run.
-  if (pathname === '/host/login' || pathname === '/host/bridge') return <>{children}</>;
+  // Login is public; /host/bridge and /host/accept-invite must render bare too
+  // — they're the pages that STORE the session, so guarding them would bounce
+  // them before they can run.
+  if (pathname === '/host/login' || pathname === '/host/bridge' || pathname === '/host/accept-invite') {
+    return <>{children}</>;
+  }
   return (
     <AuthGuard loginPath="/host/login">
       <HostShell>{children}</HostShell>

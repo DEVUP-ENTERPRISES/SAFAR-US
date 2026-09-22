@@ -3,7 +3,16 @@ import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/veh
 import { UserModel } from '../../users/infrastructure/user.model';
 import { TripModel } from '../../trips/infrastructure/trip.model';
 import { hostService } from '../../hosts/application/host.service';
+import { HostStaffModel, type HostStaffDoc } from '../../hosts/infrastructure/host-staff.model';
 import { TERMINAL_STATUSES } from '../domain/booking-status';
+import { ForbiddenError } from '../../../core/errors/app-error';
+
+/** The fleet this caller sees trips for, and which cars they're limited to. */
+interface CallerScope {
+  hostId: string;
+  /** undefined = every car in the fleet; a Captain may be limited to some. */
+  vehicleIds?: string[];
+}
 
 /** Everything a host trip card / detail screen needs, in one shot. */
 export interface HostTrip {
@@ -114,9 +123,10 @@ export class HostTripsService {
   }
 
   async one(userId: string, bookingId: string): Promise<HostTrip | null> {
-    const host = await hostService.requireHostForUser(userId);
-    const booking = await BookingModel.findOne({ _id: bookingId, hostId: host._id }).lean<BookingDoc>();
+    const scope = await this.scopeFor(userId);
+    const booking = await BookingModel.findOne({ _id: bookingId, hostId: scope.hostId }).lean<BookingDoc>();
     if (!booking) return null;
+    if (scope.vehicleIds && !scope.vehicleIds.includes(booking.vehicleId)) return null;
     const [trip] = await this.enrich([booking]);
     return trip ?? null;
   }
@@ -126,12 +136,30 @@ export class HostTripsService {
     statuses: string[],
     sort: Record<string, 1 | -1>,
   ): Promise<HostTrip[]> {
-    const host = await hostService.requireHostForUser(userId);
-    const bookings = await BookingModel.find({ hostId: host._id, status: { $in: statuses } })
+    const scope = await this.scopeFor(userId);
+    const bookings = await BookingModel.find({
+      hostId: scope.hostId,
+      status: { $in: statuses },
+      ...(scope.vehicleIds ? { vehicleId: { $in: scope.vehicleIds } } : {}),
+    })
       .sort(sort)
       .limit(100)
       .lean<BookingDoc[]>();
     return this.enrich(bookings);
+  }
+
+  /**
+   * The owner sees their whole fleet; a Captain sees only the host they were
+   * invited by, and only the cars assigned to them (empty list = the whole
+   * fleet, present and future — same rule as the assignment picker).
+   */
+  private async scopeFor(userId: string): Promise<CallerScope> {
+    const host = await hostService.getByUserId(userId);
+    if (host) return { hostId: host._id };
+
+    const staff = await HostStaffModel.findOne({ userId, status: 'active' }).lean<HostStaffDoc>();
+    if (!staff) throw new ForbiddenError('You do not have a host account');
+    return { hostId: staff.hostId, vehicleIds: staff.vehicleIds.length ? staff.vehicleIds : undefined };
   }
 
   /** One batched join — never a query per row. */

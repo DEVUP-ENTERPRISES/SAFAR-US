@@ -26,10 +26,18 @@ export async function seedHouseFleet(): Promise<void> {
       firstName: config.houseFleet.name,
       emailVerified: true,
       status: 'active',
-      roles: [ROLES.HOST],
+      // 'house_fleet' carries no permissions of its own (it's not in
+      // ROLE_PERMISSIONS) — it's an identity tag so the frontend can tell this
+      // one seeded account apart from an ordinary self-serve host, e.g. to skip
+      // guest-renter onboarding an internal fleet account will never need.
+      roles: [ROLES.HOST, 'house_fleet'],
     });
     user = doc.toObject();
     logger.info({ email }, '🚗 House Fleet account created');
+  } else if (!user.roles.includes('house_fleet')) {
+    // Self-heal an account seeded before this tag existed.
+    await UserModel.updateOne({ _id: user._id }, { $addToSet: { roles: 'house_fleet' } });
+    user.roles = [...user.roles, 'house_fleet'];
   }
 
   let host = await hostService.getByUserId(user._id);

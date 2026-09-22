@@ -54,6 +54,39 @@ router.post(
   }),
 );
 
+router.post(
+  '/staff/:id/resend-invite',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await hostStaffService.resendInvite(req.principal!.userId, req.params.id));
+  }),
+);
+
+/**
+ * Public — the invitee has no session yet. Scoped entirely by the single-use
+ * token, never by an authenticated id.
+ */
+router.get(
+  '/staff/invite/:token',
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await hostStaffService.inviteePreview(req.params.token));
+  }),
+);
+
+router.post(
+  '/staff/accept',
+  validate({ body: z.object({ token: z.string().min(10), password: z.string().min(8).max(72).optional() }) }),
+  asyncHandler(async (req, res) => {
+    const { userId } = await hostStaffService.acceptInvite(req.body.token, req.body.password);
+    const { authService } = await import('../../auth/application/auth.service');
+    const result = await authService.issueSessionForUser(userId, {
+      userAgent: req.header('user-agent'),
+      ip: req.ip,
+    });
+    sendSuccess(res, result);
+  }),
+);
+
 router.patch(
   '/staff/:id',
   authenticate,

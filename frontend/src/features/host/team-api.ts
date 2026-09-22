@@ -51,6 +51,31 @@ export interface CaptainInput {
   vehicleIds?: string[];
 }
 
+/** What the invitee sees before committing, keyed by the token alone. */
+export interface InvitePreview {
+  name: string;
+  email: string;
+  title?: string;
+  fleetName: string;
+  abilities: CaptainAbility[];
+  vehicleCount: number;
+  /** False when they already have a CatoDrive account to sign in with. */
+  needsPassword: boolean;
+}
+
+export interface CaptainQueue {
+  staff: Captain;
+  fleetName: string;
+  trips: {
+    _id: string;
+    bookingId: string;
+    vehicleId: string;
+    status: string;
+    handover?: { at?: string };
+    vehicle: { _id: string; make: string; model: string; year: number; licensePlate?: string } | null;
+  }[];
+}
+
 export const teamApi = {
   list: () => api.get<Captain[]>('/hosts/staff'),
   assignableVehicles: () => api.get<AssignableVehicle[]>('/hosts/staff/assignable-vehicles'),
@@ -59,4 +84,16 @@ export const teamApi = {
   setStatus: (id: string, status: 'active' | 'suspended') =>
     api.post<Captain>(`/hosts/staff/${id}/status`, { status }),
   remove: (id: string) => api.delete<{ removed: boolean }>(`/hosts/staff/${id}`),
+  resendInvite: (id: string) => api.post<Captain>(`/hosts/staff/${id}/resend-invite`, {}),
+};
+
+/** The Captain's own side: claiming an invite, and the jobs that follow. */
+export const captainApi = {
+  invitePreview: (token: string) => api.get<InvitePreview>(`/hosts/staff/invite/${token}`),
+  accept: (token: string, password?: string) =>
+    api.post<{ user: { id: string; email?: string; roles: string[] }; tokens: { accessToken: string; refreshToken: string } }>(
+      '/hosts/staff/accept',
+      { token, password },
+    ),
+  queue: () => api.get<CaptainQueue | null>('/hosts/staff/me/queue'),
 };
