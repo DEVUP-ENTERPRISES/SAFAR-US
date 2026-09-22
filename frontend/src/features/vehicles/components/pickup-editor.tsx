@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { MapPin, KeyRound, Lock } from 'lucide-react';
+import { MapPin, KeyRound, Lock, Camera, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Field } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
 import { vehicleApi } from '@/features/vehicles/api';
+import { hostApi } from '@/features/host/api';
 
 /**
  * Where the car actually is, and how to get into it.
@@ -36,6 +37,27 @@ export function PickupEditor({
   const [instructions, setInstructions] = useState(initial?.instructions ?? '');
   const [accessCode, setAccessCode] = useState(initial?.accessCode ?? '');
   const [spotPhotoUrl, setSpotPhotoUrl] = useState(initial?.spotPhotoUrl ?? '');
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const pickSpotPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const [target] = await hostApi.uploadUrls('vehicle_photo', 1, file.type || 'image/jpeg');
+      const res = await fetch(target.uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      });
+      if (!res.ok) throw new Error(`Storage rejected the upload (${res.status}).`);
+      setSpotPhotoUrl(target.publicUrl);
+    } catch {
+      toast({ tone: 'error', title: "Couldn't upload that photo" });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const save = useMutation({
     mutationFn: () =>
@@ -82,11 +104,37 @@ export function PickupEditor({
         </Field>
 
         <Field label="Photo of the spot" hint="Optional, and worth more than the description">
-          <Input
-            value={spotPhotoUrl}
-            onChange={(e) => setSpotPhotoUrl(e.target.value)}
-            placeholder="https://…"
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => pickSpotPhoto(e.target.files?.[0])}
           />
+          {spotPhotoUrl ? (
+            <div className="relative h-32 w-full overflow-hidden rounded-xl border border-border/60">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={spotPhotoUrl} alt="The pickup spot" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setSpotPhotoUrl('')}
+                className="absolute end-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-background/90 shadow-sm hover:bg-background"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              loading={uploading}
+              onClick={() => fileInput.current?.click()}
+            >
+              {!uploading && <Camera className="h-4 w-4" />}
+              Take or upload a photo
+            </Button>
+          )}
         </Field>
 
         <Field

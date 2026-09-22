@@ -49,14 +49,14 @@ export function LocationSearch({ onPick, placeholder = 'Search a city or place',
           />
         </div>
       ) : (
-        <div className="flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 h-11 focus-within:border-foreground focus-within:ring-1 focus-within:ring-foreground transition-all hover:border-border">
+        <div className="flex w-full items-center gap-2 overflow-hidden rounded-full border border-border/60 bg-card px-4 h-11 focus-within:border-foreground focus-within:ring-1 focus-within:ring-foreground transition-all hover:border-border">
           <MapPin className="h-5 w-5 shrink-0 text-muted-foreground" />
           <input
             value={q}
             onChange={(e) => { setQ(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
             placeholder={placeholder}
-            className="flex-1 border-0 bg-transparent px-2 text-sm focus:outline-none placeholder:text-muted-foreground"
+            className="min-w-0 flex-1 border-0 bg-transparent px-2 text-sm focus:outline-none placeholder:truncate placeholder:text-muted-foreground"
           />
           <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
         </div>
