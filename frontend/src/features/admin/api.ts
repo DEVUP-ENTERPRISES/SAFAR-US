@@ -158,6 +158,11 @@ export interface FinanceReport {
   };
 }
 
+export interface RevenueBySource {
+  currency: string;
+  sources: { label: string; trips: number; gmv: number; platformRevenue: number }[];
+}
+
 export interface AdminAnalytics {
   days: number;
   currency: string;
@@ -373,6 +378,7 @@ export const adminApi = {
     api.post(`/admin/claims/${id}/settle`, b),
 
   finance: (months = 6) => api.get<FinanceReport>('/admin/finance', { months }),
+  revenueBySource: () => api.get<RevenueBySource>('/admin/finance/by-source'),
 
 
   // Fleets

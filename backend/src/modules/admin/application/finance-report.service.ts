@@ -1,6 +1,10 @@
 import { LedgerModel } from '../../payments/infrastructure/ledger.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { PayoutModel } from '../../payouts/infrastructure/payout.model';
+import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
+import { userRepository } from '../../users/infrastructure/user.repository';
+import { hostService } from '../../hosts/application/host.service';
+import { config } from '../../../config';
 import { Account } from '../../payments/domain/ledger.accounts';
 
 /**
@@ -139,6 +143,68 @@ export class FinanceReportService {
       protection: b?.protection ?? 0,
       delivery: b?.delivery ?? 0,
       membership,
+    };
+  }
+
+  /**
+   * Revenue split by WHO supplied the car — separate from revenueMix, which
+   * splits by fee TYPE. hostId lives on the booking already; assetPartnerId
+   * only lives on the vehicle, so partner cars are matched by vehicleId set.
+   */
+  async revenueBySource(): Promise<{
+    currency: string;
+    sources: { label: string; trips: number; gmv: number; platformRevenue: number }[];
+  }> {
+    const houseFleetUser = config.houseFleet.email
+      ? await userRepository.findByEmail(config.houseFleet.email.toLowerCase())
+      : null;
+    const houseFleetHost = houseFleetUser ? await hostService.getByUserId(houseFleetUser._id) : null;
+
+    const partnerVehicleIds = await VehicleModel.find({ assetPartnerId: { $exists: true } }).distinct('_id');
+
+    const rows = await BookingModel.aggregate<{
+      hostId: string;
+      vehicleId: string;
+      trips: number;
+      gmv: number;
+      commission: number;
+    }>([
+      { $match: { status: { $in: ['paid', 'in_progress', 'completed'] } } },
+      {
+        $group: {
+          _id: { hostId: '$hostId', vehicleId: '$vehicleId' },
+          trips: { $sum: 1 },
+          gmv: { $sum: '$priceBreakdown.total.amount' },
+          commission: { $sum: '$priceBreakdown.commission.amount' },
+        },
+      },
+      { $project: { hostId: '$_id.hostId', vehicleId: '$_id.vehicleId', trips: 1, gmv: 1, commission: 1, _id: 0 } },
+    ]).exec();
+
+    const partnerSet = new Set(partnerVehicleIds);
+    const buckets = { houseFleet: 0, assetPartner: 0, host: 0 };
+    const gmvBy = { houseFleet: 0, assetPartner: 0, host: 0 };
+    const revBy = { houseFleet: 0, assetPartner: 0, host: 0 };
+
+    for (const r of rows) {
+      const key =
+        houseFleetHost && r.hostId === houseFleetHost._id
+          ? 'houseFleet'
+          : partnerSet.has(r.vehicleId)
+            ? 'assetPartner'
+            : 'host';
+      buckets[key] += r.trips;
+      gmvBy[key] += r.gmv;
+      revBy[key] += r.commission;
+    }
+
+    return {
+      currency: 'USD',
+      sources: [
+        { label: 'Host (self-serve)', trips: buckets.host, gmv: gmvBy.host, platformRevenue: revBy.host },
+        { label: 'Asset Partners', trips: buckets.assetPartner, gmv: gmvBy.assetPartner, platformRevenue: revBy.assetPartner },
+        { label: 'House Fleet', trips: buckets.houseFleet, gmv: gmvBy.houseFleet, platformRevenue: revBy.houseFleet },
+      ],
     };
   }
 

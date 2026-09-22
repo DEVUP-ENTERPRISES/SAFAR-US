@@ -53,6 +53,15 @@ router.get(
   }),
 );
 
+// Revenue by supply source — Host vs Asset Partners vs House Fleet.
+router.get(
+  '/finance/by-source',
+  authorize('analytics:read'),
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, await financeReportService.revenueBySource());
+  }),
+);
+
 // ── Audit logs ────────────────────────────────────────────────────────
 router.get(
   '/audit-logs',

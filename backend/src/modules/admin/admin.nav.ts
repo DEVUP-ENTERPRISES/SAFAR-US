@@ -74,6 +74,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
 
   { slug: 'commission', path: A('commission'), apiPath: '/admin/commission-rules', label: 'Commission', group: 'Revenue', permission: 'admin:read' },
   { slug: 'finance', path: A('finance'), apiPath: '/admin/finance', label: 'Finance', group: 'Revenue', permission: 'analytics:read' },
+  { slug: 'revenue-source', path: A('revenue-source'), apiPath: '/admin/finance/by-source', label: 'Revenue by Source', group: 'Revenue', permission: 'analytics:read' },
   { slug: 'economics', path: A('economics'), apiPath: '/admin/config', label: 'Platform Economics', group: 'Revenue', permission: 'admin:read' },
   { slug: 'tax', path: A('tax'), apiPath: '/admin/tax-rules', label: 'Tax Rules', group: 'Revenue', permission: 'platform:manage' },
 
