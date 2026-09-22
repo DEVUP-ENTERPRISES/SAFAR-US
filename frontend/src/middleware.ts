@@ -11,9 +11,19 @@ import { NextResponse, type NextRequest } from 'next/server';
  * route.
  */
 const SLUG = process.env.NEXT_PUBLIC_ADMIN_SLUG || 'admin';
+// House Fleet's own subdomain — same app, but it opens on the host area.
+const HF_HOST = process.env.NEXT_PUBLIC_HOUSE_FLEET_HOST || '';
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Only the root — anything else (assets, sw.js, /host/*) is left alone.
+  if (HF_HOST && req.nextUrl.hostname === HF_HOST && pathname === '/') {
+    const url = req.nextUrl.clone();
+    url.pathname = '/host';
+    return NextResponse.redirect(url);
+  }
+
   if (
     pathname === '/admin' ||
     pathname.startsWith('/admin/') ||
