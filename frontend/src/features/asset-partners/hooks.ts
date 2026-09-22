@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/features/auth/store';
+import { ApiError } from '@/lib/api/types';
 import { assetPartnerApi } from './api';
 
 /**
@@ -22,17 +23,23 @@ import { assetPartnerApi } from './api';
  */
 export function useIsAssetPartner(): boolean | undefined {
   const status = useAuthStore((s) => s.status);
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError, error } = useQuery({
     queryKey: ['asset-partner-me'],
     queryFn: () => assetPartnerApi.me(),
     enabled: status === 'authenticated',
     staleTime: 60_000,
+    // A 404 is a settled answer, not a blip — retrying it just spams the log.
+    retry: (count, e) => !(e instanceof ApiError && e.status === 404) && count < 2,
   });
   if (status !== 'authenticated') return false;
   // Not fetched yet on this load — don't guess, same as useIsHost().
   if (isPending) return undefined;
-  // A real failure isn't "not a partner" either; assetPartnerApi.me() answers
-  // with null on success, never a 404, so an error here is transient.
+  // 404 means no partner record (or an API without this route at all) — a real
+  // "no". Returning undefined here left every caller waiting forever, which is
+  // what blanked the host dashboard behind a permanent skeleton.
+  if (error instanceof ApiError && error.status === 404) return false;
+  // Any other failure is genuinely unknown — never guess "not a partner", or a
+  // transient blip drops a partner into the self-serve host tools.
   if (isError) return undefined;
   return !!data;
 }
