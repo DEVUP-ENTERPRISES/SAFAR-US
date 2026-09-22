@@ -5,6 +5,7 @@ import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { DocumentModel } from '../../documents/infrastructure/document.model';
 import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
+import { userRepository } from '../../users/infrastructure/user.repository';
 
 /** One thing standing between a host and their money. */
 export interface PayoutBlocker {
@@ -44,6 +45,21 @@ export class PayoutReadinessService {
     };
   }> {
     const host = await hostService.requireHostForUser(userId);
+
+    // House Fleet's earnings never leave the platform — there is no external
+    // bank/Connect destination and no individual to identity-check, so the
+    // guest-KYC and bank-details blockers below don't apply to it at all.
+    const user = await userRepository.findById(userId);
+    if (user?.roles?.includes('house_fleet')) {
+      const pending = await ledgerService.balance(Account.hostPayable(host._id));
+      return {
+        ready: true,
+        blockers: [],
+        balance: { pending, scheduled: 0, paidLifetime: 0, currency: 'USD' },
+        nextPayoutAt: null,
+        destination: { configured: true, verified: true, viaStripe: false },
+      };
+    }
 
     const [kyc, payouts, vehicles] = await Promise.all([
       KycModel.findOne({ userId }).sort({ createdAt: -1 }).lean<{ status: string } | null>(),
