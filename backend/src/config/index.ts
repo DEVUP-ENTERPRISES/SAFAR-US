@@ -212,6 +212,12 @@ export const config = Object.freeze({
     name: env.ADMIN_NAME ?? 'CatoDrive Admin',
     enabled: !!(env.ADMIN_EMAIL && env.ADMIN_PASSWORD),
   },
+  houseFleet: {
+    email: env.HOUSE_FLEET_EMAIL,
+    password: env.HOUSE_FLEET_PASSWORD,
+    name: env.HOUSE_FLEET_NAME,
+    enabled: !!(env.HOUSE_FLEET_EMAIL && env.HOUSE_FLEET_PASSWORD),
+  },
 });
 
 export type Config = typeof config;

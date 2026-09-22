@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Users, BadgeCheck, Car, CalendarCheck, ShieldAlert, LifeBuoy,
   ScanFace, Flag, ScrollText, LayoutGrid, Shield, Percent, SlidersHorizontal, TrendingUp, Star, Layers, Building2, Banknote, Route,
-  ClipboardCheck, Handshake, Receipt,
+  ClipboardCheck, Handshake, Receipt, Warehouse,
 } from 'lucide-react';
 import { PanelSidebar, type PanelNavItem } from '@/components/layout/panel-sidebar';
 import { adminApi, type AdminNavItem } from '@/features/admin/api';
@@ -18,6 +18,7 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   kyc: ScanFace,
   hosts: BadgeCheck,
   vehicles: Car,
+  'house-fleet': Warehouse,
   bookings: CalendarCheck,
   claims: ShieldAlert,
   support: LifeBuoy,

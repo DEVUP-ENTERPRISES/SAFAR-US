@@ -142,8 +142,9 @@ function HostShell({ children }: { children: ReactNode }) {
 
 export default function HostLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  // The host login page is public — everything else requires a session.
-  if (pathname === '/host/login') return <>{children}</>;
+  // Login is public; /host/bridge must render bare too — it's the page that
+  // STORES the session, so guarding it would bounce it before it can run.
+  if (pathname === '/host/login' || pathname === '/host/bridge') return <>{children}</>;
   return (
     <AuthGuard loginPath="/host/login">
       <HostShell>{children}</HostShell>

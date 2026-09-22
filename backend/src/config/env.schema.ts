@@ -38,7 +38,7 @@ export const envSchema = z.object({
    * https://api.cato.com. Used to build media URLs that resolve from a browser
    * when no CDN is configured. Defaults to localhost for development.
    */
-  PUBLIC_API_URL: z.string().url().optional(),
+  PUBLIC_API_URL: optional(z.string().url()),
   APP_NAME: z.string().default('CatoDrive'),
 
   /**
@@ -184,6 +184,11 @@ export const envSchema = z.object({
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().min(8).optional(),
   ADMIN_NAME: z.string().optional(),
+
+  // House Fleet: the single seeded Host account for CatoDrive's own vehicles.
+  HOUSE_FLEET_EMAIL: z.string().email().optional(),
+  HOUSE_FLEET_PASSWORD: z.string().min(8).optional(),
+  HOUSE_FLEET_NAME: z.string().default('CatoDrive Fleet'),
 });
 
 /**

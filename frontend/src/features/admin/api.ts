@@ -254,6 +254,12 @@ export const adminApi = {
   // The programme itself — members, lifecycle and negotiated terms. Separate
   // from the intake queue above, and from hosts: a partner is paid a monthly
   // net after a management fee, insurance and detailing, which no host is.
+  /** Mint a Host session for the seeded House Fleet account. platform:manage. */
+  houseFleetSession: () =>
+    api.post<{ user: { id: string; email?: string; roles: string[] }; tokens: { accessToken: string; refreshToken: string } }>(
+      '/admin/house-fleet/session',
+    ),
+
   assetPartners: (q: Q = {}) => api.get<any[]>('/admin/asset-partners', q),
 
   /**
