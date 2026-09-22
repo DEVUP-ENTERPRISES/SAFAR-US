@@ -46,6 +46,9 @@ const nextConfig = {
   webpack(config) {
     config.resolve.alias['@'] = sharedSrc;
 
+    // Shared files live in ../frontend/src, so bare imports must resolve here too.
+    config.resolve.modules = [path.resolve(dir, 'node_modules'), 'node_modules'];
+
     /*
      * Dedupe the stateful singletons.
      *

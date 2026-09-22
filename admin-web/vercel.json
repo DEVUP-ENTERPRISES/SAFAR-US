@@ -1,0 +1,3 @@
+{
+  "installCommand": "npm install && cd ../frontend && npm install --ignore-scripts"
+}
