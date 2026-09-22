@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +10,11 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { formatMoney } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
+import { adminPath } from '@/lib/admin-path';
 
 export default function AdminVehiclesPage() {
   const qc = useQueryClient();
+  const router = useRouter();
   const confirm = useConfirm();
   const [verification, setVerification] = useState('');
   const { data, isLoading } = useQuery({
@@ -74,8 +77,9 @@ export default function AdminVehiclesPage() {
     { header: 'Status', cell: (v) => <Badge tone={v.status === 'listed' ? 'success' : 'muted'}>{v.status}</Badge> },
     { header: 'Actions', className: 'text-end', cell: (v) => (
       <div className="flex justify-end gap-2">
+        {/* Approving belongs behind the review screen, not a blind row button. */}
         {v.verificationStatus !== 'verified' && (
-          <Button size="sm" loading={action.isPending} onClick={() => act(v, 'approve')}>Approve</Button>
+          <Button size="sm" onClick={() => router.push(adminPath(`vehicles/${v._id}`))}>Review</Button>
         )}
         {v.status === 'listed' && (
           <Button size="sm" variant="outline" loading={action.isPending} onClick={() => act(v, 'suspend')}>Suspend</Button>

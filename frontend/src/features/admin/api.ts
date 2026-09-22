@@ -177,6 +177,34 @@ export interface AdminAnalytics {
   };
 }
 
+export interface ReviewCheck {
+  key: 'photos' | 'registration' | 'insurance' | 'vin' | 'pricing' | 'location';
+  label: string;
+  detail: string;
+  state: 'ok' | 'missing' | 'attention';
+}
+export interface VehicleReview {
+  vehicle: {
+    _id: string; make: string; model: string; year: number; vin?: string;
+    registrationNumber?: string; status: string; verificationStatus: string;
+    photos?: { url: string; isCover?: boolean }[];
+    specs?: { doors?: number; color?: string; mileageKm?: number };
+    pricing: { dailyPrice: number; currency: string; cleaningFee?: number };
+    location?: { address?: string; city?: string; state?: string };
+    listing?: { title?: string; description?: string };
+    mileageLimit?: { perDayKm: number; overageFeePerKm: number };
+    createdAt: string;
+  };
+  documents: {
+    _id: string; category: string; url: string; expiresAt?: string;
+    verification?: { status?: string; reason?: string };
+  }[];
+  host: { hostId: string; displayName: string; email?: string; userId: string } | null;
+  checks: ReviewCheck[];
+  vinMismatches: { field: string; vinSays: string; hostTyped: string }[];
+  readyToApprove: boolean;
+}
+
 // ── Cross-tenant management ──────────────────────────────────────────
 export interface AdminFleet {
   _id: string; name: string; region: string | null;
@@ -295,6 +323,7 @@ export const adminApi = {
     api.post(`/admin/contact-inquiries/${id}/respond`, { notes }),
 
   vehicles: (q: Q = {}) => api.get<any[]>('/admin/vehicles', q),
+  vehicleReview: (id: string) => api.get<VehicleReview>(`/admin/vehicles/${id}/review`),
   vehicleAction: (id: string, action: 'approve' | 'suspend' | 'reject') =>
     api.post(`/admin/vehicles/${id}/action`, { action }),
 
