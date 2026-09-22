@@ -25,6 +25,14 @@ import { isRedisHealthy } from './infrastructure/cache/redis.client';
 async function bootstrap(): Promise<void> {
   // First thing: a crash during boot is exactly when you most need it recorded.
   installCrashHandlers();
+
+  if (config.isProd && process.env.ALLOW_TEST_STRIPE_IN_PRODUCTION === 'true') {
+    logger.warn(
+      '🚨🚨🚨 ALLOW_TEST_STRIPE_IN_PRODUCTION is set — real bookings are NOT being charged. ' +
+        'This is for end-to-end testing ONLY. Unset it before taking real payments. 🚨🚨🚨',
+    );
+  }
+
   await connectMongo();
 
   try {

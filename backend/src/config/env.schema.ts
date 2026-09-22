@@ -102,6 +102,14 @@ export const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_IDENTITY_WEBHOOK_SECRET: optional(z.string()),
+  /**
+   * TEMPORARY end-to-end-testing escape hatch. Lets a sk_test_/rk_test_ key
+   * pass the production guard so the real Stripe test flow (test cards,
+   * webhooks) can be exercised on production infra before live keys exist.
+   * Must be removed/unset before accepting real bookings — logs a loud
+   * warning on every boot specifically so it can't be forgotten.
+   */
+  ALLOW_TEST_STRIPE_IN_PRODUCTION: z.coerce.boolean().default(false),
 
   AWS_REGION: z.string().optional(),
   AWS_ACCESS_KEY_ID: z.string().optional(),
@@ -275,10 +283,11 @@ export const envSchemaWithProdGuards = envSchema.superRefine((env, ctx) => {
     // A test key in production takes real bookings that never charge a card.
     // Restricted keys (rk_) are as valid as secret keys (sk_) and were missed
     // by a check that only looked for sk_test_, so a test key could ship.
-    if (/^(sk|rk)_test_/.test(env.STRIPE_SECRET_KEY)) {
-      fail('STRIPE_SECRET_KEY', 'is a TEST key — production must use a live key (sk_live_ or rk_live_)');
+    const isTestKey = /^(sk|rk)_test_/.test(env.STRIPE_SECRET_KEY);
+    if (isTestKey && !env.ALLOW_TEST_STRIPE_IN_PRODUCTION) {
+      fail('STRIPE_SECRET_KEY', 'is a TEST key — production must use a live key (sk_live_ or rk_live_), or set ALLOW_TEST_STRIPE_IN_PRODUCTION=true for end-to-end testing only');
     }
-    if (!/^(sk|rk)_live_/.test(env.STRIPE_SECRET_KEY)) {
+    if (!isTestKey && !/^(sk|rk)_live_/.test(env.STRIPE_SECRET_KEY)) {
       fail('STRIPE_SECRET_KEY', 'must be a live Stripe key (sk_live_ or rk_live_)');
     }
   }
