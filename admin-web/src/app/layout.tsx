@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import { Archivo, Instrument_Sans, IBM_Plex_Mono } from 'next/font/google';
 import '@/styles/globals.css';
 import { Providers } from '@/app/providers';
@@ -40,7 +41,10 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Read server-side so it matches on first paint — a client-only
+  // window.location check would flash the wrong chrome before hydrating.
+  const host = (await headers()).get('host') ?? '';
   return (
     <html
       lang="en"
@@ -50,7 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-screen bg-background font-sans antialiased">
         <Providers>
-          <AdminChrome>{children}</AdminChrome>
+          <AdminChrome host={host}>{children}</AdminChrome>
         </Providers>
       </body>
     </html>

@@ -26,8 +26,18 @@ const SLUG = process.env.NEXT_PUBLIC_ADMIN_SLUG || '';
 // separate auth, so the two portals can never be reached through each other's slug.
 const HF_SLUG = process.env.NEXT_PUBLIC_HOUSE_FLEET_SLUG || '';
 
+// On its own subdomain, the hostname itself is the separation — no slug needed in the URL.
+const HF_HOST = process.env.NEXT_PUBLIC_HOUSE_FLEET_HOST || '';
+
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
+
+  if (HF_HOST && req.nextUrl.hostname === HF_HOST) {
+    const url = req.nextUrl.clone();
+    url.pathname = `/hf${pathname === '/' ? '/login' : pathname}`;
+    url.search = search;
+    return NextResponse.rewrite(url);
+  }
 
   if (HF_SLUG && (pathname === `/${HF_SLUG}` || pathname.startsWith(`/${HF_SLUG}/`))) {
     const rest = pathname.slice(HF_SLUG.length + 1);
