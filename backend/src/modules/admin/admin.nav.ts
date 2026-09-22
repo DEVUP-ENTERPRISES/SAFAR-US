@@ -54,8 +54,6 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'kyc', path: A('kyc'), apiPath: '/admin/kyc', label: 'KYC Review', group: 'People', permission: 'kyc:review' },
   { slug: 'hosts', path: A('hosts'), apiPath: '/admin/hosts', label: 'Host Management', group: 'People', permission: 'admin:read' },
 
-  // CatoDrive's own fleet, run through the existing Host tooling.
-  { slug: 'house-fleet', path: A('house-fleet'), apiPath: '/admin/house-fleet/session', label: 'House Fleet', group: 'Supply', permission: 'platform:manage' },
   { slug: 'vehicles', path: A('vehicles'), apiPath: '/admin/vehicles', label: 'Vehicle Management', group: 'Supply', permission: 'admin:read' },
   { slug: 'fleets', path: A('fleets'), apiPath: '/admin/fleets', label: 'Fleet Management', group: 'Supply', permission: 'fleet:manage' },
 

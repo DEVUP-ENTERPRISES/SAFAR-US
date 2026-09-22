@@ -72,6 +72,11 @@ function AdminShell({ children }: { children: ReactNode }) {
 
 export function AdminChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  // House Fleet is a separate portal with its own login and its own auth —
+  // it must never be wrapped in the admin's AuthGuard/AdminShell.
+  if (pathname?.startsWith('/hf')) {
+    return <>{children}</>;
+  }
   // The admin login page is public — everything else requires an admin session.
   if (pathname === adminPath('login')) {
     return <div className="flex min-h-screen items-center justify-center px-4">{children}</div>;

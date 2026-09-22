@@ -24,7 +24,6 @@ import { growthAdminRoutes } from '../platform-config/api/growth.admin.routes';
 import { assetPartnerApplicationAdminRoutes } from '../asset-partners/api/asset-partner-application.admin.routes';
 import { assetPartnerAdminRoutes } from '../asset-partners/api/asset-partner.admin.routes';
 import { contactInquiryAdminRoutes } from '../contact/api/contact-inquiry.admin.routes';
-import { houseFleetAdminRoutes } from './api/house-fleet.admin.routes';
 
 /**
  * Admin BFF. A single base gate (authenticated + admin:read) protects the
@@ -71,7 +70,6 @@ export function buildAdminRouter(): Router {
   admin.use(platformConfigAdminRoutes);
   admin.use(growthAdminRoutes);
   admin.use(oversightAdminRoutes);
-  admin.use(houseFleetAdminRoutes);
 
   return admin;
 }

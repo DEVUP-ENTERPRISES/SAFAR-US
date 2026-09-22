@@ -297,14 +297,6 @@ export class AuthService {
     return this.issueSession(user._id, user.email, user.roles, ctx);
   }
 
-  /** Mint a real session for a known user id — admin-gated House Fleet launch. */
-  async issueSessionForUser(userId: string, ctx?: AuthCtx): Promise<AuthResult> {
-    const user = await userRepository.findById(userId);
-    if (!user) throw new UnauthorizedError('User no longer exists');
-    if (user.status !== 'active') throw new ForbiddenError('Account is not active');
-    return this.issueSession(user._id, user.email, user.roles, ctx);
-  }
-
   private async issueSession(
     userId: string,
     email: string | undefined,

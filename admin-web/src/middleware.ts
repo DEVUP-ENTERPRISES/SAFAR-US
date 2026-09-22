@@ -21,9 +21,21 @@ import { NextResponse, type NextRequest } from 'next/server';
  * above — which is exactly the "nobody should even find it" requirement.
  */
 const SLUG = process.env.NEXT_PUBLIC_ADMIN_SLUG || '';
+// House Fleet: its own secret slug, its own sign-in, no admin login required.
+// Rewrites into /hf/... instead of the admin route tree — separate chrome,
+// separate auth, so the two portals can never be reached through each other's slug.
+const HF_SLUG = process.env.NEXT_PUBLIC_HOUSE_FLEET_SLUG || '';
 
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
+
+  if (HF_SLUG && (pathname === `/${HF_SLUG}` || pathname.startsWith(`/${HF_SLUG}/`))) {
+    const rest = pathname.slice(HF_SLUG.length + 1);
+    const url = req.nextUrl.clone();
+    url.pathname = `/hf${rest || '/'}`;
+    url.search = search;
+    return NextResponse.rewrite(url);
+  }
 
   // A missing slug is a misconfiguration, not a reason to serve the console
   // wide open. Fail closed.
