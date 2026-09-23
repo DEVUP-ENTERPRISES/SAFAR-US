@@ -85,7 +85,7 @@ function ContactForm() {
     <div className="-mt-6">
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
-        <div className="mx-auto max-w-5xl px-5 py-20 sm:py-28">
+        <div className="mx-auto max-w-5xl px-5 py-14 sm:py-20">
           <Reveal>
             <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-soft backdrop-blur">
               Contact Us
@@ -102,7 +102,7 @@ function ContactForm() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl space-y-24 px-5 pb-24 pt-16 sm:pt-20">
+      <div className="mx-auto max-w-6xl space-y-14 px-5 pb-16 pt-10 sm:pt-12">
         {/* ── INFO CARDS ───────────────────────────────────────────────── */}
         <section className="-mt-24 sm:-mt-28">
           <div className="grid gap-4 sm:grid-cols-3">
