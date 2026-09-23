@@ -1,7 +1,7 @@
 'use client';
 
 import { IMAGE_ACCEPT } from '@/lib/upload-formats';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Check, ImagePlus, Loader2, X, Sparkles } from 'lucide-react';
@@ -127,6 +127,20 @@ export default function NewListingPage() {
   useEffect(() => {
     if (restored) saveListingDraft(d, step);
   }, [d, step, restored]);
+
+  // Continue/Back leaves the scroll position wherever it was on the previous
+  // step — the new step then renders starting mid-screen, under the navbar,
+  // instead of from its own top. Skip on the initial mount (restoring a draft
+  // mid-wizard should not yank the screen before the host has scrolled at all).
+  const stepMounted = useRef(false);
+  useEffect(() => {
+    if (!restored) return;
+    if (!stepMounted.current) {
+      stepMounted.current = true;
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step, restored]);
 
   // The server owns the photo minimum; the wizard must not disagree with it.
   const reqs = useQuery({ queryKey: ['listing-requirements'], queryFn: () => vehicleApi.requirements() });
@@ -439,6 +453,7 @@ export default function NewListingPage() {
                 <Field label="Model *" error={errors.model}><Input value={d.model} onChange={(e) => set('model', e.target.value)} placeholder="Camry" /></Field>
                 <Field label="Year *" error={errors.year}><Input type="number" value={d.year} onChange={(e) => set('year', Number(e.target.value))} /></Field>
                 <Field label="Seats *" error={errors.seats}><Input type="number" value={d.seats} onChange={(e) => set('seats', Number(e.target.value))} /></Field>
+                <Field label="Doors"><Input type="number" value={d.doors} onChange={(e) => set('doors', Number(e.target.value))} /></Field>
                 <SelectField label="Category" value={d.category} onChange={(v) => set('category', v)} options={['economy', 'luxury', 'suv', 'van', 'sports', 'ev']} />
                 <SelectField label="Body type" value={d.bodyType} onChange={(v) => set('bodyType', v)} options={['sedan', 'suv', 'hatchback', 'coupe', 'van', 'truck']} />
                 <SelectField label="Transmission" value={d.transmission} onChange={(v) => set('transmission', v as Draft['transmission'])} options={['automatic', 'manual']} />
@@ -496,7 +511,6 @@ export default function NewListingPage() {
               <Field label="Color" hint="Guests filter by this, so pick the closest match">
                 <ColorPicker value={d.color} onChange={(v) => set('color', v)} />
               </Field>
-              <Field label="Doors"><Input type="number" value={d.doors} onChange={(e) => set('doors', Number(e.target.value))} /></Field>
               <Field label="Listing title" className="sm:col-span-2"><Input value={d.title} onChange={(e) => set('title', e.target.value)} placeholder={`${d.make} ${d.model} ${d.year}`} /></Field>
               <Field label="Description" className="sm:col-span-2">
                 <Textarea value={d.description} onChange={(e) => set('description', e.target.value)} rows={3} />
