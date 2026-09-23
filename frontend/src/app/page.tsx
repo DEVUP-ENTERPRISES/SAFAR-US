@@ -97,7 +97,7 @@ export default function HomePage() {
     <div className="-mt-24">
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
-        <div className="mx-auto max-w-7xl px-4 pb-16 pt-24 sm:px-6 sm:pb-24 sm:pt-32">
+        <div className="mx-auto max-w-7xl px-4 pb-12 pt-16 sm:px-6 sm:pb-16 sm:pt-20">
           <div className="max-w-3xl">
             {/*
               Was a Sparkles icon reading "The Mobility Operating System".
@@ -191,7 +191,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="space-y-24 py-16">
+      <div className="space-y-14 py-10">
         {/* ── Browse by category ─────────────────────────────────────── */}
         <Reveal as="section" className="space-y-6">
           <div>

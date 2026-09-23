@@ -49,7 +49,7 @@ export default function AboutPage() {
     <div className="-mt-6">
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
-        <div className="mx-auto max-w-6xl px-5 pb-20 pt-24 sm:pb-28 sm:pt-32">
+        <div className="mx-auto max-w-6xl px-5 pb-14 pt-16 sm:pb-20 sm:pt-20">
           <Reveal>
             <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-soft backdrop-blur">
               <PlaneTakeoff className="h-3.5 w-3.5" /> Airport mobility, reimagined
@@ -103,7 +103,7 @@ export default function AboutPage() {
         </Reveal>
       </div>
 
-      <div className="mx-auto max-w-6xl space-y-28 px-5 pb-24 pt-16 sm:pt-20">
+      <div className="mx-auto max-w-6xl space-y-16 px-5 pb-16 pt-10 sm:pt-12">
         {/* Traction — shared with the homepage. */}
         <TractionStats />
 

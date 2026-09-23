@@ -129,7 +129,7 @@ export default function AssetPartnersPage() {
     <div className="-mt-6">
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
-        <div className="mx-auto max-w-6xl px-5 pb-20 pt-24 sm:pb-28 sm:pt-32">
+        <div className="mx-auto max-w-6xl px-5 pb-14 pt-16 sm:pb-20 sm:pt-20">
           <Reveal>
             <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-soft backdrop-blur">
               <Sparkles className="h-3.5 w-3.5" /> Become an Asset Partner
@@ -170,7 +170,7 @@ export default function AssetPartnersPage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl space-y-28 px-5 pb-24 pt-16 sm:pt-20">
+      <div className="mx-auto max-w-6xl space-y-16 px-5 pb-16 pt-10 sm:pt-12">
         {/* ── VERIFIED PERFORMANCE ───────────────────────────────────── */}
         <section id="numbers" className="scroll-mt-24">
           <Reveal className="mx-auto max-w-2xl text-center">
