@@ -1,16 +1,22 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 
-/**
- * Content entrance wrapper.
- *
- * This used to be keyed by pathname to replay its animation on every route
- * change. That key destroyed and rebuilt the whole page subtree on every
- * navigation — every component remounted, every effect re-ran and every
- * query refetched, which is why navigating felt like a full page load. The
- * animation now plays on first paint only; navigation reconciles normally.
- */
+// Entrance animation plays once per mount (no pathname key — that was forcing
+// a full remount on every nav). Scroll-to-top is forced explicitly since the
+// fixed navbar/sticky panels were leaving routes rendering mid-scroll.
 export function PageTransition({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, [pathname]);
+
   return <div className="animate-page-in">{children}</div>;
 }
