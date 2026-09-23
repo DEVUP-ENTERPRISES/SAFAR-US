@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { vehicleService, MIN_LISTING_PHOTOS } from '../application/vehicle.service';
 import { vehicleInsightsService } from '../application/vehicle-insights.service';
+import { pricingPreviewService } from '../application/pricing-preview.service';
 import { fleetImportService } from '../application/fleet-import.service';
 import { vehicleHistoryService } from '../application/vehicle-history.service';
 import { vehicleLifecycleService } from '../application/vehicle-lifecycle.service';
@@ -156,6 +157,15 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     sendSuccess(res, await vehicleInsightsService.forVehicle(req.principal!.userId, req.params.id));
+  }),
+);
+
+/** Real take-home earnings per trip length, run through the actual quote engine. */
+router.get(
+  '/:id/pricing-preview',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await pricingPreviewService.forVehicle(req.principal!.userId, req.params.id));
   }),
 );
 

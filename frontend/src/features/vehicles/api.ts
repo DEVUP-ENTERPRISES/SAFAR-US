@@ -77,6 +77,16 @@ export interface FilterCounts {
   priceRange: { min: number; max: number } | null;
 }
 
+export interface PricingTier {
+  key: string;
+  label: string;
+  days: number;
+  takeHome: number;
+  currency: string;
+  discountPct: number;
+  distanceKm: number | null;
+}
+
 export interface VehicleInsights {
   vehicle: {
     _id: string; make: string; model: string; year: number;
@@ -111,6 +121,8 @@ export const vehicleApi = {
   getById: (id: string) => api.get<Vehicle>(`/vehicles/${id}`, undefined, false),
   /** Everything about one car — earnings, utilisation, reviews, claims, docs. */
   insights: (id: string) => api.get<VehicleInsights>(`/vehicles/${id}/insights`),
+  /** Real take-home earnings per trip length, from the actual quote engine. */
+  pricingPreview: (id: string) => api.get<{ tiers: PricingTier[] }>(`/vehicles/${id}/pricing-preview`),
   filterCounts: (params: SearchParams) =>
     api.get<FilterCounts>(
       '/search/filter-counts',
