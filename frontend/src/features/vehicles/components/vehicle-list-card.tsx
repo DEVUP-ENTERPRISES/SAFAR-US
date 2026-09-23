@@ -50,7 +50,7 @@ export function VehicleListCard({
         <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-muted sm:aspect-[4/3] sm:w-[44%]">
           {cover ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={cover} alt={`${vehicle.make} ${vehicle.model}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <img src={cover} alt={`${vehicle.make} ${vehicle.model}`} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
           ) : (
             <div className="flex h-full min-h-[160px] w-full items-center justify-center brand-gradient text-5xl font-black text-white/80">
               {vehicle.make.slice(0, 1)}{vehicle.model.slice(0, 1)}

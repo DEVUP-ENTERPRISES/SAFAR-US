@@ -82,7 +82,7 @@ function SimilarCard({ car, days }: { car: Vehicle; days?: number }) {
       <div className="aspect-[16/11] overflow-hidden rounded-2xl bg-muted">
         {cover?.url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover.url} alt={`${car.make} ${car.model}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          <img src={cover.url} alt={`${car.make} ${car.model}`} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
         ) : (
           <div className="flex h-full w-full items-center justify-center brand-gradient text-5xl font-black text-white/80">
             {car.make.slice(0, 1)}{car.model.slice(0, 1)}

@@ -46,13 +46,17 @@ export function useConversations(enabled = true) {
   });
 }
 
-/** Total unread messages across all the user's trips — for the nav badge. */
+/**
+ * Total unread messages across all the user's trips — for the nav badge.
+ * Runs on every page (it's in the navbar), so it polls at the same rate as
+ * the notification bell rather than twice as often.
+ */
 export function useUnreadMessages(enabled: boolean) {
   return useQuery({
     queryKey: ['messages-unread'],
     queryFn: () => api.get<{ count: number }>('/messages/unread-count'),
     enabled,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   });
 }

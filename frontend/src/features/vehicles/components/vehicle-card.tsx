@@ -21,6 +21,8 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
             <img
               src={cover}
               alt={`${vehicle.make} ${vehicle.model}`}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             />
           ) : (

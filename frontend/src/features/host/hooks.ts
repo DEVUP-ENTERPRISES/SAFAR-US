@@ -27,8 +27,10 @@ export function useHostMe() {
     // Asking "am I a host?" while logged out just produces guaranteed 401s.
     enabled: status === 'authenticated',
     retry: (count, error) => !isNotAHost(error) && count < 2,
-    staleTime: 0,
-    refetchOnMount: 'always',
+    // Host status changes only at onboarding, and useOnboardHost seeds this
+    // cache directly on success — refetching per mount cost a blocking
+    // request on every navigation, since the chrome reads this on every page.
+    staleTime: 5 * 60 * 1000,
   });
 }
 

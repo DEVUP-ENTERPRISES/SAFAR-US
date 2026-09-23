@@ -1,19 +1,16 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 /**
- * A subtle content entrance on every route change — a short fade + rise so
- * sections don't snap in. Keyed by pathname so the animation replays on each
- * navigation. Deliberately quick (0.35s) and only vertical, so it reads as
- * polish, never as a delay.
+ * Content entrance wrapper.
+ *
+ * This used to be keyed by pathname to replay its animation on every route
+ * change. That key destroyed and rebuilt the whole page subtree on every
+ * navigation — every component remounted, every effect re-ran and every
+ * query refetched, which is why navigating felt like a full page load. The
+ * animation now plays on first paint only; navigation reconciles normally.
  */
 export function PageTransition({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  return (
-    <div key={pathname} className="animate-page-in">
-      {children}
-    </div>
-  );
+  return <div className="animate-page-in">{children}</div>;
 }
