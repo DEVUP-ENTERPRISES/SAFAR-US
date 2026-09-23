@@ -12,7 +12,7 @@ import { Field } from '@/components/ui/field';
 import { cn } from '@/lib/utils/cn';
 import { ApiError } from '@/lib/api/types';
 import { vehicleApi, type CreateVehicleInput } from '@/features/vehicles/api';
-import { hostApi } from '@/features/host/api';
+import { hostApi, type RowPreview } from '@/features/host/api';
 import { useToast } from '@/components/ui/toast';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -229,6 +229,26 @@ export default function NewListingPage() {
     onSuccess: (s) => set('dailyPrice', Math.round(s.suggested / 100)),
   });
 
+  const [vinResult, setVinResult] = useState<RowPreview | null>(null);
+  const vinDecode = useMutation({
+    mutationFn: (vin: string) => hostApi.importPreview([vin]),
+    onSuccess: ([r]) => {
+      setVinResult(r);
+      if (!r.ok) return;
+      setD((prev) => ({
+        ...prev,
+        make: r.make ?? prev.make,
+        model: r.model ?? prev.model,
+        year: r.year ?? prev.year,
+        bodyType: r.bodyType ?? prev.bodyType,
+        fuelType: r.fuelType ?? prev.fuelType,
+        transmission: r.transmission ?? prev.transmission,
+        seats: r.seats ?? prev.seats,
+        doors: r.doors ?? prev.doors,
+      }));
+    },
+  });
+
   const create = useMutation({
     mutationFn: () => {
       const body: CreateVehicleInput = {
@@ -377,40 +397,75 @@ export default function NewListingPage() {
       <Card>
         <CardContent className="space-y-4 pt-6">
           {step === 0 && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Make *" error={errors.make}><Input value={d.make} onChange={(e) => set('make', e.target.value)} placeholder="Toyota" /></Field>
-              <Field label="Model *" error={errors.model}><Input value={d.model} onChange={(e) => set('model', e.target.value)} placeholder="Camry" /></Field>
-              <Field label="Year *" error={errors.year}><Input type="number" value={d.year} onChange={(e) => set('year', Number(e.target.value))} /></Field>
-              <Field label="Seats *" error={errors.seats}><Input type="number" value={d.seats} onChange={(e) => set('seats', Number(e.target.value))} /></Field>
-              <SelectField label="Category" value={d.category} onChange={(v) => set('category', v)} options={['economy', 'luxury', 'suv', 'van', 'sports', 'ev']} />
-              <SelectField label="Body type" value={d.bodyType} onChange={(v) => set('bodyType', v)} options={['sedan', 'suv', 'hatchback', 'coupe', 'van', 'truck']} />
-              <SelectField label="Transmission" value={d.transmission} onChange={(v) => set('transmission', v as Draft['transmission'])} options={['automatic', 'manual']} />
-              <SelectField
-                label="Fuel"
-                value={d.fuelType}
-                onChange={(v) => set('fuelType', v as Draft['fuelType'])}
-                options={[
-                  { value: 'petrol', label: 'Gas' },
-                  { value: 'diesel', label: 'Diesel' },
-                  { value: 'hybrid', label: 'Hybrid' },
-                  { value: 'ev', label: 'Electric' },
-                ]}
-              />
-              <Field label="VIN" hint="Optional — helps us confirm the car matches your listing">
-                <Input value={d.vin} onChange={(e) => set('vin', e.target.value.toUpperCase())} placeholder="1GNERFKWXPJ24O667" maxLength={17} />
-              </Field>
-              <Field label="Odometer (km)" hint="Optional">
-                <Input type="number" value={d.odometerKm} onChange={(e) => set('odometerKm', e.target.value === '' ? '' : Number(e.target.value))} />
-              </Field>
-              <Field label="License plate number">
-                <Input value={d.licensePlate} onChange={(e) => set('licensePlate', e.target.value.toUpperCase())} placeholder="XCW2O63" />
-              </Field>
-              <SelectField
-                label="State"
-                value={d.licensePlateState}
-                onChange={(v) => set('licensePlateState', v)}
-                options={[{ value: '', label: 'Select a state' }, ...US_STATES.map((s) => ({ value: s, label: s }))]}
-              />
+            <div className="space-y-4">
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                <Field label="VIN" hint="Enter it first — we'll fill in make, model, year and the rest from it.">
+                  <div className="flex gap-2">
+                    <Input
+                      value={d.vin}
+                      onChange={(e) => { set('vin', e.target.value.toUpperCase()); setVinResult(null); }}
+                      placeholder="1GNERFKWXPJ24O667"
+                      maxLength={17}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="shrink-0"
+                      disabled={d.vin.trim().length < 11}
+                      loading={vinDecode.isPending}
+                      onClick={() => vinDecode.mutate(d.vin.trim())}
+                    >
+                      Decode
+                    </Button>
+                  </div>
+                </Field>
+                {vinResult?.ok && (
+                  <p className="mt-2 flex items-center gap-1.5 text-sm text-success">
+                    <Check className="h-4 w-4" /> {vinResult.year} {vinResult.make} {vinResult.model}
+                    {vinResult.trim ? ` ${vinResult.trim}` : ''} — details filled in below.
+                    {vinResult.missing.length > 0 && ` Check ${vinResult.missing.join(', ')} — the VIN didn't include it.`}
+                  </p>
+                )}
+                {vinResult?.duplicate && (
+                  <p className="mt-2 text-sm text-destructive">This VIN is already on one of your listings.</p>
+                )}
+                {vinResult && !vinResult.ok && (
+                  <p className="mt-2 text-sm text-destructive">{vinResult.error ?? "Couldn't decode that VIN — enter the details below manually."}</p>
+                )}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Make *" error={errors.make}><Input value={d.make} onChange={(e) => set('make', e.target.value)} placeholder="Toyota" /></Field>
+                <Field label="Model *" error={errors.model}><Input value={d.model} onChange={(e) => set('model', e.target.value)} placeholder="Camry" /></Field>
+                <Field label="Year *" error={errors.year}><Input type="number" value={d.year} onChange={(e) => set('year', Number(e.target.value))} /></Field>
+                <Field label="Seats *" error={errors.seats}><Input type="number" value={d.seats} onChange={(e) => set('seats', Number(e.target.value))} /></Field>
+                <SelectField label="Category" value={d.category} onChange={(v) => set('category', v)} options={['economy', 'luxury', 'suv', 'van', 'sports', 'ev']} />
+                <SelectField label="Body type" value={d.bodyType} onChange={(v) => set('bodyType', v)} options={['sedan', 'suv', 'hatchback', 'coupe', 'van', 'truck']} />
+                <SelectField label="Transmission" value={d.transmission} onChange={(v) => set('transmission', v as Draft['transmission'])} options={['automatic', 'manual']} />
+                <SelectField
+                  label="Fuel"
+                  value={d.fuelType}
+                  onChange={(v) => set('fuelType', v as Draft['fuelType'])}
+                  options={[
+                    { value: 'petrol', label: 'Gas' },
+                    { value: 'diesel', label: 'Diesel' },
+                    { value: 'hybrid', label: 'Hybrid' },
+                    { value: 'ev', label: 'Electric' },
+                  ]}
+                />
+                <Field label="Odometer (km)" hint="Optional">
+                  <Input type="number" value={d.odometerKm} onChange={(e) => set('odometerKm', e.target.value === '' ? '' : Number(e.target.value))} />
+                </Field>
+                <Field label="License plate number">
+                  <Input value={d.licensePlate} onChange={(e) => set('licensePlate', e.target.value.toUpperCase())} placeholder="XCW2O63" />
+                </Field>
+                <SelectField
+                  label="State"
+                  value={d.licensePlateState}
+                  onChange={(v) => set('licensePlateState', v)}
+                  options={[{ value: '', label: 'Select a state' }, ...US_STATES.map((s) => ({ value: s, label: s }))]}
+                />
+              </div>
             </div>
           )}
 
