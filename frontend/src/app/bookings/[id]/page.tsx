@@ -214,7 +214,7 @@ function BookingDetail({ id }: { id: string }) {
           )}
 
           {/* Only the details the summary above does not already carry. */}
-          {(b.delivery?.address || b.additionalDrivers?.length) && (
+          {!!(b.delivery?.address || b.additionalDrivers?.length) && (
             <Card>
               <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Calendar className="h-5 w-5 text-primary" /> Trip details</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
