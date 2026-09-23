@@ -28,6 +28,7 @@ import { hostApi } from '@/features/host/api';
 import { LocationSearch } from '@/features/maps/components/location-search';
 import { PickupEditor } from '@/features/vehicles/components/pickup-editor';
 import { FeaturePicker } from '@/features/vehicles/components/feature-picker';
+import { ColorPicker } from '@/features/vehicles/components/color-picker';
 import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 
 type Panel = null | 'pricing' | 'photos' | 'availability' | 'details' | 'safety' | 'location' | 'trip';
@@ -755,6 +756,9 @@ function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: S
   const [description, setDescription] = useState(vehicle.listing?.description ?? '');
   const [features, setFeatures] = useState<string[]>(vehicle.features ?? []);
   const [plate, setPlate] = useState(vehicle.registrationNumber ?? '');
+  const [color, setColor] = useState(vehicle.specs?.color ?? '');
+  const [doors, setDoors] = useState(String(vehicle.specs?.doors ?? ''));
+  const [odometerKm, setOdometerKm] = useState(String(vehicle.specs?.mileageKm ?? ''));
 
   return (
     <div className="space-y-3">
@@ -771,6 +775,17 @@ function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: S
       <Field label="License plate" hint="Plate number and state, e.g. XCW2O63 (TX)">
         <Input value={plate} onChange={(e) => setPlate(e.target.value.toUpperCase())} placeholder="XCW2O63 (TX)" />
       </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Doors">
+          <Input type="number" min={0} value={doors} onChange={(e) => setDoors(e.target.value)} />
+        </Field>
+        <Field label="Odometer (km)">
+          <Input type="number" min={0} value={odometerKm} onChange={(e) => setOdometerKm(e.target.value)} />
+        </Field>
+      </div>
+      <Field label="Color" hint="Guests filter by this, so pick the closest match">
+        <ColorPicker value={color} onChange={setColor} />
+      </Field>
       <Field label="Features">
         <FeaturePicker value={features} onChange={setFeatures} />
       </Field>
@@ -783,6 +798,14 @@ function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: S
             listing: { title: title.trim(), description },
             features,
             registrationNumber: plate.trim() || undefined,
+            // Omit rather than set undefined — the merge spreads this object
+            // over the stored specs, and an explicit undefined key would
+            // overwrite an existing value instead of leaving it alone.
+            specs: {
+              ...(color ? { color } : {}),
+              ...(doors ? { doors: Number(doors) } : {}),
+              ...(odometerKm ? { mileageKm: Number(odometerKm) } : {}),
+            },
           })
         }
       >

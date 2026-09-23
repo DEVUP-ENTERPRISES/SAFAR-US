@@ -32,6 +32,14 @@ export class VehicleService implements IVehicleContract {
           : 'Your host account is pending approval. You can list a vehicle once an admin has verified your identity.',
       );
     }
+
+    // A VIN entered at creation was already decoded and matched client-side
+    // (the wizard's Decode step) — but a client's word is not verification.
+    // Re-decode here, server-side, the same way verifyVin() does, so a
+    // listing created with a VIN doesn't come out the other end still
+    // "unverified" and ask the host to prove the same thing twice.
+    const vinVerified = dto.vin ? await this.vinMatches(dto.vin, dto.make, dto.model, dto.year) : false;
+
     const vehicle = await VehicleModel.create({
       hostId: host._id,
       make: dto.make,
@@ -43,6 +51,7 @@ export class VehicleService implements IVehicleContract {
       fuelType: dto.fuelType,
       seats: dto.seats,
       vin: dto.vin,
+      vinVerified,
       pickup: dto.pickup,
       registrationNumber: dto.registrationNumber,
       specs: dto.specs ?? {},
@@ -229,30 +238,12 @@ export class VehicleService implements IVehicleContract {
     await this.assertOwner(userId, vehicle);
 
     const clean = vin.trim().toUpperCase();
-    // Shape first — no point spending a lookup on something that cannot be a VIN.
-    if (!/^[A-HJ-NPR-Z0-9]{11,17}$/.test(clean)) {
-      throw new ConflictError('That does not look like a VIN', 'INVALID_VIN');
+    const { matched, decoded } = await this.decodeAndMatch(clean, vehicle.make, vehicle.model, vehicle.year);
+
+    if (!decoded) {
+      throw new ConflictError('We could not look that VIN up. Check it against the dashboard or door frame.', 'VIN_NOT_FOUND');
     }
-
-    const [decoded] = await vinDecodeService.decodeBatch([clean]);
-    if (!decoded?.ok) {
-      throw new ConflictError(
-        decoded?.error ?? 'We could not look that VIN up. Check it against the dashboard or door frame.',
-        'VIN_NOT_FOUND',
-      );
-    }
-
-    // The decode is authoritative about what the car IS. A mismatch means the
-    // listing and the VIN describe different vehicles.
-    const sameMake = decoded.make?.toLowerCase() === vehicle.make?.toLowerCase();
-    const sameYear = decoded.year === vehicle.year;
-    // Model names vary in punctuation and trim ("F-150" vs "F150 XLT"), so a
-    // containment test either way is the honest comparison.
-    const a = (decoded.model ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const b = (vehicle.model ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const sameModel = !!a && !!b && (a.includes(b) || b.includes(a));
-
-    if (!sameMake || !sameYear || !sameModel) {
+    if (!matched) {
       throw new ConflictError(
         `That VIN is a ${decoded.year} ${decoded.make} ${decoded.model}, but this listing says ` +
           `${vehicle.year} ${vehicle.make} ${vehicle.model}. Fix whichever is wrong.`,
@@ -262,6 +253,45 @@ export class VehicleService implements IVehicleContract {
 
     await VehicleModel.updateOne({ _id: vehicleId }, { vin: clean, vinVerified: true });
     return this.getById(vehicleId);
+  }
+
+  /** Best-effort — a decode outage at creation must never block listing a car. */
+  private async vinMatches(vin: string, make: string, model: string, year: number): Promise<boolean> {
+    try {
+      return (await this.decodeAndMatch(vin, make, model, year)).matched;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * The one place a VIN is checked against a vehicle's stated make/model/year.
+   * Shared by creation (best-effort) and verifyVin (authoritative — throws on
+   * a mismatch instead of just reporting one).
+   */
+  private async decodeAndMatch(
+    vin: string,
+    make: string,
+    model: string,
+    year: number,
+  ): Promise<{ matched: boolean; decoded: import('./vin-decode.service').DecodedVin | undefined }> {
+    const clean = vin.trim().toUpperCase();
+    if (!/^[A-HJ-NPR-Z0-9]{11,17}$/.test(clean)) return { matched: false, decoded: undefined };
+
+    const [decoded] = await vinDecodeService.decodeBatch([clean]);
+    if (!decoded?.ok) return { matched: false, decoded: undefined };
+
+    // The decode is authoritative about what the car IS. A mismatch means the
+    // listing and the VIN describe different vehicles.
+    const sameMake = decoded.make?.toLowerCase() === make?.toLowerCase();
+    const sameYear = decoded.year === year;
+    // Model names vary in punctuation and trim ("F-150" vs "F150 XLT"), so a
+    // containment test either way is the honest comparison.
+    const a = (decoded.model ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const b = (model ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const sameModel = !!a && !!b && (a.includes(b) || b.includes(a));
+
+    return { matched: sameMake && sameYear && sameModel, decoded };
   }
 
   /** Host submits a draft for verification. */
