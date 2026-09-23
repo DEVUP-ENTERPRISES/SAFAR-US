@@ -7,6 +7,12 @@ export interface PriceBreakdown {
   discount: Money;
   addOnsTotal: Money;
   delivery: Money; // host delivers the car to the guest — accrues to the host
+  /**
+   * The delivery location that produced that fee, snapshotted with the price.
+   * A host may later rename or remove it; the booking must still say where it
+   * was actually priced to.
+   */
+  deliveryLocation?: { id: string; name: string };
   protection: Money;
   /** Platform service fee charged to the guest on top. Zero when not configured. */
   serviceFee: Money;
@@ -73,6 +79,8 @@ export interface DeliveryRequest {
   address: string;
   lat?: number;
   lng?: number;
+  /** Which of the host's configured delivery locations this is. */
+  locationId?: string;
 }
 
 export interface IPricingContract {

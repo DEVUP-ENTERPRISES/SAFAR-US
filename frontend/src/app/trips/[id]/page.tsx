@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
-import { formatDate } from '@/lib/utils/format';
+import { formatDate, kmToMiles } from '@/lib/utils/format';
 import { tripApi } from '@/features/trips/api';
 import { useTrip, useCheckIn, useCompleteTrip, useSos, useLocationStreaming, useTrackingState } from '@/features/trips/hooks';
 import { ChatPanel } from '@/features/messaging/chat-panel';
@@ -127,7 +127,7 @@ function TripDashboard() {
               <MetricBox icon={<Fuel />} label="CO₂ emitted" value={`${trip.carbon.emittedKg} kg`} />
               <MetricBox icon={<Leaf className="text-success" />} label="CO₂ saved" value={`${trip.carbon.savedKg} kg`} />
               <MetricBox icon={<TreePine className="text-success" />} label="Trees / yr" value={`${trip.carbon.treesEquivalent}`} />
-              <MetricBox icon={<Gauge />} label="Distance" value={`${trip.carbon.distanceKm} km`} />
+              <MetricBox icon={<Gauge />} label="Distance" value={`${kmToMiles(trip.carbon.distanceKm)} miles`} />
             </div>
           </section>
         )}
@@ -144,7 +144,7 @@ function TripDashboard() {
             <h2 className="text-xl font-bold mb-5">Return details</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <label className="block">
-                <span className="block text-sm font-semibold text-muted-foreground mb-2">Ending odometer (km)</span>
+                <span className="block text-sm font-semibold text-muted-foreground mb-2">Ending odometer (miles)</span>
                 <Input
                   type="number"
                   inputMode="numeric"

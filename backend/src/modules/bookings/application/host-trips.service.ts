@@ -6,6 +6,7 @@ import { hostService } from '../../hosts/application/host.service';
 import { HostStaffModel, type HostStaffDoc } from '../../hosts/infrastructure/host-staff.model';
 import { TERMINAL_STATUSES } from '../domain/booking-status';
 import { ForbiddenError } from '../../../core/errors/app-error';
+import { milesToKm } from '../../../shared/utils/distance';
 
 /** The fleet this caller sees trips for, and which cars they're limited to. */
 interface CallerScope {
@@ -195,9 +196,10 @@ export class HostTripsService {
 
       const handover = (t?.handover ?? {}) as { odometerStart?: number };
       const ret = (t?.return ?? {}) as { odometerEnd?: number };
+      // Odometers read miles on a US dashboard; everything else here is km.
       const drivenKm =
         ret.odometerEnd != null && handover.odometerStart != null
-          ? ret.odometerEnd - handover.odometerStart
+          ? milesToKm(ret.odometerEnd - handover.odometerStart)
           : undefined;
 
       const days = Math.max(

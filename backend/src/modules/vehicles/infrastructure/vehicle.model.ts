@@ -11,6 +11,37 @@ export interface VehiclePhoto {
   isCover?: boolean;
 }
 
+export type DeliveryLocationKind = 'airport' | 'hotel' | 'business' | 'custom';
+export type DeliveryAccessMethod = 'lockbox' | 'remote_unlock' | 'in_person';
+
+/**
+ * One place a host will bring the car to, priced on its own.
+ *
+ * Replaces a single set of on/off modes sharing one flat fee: a host charges
+ * differently for DFW than for a suburban hotel, and an airport handover has
+ * constraints (which terminal, who pays parking) a hotel drop does not.
+ */
+export interface DeliveryLocation {
+  /** Stable across edits — bookings reference it, so it is never regenerated. */
+  id: string;
+  kind: DeliveryLocationKind;
+  name: string;
+  address: string;
+  lat?: number;
+  lng?: number;
+  fee: number; // minor units
+  /** Trip length this location requires. 0 = offered on any trip. */
+  minTripDays: number;
+  accessMethod: DeliveryAccessMethod;
+  /** `custom` only — deliver anywhere the guest picks within this radius. */
+  radiusMiles?: number;
+  /** Airports: the specific terminals/counters handover may happen at. */
+  subLocations?: { name: string; note?: string }[];
+  /** Airports/hotels: what the guest should expect to pay to park. */
+  parkingRate?: 'free' | 'hourly' | 'daily';
+  enabled: boolean;
+}
+
 export interface SeasonalRule {
   label: string;
   start: string; // 'YYYY-MM-DD'
@@ -99,6 +130,11 @@ export interface VehicleDoc {
      */
     advanceNoticeHours?: number;
     cancellationPolicy: 'flexible' | 'moderate' | 'strict';
+    /**
+     * Superseded by `deliveryLocations`. Kept readable so bookings taken on the
+     * old shape still price, and so a doc the migration missed is not a $0
+     * delivery.
+     */
     delivery: {
       airport: boolean;
       home: boolean;
@@ -107,6 +143,7 @@ export interface VehicleDoc {
       radiusKm: number;
       fee: number; // flat delivery fee (minor units)
     };
+    deliveryLocations?: DeliveryLocation[];
   };
   pricing: {
     dailyPrice: number;
@@ -225,6 +262,31 @@ const schema = new Schema<VehicleDoc>(
         business: { type: Boolean, default: false },
         radiusKm: { type: Number, default: 0 },
         fee: { type: Number, default: 0 },
+      },
+      deliveryLocations: {
+        type: [
+          {
+            _id: false,
+            id: { type: String, required: true },
+            kind: { type: String, enum: ['airport', 'hotel', 'business', 'custom'], required: true },
+            name: { type: String, required: true },
+            address: { type: String, default: '' },
+            lat: Number,
+            lng: Number,
+            fee: { type: Number, default: 0, min: 0 },
+            minTripDays: { type: Number, default: 0, min: 0, max: 30 },
+            accessMethod: {
+              type: String,
+              enum: ['lockbox', 'remote_unlock', 'in_person'],
+              default: 'in_person',
+            },
+            radiusMiles: { type: Number, min: 0, max: 200 },
+            subLocations: [{ _id: false, name: String, note: String }],
+            parkingRate: { type: String, enum: ['free', 'hourly', 'daily'] },
+            enabled: { type: Boolean, default: true },
+          },
+        ],
+        default: undefined,
       },
     },
     pricing: {

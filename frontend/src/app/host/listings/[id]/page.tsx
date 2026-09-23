@@ -19,7 +19,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatMoney, FUEL_LABEL, kmToMiles, perKmToPerMile } from '@/lib/utils/format';
+import { formatMoney, FUEL_LABEL, kmToMiles, perKmToPerMile, milesToKm, perMileToPerKm } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
@@ -30,6 +30,8 @@ import { PickupEditor } from '@/features/vehicles/components/pickup-editor';
 import { FeaturePicker } from '@/features/vehicles/components/feature-picker';
 import { ColorPicker } from '@/features/vehicles/components/color-picker';
 import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
+import { DeliveryLocationsEditor } from '@/features/vehicles/components/delivery-locations-editor';
+import type { DeliveryLocation } from '@/features/vehicles/types';
 
 type Panel = null | 'pricing' | 'photos' | 'availability' | 'details' | 'safety' | 'location' | 'trip';
 
@@ -323,8 +325,8 @@ export default function ManageListingPage() {
             title="Location & delivery"
             subtitle={v.location?.address || v.location?.city || 'Not set'}
             value={
-              v.listing?.delivery &&
-              (v.listing.delivery.airport || v.listing.delivery.home || v.listing.delivery.hotel)
+              (v.listing?.deliveryLocations?.some((l) => l.enabled)) ||
+              (v.listing?.delivery && (v.listing.delivery.airport || v.listing.delivery.home || v.listing.delivery.hotel))
                 ? 'Delivery on'
                 : 'Pickup only'
             }
@@ -340,10 +342,10 @@ export default function ManageListingPage() {
             subtitle={
               unlimited
                 ? 'Unlimited mileage'
-                : `${kmToMiles(v.mileageLimit!.perDayKm)} mi/day included · ${formatMoney({
+                : `${kmToMiles(v.mileageLimit!.perDayKm)} miles/day included · ${formatMoney({
                     amount: perKmToPerMile(v.mileageLimit!.overageFeePerKm),
                     currency: v.pricing.currency,
-                  })}/mi over`
+                  })}/mile over the daily limit`
             }
             value={v.listing?.instantBook ? 'Instant Book' : 'Request'}
             onClick={() => toggle('trip')}
@@ -643,15 +645,7 @@ type SaveFn = (patch: Record<string, unknown>) => void;
 
 function LocationPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: SaveFn; saving: boolean }) {
   const [loc, setLoc] = useState<{ lat: number; lng: number; city: string; address: string } | null>(null);
-  const d = vehicle.listing?.delivery;
-  const [delivery, setDelivery] = useState({
-    airport: !!d?.airport, home: !!d?.home, hotel: !!d?.hotel, business: !!d?.business,
-    fee: String(((d?.fee ?? 0) / 100) || ''),
-  });
-
-  const modes = [
-    ['home', 'Guest address'], ['airport', 'Airport'], ['hotel', 'Hotel'], ['business', 'Business'],
-  ] as const;
+  const [locations, setLocations] = useState<DeliveryLocation[]>(vehicle.listing?.deliveryLocations ?? []);
 
   return (
     <div className="space-y-4 bg-subtle px-4 py-4">
@@ -662,32 +656,16 @@ function LocationPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: 
         />
       </Field>
 
-      <div>
-        <p className="mb-2 text-sm font-medium">Delivery options</p>
-        <div className="flex flex-wrap gap-2">
-          {modes.map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setDelivery((s) => ({ ...s, [key]: !s[key] }))}
-              className={cn(
-                'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
-                delivery[key] ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary/40',
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <Field label="Delivery fee ($)" hint="Flat fee charged when a guest requests delivery">
-        <Input
-          type="number"
-          min={0}
-          value={delivery.fee}
-          onChange={(e) => setDelivery({ ...delivery, fee: e.target.value })}
-        />
-      </Field>
+      <DeliveryLocationsEditor
+        value={locations}
+        onChange={setLocations}
+        home={{
+          lat: vehicle.location.coordinates[1],
+          lng: vehicle.location.coordinates[0],
+          address: vehicle.location.address,
+          city: vehicle.location.city,
+        }}
+      />
 
       <Button
         size="sm"
@@ -698,18 +676,11 @@ function LocationPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: 
             // Send only what this panel owns. The server merges into the stored
             // listing, so spreading a render-time snapshot here would silently
             // revert whatever another panel changed in the meantime.
-            listing: {
-              delivery: {
-                ...vehicle.listing?.delivery,
-                airport: delivery.airport, home: delivery.home,
-                hotel: delivery.hotel, business: delivery.business,
-                fee: Math.round(Number(delivery.fee || 0) * 100),
-              },
-            },
+            listing: { deliveryLocations: locations },
           })
         }
       >
-        Save location & delivery
+        Save location &amp; delivery
       </Button>
     </div>
   );
@@ -724,6 +695,9 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
   const [maxDays, setMaxDays] = useState(String(Math.max(1, Math.round((l?.maxTripHours ?? 720) / 24))));
   const [turnaround, setTurnaround] = useState(String(l?.turnaroundDays ?? 0));
   const [notice, setNotice] = useState(String(l?.advanceNoticeHours ?? 0));
+  const m = vehicle.mileageLimit;
+  const [milesPerDay, setMilesPerDay] = useState(String(kmToMiles(m?.perDayKm ?? 0) || ''));
+  const [overagePerMile, setOveragePerMile] = useState(String((perKmToPerMile(m?.overageFeePerKm ?? 0) / 100) || ''));
 
   return (
     <div className="space-y-4 bg-subtle px-4 py-4">
@@ -755,6 +729,12 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
         <Field label="Advance notice (hours)" hint="Lead time before a trip can start">
           <Input type="number" min={0} max={720} value={notice} onChange={(e) => setNotice(e.target.value)} />
         </Field>
+        <Field label="Miles included per day" hint="How far a guest can drive each day before an overage charge applies">
+          <Input type="number" min={1} value={milesPerDay} onChange={(e) => setMilesPerDay(e.target.value)} />
+        </Field>
+        <Field label="Overage charge ($ per mile)" hint="Charged per mile driven past the daily limit">
+          <Input type="number" min={0} step="0.01" value={overagePerMile} onChange={(e) => setOveragePerMile(e.target.value)} />
+        </Field>
       </div>
 
       <Field label="Cancellation policy">
@@ -781,6 +761,10 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
               turnaroundDays: Math.min(7, Math.max(0, Number(turnaround) || 0)),
               advanceNoticeHours: Math.min(720, Math.max(0, Number(notice) || 0)),
             },
+            mileageLimit: {
+              perDayKm: milesToKm(Math.max(1, Number(milesPerDay) || 1)),
+              overageFeePerKm: perMileToPerKm(Math.round(Number(overagePerMile || 0) * 100)),
+            },
           })
         }
       >
@@ -797,7 +781,7 @@ function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: S
   const [plate, setPlate] = useState(vehicle.registrationNumber ?? '');
   const [color, setColor] = useState(vehicle.specs?.color ?? '');
   const [doors, setDoors] = useState(String(vehicle.specs?.doors ?? ''));
-  const [odometerKm, setOdometerKm] = useState(String(vehicle.specs?.mileageKm ?? ''));
+  const [odometerMiles, setOdometerMiles] = useState(String(kmToMiles(vehicle.specs?.mileageKm ?? 0) || ''));
 
   return (
     <div className="space-y-3">
@@ -818,8 +802,8 @@ function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: S
         <Field label="Doors">
           <Input type="number" min={0} value={doors} onChange={(e) => setDoors(e.target.value)} />
         </Field>
-        <Field label="Odometer (km)">
-          <Input type="number" min={0} value={odometerKm} onChange={(e) => setOdometerKm(e.target.value)} />
+        <Field label="Odometer (miles)">
+          <Input type="number" min={0} value={odometerMiles} onChange={(e) => setOdometerMiles(e.target.value)} />
         </Field>
       </div>
       <Field label="Color" hint="Guests filter by this, so pick the closest match">
@@ -843,7 +827,7 @@ function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: S
             specs: {
               ...(color ? { color } : {}),
               ...(doors ? { doors: Number(doors) } : {}),
-              ...(odometerKm ? { mileageKm: Number(odometerKm) } : {}),
+              ...(odometerMiles ? { mileageKm: milesToKm(Number(odometerMiles)) } : {}),
             },
           })
         }

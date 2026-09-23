@@ -149,17 +149,37 @@ export class PricingService implements IPricingContract {
       }));
     const addOnsTotal = sumMoney(selectedAddOns.map((a) => a.amount), currency);
 
-    // ── Delivery: the host brings the car to the guest for a flat fee. Only
-    // valid if the vehicle actually offers that delivery mode — otherwise a
-    // guest could conjure a $0 (or any) delivery the host never agreed to.
+    // ── Delivery: the host brings the car to the guest, priced per location.
+    // Everything here is resolved from the stored listing, never from the
+    // request — otherwise a guest could conjure a $0 (or any) delivery, to a
+    // place, on a trip length, the host never agreed to.
     let delivery = zeroMoney(currency);
+    let deliveryLocation: { id: string; name: string } | undefined;
     if (input.delivery) {
-      const d = v.listing?.delivery;
-      const offered = !!d && !!d[input.delivery.mode];
-      if (!offered) {
-        throw new ValidationError(`This car does not offer ${input.delivery.mode} delivery`);
+      const locations = v.listing?.deliveryLocations?.filter((l) => l.enabled) ?? [];
+      if (locations.length) {
+        const picked = input.delivery.locationId
+          ? locations.find((l) => l.id === input.delivery!.locationId)
+          : undefined;
+        if (!picked) {
+          throw new ValidationError('That delivery location is not offered for this car');
+        }
+        if (days < picked.minTripDays) {
+          throw new ValidationError(
+            `${picked.name} delivery needs a trip of at least ${picked.minTripDays} days`,
+          );
+        }
+        delivery = money(picked.fee, currency);
+        deliveryLocation = { id: picked.id, name: picked.name };
+      } else {
+        // Pre-migration listing: fall back to the flat mode/fee block.
+        const d = v.listing?.delivery;
+        const offered = !!d && !!d[input.delivery.mode];
+        if (!offered) {
+          throw new ValidationError(`This car does not offer ${input.delivery.mode} delivery`);
+        }
+        delivery = money(d.fee, currency);
       }
-      delivery = money(d.fee, currency);
     }
 
     // ── Protection plan (priced from live config, not a code constant).
@@ -230,7 +250,7 @@ export class PricingService implements IPricingContract {
     if (recomposed.amount !== subtotal.amount) hostEarnings.amount += subtotal.amount - recomposed.amount;
 
     return {
-      days, base, cleaningFee, discount, addOnsTotal, delivery, protection,
+      days, base, cleaningFee, discount, addOnsTotal, delivery, deliveryLocation, protection,
       serviceFee,
       taxLines, taxTotal,
       protectionPlan: plan.code, selectedAddOns,

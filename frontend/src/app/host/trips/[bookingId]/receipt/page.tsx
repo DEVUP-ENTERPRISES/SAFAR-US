@@ -10,7 +10,7 @@ import { ErrorState } from '@/components/ui/states';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Logo } from '@/components/layout/logo';
 import { hostTripsApi } from '@/features/host/trips.api';
-import { formatMoney, formatDateRange, formatDate } from '@/lib/utils/format';
+import { formatMoney, formatDateRange, formatDate, kmToMiles, perKmToPerMile } from '@/lib/utils/format';
 
 function Line({ label, value, muted, sign }: { label: string; value: string; muted?: boolean; sign?: '-' | '+' }) {
   return (
@@ -109,7 +109,7 @@ function Receipt() {
           <Cell icon={<Car className="h-4 w-4" />} label="Vehicle" value={`${t.vehicle.make} ${t.vehicle.model} ${t.vehicle.year}`} sub={t.vehicle.plate} />
           <Cell icon={<CalendarDays className="h-4 w-4" />} label="Trip dates" value={formatDateRange(t.period.start, t.period.end)} sub={hasBreakdown ? `${r.days} day${r.days === 1 ? '' : 's'}` : undefined} />
           <Cell label="Guest" value={t.guest.name} sub={`Guest ID · ${t.guest._id.slice(0, 8)}`} />
-          <Cell icon={<Gauge className="h-4 w-4" />} label="Mileage" value={t.mileage.includedKm === 0 ? 'Unlimited' : `${t.mileage.includedKm} km included`} sub={t.mileage.overageFeePerKm ? `${m(t.mileage.overageFeePerKm)}/km over` : undefined} />
+          <Cell icon={<Gauge className="h-4 w-4" />} label="Mileage" value={t.mileage.includedKm === 0 ? 'Unlimited' : `${kmToMiles(t.mileage.includedKm)} miles included`} sub={t.mileage.overageFeePerKm ? `${m(perKmToPerMile(t.mileage.overageFeePerKm))}/mile over` : undefined} />
         </div>
 
         {/* Financials */}

@@ -4,6 +4,27 @@ export interface VehiclePhoto {
   isCover?: boolean;
 }
 
+export type DeliveryLocationKind = 'airport' | 'hotel' | 'business' | 'custom';
+export type DeliveryAccessMethod = 'lockbox' | 'remote_unlock' | 'in_person';
+
+/** One place the host delivers to, priced on its own. */
+export interface DeliveryLocation {
+  id: string;
+  kind: DeliveryLocationKind;
+  name: string;
+  address: string;
+  lat?: number;
+  lng?: number;
+  fee: number;
+  /** 0 = offered on any trip length. */
+  minTripDays: number;
+  accessMethod: DeliveryAccessMethod;
+  radiusMiles?: number;
+  subLocations?: { name: string; note?: string }[];
+  parkingRate?: 'free' | 'hourly' | 'daily';
+  enabled: boolean;
+}
+
 export interface Vehicle {
   _id: string;
   hostId: string;
@@ -47,6 +68,7 @@ export interface Vehicle {
       radiusKm: number;
       fee: number;
     };
+    deliveryLocations?: DeliveryLocation[];
   };
   pricing: {
     dailyPrice: number;

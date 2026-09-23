@@ -52,6 +52,9 @@ export interface BookingDoc {
   /** Where the host delivers the car, when the guest requested delivery. */
   delivery?: {
     mode: 'airport' | 'home' | 'hotel' | 'business';
+    /** The host's delivery location this was booked against, when there was one. */
+    locationId?: string;
+    locationName?: string;
     address: string;
     lat?: number;
     lng?: number;
@@ -201,6 +204,8 @@ const schema = new Schema<BookingDoc>(
       type: {
         _id: false,
         mode: { type: String, enum: ['airport', 'home', 'hotel', 'business'] },
+        locationId: String,
+        locationName: String,
         address: String,
         lat: Number,
         lng: Number,

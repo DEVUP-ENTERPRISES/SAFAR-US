@@ -13,6 +13,7 @@ import type { Principal } from '../../../core/types/common';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
+import { milesToKm } from '../../../shared/utils/distance';
 
 /** Minimum return-condition photos before a trip can be completed. */
 export const MIN_RETURN_PHOTOS = 2;
@@ -107,9 +108,11 @@ export class TripService {
       );
     }
 
+    // Odometers read miles on a US dashboard; mileage limits/fees are stored
+    // in km, so the raw delta has to convert before it can be billed against.
     const distanceKm =
       ret.odometerEnd != null && trip.handover.odometerStart != null
-        ? Math.max(0, ret.odometerEnd - trip.handover.odometerStart)
+        ? Math.max(0, milesToKm(ret.odometerEnd - trip.handover.odometerStart))
         : trip.distanceKm;
 
     // Charge the guest for driving past the included mileage. Real money —

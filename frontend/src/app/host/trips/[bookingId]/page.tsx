@@ -19,7 +19,7 @@ import { HandoverPanel } from '@/features/trips/components/handover-panel';
 import { DamageReviewPanel } from '@/features/ai/components/damage-review-panel';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { bookingApi } from '@/features/bookings/api';
-import { formatMoney, formatDate } from '@/lib/utils/format';
+import { formatMoney, formatDate, kmToMiles, perKmToPerMile } from '@/lib/utils/format';
 import { hostTripsApi } from '@/features/host/trips.api';
 import { TripMessages } from '@/features/host/components/trip-messages';
 import { IncidentalsForm } from '@/features/host/components/incidentals-form';
@@ -27,7 +27,7 @@ import { VerifyPickup } from '@/features/bookings/components/pickup-code';
 
 type Tab = 'details' | 'messages' | 'help';
 
-const km = (v: number) => `${v.toLocaleString()} KM`;
+const miles = (v: number) => `${kmToMiles(v).toLocaleString()} miles`;
 
 export default function HostTripDetailPage() {
   const { bookingId } = useParams<{ bookingId: string }>();
@@ -117,7 +117,7 @@ export default function HostTripDetailPage() {
   const doCheckIn = async () => {
     const { ok } = await confirm({
       title: 'Start the trip?',
-      description: `Recording ${Number(odoStart).toLocaleString()} km as the starting odometer. Every mileage charge is measured from this — it cannot be changed afterwards.`,
+      description: `Recording ${Number(odoStart).toLocaleString()} miles as the starting odometer. Every mileage charge is measured from this — it cannot be changed afterwards.`,
       confirmLabel: 'Start trip',
     });
     if (ok) handover.mutate();
@@ -131,9 +131,9 @@ export default function HostTripDetailPage() {
         'The trip will be marked complete and your payout scheduled.'
       ) : (
         <>
-          If the guest drove past the <strong>{km(t.mileage.includedKm)}</strong> included, they are
-          automatically charged <strong>{formatMoney({ amount: t.mileage.overageFeePerKm, currency: cur })}</strong>{' '}
-          per extra km. This cannot be undone.
+          If the guest drove past the <strong>{miles(t.mileage.includedKm)}</strong> included, they are
+          automatically charged <strong>{formatMoney({ amount: perKmToPerMile(t.mileage.overageFeePerKm), currency: cur })}</strong>{' '}
+          per extra mile. This cannot be undone.
         </>
       ),
       confirmLabel: 'End trip',
@@ -294,14 +294,14 @@ export default function HostTripDetailPage() {
               subtitle={
                 unlimited
                   ? 'This car has unlimited mileage.'
-                  : `${t.guest.name} is charged ${formatMoney({ amount: t.mileage.overageFeePerKm, currency: cur })} for every km over the total included.`
+                  : `${t.guest.name} is charged ${formatMoney({ amount: perKmToPerMile(t.mileage.overageFeePerKm), currency: cur })} for every mile over the total included.`
               }
-              value={unlimited ? 'UNLIMITED' : km(t.mileage.includedKm)}
+              value={unlimited ? 'UNLIMITED' : miles(t.mileage.includedKm)}
             />
             <Row
               icon={<Gauge className="h-5 w-5" />}
               title="Distance driven"
-              value={t.mileage.drivenKm != null ? km(t.mileage.drivenKm) : '—'}
+              value={t.mileage.drivenKm != null ? miles(t.mileage.drivenKm) : '—'}
             />
           </RowGroup>
 
@@ -388,7 +388,7 @@ export default function HostTripDetailPage() {
           {started ? (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Ending odometer (km)">
+                <Field label="Ending odometer (miles)">
                   <Input
                     type="number"
                     min={0}
@@ -425,7 +425,7 @@ export default function HostTripDetailPage() {
                 </Button>
               )}
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Starting odometer (km)">
+                <Field label="Starting odometer (miles)">
                   <Input
                     type="number"
                     min={0}

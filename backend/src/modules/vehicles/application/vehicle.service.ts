@@ -1,4 +1,5 @@
-import { VehicleModel, type VehicleDoc } from '../infrastructure/vehicle.model';
+import { VehicleModel, type VehicleDoc, type DeliveryLocation } from '../infrastructure/vehicle.model';
+import { uuid } from '../../../shared/utils/uuid';
 import { hostService } from '../../hosts/application/host.service';
 import { NotFoundError, ForbiddenError, ConflictError } from '../../../core/errors/app-error';
 import { emit } from '../../../shared/events/event-bus';
@@ -16,6 +17,50 @@ import { vinDecodeService } from './vin-decode.service';
  * will not book. Enforced on submit and on photo removal for live listings.
  */
 export const MIN_LISTING_PHOTOS = 4;
+
+type DeliveryLocationInput = Omit<DeliveryLocation, 'id'> & { id?: string };
+
+/**
+ * Give every location a stable id, keeping the one it already had.
+ *
+ * Bookings store the id of the location they were delivered to, so reusing an
+ * id for a different place (or minting a new one on every save) would re-point
+ * historic bookings at the wrong handover.
+ */
+function normaliseDeliveryLocations(
+  input: DeliveryLocationInput[],
+  existing?: DeliveryLocation[],
+): DeliveryLocation[] {
+  const known = new Set((existing ?? []).map((l) => l.id));
+  return input.map((l) => ({
+    ...l,
+    id: l.id && known.has(l.id) ? l.id : uuid(),
+  }));
+}
+
+/**
+ * Mirror the location list onto the legacy boolean/fee block.
+ *
+ * Search indexes and filters on `listing.delivery.*`, and old bookings price
+ * from `delivery.fee`; keeping both in step means neither has to know the other
+ * exists. The legacy fee becomes the cheapest offered location, which is the
+ * "from" price a filter should match on.
+ */
+function legacyDeliveryFrom(
+  locations: DeliveryLocation[],
+  previous?: VehicleDoc['listing']['delivery'],
+): VehicleDoc['listing']['delivery'] {
+  const live = locations.filter((l) => l.enabled);
+  const fees = live.map((l) => l.fee);
+  return {
+    airport: live.some((l) => l.kind === 'airport'),
+    hotel: live.some((l) => l.kind === 'hotel'),
+    business: live.some((l) => l.kind === 'business'),
+    home: live.some((l) => l.kind === 'custom'),
+    radiusKm: previous?.radiusKm ?? 0,
+    fee: fees.length ? Math.min(...fees) : 0,
+  };
+}
 
 export class VehicleService implements IVehicleContract {
   async create(userId: string, dto: CreateVehicleDto): Promise<VehicleDoc> {
@@ -66,7 +111,12 @@ export class VehicleService implements IVehicleContract {
         address: dto.location.address,
         city: dto.location.city,
       },
-      listing: dto.listing,
+      listing: dto.listing.deliveryLocations
+        ? (() => {
+            const locations = normaliseDeliveryLocations(dto.listing.deliveryLocations!);
+            return { ...dto.listing, deliveryLocations: locations, delivery: legacyDeliveryFrom(locations) };
+          })()
+        : dto.listing,
       pricing: dto.pricing,
     });
     return vehicle.toObject();
@@ -100,11 +150,17 @@ export class VehicleService implements IVehicleContract {
     if (patch.listing) {
       // `delivery` is a nested object: a shallow spread would replace the whole
       // block, so toggling one delivery mode would clear the others.
-      const { delivery, ...listingRest } = patch.listing;
+      const { delivery, deliveryLocations, ...listingRest } = patch.listing;
+      const locations = deliveryLocations
+        ? normaliseDeliveryLocations(deliveryLocations, vehicle.listing?.deliveryLocations)
+        : undefined;
       update.listing = {
         ...vehicle.listing,
         ...listingRest,
         ...(delivery ? { delivery: { ...vehicle.listing?.delivery, ...delivery } } : {}),
+        ...(locations
+          ? { deliveryLocations: locations, delivery: legacyDeliveryFrom(locations, vehicle.listing?.delivery) }
+          : {}),
       };
     }
     if (patch.pricing) update.pricing = { ...vehicle.pricing, ...patch.pricing };

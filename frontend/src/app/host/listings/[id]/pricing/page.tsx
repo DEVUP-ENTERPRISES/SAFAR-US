@@ -99,7 +99,7 @@ export default function PricingDiscountsPage() {
                       <RouteIcon className="h-3.5 w-3.5" /> Distance included
                     </span>
                     <span className="font-medium tabular-nums">
-                      {Math.round(t.distanceKm * 0.621371).toLocaleString()} mi
+                      {Math.round(t.distanceKm * 0.621371).toLocaleString()} miles
                     </span>
                   </div>
                 )}

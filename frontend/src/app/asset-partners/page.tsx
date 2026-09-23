@@ -403,7 +403,7 @@ export default function AssetPartnersPage() {
               <ContactCell icon={Phone} label="Call / Text" value="(214) 814-0402" href="tel:+12148140402" />
               <ContactCell icon={Mail} label="Email" value="shoaib@catodrive.com" href="mailto:shoaib@catodrive.com" />
               <ContactCell icon={Clock} label="Response Time" value="We review every application and respond within 2–3 business days." />
-              <ContactCell icon={ClipboardCheck} label="Eligibility" value="2018+ · under 130,000 mi · clean title · SUV preferred" />
+              <ContactCell icon={ClipboardCheck} label="Eligibility" value="2018+ · under 130,000 miles · clean title · SUV preferred" />
             </div>
           </Reveal>
           <Reveal delay={140}>

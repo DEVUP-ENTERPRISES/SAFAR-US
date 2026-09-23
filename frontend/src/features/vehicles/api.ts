@@ -1,5 +1,5 @@
 import { api } from '@/lib/api/client';
-import type { SearchParams, Vehicle } from './types';
+import type { SearchParams, Vehicle, DeliveryLocation } from './types';
 
 export interface CreateVehicleInput {
   make: string;
@@ -26,7 +26,8 @@ export interface CreateVehicleInput {
     minTripHours: number;
     maxTripHours: number;
     cancellationPolicy: 'flexible' | 'moderate' | 'strict';
-    delivery: { airport: boolean; home: boolean; hotel: boolean; business: boolean; radiusKm: number; fee: number };
+    delivery?: { airport: boolean; home: boolean; hotel: boolean; business: boolean; radiusKm: number; fee: number };
+    deliveryLocations?: DeliveryLocation[];
   };
   pricing: {
     dailyPrice: number;

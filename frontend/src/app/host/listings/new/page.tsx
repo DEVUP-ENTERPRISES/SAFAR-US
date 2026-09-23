@@ -23,6 +23,8 @@ import { US_STATES } from '@/lib/data/us-states';
 import { milesToKm, perMileToPerKm } from '@/lib/utils/format';
 import { readListingDraft, saveListingDraft, clearListingDraft } from '@/features/vehicles/listing-draft';
 import { ShieldCheck } from 'lucide-react';
+import { DeliveryLocationsEditor } from '@/features/vehicles/components/delivery-locations-editor';
+import type { DeliveryLocation } from '@/features/vehicles/types';
 
 const STEPS = ['Basics', 'Details', 'Photos', 'Pricing', 'Delivery', 'Standards', 'Review'];
 
@@ -59,7 +61,7 @@ interface Draft {
   vin: string;
   licensePlate: string;
   licensePlateState: string;
-  odometerKm: number | '';
+  odometerMiles: number | '';
   standardsAgreed: boolean;
   photos: { url: string; key?: string; isCover?: boolean; fingerprint?: string }[];
   title: string;
@@ -73,7 +75,7 @@ interface Draft {
   monthlyDiscountPct: number;
   earlyBirdPct: number;
   lastMinutePct: number;
-  delivery: { airport: boolean; home: boolean; hotel: boolean; business: boolean; radiusKm: number; fee: number };
+  deliveryLocations: DeliveryLocation[];
   addOnCodes: string[];
   tripRules: string;
   mileagePerDay: number;
@@ -97,11 +99,11 @@ const initial: Draft = {
   make: '', model: '', year: 2022, category: 'economy', bodyType: 'sedan',
   transmission: 'automatic', fuelType: 'petrol', seats: 5,
   city: '', address: '', pickupNotes: '', lng: null, lat: null, color: '', doors: 4, features: [],
-  vin: '', licensePlate: '', licensePlateState: '', odometerKm: '', standardsAgreed: false,
+  vin: '', licensePlate: '', licensePlateState: '', odometerMiles: '', standardsAgreed: false,
   photos: [], title: '', description: '', instantBook: true, cancellationPolicy: 'moderate',
   dailyPrice: 65, cleaningFee: 25, weekendPct: 20, weeklyDiscountPct: 10, monthlyDiscountPct: 20,
   earlyBirdPct: 5, lastMinutePct: 0,
-  delivery: { airport: false, home: false, hotel: false, business: false, radiusKm: 0, fee: 0 },
+  deliveryLocations: [],
   addOnCodes: [], tripRules: '', mileagePerDay: 200, mileageOverage: 0.35,
 };
 
@@ -276,7 +278,7 @@ export default function NewListingPage() {
         specs: {
           color: d.color,
           doors: Number(d.doors),
-          ...(d.odometerKm !== '' ? { mileageKm: Number(d.odometerKm) } : {}),
+          ...(d.odometerMiles !== '' ? { mileageKm: milesToKm(Number(d.odometerMiles)) } : {}),
         },
         features: d.features,
         photos: d.photos,
@@ -293,7 +295,7 @@ export default function NewListingPage() {
           minTripHours: 24,
           maxTripHours: 24 * 30,
           cancellationPolicy: d.cancellationPolicy,
-          delivery: d.delivery,
+          deliveryLocations: d.deliveryLocations,
         },
         addOns: d.addOnCodes.map((code) => ({
           code,
@@ -356,10 +358,6 @@ export default function NewListingPage() {
     if (forStep === 3) {
       if (!Number(d.dailyPrice) || Number(d.dailyPrice) <= 0) e.dailyPrice = 'Set a daily price';
       if (Number(d.cleaningFee) < 0) e.cleaningFee = 'Cannot be negative';
-    }
-    if (forStep === 4) {
-      const anyDelivery = d.delivery.airport || d.delivery.home || d.delivery.hotel || d.delivery.business;
-      if (anyDelivery && Number(d.delivery.radiusKm) <= 0) e.radiusKm = 'Set how far you will deliver';
     }
     if (forStep === 4) {
       // Unlimited mileage isn't offered, and the included allowance is capped
@@ -468,8 +466,8 @@ export default function NewListingPage() {
                     { value: 'ev', label: 'Electric' },
                   ]}
                 />
-                <Field label="Odometer (km)" hint="Optional">
-                  <Input type="number" value={d.odometerKm} onChange={(e) => set('odometerKm', e.target.value === '' ? '' : Number(e.target.value))} />
+                <Field label="Odometer (miles)" hint="Optional">
+                  <Input type="number" value={d.odometerMiles} onChange={(e) => set('odometerMiles', e.target.value === '' ? '' : Number(e.target.value))} />
                 </Field>
                 <Field label="License plate number">
                   <Input value={d.licensePlate} onChange={(e) => set('licensePlate', e.target.value.toUpperCase())} placeholder="XCW2O63" />
@@ -638,17 +636,12 @@ export default function NewListingPage() {
 
           {step === 4 && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Offer delivery to earn more. Set a flat delivery fee.</p>
-              {(['airport', 'home', 'hotel', 'business'] as const).map((k) => (
-                <label key={k} className="flex items-center gap-2 text-sm capitalize">
-                  <input type="checkbox" checked={d.delivery[k]} onChange={(e) => set('delivery', { ...d.delivery, [k]: e.target.checked })} className="h-4 w-4 accent-[hsl(var(--primary))]" />
-                  {k} delivery
-                </label>
-              ))}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Delivery radius (km)" error={errors.radiusKm}><Input type="number" value={d.delivery.radiusKm} onChange={(e) => set('delivery', { ...d.delivery, radiusKm: Number(e.target.value) })} /></Field>
-                <Field label="Delivery fee ($)"><Input type="number" value={d.delivery.fee} onChange={(e) => set('delivery', { ...d.delivery, fee: Number(e.target.value) })} /></Field>
-              </div>
+              <p className="text-sm text-muted-foreground">Offer delivery to earn more — each location can have its own fee.</p>
+              <DeliveryLocationsEditor
+                value={d.deliveryLocations}
+                onChange={(next) => set('deliveryLocations', next)}
+                home={d.lat != null && d.lng != null ? { lat: d.lat, lng: d.lng, address: d.address, city: d.city } : undefined}
+              />
 
               <div className="border-t border-border pt-3">
                 <p className="mb-2 text-sm font-medium">Extras you offer</p>

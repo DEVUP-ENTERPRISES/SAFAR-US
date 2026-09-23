@@ -76,6 +76,9 @@ export default function VehicleDetailPage() {
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState<'airport' | 'home' | 'hotel' | 'business' | ''>('');
+  // Which of the host's configured delivery locations was picked. Empty
+  // string is "pick up myself" — the same sentinel `deliveryMode` already used.
+  const [deliveryLocationId, setDeliveryLocationId] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   // Airport pickups: the flight is what tells the host when to actually be
   // there, and it is what stops a delayed landing counting as a no-show.
@@ -219,6 +222,7 @@ export default function VehicleDetailPage() {
       deliveryMode && deliveryAddress.trim()
         ? {
             mode: deliveryMode,
+            locationId: deliveryLocationId || undefined,
             address: deliveryAddress.trim(),
             ...(deliveryMode === 'airport'
               ? {
@@ -296,9 +300,13 @@ export default function VehicleDetailPage() {
 
   const photos = v.photos?.length ? v.photos : [];
   const delivery = v.listing.delivery;
+  const activeDeliveryLocations = (v.listing.deliveryLocations ?? []).filter((l) => l.enabled);
   const deliveryModes = delivery
     ? (['airport', 'home', 'hotel', 'business'] as const).filter((k) => delivery[k])
     : [];
+  const cheapestDeliveryFee = activeDeliveryLocations.length
+    ? Math.min(...activeDeliveryLocations.map((l) => l.fee))
+    : delivery?.fee ?? 0;
 
   // Trip length for the similar-cars totals and any length-of-trip messaging.
   const days = start && end
@@ -549,11 +557,11 @@ export default function VehicleDetailPage() {
               {mileage && mileage.perDayKm > 0 ? (
                 <div>
                   <p className="text-[17px] font-medium">
-                    {kmToMiles(mileage.perDayKm).toLocaleString()} mi/day
-                    {days ? ` · ${kmToMiles(mileage.perDayKm * days).toLocaleString()} mi this trip` : ''}
+                    {kmToMiles(mileage.perDayKm).toLocaleString()} miles/day
+                    {days ? ` · ${kmToMiles(mileage.perDayKm * days).toLocaleString()} miles this trip` : ''}
                   </p>
                   <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">
-                    {formatMoney({ amount: perKmToPerMile(mileage.overageFeePerKm), currency: v.pricing.currency })}/mi for additional distance driven
+                    {formatMoney({ amount: perKmToPerMile(mileage.overageFeePerKm), currency: v.pricing.currency })}/mile for additional distance driven
                   </p>
                 </div>
               ) : (
@@ -614,11 +622,15 @@ export default function VehicleDetailPage() {
 
         {/* Cards section (Delivery, Protection, Mileage, Rules) */}
         <div className="grid gap-4 sm:grid-cols-2">
-          {deliveryModes.length > 0 && (
+          {(activeDeliveryLocations.length > 0 || deliveryModes.length > 0) && (
             <Card>
               <CardContent className="p-6 sm:p-8">
                 <div className="flex items-center gap-2 font-medium"><Truck className="h-5 w-5 text-primary" /> Delivery</div>
-                <p className="mt-1 text-sm capitalize text-muted-foreground">{deliveryModes.join(', ')} · {formatMoney({ amount: delivery!.fee, currency: v.pricing.currency })}</p>
+                <p className={cn('mt-1 text-sm text-muted-foreground', !activeDeliveryLocations.length && 'capitalize')}>
+                  {activeDeliveryLocations.length > 0
+                    ? `${activeDeliveryLocations.map((l) => l.name).join(', ')} · from ${formatMoney({ amount: cheapestDeliveryFee, currency: v.pricing.currency })}`
+                    : `${deliveryModes.join(', ')} · ${formatMoney({ amount: delivery!.fee, currency: v.pricing.currency })}`}
+                </p>
               </CardContent>
             </Card>
           )}
@@ -633,7 +645,7 @@ export default function VehicleDetailPage() {
               <CardContent className="p-6 sm:p-8">
                 <div className="flex items-center gap-2 font-medium"><MileIcon className="h-5 w-5 text-primary" /> Mileage</div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {kmToMiles(v.mileageLimit.perDayKm).toLocaleString()} mi/day included · {formatMoney({ amount: perKmToPerMile(v.mileageLimit.overageFeePerKm), currency: v.pricing.currency })}/mi after
+                  {kmToMiles(v.mileageLimit.perDayKm).toLocaleString()} miles/day included · {formatMoney({ amount: perKmToPerMile(v.mileageLimit.overageFeePerKm), currency: v.pricing.currency })}/mile over the daily limit
                 </p>
               </CardContent>
             </Card>
@@ -782,7 +794,104 @@ export default function VehicleDetailPage() {
               </div>
             </div>
             {/* Delivery — only when the host offers it */}
-            {deliveryModes.length > 0 && (
+            {activeDeliveryLocations.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Delivery</p>
+                  {deliveryLocationId ? (
+                    (() => {
+                      const picked = activeDeliveryLocations.find((l) => l.id === deliveryLocationId);
+                      return picked && picked.fee > 0 ? (
+                        <span className="text-xs text-muted-foreground">
+                          +{formatMoney({ amount: picked.fee, currency: v.pricing.currency })}
+                        </span>
+                      ) : null;
+                    })()
+                  ) : cheapestDeliveryFee > 0 ? (
+                    <span className="text-xs text-muted-foreground">
+                      from {formatMoney({ amount: cheapestDeliveryFee, currency: v.pricing.currency })}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => { setDeliveryLocationId(''); setDeliveryMode(''); setDeliveryAddress(''); }}
+                    className={cn(
+                      'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                      deliveryLocationId === '' ? 'border-primary bg-primary/10 text-primary' : 'border-border',
+                    )}
+                  >
+                    Pick up myself
+                  </button>
+                  {activeDeliveryLocations.map((loc) => (
+                    <button
+                      key={loc.id}
+                      type="button"
+                      onClick={() => {
+                        setDeliveryLocationId(loc.id);
+                        setDeliveryMode(loc.kind === 'custom' ? 'home' : loc.kind);
+                        // A named location's address is fixed by the host; a
+                        // custom (radius) location still needs the guest to
+                        // say exactly where within it.
+                        setDeliveryAddress(loc.kind === 'custom' ? '' : loc.address || loc.name);
+                      }}
+                      className={cn(
+                        'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                        deliveryLocationId === loc.id ? 'border-primary bg-primary/10 text-primary' : 'border-border',
+                      )}
+                    >
+                      {loc.name}
+                    </button>
+                  ))}
+                </div>
+                {deliveryLocationId && (() => {
+                  const picked = activeDeliveryLocations.find((l) => l.id === deliveryLocationId);
+                  if (!picked) return null;
+                  return (
+                    <div className="space-y-2">
+                      {picked.minTripDays > 0 && !!days && days > 0 && days < picked.minTripDays && (
+                        <p className="text-xs font-medium text-destructive">
+                          {picked.name} delivery needs a trip of at least {picked.minTripDays} days.
+                        </p>
+                      )}
+                      {picked.kind === 'custom' && (
+                        <Input
+                          value={deliveryAddress}
+                          onChange={(e) => setDeliveryAddress(e.target.value)}
+                          placeholder={`Delivery address (within ${picked.radiusMiles ?? 20} miles)`}
+                        />
+                      )}
+                      {picked.kind === 'airport' && (
+                        <>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              value={flightNumber}
+                              onChange={(e) => setFlightNumber(e.target.value.toUpperCase())}
+                              placeholder="Flight no. (AA123)"
+                            />
+                            <Input
+                              value={terminal}
+                              onChange={(e) => setTerminal(e.target.value)}
+                              placeholder="Terminal (opt.)"
+                            />
+                          </div>
+                          <Input
+                            type="datetime-local"
+                            value={arrivesAt}
+                            onChange={(e) => setArrivesAt(e.target.value)}
+                            aria-label="Scheduled arrival"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Your host meets your flight. If it’s delayed, your pickup window moves with it.
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : deliveryModes.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">Delivery</p>

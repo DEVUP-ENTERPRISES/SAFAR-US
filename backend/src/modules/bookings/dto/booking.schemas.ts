@@ -5,6 +5,8 @@ const isoDate = z.string().datetime().or(z.coerce.date());
 const deliverySchema = z
   .object({
     mode: z.enum(['airport', 'home', 'hotel', 'business']),
+    /** Which configured location the guest picked; priced server-side from it. */
+    locationId: z.string().min(1).optional(),
     address: z.string().min(3).max(300),
     lat: z.number().optional(),
     lng: z.number().optional(),

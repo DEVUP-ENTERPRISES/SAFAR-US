@@ -11,6 +11,37 @@ const deliverySchema = z
   })
   .default({ airport: false, home: false, hotel: false, business: false, radiusKm: 0, fee: 0 });
 
+/**
+ * A delivery location the host offers. `id` is assigned by the server when
+ * absent so a newly added location gets a stable identity bookings can
+ * reference, and an edited one keeps the identity it already had.
+ */
+const deliveryLocationSchema = z
+  .object({
+    id: z.string().min(1).optional(),
+    kind: z.enum(['airport', 'hotel', 'business', 'custom']),
+    name: z.string().min(2).max(120),
+    address: z.string().max(300).default(''),
+    lat: z.number().min(-90).max(90).optional(),
+    lng: z.number().min(-180).max(180).optional(),
+    fee: z.number().int().min(0).default(0),
+    minTripDays: z.number().int().min(0).max(30).default(0),
+    accessMethod: z.enum(['lockbox', 'remote_unlock', 'in_person']).default('in_person'),
+    radiusMiles: z.number().min(0).max(200).optional(),
+    subLocations: z
+      .array(z.object({ name: z.string().min(1).max(120), note: z.string().max(200).optional() }))
+      .max(20)
+      .optional(),
+    parkingRate: z.enum(['free', 'hourly', 'daily']).optional(),
+    enabled: z.boolean().default(true),
+  })
+  // A radius is what makes a custom location deliverable at all; without one
+  // there is no area to quote against.
+  .refine((l) => l.kind !== 'custom' || (l.radiusMiles ?? 0) > 0, {
+    message: 'A custom delivery location needs a radius in miles',
+    path: ['radiusMiles'],
+  });
+
 const photoSchema = z.object({
   url: z.string().url(),
   key: z.string().optional(),
@@ -77,6 +108,7 @@ export const createVehicleSchema = z.object({
     maxTripHours: z.number().int().min(1).default(24 * 30),
     cancellationPolicy: z.enum(['flexible', 'moderate', 'strict']).default('moderate'),
     delivery: deliverySchema,
+    deliveryLocations: z.array(deliveryLocationSchema).max(25).optional(),
   }),
   pricing: z.object({
     dailyPrice: z.number().int().positive(),
@@ -169,6 +201,7 @@ export const updateVehicleSchema = z
             fee: z.number().int().min(0),
           })
           .partial(),
+        deliveryLocations: z.array(deliveryLocationSchema).max(25),
       })
       .partial(),
   })
