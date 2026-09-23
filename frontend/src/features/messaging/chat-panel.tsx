@@ -175,7 +175,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
           className="hidden"
           onChange={(e) => sendPhoto(e.target.files)}
         />
-        <div className="flex flex-1 items-end gap-1 rounded-[1.4rem] border border-border bg-background ps-1.5 pe-2">
+        <div className="flex min-w-0 flex-1 items-end gap-1 rounded-[1.4rem] border border-border bg-background ps-1.5 pe-2">
           <button
             aria-label="Send a photo"
             disabled={uploading}
@@ -196,7 +196,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
               }
             }}
             placeholder="Message on CatoDrive…"
-            className="max-h-32 min-h-[2.25rem] flex-1 resize-none bg-transparent py-2 text-[14.5px] leading-snug outline-none placeholder:text-muted-foreground"
+            className="min-w-0 max-h-32 min-h-[2.25rem] flex-1 resize-none bg-transparent py-2 text-[14.5px] leading-snug outline-none placeholder:text-muted-foreground"
           />
         </div>
         <button

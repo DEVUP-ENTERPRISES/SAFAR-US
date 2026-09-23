@@ -199,9 +199,9 @@ function BookingDetail({ id }: { id: string }) {
       <TrackingPanel bookingId={id} role="guest" />
       {['paid', 'confirmed', 'in_progress'].includes(String(b.status)) && <PickupCode bookingId={id} />}
 
-      <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-3 lg:items-start">
         {/* ── Main column ──────────────────────────────────────────────── */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           <DepositStatus bookingId={id} />
 
           {/* Post-trip charges, itemised and disputable. */}
@@ -260,7 +260,7 @@ function BookingDetail({ id }: { id: string }) {
         </div>
 
         {/* ── Rail: what it cost, and what you can do ──────────────────── */}
-        <aside className="space-y-4 lg:sticky lg:top-24">
+        <aside className="min-w-0 space-y-4 lg:sticky lg:top-24">
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Receipt className="h-5 w-5 text-primary" /> Payment</CardTitle></CardHeader>
             <CardContent className="space-y-2.5 text-sm">
