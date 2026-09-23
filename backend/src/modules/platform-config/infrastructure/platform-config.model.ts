@@ -465,7 +465,7 @@ const schema = new Schema<PlatformConfigDoc>(
       minCents: { type: Number, default: 25000 },   // $250 floor
       maxCents: { type: Number, default: 100000 },  // $1,000 ceiling
       multiplierBps: { type: Number, default: 20000 }, // 2x the daily rate
-      autoReleaseHours: { type: Number, default: 24 },
+      autoReleaseHours: { type: Number, default: 120 },
     },
     commission: {
       defaultBps: { type: Number, default: 2000 }, // 20%

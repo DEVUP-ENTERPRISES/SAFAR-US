@@ -134,7 +134,7 @@ export class PlatformConfigService {
         minCents: 25000,
         maxCents: 100000,
         multiplierBps: 20000,
-        autoReleaseHours: 24,
+        autoReleaseHours: 120, // 5 days, matching Turo
         ...(doc.deposit ?? {}),
       },
       commission: { defaultBps: 2000, minBps: 0, maxBps: 4000, ...(doc.commission ?? {}) },
