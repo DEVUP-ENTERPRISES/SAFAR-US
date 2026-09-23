@@ -2,6 +2,7 @@ import { TripModel, type TripDoc } from '../infrastructure/trip.model';
 import type { CaptainAbility } from '../../hosts/infrastructure/host-staff.model';
 import { bookingService } from '../../bookings/application/booking.service';
 import { incidentalsService } from '../../bookings/application/incidentals.service';
+import { recallHoldService } from '../../vehicles/application/recall-hold.service';
 import { depositService } from '../../payments/application/deposit.service';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
@@ -134,6 +135,10 @@ export class TripService {
     } catch (err) {
       logger.warn({ err, bookingId: trip.bookingId }, 'fuel shortfall charge failed');
     }
+
+    // Recall check happens now, not before the trip — a guest with the keys
+    // already must never be stranded by a recall that published mid-rental.
+    void recallHoldService.applyAfterTrip(trip.vehicleId).catch(() => undefined);
 
     // The deposit is not released here. The host gets an inspection window to
     // report damage first; the auto-release job frees it when that window

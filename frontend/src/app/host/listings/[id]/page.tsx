@@ -108,7 +108,7 @@ export default function ManageListingPage() {
   });
 
   const docUpload = useMutation({
-    mutationFn: async ({ category, file }: { category: 'registration' | 'insurance'; file: File }) => {
+    mutationFn: async ({ category, file }: { category: 'registration' | 'insurance' | 'recall_receipt'; file: File }) => {
       const [target] = await hostApi.uploadUrls(category, 1, file.type || 'application/pdf');
       await putToStorage(target.uploadUrl, file);
       return api.post('/documents', { vehicleId: id, category, url: target.publicUrl, key: target.key });
@@ -416,12 +416,20 @@ export default function ManageListingPage() {
           <Row
             icon={<ShieldCheck className="h-5 w-5" />}
             title="Safety & inspections"
-            subtitle="Registration and insurance documents"
+            subtitle={v.recallHold ? 'On recall hold — repair receipt needed' : 'Registration and insurance documents'}
+            value={v.recallHold ? 'Recall hold' : undefined}
             onClick={() => toggle('safety')}
           />
           {panel === 'safety' && (
-            <div className="flex flex-wrap gap-2 bg-subtle px-4 py-4">
-              {(['registration', 'insurance'] as const).map((category) => (
+            <div className="space-y-3 bg-subtle px-4 py-4">
+              {v.recallHold && (
+                <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
+                  This car was paused after its last trip over an open safety recall. Upload a repair
+                  receipt below — it stays paused until ops verifies it.
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+              {([...(['registration', 'insurance'] as const), ...(v.recallHold ? (['recall_receipt'] as const) : [])]).map((category) => (
                 <label
                   key={category}
                   className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium capitalize transition-colors hover:border-primary/50"
@@ -436,10 +444,11 @@ export default function ManageListingPage() {
                       if (file) docUpload.mutate({ category, file });
                     }}
                   />
-                  <Upload className="h-4 w-4" /> Upload {category}
+                  <Upload className="h-4 w-4" /> Upload {category === 'recall_receipt' ? 'repair receipt' : category}
                 </label>
               ))}
               {docUpload.isPending && <span className="self-center text-sm text-muted-foreground">Uploading…</span>}
+              </div>
             </div>
           )}
 

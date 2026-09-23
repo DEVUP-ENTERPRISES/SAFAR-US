@@ -79,7 +79,8 @@ export type UploadCategory =
   | 'registration'
   | 'insurance'
   | 'kyc'
-  | 'claim';
+  | 'claim'
+  | 'recall_receipt';
 
 export interface UploadTarget {
   key: string;

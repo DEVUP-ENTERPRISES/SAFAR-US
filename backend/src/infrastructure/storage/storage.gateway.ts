@@ -18,7 +18,8 @@ export type UploadCategory =
   | 'registration'
   | 'insurance'
   | 'kyc'
-  | 'claim';
+  | 'claim'
+  | 'recall_receipt';
 
 export const UPLOAD_CATEGORIES = [
   'vehicle_photo',
@@ -29,6 +30,7 @@ export const UPLOAD_CATEGORIES = [
   'insurance',
   'kyc',
   'claim',
+  'recall_receipt',
 ] as const;
 
 /**
@@ -66,6 +68,7 @@ export const PRIVATE_CATEGORIES: UploadCategory[] = [
   'insurance',
   'kyc',
   'claim',
+  'recall_receipt',
 ];
 
 export function isPrivateCategory(category: string): boolean {

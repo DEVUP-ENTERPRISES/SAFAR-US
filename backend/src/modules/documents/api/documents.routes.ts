@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { DocumentModel } from '../infrastructure/document.model';
+import { recallHoldService } from '../../vehicles/application/recall-hold.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
@@ -12,7 +13,7 @@ const router = Router();
 
 const createSchema = z.object({
   vehicleId: z.string().optional(),
-  category: z.enum(['registration', 'insurance', 'pollution', 'fitness', 'kyc', 'claim']),
+  category: z.enum(['registration', 'insurance', 'pollution', 'fitness', 'kyc', 'claim', 'recall_receipt']),
   url: z.string().url(),
   key: z.string().optional(),
   expiresAt: z.coerce.date().optional(),
@@ -49,11 +50,15 @@ router.post(
   authenticate,
   authorize('vehicle:verify'),
   asyncHandler(async (req, res) => {
-    const res2 = await DocumentModel.updateOne(
-      { _id: req.params.id },
-      { verification: { status: 'verified', verifiedAt: new Date() } },
-    );
-    if (res2.matchedCount === 0) throw new NotFoundError('Document');
+    const doc = await DocumentModel.findOne({ _id: req.params.id });
+    if (!doc) throw new NotFoundError('Document');
+    doc.verification = { status: 'verified', verifiedAt: new Date() };
+    await doc.save();
+
+    // A verified repair receipt is what a recall hold is waiting on.
+    if (doc.category === 'recall_receipt' && doc.vehicleId) {
+      await recallHoldService.releaseIfHeld(doc.vehicleId);
+    }
     sendSuccess(res, { verified: true });
   }),
 );

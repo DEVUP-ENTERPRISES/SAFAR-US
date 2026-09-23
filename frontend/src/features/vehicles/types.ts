@@ -64,6 +64,7 @@ export interface Vehicle {
   };
   status: string;
   verificationStatus: string;
+  recallHold?: boolean;
   ratingAvg: number;
   ratingCount: number;
   totalTrips: number;

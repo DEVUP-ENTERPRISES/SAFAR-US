@@ -186,7 +186,7 @@ export interface ReviewCheck {
 export interface VehicleReview {
   vehicle: {
     _id: string; make: string; model: string; year: number; vin?: string;
-    registrationNumber?: string; status: string; verificationStatus: string;
+    registrationNumber?: string; status: string; verificationStatus: string; recallHold?: boolean;
     photos?: { url: string; isCover?: boolean }[];
     specs?: { doors?: number; color?: string; mileageKm?: number };
     pricing: { dailyPrice: number; currency: string; cleaningFee?: number };
@@ -326,6 +326,7 @@ export const adminApi = {
   vehicleReview: (id: string) => api.get<VehicleReview>(`/admin/vehicles/${id}/review`),
   vehicleAction: (id: string, action: 'approve' | 'suspend' | 'reject') =>
     api.post(`/admin/vehicles/${id}/action`, { action }),
+  verifyDocument: (documentId: string) => api.post<{ verified: boolean }>(`/documents/${documentId}/verify`, {}),
 
   bookings: (q: Q = {}) => api.get<any[]>('/admin/bookings', q),
   cancelBooking: (id: string, reason: string) => api.post(`/admin/bookings/${id}/cancel`, { reason }),

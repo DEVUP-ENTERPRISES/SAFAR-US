@@ -43,6 +43,15 @@ export default function VehicleReviewPage() {
     onError: () => notify({ tone: 'error', title: 'That did not go through' }),
   });
 
+  const verifyDoc = useMutation({
+    mutationFn: (documentId: string) => adminApi.verifyDocument(documentId),
+    onSuccess: () => {
+      notify({ tone: 'success', title: 'Document verified' });
+      qc.invalidateQueries({ queryKey: ['admin-vehicle-review', id] });
+    },
+    onError: () => notify({ tone: 'error', title: "Couldn't verify that document" }),
+  });
+
   const run = async (action: 'approve' | 'reject') => {
     const missing = data?.checks.filter((c) => c.state === 'missing') ?? [];
     const { ok } = await confirm({
@@ -94,6 +103,14 @@ export default function VehicleReviewPage() {
           </Button>
         </div>
       </div>
+
+      {v.recallHold && (
+        <p className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+          On recall hold — paused after its last trip over an open NHTSA recall. Bookable again once a
+          repair receipt is verified below.
+        </p>
+      )}
 
       {!readyToApprove && (
         <p className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
@@ -170,23 +187,27 @@ export default function VehicleReviewPage() {
           {documents.length ? (
             <div className="space-y-2">
               {documents.map((d) => (
-                <a
+                <div
                   key={d._id}
-                  href={d.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-3 rounded-xl border border-border/60 px-3 py-2.5 text-sm hover:border-primary/40"
+                  className="flex items-center gap-3 rounded-xl border border-border/60 px-3 py-2.5 text-sm"
                 >
                   <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1">
-                    <span className="font-medium capitalize">{d.category}</span>
+                  <a href={d.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 hover:underline">
+                    <span className="font-medium capitalize">{d.category.replace('_', ' ')}</span>
                     <span className="block text-xs text-muted-foreground">
                       {d.verification?.status ?? 'pending'}
                       {d.expiresAt ? ` · expires ${formatDate(d.expiresAt)}` : ''}
                     </span>
-                  </span>
-                  <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </a>
+                  </a>
+                  {d.verification?.status !== 'verified' && (
+                    <Button size="sm" variant="outline" loading={verifyDoc.isPending} onClick={() => verifyDoc.mutate(d._id)}>
+                      Verify
+                    </Button>
+                  )}
+                  <a href={d.url} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </a>
+                </div>
               ))}
             </div>
           ) : (
