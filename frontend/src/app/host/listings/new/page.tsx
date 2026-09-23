@@ -17,8 +17,11 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { LocationSearch } from '@/features/maps/components/location-search';
 import { ColorPicker } from '@/features/vehicles/components/color-picker';
+import { FeaturePicker } from '@/features/vehicles/components/feature-picker';
+import { US_STATES } from '@/lib/data/us-states';
+import { ShieldCheck } from 'lucide-react';
 
-const STEPS = ['Basics', 'Details', 'Photos', 'Pricing', 'Delivery', 'Review'];
+const STEPS = ['Basics', 'Details', 'Photos', 'Pricing', 'Delivery', 'Standards', 'Review'];
 
 interface Draft {
   make: string;
@@ -36,7 +39,12 @@ interface Draft {
   lat: number | null;
   color: string;
   doors: number;
-  features: string;
+  features: string[];
+  vin: string;
+  licensePlate: string;
+  licensePlateState: string;
+  odometerKm: number | '';
+  standardsAgreed: boolean;
   photos: { url: string; key?: string; isCover?: boolean }[];
   title: string;
   description: string;
@@ -67,7 +75,8 @@ const ADDON_PRESETS: Record<string, { label: string; priceType: 'per_trip' | 'pe
 const initial: Draft = {
   make: '', model: '', year: 2022, category: 'economy', bodyType: 'sedan',
   transmission: 'automatic', fuelType: 'petrol', seats: 5,
-  city: '', address: '', pickupNotes: '', lng: null, lat: null, color: '', doors: 4, features: '',
+  city: '', address: '', pickupNotes: '', lng: null, lat: null, color: '', doors: 4, features: [],
+  vin: '', licensePlate: '', licensePlateState: '', odometerKm: '', standardsAgreed: false,
   photos: [], title: '', description: '', instantBook: true, cancellationPolicy: 'moderate',
   dailyPrice: 65, cleaningFee: 25, weekendPct: 20, weeklyDiscountPct: 10, monthlyDiscountPct: 20,
   earlyBirdPct: 5, lastMinutePct: 0,
@@ -154,8 +163,17 @@ export default function NewListingPage() {
       const body: CreateVehicleInput = {
         make: d.make, model: d.model, year: Number(d.year), bodyType: d.bodyType, category: d.category,
         transmission: d.transmission, fuelType: d.fuelType, seats: Number(d.seats),
-        specs: { color: d.color, doors: Number(d.doors) },
-        features: d.features.split(',').map((f) => f.trim()).filter(Boolean),
+        vin: d.vin.trim() || undefined,
+        registrationNumber:
+          d.licensePlate.trim()
+            ? `${d.licensePlate.trim()}${d.licensePlateState ? ` (${d.licensePlateState})` : ''}`
+            : undefined,
+        specs: {
+          color: d.color,
+          doors: Number(d.doors),
+          ...(d.odometerKm !== '' ? { mileageKm: Number(d.odometerKm) } : {}),
+        },
+        features: d.features,
         photos: d.photos,
         location: {
           lng: d.lng!,
@@ -234,6 +252,9 @@ export default function NewListingPage() {
       const anyDelivery = d.delivery.airport || d.delivery.home || d.delivery.hotel || d.delivery.business;
       if (anyDelivery && Number(d.delivery.radiusKm) <= 0) e.radiusKm = 'Set how far you will deliver';
     }
+    if (forStep === 5) {
+      if (!d.standardsAgreed) e.standardsAgreed = 'You must agree to continue';
+    }
     return e;
   };
 
@@ -241,7 +262,7 @@ export default function NewListingPage() {
   const canNext = () => Object.keys(errors).length === 0;
 
   /** Every unmet requirement across the whole wizard — shown on Review. */
-  const allBlockers = [0, 1, 2, 3, 4].flatMap((i) =>
+  const allBlockers = [0, 1, 2, 3, 4, 5].flatMap((i) =>
     Object.entries(stepErrors(i)).map(([field, msg]) => ({ step: i, field, msg })),
   );
 
@@ -291,6 +312,21 @@ export default function NewListingPage() {
                   { value: 'ev', label: 'Electric' },
                 ]}
               />
+              <Field label="VIN" hint="Optional — helps us confirm the car matches your listing">
+                <Input value={d.vin} onChange={(e) => set('vin', e.target.value.toUpperCase())} placeholder="1GNERFKWXPJ24O667" maxLength={17} />
+              </Field>
+              <Field label="Odometer (km)" hint="Optional">
+                <Input type="number" value={d.odometerKm} onChange={(e) => set('odometerKm', e.target.value === '' ? '' : Number(e.target.value))} />
+              </Field>
+              <Field label="License plate number">
+                <Input value={d.licensePlate} onChange={(e) => set('licensePlate', e.target.value.toUpperCase())} placeholder="XCW2O63" />
+              </Field>
+              <SelectField
+                label="State"
+                value={d.licensePlateState}
+                onChange={(v) => set('licensePlateState', v)}
+                options={[{ value: '', label: 'Select a state' }, ...US_STATES.map((s) => ({ value: s, label: s }))]}
+              />
             </div>
           )}
 
@@ -322,10 +358,12 @@ export default function NewListingPage() {
                 <ColorPicker value={d.color} onChange={(v) => set('color', v)} />
               </Field>
               <Field label="Doors"><Input type="number" value={d.doors} onChange={(e) => set('doors', Number(e.target.value))} /></Field>
-              <Field label="Features (comma separated)" className="sm:col-span-2"><Input value={d.features} onChange={(e) => set('features', e.target.value)} placeholder="gps, bluetooth, sunroof" /></Field>
               <Field label="Listing title" className="sm:col-span-2"><Input value={d.title} onChange={(e) => set('title', e.target.value)} placeholder={`${d.make} ${d.model} ${d.year}`} /></Field>
               <Field label="Description" className="sm:col-span-2">
                 <Textarea value={d.description} onChange={(e) => set('description', e.target.value)} rows={3} />
+              </Field>
+              <Field label="Features" className="sm:col-span-2" hint="Guests filter by these — pick everything that applies">
+                <FeaturePicker value={d.features} onChange={(v) => set('features', v)} />
               </Field>
             </div>
           )}
@@ -490,11 +528,66 @@ export default function NewListingPage() {
           )}
 
           {step === 5 && (
+            <div className="space-y-5">
+              <div className="flex flex-col items-center gap-3 py-4 text-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <ShieldCheck className="h-7 w-7" />
+                </span>
+                <h2 className="display text-xl">Safety &amp; quality standards</h2>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  We strive to maintain a safe marketplace and reliable experience. As a host, you&apos;re
+                  expected to uphold these standards:
+                </p>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <p className="font-semibold">Maintenance</p>
+                  <p className="text-sm text-muted-foreground">
+                    Keep your car well maintained so your guests stay safe on the road. You will be required
+                    to pass an inspection for every car you list.
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold">Cleaning</p>
+                  <p className="text-sm text-muted-foreground">
+                    Clean and refuel your car before every trip so your guests have a good experience.
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold">Accurate details</p>
+                  <p className="text-sm text-muted-foreground">
+                    The photos, features and condition you list must match the car a guest actually picks up.
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold">Availability</p>
+                  <p className="text-sm text-muted-foreground">
+                    Honor every confirmed booking. Cancelling on a guest after they&apos;ve booked affects your
+                    standing as a host.
+                  </p>
+                </div>
+              </div>
+              <label className="flex items-start gap-2.5 rounded-xl border border-border/60 p-3.5 text-sm">
+                <input
+                  type="checkbox"
+                  checked={d.standardsAgreed}
+                  onChange={(e) => set('standardsAgreed', e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[hsl(var(--primary))]"
+                />
+                I agree to uphold CatoDrive&apos;s safety and quality standards for every trip.
+              </label>
+              {errors.standardsAgreed && <p className="text-sm text-destructive">{errors.standardsAgreed}</p>}
+            </div>
+          )}
+
+          {step === 6 && (
             <div className="space-y-2 text-sm">
               <Row label="Vehicle" value={`${d.make} ${d.model} ${d.year}`} />
               <Row label="Category" value={d.category} />
               <Row label="Location" value={d.city ? `${d.address || d.city} · ${d.city}` : 'Not set'} />
               <Row label="Photos" value={`${d.photos.length}`} />
+              <Row label="License plate" value={d.licensePlate ? `${d.licensePlate}${d.licensePlateState ? ` (${d.licensePlateState})` : ''}` : 'Not set'} />
+              <Row label="VIN" value={d.vin || 'Not set'} />
               <Row label="Daily price" value={`$${d.dailyPrice}`} />
               <Row label="Instant book" value={d.instantBook ? 'Yes' : 'No'} />
               {/* Anything still missing, with a link back to the step that owns it. */}
