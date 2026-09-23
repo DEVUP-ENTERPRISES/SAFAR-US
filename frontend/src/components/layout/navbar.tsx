@@ -25,6 +25,25 @@ export function Navbar() {
   const isSearch = pathname === '/search';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // The header is fixed so it never leaves the viewport — on a content-heavy
+  // screen (chat, a long form) that means it permanently sits over whatever
+  // scrolls underneath it. Hiding it on scroll-down and bringing it back on
+  // scroll-up (or near the top) gives the content the full screen without
+  // losing one-swipe access back to navigation.
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      const goingDown = y > lastY;
+      const pastThreshold = y > 96; // below the header's own height + margin
+      setHidden(goingDown && pastThreshold);
+      lastY = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -45,6 +64,7 @@ export function Navbar() {
       <header className={cn(
         'fixed top-4 inset-x-4 z-50 mx-auto rounded-2xl border border-white/10 bg-background/60 backdrop-blur-2xl shadow-xl shadow-black/10 transition-all duration-300',
         isSearch ? 'max-w-7xl' : 'max-w-6xl',
+        hidden && !mobileMenuOpen && '-translate-y-24 opacity-0',
       )}>
         <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
         {/* Left: Mobile Menu Toggle & Wordmark */}
