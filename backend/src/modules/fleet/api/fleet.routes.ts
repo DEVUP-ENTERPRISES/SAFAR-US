@@ -36,6 +36,46 @@ router.post(
   }),
 );
 
+const policySchema = z.object({
+  delivery: z
+    .object({
+      airport: z.boolean(),
+      home: z.boolean(),
+      hotel: z.boolean(),
+      business: z.boolean(),
+      fee: z.number().int().min(0),
+    })
+    .partial()
+    .optional(),
+  location: z
+    .object({
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+      address: z.string(),
+      city: z.string(),
+    })
+    .optional(),
+});
+
+router.patch(
+  '/:id/policy',
+  authenticate,
+  validate({ body: policySchema }),
+  asyncHandler(async (req, res) => {
+    const fleet = await fleetService.updatePolicy(req.principal!.userId, req.params.id, req.body);
+    sendSuccess(res, fleet);
+  }),
+);
+
+router.post(
+  '/:id/policy/apply',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const result = await fleetService.applyPolicyToVehicles(req.principal!.userId, req.params.id);
+    sendSuccess(res, result);
+  }),
+);
+
 router.get(
   '/:id/dashboard',
   authenticate,

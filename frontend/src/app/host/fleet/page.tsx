@@ -8,8 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
+import { useToast } from '@/components/ui/toast';
+import { cn } from '@/lib/utils/cn';
 import { formatMoney } from '@/lib/utils/format';
-import { hostApi } from '@/features/host/api';
+import { hostApi, type Fleet } from '@/features/host/api';
+import { LocationSearch } from '@/features/maps/components/location-search';
 
 export default function FleetPage() {
   const qc = useQueryClient();
@@ -66,6 +69,10 @@ export default function FleetPage() {
             </button>
           ))}
         </div>
+      )}
+
+      {selected && fleets.data && (
+        <FleetPolicyCard fleet={fleets.data.find((f) => f._id === selected)!} />
       )}
 
       {selected && dashboard.data && (
@@ -134,6 +141,111 @@ export default function FleetPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+const DELIVERY_MODES = [
+  ['home', 'Guest address'], ['airport', 'Airport'], ['hotel', 'Hotel'], ['business', 'Business'],
+] as const;
+
+/**
+ * Fleet-wide defaults, set once and pushed to every vehicle on demand.
+ * Saving the policy never touches a vehicle by itself — "Apply to all
+ * vehicles" is a separate, explicit action, so a host tuning the policy
+ * mid-edit never silently overwrites listings that already look right.
+ */
+function FleetPolicyCard({ fleet }: { fleet: Fleet }) {
+  const qc = useQueryClient();
+  const notify = useToast();
+  const d = fleet.defaultDelivery;
+  const [delivery, setDelivery] = useState({
+    airport: !!d?.airport, home: !!d?.home, hotel: !!d?.hotel, business: !!d?.business,
+    fee: String(((d?.fee ?? 0) / 100) || ''),
+  });
+  const [loc, setLoc] = useState<{ lat: number; lng: number; city: string; address: string } | null>(null);
+
+  const savePolicy = useMutation({
+    mutationFn: () =>
+      hostApi.updateFleetPolicy(fleet._id, {
+        delivery: { ...delivery, fee: Math.round(Number(delivery.fee || 0) * 100) },
+        ...(loc ? { location: loc } : {}),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['fleets'] });
+      notify({ tone: 'success', title: 'Fleet policy saved' });
+    },
+  });
+
+  const applyPolicy = useMutation({
+    mutationFn: () => hostApi.applyFleetPolicy(fleet._id),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['my-vehicles'] });
+      notify({
+        tone: r.failed ? 'error' : 'success',
+        title: r.failed ? `Applied to ${r.applied} vehicles, ${r.failed} failed` : `Applied to ${r.applied} vehicles`,
+      });
+    },
+  });
+
+  const hasPolicy = !!(fleet.defaultDelivery || fleet.defaultLocation);
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Delivery &amp; pickup policy</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <Field
+          label="Default parking address"
+          hint={loc ? `Will be saved as ${loc.city}` : fleet.defaultLocation ? `Currently ${fleet.defaultLocation.city}` : 'Not set'}
+        >
+          <LocationSearch
+            placeholder="Search an address"
+            onPick={(p) => setLoc({ lat: p.lat, lng: p.lng, city: p.city, address: p.label })}
+          />
+        </Field>
+
+        <div>
+          <p className="mb-2 text-sm font-medium">Delivery options</p>
+          <div className="flex flex-wrap gap-2">
+            {DELIVERY_MODES.map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setDelivery((s) => ({ ...s, [key]: !s[key] }))}
+                className={cn(
+                  'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+                  delivery[key] ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary/40',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <Field label="Delivery fee ($)" hint="Flat fee charged when a guest requests delivery">
+          <Input
+            type="number"
+            min={0}
+            value={delivery.fee}
+            onChange={(e) => setDelivery({ ...delivery, fee: e.target.value })}
+          />
+        </Field>
+
+        <div className="flex flex-wrap gap-3">
+          <Button size="sm" loading={savePolicy.isPending} onClick={() => savePolicy.mutate()}>
+            Save policy
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            loading={applyPolicy.isPending}
+            disabled={!hasPolicy}
+            onClick={() => applyPolicy.mutate()}
+          >
+            Apply to all vehicles in this fleet
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -88,11 +88,28 @@ export interface UploadTarget {
   publicUrl: string;
 }
 
+export interface FleetDeliveryPolicy {
+  airport?: boolean;
+  home?: boolean;
+  hotel?: boolean;
+  business?: boolean;
+  fee?: number;
+}
+
+export interface FleetLocationPolicy {
+  lat: number;
+  lng: number;
+  address: string;
+  city: string;
+}
+
 export interface Fleet {
   _id: string;
   name: string;
   region?: string;
   group?: string;
+  defaultDelivery?: FleetDeliveryPolicy;
+  defaultLocation?: FleetLocationPolicy;
 }
 
 export interface FleetDashboard {
@@ -238,6 +255,10 @@ export const hostApi = {
   fleetProfitability: (id: string) => api.get<FleetProfitability>(`/fleets/${id}/profitability`),
   assignToFleet: (fleetId: string, vehicleId: string) =>
     api.post<{ assigned: boolean }>(`/fleets/${fleetId}/vehicles`, { vehicleId }),
+  updateFleetPolicy: (fleetId: string, patch: { delivery?: FleetDeliveryPolicy; location?: FleetLocationPolicy }) =>
+    api.patch<Fleet>(`/fleets/${fleetId}/policy`, patch),
+  applyFleetPolicy: (fleetId: string) =>
+    api.post<{ applied: number; failed: number }>(`/fleets/${fleetId}/policy/apply`, {}),
 
   maintenance: (vehicleId?: string) =>
     api.get<MaintenanceRecord[]>('/maintenance', vehicleId ? { vehicleId } : undefined),

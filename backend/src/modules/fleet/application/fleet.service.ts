@@ -1,10 +1,12 @@
-import { FleetModel, type FleetDoc } from '../infrastructure/fleet.model';
+import { FleetModel, type FleetDoc, type FleetDeliveryPolicy, type FleetLocationPolicy } from '../infrastructure/fleet.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { AvailabilityModel } from '../../availability/infrastructure/availability.model';
 import { hostService } from '../../hosts/application/host.service';
 import { bookingReportingService } from '../../bookings/application/booking-reporting.service';
 import { maintenanceService } from '../../maintenance/application/maintenance.service';
-import { ForbiddenError, NotFoundError } from '../../../core/errors/app-error';
+import { vehicleService } from '../../vehicles/application/vehicle.service';
+import { ForbiddenError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
+import { logger } from '../../../infrastructure/logging/logger';
 
 export interface FleetDashboard {
   fleetId: string;
@@ -152,6 +154,45 @@ export class FleetService {
       totals: { grossRevenue, commission, hostEarnings, maintenanceCost, netProfit, marginBps },
       vehicles: perVehicle.sort((a, b) => b.netProfit - a.netProfit),
     };
+  }
+
+  /** Save the fleet-wide delivery/pickup defaults. Does not touch any vehicle yet. */
+  async updatePolicy(
+    userId: string,
+    fleetId: string,
+    patch: { delivery?: FleetDeliveryPolicy; location?: FleetLocationPolicy },
+  ): Promise<FleetDoc> {
+    const fleet = await this.getOwned(userId, fleetId);
+    const update: Record<string, unknown> = {};
+    if (patch.delivery) update.defaultDelivery = { ...fleet.defaultDelivery, ...patch.delivery };
+    if (patch.location) update.defaultLocation = patch.location;
+    await FleetModel.updateOne({ _id: fleetId }, update);
+    return { ...fleet, ...update };
+  }
+
+  /**
+   * Push the saved fleet policy onto every vehicle in the fleet, through the
+   * same `vehicleService.update` path a host uses to edit one car — so the
+   * merge/validation/geo-conversion logic never diverges between the two.
+   */
+  async applyPolicyToVehicles(userId: string, fleetId: string): Promise<{ applied: number; failed: number }> {
+    const fleet = await this.getOwned(userId, fleetId);
+    if (!fleet.defaultDelivery && !fleet.defaultLocation) {
+      throw new ValidationError('Set a delivery or pickup policy before applying it to vehicles');
+    }
+    const vehicles = await VehicleModel.find({ fleetId, deletedAt: null }).select('_id').lean();
+
+    const patch: Record<string, unknown> = {};
+    if (fleet.defaultDelivery) patch.listing = { delivery: fleet.defaultDelivery };
+    if (fleet.defaultLocation) patch.location = fleet.defaultLocation;
+
+    const results = await Promise.allSettled(
+      vehicles.map((v) => vehicleService.update(userId, v._id, patch)),
+    );
+    const failed = results.filter((r) => r.status === 'rejected');
+    failed.forEach((r) => logger.warn({ err: (r as PromiseRejectedResult).reason }, 'fleet policy apply failed for one vehicle'));
+
+    return { applied: results.length - failed.length, failed: failed.length };
   }
 
   private async getOwned(userId: string, fleetId: string): Promise<FleetDoc> {
