@@ -23,6 +23,7 @@ import { SimilarCars } from '@/features/vehicles/components/similar-cars';
 import { usePlatformConfig, describeCancellation } from '@/features/platform/config';
 import { useRecentlyViewed } from '@/features/vehicles/recently-viewed';
 import { useQuote, useCreateBooking } from '@/features/bookings/hooks';
+import { bookingApi } from '@/features/bookings/api';
 import { TripLoader } from '@/features/loading/trip-loader';
 import { TermsModal } from '@/features/bookings/components/terms-modal';
 import { useAuthStore } from '@/features/auth/store';
@@ -146,6 +147,26 @@ export default function VehicleDetailPage() {
         fuelType: v!.fuelType,
       }),
     enabled: !!v?.location?.coordinates,
+  });
+
+  // Real dollar savings for the two length-of-stay tiers, from the same quote
+  // engine a real booking uses — "10% off" makes a guest do arithmetic;
+  // "$52 off a week" is the thing they're actually deciding whether to book.
+  const savingsPreview = useQuery({
+    queryKey: ['savings-preview', id],
+    queryFn: async () => {
+      const start = new Date();
+      start.setDate(start.getDate() + 1);
+      start.setHours(10, 0, 0, 0);
+      const quoteFor = (days: number) => {
+        const end = new Date(start);
+        end.setDate(end.getDate() + days);
+        return bookingApi.quote({ vehicleId: id, start: start.toISOString(), end: end.toISOString() });
+      };
+      const [weekly, monthly] = await Promise.all([quoteFor(7), quoteFor(28)]);
+      return { weekly, monthly };
+    },
+    enabled: !!id && (Math.round((v?.pricing.weeklyDiscountBps ?? 0) / 100) > 0 || Math.round((v?.pricing.monthlyDiscountBps ?? 0) / 100) > 0),
   });
 
   /*
@@ -476,19 +497,24 @@ export default function VehicleDetailPage() {
 
           {(weeklyPct > 0 || monthlyPct > 0) && (
             <div className="pt-8">
-              <h2 className="mb-4 text-2xl font-bold tracking-tight">Trip savings</h2>
-              <div className="space-y-2">
+              <h2 className="mb-1 text-2xl font-bold tracking-tight">Trip savings</h2>
+              <p className="mb-4 text-[15px] text-muted-foreground">The longer you book, the less you pay per day.</p>
+              <div className="grid gap-3 sm:grid-cols-2">
                 {weeklyPct > 0 && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-[17px] font-medium">Weekly discount (7+ days)</p>
-                    <p className="text-[17px] font-medium text-success">−{weeklyPct}%</p>
-                  </div>
+                  <SavingsCard
+                    label="7+ day trips"
+                    pct={weeklyPct}
+                    savings={savingsPreview.data?.weekly.discount}
+                    loading={savingsPreview.isPending}
+                  />
                 )}
                 {monthlyPct > 0 && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-[17px] font-medium">Monthly discount (28+ days)</p>
-                    <p className="text-[17px] font-medium text-success">−{monthlyPct}%</p>
-                  </div>
+                  <SavingsCard
+                    label="28+ day trips"
+                    pct={monthlyPct}
+                    savings={savingsPreview.data?.monthly.discount}
+                    loading={savingsPreview.isPending}
+                  />
                 )}
               </div>
             </div>
@@ -1064,6 +1090,36 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between text-muted-foreground">
       <span>{label}</span><span className="text-foreground">{value}</span>
     </div>
+  );
+}
+
+function SavingsCard({
+  label,
+  pct,
+  savings,
+  loading,
+}: {
+  label: string;
+  pct: number;
+  savings?: { amount: number; currency: string };
+  loading: boolean;
+}) {
+  return (
+    <Card className="border-success/30 bg-success/5">
+      <CardContent className="flex items-center justify-between py-4">
+        <div>
+          <p className="text-[15px] font-medium text-muted-foreground">{label}</p>
+          {loading ? (
+            <div className="mt-1 h-7 w-20 animate-pulse rounded bg-muted" />
+          ) : (
+            <p className="text-2xl font-bold text-success">
+              {savings ? `Save ${formatMoney(savings)}` : `−${pct}%`}
+            </p>
+          )}
+        </div>
+        <span className="rounded-full bg-success/15 px-2.5 py-1 text-sm font-bold text-success">−{pct}%</span>
+      </CardContent>
+    </Card>
   );
 }
 function iso(local: string): string {
