@@ -23,6 +23,11 @@ export function formatDateRange(start: string | Date, end: string | Date): strin
   return `${formatDate(start)} → ${formatDate(end)}`;
 }
 
+/** Stored fuel-type values are internal; a US audience reads "Gas", not "petrol". */
+export const FUEL_LABEL: Record<'petrol' | 'diesel' | 'hybrid' | 'ev', string> = {
+  petrol: 'Gas', diesel: 'Diesel', hybrid: 'Hybrid', ev: 'Electric',
+};
+
 /** The app stores distance in km; a US audience reads miles. */
 export const kmToMiles = (km: number) => Math.round(km * 0.621371);
 export const milesToKm = (mi: number) => Math.round(mi / 0.621371);

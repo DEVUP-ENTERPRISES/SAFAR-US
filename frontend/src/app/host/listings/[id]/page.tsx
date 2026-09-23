@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DollarSign, MapPin, SlidersHorizontal, Camera, FileText, ShieldCheck, CalendarX, Star,
-  Upload, Trash2, AlertTriangle, Check, Power, TrendingUp,
+  Upload, Trash2, AlertTriangle, Check, Power, TrendingUp, Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatMoney } from '@/lib/utils/format';
+import { formatMoney, FUEL_LABEL, kmToMiles, perKmToPerMile } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
@@ -51,6 +51,9 @@ export default function ManageListingPage() {
 
   const [panel, setPanel] = useState<Panel>(null);
   const toggle = (p: Panel) => setPanel((cur) => (cur === p ? null : p));
+
+  const [editingPlate, setEditingPlate] = useState(false);
+  const [plateDraft, setPlateDraft] = useState('');
 
   const submit = useMutation({ mutationFn: () => vehicleApi.submit(id), onSuccess: invalidate });
 
@@ -228,10 +231,46 @@ export default function ManageListingPage() {
       {/* Title */}
       <div className="pt-4">
         <h1 className="display text-2xl">{v.make} {v.model} {v.year}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          <span className="font-mono">{v.registrationNumber ?? 'No plate'}</span> ·{' '}
-          <span className="capitalize">{v.category}</span>
-        </p>
+        {editingPlate ? (
+          <div className="mt-1.5 flex items-center gap-2">
+            <Input
+              autoFocus
+              value={plateDraft}
+              onChange={(e) => setPlateDraft(e.target.value.toUpperCase())}
+              placeholder="XCW2O63 (TX)"
+              className="h-8 max-w-[180px] font-mono text-sm"
+            />
+            <Button
+              size="sm"
+              loading={update.isPending}
+              onClick={() =>
+                update.mutate(
+                  { registrationNumber: plateDraft.trim() || undefined },
+                  { onSuccess: () => setEditingPlate(false) },
+                )
+              }
+            >
+              Save
+            </Button>
+            <button
+              className="text-sm text-muted-foreground hover:underline"
+              onClick={() => setEditingPlate(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <p className="mt-1 text-sm text-muted-foreground">
+            <span className="font-mono">{v.registrationNumber ?? 'No plate'}</span> ·{' '}
+            <span className="capitalize">{v.category}</span>
+            <button
+              className="ms-2 inline-flex items-center gap-1 text-primary hover:underline"
+              onClick={() => { setPlateDraft(v.registrationNumber ?? ''); setEditingPlate(true); }}
+            >
+              <Pencil className="h-3 w-3" /> Edit
+            </button>
+          </p>
+        )}
         {v.ratingCount > 0 && (
           <p className="mt-1 flex items-center gap-1 text-sm font-medium">
             <Star className="h-4 w-4 fill-primary text-primary" /> {v.ratingAvg.toFixed(1)}
@@ -301,10 +340,10 @@ export default function ManageListingPage() {
             subtitle={
               unlimited
                 ? 'Unlimited mileage'
-                : `${v.mileageLimit!.perDayKm} km/day included · ${formatMoney({
-                    amount: v.mileageLimit!.overageFeePerKm,
+                : `${kmToMiles(v.mileageLimit!.perDayKm)} mi/day included · ${formatMoney({
+                    amount: perKmToPerMile(v.mileageLimit!.overageFeePerKm),
                     currency: v.pricing.currency,
-                  })}/km over`
+                  })}/mi over`
             }
             value={v.listing?.instantBook ? 'Instant Book' : 'Request'}
             onClick={() => toggle('trip')}
@@ -390,7 +429,7 @@ export default function ManageListingPage() {
           <Row
             icon={<FileText className="h-5 w-5" />}
             title="Details"
-            subtitle={`${v.seats} seats · ${v.transmission} · ${v.fuelType}`}
+            subtitle={`${v.seats} seats · ${v.transmission} · ${FUEL_LABEL[v.fuelType]}`}
             value={v.vinVerified ? 'VIN verified' : 'VIN pending'}
             onClick={() => toggle('details')}
           />

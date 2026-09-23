@@ -18,6 +18,7 @@ import { useVehicleSearch, useFacets, useFilterCounts } from '@/features/vehicle
 import { useMutation } from '@tanstack/react-query';
 import { savedSearchApi } from '@/features/saved-search/api';
 import { useAuthStore } from '@/features/auth/store';
+import { FUEL_LABEL } from '@/lib/utils/format';
 import { MapboxPanel } from '@/features/maps/components/mapbox-panel';
 import { SearchBarFields } from '@/features/search/search-bar-fields';
 import { useSearchBar, toIso } from '@/features/search/search-store';
@@ -33,10 +34,6 @@ const SORTS: { key: SortKey; label: string }[] = [
 ];
 
 const FUELS = ['petrol', 'diesel', 'hybrid', 'ev'] as const;
-/** Stored value -> what a US guest actually calls it. */
-const FUEL_LABEL: Record<(typeof FUELS)[number], string> = {
-  petrol: 'Gas', diesel: 'Diesel', hybrid: 'Hybrid', ev: 'Electric',
-};
 const SEAT_OPTIONS = [2, 4, 5, 7];
 
 /** A filter "pill" that opens a small popover, Turo-style. Closes on outside click. */

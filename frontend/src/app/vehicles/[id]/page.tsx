@@ -12,7 +12,7 @@ import { Rating } from '@/components/ui/rating';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
-import { formatMoney, kmToMiles, perKmToPerMile } from '@/lib/utils/format';
+import { formatMoney, kmToMiles, perKmToPerMile, FUEL_LABEL } from '@/lib/utils/format';
 import { HostProfileCard } from '@/features/host/components/host-profile-card';
 import { cn } from '@/lib/utils/cn';
 import { api } from '@/lib/api/client';
@@ -469,7 +469,7 @@ export default function VehicleDetailPage() {
         <div className="flex flex-wrap gap-2.5">
           <Spec icon={<Users className="h-4 w-4" />} label={`${v.seats} seats`} />
           <Spec icon={<DoorOpen className="h-4 w-4" />} label={`${v.specs?.doors || 4} doors`} />
-          <Spec icon={<Fuel className="h-4 w-4" />} label={v.fuelType} />
+          <Spec icon={<Fuel className="h-4 w-4" />} label={FUEL_LABEL[v.fuelType]} />
           <Spec icon={<Gauge className="h-4 w-4" />} label={v.transmission} />
         </div>
 

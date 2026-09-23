@@ -8,7 +8,7 @@ import { X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
-import { formatMoney } from '@/lib/utils/format';
+import { formatMoney, FUEL_LABEL } from '@/lib/utils/format';
 import { vehicleApi } from '@/features/vehicles/api';
 import { useCompareStore } from '@/features/vehicles/compare-store';
 import type { Vehicle } from '@/features/vehicles/types';
@@ -33,7 +33,7 @@ function CompareInner() {
     { label: 'Category', get: (v) => <span className="capitalize">{v.category}</span> },
     { label: 'Seats', get: (v) => v.seats },
     { label: 'Transmission', get: (v) => <span className="capitalize">{v.transmission}</span> },
-    { label: 'Fuel', get: (v) => <span className="uppercase">{v.fuelType}</span> },
+    { label: 'Fuel', get: (v) => <span>{FUEL_LABEL[v.fuelType]}</span> },
     { label: 'Instant book', get: (v) => (v.listing.instantBook ? <Check className="h-4 w-4 text-primary mx-auto" /> : '—') },
     { label: 'Delivery', get: (v) => (v.listing.delivery && (v.listing.delivery.airport || v.listing.delivery.home || v.listing.delivery.hotel || v.listing.delivery.business) ? <Check className="h-4 w-4 text-primary mx-auto" /> : '—') },
     { label: 'City', get: (v) => v.location.city || '—' },

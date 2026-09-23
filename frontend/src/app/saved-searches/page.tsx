@@ -10,11 +10,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { savedSearchApi, type SavedSearch } from '@/features/saved-search/api';
+import { FUEL_LABEL } from '@/lib/utils/format';
 
 function summarise(c: SavedSearch['criteria']): string {
   const bits: string[] = [];
   if (c.category) bits.push(c.category);
-  if (c.fuelType) bits.push(c.fuelType);
+  if (c.fuelType) bits.push(FUEL_LABEL[c.fuelType as keyof typeof FUEL_LABEL] ?? c.fuelType);
   if (c.transmission) bits.push(c.transmission);
   if (c.seatsMin) bits.push(`${c.seatsMin}+ seats`);
   if (c.instantBook) bits.push('Instant Book');
