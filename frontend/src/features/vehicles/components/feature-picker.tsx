@@ -34,12 +34,10 @@ const GROUPS: { label: string; items: { value: string; label: string }[] }[] = [
       { value: 'apple_carplay', label: 'Apple CarPlay' },
     ],
   },
+  // No pet option — pets are not permitted on any CatoDrive trip.
   {
     label: 'Family',
-    items: [
-      { value: 'child_seat', label: 'Child seat' },
-      { value: 'pet_friendly', label: 'Pet friendly' },
-    ],
+    items: [{ value: 'child_seat', label: 'Child seat' }],
   },
   {
     label: 'Adventure',

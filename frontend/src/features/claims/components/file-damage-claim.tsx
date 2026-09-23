@@ -1,5 +1,6 @@
 'use client';
 
+import { IMAGE_ACCEPT } from '@/lib/upload-formats';
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -197,7 +198,7 @@ export function FileDamageClaim({
               <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:border-primary/50">
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept={IMAGE_ACCEPT}
                   multiple
                   className="hidden"
                   disabled={uploading}

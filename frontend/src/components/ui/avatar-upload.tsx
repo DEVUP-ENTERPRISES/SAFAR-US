@@ -1,5 +1,6 @@
 'use client';
 
+import { IMAGE_ACCEPT } from '@/lib/upload-formats';
 import { useState } from 'react';
 import { Camera, Loader2, Trash2 } from 'lucide-react';
 import { hostApi } from '@/features/host/api';
@@ -86,7 +87,7 @@ export function AvatarUpload({
       >
         <input
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={IMAGE_ACCEPT}
           className="hidden"
           disabled={disabled || busy}
           onChange={(e) => {

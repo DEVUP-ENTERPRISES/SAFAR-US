@@ -1,5 +1,6 @@
 'use client';
 
+import { IMAGE_ACCEPT } from '@/lib/upload-formats';
 import { useEffect, useRef, useState } from 'react';
 import { Send, ImagePlus, Loader2, Check, CheckCheck, MessagesSquare } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -170,7 +171,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
         <input
           ref={fileRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={IMAGE_ACCEPT}
           className="hidden"
           onChange={(e) => sendPhoto(e.target.files)}
         />

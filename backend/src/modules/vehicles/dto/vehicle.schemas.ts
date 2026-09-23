@@ -113,6 +113,16 @@ export const updateVehicleSchema = z
     transmission: z.enum(['manual', 'automatic']),
     fuelType: z.enum(['petrol', 'diesel', 'hybrid', 'ev']),
     seats: z.number().int().min(1).max(20),
+    registrationNumber: z.string().max(32),
+    specs: z
+      .object({
+        doors: z.number().int().min(0),
+        color: z.string(),
+        mileageKm: z.number().int().min(0),
+        largeBags: z.number().int().min(0),
+        smallBags: z.number().int().min(0),
+      })
+      .partial(),
     features: z.array(z.string()),
     pickup: z.object({
       instructions: z.string().max(600),

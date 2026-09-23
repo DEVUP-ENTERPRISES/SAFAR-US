@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { IMAGE_ACCEPT } from '@/lib/upload-formats';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Check, ImagePlus, Loader2, X, Sparkles } from 'lucide-react';
@@ -19,9 +20,24 @@ import { LocationSearch } from '@/features/maps/components/location-search';
 import { ColorPicker } from '@/features/vehicles/components/color-picker';
 import { FeaturePicker } from '@/features/vehicles/components/feature-picker';
 import { US_STATES } from '@/lib/data/us-states';
+import { milesToKm, perMileToPerKm } from '@/lib/utils/format';
+import { readListingDraft, saveListingDraft, clearListingDraft } from '@/features/vehicles/listing-draft';
 import { ShieldCheck } from 'lucide-react';
 
 const STEPS = ['Basics', 'Details', 'Photos', 'Pricing', 'Delivery', 'Standards', 'Review'];
+
+/** SHA-256 of the file's bytes — identifies the same photo under any filename. */
+async function fingerprintFile(file: File): Promise<string> {
+  try {
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  } catch {
+    // Non-secure context — fall back to a weaker but still useful identity.
+    return `${file.name}:${file.size}:${file.lastModified}`;
+  }
+}
 
 interface Draft {
   make: string;
@@ -45,7 +61,7 @@ interface Draft {
   licensePlateState: string;
   odometerKm: number | '';
   standardsAgreed: boolean;
-  photos: { url: string; key?: string; isCover?: boolean }[];
+  photos: { url: string; key?: string; isCover?: boolean; fingerprint?: string }[];
   title: string;
   description: string;
   instantBook: boolean;
@@ -65,11 +81,16 @@ interface Draft {
 }
 
 // Preset extras a host can offer (guest selects at checkout).
-const ADDON_PRESETS: Record<string, { label: string; priceType: 'per_trip' | 'per_day'; amount: number }> = {
+const ADDON_PRESETS: Record<string, { label: string; priceType: 'per_trip' | 'per_day'; amount: number; note?: string }> = {
   child_seat: { label: 'Child seat', priceType: 'per_trip', amount: 15 },
   additional_driver: { label: 'Additional driver', priceType: 'per_day', amount: 10 },
-  prepaid_fuel: { label: 'Prepaid fuel', priceType: 'per_trip', amount: 40 },
-  unlimited_miles: { label: 'Unlimited miles', priceType: 'per_day', amount: 12 },
+  // $8/gallon on a typical 15-gallon refill, plus a $20 service fee.
+  fuel_surcharge: {
+    label: 'Fuel surcharge',
+    priceType: 'per_trip',
+    amount: 140,
+    note: '$8/gallon + $20 service fee — guest returns it unfuelled',
+  },
 };
 
 const initial: Draft = {
@@ -81,7 +102,7 @@ const initial: Draft = {
   dailyPrice: 65, cleaningFee: 25, weekendPct: 20, weeklyDiscountPct: 10, monthlyDiscountPct: 20,
   earlyBirdPct: 5, lastMinutePct: 0,
   delivery: { airport: false, home: false, hotel: false, business: false, radiusKm: 0, fee: 0 },
-  addOnCodes: [], tripRules: '', mileagePerDay: 0, mileageOverage: 0,
+  addOnCodes: [], tripRules: '', mileagePerDay: 200, mileageOverage: 0.35,
 };
 
 export default function NewListingPage() {
@@ -91,9 +112,27 @@ export default function NewListingPage() {
   const [d, setD] = useState<Draft>(initial);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((p) => ({ ...p, [k]: v }));
 
+  // Restore whatever was in progress — refresh, back button, or a closed tab.
+  // Runs once, before the first save effect can overwrite it.
+  const [restored, setRestored] = useState(false);
+  useEffect(() => {
+    const saved = readListingDraft<Draft>();
+    if (saved) {
+      setD({ ...initial, ...saved.draft });
+      setStep(saved.step);
+    }
+    setRestored(true);
+  }, []);
+
+  useEffect(() => {
+    if (restored) saveListingDraft(d, step);
+  }, [d, step, restored]);
+
   // The server owns the photo minimum; the wizard must not disagree with it.
   const reqs = useQuery({ queryKey: ['listing-requirements'], queryFn: () => vehicleApi.requirements() });
   const minPhotos = reqs.data?.minPhotos ?? 4;
+  /** Included mileage is capped at 4 miles per dollar of daily rate. */
+  const mileageCap = Math.max(1, Math.round(Number(d.dailyPrice) * 4));
 
   /**
    * Presign → PUT the bytes → keep the public URL. The previous version only
@@ -105,7 +144,35 @@ export default function NewListingPage() {
     if (!files?.length) return;
     setUploading(true);
     try {
-      const list = Array.from(files);
+      // Same picture twice is always a mistake, and it costs a listing slot.
+      // Fingerprint the bytes, not the filename — the same photo re-saved from
+      // a phone gallery comes back with a different name every time.
+      const incoming = Array.from(files);
+      const fingerprints = await Promise.all(incoming.map(fingerprintFile));
+      const seen = new Set(d.photos.map((p) => p.fingerprint).filter(Boolean) as string[]);
+      const list: File[] = [];
+      // Keyed by File, not by index — the upload batches below are grouped by
+      // content type, so positional order does not survive a mixed selection.
+      const fpOf = new Map<File, string>();
+      let duplicates = 0;
+      incoming.forEach((f, i) => {
+        const fp = fingerprints[i];
+        if (seen.has(fp)) {
+          duplicates += 1;
+          return;
+        }
+        seen.add(fp);
+        list.push(f);
+        fpOf.set(f, fp);
+      });
+      if (duplicates > 0) {
+        notify({
+          tone: 'error',
+          title: `${duplicates} photo${duplicates === 1 ? ' was' : 's were'} already added`,
+          description: 'Skipped the duplicates — pick different shots of the car.',
+        });
+      }
+      if (!list.length) return;
       // Presign per content type: signing every file with list[0].type meant
       // a mixed JPEG/PNG selection uploaded the later files under the wrong
       // type, which storage can reject outright.
@@ -121,7 +188,6 @@ export default function NewListingPage() {
         })),
       );
       const pairs = groups.flatMap((g) => g.files.map((f, i) => ({ file: f, target: g.targets[i] })));
-      const targets = pairs.map((p) => p.target);
       await Promise.all(
         pairs.map(async ({ file: f, target }) => {
           const res = await fetch(target.uploadUrl, {
@@ -135,7 +201,12 @@ export default function NewListingPage() {
         }),
       );
       setD((prev) => {
-        const added = targets.map((t) => ({ url: t.publicUrl, key: t.key, isCover: false }));
+        const added = pairs.map(({ file: f, target: t }) => ({
+          url: t.publicUrl,
+          key: t.key,
+          isCover: false,
+          fingerprint: fpOf.get(f),
+        }));
         const photos = [...prev.photos, ...added];
         // Something must be the cover; the first photo ever added is a better
         // default than none at all.
@@ -197,7 +268,11 @@ export default function NewListingPage() {
           amount: Math.round(ADDON_PRESETS[code].amount * 100),
         })),
         tripRules: d.tripRules.split('\n').map((r) => r.trim()).filter(Boolean),
-        mileageLimit: { perDayKm: Number(d.mileagePerDay), overageFeePerKm: Math.round(d.mileageOverage * 100) },
+        // The host types miles; storage stays in km.
+        mileageLimit: {
+          perDayKm: milesToKm(Number(d.mileagePerDay)),
+          overageFeePerKm: perMileToPerKm(Math.round(d.mileageOverage * 100)),
+        },
         pricing: {
           dailyPrice: Math.round(d.dailyPrice * 100),
           currency: 'USD',
@@ -212,7 +287,7 @@ export default function NewListingPage() {
       };
       return vehicleApi.create(body);
     },
-    onSuccess: (v) => router.push(`/host/listings/${v._id}`),
+    onSuccess: (v) => { clearListingDraft(); router.push(`/host/listings/${v._id}`); },
   });
 
   /**
@@ -251,6 +326,15 @@ export default function NewListingPage() {
     if (forStep === 4) {
       const anyDelivery = d.delivery.airport || d.delivery.home || d.delivery.hotel || d.delivery.business;
       if (anyDelivery && Number(d.delivery.radiusKm) <= 0) e.radiusKm = 'Set how far you will deliver';
+    }
+    if (forStep === 4) {
+      // Unlimited mileage isn't offered, and the included allowance is capped
+      // against the daily rate — 4 miles per dollar per day.
+      if (!Number(d.mileagePerDay) || Number(d.mileagePerDay) < 1) {
+        e.mileagePerDay = 'Set a daily mileage limit — unlimited is not allowed';
+      } else if (Number(d.mileagePerDay) > mileageCap) {
+        e.mileagePerDay = `Max ${mileageCap} miles/day for a $${d.dailyPrice}/day car`;
+      }
     }
     if (forStep === 5) {
       if (!d.standardsAgreed) e.standardsAgreed = 'You must agree to continue';
@@ -439,7 +523,7 @@ export default function NewListingPage() {
                 <label className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary">
                   <input
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept={IMAGE_ACCEPT}
                     multiple
                     className="hidden"
                     disabled={uploading}
@@ -501,27 +585,42 @@ export default function NewListingPage() {
                 <p className="mb-2 text-sm font-medium">Extras you offer</p>
                 <div className="space-y-1.5">
                   {Object.entries(ADDON_PRESETS).map(([code, a]) => (
-                    <label key={code} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="flex items-center gap-2">
+                    <label key={code} className="flex items-start justify-between gap-2 text-sm">
+                      <span className="flex items-start gap-2">
                         <input
                           type="checkbox"
                           checked={d.addOnCodes.includes(code)}
                           onChange={() => set('addOnCodes', d.addOnCodes.includes(code) ? d.addOnCodes.filter((c) => c !== code) : [...d.addOnCodes, code])}
-                          className="h-4 w-4 accent-[hsl(var(--primary))]"
+                          className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]"
                         />
-                        {a.label}
+                        <span>
+                          {a.label}
+                          {a.note && <span className="block text-xs text-muted-foreground">{a.note}</span>}
+                        </span>
                       </span>
-                      <span className="text-muted-foreground">${a.amount}{a.priceType === 'per_day' ? '/day' : '/trip'}</span>
+                      <span className="shrink-0 text-muted-foreground">${a.amount}{a.priceType === 'per_day' ? '/day' : '/trip'}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               <div className="grid gap-4 border-t border-border pt-3 sm:grid-cols-2">
-                <Field label="Mileage limit (km/day, 0 = unlimited)"><Input type="number" value={d.mileagePerDay} onChange={(e) => set('mileagePerDay', Number(e.target.value))} /></Field>
-                <Field label="Overage fee ($/km)"><Input type="number" step="0.01" value={d.mileageOverage} onChange={(e) => set('mileageOverage', Number(e.target.value))} /></Field>
+                <Field
+                  label="Daily mileage limit (miles)"
+                  error={errors.mileagePerDay}
+                  hint={`Unlimited isn't allowed. The cap for a $${d.dailyPrice}/day car is ${mileageCap} miles/day.`}
+                >
+                  <Input
+                    type="number"
+                    min={1}
+                    max={mileageCap}
+                    value={d.mileagePerDay}
+                    onChange={(e) => set('mileagePerDay', Number(e.target.value))}
+                  />
+                </Field>
+                <Field label="Overage fee ($/mile)"><Input type="number" step="0.01" value={d.mileageOverage} onChange={(e) => set('mileageOverage', Number(e.target.value))} /></Field>
                 <Field label="Trip rules (one per line)" className="sm:col-span-2">
-                  <Textarea value={d.tripRules} onChange={(e) => set('tripRules', e.target.value)} rows={3} placeholder="No smoking&#10;Pets allowed with deposit" />
+                  <Textarea value={d.tripRules} onChange={(e) => set('tripRules', e.target.value)} rows={3} placeholder="No smoking&#10;No off-road driving" />
                 </Field>
               </div>
             </div>

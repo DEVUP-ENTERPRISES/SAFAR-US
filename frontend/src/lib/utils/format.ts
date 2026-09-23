@@ -22,3 +22,10 @@ export function formatDate(value: string | Date): string {
 export function formatDateRange(start: string | Date, end: string | Date): string {
   return `${formatDate(start)} → ${formatDate(end)}`;
 }
+
+/** The app stores distance in km; a US audience reads miles. */
+export const kmToMiles = (km: number) => Math.round(km * 0.621371);
+export const milesToKm = (mi: number) => Math.round(mi / 0.621371);
+/** Per-mile money from a per-km amount (minor units). */
+export const perKmToPerMile = (cents: number) => Math.round(cents / 0.621371);
+export const perMileToPerKm = (cents: number) => Math.round(cents * 0.621371);

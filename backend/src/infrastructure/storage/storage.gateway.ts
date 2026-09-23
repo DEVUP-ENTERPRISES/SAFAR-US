@@ -38,9 +38,13 @@ export const UPLOAD_CATEGORIES = [
  */
 export const ALLOWED_CONTENT_TYPES = [
   'image/jpeg',
+  'image/jpg', // some Android cameras report this non-standard type
   'image/png',
   'image/webp',
+  'image/avif',
   'image/heic',
+  'image/heif',
+  'image/gif',
   'application/pdf', // documents: registration, insurance, KYC
 ] as const;
 

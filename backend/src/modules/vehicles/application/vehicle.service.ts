@@ -122,9 +122,10 @@ export class VehicleService implements IVehicleContract {
     }
 
     // Plain scalars the host can correct on an existing listing.
-    for (const k of ['make', 'model', 'year', 'bodyType', 'category', 'transmission', 'fuelType', 'seats'] as const) {
+    for (const k of ['make', 'model', 'year', 'bodyType', 'category', 'transmission', 'fuelType', 'seats', 'registrationNumber'] as const) {
       if (patch[k] !== undefined) update[k] = patch[k];
     }
+    if (patch.specs) update.specs = { ...vehicle.specs, ...patch.specs };
     await VehicleModel.updateOne({ _id: vehicleId }, update);
     return this.getById(vehicleId);
   }

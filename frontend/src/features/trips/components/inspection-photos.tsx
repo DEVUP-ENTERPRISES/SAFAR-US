@@ -1,5 +1,6 @@
 'use client';
 
+import { IMAGE_ACCEPT } from '@/lib/upload-formats';
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Camera, Check, Loader2, ShieldCheck } from 'lucide-react';
@@ -124,7 +125,7 @@ export function InspectionPhotos({
                   <input
                     ref={i === done ? inputRef : undefined}
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept={IMAGE_ACCEPT}
                     capture="environment"
                     className="hidden"
                     onChange={(e) => onPick(e.target.files, i)}

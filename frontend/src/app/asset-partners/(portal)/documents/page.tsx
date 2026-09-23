@@ -1,5 +1,6 @@
 'use client';
 
+import { IMAGE_ACCEPT } from '@/lib/upload-formats';
 import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FolderLock, Upload, ShieldCheck, AlertTriangle, FileText } from 'lucide-react';
@@ -156,7 +157,7 @@ export default function PartnerDocumentsPage() {
           <input
             ref={fileRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept={IMAGE_ACCEPT}
             className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
             onChange={(e) => {
               const file = e.target.files?.[0];

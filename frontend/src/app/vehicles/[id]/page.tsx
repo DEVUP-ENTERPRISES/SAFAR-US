@@ -12,7 +12,7 @@ import { Rating } from '@/components/ui/rating';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
-import { formatMoney } from '@/lib/utils/format';
+import { formatMoney, kmToMiles, perKmToPerMile } from '@/lib/utils/format';
 import { HostProfileCard } from '@/features/host/components/host-profile-card';
 import { cn } from '@/lib/utils/cn';
 import { api } from '@/lib/api/client';
@@ -548,9 +548,12 @@ export default function VehicleDetailPage() {
               <span className="mt-0.5 shrink-0"><MileIcon className="h-6 w-6 stroke-[1.5]" /></span>
               {mileage && mileage.perDayKm > 0 ? (
                 <div>
-                  <p className="text-[17px] font-medium">{mileage.perDayKm} km/day{days ? ` · ${mileage.perDayKm * days} km this trip` : ''}</p>
+                  <p className="text-[17px] font-medium">
+                    {kmToMiles(mileage.perDayKm).toLocaleString()} mi/day
+                    {days ? ` · ${kmToMiles(mileage.perDayKm * days).toLocaleString()} mi this trip` : ''}
+                  </p>
                   <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">
-                    {formatMoney({ amount: mileage.overageFeePerKm, currency: v.pricing.currency })}/km for additional distance driven
+                    {formatMoney({ amount: perKmToPerMile(mileage.overageFeePerKm), currency: v.pricing.currency })}/mi for additional distance driven
                   </p>
                 </div>
               ) : (
@@ -630,7 +633,7 @@ export default function VehicleDetailPage() {
               <CardContent className="p-6 sm:p-8">
                 <div className="flex items-center gap-2 font-medium"><MileIcon className="h-5 w-5 text-primary" /> Mileage</div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {v.mileageLimit.perDayKm} km/day included · {formatMoney({ amount: v.mileageLimit.overageFeePerKm, currency: v.pricing.currency })}/km after
+                  {kmToMiles(v.mileageLimit.perDayKm).toLocaleString()} mi/day included · {formatMoney({ amount: perKmToPerMile(v.mileageLimit.overageFeePerKm), currency: v.pricing.currency })}/mi after
                 </p>
               </CardContent>
             </Card>

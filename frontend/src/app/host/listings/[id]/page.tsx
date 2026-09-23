@@ -1,5 +1,6 @@
 'use client';
 
+import { IMAGE_ACCEPT, DOC_ACCEPT } from '@/lib/upload-formats';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -326,7 +327,7 @@ export default function ManageListingPage() {
               <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-8 text-sm transition-colors hover:border-primary/50">
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept={IMAGE_ACCEPT}
                   multiple
                   className="hidden"
                   disabled={uploading}
@@ -427,7 +428,7 @@ export default function ManageListingPage() {
                 >
                   <input
                     type="file"
-                    accept="image/jpeg,image/png,application/pdf"
+                    accept={DOC_ACCEPT}
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
@@ -744,6 +745,7 @@ function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: S
   const [title, setTitle] = useState(vehicle.listing?.title ?? '');
   const [description, setDescription] = useState(vehicle.listing?.description ?? '');
   const [features, setFeatures] = useState<string[]>(vehicle.features ?? []);
+  const [plate, setPlate] = useState(vehicle.registrationNumber ?? '');
 
   return (
     <div className="space-y-3">
@@ -757,6 +759,9 @@ function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: S
           rows={3}
         />
       </Field>
+      <Field label="License plate" hint="Plate number and state, e.g. XCW2O63 (TX)">
+        <Input value={plate} onChange={(e) => setPlate(e.target.value.toUpperCase())} placeholder="XCW2O63 (TX)" />
+      </Field>
       <Field label="Features">
         <FeaturePicker value={features} onChange={setFeatures} />
       </Field>
@@ -764,7 +769,13 @@ function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: S
         size="sm"
         loading={saving}
         disabled={!title.trim()}
-        onClick={() => onSave({ listing: { title: title.trim(), description }, features })}
+        onClick={() =>
+          onSave({
+            listing: { title: title.trim(), description },
+            features,
+            registrationNumber: plate.trim() || undefined,
+          })
+        }
       >
         Save details
       </Button>
