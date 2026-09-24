@@ -76,6 +76,13 @@ export const envSchema = z.object({
    * login rehash path). Store it in a secrets manager, not next to the DB.
    */
   PASSWORD_PEPPER: z.string().optional(),
+  /**
+   * Salts the IP hash used to dedupe unique visitors in traffic analytics.
+   * The raw IP is never stored — only this hash — so the salt does not need
+   * secrets-manager handling the way PASSWORD_PEPPER does; it just needs to
+   * be stable so the same visitor hashes the same way across requests.
+   */
+  VISITOR_HASH_SALT: z.string().default('cato-visitor-salt-dev-only'),
 
   JWT_ACCESS_TTL: z.coerce.number().int().positive().default(900),
   JWT_REFRESH_TTL: z.coerce.number().int().positive().default(2_592_000),

@@ -28,6 +28,8 @@ const A = (sub?: string) => (sub ? `${config.adminPanel.basePath}/${sub}` : conf
 export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'dashboard', path: A(), apiPath: '/admin/metrics', label: 'Dashboard', group: 'Overview', permission: 'admin:read' },
   { slug: 'analytics', path: A('analytics'), apiPath: '/admin/analytics', label: 'Analytics', group: 'Overview', permission: 'analytics:read' },
+  { slug: 'live-traffic', path: A('live-traffic'), apiPath: '/admin/analytics/live-traffic', label: 'Live Traffic', group: 'Overview', permission: 'analytics:read' },
+  { slug: 'geo-intelligence', path: A('geo-intelligence'), apiPath: '/admin/analytics/geo', label: 'Geographic Intelligence', group: 'Overview', permission: 'analytics:read' },
 
   /*
    * Asset Partners gets its own group, not a few entries scattered through

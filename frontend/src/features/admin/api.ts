@@ -177,6 +177,27 @@ export interface AdminAnalytics {
   };
 }
 
+export type TrafficSource = 'direct' | 'search' | 'social' | 'referral' | 'email' | 'paid';
+
+export interface LiveTrafficSummary {
+  activeVisitors: number;
+  visitsLast24h: number;
+  uniqueVisitorsLast24h: number;
+  recent: { path: string; source: TrafficSource; referrerDomain?: string; country?: string; city?: string; device: string; at: string }[];
+  topPages: { path: string; count: number }[];
+  topReferrers: { domain: string; count: number }[];
+  bySource: { source: TrafficSource; count: number }[];
+}
+
+export interface GeoSummaryEntry {
+  countryCode: string;
+  country: string;
+  city?: string;
+  lat: number;
+  lng: number;
+  count: number;
+}
+
 export interface ReviewCheck {
   key: 'photos' | 'registration' | 'insurance' | 'vin' | 'pricing' | 'location';
   label: string;
@@ -344,6 +365,8 @@ export const adminApi = {
   resolveTicket: (id: string) => api.post(`/admin/tickets/${id}/resolve`),
 
   analytics: (days = 30) => api.get<AdminAnalytics>('/admin/analytics', { days }),
+  liveTraffic: () => api.get<LiveTrafficSummary>('/admin/analytics/live-traffic'),
+  trafficGeo: (days = 30) => api.get<GeoSummaryEntry[]>('/admin/analytics/geo', { days }),
 
   // NOTE: the flag's `_id` IS its key (see feature-flag.model.ts) — there is no
   // separate `key` field. Typing it stops us reading `f.key` and rendering undefined.

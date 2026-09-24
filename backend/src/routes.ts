@@ -39,6 +39,7 @@ import { rewardsRoutes } from './modules/rewards/api/rewards.routes';
 import { referralRoutes } from './modules/referral/api/referral.routes';
 import { assetPartnerApplicationRoutes } from './modules/asset-partners/api/asset-partner-application.routes';
 import { contactInquiryRoutes } from './modules/contact/api/contact-inquiry.routes';
+import { visitorTrackingRoutes } from './modules/analytics/api/visitor-tracking.routes';
 
 /**
  * Mounts every module's router under the versioned API prefix.
@@ -69,6 +70,7 @@ export function buildApiRouter(): Router {
   api.use('/', complianceRoutes);
   api.use('/', assetPartnerApplicationRoutes);
   api.use('/', contactInquiryRoutes);
+  api.use('/', visitorTrackingRoutes);
   api.use('/saved-searches', savedSearchRoutes);
   api.use('/documents', documentsRoutes);
   api.use('/earnings', earningsRoutes);
