@@ -137,12 +137,12 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
       {/* RIGHT: the form */}
       <div className="relative flex w-full flex-col lg:w-1/2">
-        <div className="flex h-20 items-center justify-between px-6 lg:hidden">
-          <Link href="/" className="flex items-center gap-2.5 transition-transform hover:scale-105">
+        <div className="flex h-20 items-center justify-between gap-2 px-6 lg:hidden">
+          <Link href="/" className="flex min-w-0 items-center gap-2.5 transition-transform hover:scale-105">
             <Logo className="h-9 w-9 shrink-0" />
-            <span className="display text-xl tracking-tight">{config.appName}</span>
+            <span className="display truncate text-xl tracking-tight">{config.appName}</span>
           </Link>
-          <Link href="/" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <Link href="/" className="flex shrink-0 items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
         </div>

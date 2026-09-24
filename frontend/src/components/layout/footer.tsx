@@ -100,7 +100,8 @@ export function Footer() {
 
         <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-border pt-8 sm:flex-row sm:items-center">
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} DEVUP ECOSYSTEM PVT LTD. All rights reserved.
+            © {new Date().getFullYear()} CatoDrive Inc. All rights reserved. Made with{' '}
+            <span aria-hidden="true" className="text-primary">♥</span> by DEVUP ECOSYSTEM.
           </p>
           {/*
             These were <span>s — dead text. A marketplace taking card payments

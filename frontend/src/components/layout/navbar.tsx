@@ -77,9 +77,12 @@ export function Navbar() {
             <Menu className="h-5 w-5" />
           </button>
           
-          <Link href="/" className="flex shrink-0 items-center gap-2.5 transition-transform hover:scale-105">
+          <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2.5 transition-transform hover:scale-105">
             <Logo className="h-9 w-9 shrink-0" />
-            <span className="display text-xl tracking-tight hidden xs:block">{config.appName}</span>
+            {/* `xs:` isn't a breakpoint this project defines, so this was
+                permanently hidden regardless of screen size — `sm:` matches
+                the hamburger toggle's own breakpoint just above. */}
+            <span className="display truncate text-xl tracking-tight hidden sm:block">{config.appName}</span>
           </Link>
         </div>
 
@@ -195,13 +198,13 @@ export function Navbar() {
           
           {/* Drawer */}
           <div className="fixed inset-y-0 start-0 w-[85%] max-w-sm bg-background shadow-2xl animate-slide-in-right flex flex-col">
-            <div className="flex items-center justify-between px-4 h-16 border-b border-border">
-              <Link href="/" className="flex items-center gap-2.5" onClick={() => setMobileMenuOpen(false)}>
+            <div className="flex items-center justify-between gap-2 px-4 h-16 border-b border-border">
+              <Link href="/" className="flex min-w-0 items-center gap-2.5" onClick={() => setMobileMenuOpen(false)}>
                 <Logo className="h-9 w-9 shrink-0" />
-                <span className="display text-xl tracking-tight">{config.appName}</span>
+                <span className="display truncate text-xl tracking-tight">{config.appName}</span>
               </Link>
-              <button 
-                className="p-2 -me-2 text-foreground" 
+              <button
+                className="shrink-0 p-2 -me-2 text-foreground"
                 onClick={() => setMobileMenuOpen(false)}
                 aria-label="Close menu"
               >

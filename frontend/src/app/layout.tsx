@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Archivo, Instrument_Sans, IBM_Plex_Mono } from 'next/font/google';
 import '@/styles/globals.css';
-import { config } from '@/lib/config';
 import { Providers } from './providers';
 import { AppChrome } from '@/components/layout/app-chrome';
 
@@ -44,7 +43,11 @@ const fontMono = IBM_Plex_Mono({
  * (and poweredByHeader is off in next.config, so no X-Powered-By header ships).
  */
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://catodrive.com';
-const BRAND = `${config.appName} Drive`;
+// The company name, not a runtime config value — hardcoded so it can never
+// drift from whatever NEXT_PUBLIC_APP_NAME happens to be set to in a given
+// environment (this is exactly how it once rendered "CATO Drive" in
+// production: the env var was "CATO", and " Drive" got appended onto it).
+const BRAND = 'CatoDrive';
 const TAGLINE = `${BRAND} — rent the perfect car from local hosts`;
 const DESCRIPTION =
   `${BRAND} is a peer-to-peer car rental marketplace: book a car from a trusted local host, ` +
