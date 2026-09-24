@@ -40,6 +40,10 @@ export default function HostTripDetailPage() {
   const [odoEnd, setOdoEnd] = useState('');
   const [fuelStart, setFuelStart] = useState('');
   const [fuelEnd, setFuelEnd] = useState('');
+  // Confirming the licence is gated on a trip existing, but the trip is only
+  // created by starting it — so this step is captured locally first, then
+  // sent to the server right after the trip is created (see handover below).
+  const [licenseChecked, setLicenseChecked] = useState(false);
 
   const { data: t, isLoading, isError } = useQuery({
     queryKey: ['host-trip', bookingId],
@@ -56,11 +60,17 @@ export default function HostTripDetailPage() {
     onSuccess: invalidate,
   });
   const handover = useMutation({
-    mutationFn: () =>
-      hostTripsApi.handover(t!.tripId!, {
+    // No trip exists yet at this point — this call is what creates it. The
+    // licence was confirmed locally (see licenseChecked); persist that
+    // against the real trip id the moment it exists, not before.
+    mutationFn: async () => {
+      const trip = await hostTripsApi.start(bookingId, {
         odometerStart: Number(odoStart),
         ...(fuelStart ? { fuelStart: Number(fuelStart) } : {}),
-      }),
+      });
+      if (licenseChecked) await hostTripsApi.confirmLicense(trip._id);
+      return trip;
+    },
     onSuccess: invalidate,
   });
   const complete = useMutation({
@@ -259,9 +269,15 @@ export default function HostTripDetailPage() {
             <Row
               icon={<IdCard className="h-5 w-5" />}
               title="Confirm driver's licence"
-              subtitle={t.licenseConfirmed ? '✓ Licence confirmed' : 'Awaiting licence'}
+              subtitle={
+                t.licenseConfirmed
+                  ? '✓ Licence confirmed'
+                  : t.tripId
+                    ? 'Awaiting licence'
+                    : 'Start the trip below first'
+              }
               action={
-                t.licenseConfirmed || finished
+                t.licenseConfirmed || finished || !t.tripId
                   ? undefined
                   : { label: 'Confirm', onClick: () => confirmLicense.mutate() }
               }
@@ -417,11 +433,11 @@ export default function HostTripDetailPage() {
               {!t.licenseConfirmed && (
                 <Button
                   size="lg"
-                  variant="outline"
-                  loading={confirmLicense.isPending}
-                  onClick={() => confirmLicense.mutate()}
+                  variant={licenseChecked ? 'primary' : 'outline'}
+                  onClick={() => setLicenseChecked((v) => !v)}
                 >
-                  <IdCard className="h-4 w-4" /> Confirm guest&apos;s licence
+                  <IdCard className="h-4 w-4" />
+                  {licenseChecked ? "Guest's licence confirmed" : "Confirm guest's licence"}
                 </Button>
               )}
               <div className="grid grid-cols-2 gap-3">
@@ -447,7 +463,7 @@ export default function HostTripDetailPage() {
               </div>
               <Button
                 size="lg"
-                disabled={!t.licenseConfirmed || !odoStart || !t.tripId}
+                disabled={!(t.licenseConfirmed || licenseChecked) || !odoStart}
                 loading={handover.isPending}
                 onClick={doCheckIn}
               >

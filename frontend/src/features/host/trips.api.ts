@@ -40,8 +40,9 @@ export const hostTripsApi = {
   one: (bookingId: string) => api.get<HostTrip>(`/trips/host/booking/${bookingId}`),
 
   confirmLicense: (tripId: string) => api.post(`/trips/${tripId}/confirm-license`),
-  handover: (tripId: string, body: { odometerStart: number; fuelStart?: number; notes?: string }) =>
-    api.post(`/trips/${tripId}/handover`, body),
+  /** Creates the trip — there is no trip to hand over to before this runs. */
+  start: (bookingId: string, body: { odometerStart: number; fuelStart?: number; notes?: string }) =>
+    api.post<{ _id: string }>('/trips/start', { bookingId, ...body }),
   addPhotos: (tripId: string, phase: 'pre' | 'post', photos: { url: string; key?: string }[]) =>
     api.post(`/trips/${tripId}/photos`, { phase, photos }),
   complete: (tripId: string, body: { odometerEnd?: number; fuelEnd?: number; notes?: string }) =>
