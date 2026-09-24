@@ -64,9 +64,13 @@ function parse(text: string): { rows: ParsedRow[]; errors: string[] } {
   return { rows, errors };
 }
 
+/** The fleet's home base — pre-filled since every car in a batch import shares it. */
+const DEFAULT_ADDRESS = '3001 Esters Road, Irving, TX 75062';
+
 export default function ImportPage() {
   const [text, setText] = useState('');
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState(DEFAULT_ADDRESS);
+  const [editingAddress, setEditingAddress] = useState(false);
   const [preview, setPreview] = useState<RowPreview[] | null>(null);
   const [results, setResults] = useState<ImportResult[] | null>(null);
 
@@ -119,9 +123,10 @@ export default function ImportPage() {
             <p className="font-semibold">Price isn&apos;t typed here.</p>
             <p className="mt-0.5 text-muted-foreground">
               Year, make, model, trim, body type, fuel, transmission and seats are read from the VIN, and a
-              starting price is suggested from comparable listings. Set the real price, add photos and publish
-              from the listing page. Re-pasting a VIN already in your fleet updates its plate, title or status
-              instead of creating a duplicate.
+              starting price is suggested from comparable listings. Every new car also gets your standard
+              delivery setup (both airports, the hotel, and a 20-mile custom radius) — adjust per car on the
+              listing page. Set the real price, add photos and publish from there too. Re-pasting a VIN already
+              in your fleet updates its plate, title or status instead of creating a duplicate.
             </p>
           </div>
         </CardContent>
@@ -129,12 +134,25 @@ export default function ImportPage() {
 
       <Card>
         <CardContent className="space-y-3 py-5">
-          <Field label="Address" hint="Applied to every car in this batch">
-            <LocationSearch
-              placeholder={address || 'Search an address'}
-              onPick={(p) => setAddress(p.label)}
-            />
-          </Field>
+          {editingAddress ? (
+            <Field label="Address" hint="Applied to every car in this batch">
+              <LocationSearch
+                placeholder={address}
+                onPick={(p) => { setAddress(p.label); setEditingAddress(false); }}
+              />
+            </Field>
+          ) : (
+            <div className="flex items-start justify-between gap-3 rounded-2xl border border-border bg-card p-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Address</p>
+                <p className="font-medium">{address}</p>
+                <p className="text-sm text-muted-foreground">Applied to every car in this batch</p>
+              </div>
+              <button onClick={() => setEditingAddress(true)} className="shrink-0 text-sm font-medium text-primary hover:underline">
+                Change
+              </button>
+            </div>
+          )}
 
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="font-medium">Your cars</p>

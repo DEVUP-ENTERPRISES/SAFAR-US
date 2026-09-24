@@ -15,6 +15,39 @@ import { logger } from '../../../infrastructure/logging/logger';
  * with its own outcome so one bad row never costs the other ninety-nine.
  */
 
+/**
+ * Standard delivery setup applied to every newly-imported car, so a host
+ * fleet isn't left with zero delivery options until they configure each car
+ * by hand. Geocoded once per import batch, not per row. Sub-locations
+ * (specific terminals/counters) are left for the host to fill in — the
+ * airport's required-location names aren't known here.
+ */
+const DEFAULT_DELIVERY_TEMPLATE = [
+  { kind: 'airport' as const, name: 'Dallas Love Field Airport', query: 'Dallas Love Field Airport (DAL), Dallas, TX', fee: 7500, minTripDays: 2, accessMethod: 'lockbox' as const, parkingRate: 'hourly' as const },
+  { kind: 'airport' as const, name: 'Dallas/Fort Worth International Airport', query: 'Dallas/Fort Worth International Airport (DFW), TX', fee: 5500, minTripDays: 2, accessMethod: 'lockbox' as const },
+  { kind: 'hotel' as const, name: 'Omni PGA Frisco Resort', query: 'Omni PGA Frisco Resort, Frisco, TX', fee: 10000, minTripDays: 0, accessMethod: 'remote_unlock' as const },
+] as const;
+
+async function buildDefaultDeliveryLocations(): Promise<ReturnType<typeof createVehicleSchema.parse>['listing']['deliveryLocations']> {
+  const geocoded = await Promise.all(
+    DEFAULT_DELIVERY_TEMPLATE.map(async (t) => {
+      try {
+        const [hit] = await mapsProvider.geocode(t.query);
+        return hit ? { ...t, address: hit.formatted ?? t.query, lat: hit.lat, lng: hit.lng, enabled: true } : null;
+      } catch (err) {
+        logger.warn(`Default delivery geocode failed for "${t.name}": ${(err as Error).message}`);
+        return null;
+      }
+    }),
+  );
+  const located = geocoded.filter((g): g is NonNullable<typeof g> => g !== null)
+    .map(({ query: _query, ...loc }) => loc);
+  return [
+    ...located,
+    { kind: 'custom', name: 'Custom delivery', address: '', fee: 10000, minTripDays: 0, accessMethod: 'in_person', radiusMiles: 20, enabled: true },
+  ];
+}
+
 export interface ImportRow {
   vin: string;
   /** Cents per day. Omitted rows are auto-priced from comparable listings — the host edits it before publishing. */
@@ -93,6 +126,9 @@ export const fleetImportService = {
       deletedAt: null,
     }).select('_id vin').lean<{ _id: string; vin: string }[]>();
     const alreadyById = new Map(existing.map((e) => [e.vin, e._id]));
+
+    // Geocoded lazily, once, only if a new car actually needs it.
+    let defaultDeliveryLocations: Awaited<ReturnType<typeof buildDefaultDeliveryLocations>> | null = null;
 
     const results: ImportResult[] = [];
 
@@ -174,6 +210,8 @@ export const fleetImportService = {
         dailyPrice = suggestion?.suggested ?? 4500;
       }
 
+      if (!defaultDeliveryLocations) defaultDeliveryLocations = await buildDefaultDeliveryLocations();
+
       const label = `${d.year} ${d.make} ${d.model}${d.trim ? ` ${d.trim}` : ''}`;
       try {
         // Parsed through the real schema rather than cast: an import must get
@@ -200,6 +238,7 @@ export const fleetImportService = {
             minTripHours: 24,
             maxTripHours: 24 * 30,
             cancellationPolicy: 'moderate',
+            deliveryLocations: defaultDeliveryLocations,
           },
           pricing: { dailyPrice, currency: 'USD', cleaningFee: 0 },
           // Status is not in the create DTO — the model defaults new vehicles
