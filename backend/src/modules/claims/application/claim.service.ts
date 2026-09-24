@@ -5,6 +5,8 @@ import { Account } from '../../payments/domain/ledger.accounts';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { logger } from '../../../infrastructure/logging/logger';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { damageReviewService } from '../../ai/application/damage-review.service';
+import type { DamageAssessmentDoc } from '../../ai/infrastructure/damage-assessment.model';
 
 export interface CreateClaimInput {
   type: 'damage' | 'insurance' | 'dispute';
@@ -57,14 +59,46 @@ export class ClaimService {
       }
     }
 
+    const respondentId = await this.resolveRespondent(claimantId, input);
+
     const claim = await ClaimModel.create({
       ...input,
       claimantId,
-      evidence: input.evidence ?? [],
+      respondentId,
+      evidence: (input.evidence ?? []).map((e) => ({ ...e, addedBy: claimantId })),
       status: 'opened',
       timeline: [{ status: 'opened', at: now, by: claimantId, note: 'Claim filed' }],
     });
+
+    // Best-effort: the objective pre/post comparison both sides will see is
+    // more useful ready before anyone has to ask for it. Never blocks or
+    // fails claim creation — a claim must exist even if the AI call does not.
+    if (input.type === 'damage' && input.tripId) {
+      const tripId = input.tripId;
+      damageReviewService
+        .get(tripId)
+        .then((existing) => (existing ? undefined : damageReviewService.review(tripId, claimantId)))
+        .catch((err) => logger.warn({ err, tripId, claimId: claim._id }, 'AI damage review kickoff failed'));
+    }
+
     return claim.toObject();
+  }
+
+  /**
+   * Who the claim is against. A claim always names one party against another,
+   * but the input only ever carries the filer's side (a host's hostId, a
+   * booking) — never a raw userId the filer could point at anyone with.
+   */
+  private async resolveRespondent(claimantId: string, input: CreateClaimInput): Promise<string | undefined> {
+    if (!input.bookingId) return undefined;
+    const { bookingService } = await import('../../bookings/application/booking.service');
+    const booking = await bookingService.getDoc(input.bookingId);
+    if (booking.guestId === claimantId) {
+      const { hostService } = await import('../../hosts/application/host.service');
+      const host = await hostService.getById(booking.hostId).catch(() => null);
+      return host?.userId;
+    }
+    return booking.guestId;
   }
 
   /**
@@ -109,14 +143,23 @@ export class ClaimService {
     };
   }
 
-  async getForUser(userId: string, claimId: string): Promise<ClaimDoc> {
+  async getForUser(userId: string, claimId: string): Promise<ClaimDoc & { aiAssessment?: DamageAssessmentDoc | null }> {
     const claim = await this.getDoc(claimId);
-    if (claim.claimantId !== userId) throw new ForbiddenError('Not your claim');
-    return claim;
+    if (claim.claimantId !== userId && claim.respondentId !== userId) {
+      throw new ForbiddenError('Not part of this claim');
+    }
+    if (!claim.tripId) return claim;
+    const aiAssessment = await damageReviewService.get(claim.tripId).catch(() => null);
+    return { ...claim, aiAssessment };
   }
 
   async listForUser(userId: string): Promise<ClaimDoc[]> {
-    return ClaimModel.find({ claimantId: userId, deletedAt: null }).sort({ createdAt: -1 }).lean<ClaimDoc[]>();
+    return ClaimModel.find({
+      deletedAt: null,
+      $or: [{ claimantId: userId }, { respondentId: userId }],
+    })
+      .sort({ createdAt: -1 })
+      .lean<ClaimDoc[]>();
   }
 
   async addEvidence(
@@ -125,7 +168,26 @@ export class ClaimService {
     evidence: { url: string; kind: 'image' | 'file'; note?: string }[],
   ): Promise<ClaimDoc> {
     const claim = await this.getForUser(userId, claimId);
-    await ClaimModel.updateOne({ _id: claim._id }, { $push: { evidence: { $each: evidence } } });
+    await ClaimModel.updateOne(
+      { _id: claim._id },
+      { $push: { evidence: { $each: evidence.map((e) => ({ ...e, addedBy: userId })) } } },
+    );
+    return this.getDoc(claimId);
+  }
+
+  /**
+   * The respondent formally rejects the claim. Does not block admin
+   * resolution — settlement still has to happen — but it puts the
+   * disagreement on the record with its own timestamp, and it is what a
+   * guest previously had no way to do at all.
+   */
+  async dispute(userId: string, claimId: string, note: string): Promise<ClaimDoc> {
+    const claim = await this.getDoc(claimId);
+    if (claim.respondentId !== userId) throw new ForbiddenError('Only the respondent can dispute this claim');
+    if (['settled', 'rejected', 'closed'].includes(claim.status)) {
+      throw new ConflictError('This claim is already resolved', 'CLAIM_CLOSED');
+    }
+    await this.transition(claimId, 'disputed', userId, note);
     return this.getDoc(claimId);
   }
 

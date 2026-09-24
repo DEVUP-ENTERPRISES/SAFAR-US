@@ -5,6 +5,7 @@ export type ClaimType = 'damage' | 'insurance' | 'dispute';
 export type ClaimStatus =
   | 'opened'
   | 'investigating'
+  | 'disputed'
   | 'approved'
   | 'rejected'
   | 'settled'
@@ -16,9 +17,11 @@ export interface ClaimDoc {
   bookingId?: string;
   tripId?: string;
   claimantId: string;
+  /** The party the claim is against — the only one besides the claimant who may read or answer it. */
+  respondentId?: string;
   hostId?: string;
   description: string;
-  evidence: { url: string; kind: 'image' | 'file'; note?: string }[];
+  evidence: { url: string; kind: 'image' | 'file'; note?: string; addedBy?: string }[];
   amountClaimed?: number;
   amountApproved?: number;
   /** Who was found at fault, and what it cost them. */
@@ -41,10 +44,11 @@ const schema = new Schema<ClaimDoc>(
     bookingId: String,
     tripId: String,
     claimantId: { type: String, required: true },
+    respondentId: String,
     hostId: String,
     description: { type: String, required: true },
     evidence: {
-      type: [{ url: String, kind: { type: String, enum: ['image', 'file'] }, note: String }],
+      type: [{ url: String, kind: { type: String, enum: ['image', 'file'] }, note: String, addedBy: String }],
       default: [],
     },
     amountClaimed: Number,
@@ -66,6 +70,7 @@ const schema = new Schema<ClaimDoc>(
 
 schema.index({ status: 1, assignedTo: 1 });
 schema.index({ claimantId: 1, createdAt: -1 });
+schema.index({ respondentId: 1, createdAt: -1 });
 schema.index({ bookingId: 1 });
 
 export const ClaimModel = model<ClaimDoc>('Claim', schema);

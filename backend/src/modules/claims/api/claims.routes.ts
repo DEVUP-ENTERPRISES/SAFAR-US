@@ -61,4 +61,28 @@ router.get(
   }),
 );
 
+router.post(
+  '/:id/evidence',
+  authenticate,
+  validate({
+    body: z.object({
+      evidence: z
+        .array(z.object({ url: z.string().url(), kind: z.enum(['image', 'file']), note: z.string().optional() }))
+        .min(1),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await claimService.addEvidence(req.principal!.userId, req.params.id, req.body.evidence));
+  }),
+);
+
+router.post(
+  '/:id/dispute',
+  authenticate,
+  validate({ body: z.object({ note: z.string().min(5).max(2000) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await claimService.dispute(req.principal!.userId, req.params.id, req.body.note));
+  }),
+);
+
 export const claimsRoutes = router;

@@ -163,7 +163,7 @@ export class PlatformConfigService {
         ...(doc.violations ?? {}),
       },
       reviews: { blindWindowDays: 14, ...(doc.reviews ?? {}) },
-      claims: { filingWindowHours: 72, requireEvidence: true, ...(doc.claims ?? {}) },
+      claims: { filingWindowHours: 72, requireEvidence: true, respondWindowHours: 72, ...(doc.claims ?? {}) },
       rebookingProtection: {
         enabled: true,
         coverageBps: 10000,

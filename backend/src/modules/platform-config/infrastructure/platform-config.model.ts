@@ -154,6 +154,8 @@ export interface PlatformConfigDoc {
     filingWindowHours: number;
     /** Refuse a damage claim with no photographic evidence. */
     requireEvidence: boolean;
+    /** Hours the respondent has to dispute a claim before it may be settled. */
+    respondWindowHours: number;
   };
   /**
    * Two-way reviews, written blind.
