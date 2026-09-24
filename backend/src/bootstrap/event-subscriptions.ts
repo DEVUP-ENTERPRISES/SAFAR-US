@@ -231,6 +231,19 @@ export function registerEventSubscribers(): void {
     });
   });
 
+  // Pre-booking inquiry: notify the recipient (guest or host) of a new question.
+  eventBus.subscribe(EVENTS.INQUIRY_MESSAGE_SENT, async (e) => {
+    const p = e.payload as { vehicleId: string; guestId: string; recipientUserId: string; preview: string };
+    if (!p.recipientUserId) return;
+    await notificationService.send({
+      userId: p.recipientUserId,
+      templateKey: 'inquiry.message',
+      title: 'New question',
+      body: p.preview || 'You have a new message',
+      data: { vehicleId: p.vehicleId, guestId: p.guestId },
+    });
+  });
+
   // Trip reminder (from the scheduled job).
   eventBus.subscribe(EVENTS.BOOKING_REMINDER, async (e) => {
     const p = e.payload as { bookingId: string; guestId: string };

@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils/cn';
 import { hostApi, type HostActionItem } from '@/features/host/api';
 import { notificationsApi } from '@/features/notifications/api';
 import { useConversations } from '@/features/messaging/hooks';
+import { useInquiryInbox } from '@/features/messaging/inquiry-hooks';
 
 const ICON = {
   approval: CarFront,
@@ -38,10 +39,11 @@ function until(iso: string): { text: string; urgent: boolean; passed: boolean } 
 
 function HostInbox() {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<'actions' | 'messages' | 'alerts'>('actions');
+  const [tab, setTab] = useState<'actions' | 'messages' | 'inquiries' | 'alerts'>('actions');
 
   const inbox = useQuery({ queryKey: ['host-inbox'], queryFn: () => hostApi.inboxActions(), refetchInterval: 60_000 });
   const conversations = useConversations(tab === 'messages');
+  const inquiries = useInquiryInbox(tab === 'inquiries');
   const notifications = useQuery({
     queryKey: ['notifications'],
     queryFn: () => notificationsApi.list(),
@@ -81,6 +83,7 @@ function HostInbox() {
         tabs={[
           { key: 'actions' as const, label: `Needs you${items.length ? ` (${items.length})` : ''}` },
           { key: 'messages' as const, label: 'Messages' },
+          { key: 'inquiries' as const, label: `Questions${inquiries.data?.length ? ` (${inquiries.data.length})` : ''}` },
           { key: 'alerts' as const, label: `Alerts${unreadAlerts.length ? ` (${unreadAlerts.length})` : ''}` },
         ]}
       />
@@ -123,6 +126,40 @@ function HostInbox() {
                     {c.unread > 0 && (
                       <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
                         {c.unread}
+                      </span>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )
+      )}
+
+      {tab === 'inquiries' && (
+        inquiries.isLoading ? (
+          <div className="space-y-3">{[0, 1].map((i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
+        ) : (inquiries.data?.length ?? 0) === 0 ? (
+          <EmptyState icon={<MessageSquare className="h-8 w-8" />} title="No questions yet" description="Prospective guests asking about your cars before booking appear here." />
+        ) : (
+          <div className="space-y-2">
+            {inquiries.data!.map((t) => (
+              <Link key={`${t.vehicleId}-${t.guestId}`} href={`/host/inquiries/${t.vehicleId}/${t.guestId}`}>
+                <Card className="transition-colors hover:border-primary/40">
+                  <CardContent className="flex items-center gap-3 py-3.5">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">
+                      {t.counterpart.name.charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">{t.counterpart.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{t.vehicle.title}</p>
+                      <p className={cn('truncate text-sm', t.unread > 0 ? 'font-medium' : 'text-muted-foreground')}>
+                        {t.last.fromMe && 'You: '}{t.last.preview || '—'}
+                      </p>
+                    </div>
+                    {t.unread > 0 && (
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+                        {t.unread}
                       </span>
                     )}
                   </CardContent>

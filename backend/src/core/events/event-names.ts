@@ -55,6 +55,7 @@ export const EVENTS = {
   REVIEW_POSTED: 'review.posted',
 
   CHAT_MESSAGE_SENT: 'chat.message.sent',
+  INQUIRY_MESSAGE_SENT: 'inquiry.message.sent',
   TRIP_LOCATION_UPDATED: 'trip.location.updated',
   TRIP_SOS: 'trip.sos',
   TRIP_INCIDENT_RAISED: 'trip.incident.raised',

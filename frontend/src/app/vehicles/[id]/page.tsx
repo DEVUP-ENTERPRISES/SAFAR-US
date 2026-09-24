@@ -13,7 +13,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
 import { formatMoney, kmToMiles, perKmToPerMile, FUEL_LABEL } from '@/lib/utils/format';
-import { HostProfileCard } from '@/features/host/components/host-profile-card';
+import { HostProfileCard, useHostPublicProfile } from '@/features/host/components/host-profile-card';
+import { AskHostPanel } from '@/features/vehicles/components/ask-host-panel';
 import { cn } from '@/lib/utils/cn';
 import { api } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/types';
@@ -60,6 +61,7 @@ export default function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: v, isLoading, isError } = useVehicle(id);
+  const { data: hostProfile } = useHostPublicProfile(v?.hostId);
   const platformCfg = usePlatformConfig();
   const status = useAuthStore((s) => s.status);
   const { track } = useRecentlyViewed();
@@ -599,6 +601,9 @@ export default function VehicleDetailPage() {
           <div className="pt-8">
             <h2 className="mb-4 text-2xl font-bold tracking-tight">Hosted by</h2>
             <HostProfileCard hostId={v.hostId} />
+            <div className="mt-4 max-w-sm">
+              <AskHostPanel vehicleId={v._id} hostName={hostProfile?.displayName ?? 'the host'} />
+            </div>
           </div>
         </div>
 

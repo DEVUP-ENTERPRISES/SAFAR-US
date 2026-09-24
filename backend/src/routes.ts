@@ -25,6 +25,7 @@ import { fleetRoutes } from './modules/fleet/api/fleet.routes';
 import { maintenanceRoutes } from './modules/maintenance/api/maintenance.routes';
 import { favoritesRoutes } from './modules/favorites/api/favorites.routes';
 import { messagesRoutes } from './modules/messaging/api/messages.routes';
+import { inquiriesRoutes } from './modules/messaging/api/inquiries.routes';
 import { claimsRoutes } from './modules/claims/api/claims.routes';
 import { violationsRoutes } from './modules/violations/api/violations.routes';
 import { supportRoutes } from './modules/support/api/support.routes';
@@ -78,6 +79,7 @@ export function buildApiRouter(): Router {
   api.use('/maintenance', maintenanceRoutes);
   api.use('/favorites', favoritesRoutes);
   api.use('/messages', messagesRoutes);
+  api.use('/inquiries', inquiriesRoutes);
   api.use('/claims', claimsRoutes);
   api.use('/violations', violationsRoutes);
   api.use('/support/kb', kbRoutes);
