@@ -17,6 +17,7 @@ interface RequestOptions {
   auth?: boolean | 'optional';
   idempotencyKey?: string;
   signal?: AbortSignal;
+  headers?: Record<string, string>;
 }
 
 let refreshInFlight: Promise<boolean> | null = null;
@@ -100,6 +101,7 @@ async function raw<T>(path: string, opts: RequestOptions, retry = true): Promise
     if (token) headers.Authorization = `Bearer ${token}`;
   }
   if (opts.idempotencyKey) headers['Idempotency-Key'] = opts.idempotencyKey;
+  if (opts.headers) Object.assign(headers, opts.headers);
 
   let res: Response;
   try {

@@ -3,6 +3,7 @@ import type {
   PaymentGateway,
   CreateIntentInput,
   IntentResult,
+  IntentRisk,
 } from '../domain/payment-gateway';
 
 /**
@@ -37,5 +38,9 @@ export class MockGateway implements PaymentGateway {
     const i = this.intents.get(intentId);
     if (i) i.status = 'cancelled';
     return { status: 'cancelled' };
+  }
+
+  async getIntentRisk(): Promise<IntentRisk | null> {
+    return { riskLevel: 'normal', cvcCheck: 'pass', addressCheck: 'pass' };
   }
 }

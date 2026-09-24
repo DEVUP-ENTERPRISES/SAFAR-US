@@ -12,12 +12,14 @@ declare global {
         emulator?: boolean;
         rooted?: boolean;
         vpn?: boolean;
+        coords?: { lat: number; lng: number };
       };
     }
   }
 }
 
 const bool = (v?: string) => (v === undefined ? undefined : v === 'true' || v === '1');
+const num = (v?: string) => (v === undefined ? undefined : Number(v));
 
 /**
  * Collect device and network context from every request.
@@ -47,5 +49,10 @@ export function deviceContext(req: Request, _res: Response, next: NextFunction):
     // Set by the edge/CDN, which can see far more than we can from here.
     vpn: bool(h('x-vpn-detected')),
   };
+  const lat = num(h('x-device-lat'));
+  const lng = num(h('x-device-lng'));
+  if (lat !== undefined && lng !== undefined && Number.isFinite(lat) && Number.isFinite(lng)) {
+    req.device.coords = { lat, lng };
+  }
   next();
 }

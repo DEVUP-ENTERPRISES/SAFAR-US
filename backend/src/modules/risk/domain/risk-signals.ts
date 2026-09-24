@@ -32,7 +32,10 @@ export type RiskSignal =
   // History
   | 'chargeback_history'
   | 'prior_suspension'
-  | 'blacklisted';
+  | 'blacklisted'
+  // Payment
+  | 'card_high_risk'
+  | 'card_check_failed';
 
 export const SIGNAL_WEIGHTS: Record<RiskSignal, number> = {
   // Weak on their own — a new device is the normal state of a new customer.
@@ -56,6 +59,9 @@ export const SIGNAL_WEIGHTS: Record<RiskSignal, number> = {
   card_seen_on_other_accounts: 25,
   booking_velocity: 20,
   identity_rejected_before: 25,
+
+  card_high_risk: 30,
+  card_check_failed: 15,
 
   // Decisive.
   duplicate_licence: 45,
@@ -88,6 +94,8 @@ export const SIGNAL_REASONS: Record<RiskSignal, string> = {
   chargeback_history: 'Previous chargeback',
   prior_suspension: 'Previously suspended',
   blacklisted: 'On the deny list',
+  card_high_risk: "Stripe Radar flagged a recent charge as elevated/highest risk",
+  card_check_failed: 'A recent charge failed its CVC or address check',
 };
 
 export type RiskBand = 'low' | 'medium' | 'high' | 'block';
@@ -159,6 +167,17 @@ export const DISPOSABLE_EMAIL_DOMAINS = new Set([
   'spamgourmet.com', 'mytemp.email', 'tempinbox.com', 'emailondeck.com',
   'moakt.com', 'tempr.email', 'discard.email', 'mailcatch.com',
 ]);
+
+/** Great-circle distance in km — cheap and accurate enough for a fraud threshold. */
+export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
 
 /** Reserved/unroutable and known datacenter ranges, checked cheaply. */
 export function looksLikeDatacenterIp(ip: string): boolean {

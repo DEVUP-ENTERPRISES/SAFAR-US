@@ -34,8 +34,11 @@ export const bookingApi = {
    * price before deciding to sign up.
    */
   quote: (input: QuoteInput) => api.post<PriceBreakdown>('/bookings/quote', input, { auth: 'optional' }),
-  create: (input: QuoteInput, idempotencyKey: string) =>
-    api.post<Booking>('/bookings', input, { idempotencyKey }),
+  create: (input: QuoteInput, idempotencyKey: string, coords?: { lat: number; lng: number }) =>
+    api.post<Booking>('/bookings', input, {
+      idempotencyKey,
+      ...(coords ? { headers: { 'x-device-lat': String(coords.lat), 'x-device-lng': String(coords.lng) } } : {}),
+    }),
   list: (role: 'guest' | 'host' = 'guest') =>
     api.get<Booking[]>('/bookings', { role }),
   getById: (id: string) => api.get<Booking>(`/bookings/${id}`),

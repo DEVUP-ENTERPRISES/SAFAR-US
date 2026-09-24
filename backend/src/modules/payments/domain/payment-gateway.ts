@@ -26,10 +26,19 @@ export interface IntentResult {
   status: 'requires_confirmation' | 'requires_action' | 'succeeded' | 'requires_capture';
 }
 
+export interface IntentRisk {
+  riskLevel: 'normal' | 'elevated' | 'highest' | 'not_assessed' | 'unknown';
+  riskScore?: number;
+  cvcCheck?: 'pass' | 'fail' | 'unavailable' | 'unchecked';
+  addressCheck?: 'pass' | 'fail' | 'unavailable' | 'unchecked';
+}
+
 export interface PaymentGateway {
   createIntent(input: CreateIntentInput): Promise<IntentResult>;
     /** `amountCents` captures less than was authorised (deposit settlement). */
   capture(intentId: string, amountCents?: number): Promise<{ status: 'succeeded' }>;
   refund(intentId: string, amount: Money, idempotencyKey: string): Promise<{ refundId: string }>;
   cancel(intentId: string): Promise<{ status: 'cancelled' }>;
+  /** Radar's verdict + card-check results on the charge behind an intent, for feeding future risk decisions. */
+  getIntentRisk(intentId: string): Promise<IntentRisk | null>;
 }

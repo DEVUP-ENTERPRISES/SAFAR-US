@@ -26,11 +26,26 @@ export function useQuote() {
   return useMutation({ mutationFn: (input: QuoteInput) => bookingApi.quote(input) });
 }
 
+/** Never blocks or fails the booking on a slow/denied/unsupported browser. */
+function bestEffortCoords(): Promise<{ lat: number; lng: number } | undefined> {
+  return new Promise((resolve) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return resolve(undefined);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(undefined),
+      { timeout: 1500, maximumAge: 300_000 },
+    );
+  });
+}
+
 export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({
     // A stable idempotency key per attempt makes retries safe (backend dedupes).
-    mutationFn: (input: QuoteInput) => bookingApi.create(input, crypto.randomUUID()),
+    mutationFn: async (input: QuoteInput) => {
+      const coords = await bestEffortCoords();
+      return bookingApi.create(input, crypto.randomUUID(), coords);
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
   });
 }

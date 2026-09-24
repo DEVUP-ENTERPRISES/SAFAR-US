@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
-import { DeviceModel, RiskEventModel, DenyEntryModel } from '../infrastructure/risk.models';
+import geoip from 'geoip-lite';
+import { DeviceModel, RiskEventModel, DenyEntryModel, CardRiskFlagModel } from '../infrastructure/risk.models';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { KycModel } from '../../kyc/infrastructure/kyc.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
@@ -9,6 +10,7 @@ import {
   SIGNAL_REASONS,
   DISPOSABLE_EMAIL_DOMAINS,
   looksLikeDatacenterIp,
+  haversineKm,
   bandFor,
   applyFloors,
   DEPOSIT_MULTIPLIER,
@@ -130,6 +132,20 @@ export class RiskService {
     if (input.vpn) add('vpn_or_proxy');
     if (input.ip && looksLikeDatacenterIp(input.ip)) add('datacenter_ip', `IP ${input.ip}`);
 
+    // Where the device says it is vs. where its IP resolves to. A genuine
+    // mismatch is a device on a different continent from its own network —
+    // a mobile connection can legitimately be 50-100km off, so the threshold
+    // is set well past normal IP-geolocation slop.
+    if (input.coords && input.ip) {
+      const geo = geoip.lookup(input.ip);
+      if (geo?.ll) {
+        const distanceKm = haversineKm(input.coords, { lat: geo.ll[0], lng: geo.ll[1] });
+        if (distanceKm > 500) {
+          add('gps_mismatch', `Device reports ${Math.round(distanceKm)}km from its IP's location (${geo.country})`);
+        }
+      }
+    }
+
     // ── Identity ─────────────────────────────────────────────────────
     if (user) {
       const domain = (user.email ?? '').split('@')[1]?.toLowerCase();
@@ -162,6 +178,26 @@ export class RiskService {
       if (dupes > 0) add('duplicate_licence', `Licence on ${dupes} other account(s)`);
     }
     if (kyc?.status === 'rejected') add('identity_rejected_before');
+
+    // ── Payment history ──────────────────────────────────────────────
+    // Radar's verdict on a charge only exists after the fact, so it can only
+    // ever inform the NEXT decision for this user, not the one that produced
+    // it — a 90-day window keeps a single old flag from following someone
+    // forever.
+    const recentCardFlag = await CardRiskFlagModel.findOne({
+      userId: input.userId,
+      createdAt: { $gte: new Date(Date.now() - 90 * 86_400_000) },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (recentCardFlag) {
+      if (recentCardFlag.riskLevel === 'elevated' || recentCardFlag.riskLevel === 'highest') {
+        add('card_high_risk', `Radar: ${recentCardFlag.riskLevel} (score ${recentCardFlag.riskScore ?? 'n/a'})`);
+      }
+      if (recentCardFlag.cvcCheck === 'fail' || recentCardFlag.addressCheck === 'fail') {
+        add('card_check_failed', `CVC ${recentCardFlag.cvcCheck ?? 'n/a'}, address ${recentCardFlag.addressCheck ?? 'n/a'}`);
+      }
+    }
 
     // ── Velocity ─────────────────────────────────────────────────────
     const cards = await PaymentMethodModel.countDocuments({ userId: input.userId, deletedAt: null });
@@ -260,6 +296,22 @@ export class RiskService {
       .sort({ createdAt: -1 })
       .limit(Math.min(opts.limit ?? 50, 200))
       .lean();
+  }
+
+  /** Radar's verdict on a charge, kept to inform this user's next risk check. */
+  async recordCardRisk(
+    userId: string,
+    intentId: string,
+    risk: { riskLevel: string; riskScore?: number; cvcCheck?: string; addressCheck?: string },
+  ): Promise<void> {
+    await CardRiskFlagModel.updateOne(
+      { intentId },
+      { $setOnInsert: { userId, intentId, ...risk } },
+      { upsert: true },
+    );
+    if (risk.riskLevel === 'elevated' || risk.riskLevel === 'highest') {
+      logger.warn({ userId, intentId, risk }, 'Radar flagged a charge as high risk');
+    }
   }
 
   /** A human disagrees with the engine. Recorded, never silent. */

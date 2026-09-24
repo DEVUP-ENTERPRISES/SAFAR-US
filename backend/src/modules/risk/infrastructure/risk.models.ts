@@ -124,3 +124,36 @@ const denySchema = new Schema<DenyEntryDoc>(
 denySchema.index({ type: 1, valueHash: 1 }, { unique: true });
 
 export const DenyEntryModel = model<DenyEntryDoc>('DenyEntry', denySchema);
+
+/**
+ * Radar's verdict on a user's most recent charges. Card risk can't be known
+ * before the first charge is attempted, so this feeds FUTURE risk decisions
+ * (another booking, a payout) rather than the one that produced it.
+ */
+export interface CardRiskFlagDoc {
+  _id: string;
+  userId: string;
+  intentId: string;
+  riskLevel: 'normal' | 'elevated' | 'highest' | 'not_assessed' | 'unknown';
+  riskScore?: number;
+  cvcCheck?: string;
+  addressCheck?: string;
+  createdAt: Date;
+}
+
+const cardRiskFlagSchema = new Schema<CardRiskFlagDoc>(
+  {
+    _id: { type: String, default: () => uuid() },
+    userId: { type: String, required: true },
+    intentId: { type: String, required: true },
+    riskLevel: { type: String, required: true },
+    riskScore: Number,
+    cvcCheck: String,
+    addressCheck: String,
+  },
+  { timestamps: { createdAt: true, updatedAt: false }, versionKey: false, _id: false },
+);
+cardRiskFlagSchema.index({ userId: 1, createdAt: -1 });
+cardRiskFlagSchema.index({ intentId: 1 }, { unique: true });
+
+export const CardRiskFlagModel = model<CardRiskFlagDoc>('CardRiskFlag', cardRiskFlagSchema);

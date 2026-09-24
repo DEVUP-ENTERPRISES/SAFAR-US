@@ -5,6 +5,7 @@ import type {
   PaymentGateway,
   CreateIntentInput,
   IntentResult,
+  IntentRisk,
 } from '../domain/payment-gateway';
 
 /**
@@ -88,6 +89,22 @@ export class StripeGateway implements PaymentGateway {
   async cancel(intentId: string): Promise<{ status: 'cancelled' }> {
     await this.stripe.paymentIntents.cancel(intentId);
     return { status: 'cancelled' };
+  }
+
+  async getIntentRisk(intentId: string): Promise<IntentRisk | null> {
+    const intent = await this.stripe.paymentIntents.retrieve(intentId, {
+      expand: ['latest_charge'],
+    });
+    const charge = intent.latest_charge;
+    if (!charge || typeof charge === 'string') return null;
+
+    const card = charge.payment_method_details?.card;
+    return {
+      riskLevel: (charge.outcome?.risk_level as IntentRisk['riskLevel']) ?? 'unknown',
+      riskScore: charge.outcome?.risk_score ?? undefined,
+      cvcCheck: (card?.checks?.cvc_check as IntentRisk['cvcCheck']) ?? undefined,
+      addressCheck: (card?.checks?.address_line1_check as IntentRisk['addressCheck']) ?? undefined,
+    };
   }
 
   /** Verify + parse a Stripe webhook (raw body + signature). */

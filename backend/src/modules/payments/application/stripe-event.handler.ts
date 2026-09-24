@@ -1,4 +1,6 @@
 import { WebhookEventModel } from '../infrastructure/webhook-event.model';
+import { paymentGateway } from '../infrastructure/gateway.provider';
+import { riskService } from '../../risk/application/risk.service';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
@@ -20,13 +22,22 @@ export async function runStripeEvent(event: {
 }): Promise<void> {
   try {
     const obj = event.data.object as {
-      metadata?: { bookingId?: string };
+      id: string;
+      metadata?: { bookingId?: string; userId?: string };
       last_payment_error?: { message?: string };
     };
     const bookingId = obj.metadata?.bookingId;
     switch (event.type) {
       case 'payment_intent.succeeded':
         if (bookingId) emit(EVENTS.PAYMENT_SUCCEEDED, bookingId, { bookingId });
+        // Best-effort: feeds this user's FUTURE risk decisions, never blocks
+        // or reverses a charge that already succeeded.
+        if (obj.metadata?.userId) {
+          paymentGateway
+            .getIntentRisk(obj.id)
+            .then((risk) => (risk ? riskService.recordCardRisk(obj.metadata!.userId!, obj.id, risk) : undefined))
+            .catch((err) => logger.warn({ err, intentId: obj.id }, 'card risk lookup failed'));
+        }
         break;
       case 'charge.refunded':
         if (bookingId) emit(EVENTS.PAYMENT_REFUNDED, bookingId, { bookingId });

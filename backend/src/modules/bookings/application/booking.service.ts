@@ -101,6 +101,7 @@ export class BookingService {
       emulator?: boolean;
       rooted?: boolean;
       vpn?: boolean;
+      coords?: { lat: number; lng: number };
     },
   ): Promise<BookingDoc> {
     if (idempotencyKey) {
