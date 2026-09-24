@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/toast';
 import { formatMoney, kmToMiles, perKmToPerMile, FUEL_LABEL } from '@/lib/utils/format';
 import { HostProfileCard, useHostPublicProfile } from '@/features/host/components/host-profile-card';
 import { AskHostPanel } from '@/features/vehicles/components/ask-host-panel';
+import { DemandBadge } from '@/features/vehicles/components/demand-badge';
 import { cn } from '@/lib/utils/cn';
 import { api } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/types';
@@ -472,6 +473,9 @@ export default function VehicleDetailPage() {
               <span className="text-[#635BFF] text-[15px]">★</span>
             </span>
             <span className="text-muted-foreground font-normal">({v.ratingCount} trips)</span>
+          </div>
+          <div className="mt-3">
+            <DemandBadge vehicleId={v._id} />
           </div>
         </div>
 

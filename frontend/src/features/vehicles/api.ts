@@ -120,6 +120,9 @@ export const vehicleApi = {
   recommendations: (limit = 12) =>
     api.get<Vehicle[]>('/search/recommendations', { limit }),
   getById: (id: string) => api.get<Vehicle>(`/vehicles/${id}`, undefined, false),
+  /** Real view counts for this listing, from actual visitor analytics. */
+  interest: (id: string) =>
+    api.get<{ viewersLast24h: number; viewersLast7d: number }>(`/vehicles/${id}/interest`, undefined, false),
   /** Everything about one car — earnings, utilisation, reviews, claims, docs. */
   insights: (id: string) => api.get<VehicleInsights>(`/vehicles/${id}/insights`),
   /** Real take-home earnings per trip length, from the actual quote engine. */

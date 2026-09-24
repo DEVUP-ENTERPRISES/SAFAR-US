@@ -84,6 +84,22 @@ export class VisitorTrackingService {
     });
   }
 
+  /**
+   * Real interest signal for one listing — how many distinct visitors looked
+   * at it recently. Used for a "people are looking at this" cue on the
+   * listing page; deliberately never invented, so it's honest to show 0.
+   */
+  async vehicleInterest(vehicleId: string): Promise<{ viewersLast24h: number; viewersLast7d: number }> {
+    const path = `/vehicles/${vehicleId}`;
+    const since24h = new Date(Date.now() - 24 * 3_600_000);
+    const since7d = new Date(Date.now() - 7 * 86_400_000);
+    const [viewers24h, viewers7d] = await Promise.all([
+      VisitorEventModel.distinct('visitorHash', { path, createdAt: { $gte: since24h } }),
+      VisitorEventModel.distinct('visitorHash', { path, createdAt: { $gte: since7d } }),
+    ]);
+    return { viewersLast24h: viewers24h.length, viewersLast7d: viewers7d.length };
+  }
+
   async liveSummary(): Promise<LiveTrafficSummary> {
     const now = Date.now();
     const since5m = new Date(now - 5 * 60_000);

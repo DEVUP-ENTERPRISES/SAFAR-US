@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { vehicleService, MIN_LISTING_PHOTOS } from '../application/vehicle.service';
 import { vehicleInsightsService } from '../application/vehicle-insights.service';
 import { pricingPreviewService } from '../application/pricing-preview.service';
+import { visitorTrackingService } from '../../analytics/application/visitor-tracking.service';
 import { fleetImportService } from '../application/fleet-import.service';
 import { vehicleHistoryService } from '../application/vehicle-history.service';
 import { vehicleLifecycleService } from '../application/vehicle-lifecycle.service';
@@ -144,6 +145,18 @@ router.get(
   asyncHandler(async (req, res) => {
     const v = await vehicleService.getById(req.params.id);
     sendSuccess(res, v);
+  }),
+);
+
+/**
+ * Real interest signal — how many distinct visitors looked at this listing
+ * recently. Sourced from actual pageview analytics, never invented; a
+ * quiet listing honestly shows a low number rather than a fake one.
+ */
+router.get(
+  '/:id/interest',
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await visitorTrackingService.vehicleInterest(req.params.id));
   }),
 );
 
