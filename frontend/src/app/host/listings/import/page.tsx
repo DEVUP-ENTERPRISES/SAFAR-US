@@ -211,16 +211,17 @@ export default function ImportPage() {
                 <p className="font-semibold">{readyCount} ready to import</p>
                 {blocked.length > 0 && (
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {blocked.length} need{blocked.length === 1 ? 's' : ''} attention — the rest still import.
+                    {blocked.length} need{blocked.length === 1 ? 's' : ''} attention, but every car is still
+                    attempted — you&apos;ll see the exact reason for each one below.
                   </p>
                 )}
               </div>
               <Button
-                disabled={readyCount === 0}
+                disabled={rows.length === 0}
                 loading={doImport.isPending}
                 onClick={() => doImport.mutate()}
               >
-                Import / update {readyCount} car{readyCount === 1 ? '' : 's'}
+                Import / update all {rows.length} car{rows.length === 1 ? '' : 's'}
               </Button>
             </div>
 
