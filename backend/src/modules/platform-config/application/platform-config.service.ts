@@ -228,6 +228,7 @@ export class PlatformConfigService {
         hostApprovalHours: 24,
         verificationGraceHours: 72,
         checkoutHoldMinutes: 15,
+        paymentPendingMinutes: 30,
         priceLockMinutes: 10,
         ...(doc.booking ?? {}),
       },

@@ -39,5 +39,8 @@ const ledgerSchema = new Schema<LedgerEntryDoc>(
 ledgerSchema.index({ txnId: 1 });
 ledgerSchema.index({ account: 1, postedAt: -1 });
 ledgerSchema.index({ refType: 1, refId: 1 });
+// Makes a replay of the same transaction a no-op instead of a double-posting,
+// so a money movement whose ledger write failed can safely be retried.
+ledgerSchema.index({ txnId: 1, account: 1, direction: 1 }, { unique: true });
 
 export const LedgerModel = model<LedgerEntryDoc>('LedgerEntry', ledgerSchema);

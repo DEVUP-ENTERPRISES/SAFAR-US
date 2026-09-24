@@ -34,19 +34,26 @@ export class LedgerService {
 
     const txnId = input.txnId ?? uuid();
     const now = new Date();
-    await LedgerModel.insertMany(
-      input.legs.map((leg) => ({
-        txnId,
-        account: leg.account,
-        direction: leg.direction,
-        amount: leg.amount,
-        currency: input.currency,
-        refType: input.refType,
-        refId: input.refId,
-        description: input.description,
-        postedAt: now,
-      })),
-    );
+    try {
+      await LedgerModel.insertMany(
+        input.legs.map((leg) => ({
+          txnId,
+          account: leg.account,
+          direction: leg.direction,
+          amount: leg.amount,
+          currency: input.currency,
+          refType: input.refType,
+          refId: input.refId,
+          description: input.description,
+          postedAt: now,
+        })),
+        { ordered: true },
+      );
+    } catch (err) {
+      // Already posted under this txnId — a caller retrying after a partial
+      // failure gets the same transaction, not a second copy of it.
+      if ((err as { code?: number }).code !== 11000) throw err;
+    }
     return txnId;
   }
 

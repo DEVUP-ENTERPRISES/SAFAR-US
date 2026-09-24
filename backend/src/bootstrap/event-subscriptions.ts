@@ -263,6 +263,12 @@ export function registerEventSubscribers(): void {
   // trip isn't actually paid for until they're standing at the car.
   eventBus.subscribe(EVENTS.PAYMENT_FAILED, async (e) => {
     const p = e.payload as { bookingId: string; reason?: string };
+    let released = false;
+    try {
+      released = await bookingService.failForPayment(p.bookingId, p.reason);
+    } catch (err) {
+      logger.error({ err, bookingId: p.bookingId }, 'payment.failed cleanup failed — booking may still hold dates');
+    }
     try {
       const booking = await bookingService.getDoc(p.bookingId);
       await notificationService.send({
@@ -270,12 +276,24 @@ export function registerEventSubscribers(): void {
         priority: 'critical',
         deepLink: `/bookings/${p.bookingId}`,
         templateKey: 'payment.failed',
-        title: 'Payment didn’t go through',
-        body: p.reason
-          ? `Your card was declined: ${p.reason}. Update your payment method to keep this trip.`
-          : 'Your card was declined. Update your payment method to keep this trip.',
+        title: released ? 'Your booking was cancelled' : 'Payment didn’t go through',
+        body: released
+          ? `Your card was declined${p.reason ? ` (${p.reason})` : ''}, so this booking was released. You can book again with another card.`
+          : p.reason
+            ? `Your card was declined: ${p.reason}. Update your payment method to keep this trip.`
+            : 'Your card was declined. Update your payment method to keep this trip.',
         data: { bookingId: p.bookingId },
       });
+      if (released) {
+        await notifyHost(
+          booking.hostId,
+          'booking.cancelled',
+          'A booking was released',
+          'A guest’s payment failed after checkout, so their booking was cancelled and your dates are open again.',
+          { bookingId: p.bookingId },
+          'high',
+        );
+      }
     } catch (err) {
       logger.warn({ err, bookingId: p.bookingId }, 'payment.failed notification failed');
     }

@@ -16,6 +16,7 @@ import { riskService } from '../../risk/application/risk.service';
 import { userRepository } from '../../users/infrastructure/user.repository';
 import { pricingService } from '../../pricing/application/pricing.service';
 import { paymentService } from '../../payments/application/payment.service';
+import { depositService } from '../../payments/application/deposit.service';
 import { walletService } from '../../wallet/application/wallet.service';
 import { couponService } from '../../coupons/application/coupon.service';
 import { hostService } from '../../hosts/application/host.service';
@@ -339,6 +340,21 @@ export class BookingService {
 
       if (status === 'paid') {
         await availabilityService.confirmHold(holdId, bookingId);
+      } else if (status === 'pending_approval') {
+        // Held until the host's own response window, not the short
+        // checkout-hold TTL — otherwise the days free up while the host
+        // still legitimately has time left to accept.
+        await availabilityService.extendHold(holdId, booking.approvalDeadline!);
+      } else if (status === 'pending_verification') {
+        await availabilityService.extendHold(
+          holdId,
+          new Date(now.getTime() + (await platformConfigService.get()).booking.verificationGraceHours * HOUR_MS),
+        );
+      } else if (status === 'pending_payment') {
+        await availabilityService.extendHold(
+          holdId,
+          new Date(now.getTime() + (await platformConfigService.get()).booking.paymentPendingMinutes * 60_000),
+        );
       }
       // Records who redeemed what, on which booking — enforcing per-user limits
       // and tracking campaign spend against its budget.
@@ -1332,6 +1348,7 @@ export class BookingService {
     const now = new Date();
     const { booking: bookingCfg } = await platformConfigService.get();
     const verificationCutoff = new Date(now.getTime() - bookingCfg.verificationGraceHours * HOUR_MS);
+    const paymentCutoff = new Date(now.getTime() - bookingCfg.paymentPendingMinutes * 60_000);
     const due = await BookingModel.find({
       $or: [
         { status: 'pending_approval', approvalDeadline: { $lte: now } },
@@ -1339,6 +1356,8 @@ export class BookingService {
         // A held request whose trip has already started is dead regardless of
         // which clock it was on — nobody can take a car they missed.
         { status: 'pending_verification', 'period.start': { $lte: now } },
+        { status: 'pending_payment', createdAt: { $lte: paymentCutoff } },
+        { status: 'pending_payment', 'period.start': { $lte: now } },
       ],
     }).lean<BookingDoc[]>();
     for (const b of due) {
@@ -1353,10 +1372,32 @@ export class BookingService {
         guestId: b.guestId,
         hostId: b.hostId,
         vehicleId: b.vehicleId,
-        reason: b.status === 'pending_verification' ? 'verification' : 'no_response',
+        reason:
+          b.status === 'pending_verification'
+            ? 'verification'
+            : b.status === 'pending_payment'
+              ? 'payment'
+              : 'no_response',
       });
     }
     return due.length;
+  }
+
+  /**
+   * A card that cleared at checkout but failed afterwards. Only acts on a
+   * booking still waiting on that money — a late or duplicate failure event
+   * must never cancel a trip that has since been paid, started or finished.
+   */
+  async failForPayment(bookingId: string, reason?: string): Promise<boolean> {
+    const booking = await this.getDoc(bookingId);
+    const UNPAID: BookingStatus[] = ['pending_payment', 'pending_verification', 'pending_approval', 'confirmed'];
+    if (!UNPAID.includes(booking.status)) return false;
+
+    if (booking.holdId) await availabilityService.releaseHold(booking.holdId);
+    await depositService.release(bookingId, 'Booking payment failed').catch(() => undefined);
+    await paymentService.cancelAuthorization(bookingId).catch(() => undefined);
+    await this.transition(booking, 'cancelled_system', 'system', reason ?? 'Payment failed');
+    return true;
   }
 
   // Called by the trips module

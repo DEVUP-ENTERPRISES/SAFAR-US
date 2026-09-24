@@ -191,6 +191,14 @@ export class AvailabilityService implements IAvailabilityContract {
     return holdId;
   }
 
+  /** Keep a hold alive as long as the booking behind it is still pending. */
+  async extendHold(holdId: string, until: Date): Promise<void> {
+    await AvailabilityModel.updateMany(
+      { holdId, state: 'held' },
+      { $set: { holdExpiresAt: until } },
+    );
+  }
+
   async confirmHold(holdId: string, bookingId: string): Promise<void> {
     await AvailabilityModel.updateMany(
       { holdId },

@@ -183,6 +183,7 @@ export class DepositService {
     // A damage settlement compensates the host, so it lands in their payable.
     try {
       await ledgerService.post({
+        txnId: `deposit_capture_${bookingId}`,
         refType: 'deposit',
         refId: bookingId,
         currency: deposit.currency,
@@ -193,9 +194,13 @@ export class DepositService {
         ],
       });
     } catch (err) {
-      // Loud, never silent: money moved at the PSP and the books disagree.
-      logger.error({ err, bookingId, taken }, 'DEPOSIT CAPTURED BUT LEDGER WRITE FAILED');
-      throw err;
+      // The capture already happened; the txnId is deterministic, so this is
+      // safely replayable. Surfaced for reconciliation rather than thrown,
+      // which would tell the caller the capture failed when it did not.
+      logger.error(
+        { err, bookingId, taken, txnId: `deposit_capture_${bookingId}` },
+        'DEPOSIT CAPTURED BUT LEDGER WRITE FAILED — replayable, needs reconciliation',
+      );
     }
 
     logger.info({ bookingId, taken, requested: requested.amount, reason }, 'deposit captured');
