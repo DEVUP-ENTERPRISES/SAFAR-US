@@ -182,6 +182,8 @@ export interface VehicleDoc {
   complianceHold?: boolean;
   /** Paused after a trip because of an unresolved safety recall. */
   recallHold?: boolean;
+  /** Informational only — does not pause the car. E.g. maintenance is overdue. */
+  maintenanceRisk?: boolean;
   verificationStatus: VerificationStatus;
   ratingAvg: number;
   ratingCount: number;
@@ -316,6 +318,7 @@ const schema = new Schema<VehicleDoc>(
     },
     complianceHold: { type: Boolean, default: false },
     recallHold: { type: Boolean, default: false },
+    maintenanceRisk: { type: Boolean, default: false },
     verificationStatus: { type: String, default: 'unverified' },
     ratingAvg: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },

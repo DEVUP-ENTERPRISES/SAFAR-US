@@ -7,35 +7,24 @@ import { mapsProvider } from '../../maps/infrastructure/maps.provider';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /**
- * Fleet import — onboarding a host who already runs a hundred cars elsewhere.
- *
- * The work in listing a fleet by hand is not judgement, it is transcription:
- * make, model, year, body, fuel, transmission and seats are all already encoded
- * in the VIN. So the host supplies the four things a VIN cannot know — price,
- * where the car lives, and how they describe it — and everything else is
- * decoded.
- *
- * Three deliberate choices:
- *
- *  - Everything lands as a DRAFT. A hundred cars appearing live, unreviewed and
- *    photoless would be worse for the marketplace than a slow onboarding. The
- *    host reviews and publishes.
- *  - A row that cannot be completed is REPORTED with the reason, and the rest
- *    of the import still runs. An all-or-nothing import of a hundred rows fails
- *    on row 87 and wastes the other 99.
- *  - Duplicate VINs are skipped, not re-created. Re-running an import after
- *    fixing three rows must not produce a hundred duplicates, and hosts will
- *    absolutely re-run it.
+ * Fleet import & bulk edit — one paste box for onboarding new cars AND
+ * updating ones already in the fleet. A VIN not yet owned creates a DRAFT
+ * (price auto-suggested from comps if omitted; status/listed can't apply
+ * without photos yet); a VIN already owned updates plate/title/status
+ * in place instead of being skipped. Each row is independent and reported
+ * with its own outcome so one bad row never costs the other ninety-nine.
  */
 
 export interface ImportRow {
   vin: string;
-  /** Cents per day. */
-  dailyPrice: number;
+  /** Cents per day. Omitted rows are auto-priced from comparable listings — the host edits it before publishing. */
+  dailyPrice?: number;
   address: string;
   title?: string;
   description?: string;
   registrationNumber?: string;
+  /** Host intent. New rows: applied only where it's safe (risk flag); listed/unlisted need photos+verification first, so they're just noted. Existing rows: actually applied via hostSetStatus. */
+  status?: 'listed' | 'unlisted' | 'risk';
   /** Supplied only when the VIN did not decode them. */
   transmission?: 'manual' | 'automatic';
   fuelType?: 'petrol' | 'diesel' | 'hybrid' | 'ev';
@@ -45,7 +34,7 @@ export interface ImportRow {
 
 export interface ImportResult {
   vin: string;
-  status: 'created' | 'skipped' | 'failed';
+  status: 'created' | 'updated' | 'skipped' | 'failed';
   vehicleId?: string;
   label?: string;
   reason?: string;
@@ -102,8 +91,8 @@ export const fleetImportService = {
       hostId: host._id,
       vin: { $in: rows.map((r) => r.vin.trim().toUpperCase()) },
       deletedAt: null,
-    }).select('vin').lean<{ vin: string }[]>();
-    const already = new Set(existing.map((e) => e.vin));
+    }).select('_id vin').lean<{ _id: string; vin: string }[]>();
+    const alreadyById = new Map(existing.map((e) => [e.vin, e._id]));
 
     const results: ImportResult[] = [];
 
@@ -111,8 +100,32 @@ export const fleetImportService = {
       const vin = row.vin.trim().toUpperCase();
       const d = byVin.get(vin);
 
-      if (already.has(vin)) {
-        results.push({ vin, status: 'skipped', reason: 'Already in your fleet' });
+      // Re-pasting a VIN already in the fleet updates it rather than being
+      // skipped — this box doubles as bulk edit, not just first import.
+      const existingId = alreadyById.get(vin);
+      if (existingId) {
+        if (!row.registrationNumber && !row.title && !row.status) {
+          results.push({ vin, status: 'skipped', reason: 'Already in your fleet' });
+          continue;
+        }
+        try {
+          if (row.registrationNumber) {
+            await VehicleModel.updateOne({ _id: existingId }, { registrationNumber: row.registrationNumber });
+          }
+          if (row.title) {
+            await VehicleModel.updateOne({ _id: existingId }, { 'listing.title': row.title });
+          }
+          if (row.status) {
+            await vehicleService.hostSetStatus(userId, existingId, {
+              ...(row.status === 'listed' ? { status: 'listed' } : {}),
+              ...(row.status === 'unlisted' ? { status: 'paused' } : {}),
+              ...(row.status === 'risk' ? { maintenanceRisk: true } : { maintenanceRisk: false }),
+            });
+          }
+          results.push({ vin, status: 'updated', vehicleId: existingId });
+        } catch (err) {
+          results.push({ vin, status: 'failed', reason: (err as Error).message.slice(0, 160) });
+        }
         continue;
       }
       if (!d?.ok) {
@@ -136,11 +149,6 @@ export const fleetImportService = {
         results.push({ vin, status: 'failed', reason: `Still needs ${lacking.join(', ')}` });
         continue;
       }
-      if (!row.dailyPrice || row.dailyPrice <= 0) {
-        results.push({ vin, status: 'failed', reason: 'Needs a daily price' });
-        continue;
-      }
-
       // Geocode per row. A car placed at the wrong coordinates is invisible to
       // search, so a failed lookup fails the row rather than defaulting.
       let coords: { lat: number; lng: number; city: string } | null = null;
@@ -153,6 +161,17 @@ export const fleetImportService = {
       if (!coords) {
         results.push({ vin, status: 'failed', reason: `Could not find "${row.address}"` });
         continue;
+      }
+
+      // Price is no longer typed per row — start from the market comps for
+      // this category/area so a fresh draft isn't stuck at $0; the host
+      // corrects it on the listing before publishing either way.
+      let dailyPrice = row.dailyPrice;
+      if (!dailyPrice) {
+        const suggestion = await vehicleService
+          .priceSuggestion({ lng: coords.lng, lat: coords.lat, category: 'economy', fuelType })
+          .catch(() => null);
+        dailyPrice = suggestion?.suggested ?? 4500;
       }
 
       const label = `${d.year} ${d.make} ${d.model}${d.trim ? ` ${d.trim}` : ''}`;
@@ -182,14 +201,25 @@ export const fleetImportService = {
             maxTripHours: 24 * 30,
             cancellationPolicy: 'moderate',
           },
-          pricing: { dailyPrice: row.dailyPrice, currency: 'USD', cleaningFee: 0 },
+          pricing: { dailyPrice, currency: 'USD', cleaningFee: 0 },
           // Status is not in the create DTO — the model defaults new vehicles
           // to 'draft', which is exactly what an import wants: nothing goes
-          // live before the host has looked at it and added photos.
+          // live before the host has looked at it and added photos. A
+          // listed/unlisted request on a brand-new car can't apply yet —
+          // there are no photos — so only the non-gated risk flag applies here.
         });
         const vehicle = await vehicleService.create(userId, dto);
+        if (row.status === 'risk') {
+          await VehicleModel.updateOne({ _id: vehicle._id }, { maintenanceRisk: true });
+        }
 
-        results.push({ vin, status: 'created', vehicleId: vehicle._id, label });
+        results.push({
+          vin,
+          status: 'created',
+          vehicleId: vehicle._id,
+          label,
+          reason: row.status && row.status !== 'risk' ? 'Created as draft — add photos, then publish' : undefined,
+        });
       } catch (err) {
         results.push({ vin, status: 'failed', reason: (err as Error).message.slice(0, 160) });
       }

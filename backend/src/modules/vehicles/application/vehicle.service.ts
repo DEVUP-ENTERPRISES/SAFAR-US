@@ -392,6 +392,48 @@ export class VehicleService implements IVehicleContract {
     await VehicleModel.updateOne({ _id: vehicleId }, { status: 'delisted' });
   }
 
+  /**
+   * Self-serve pause/relist for a car that has ALREADY cleared admin
+   * verification once — never the initial draft→listed path, which stays
+   * gated behind submit() + photos + admin review. Never overrides a
+   * recall/compliance hold; those clear only through their own release path.
+   */
+  async hostSetStatus(
+    userId: string,
+    vehicleId: string,
+    input: { status?: 'listed' | 'paused'; maintenanceRisk?: boolean },
+  ): Promise<VehicleDoc> {
+    const vehicle = await this.getById(vehicleId);
+    await this.assertOwner(userId, vehicle);
+
+    const update: Record<string, unknown> = {};
+    if (input.status === 'listed') {
+      if (vehicle.verificationStatus !== 'verified') {
+        throw new ConflictError('This car has not been verified yet — submit it for review first.', 'NOT_VERIFIED');
+      }
+      if (vehicle.recallHold) {
+        throw new ConflictError('This car is on recall hold until a verified repair receipt clears it.', 'RECALL_HOLD');
+      }
+      if (vehicle.complianceHold) {
+        throw new ConflictError('This car is held for an expired document — renew it to relist.', 'COMPLIANCE_HOLD');
+      }
+      const photos = vehicle.photos?.length ?? 0;
+      if (photos < MIN_LISTING_PHOTOS) {
+        throw new ConflictError(`Add at least ${MIN_LISTING_PHOTOS} photos before listing.`, 'PHOTOS_REQUIRED');
+      }
+      update.status = 'listed';
+    } else if (input.status === 'paused') {
+      if (vehicle.status !== 'listed') {
+        throw new ConflictError('Only a listed car can be paused.', 'INVALID_STATE');
+      }
+      update.status = 'paused';
+    }
+    if (input.maintenanceRisk !== undefined) update.maintenanceRisk = input.maintenanceRisk;
+
+    if (Object.keys(update).length) await VehicleModel.updateOne({ _id: vehicleId }, update);
+    return this.getById(vehicleId);
+  }
+
   // ── Admin ──────────────────────────────────────────────────────────
   /** Admin approve (list), suspend (pause), or reject a vehicle. */
   async adminSetStatus(

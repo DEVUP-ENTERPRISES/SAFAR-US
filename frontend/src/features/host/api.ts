@@ -214,7 +214,7 @@ export interface RowPreview {
 
 export interface ImportResult {
   vin: string;
-  status: 'created' | 'skipped' | 'failed';
+  status: 'created' | 'updated' | 'skipped' | 'failed';
   vehicleId?: string;
   label?: string;
   reason?: string;
@@ -222,9 +222,11 @@ export interface ImportResult {
 
 export interface ImportRow {
   vin: string;
-  dailyPrice: number;
   address: string;
+  dailyPrice?: number;
   title?: string;
+  registrationNumber?: string;
+  status?: 'listed' | 'unlisted' | 'risk';
 }
 
 export const hostApi = {

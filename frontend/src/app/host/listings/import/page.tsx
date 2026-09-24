@@ -10,35 +10,31 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
+import { Field } from '@/components/ui/field';
 import { cn } from '@/lib/utils/cn';
 import { ApiError } from '@/lib/api/types';
+import { LocationSearch } from '@/features/maps/components/location-search';
 import { hostApi, type RowPreview, type ImportResult } from '@/features/host/api';
 
 /**
- * Fleet import.
- *
- * A host arriving with a hundred cars already listed elsewhere faces a day of
- * transcription — and almost none of it is judgement. Make, model, year, body,
- * fuel, transmission and seats are all encoded in the VIN, so the host pastes
- * four columns and the rest is decoded.
- *
- * The flow is paste, then LOOK, then commit. A hundred cars appearing live
- * unreviewed would be worse for the marketplace than a slow onboarding, so
- * everything lands as a draft and the preview shows exactly what will be
- * created — including which rows still need something and which are already in
- * the fleet — before anything is written.
+ * Fleet import & bulk edit — one shared address for the whole batch (set
+ * once, above the box); each pasted line is a VIN plus the things a VIN
+ * can't know: plate, an optional title, and a status. Re-pasting a VIN
+ * already in the fleet updates that car instead of being skipped.
  */
 
 interface ParsedRow {
   vin: string;
-  dailyPrice: number;
-  address: string;
+  registrationNumber?: string;
   title?: string;
+  status?: 'listed' | 'unlisted' | 'risk';
 }
 
-/** VIN, price, address, optional title — one row per car. */
-const SAMPLE = `4T1C11AK5NU123456, 65, 500 Main St, Dallas TX
-5YJ3E1EA7KF317834, 120, 500 Main St, Dallas TX, Tesla Model 3 Long Range`;
+const STATUS_VALUES = ['listed', 'unlisted', 'risk'] as const;
+
+/** VIN, license plate, optional title, status — one row per car. */
+const SAMPLE = `4T1C11AK5NU123456, TXA1234, , Listed
+5YJ3E1EA7KF317834, TXB5678, Tesla Model 3 Long Range, Unlisted`;
 
 function parse(text: string): { rows: ParsedRow[]; errors: string[] } {
   const rows: ParsedRow[] = [];
@@ -46,24 +42,22 @@ function parse(text: string): { rows: ParsedRow[]; errors: string[] } {
 
   text.split('\n').map((l) => l.trim()).filter(Boolean).forEach((line, i) => {
     // Tolerate tabs (a paste from a spreadsheet) as well as commas.
-    const parts = line.split(/\t|,(?![^(]*\))/).map((p) => p.trim());
-    const [vin, price, ...rest] = parts;
+    const parts = line.split(/\t|,/).map((p) => p.trim());
+    const [vin, plate, ...rest] = parts;
     if (!vin || vin.length < 11) { errors.push(`Line ${i + 1}: that does not look like a VIN`); return; }
 
-    const dollars = Number(String(price ?? '').replace(/[^0-9.]/g, ''));
-    if (!dollars) { errors.push(`Line ${i + 1}: missing a daily price`); return; }
-
-    // The address may itself contain commas, so anything between the price and
-    // an optional trailing title is treated as the address.
-    const hasTitle = rest.length > 2;
-    const address = (hasTitle ? rest.slice(0, -1) : rest).join(', ').trim();
-    if (address.length < 4) { errors.push(`Line ${i + 1}: missing an address`); return; }
+    // A trailing token matching a status word is the status; everything else
+    // between the plate and it is the optional title.
+    const last = rest[rest.length - 1]?.toLowerCase();
+    const hasStatus = STATUS_VALUES.includes(last as (typeof STATUS_VALUES)[number]);
+    const status = hasStatus ? (last as (typeof STATUS_VALUES)[number]) : undefined;
+    const title = (hasStatus ? rest.slice(0, -1) : rest).join(', ').trim();
 
     rows.push({
       vin: vin.toUpperCase(),
-      dailyPrice: Math.round(dollars * 100),
-      address,
-      title: hasTitle ? rest[rest.length - 1] : undefined,
+      registrationNumber: plate?.trim() || undefined,
+      title: title || undefined,
+      status,
     });
   });
 
@@ -72,6 +66,7 @@ function parse(text: string): { rows: ParsedRow[]; errors: string[] } {
 
 export default function ImportPage() {
   const [text, setText] = useState('');
+  const [address, setAddress] = useState('');
   const [preview, setPreview] = useState<RowPreview[] | null>(null);
   const [results, setResults] = useState<ImportResult[] | null>(null);
 
@@ -83,12 +78,27 @@ export default function ImportPage() {
   });
 
   const doImport = useMutation({
-    mutationFn: () => hostApi.importFleet(rows),
+    mutationFn: () =>
+      hostApi.importFleet(
+        rows.map((r) => ({
+          vin: r.vin,
+          address,
+          registrationNumber: r.registrationNumber,
+          title: r.title,
+          status: r.status,
+        })),
+      ),
     onSuccess: setResults,
   });
 
-  const readyCount = (preview ?? []).filter((p) => p.ok && !p.duplicate && p.missing.length === 0).length;
-  const blocked = (preview ?? []).filter((p) => !p.ok || p.missing.length > 0);
+  // A duplicate row still counts as ready when it carries an edit (plate,
+  // title or status) — re-pasting a VIN already in the fleet updates it.
+  const readyCount = (preview ?? []).filter((p) => {
+    const row = rows.find((r) => r.vin === p.vin);
+    if (p.duplicate) return !!(row?.registrationNumber || row?.title || row?.status);
+    return p.ok && p.missing.length === 0;
+  }).length;
+  const blocked = (preview ?? []).filter((p) => !p.duplicate && (!p.ok || p.missing.length > 0));
 
   return (
     <div className="space-y-6">
@@ -98,7 +108,7 @@ export default function ImportPage() {
 
       <PageHeader
         title="Import your fleet"
-        description="Paste one line per car. We decode the rest from the VIN."
+        description="Set your address once, then paste one line per car. We decode the rest from the VIN."
       />
 
       {/* What the VIN saves them typing, said once, up front. */}
@@ -106,11 +116,12 @@ export default function ImportPage() {
         <CardContent className="flex items-start gap-3 py-4">
           <Wand2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div className="text-sm">
-            <p className="font-semibold">You only type four things per car.</p>
+            <p className="font-semibold">Price isn&apos;t typed here.</p>
             <p className="mt-0.5 text-muted-foreground">
-              VIN, daily price, address, and optionally a title. Year, make, model, trim, body type, fuel,
-              transmission and seats are read from the VIN. Everything imports as a draft — nothing goes live
-              until you add photos and publish it.
+              Year, make, model, trim, body type, fuel, transmission and seats are read from the VIN, and a
+              starting price is suggested from comparable listings. Set the real price, add photos and publish
+              from the listing page. Re-pasting a VIN already in your fleet updates its plate, title or status
+              instead of creating a duplicate.
             </p>
           </div>
         </CardContent>
@@ -118,6 +129,13 @@ export default function ImportPage() {
 
       <Card>
         <CardContent className="space-y-3 py-5">
+          <Field label="Address" hint="Applied to every car in this batch">
+            <LocationSearch
+              placeholder={address || 'Search an address'}
+              onPick={(p) => setAddress(p.label)}
+            />
+          </Field>
+
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="font-medium">Your cars</p>
             <button
@@ -131,7 +149,7 @@ export default function ImportPage() {
             rows={10}
             value={text}
             onChange={(e) => { setText(e.target.value); setPreview(null); setResults(null); }}
-            placeholder={'VIN, price per day, address, optional title\n' + SAMPLE}
+            placeholder={'VIN, license plate, optional title, status\n' + SAMPLE}
             className="font-mono text-sm"
           />
 
@@ -139,9 +157,10 @@ export default function ImportPage() {
             <p className="text-sm text-muted-foreground">
               {rows.length} car{rows.length === 1 ? '' : 's'} read
               {errors.length > 0 && <span className="text-warning"> · {errors.length} line(s) need fixing</span>}
+              {rows.length > 0 && !address && <span className="text-warning"> · address required</span>}
             </p>
             <Button
-              disabled={rows.length === 0}
+              disabled={rows.length === 0 || !address}
               loading={doPreview.isPending}
               onClick={() => doPreview.mutate()}
             >
@@ -183,7 +202,7 @@ export default function ImportPage() {
                 loading={doImport.isPending}
                 onClick={() => doImport.mutate()}
               >
-                Import {readyCount} car{readyCount === 1 ? '' : 's'} as drafts
+                Import / update {readyCount} car{readyCount === 1 ? '' : 's'}
               </Button>
             </div>
 
@@ -201,14 +220,17 @@ export default function ImportPage() {
                         <p className="text-xs text-muted-foreground">
                           {[p.bodyType, p.fuelType, p.transmission, p.seats && `${p.seats} seats`]
                             .filter(Boolean).join(' · ')}
-                          {row && ` · $${Math.round(row.dailyPrice / 100)}/day`}
+                          {row?.registrationNumber && ` · ${row.registrationNumber}`}
+                          {row?.status && ` · ${row.status}`}
                         </p>
                       )}
                       {p.note && <p className="mt-0.5 text-xs text-muted-foreground">{p.note}</p>}
                     </div>
                     <div className="shrink-0">
                       {p.duplicate ? (
-                        <Badge tone="muted">Already yours</Badge>
+                        <Badge tone={row?.registrationNumber || row?.title || row?.status ? 'default' : 'muted'}>
+                          {row?.registrationNumber || row?.title || row?.status ? 'Already yours — will update' : 'Already yours'}
+                        </Badge>
                       ) : !p.ok ? (
                         <Badge tone="destructive">{p.error ?? 'Could not decode'}</Badge>
                       ) : p.missing.length > 0 ? (
@@ -230,10 +252,12 @@ export default function ImportPage() {
         <Card>
           <CardContent className="py-5">
             <p className="font-semibold">
-              {results.filter((r) => r.status === 'created').length} imported as drafts
+              {results.filter((r) => r.status === 'created').length} imported as drafts,{' '}
+              {results.filter((r) => r.status === 'updated').length} updated
             </p>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Add photos to each, then publish. A car without photos will not attract bookings.
+              New cars land as drafts — add photos, set a real price, then publish. A car without photos will
+              not attract bookings.
             </p>
             <ul className="mt-4 divide-y divide-border text-sm">
               {results.map((r) => (
@@ -243,9 +267,9 @@ export default function ImportPage() {
                     {r.reason && <span className="ms-2 text-xs text-muted-foreground">{r.reason}</span>}
                   </span>
                   <span className={cn('inline-flex shrink-0 items-center gap-1 text-xs font-medium',
-                    r.status === 'created' ? 'text-success'
+                    r.status === 'created' || r.status === 'updated' ? 'text-success'
                       : r.status === 'skipped' ? 'text-muted-foreground' : 'text-destructive')}>
-                    {r.status === 'created' ? <CheckCircle2 className="h-3.5 w-3.5" />
+                    {r.status === 'created' || r.status === 'updated' ? <CheckCircle2 className="h-3.5 w-3.5" />
                       : r.status === 'skipped' ? <SkipForward className="h-3.5 w-3.5" />
                         : <AlertTriangle className="h-3.5 w-3.5" />}
                     {r.status}

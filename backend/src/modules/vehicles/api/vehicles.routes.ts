@@ -100,11 +100,12 @@ router.post(
     body: z.object({
       rows: z.array(z.object({
         vin: z.string().min(11).max(20),
-        dailyPrice: z.number().int().positive(),
+        dailyPrice: z.number().int().positive().optional(),
         address: z.string().min(4).max(300),
         title: z.string().max(120).optional(),
         description: z.string().max(4000).optional(),
         registrationNumber: z.string().max(32).optional(),
+        status: z.enum(['listed', 'unlisted', 'risk']).optional(),
         transmission: z.enum(['manual', 'automatic']).optional(),
         fuelType: z.enum(['petrol', 'diesel', 'hybrid', 'ev']).optional(),
         seats: z.number().int().min(1).max(60).optional(),
@@ -114,6 +115,22 @@ router.post(
   }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await fleetImportService.importRows(req.principal!.userId, req.body.rows));
+  }),
+);
+
+/** Host self-serve pause/relist of an already-verified car, or toggling the informational maintenance-risk flag. */
+router.patch(
+  '/:id/status',
+  authenticate,
+  authorize('vehicle:update:own'),
+  validate({
+    body: z.object({
+      status: z.enum(['listed', 'paused']).optional(),
+      maintenanceRisk: z.boolean().optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await vehicleService.hostSetStatus(req.principal!.userId, req.params.id, req.body));
   }),
 );
 
