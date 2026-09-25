@@ -1,5 +1,7 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
+import { hostApi } from '@/features/host/api';
 import { Zap, TrendingUp, Wallet, Clock, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +22,7 @@ export default function EarningsPage() {
   const instant = useInstantPayout();
   const confirm = useConfirm();
   const cur = data?.currency ?? 'USD';
+  const readiness = useQuery({ queryKey: ['payout-readiness'], queryFn: () => hostApi.payoutReadiness(), retry: false });
 
   if (isLoading) return <Skeleton className="h-80 w-full" />;
   if (!data) return null;
@@ -39,7 +42,7 @@ export default function EarningsPage() {
           with no idea it could not be sent. */}
       <PayoutReadinessCard />
 
-      <PayoutConnect />
+      {!readiness.data?.destination.platformOwned && <PayoutConnect />}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile tone="primary" icon={<TrendingUp className="h-5 w-5" />} label="Lifetime earnings" value={money(data.lifetimeEarnings)} />

@@ -17,6 +17,8 @@ jest.mock('../../platform-config/application/platform-config.service', () => ({
 
 import { payoutService } from './payout.service';
 import { PayoutModel } from '../infrastructure/payout.model';
+import { HostModel } from '../../hosts/infrastructure/host.model';
+import { UserModel } from '../../users/infrastructure/user.model';
 import { LedgerModel } from '../../payments/infrastructure/ledger.model';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
 
@@ -71,5 +73,20 @@ describe('instant payout', () => {
     const [a, b] = await Promise.all([payoutService.runForHost('h1'), payoutService.runForHost('h1')]);
     expect(a.paid + b.paid).toBe(1);
     expect(transfer).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('House Fleet payouts', () => {
+  it('settles on the books without sending money anywhere, and leaves other hosts alone', async () => {
+    const owner = await UserModel.create({ email: 'fleet@x.com', roles: ['host', 'house_fleet'] });
+    await HostModel.create({ _id: 'h-fleet', userId: owner._id, displayName: 'Fleet' });
+    const p = await seed({ hostId: 'h-fleet', bookingId: 'bf' });
+
+    const r = await payoutService.instantPayout('h-fleet', owner._id);
+
+    expect(r.paidCount).toBe(1);
+    expect(transfer).not.toHaveBeenCalled();
+    expect((await PayoutModel.findById(p._id).lean())?.status).toBe('paid');
+    expect(await LedgerModel.distinct('txnId', { refId: p._id })).toEqual([`payout_${p._id}`]);
   });
 });

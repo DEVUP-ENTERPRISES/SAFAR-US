@@ -12,6 +12,8 @@ import { payoutReadinessService } from './payout-readiness.service';
 import { ConflictError } from '../../../core/errors/app-error';
 import { uuid } from '../../../shared/utils/uuid';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { HostModel } from '../../hosts/infrastructure/host.model';
+import { userRepository } from '../../users/infrastructure/user.repository';
 
 // Hold window and instant-payout fee come from PlatformConfig — finance tunes
 // them from the admin panel, no deploy.
@@ -133,6 +135,12 @@ export class PayoutService {
     );
   }
 
+  private async isHouseFleet(hostId: string): Promise<boolean> {
+    const host = await HostModel.findById(hostId).select('userId').lean<{ userId: string }>();
+    const user = host ? await userRepository.findById(host.userId) : null;
+    return !!user?.roles?.includes('house_fleet');
+  }
+
   /**
    * Send one claimed payout: transfer first, then the ledger, keyed on the payout
    * so a replay can neither pay a host twice nor post twice. `fee` is the instant fee.
@@ -141,6 +149,25 @@ export class PayoutService {
     const net = payout.amount - fee;
     try {
       let providerRef: string | undefined;
+      // The House Fleet's earnings are CatoDrive's own money, already in its Stripe balance: settle on the books, send nothing.
+      if (await this.isHouseFleet(payout.hostId)) {
+        await ledgerService.post({
+          txnId: `payout_${payout._id}`,
+          refType: 'payout',
+          refId: payout._id,
+          currency: payout.currency,
+          description: `House Fleet earnings kept by the platform ${payout.hostId}`,
+          legs: [
+            { account: Account.hostPayable(payout.hostId), direction: 'credit', amount: payout.amount },
+            { account: Account.platformRevenue(), direction: 'debit', amount: payout.amount },
+          ],
+        });
+        await PayoutModel.updateOne(
+          { _id: payout._id },
+          { status: 'paid', paidAt: new Date(), ledgerTxnId: `payout_${payout._id}`, $unset: { claimToken: 1, lastError: 1 } },
+        );
+        return true;
+      }
       if (connectService.enabled) {
         const { transferId } = await connectService.transfer(
           payout.hostId,

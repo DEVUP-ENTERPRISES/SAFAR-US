@@ -39,6 +39,8 @@ export class PayoutReadinessService {
       configured: boolean;
       verified: boolean;
       viaStripe: boolean;
+      /** True only for the House Fleet host: its earnings are CatoDrive's own and stay on the platform. */
+      platformOwned?: boolean;
       accountHolder?: string;
       bankName?: string;
       last4?: string;
@@ -57,7 +59,7 @@ export class PayoutReadinessService {
         blockers: [],
         balance: { pending, scheduled: 0, paidLifetime: 0, currency: 'USD' },
         nextPayoutAt: null,
-        destination: { configured: true, verified: true, viaStripe: false },
+        destination: { configured: true, verified: true, viaStripe: false, platformOwned: true },
       };
     }
 

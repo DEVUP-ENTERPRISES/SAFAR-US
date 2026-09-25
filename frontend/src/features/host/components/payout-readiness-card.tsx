@@ -40,14 +40,18 @@ export function PayoutReadinessCard() {
               <p className="font-semibold">
                 {blocking.length > 0
                   ? 'Payouts are on hold'
-                  : d.destination.configured
+                  : d.destination.platformOwned
+                    ? 'House Fleet earnings stay with CatoDrive'
+                    : d.destination.configured
                     ? 'You’re set up to get paid'
                     : 'Payouts ready'}
               </p>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {blocking.length > 0
                   ? 'Your earnings keep accruing — they just can’t be sent yet.'
-                  : d.nextPayoutAt
+                  : d.destination.platformOwned
+                    ? 'These trips are our own cars, so no payout account is needed.'
+                    : d.nextPayoutAt
                     ? `Next payout ${formatDate(d.nextPayoutAt)}.`
                     : 'Completed trips are paid out after the hold window.'}
               </p>
@@ -55,7 +59,7 @@ export function PayoutReadinessCard() {
           </div>
 
           {/* The destination, recognisable but never fully shown. */}
-          {d.destination.configured && (
+          {d.destination.configured && !d.destination.platformOwned && (
             <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <span>

@@ -308,6 +308,7 @@ export interface PayoutReadiness {
     configured: boolean;
     verified: boolean;
     viaStripe: boolean;
+    platformOwned?: boolean;
     accountHolder?: string;
     bankName?: string;
     last4?: string;
