@@ -30,6 +30,7 @@ import { TripLoader } from '@/features/loading/trip-loader';
 import { TermsModal } from '@/features/bookings/components/terms-modal';
 import { useAuthStore } from '@/features/auth/store';
 import { walletApi } from '@/features/wallet/api';
+import { AddCard } from '@/features/payments/add-card';
 import { WishlistButton } from '@/features/favorites/wishlist-button';
 import { ShareButton } from '@/features/vehicles/components/share-button';
 import { AvailabilityCalendar } from '@/features/vehicles/components/availability-calendar';
@@ -1108,7 +1109,14 @@ export default function VehicleDetailPage() {
               );
             })()}
             {createBooking.isError && (
-              <p className="text-sm text-destructive">{createBooking.error instanceof ApiError ? createBooking.error.message : 'Booking failed'}</p>
+              createBooking.error instanceof ApiError && createBooking.error.code === 'PAYMENT_METHOD_REQUIRED' ? (
+                <div className="space-y-3 rounded-xl border border-border p-3">
+                  <p className="text-sm font-medium">{createBooking.error.message}</p>
+                  <AddCard onSaved={() => createBooking.reset()} />
+                </div>
+              ) : (
+                <p className="text-sm text-destructive">{createBooking.error instanceof ApiError ? createBooking.error.message : 'Booking failed'}</p>
+              )
             )}
             <Button className="w-full rounded-xl py-6 text-base font-bold transition-transform hover:scale-[1.02] active:scale-[0.98]" size="lg" disabled={!quote.data} loading={createBooking.isPending} onClick={book}>
               {status !== 'authenticated'

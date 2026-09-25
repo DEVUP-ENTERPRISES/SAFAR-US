@@ -1,3 +1,5 @@
+import { emit } from '../../../shared/events/event-bus';
+import { EVENTS } from '../../../core/events/event-names';
 import {
   VerificationCheckModel,
   type VerificationCheckDoc,
@@ -101,7 +103,7 @@ export class VerificationPolicyService {
     const policy = await this.policyFor(type);
     const validUntil =
       input.result === 'passed' ? new Date(now.getTime() + policy.validityDays * DAY_MS) : undefined;
-    return VerificationCheckModel.create({
+    const check = await VerificationCheckModel.create({
       userId,
       type,
       provider: input.provider,
@@ -112,6 +114,9 @@ export class VerificationPolicyService {
       performedAt: now,
       validUntil,
     });
+    // Bookings parked on this check must move as soon as it clears, however it was recorded.
+    if (input.result === 'passed') emit(EVENTS.VERIFICATION_CHECK_PASSED, userId, { userId, type });
+    return check;
   }
 
   /** A guest's standing for one check type — for eligibility and admin views. */

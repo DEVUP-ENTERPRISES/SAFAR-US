@@ -57,6 +57,7 @@ export const EVENTS = {
   BOOKING_CHARGE_FAILED: 'booking.charge.failed',
   BOOKING_OVERDUE: 'booking.overdue',
   VEHICLE_UNAVAILABLE: 'vehicle.unavailable',
+  VERIFICATION_CHECK_PASSED: 'verification.check_passed',
   WALLET_TOPPED_UP: 'wallet.topped_up',
   PLATFORM_CONFIG_UPDATED: 'platform.config_updated',
 

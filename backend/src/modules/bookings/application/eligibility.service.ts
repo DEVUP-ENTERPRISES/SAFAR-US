@@ -38,7 +38,7 @@ export const BLOCKER_COPY: Record<EligibilityBlocker, string> = {
   licence_expired: 'Your licence expires before this trip ends.',
   under_review: 'We’re reviewing your account. This usually takes a few hours.',
   restricted: 'Your account is limited. Contact support to lift this.',
-  mvr_required: 'A current driving-record check is required. This will be requested before your trip.',
+  mvr_required: 'A current driving-record check is required. Our team will complete it before your trip.',
   background_required: 'A background check is required before you can book.',
   insurance_required: 'Proof of insurance is required before you can book.',
 };

@@ -646,7 +646,7 @@ export function registerEventSubscribers(): void {
    * host's decision instead of after it. This is the seam that closes that
    * loop: without it, a verified guest's requests would sit held forever.
    */
-  eventBus.subscribe(EVENTS.KYC_APPROVED, async (e) => {
+  const releaseHeldBookings = async (e: { payload: unknown }) => {
     const p = e.payload as { userId: string };
     try {
       const promoted = await bookingService.onGuestVerified(p.userId);
@@ -657,14 +657,16 @@ export function registerEventSubscribers(): void {
               priority: 'critical',
           templateKey: 'booking.verification_cleared',
           title: 'You’re verified ✅',
-          body: `Your licence checked out. ${promoted} booking${promoted === 1 ? ' is' : 's are'} moving forward.`,
+          body: `You’re cleared to book. ${promoted} booking${promoted === 1 ? ' is' : 's are'} moving forward.`,
           data: { promoted },
         });
       }
     } catch (err) {
       logger.error({ err, userId: p.userId }, 'failed to release held bookings after KYC approval');
     }
-  });
+  };
+  eventBus.subscribe(EVENTS.KYC_APPROVED, releaseHeldBookings);
+  eventBus.subscribe(EVENTS.VERIFICATION_CHECK_PASSED, releaseHeldBookings);
 
   /** Identity rejected → the held requests cannot proceed. Release the money. */
   eventBus.subscribe(EVENTS.KYC_REJECTED, async (e) => {

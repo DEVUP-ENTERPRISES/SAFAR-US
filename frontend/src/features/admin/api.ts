@@ -319,6 +319,11 @@ export const adminApi = {
   nav: () => api.get<AdminNavItem[]>('/admin/nav'),
   metrics: () => api.get<AdminMetrics>('/admin/metrics'),
 
+  verificationStatus: (userId: string) =>
+    api.get<{ type: string; required: boolean; hasValid: boolean; validUntil?: string; lastCheckedAt?: string; checksInPeriod: number; policy: { provider: string; trigger: string } }[]>(`/admin/verification/${userId}`),
+  recordVerification: (userId: string, type: string, result: 'passed' | 'failed', notes?: string) =>
+    api.post(`/admin/verification/${userId}/${type}`, { result, provider: 'manual', notes }),
+
   users: (q: Q = {}) => api.get<any[]>('/admin/users', q),
   user: (id: string) => api.get<any>(`/admin/users/${id}`),
   setUserStatus: (id: string, status: string) => api.post(`/admin/users/${id}/status`, { status }),

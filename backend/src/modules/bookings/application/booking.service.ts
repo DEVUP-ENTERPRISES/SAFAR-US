@@ -20,6 +20,7 @@ import { pricingService } from '../../pricing/application/pricing.service';
 import { paymentService } from '../../payments/application/payment.service';
 import { depositService } from '../../payments/application/deposit.service';
 import { walletService } from '../../wallet/application/wallet.service';
+import { paymentMethodService } from '../../payments/application/payment-method.service';
 import { couponService } from '../../coupons/application/coupon.service';
 import { hostService } from '../../hosts/application/host.service';
 import { ledgerService } from '../../payments/application/ledger.service';
@@ -301,6 +302,11 @@ export class BookingService {
       walletApplied = Math.min(balance, breakdown.total.amount);
     }
 
+    // Without a card nothing is authorised, so "your card is held" would be untrue and a later capture would fail.
+    if (breakdown.total.amount - walletApplied > 0 && !(await paymentMethodService.hasChargeableCard(guestId))) {
+      throw new ConflictError('Add a payment card to book this trip. It isn’t charged until the trip is confirmed.', 'PAYMENT_METHOD_REQUIRED');
+    }
+
     // Reserve the slot BEFORE talking to the gateway (prevents double-booking
     // during the payment round-trip). Roll back on any downstream failure.
     const holdId = await availabilityService.placeHold(dto.vehicleId, start, end);
@@ -537,7 +543,13 @@ export class BookingService {
       }
 
       if (instantNow) {
-        await paymentService.captureBooking(booking._id);
+        try {
+          await paymentService.captureBooking(booking._id);
+        } catch (err) {
+          // The hold lapsed or the card refused: hand it to the same path as any failed payment so both sides are told.
+          emit(EVENTS.PAYMENT_FAILED, booking._id, { bookingId: booking._id, reason: (err as Error).message });
+          continue;
+        }
         await availabilityService.confirmHold(booking.holdId!, booking._id);
         await this.transition(doc, 'paid', guestId, 'Identity verified');
         emit(EVENTS.BOOKING_CONFIRMED, booking._id, {

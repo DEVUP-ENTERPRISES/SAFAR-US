@@ -60,6 +60,12 @@ export class PaymentMethodService {
     return { provider: 'mock', clientSecret: `seti_mock_${randomId()}` };
   }
 
+  /** Whether this guest has a card we can charge off-session (always true with the mock gateway in dev). */
+  async hasChargeableCard(userId: string): Promise<boolean> {
+    if (!this.stripe) return true;
+    return !!(await PaymentMethodModel.exists({ userId, stripePaymentMethodId: { $exists: true, $ne: null } }));
+  }
+
   /**
    * Persist a card after collection. In prod, `stripePaymentMethodId` comes
    * from the confirmed SetupIntent; in dev the brand/last4 are supplied directly.
