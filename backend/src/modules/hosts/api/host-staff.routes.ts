@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { hostStaffService } from '../application/host-staff.service';
 import { CAPTAIN_ABILITIES } from '../infrastructure/host-staff.model';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
-import { authenticate } from '../../../shared/middleware/authenticate';
+import { authenticate, authenticateOptional } from '../../../shared/middleware/authenticate';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 
@@ -75,9 +75,15 @@ router.get(
 
 router.post(
   '/staff/accept',
+  authenticateOptional,
   validate({ body: z.object({ token: z.string().min(10), password: z.string().min(8).max(72).optional() }) }),
   asyncHandler(async (req, res) => {
-    const { userId } = await hostStaffService.acceptInvite(req.body.token, req.body.password);
+    const { userId, created } = await hostStaffService.acceptInvite(req.body.token, req.body.password, req.principal?.userId);
+    // An existing account is already signed in and keeps its own session; only a brand new one is issued a session here.
+    if (!created) {
+      sendSuccess(res, { linked: true });
+      return;
+    }
     const { authService } = await import('../../auth/application/auth.service');
     const result = await authService.issueSessionForUser(userId, {
       userAgent: req.header('user-agent'),

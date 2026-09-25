@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Check, ShieldCheck, Car } from 'lucide-react';
@@ -19,6 +20,7 @@ function AcceptInner() {
   const token = useSearchParams().get('token') ?? '';
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
+  const authStatus = useAuthStore((s) => s.status);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
 
@@ -32,7 +34,7 @@ function AcceptInner() {
   const accept = useMutation({
     mutationFn: () => captainApi.accept(token, preview.data?.needsPassword ? password : undefined),
     onSuccess: (res) => {
-      tokenStore.set(res.tokens.accessToken, res.tokens.refreshToken);
+      if (res.tokens) tokenStore.set(res.tokens.accessToken, res.tokens.refreshToken);
       setUser(null);
       router.replace('/captain');
     },
@@ -55,7 +57,9 @@ function AcceptInner() {
 
   const inv = preview.data;
   const mismatch = inv.needsPassword && confirm.length > 0 && password !== confirm;
-  const canSubmit = inv.needsPassword ? password.length >= 8 && password === confirm : true;
+  // An existing account must be signed in as that person; the link alone never signs anyone in.
+  const needsSignIn = !inv.needsPassword && authStatus !== 'authenticated';
+  const canSubmit = needsSignIn ? false : inv.needsPassword ? password.length >= 8 && password === confirm : true;
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center py-8">
@@ -144,6 +148,14 @@ function AcceptInner() {
               </p>
             )}
 
+            {needsSignIn && (
+              <p className="rounded-xl bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground">
+                You already have an account with this email. Sign in first, then come back to this link to accept.{' '}
+                <Link href={`/login?next=${encodeURIComponent(`/host/accept-invite?token=${token}`)}`} className="font-semibold text-primary underline">
+                  Sign in
+                </Link>
+              </p>
+            )}
             <Button type="submit" className="w-full" size="lg" disabled={!canSubmit} loading={accept.isPending}>
               Accept and start
             </Button>

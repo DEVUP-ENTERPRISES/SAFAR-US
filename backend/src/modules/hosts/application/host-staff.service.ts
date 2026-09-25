@@ -75,10 +75,16 @@ async function sendInviteEmail(staff: HostStaffDoc, fleetName: string): Promise<
   if (!res.ok) logger.error({ email: staff.email, error: res.error }, 'captain invite email failed');
 }
 
+/** The invite token is a bearer credential for the invitee only; it goes into the email and nowhere else. */
+function withoutToken<T extends { inviteToken?: string }>(staff: T): Omit<T, 'inviteToken'> {
+  const { inviteToken: _token, ...rest } = staff;
+  return rest;
+}
+
 export const hostStaffService = {
   async list(userId: string) {
     const host = await hostFor(userId);
-    return HostStaffModel.find({ hostId: host._id }).sort({ createdAt: -1 }).lean();
+    return (await HostStaffModel.find({ hostId: host._id }).sort({ createdAt: -1 }).lean()).map(withoutToken);
   },
 
   /** Vehicles the host owns, for the assignment picker. */
@@ -122,7 +128,7 @@ export const hostStaffService = {
     // Fire-and-forget: a mail outage must not lose the invite, which is the
     // durable thing. The host can resend; they cannot un-lose a record.
     void sendInviteEmail(staff.toObject(), host.displayName).catch(() => undefined);
-    return staff.toObject();
+    return withoutToken(staff.toObject());
   },
 
   /** The invite email gets lost often enough that resending has to be one click. */
@@ -139,7 +145,7 @@ export const hostStaffService = {
     await staff.save();
 
     await sendInviteEmail(staff.toObject(), host.displayName);
-    return staff.toObject();
+    return withoutToken(staff.toObject());
   },
 
   /**
@@ -171,11 +177,16 @@ export const hostStaffService = {
    * staff record and activates it. Single-use: the token is cleared, so a
    * forwarded email cannot be replayed by a second person.
    */
-  async acceptInvite(token: string, password?: string): Promise<{ userId: string }> {
+  async acceptInvite(token: string, password?: string, signedInUserId?: string): Promise<{ userId: string; created: boolean }> {
     const staff = await HostStaffModel.findOne({ inviteToken: token, status: 'invited' });
     if (!staff) throw new NotFoundError('That invite link is no longer valid');
 
     let user = await userRepository.findByEmail(staff.email);
+    const created = !user;
+    // Holding the link is not proof of owning an EXISTING account: without this anyone with a token could sign in as that person.
+    if (user && signedInUserId !== user._id) {
+      throw new ConflictError(`Sign in as ${staff.email} to accept this invite.`, 'SIGN_IN_REQUIRED');
+    }
     if (!user) {
       if (!password || password.length < 8) {
         throw new ValidationError('Choose a password of at least 8 characters');
@@ -199,7 +210,7 @@ export const hostStaffService = {
     await staff.save();
 
     logger.info({ staffId: staff._id, hostId: staff.hostId }, '🧑‍✈️ Captain accepted invite');
-    return { userId: user._id };
+    return { userId: user._id, created };
   },
 
   async update(userId: string, staffId: string, patch: Partial<CaptainInput>) {
@@ -220,7 +231,7 @@ export const hostStaffService = {
     if (patch.title !== undefined) staff.title = patch.title?.trim();
 
     await staff.save();
-    return staff.toObject();
+    return withoutToken(staff.toObject());
   },
 
   async setStatus(userId: string, staffId: string, status: 'active' | 'suspended') {

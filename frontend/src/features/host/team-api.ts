@@ -91,7 +91,7 @@ export const teamApi = {
 export const captainApi = {
   invitePreview: (token: string) => api.get<InvitePreview>(`/hosts/staff/invite/${token}`),
   accept: (token: string, password?: string) =>
-    api.post<{ user: { id: string; email?: string; roles: string[] }; tokens: { accessToken: string; refreshToken: string } }>(
+    api.post<{ linked?: boolean; user?: { id: string; email?: string; roles: string[] }; tokens?: { accessToken: string; refreshToken: string } }>(
       '/hosts/staff/accept',
       { token, password },
     ),
