@@ -40,7 +40,7 @@ export function TripProgress({
     { title: 'Payment confirmed', detail: 'Your card is charged and the trip is locked in.' },
     {
       title: 'Pickup day',
-      detail: `We remind you 24 hours before. ${opens ? `Live location sharing opens around ${time(opens)}. ` : ''}At the car, open “Your pickup code” below and show it to your host.`,
+      detail: `We remind you before pickup. ${opens ? `Live location sharing opens around ${time(opens)}. ` : ''}At the car, open “Your pickup code” below and show it to your host.`,
     },
     { title: 'On the road', detail: 'Enjoy the drive. Location sharing is off while you’re out.' },
     { title: 'Return & close out', detail: 'Return on time with photos; your deposit is released after the host’s inspection window.' },

@@ -229,6 +229,8 @@ export class PlatformConfigService {
         verificationGraceHours: 72,
         verificationCutoffHours: 5,
         verificationReminderHours: 24,
+        overdueEscalationHours: 24,
+        documentExpiryReleaseHours: 72,
         checkoutHoldMinutes: 15,
         paymentPendingMinutes: 30,
         priceLockMinutes: 10,

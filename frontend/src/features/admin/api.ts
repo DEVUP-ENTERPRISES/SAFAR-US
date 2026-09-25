@@ -52,12 +52,16 @@ export interface PlatformConfig {
     payoutMethod: 'check' | 'zelle';
   };
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };
+  /** Handover and return timing: when live location opens, and how long past the return time before a trip counts as overdue. */
+  tracking: { approachWindowMinutes: number; overdueGraceMinutes: number };
   /** How long each stage of a booking may wait before the system releases it. */
   booking: {
     hostApprovalHours: number;
     verificationGraceHours: number;
     verificationCutoffHours: number;
     verificationReminderHours: number;
+    overdueEscalationHours: number;
+    documentExpiryReleaseHours: number;
     checkoutHoldMinutes: number;
     paymentPendingMinutes: number;
     priceLockMinutes: number;

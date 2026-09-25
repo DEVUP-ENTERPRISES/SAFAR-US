@@ -1612,7 +1612,8 @@ export class BookingService {
    */
   async sweepLifecycle(): Promise<{ late: number; escalated: number; notStarted: number }> {
     const now = Date.now();
-    const graceMs = ((await platformConfigService.get()).tracking?.overdueGraceMinutes ?? 60) * 60_000;
+    const cfg = await platformConfigService.get();
+    const graceMs = (cfg.tracking?.overdueGraceMinutes ?? 60) * 60_000;
     const stage = async (
       filter: Record<string, unknown>,
       marker: 'overdueNotifiedAt' | 'overdueEscalatedAt' | 'notStartedNotifiedAt',
@@ -1628,7 +1629,7 @@ export class BookingService {
     };
     return {
       late: await stage({ status: 'in_progress', 'period.end': { $lte: new Date(now - graceMs) } }, 'overdueNotifiedAt', 'late'),
-      escalated: await stage({ status: 'in_progress', 'period.end': { $lte: new Date(now - 24 * HOUR_MS) } }, 'overdueEscalatedAt', 'escalated'),
+      escalated: await stage({ status: 'in_progress', 'period.end': { $lte: new Date(now - cfg.booking.overdueEscalationHours * HOUR_MS) } }, 'overdueEscalatedAt', 'escalated'),
       notStarted: await stage({ status: 'paid', 'period.start': { $lte: new Date(now - graceMs) } }, 'notStartedNotifiedAt', 'never_started'),
     };
   }

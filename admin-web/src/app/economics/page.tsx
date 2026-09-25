@@ -88,6 +88,7 @@ export default function AdminEconomicsPage() {
         legal: draft.legal,
         verification: draft.verification,
         booking: draft.booking,
+        tracking: draft.tracking,
       });
     }
   };
@@ -291,6 +292,22 @@ export default function AdminEconomicsPage() {
           <Field label="Licence reminder (hours before pickup)" hint="One nudge to unverified guests.">
             <Input type="number" min={1} max={168} value={draft.booking.verificationReminderHours}
               onChange={(e) => set((d) => { d.booking.verificationReminderHours = Number(e.target.value); })} />
+          </Field>
+          <Field label="Live location opens (minutes before)" hint="Before pickup and before return.">
+            <Input type="number" min={5} max={240} value={draft.tracking.approachWindowMinutes}
+              onChange={(e) => set((d) => { d.tracking.approachWindowMinutes = Number(e.target.value); })} />
+          </Field>
+          <Field label="Overdue grace (minutes)" hint="Past the return time before a trip is overdue and late fees start.">
+            <Input type="number" min={0} max={720} value={draft.tracking.overdueGraceMinutes}
+              onChange={(e) => set((d) => { d.tracking.overdueGraceMinutes = Number(e.target.value); })} />
+          </Field>
+          <Field label="Overdue escalation (hours)" hint="A car this late past its return alerts ops.">
+            <Input type="number" min={1} max={336} value={draft.booking.overdueEscalationHours}
+              onChange={(e) => set((d) => { d.booking.overdueEscalationHours = Number(e.target.value); })} />
+          </Field>
+          <Field label="Expired-document release (hours)" hint="An expired document releases trips starting within this window.">
+            <Input type="number" min={1} max={720} value={draft.booking.documentExpiryReleaseHours}
+              onChange={(e) => set((d) => { d.booking.documentExpiryReleaseHours = Number(e.target.value); })} />
           </Field>
           <Field label="Checkout hold (minutes)" hint="How long dates are held while paying.">
             <Input type="number" min={1} max={120} value={draft.booking.checkoutHoldMinutes}

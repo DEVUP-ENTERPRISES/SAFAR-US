@@ -361,6 +361,8 @@ export interface PlatformConfigDoc {
     verificationGraceHours: number;
     verificationCutoffHours: number;
     verificationReminderHours: number;
+    overdueEscalationHours: number;
+    documentExpiryReleaseHours: number;
     checkoutHoldMinutes: number;
     paymentPendingMinutes: number;
     priceLockMinutes: number;
@@ -626,6 +628,8 @@ const schema = new Schema<PlatformConfigDoc>(
       verificationGraceHours: { type: Number, default: 72 },
       verificationCutoffHours: { type: Number, default: 5 },
       verificationReminderHours: { type: Number, default: 24 },
+      overdueEscalationHours: { type: Number, default: 24 },
+      documentExpiryReleaseHours: { type: Number, default: 72 },
       checkoutHoldMinutes: { type: Number, default: 15 },
       paymentPendingMinutes: { type: Number, default: 30 },
       priceLockMinutes: { type: Number, default: 10 },

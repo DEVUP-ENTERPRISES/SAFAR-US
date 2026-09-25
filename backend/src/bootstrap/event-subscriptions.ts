@@ -66,7 +66,7 @@ export function registerEventSubscribers(): void {
     try {
       const staff = await userRepository.findByAnyRole([ROLES.SUPPORT, ROLES.OPS, ROLES.SUPER_ADMIN]);
       await Promise.all(
-        staff.slice(0, 50).map((u) =>
+        staff.map((u) =>
           notificationService.send({ userId: u._id, templateKey, title, body, data, priority }),
         ),
       );

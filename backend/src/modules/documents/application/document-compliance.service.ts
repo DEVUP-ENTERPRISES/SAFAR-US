@@ -5,6 +5,7 @@ import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { notificationService } from '../../notifications/application/notification.service';
 import { hostService } from '../../hosts/application/host.service';
 import { logger } from '../../../infrastructure/logging/logger';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
 /** Documents a car must have valid to legally carry a paying guest. */
 const MANDATORY = ['registration', 'insurance'] as const;
@@ -134,7 +135,7 @@ export class DocumentComplianceService {
       if (v && v.status === 'listed') {
         await VehicleModel.updateOne({ _id: vehicleId }, { status: 'paused', complianceHold: true });
         await this.notifyHost(v.hostId, vehicleId, 'paused');
-        emit(EVENTS.VEHICLE_UNAVAILABLE, vehicleId, { vehicleId, reason: 'an expired mandatory document', withinHours: 72 });
+        emit(EVENTS.VEHICLE_UNAVAILABLE, vehicleId, { vehicleId, reason: 'an expired mandatory document', withinHours: (await platformConfigService.get()).booking.documentExpiryReleaseHours });
         paused += 1;
       }
     }
