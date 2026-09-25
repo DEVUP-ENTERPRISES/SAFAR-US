@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/authenticate';
 import { authorize } from '../../shared/middleware/authorize';
 import { requireAdmin } from '../../shared/middleware/require-admin';
-import { auditLog } from '../../shared/middleware/audit-log';
 import { metricsAdminRoutes } from './api/metrics.admin.routes';
 import { usersAdminRoutes } from './api/users.admin.routes';
 import { hostsAdminRoutes } from './api/hosts.admin.routes';
@@ -41,13 +40,13 @@ export function buildAdminRouter(): Router {
    *   requireAdmin  — re-verify roles/status against the DATABASE, per request,
    *                   and rebuild req.principal from live truth
    *   authorize     — the recomputed permissions must include admin:read
-   *   auditLog      — record every privileged mutation
    *
    * Because requireAdmin overwrites req.principal.permissions from the DB, the
    * authorize() below and every per-route authorize() decide on live roles, so
    * a JWT that still claims admin after a demotion no longer opens anything.
+   * Auditing itself is mounted globally in app.ts, ahead of every router.
    */
-  admin.use(authenticate, requireAdmin, authorize('admin:read'), auditLog('admin'));
+  admin.use(authenticate, requireAdmin, authorize('admin:read'));
 
   admin.use(navAdminRoutes);
   admin.use(metricsAdminRoutes);

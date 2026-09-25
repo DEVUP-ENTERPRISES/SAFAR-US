@@ -3,21 +3,12 @@ import { z } from 'zod';
 import { dataRightsService } from '../application/data-rights.service';
 import { auditService } from '../../audit/application/audit.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
-import { auditLog } from '../../../shared/middleware/audit-log';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
-
-/**
- * These routes live outside the /admin router, so they do not inherit its
- * audit middleware — every privileged action here would otherwise be
- * completely unlogged. Applied explicitly rather than moved, because the
- * member-facing routes in this file must stay reachable without admin scope.
- */
-router.use(auditLog('compliance'));
 
 /**
  * "Download my data" — the subject access request, self-service.

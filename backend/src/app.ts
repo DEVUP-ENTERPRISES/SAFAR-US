@@ -12,6 +12,7 @@ import { deviceContext } from './shared/middleware/device-context';
 import { errorHandler } from './shared/middleware/error-handler';
 import { notFound } from './shared/middleware/not-found';
 import { buildApiRouter } from './routes';
+import { auditLog } from './shared/middleware/audit-log';
 import { globalRateLimitStore } from './shared/middleware/rate-limit-store';
 
 /**
@@ -115,6 +116,10 @@ export function createApp(): Express {
   );
 
   // 8. API routes
+  // Every mutation across the whole API is audited, not just the admin
+  // surface — a disputed trip needs its booking/trip/claim/payment actions
+  // reconstructable regardless of which router handled them.
+  app.use(config.app.apiPrefix, auditLog());
   app.use(config.app.apiPrefix, buildApiRouter());
 
   // 9. 404 + central error handler (must be last)

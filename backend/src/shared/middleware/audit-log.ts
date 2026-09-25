@@ -13,7 +13,10 @@ import { auditService } from '../../modules/audit/application/audit.service';
  * password or card number landing in it cannot be removed later — the whole
  * collection would have to be destroyed, taking the audit trail with it.
  */
-const SENSITIVE = /password|secret|token|cvv|cvc|pan|cardNumber|ssn|taxId|accountNumber|mfa/i;
+const SENSITIVE = /password|secret|token|cvv|cvc|pan|cardNumber|ssn|taxId|accountNumber|mfa|otp|pin|code/i;
+
+// High-frequency or private-by-nature writes that would flood, or leak into, an append-only log.
+const UNAUDITED_PATH = /\/(location|devices|messages|typing|seen)$/;
 
 function redact(value: unknown, depth = 0): Record<string, unknown> | undefined {
   if (!value || typeof value !== 'object' || depth > 4) return undefined;
@@ -35,11 +38,25 @@ export function auditBefore(res: { locals: Record<string, unknown> }, snapshot: 
 }
 
 /** The first identifier-looking route param, whatever it is called. */
-function resourceIdFrom(params: Record<string, string>): string | undefined {
+function resourceIdFrom(params: Record<string, string>, req: Request): string | undefined {
   const preferred = ['id', 'userId', 'bookingId', 'vehicleId', 'eventId', 'hostId', 'claimId'];
   for (const key of preferred) if (params[key]) return params[key];
   const [first] = Object.values(params);
-  return first;
+  if (first) return first;
+  // Mounted ahead of the routers, params are gone by the time the response finishes; the id is the path segment after the resource name.
+  const segment = req.originalUrl.split('?')[0].replace(/^\/(api\/v\d+\/)?/, '').split('/')[1];
+  return segment && /\d|-/.test(segment) ? segment : undefined;
+}
+
+/**
+ * First path segment after the API prefix — 'bookings', 'trips', 'admin'.
+ * originalUrl, not baseUrl/path: those get rewritten as the request
+ * descends into nested routers, but this runs from res.on('finish'),
+ * after routing has finished and baseUrl no longer reflects where it matched.
+ */
+function resourceTypeFromPath(req: Request): string | undefined {
+  const withoutQuery = req.originalUrl.split('?')[0];
+  return withoutQuery.replace(/^\/(api\/v\d+\/)?/, '').split('/')[0] || undefined;
 }
 
 export function auditLog(resourceTypeHint?: string) {
@@ -47,15 +64,16 @@ export function auditLog(resourceTypeHint?: string) {
     if (req.method === 'GET') return next();
     res.on('finish', () => {
       if (res.statusCode >= 400 || !req.principal) return;
+      if (UNAUDITED_PATH.test(req.originalUrl.split('?')[0])) return;
       void auditService.record({
         actorId: req.principal.userId,
         actorRoles: req.principal.roles,
-        action: `${req.method} ${req.baseUrl}${req.route?.path ?? req.path}`,
-        resourceType: resourceTypeHint,
+        action: `${req.method} ${req.originalUrl.split('?')[0]}`,
+        resourceType: resourceTypeHint ?? resourceTypeFromPath(req),
         // Routes name their parameter differently (:id, :userId, :bookingId).
         // Reading only `id` left every one of those entries unattributed —
         // present in the log, but impossible to find by subject.
-        resourceId: resourceIdFrom(req.params as Record<string, string>),
+        resourceId: resourceIdFrom(req.params as Record<string, string>, req),
         ip: req.ip,
         userAgent: req.device?.userAgent,
         // The request body IS the "after" for a mutation, minus anything that
