@@ -20,6 +20,7 @@ import { kycApi, type KycStatusView } from '@/features/kyc/api';
 import { openIdentityModal } from '@/features/kyc/stripe-identity';
 import { useStripePublishableKey } from '@/features/payments/stripe-key';
 import { uploadFiles } from '@/features/media/upload';
+import { LiveCamera } from '@/features/trips/components/live-camera';
 import { ApiError } from '@/lib/api/types';
 
 const isDev = process.env.NODE_ENV !== 'production';
@@ -208,7 +209,7 @@ function VerifyIdentity() {
               </label>
 
               {keyReady && !stripeKey && !isDev && (
-                <p className="text-sm text-muted-foreground">Camera verification is unavailable right now. You can upload your documents below instead.</p>
+                <p className="text-sm text-muted-foreground">Instant verification is unavailable right now. You can take live photos of your documents below instead.</p>
               )}
 
               <Button
@@ -257,15 +258,18 @@ const MANUAL_FIELDS = [
   { id: 'selfie', label: 'Selfie holding your license', type: 'selfie' },
 ] as const;
 
-/** Secondary path: upload documents for our team to review by hand. */
+/** Secondary path: photograph the documents live for our team to review by hand. No file picker: every shot is taken here, now, and stamped. */
 function ManualUpload({ disabled, onSubmitted }: { disabled: boolean; onSubmitted: () => void }) {
   const toast = useToast();
-  const [files, setFiles] = useState<Record<string, File | undefined>>({});
-  const complete = MANUAL_FIELDS.every((f) => files[f.id]);
+  const [shots, setShots] = useState<Record<string, { blob: Blob; previewUrl: string } | undefined>>({});
+  const [capturing, setCapturing] = useState<(typeof MANUAL_FIELDS)[number] | null>(null);
+  const complete = MANUAL_FIELDS.every((f) => shots[f.id]);
 
   const submit = useMutation({
     mutationFn: async () => {
-      const uploaded = await Promise.all(MANUAL_FIELDS.map((f) => uploadFiles('kyc', [files[f.id]!])));
+      const uploaded = await Promise.all(
+        MANUAL_FIELDS.map((f) => uploadFiles('kyc', [new File([shots[f.id]!.blob], `${f.id}.jpg`, { type: 'image/jpeg' })])),
+      );
       return kycApi.submitDocuments(MANUAL_FIELDS.map((f, i) => ({ type: f.type, url: uploaded[i][0].url })));
     },
     onSuccess: onSubmitted,
@@ -274,32 +278,55 @@ function ManualUpload({ disabled, onSubmitted }: { disabled: boolean; onSubmitte
 
   return (
     <Card>
-      <CardHeader><CardTitle className="text-lg">Verify by uploading your documents instead</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-lg">Verify with your camera instead</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Reviewed by our team, usually within a few hours. Documents you upload here are visible only to our verification team.
+          Take the photos live with your camera. Each one is stamped with the date, time and place, and there is no option to upload from your gallery.
+          Reviewed by our team, usually within a few hours, and visible only to our verification team.
         </p>
-        {MANUAL_FIELDS.map((f) => (
-          <label key={f.id} className="block text-sm">
-            <span className="font-medium">{f.label}</span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(e) => setFiles((p) => ({ ...p, [f.id]: e.target.files?.[0] }))}
-              className="mt-1 block w-full text-sm"
-            />
-          </label>
-        ))}
-        <Button
-          variant="outline"
-          className="w-full"
-          loading={submit.isPending}
-          disabled={!complete || disabled}
-          onClick={() => submit.mutate()}
-        >
+        <div className="grid gap-3">
+          {MANUAL_FIELDS.map((f) => {
+            const shot = shots[f.id];
+            return (
+              <div key={f.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                {shot ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={shot.previewUrl} alt={f.label} className="h-16 w-24 shrink-0 rounded-lg object-cover" />
+                ) : (
+                  <span className="grid h-16 w-24 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground"><Camera className="h-5 w-5" /></span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">{f.label}</p>
+                  <p className="text-xs text-muted-foreground">{shot ? 'Taken' : 'Not taken yet'}</p>
+                </div>
+                <Button size="sm" variant="outline" disabled={disabled || submit.isPending} onClick={() => setCapturing(f)}>
+                  {shot ? 'Retake' : 'Take photo'}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+        <Button className="w-full" loading={submit.isPending} disabled={!complete || disabled} onClick={() => submit.mutate()}>
           Submit for review
         </Button>
       </CardContent>
+
+      {capturing && (
+        <LiveCamera
+          stamp={{ headline: 'CatoDrive identity check', detail: capturing.label }}
+          requireLocation={false}
+          facing={capturing.id === 'selfie' ? 'user' : 'environment'}
+          onUse={async (shot) => {
+            const previewUrl = URL.createObjectURL(shot.blob);
+            setShots((p) => {
+              if (p[capturing.id]) URL.revokeObjectURL(p[capturing.id]!.previewUrl);
+              return { ...p, [capturing.id]: { blob: shot.blob, previewUrl } };
+            });
+            setCapturing(null);
+          }}
+          onClose={() => setCapturing(null)}
+        />
+      )}
     </Card>
   );
 }

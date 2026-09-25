@@ -14,6 +14,16 @@ export interface PhotoStamp {
   angleLabel: string;
 }
 
+/** A stamp for something that is not a trip photo, e.g. an identity document. */
+export interface GenericStamp {
+  headline: string;
+  detail: string;
+}
+
+export type CameraStamp = PhotoStamp | GenericStamp;
+
+const isGeneric = (s: CameraStamp): s is GenericStamp => 'headline' in s;
+
 export interface CapturedShot {
   blob: Blob;
   lat?: number;
@@ -40,9 +50,10 @@ const whenFormat = new Intl.DateTimeFormat(undefined, {
 });
 
 /** The stamp text, top line first; one function feeds both the live overlay and the saved pixels. */
-function stampLines(stamp: PhotoStamp, fix: Fix | null, now: Date): string[] {
-  const who = `${stamp.role === 'guest' ? 'Guest' : 'Host'} · ${stamp.phase === 'pre' ? 'Pickup' : 'Return'} · ${stamp.angleLabel}`;
+function stampLines(stamp: CameraStamp, fix: Fix | null, now: Date): string[] {
   const place = fix ? `${fix.lat.toFixed(5)}, ${fix.lng.toFixed(5)} (±${Math.round(fix.accuracyM)} m)` : 'Location not available';
+  if (isGeneric(stamp)) return [stamp.headline, stamp.detail, whenFormat.format(now), place];
+  const who = `${stamp.role === 'guest' ? 'Guest' : 'Host'} · ${stamp.phase === 'pre' ? 'Pickup' : 'Return'} · ${stamp.angleLabel}`;
   return [
     `${stamp.code} · ${stamp.vehicle}${stamp.plate ? ` · ${stamp.plate}` : ''}`,
     who,
@@ -83,11 +94,14 @@ async function sha256Hex(blob: Blob): Promise<string | undefined> {
 export function LiveCamera({
   stamp,
   requireLocation,
+  facing = 'environment',
   onUse,
   onClose,
 }: {
-  stamp: PhotoStamp;
+  stamp: CameraStamp;
   requireLocation: boolean;
+  /** 'user' for a selfie. */
+  facing?: 'environment' | 'user';
   /** Uploads the shot; resolve to finish, reject (with a readable message) to stay on the review step. */
   onUse: (shot: CapturedShot) => Promise<void>;
   onClose: () => void;
@@ -117,7 +131,7 @@ export function LiveCamera({
       }
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+          video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
           audio: false,
         });
         if (cancelled) return stream.getTracks().forEach((t) => t.stop());
@@ -229,10 +243,10 @@ export function LiveCamera({
   );
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Take a condition photo">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Take a photo">
       <div className="flex items-center justify-between p-3 text-white">
         <p className="text-sm font-semibold">
-          {stamp.phase === 'pre' ? 'Pickup' : 'Return'} photo · {stamp.angleLabel}
+          {isGeneric(stamp) ? stamp.detail : `${stamp.phase === 'pre' ? 'Pickup' : 'Return'} photo · ${stamp.angleLabel}`}
         </p>
         <button onClick={onClose} disabled={busy} className="rounded-full p-2 hover:bg-white/10" aria-label="Close camera">
           <X className="h-5 w-5" />
@@ -240,9 +254,9 @@ export function LiveCamera({
       </div>
 
       {error === 'denied' &&
-        message('Camera access is blocked', 'Allow camera access for this site in your browser settings, then open the camera again. Condition photos can only be taken with the camera.', <VideoOff className="h-10 w-10" />)}
+        message('Camera access is blocked', 'Allow camera access for this site in your browser settings, then open the camera again. Photos can only be taken with the camera.', <VideoOff className="h-10 w-10" />)}
       {error === 'no_camera' &&
-        message('No camera found', 'Condition photos must be taken live with a camera. Open this page on a phone with a camera to take them.', <VideoOff className="h-10 w-10" />)}
+        message('No camera found', 'Photos must be taken live with a camera. Open this page on a phone with a camera to take them.', <VideoOff className="h-10 w-10" />)}
       {error === 'failed' &&
         message('The camera could not start', 'Close any other app using the camera, then try again.', <VideoOff className="h-10 w-10" />)}
 
