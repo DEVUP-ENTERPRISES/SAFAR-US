@@ -236,11 +236,7 @@ export class PricingService implements IPricingContract {
      * and deliberately NOT part of the taxable subtotal: it is our fee, not
      * part of the rental the state levies on.
      */
-    const feeRaw = applyBps(subtotal, cfg.serviceFee.bps);
-    const serviceFee =
-      cfg.serviceFee.maxCents > 0 && feeRaw.amount > cfg.serviceFee.maxCents
-        ? money(cfg.serviceFee.maxCents, currency)
-        : feeRaw;
+    const serviceFee = computeServiceFee(subtotal, cfg.serviceFee, !input.skipOneTimeFees);
 
     // Guest pays host-side + protection + service fee + rental tax.
     const total = addMoney(addMoney(addMoney(subtotal, protection), serviceFee), taxTotal);
@@ -271,6 +267,17 @@ export class PricingService implements IPricingContract {
 }
 
 export const pricingService = new PricingService();
+
+/** Percent of the trip plus a fixed per-booking amount (only on a new booking), never above the cap when one is set. */
+export function computeServiceFee(
+  subtotal: Money,
+  fee: { bps: number; maxCents: number; flatCents: number },
+  includeFlat: boolean,
+): Money {
+  const total = applyBps(subtotal, fee.bps).amount + (includeFlat ? fee.flatCents : 0);
+  const capped = fee.maxCents > 0 ? Math.min(total, fee.maxCents) : total;
+  return money(capped, subtotal.currency);
+}
 
 /**
  * The best membership saving available on this trip's base.

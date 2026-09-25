@@ -80,7 +80,7 @@ router.put(
         .optional(),
       // Charged to the guest on top; commission above comes out of host pay.
       serviceFee: z
-        .object({ bps: bps.optional(), maxCents: z.number().int().min(0).optional() })
+        .object({ bps: bps.optional(), maxCents: z.number().int().min(0).optional(), flatCents: z.number().int().min(0).max(100_000).optional() })
         .optional(),
       tax: z.object({ bps: bps.optional() }).optional(),
       pricing: z

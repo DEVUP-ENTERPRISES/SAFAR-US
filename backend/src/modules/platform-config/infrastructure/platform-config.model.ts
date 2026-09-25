@@ -92,6 +92,8 @@ export interface PlatformConfigDoc {
     bps: number;
     /** Never charge more than this, whatever the trip costs. 0 = no cap. */
     maxCents: number;
+    /** A fixed amount added to every new booking (not to extensions). */
+    flatCents: number;
   };
   tax: {
     /** Applied to commission. US launch = 0. */
@@ -566,6 +568,7 @@ const schema = new Schema<PlatformConfigDoc>(
     serviceFee: {
       bps: { type: Number, default: 0 }, // off until an admin sets it
       maxCents: { type: Number, default: 0 }, // 0 = uncapped
+      flatCents: { type: Number, default: 250 }, // $2.50 per booking
     },
     tax: {
       bps: { type: Number, default: 0 },

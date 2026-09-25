@@ -148,7 +148,7 @@ export class PlatformConfigService {
         payoutMethod: 'check' as const,
         ...(doc.assetPartner ?? {}),
       },
-      serviceFee: { bps: 0, maxCents: 0, ...(doc.serviceFee ?? {}) },
+      serviceFee: { bps: 0, maxCents: 0, flatCents: 250, ...(doc.serviceFee ?? {}) },
       tax: { bps: 0, ...(doc.tax ?? {}) },
       pricing: { earlyBirdMinDaysAhead: 30, lastMinuteMaxHoursAhead: 48, ...(doc.pricing ?? {}) },
       cancellation: {

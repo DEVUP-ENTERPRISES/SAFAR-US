@@ -179,7 +179,16 @@ export default function AdminEconomicsPage() {
               onChange={(e) => set((d) => { d.serviceFee.bps = toBps(e.target.value); })}
             />
           </Field>
-          <Field label="Cap ($)" hint="Never charge more than this on one trip. 0 = no cap.">
+          <Field label="Flat fee per booking ($)" hint="Added to every new booking, on top of the percent. Extensions do not pay it again.">
+            <Input
+              type="number"
+              min={0}
+              step="0.25"
+              value={(draft.serviceFee.flatCents ?? 0) / 100}
+              onChange={(e) => set((d) => { d.serviceFee.flatCents = Math.round(Number(e.target.value) * 100); })}
+            />
+          </Field>
+          <Field label="Cap ($)" hint="Never charge more than this on one trip, fee included. 0 = no cap.">
             <Input
               type="number"
               min={0}
