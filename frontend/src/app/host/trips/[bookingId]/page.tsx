@@ -322,11 +322,11 @@ export default function HostTripDetailPage() {
             />
           </RowGroup>
 
-          {t.extensions.length > 0 && (
+          {(t.extensions?.length ?? 0) > 0 && (
             <>
               <SectionLabel>Extensions</SectionLabel>
               <RowGroup>
-                {t.extensions.map((e) => (
+                {(t.extensions ?? []).map((e) => (
                   <Row
                     key={e._id}
                     icon={<Receipt className="h-5 w-5" />}

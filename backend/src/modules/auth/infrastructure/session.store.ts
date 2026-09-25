@@ -1,22 +1,21 @@
 import { kv } from '../../../infrastructure/cache/kv-store';
-import { isRedisHealthy } from '../../../infrastructure/cache/redis.client';
 import { logger } from '../../../infrastructure/logging/logger';
 import { config } from '../../../config';
+import { SessionModel } from './session.model';
 
 /**
- * Session registry backed by the KV store (Redis in prod, in-memory in dev).
- * Each session carries device metadata (UA/IP) and is indexed per user so a
- * customer can see & revoke their active devices. The access token's session
- * id is validated on every request, so revoking here logs a device out
- * immediately despite the JWT's remaining validity.
+ * Session registry: MongoDB is the record, the KV store (Redis) is a cache.
  *
- * Resilience: the access token is a short-lived, independently-verified JWT, so
- * the session registry is a *revocation* layer, not the source of truth for who
- * you are. When Redis is unavailable we therefore degrade instead of failing:
- * writes become best-effort and liveness checks fail OPEN (trust the signed,
- * short-lived JWT) rather than 500-ing every request or locking everyone out.
- * Every degraded call is logged so the loss of instant revocation is visible.
- * Real errors while Redis is healthy still throw — we only degrade on an outage.
+ * Each session carries device metadata and is validated on every request, so
+ * revoking it logs a device out immediately despite the JWT's remaining life.
+ *
+ * Why the record lives in MongoDB. Sessions used to exist only in Redis, so
+ * anything that emptied it — a Redis restart without persistence, the in-memory
+ * fallback after a failed connect, a redeploy — made every session look
+ * "not found" and signed every user out at once. Now a cache miss (or a Redis
+ * outage) is answered from MongoDB and the cache is refilled, so restarting the
+ * API, Redis or both never logs anyone out. Revocation is exact in every case:
+ * it deletes the record and the cached copy.
  */
 export interface SessionMeta {
   userId: string;
@@ -34,33 +33,16 @@ export interface SessionView {
 }
 
 const sKey = (id: string): string => `session:${id}`;
-const idxKey = (userId: string): string => `usersessions:${userId}`;
+const ttlMs = (): number => config.jwt.refreshTtl * 1000;
 
-/**
- * Run a session-store operation, degrading gracefully on a Redis outage.
- * If Redis is healthy the error is real and rethrown; if it's down we log and
- * return the caller-chosen fallback (e.g. `true` to fail open, `undefined` to
- * make a write best-effort).
- */
-async function resilient<T>(op: () => Promise<T>, fallback: T, action: string): Promise<T> {
+/** The cache is an optimisation; its failure must never fail a request. */
+async function cache<T>(op: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await op();
   } catch (err) {
-    if (isRedisHealthy()) throw err;
-    logger.warn(
-      { action, err: (err as Error).message },
-      'Session store degraded — Redis unavailable; continuing on the signed JWT',
-    );
+    logger.debug({ err: (err as Error).message }, 'session cache unavailable — using the database');
     return fallback;
   }
-}
-
-async function readIndex(userId: string): Promise<string[]> {
-  const raw = await kv().get(idxKey(userId));
-  return raw ? (JSON.parse(raw) as string[]) : [];
-}
-async function writeIndex(userId: string, ids: string[]): Promise<void> {
-  await kv().set(idxKey(userId), JSON.stringify(ids), config.jwt.refreshTtl);
 }
 
 export class SessionStore {
@@ -70,98 +52,93 @@ export class SessionStore {
     refreshJti: string,
     meta: { userAgent?: string; ip?: string } = {},
   ): Promise<void> {
-    const record: SessionMeta = {
-      userId,
-      refreshJti,
-      userAgent: meta.userAgent,
-      ip: meta.ip,
-      createdAt: new Date().toISOString(),
-    };
-    // Best-effort: if the registry write fails during an outage, login still
-    // succeeds on the issued JWT — we just can't track/revoke this device yet.
-    await resilient(async () => {
-      await kv().set(sKey(sessionId), JSON.stringify(record), config.jwt.refreshTtl);
-      const idx = await readIndex(userId);
-      if (!idx.includes(sessionId)) await writeIndex(userId, [sessionId, ...idx]);
-    }, undefined, 'create');
+    const now = new Date();
+    await SessionModel.updateOne(
+      { _id: sessionId },
+      {
+        $set: { userId, refreshJti, userAgent: meta.userAgent, ip: meta.ip, expiresAt: new Date(now.getTime() + ttlMs()) },
+        $setOnInsert: { createdAt: now },
+      },
+      { upsert: true },
+    );
+    const record: SessionMeta = { userId, refreshJti, userAgent: meta.userAgent, ip: meta.ip, createdAt: now.toISOString() };
+    await cache(() => kv().set(sKey(sessionId), JSON.stringify(record), config.jwt.refreshTtl), undefined);
   }
 
-  /**
-   * Is this session still live? Fails OPEN on a Redis outage: the bearer is a
-   * short-lived, signed JWT that has already been verified, so trusting it
-   * briefly beats locking every user out. Revocation resumes when Redis is back.
-   */
-  async isActive(sessionId: string): Promise<boolean> {
-    return resilient(() => kv().exists(sKey(sessionId)), true, 'isActive');
-  }
-
+  /** Cache first, then the database (refilling the cache); null when the session is gone or expired. */
   private async read(sessionId: string): Promise<SessionMeta | null> {
-    const raw = await kv().get(sKey(sessionId));
-    return raw ? (JSON.parse(raw) as SessionMeta) : null;
+    const cached = await cache(() => kv().get(sKey(sessionId)), null);
+    if (cached) return JSON.parse(cached) as SessionMeta;
+
+    const doc = await SessionModel.findById(sessionId).lean();
+    if (!doc || doc.expiresAt.getTime() <= Date.now()) return null;
+    const record: SessionMeta = {
+      userId: doc.userId,
+      refreshJti: doc.refreshJti,
+      userAgent: doc.userAgent,
+      ip: doc.ip,
+      createdAt: doc.createdAt.toISOString(),
+    };
+    const remaining = Math.max(1, Math.floor((doc.expiresAt.getTime() - Date.now()) / 1000));
+    await cache(() => kv().set(sKey(sessionId), JSON.stringify(record), remaining), undefined);
+    return record;
+  }
+
+  async isActive(sessionId: string): Promise<boolean> {
+    return (await this.read(sessionId)) !== null;
   }
 
   async getRefreshJti(sessionId: string): Promise<string | null> {
-    return resilient(async () => (await this.read(sessionId))?.refreshJti ?? null, null, 'getRefreshJti');
+    return (await this.read(sessionId))?.refreshJti ?? null;
   }
 
-  /** Rotate the refresh token id while preserving device metadata. */
+  /** Rotate the refresh token id, keeping device metadata and sliding the expiry. */
   async rotate(sessionId: string, userId: string, newRefreshJti: string): Promise<void> {
-    await resilient(async () => {
-      const existing = await this.read(sessionId);
-      const record: SessionMeta = {
-        userId,
-        refreshJti: newRefreshJti,
-        userAgent: existing?.userAgent,
-        ip: existing?.ip,
-        createdAt: existing?.createdAt ?? new Date().toISOString(),
-      };
-      await kv().set(sKey(sessionId), JSON.stringify(record), config.jwt.refreshTtl);
-    }, undefined, 'rotate');
+    // A session that only ever lived in the cache (created before it was persisted) is written to the database here.
+    const prior = await this.read(sessionId).catch(() => null);
+    const expiresAt = new Date(Date.now() + ttlMs());
+    await SessionModel.updateOne(
+      { _id: sessionId },
+      {
+        $set: { userId, refreshJti: newRefreshJti, expiresAt, userAgent: prior?.userAgent, ip: prior?.ip },
+        $setOnInsert: { createdAt: prior ? new Date(prior.createdAt) : new Date() },
+      },
+      { upsert: true },
+    );
+    const record: SessionMeta = {
+      userId,
+      refreshJti: newRefreshJti,
+      userAgent: prior?.userAgent,
+      ip: prior?.ip,
+      createdAt: prior?.createdAt ?? new Date().toISOString(),
+    };
+    await cache(() => kv().set(sKey(sessionId), JSON.stringify(record), config.jwt.refreshTtl), undefined);
   }
 
   async revoke(sessionId: string): Promise<void> {
-    await resilient(async () => {
-      const rec = await this.read(sessionId);
-      await kv().del(sKey(sessionId));
-      if (rec) {
-        const idx = await readIndex(rec.userId);
-        await writeIndex(rec.userId, idx.filter((id) => id !== sessionId));
-      }
-    }, undefined, 'revoke');
+    await SessionModel.deleteOne({ _id: sessionId });
+    await cache(() => kv().del(sKey(sessionId)), undefined);
   }
 
-  /** List a user's active devices/sessions (drops any that have expired). */
+  /** List a user's active devices/sessions, newest first. */
   async listForUser(userId: string): Promise<SessionView[]> {
-    return resilient(async () => {
-      const ids = await readIndex(userId);
-      const out: SessionView[] = [];
-      const live: string[] = [];
-      for (const id of ids) {
-        const rec = await this.read(id);
-        if (rec) {
-          out.push({ id, userAgent: rec.userAgent, ip: rec.ip, createdAt: rec.createdAt });
-          live.push(id);
-        }
-      }
-      if (live.length !== ids.length) await writeIndex(userId, live);
-      return out;
-    }, [], 'listForUser');
+    const docs = await SessionModel.find({ userId, expiresAt: { $gt: new Date() } })
+      .sort({ createdAt: -1 })
+      .lean();
+    return docs.map((d) => ({ id: d._id, userAgent: d.userAgent, ip: d.ip, createdAt: d.createdAt.toISOString() }));
   }
 
   /** Revoke all sessions for a user, optionally keeping one (e.g. current). */
   async revokeAllForUser(userId: string, exceptSessionId?: string): Promise<void> {
-    await resilient(async () => {
-      const ids = await readIndex(userId);
-      for (const id of ids) {
-        if (id !== exceptSessionId) await kv().del(sKey(id));
-      }
-      await writeIndex(userId, exceptSessionId ? [exceptSessionId] : []);
-    }, undefined, 'revokeAllForUser');
+    const filter = { userId, ...(exceptSessionId ? { _id: { $ne: exceptSessionId } } : {}) };
+    const ids = (await SessionModel.find(filter, { _id: 1 }).lean()).map((d) => d._id);
+    await SessionModel.deleteMany(filter);
+    for (const id of ids) await cache(() => kv().del(sKey(id)), undefined);
   }
 
   /** Confirm a session belongs to a user (guards revoke-by-id). */
   async belongsTo(sessionId: string, userId: string): Promise<boolean> {
-    return resilient(async () => (await this.read(sessionId))?.userId === userId, false, 'belongsTo');
+    return (await this.read(sessionId))?.userId === userId;
   }
 }
 

@@ -20,7 +20,9 @@ interface RequestOptions {
   headers?: Record<string, string>;
 }
 
-let refreshInFlight: Promise<boolean> | null = null;
+/** 'denied' = the server says the session is over; 'unavailable' = we could not reach it (restart, network) and must not sign the user out. */
+type RefreshOutcome = 'ok' | 'denied' | 'unavailable';
+let refreshInFlight: Promise<RefreshOutcome> | null = null;
 
 /*
  * Cross-tab mutex around the refresh call.
@@ -61,9 +63,9 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
   return url.toString();
 }
 
-async function attemptRefresh(): Promise<boolean> {
+async function attemptRefresh(): Promise<RefreshOutcome> {
   const refreshToken = tokenStore.getRefresh();
-  if (!refreshToken) return false;
+  if (!refreshToken) return 'denied';
   // Single-flight within this tab: concurrent 401s here share one call.
   if (!refreshInFlight) {
     refreshInFlight = withCrossTabLock('cato-token-refresh', async () => {
@@ -73,19 +75,21 @@ async function attemptRefresh(): Promise<boolean> {
         // localStorage. Using THIS closure's now-stale `refreshToken` would
         // be exactly the reuse the lock exists to prevent.
         const current = tokenStore.getRefresh();
-        if (current !== refreshToken) return true; // another tab already did it
+        if (current !== refreshToken) return 'ok'; // another tab already did it
 
         const res = await fetch(buildUrl('/auth/token/refresh'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken: current }),
         });
-        if (!res.ok) return false;
+        // Only an explicit refusal ends the session; a 5xx from a restarting server or a dropped connection does not.
+        if (res.status === 401 || res.status === 403 || res.status === 400) return 'denied';
+        if (!res.ok) return 'unavailable';
         const json = (await res.json()) as ApiSuccess<{ accessToken: string; refreshToken: string }>;
         tokenStore.set(json.data.accessToken, json.data.refreshToken);
-        return true;
+        return 'ok';
       } catch {
-        return false;
+        return 'unavailable';
       } finally {
         setTimeout(() => (refreshInFlight = null), 0);
       }
@@ -122,7 +126,10 @@ async function raw<T>(path: string, opts: RequestOptions, retry = true): Promise
 
   if (res.status === 401 && retry && opts.auth !== false && opts.auth !== 'optional') {
     const refreshed = await attemptRefresh();
-    if (refreshed) return raw<T>(path, opts, false);
+    if (refreshed === 'ok') return raw<T>(path, opts, false);
+    if (refreshed === 'unavailable') {
+      throw new ApiError('SERVER_UNAVAILABLE', 'We can’t reach the server right now. You’re still signed in — try again in a moment.', 503);
+    }
     // The session is genuinely gone. Clearing the tokens is not enough: the
     // auth store still reads "authenticated", so no guard fires and the caller
     // surfaces the raw API message ("Missing bearer token") as if it were a
