@@ -9,7 +9,7 @@ import { installCrashHandlers } from './infrastructure/observability/error-repor
 import { seedAdmin, enforceSingleSuperAdmin } from './bootstrap/seed-admin';
 import { seedHouseFleet } from './bootstrap/seed-house-fleet';
 import { initRealtime } from './realtime';
-import { initJobs, closeJobs } from './jobs';
+import { initJobs, closeJobs, startFallbackJobs } from './jobs';
 import { verifyChannels } from './modules/notifications/infrastructure/channel.providers';
 import { isRedisHealthy } from './infrastructure/cache/redis.client';
 
@@ -31,6 +31,21 @@ async function bootstrap(): Promise<void> {
       '🚨🚨🚨 ALLOW_TEST_STRIPE_IN_PRODUCTION is set — real bookings are NOT being charged. ' +
         'This is for end-to-end testing ONLY. Unset it before taking real payments. 🚨🚨🚨',
     );
+  }
+
+  // A publishable key from the wrong mode or account fails every card and identity call in the browser, so say so at boot.
+  if (config.stripe.enabled) {
+    const sk = config.stripe.secretKey ?? '';
+    const pk = config.stripe.publishableKey ?? '';
+    const live = /^(sk|rk)_live_/.test(sk);
+    if (!pk) {
+      logger.error('STRIPE_PUBLISHABLE_KEY is not set — card entry and identity capture rely on the frontend build having NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY');
+    } else if (live !== pk.startsWith('pk_live_')) {
+      logger.error('STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY are from different modes (live vs test) — card entry and identity capture will fail');
+    }
+    if (config.kyc.identityWebhookSecret == null) {
+      logger.error('STRIPE_IDENTITY_WEBHOOK_SECRET is not set — identity results will only arrive through the periodic status sync');
+    }
   }
 
   await connectMongo();
@@ -64,11 +79,14 @@ async function bootstrap(): Promise<void> {
 
   // Background jobs need Redis (BullMQ). Skip gracefully in dev without Redis.
   if (isRedisHealthy()) {
-    await initJobs().catch((err) => logger.error({ err: err.message }, 'jobs init failed'));
+    await initJobs().catch((err) => {
+      logger.error({ err: err.message }, 'jobs init failed — falling back to the in-process scheduler');
+      startFallbackJobs();
+    });
     // Non-blocking: a mail server being slow must not delay accepting traffic.
     void verifyChannels();
   } else {
-    logger.warn('⚠️  Redis unavailable — background jobs (BullMQ) disabled');
+    startFallbackJobs();
   }
 
   // Imported here, AFTER the Redis decision, so the rate limiters it pulls in

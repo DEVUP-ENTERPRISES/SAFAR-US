@@ -17,7 +17,9 @@ import { useToast } from '@/components/ui/toast';
 import { formatDate } from '@/lib/utils/format';
 import { accountApi } from '@/features/account/api';
 import { kycApi, type KycStatusView } from '@/features/kyc/api';
-import { openIdentityModal, STRIPE_PUBLISHABLE_KEY } from '@/features/kyc/stripe-identity';
+import { openIdentityModal } from '@/features/kyc/stripe-identity';
+import { useStripePublishableKey } from '@/features/payments/stripe-key';
+import { uploadFiles } from '@/features/media/upload';
 import { ApiError } from '@/lib/api/types';
 
 const isDev = process.env.NODE_ENV !== 'production';
@@ -26,7 +28,7 @@ const isDev = process.env.NODE_ENV !== 'production';
 const STEPS = [
   { icon: IdCard, title: "Photograph your driver's license", detail: 'Front and back. Make sure the text is sharp and glare-free.' },
   { icon: ScanFace, title: 'Take a quick selfie', detail: 'We match your face to the license to confirm it’s really you.' },
-  { icon: LockKeyhole, title: 'We confirm and secure it', detail: 'Your documents go straight to our verification partner — we never store the images.' },
+  { icon: LockKeyhole, title: 'We confirm and secure it', detail: 'Documents you upload here are visible only to our verification team.' },
 ];
 
 function VerifyIdentity() {
@@ -44,6 +46,9 @@ function VerifyIdentity() {
 
   const [confirmed, setConfirmed] = useState(false);
   const [devSession, setDevSession] = useState(false);
+  const [captureFailed, setCaptureFailed] = useState(false);
+  const { key: stripeKey, ready: keyReady } = useStripePublishableKey();
+  const manualAvailable = captureFailed || (keyReady && !stripeKey);
 
   const refreshStatus = () => qc.invalidateQueries({ queryKey: ['kyc-status'] });
 
@@ -51,7 +56,7 @@ function VerifyIdentity() {
     mutationFn: async () => {
       const session = await kycApi.startVerification();
       // Live Stripe Identity: open the hosted capture modal in place.
-      if (session.clientSecret && STRIPE_PUBLISHABLE_KEY) {
+      if (session.clientSecret && stripeKey) {
         const outcome = await openIdentityModal(session.clientSecret);
         return { outcome } as const;
       }
@@ -65,10 +70,13 @@ function VerifyIdentity() {
     },
     onSuccess: (r) => {
       if (r.outcome === 'completed') { refreshStatus(); toast({ title: 'Submitted for review', tone: 'success' }); }
-      else if (r.outcome === 'stub') setDevSession(true);
+      else if (r.outcome === 'stub') { if (isDev) setDevSession(true); else setCaptureFailed(true); }
       else if (r.outcome === 'canceled') toast({ title: 'Verification canceled', tone: 'info' });
     },
-    onError: (e) => toast({ title: e instanceof ApiError ? e.message : (e as Error).message, tone: 'error' }),
+    onError: (e) => {
+      setCaptureFailed(true);
+      toast({ title: e instanceof ApiError ? e.message : (e as Error).message, tone: 'error' });
+    },
   });
 
   // Dev-only: force a decision so the flow completes without a real webhook.
@@ -199,15 +207,15 @@ function VerifyIdentity() {
                 <span>The details above match my government-issued ID, and I’m ready to scan it.</span>
               </label>
 
-              {!STRIPE_PUBLISHABLE_KEY && !isDev && (
-                <p className="text-sm text-destructive">Identity verification is temporarily unavailable. Please try again later.</p>
+              {keyReady && !stripeKey && !isDev && (
+                <p className="text-sm text-muted-foreground">Camera verification is unavailable right now. You can upload your documents below instead.</p>
               )}
 
               <Button
                 className="w-full"
                 size="lg"
-                loading={start.isPending}
-                disabled={!confirmed || (!nameKnown || !profile?.dateOfBirth) || (!STRIPE_PUBLISHABLE_KEY && !isDev)}
+                loading={start.isPending || !keyReady}
+                disabled={!confirmed || (!nameKnown || !profile?.dateOfBirth) || (keyReady && !stripeKey && !isDev)}
                 onClick={() => start.mutate()}
               >
                 <Camera className="h-4 w-4" /> {s === 'rejected' ? 'Try again' : 'Start verification'}
@@ -225,6 +233,13 @@ function VerifyIdentity() {
               )}
             </CardContent>
           </Card>
+
+          {manualAvailable && (
+            <ManualUpload
+              disabled={!nameKnown || !profile?.dateOfBirth}
+              onSubmitted={() => { refreshStatus(); toast({ title: 'Submitted for review', tone: 'success' }); }}
+            />
+          )}
         </>
       )}
 
@@ -233,6 +248,59 @@ function VerifyIdentity() {
         Powered by Stripe Identity
       </p>
     </div>
+  );
+}
+
+const MANUAL_FIELDS = [
+  { id: 'front', label: 'Driver’s license, front', type: 'license' },
+  { id: 'back', label: 'Driver’s license, back', type: 'license' },
+  { id: 'selfie', label: 'Selfie holding your license', type: 'selfie' },
+] as const;
+
+/** Secondary path: upload documents for our team to review by hand. */
+function ManualUpload({ disabled, onSubmitted }: { disabled: boolean; onSubmitted: () => void }) {
+  const toast = useToast();
+  const [files, setFiles] = useState<Record<string, File | undefined>>({});
+  const complete = MANUAL_FIELDS.every((f) => files[f.id]);
+
+  const submit = useMutation({
+    mutationFn: async () => {
+      const uploaded = await Promise.all(MANUAL_FIELDS.map((f) => uploadFiles('kyc', [files[f.id]!])));
+      return kycApi.submitDocuments(MANUAL_FIELDS.map((f, i) => ({ type: f.type, url: uploaded[i][0].url })));
+    },
+    onSuccess: onSubmitted,
+    onError: (e) => toast({ title: e instanceof ApiError ? e.message : (e as Error).message, tone: 'error' }),
+  });
+
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-lg">Verify by uploading your documents instead</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Reviewed by our team, usually within a few hours. Documents you upload here are visible only to our verification team.
+        </p>
+        {MANUAL_FIELDS.map((f) => (
+          <label key={f.id} className="block text-sm">
+            <span className="font-medium">{f.label}</span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => setFiles((p) => ({ ...p, [f.id]: e.target.files?.[0] }))}
+              className="mt-1 block w-full text-sm"
+            />
+          </label>
+        ))}
+        <Button
+          variant="outline"
+          className="w-full"
+          loading={submit.isPending}
+          disabled={!complete || disabled}
+          onClick={() => submit.mutate()}
+        >
+          Submit for review
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

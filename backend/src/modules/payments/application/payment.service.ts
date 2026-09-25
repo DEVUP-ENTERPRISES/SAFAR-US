@@ -1,3 +1,4 @@
+import { logger } from '../../../infrastructure/logging/logger';
 import { PaymentMethodModel } from '../infrastructure/payment-method.model';
 import { paymentMethodService } from './payment-method.service';
 import { PaymentModel, type PaymentDoc } from '../infrastructure/payment.model';
@@ -334,6 +335,45 @@ export class PaymentService implements IPaymentContract {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Backup for a webhook that never arrived (or an endpoint that was misconfigured):
+   * look at Stripe itself for every payment still waiting and bring our records in
+   * line. A cleared payment books the money and confirms the trip through the same
+   * event the webhook fires, so the two paths cannot drift apart.
+   */
+  async reconcilePending(olderThanMs: number, limit = 100): Promise<{ succeeded: number; authorized: number; cancelled: number }> {
+    const waiting = await PaymentModel.find({
+      type: 'booking',
+      status: { $in: ['pending', 'requires_action'] },
+      createdAt: { $lte: new Date(Date.now() - olderThanMs) },
+      intentId: { $not: /^wallet_/ },
+    })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+    const out = { succeeded: 0, authorized: 0, cancelled: 0 };
+    for (const p of waiting) {
+      try {
+        const intent = await paymentGateway.retrieveIntent(p.intentId);
+        if (intent.status === 'succeeded') {
+          if (await this.recordIntentSucceeded(p.intentId)) {
+            emit(EVENTS.PAYMENT_SUCCEEDED, p.bookingId!, { bookingId: p.bookingId });
+            out.succeeded += 1;
+          }
+        } else if (intent.status === 'requires_capture') {
+          await PaymentModel.updateOne({ _id: p._id, status: { $in: ['pending', 'requires_action'] } }, { status: 'authorized' });
+          out.authorized += 1;
+        } else if (intent.status === 'canceled') {
+          await PaymentModel.updateOne({ _id: p._id, status: { $in: ['pending', 'requires_action'] } }, { status: 'cancelled' });
+          out.cancelled += 1;
+        }
+      } catch (err) {
+        logger.warn({ err: (err as Error).message, intentId: p.intentId }, 'payment reconciliation failed for one intent');
+      }
+    }
+    return out;
   }
 
   /** Give back a post-trip charge that was upheld against the guest and then reversed. */

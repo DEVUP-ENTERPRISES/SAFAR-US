@@ -1,5 +1,5 @@
-import { loadStripe, type Stripe } from '@stripe/stripe-js';
-import { STRIPE_PUBLISHABLE_KEY } from '@/features/kyc/stripe-identity';
+import type { Stripe } from '@stripe/stripe-js';
+import { getStripePublishableKey, loadStripeForKey } from '@/features/payments/stripe-key';
 
 /**
  * Finishing a 3-D Secure challenge.
@@ -13,10 +13,9 @@ import { STRIPE_PUBLISHABLE_KEY } from '@/features/kyc/stripe-identity';
  * build beyond handing it the secret and reading the outcome.
  */
 
-let stripePromise: Promise<Stripe | null> | null = null;
-const getStripe = () => {
-  if (!stripePromise && STRIPE_PUBLISHABLE_KEY) stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
-  return stripePromise;
+const getStripe = async (): Promise<Stripe | null> => {
+  const key = await getStripePublishableKey();
+  return key ? loadStripeForKey(key) : null;
 };
 
 /** Resolves true when the payment cleared, false when it did not. */

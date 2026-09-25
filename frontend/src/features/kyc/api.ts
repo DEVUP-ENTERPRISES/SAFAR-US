@@ -23,6 +23,10 @@ export const kycApi = {
   /** Begin an automated identity check; the decision returns by webhook. */
   startVerification: () => api.post<VerificationSession>('/kyc/verification-session', {}),
 
+  /** Manual review fallback: uploaded document URLs go to ops for approval. */
+  submitDocuments: (documents: { type: 'license' | 'passport' | 'national_id' | 'selfie'; url: string }[]) =>
+    api.post('/kyc/submit', { documents }),
+
   /**
    * Dev-only shortcut: force a decision when no live provider is configured, so
    * the flow is exercisable offline. The route simply doesn't exist in prod, so

@@ -106,6 +106,7 @@ export const config = Object.freeze({
   stripe: {
     secretKey: env.STRIPE_SECRET_KEY,
     webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+    publishableKey: env.STRIPE_PUBLISHABLE_KEY,
     enabled: !!env.STRIPE_SECRET_KEY,
   },
   kyc: {

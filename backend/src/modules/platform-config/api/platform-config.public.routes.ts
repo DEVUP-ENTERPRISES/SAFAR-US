@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { platformConfigService } from '../application/platform-config.service';
+import { config } from '../../../config';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { sendSuccess } from '../../../shared/http/api-response';
 
@@ -36,6 +37,8 @@ router.get(
       },
       pricing: cfg.pricing,
       inspection: cfg.inspection,
+      // Public by design; a pk_ key identifies the account to Stripe.js and can charge nothing.
+      stripe: { publishableKey: config.stripe.publishableKey ?? null },
       protection: cfg.protection,
       hostTakeRateBps: cfg.commission.defaultBps,
       // The client needs the current Terms version to display + submit on

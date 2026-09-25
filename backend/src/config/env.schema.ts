@@ -109,6 +109,8 @@ export const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_IDENTITY_WEBHOOK_SECRET: optional(z.string()),
+  /** Public by design. Served to the browser at runtime so card entry and identity capture do not depend on the frontend build having it. */
+  STRIPE_PUBLISHABLE_KEY: optional(z.string()),
   /**
    * TEMPORARY end-to-end-testing escape hatch. Lets a sk_test_/rk_test_ key
    * pass the production guard so the real Stripe test flow (test cards,

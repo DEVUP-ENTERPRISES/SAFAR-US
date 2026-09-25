@@ -84,6 +84,41 @@ export class KycService {
     emit(approved ? EVENTS.KYC_APPROVED : EVENTS.KYC_REJECTED, userId, { userId });
   }
 
+  /**
+   * Backup for a missed or misconfigured webhook: ask the provider for the
+   * outcome of a guest's pending session and apply it exactly as the webhook
+   * would. Safe to call any time; it only acts on a still-pending record.
+   */
+  async syncPending(userId: string): Promise<boolean> {
+    const doc = await KycModel.findOne({ userId, status: 'pending', provider: 'stripe' }).lean<KycDoc>();
+    if (!doc?.providerSessionId) return false;
+    const found = await identityProvider.retrieve(doc.providerSessionId);
+    if (!found) return false;
+    await this.applyProviderResult(found.userId, found.result);
+    return true;
+  }
+
+  /** Sweep every provider check that has sat pending long enough that its webhook should have landed. */
+  async syncStalePending(olderThanMs: number, limit = 50): Promise<number> {
+    const stale = await KycModel.find({
+      status: 'pending',
+      provider: 'stripe',
+      providerSessionId: { $exists: true },
+      updatedAt: { $lte: new Date(Date.now() - olderThanMs) },
+    })
+      .limit(limit)
+      .lean<KycDoc[]>();
+    let applied = 0;
+    for (const d of stale) {
+      try {
+        if (await this.syncPending(d.userId)) applied += 1;
+      } catch (err) {
+        logger.warn({ err: (err as Error).message, userId: d.userId }, 'identity status sync failed');
+      }
+    }
+    return applied;
+  }
+
   /** Handle a provider webhook (raw body + signature). */
   async handleWebhook(rawBody: Buffer, signature: string): Promise<void> {
     const parsed = await identityProvider.parseEvent(rawBody, signature);
@@ -104,8 +139,13 @@ export class KycService {
   }
 
   async getStatus(userId: string): Promise<{ status: string; level?: string; reason?: string }> {
-    const doc = await KycModel.findOne({ userId }).lean<KycDoc>();
+    let doc = await KycModel.findOne({ userId }).lean<KycDoc>();
     if (!doc) return { status: 'not_started' };
+    // A guest waiting on Stripe should not depend on the webhook alone: check with Stripe when they look.
+    if (doc.status === 'pending' && doc.provider === 'stripe') {
+      const changed = await this.syncPending(userId).catch(() => false);
+      if (changed) doc = (await KycModel.findOne({ userId }).lean<KycDoc>()) ?? doc;
+    }
     return { status: doc.status, level: doc.level, reason: doc.rejectionReason };
   }
 

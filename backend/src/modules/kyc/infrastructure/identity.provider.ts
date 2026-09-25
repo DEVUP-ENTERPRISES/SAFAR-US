@@ -31,6 +31,8 @@ export interface IdentityProvider {
   createSession(userId: string): Promise<IdentitySession>;
   /** Verify + parse a provider webhook; returns null for events we ignore. */
   parseEvent(rawBody: Buffer, signature: string): Promise<{ userId: string; result: IdentityResult } | null>;
+  /** Ask the provider for a session's current outcome — the backup for a webhook that never arrived. Null while still undecided. */
+  retrieve(sessionId: string): Promise<{ userId: string; result: IdentityResult } | null>;
 }
 
 function hashLicence(v: string): string {
@@ -67,6 +69,35 @@ class StripeIdentityProvider implements IdentityProvider {
     return { provider: 'stripe', sessionId: vs.id, clientSecret: vs.client_secret ?? undefined, url: vs.url ?? undefined };
   }
 
+  /** Pull the verified outputs — this needs an explicit retrieve with expand, because the webhook payload omits the sensitive fields by design. */
+  private async verifiedResult(sessionId: string): Promise<IdentityResult> {
+    const full = await this.stripe.identity.verificationSessions.retrieve(sessionId, { expand: ['verified_outputs'] });
+    const o = full.verified_outputs;
+    const doc = (o as unknown as { document?: { number?: string; expiration_date?: { day: number; month: number; year: number } } })?.document;
+    const exp = doc?.expiration_date;
+    return {
+      status: 'verified' as const,
+      firstName: o?.first_name ?? undefined,
+      lastName: o?.last_name ?? undefined,
+      dob: o?.dob ? `${o.dob.year}-${String(o.dob.month).padStart(2, '0')}-${String(o.dob.day).padStart(2, '0')}` : undefined,
+      licenceExpiry: exp ? `${exp.year}-${String(exp.month).padStart(2, '0')}-${String(exp.day).padStart(2, '0')}` : undefined,
+      licenceNumberHash: doc?.number ? hashLicence(doc.number) : undefined,
+    };
+  }
+
+  async retrieve(sessionId: string) {
+    const vs = await this.stripe.identity.verificationSessions.retrieve(sessionId);
+    const userId = (vs.metadata?.userId as string) ?? '';
+    if (!userId) return null;
+    if (vs.status === 'verified') return { userId, result: await this.verifiedResult(vs.id) };
+    // A fresh session is also 'requires_input'; only a recorded failed attempt is a rejection.
+    if (vs.status === 'requires_input' && vs.last_error) {
+      return { userId, result: { status: 'rejected' as const, reason: vs.last_error.reason ?? 'verification_failed' } };
+    }
+    if (vs.status === 'canceled') return { userId, result: { status: 'rejected' as const, reason: 'verification_canceled' } };
+    return null;
+  }
+
   async parseEvent(rawBody: Buffer, signature: string) {
     const secret = config.kyc.identityWebhookSecret;
     if (!secret) throw new ExternalServiceError('Identity webhook secret not configured');
@@ -79,25 +110,7 @@ class StripeIdentityProvider implements IdentityProvider {
     if (!userId) return null;
 
     if (event.type === 'identity.verification_session.verified') {
-      // Pull the verified outputs — this needs an explicit retrieve with expand,
-      // because the webhook payload omits the sensitive fields by design.
-      const full = await this.stripe.identity.verificationSessions.retrieve(vs.id, {
-        expand: ['verified_outputs'],
-      });
-      const o = full.verified_outputs;
-      const doc = (o as unknown as { document?: { number?: string; expiration_date?: { day: number; month: number; year: number } } })?.document;
-      const exp = doc?.expiration_date;
-      return {
-        userId,
-        result: {
-          status: 'verified' as const,
-          firstName: o?.first_name ?? undefined,
-          lastName: o?.last_name ?? undefined,
-          dob: o?.dob ? `${o.dob.year}-${String(o.dob.month).padStart(2, '0')}-${String(o.dob.day).padStart(2, '0')}` : undefined,
-          licenceExpiry: exp ? `${exp.year}-${String(exp.month).padStart(2, '0')}-${String(exp.day).padStart(2, '0')}` : undefined,
-          licenceNumberHash: doc?.number ? hashLicence(doc.number) : undefined,
-        },
-      };
+      return { userId, result: await this.verifiedResult(vs.id) };
     }
 
     if (event.type === 'identity.verification_session.requires_input') {
@@ -127,6 +140,9 @@ class StubIdentityProvider implements IdentityProvider {
   }
   async parseEvent(): Promise<null> {
     return null; // the stub has no webhooks; decisions are forced via the service
+  }
+  async retrieve(): Promise<null> {
+    return null;
   }
 }
 

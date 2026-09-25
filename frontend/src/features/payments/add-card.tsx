@@ -2,11 +2,10 @@
 
 import { useState } from 'react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
-import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { CreditCard, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { STRIPE_PUBLISHABLE_KEY } from '@/features/kyc/stripe-identity';
+import { loadStripeForKey, useStripePublishableKey } from '@/features/payments/stripe-key';
 import { api } from '@/lib/api/client';
 
 /**
@@ -26,19 +25,16 @@ import { api } from '@/lib/api/client';
  * which is what makes one-tap booking possible at all.
  */
 
-let stripePromise: Promise<Stripe | null> | null = null;
-const getStripe = () => {
-  if (!stripePromise && STRIPE_PUBLISHABLE_KEY) stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
-  return stripePromise;
-};
-
 export function AddCard({ onSaved }: { onSaved?: () => void }) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { key, ready } = useStripePublishableKey();
+
+  if (!ready) return <div className="h-10 w-32 animate-pulse rounded-lg bg-muted" />;
 
   // Without a key the whole surface hides rather than rendering a dead form.
-  if (!STRIPE_PUBLISHABLE_KEY) {
+  if (!key) {
     return (
       <Card className="border-dashed">
         <CardContent className="flex items-start gap-3 py-5 text-sm text-muted-foreground">
@@ -85,7 +81,7 @@ export function AddCard({ onSaved }: { onSaved?: () => void }) {
 
   return (
     <Elements
-      stripe={getStripe()}
+      stripe={loadStripeForKey(key)}
       options={{
         clientSecret,
         appearance: {

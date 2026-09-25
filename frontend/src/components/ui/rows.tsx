@@ -111,12 +111,12 @@ export function Row({
 
 /**
  * The sticky bottom action sheet — Turo's signature "Start check-in" / "End
- * trip" panel. Always visible, so the next action is never hunted for.
+ * trip" panel. Always reachable, so the next action is never hunted for.
  *
- * Collapsible: the title/description alone can cover most of a short screen,
- * permanently hiding whatever the page is scrolled to underneath. Collapsed,
- * it shrinks to a thin handle + the action button — still one tap away,
- * without sitting over the page like a wall.
+ * Collapsible all the way down: the whole panel slides away and leaves one slim
+ * bar with its title, so it never sits over the page like a wall. Open, it is
+ * capped to the screen and scrolls inside itself, so a tall form still fits on
+ * a phone and the page underneath stays reachable.
  */
 export function ActionSheet({
   title,
@@ -129,23 +129,29 @@ export function ActionSheet({
 }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="sticky bottom-0 z-30 -mx-4 mt-8 border-t border-border bg-card/95 px-4 pb-6 backdrop-blur sm:-mx-6 sm:px-6">
+    <div className="sticky bottom-0 z-30 -mx-4 mt-8 border-t border-border bg-card/95 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.5)] backdrop-blur sm:-mx-6 sm:px-6">
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-label={open ? 'Collapse' : 'Expand'}
-        className="mx-auto flex w-full items-center justify-center py-2.5 text-muted-foreground hover:text-foreground"
+        aria-label={open ? 'Collapse' : `Expand ${title}`}
+        className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 py-3 text-muted-foreground hover:text-foreground"
       >
-        <ChevronDown className={cn('h-5 w-5 transition-transform', !open && 'rotate-180')} />
+        <span className={cn('text-sm font-bold', open ? 'text-muted-foreground' : 'text-foreground')}>
+          {open ? 'Hide' : title}
+        </span>
+        <ChevronDown className={cn('h-5 w-5 transition-transform duration-300', !open && 'rotate-180')} />
       </button>
-      <div className="mx-auto max-w-2xl text-center">
-        {open && (
-          <>
+      <div
+        className={cn('grid transition-[grid-template-rows] duration-300 ease-out', open ? 'visible' : 'invisible')}
+        style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="mx-auto max-h-[calc(100dvh-9rem)] max-w-2xl overflow-y-auto overscroll-contain pb-4 text-center">
             <h2 className="display text-2xl">{title}</h2>
             {description && <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{description}</p>}
-          </>
-        )}
-        <div className={cn('flex flex-col gap-2', open && 'mt-5')}>{children}</div>
+            <div className="mt-5 flex flex-col gap-2 text-left">{children}</div>
+          </div>
+        </div>
       </div>
     </div>
   );

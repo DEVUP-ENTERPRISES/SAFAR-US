@@ -1,4 +1,4 @@
-export const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
+import { getStripePublishableKey } from '@/features/payments/stripe-key';
 
 /** Minimal shape of the bits of Stripe.js we touch — no SDK dependency. */
 interface StripeLike {
@@ -47,9 +47,10 @@ export type VerifyOutcome = 'completed' | 'canceled';
  * webhook), `canceled` if they dismissed it. Throws only on a genuine failure.
  */
 export async function openIdentityModal(clientSecret: string): Promise<VerifyOutcome> {
-  if (!STRIPE_PUBLISHABLE_KEY) throw new Error('Stripe publishable key is not configured');
+  const key = await getStripePublishableKey();
+  if (!key) throw new Error('Stripe publishable key is not configured');
   const Stripe = await loadStripeJs();
-  const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+  const stripe = Stripe(key);
   const { error } = await stripe.verifyIdentity(clientSecret);
   if (error) {
     // The user closing the modal surfaces as a benign cancellation, not an error.
