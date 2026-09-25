@@ -2,7 +2,7 @@ import { AuditLogModel, type AuditLogDoc } from '../infrastructure/audit-log.mod
 import { UserModel } from '../../users/infrastructure/user.model';
 import { ROLES } from '../../../shared/constants/rbac';
 
-const STAFF_ROLES = [ROLES.SUPER_ADMIN, ROLES.SUPPORT, ROLES.MODERATOR, ROLES.FINANCE, ROLES.OPS];
+const STAFF_ROLES = [ROLES.SUPER_ADMIN, ROLES.SUPPORT, ROLES.MODERATOR, ROLES.FINANCE, ROLES.OPS, ROLES.ADMIN];
 
 export type AuditRow = AuditLogDoc & { actor?: { name: string; email?: string } };
 

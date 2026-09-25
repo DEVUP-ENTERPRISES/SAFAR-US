@@ -39,6 +39,7 @@ const STAFF_ROLES = new Set<string>([
   ROLES.MODERATOR,
   ROLES.FINANCE,
   ROLES.OPS,
+  ROLES.ADMIN,
 ]);
 
 export function requireAdmin(req: Request, _res: Response, next: NextFunction): void {

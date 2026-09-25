@@ -10,6 +10,7 @@ export const ROLES = {
   MODERATOR: 'moderator',
   FINANCE: 'finance',
   OPS: 'ops',
+  ADMIN: 'admin',
   SUPER_ADMIN: 'super_admin',
 } as const;
 
@@ -51,6 +52,9 @@ export const PERMISSIONS = {
 
 const P = PERMISSIONS;
 
+/** Things members do for themselves; staff roles do not inherit them. */
+const MEMBER_PERMISSIONS = new Set<string>([P.BOOKING_CREATE, P.BOOKING_CANCEL_OWN, P.VEHICLE_CREATE, P.VEHICLE_UPDATE_OWN]);
+
 export const ROLE_PERMISSIONS: Record<RoleName, string[]> = {
   [ROLES.GUEST]: [P.BOOKING_CREATE, P.BOOKING_CANCEL_OWN],
   [ROLES.HOST]: [P.BOOKING_CREATE, P.BOOKING_CANCEL_OWN, P.VEHICLE_CREATE, P.VEHICLE_UPDATE_OWN],
@@ -77,6 +81,8 @@ export const ROLE_PERMISSIONS: Record<RoleName, string[]> = {
     P.BOOKING_READ_ANY,
     P.FLEET_MANAGE,
   ],
+  // Every staff permission but '*': staff accounts and the audit log stay with the main admin.
+  [ROLES.ADMIN]: Object.values(P).filter((p) => !MEMBER_PERMISSIONS.has(p) && p !== P.ALL),
   [ROLES.SUPER_ADMIN]: [P.ALL],
 };
 

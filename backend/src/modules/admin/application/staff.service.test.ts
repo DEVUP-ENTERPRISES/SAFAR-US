@@ -41,3 +41,14 @@ describe('staffService', () => {
     await expect(staffService.setRole(m._id, 'ops')).rejects.toThrow(/not a staff/);
   });
 });
+
+describe('appointed admin role', () => {
+  it('can do staff work but never hold the all-access permission', async () => {
+    const { permissionsForRoles } = await import('../../../shared/constants/rbac');
+    const perms = permissionsForRoles(['admin']);
+    expect(perms).toEqual(expect.arrayContaining(['admin:read', 'payment:refund', 'platform:manage', 'kyc:review']));
+    expect(perms).not.toContain('*');
+    const r = await staffService.create({ name: 'Second Admin', role: 'admin' });
+    expect((await UserModel.findById(r.id).lean())!.roles).toEqual(['admin']);
+  });
+});

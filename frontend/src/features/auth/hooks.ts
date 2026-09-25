@@ -10,7 +10,7 @@ import { useAuthStore } from './store';
 import type { AuthResult, LoginInput, RegisterInput } from './types';
 
 /** Roles that may enter the admin back-office. */
-export const ADMIN_ROLES = ['support', 'moderator', 'finance', 'ops', 'super_admin'];
+export const ADMIN_ROLES = ['admin', 'support', 'moderator', 'finance', 'ops', 'super_admin'];
 
 export interface LoginOptions {
   /** Where to go after a successful login. */
