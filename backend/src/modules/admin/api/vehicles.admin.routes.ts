@@ -42,4 +42,22 @@ router.post(
   }),
 );
 
+router.put(
+  '/vehicles/:id/external-rating',
+  authorize('vehicle:verify'),
+  validate({
+    body: z.union([
+      z.object({ clear: z.literal(true) }),
+      z.object({
+        rating: z.number().min(1).max(5),
+        trips: z.number().int().min(0).max(100_000),
+        source: z.string().trim().min(2).max(30).default('Turo'),
+      }),
+    ]),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await vehicleService.adminSetExternalRating(req.params.id, 'clear' in req.body ? null : req.body));
+  }),
+);
+
 export const vehiclesAdminRoutes = router;

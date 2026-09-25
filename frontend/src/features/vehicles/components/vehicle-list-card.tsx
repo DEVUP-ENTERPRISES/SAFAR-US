@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { Star, Award, MapPin, CalendarDays, Zap } from 'lucide-react';
+import { Award, MapPin, CalendarDays, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { formatMoney } from '@/lib/utils/format';
 import { WishlistButton } from '@/features/favorites/wishlist-button';
 import type { Vehicle } from '../types';
+import { VehicleRating, FleetBadge } from './vehicle-rating';
 
 /**
  * Horizontal result card — photo left, details right, price bottom-right —
@@ -72,14 +73,9 @@ export function VehicleListCard({
             <p className="truncate text-lg font-bold leading-tight">{vehicle.make} {vehicle.model}</p>
             <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-muted-foreground">
               <span>{vehicle.year}</span>
-              {vehicle.ratingCount > 0 && (
-                <>
-                  <span>·</span>
-                  <span className="font-medium text-foreground">{vehicle.ratingAvg.toFixed(1)}</span>
-                  <Star className="h-3.5 w-3.5 fill-primary text-primary" />
-                  <span>({vehicle.ratingCount})</span>
-                </>
-              )}
+              <span>·</span>
+              <VehicleRating vehicle={vehicle} className="text-foreground" />
+              {vehicle.fleetOwned && <FleetBadge />}
               {vehicle.hostIsSuperhost && (
                 <>
                   <span>·</span>

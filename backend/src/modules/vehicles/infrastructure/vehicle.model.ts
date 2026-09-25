@@ -187,6 +187,10 @@ export interface VehicleDoc {
   verificationStatus: VerificationStatus;
   ratingAvg: number;
   ratingCount: number;
+  /** True for cars CatoDrive owns (the House Fleet); shown as a badge. */
+  fleetOwned?: boolean;
+  /** A real rating the car earned on another platform, entered by an admin and always shown with its source; never blended into ratingAvg. */
+  externalRating?: { source: string; rating: number; trips: number };
   totalTrips: number;
   createdAt: Date;
   updatedAt: Date;
@@ -322,6 +326,8 @@ const schema = new Schema<VehicleDoc>(
     verificationStatus: { type: String, default: 'unverified' },
     ratingAvg: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
+    fleetOwned: { type: Boolean, default: false },
+    externalRating: { type: { source: String, rating: Number, trips: Number }, _id: false, default: undefined },
     totalTrips: { type: Number, default: 0 },
     deletedAt: { type: Date, default: null },
   },

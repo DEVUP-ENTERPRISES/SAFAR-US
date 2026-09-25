@@ -6,11 +6,34 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Chip } from '@/components/ui/chip';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { formatMoney } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
+
+/** A rating the car really earned elsewhere (e.g. Turo). Shown to guests with its source, never mixed into CatoDrive's own rating. */
+function ExternalRatingCell({ v }: { v: any }) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [rating, setRating] = useState(String(v.externalRating?.rating ?? ''));
+  const [trips, setTrips] = useState(String(v.externalRating?.trips ?? ''));
+  const save = useMutation({
+    mutationFn: () => adminApi.setExternalRating(v._id, rating === '' ? { clear: true as const } : { rating: Number(rating), trips: Number(trips || 0), source: 'Turo' }),
+    onSuccess: () => { toast({ tone: 'success', title: 'Saved' }); qc.invalidateQueries({ queryKey: ['admin-vehicles'] }); },
+    onError: (e) => toast({ tone: 'error', title: 'Could not save', description: e instanceof Error ? e.message : undefined }),
+  });
+  const bad = rating !== '' && !(Number(rating) >= 1 && Number(rating) <= 5);
+  return (
+    <div className="flex items-center gap-1.5">
+      <Input className="h-8 w-16" inputMode="decimal" placeholder="4.9" value={rating} onChange={(e) => setRating(e.target.value)} aria-label="Turo rating" />
+      <Input className="h-8 w-16" inputMode="numeric" placeholder="trips" value={trips} onChange={(e) => setTrips(e.target.value)} aria-label="Turo trips" />
+      <Button size="sm" variant="outline" disabled={bad} loading={save.isPending} onClick={() => save.mutate()}>Save</Button>
+    </div>
+  );
+}
 
 export default function AdminVehiclesPage() {
   const qc = useQueryClient();
@@ -73,6 +96,7 @@ export default function AdminVehiclesPage() {
       </div>
     ) },
     { header: 'Price', cell: (v) => formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency }) },
+    { header: 'Turo rating / trips', cell: (v) => <ExternalRatingCell v={v} /> },
     { header: 'Verification', cell: (v) => <Badge tone={v.verificationStatus === 'verified' ? 'success' : 'warning'}>{v.verificationStatus}</Badge> },
     { header: 'Status', cell: (v) => <Badge tone={v.status === 'listed' ? 'success' : 'muted'}>{v.status}</Badge> },
     { header: 'Actions', className: 'text-end', cell: (v) => (

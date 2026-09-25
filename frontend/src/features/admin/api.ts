@@ -394,6 +394,8 @@ export const adminApi = {
 
   vehicles: (q: Q = {}) => api.get<any[]>('/admin/vehicles', q),
   vehicleReview: (id: string) => api.get<VehicleReview>(`/admin/vehicles/${id}/review`),
+  setExternalRating: (id: string, body: { rating: number; trips: number; source: string } | { clear: true }) =>
+    api.raw(`/admin/vehicles/${id}/external-rating`, { method: 'PUT', body }).then((r) => r.data),
   vehicleAction: (id: string, action: 'approve' | 'suspend' | 'reject') =>
     api.post(`/admin/vehicles/${id}/action`, { action }),
   verifyDocument: (documentId: string) => api.post<{ verified: boolean }>(`/documents/${documentId}/verify`, {}),

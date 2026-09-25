@@ -89,6 +89,8 @@ export interface Vehicle {
   recallHold?: boolean;
   ratingAvg: number;
   ratingCount: number;
+  fleetOwned?: boolean;
+  externalRating?: { source: string; rating: number; trips: number };
   totalTrips: number;
 }
 

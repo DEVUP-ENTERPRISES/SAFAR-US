@@ -16,6 +16,7 @@ import { formatMoney, kmToMiles, perKmToPerMile, FUEL_LABEL } from '@/lib/utils/
 import { HostProfileCard, useHostPublicProfile } from '@/features/host/components/host-profile-card';
 import { AskHostPanel } from '@/features/vehicles/components/ask-host-panel';
 import { DemandBadge } from '@/features/vehicles/components/demand-badge';
+import { VehicleRating, VehicleBadges } from '@/features/vehicles/components/vehicle-rating';
 import { cn } from '@/lib/utils/cn';
 import { api } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/types';
@@ -469,12 +470,9 @@ export default function VehicleDetailPage() {
           <div className="mt-2.5 flex items-center gap-2 text-[17px] font-medium text-foreground">
             <span className="capitalize text-muted-foreground">{v.bodyType} · {v.transmission}</span>
             <span className="text-muted-foreground">·</span>
-            <span className="flex items-center gap-1">
-              <span>{v.ratingAvg.toFixed(1)}</span>
-              <span className="text-[#635BFF] text-[15px]">★</span>
-            </span>
-            <span className="text-muted-foreground font-normal">({v.ratingCount} trips)</span>
+            <VehicleRating vehicle={v} className="text-[16px]" />
           </div>
+          <div className="mt-4"><VehicleBadges vehicle={v} /></div>
           <div className="mt-3">
             <DemandBadge vehicleId={v._id} />
           </div>

@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { Users, Settings2, Zap, Award, Star } from 'lucide-react';
+import { Users, Settings2, Zap, Award } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { formatMoney } from '@/lib/utils/format';
 import { WishlistButton } from '@/features/favorites/wishlist-button';
 import { CompareButton } from './compare-button';
 import type { Vehicle } from '../types';
+import { VehicleRating, FleetBadge } from './vehicle-rating';
 
 export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; className?: string }) {
   const cover = vehicle.photos?.find((p) => p.isCover)?.url ?? vehicle.photos?.[0]?.url;
@@ -47,6 +48,7 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
 
           {/* Status chips */}
           <div className="absolute start-3 top-3 flex flex-wrap gap-2 max-w-[70%] z-20">
+            {vehicle.fleetOwned && <FleetBadge className="bg-black/55 border-white/20 text-white backdrop-blur-md" />}
             {vehicle.hostIsSuperhost && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-black/40 border border-white/20 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white backdrop-blur-md shadow-sm">
                 <Award className="h-3.5 w-3.5 text-yellow-400" /> Superhost
@@ -73,13 +75,7 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
                 {vehicle.location.city || '—'}
               </p>
             </div>
-            {vehicle.ratingCount > 0 && (
-              <div className="flex shrink-0 items-center rounded-full bg-foreground/5 px-2.5 py-1 text-[13px] font-semibold leading-none text-foreground backdrop-blur-sm border border-border/50">
-                <Star className="h-3.5 w-3.5 fill-primary text-primary -mt-[1px]" />
-                <span className="numeric ms-1.5">{vehicle.ratingAvg.toFixed(1)}</span>
-                <span className="text-muted-foreground/70 font-medium ms-1">({vehicle.ratingCount})</span>
-              </div>
-            )}
+            <VehicleRating vehicle={vehicle} className="shrink-0 rounded-full bg-foreground/5 px-2.5 py-1 text-[13px] leading-none text-foreground border border-border/50" />
           </div>
 
           <div className="mt-auto pt-4 space-y-4">

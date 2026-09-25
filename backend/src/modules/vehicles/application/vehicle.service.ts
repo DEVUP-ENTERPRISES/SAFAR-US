@@ -1,6 +1,7 @@
 import { VehicleModel, type VehicleDoc, type DeliveryLocation } from '../infrastructure/vehicle.model';
 import { uuid } from '../../../shared/utils/uuid';
 import { hostService } from '../../hosts/application/host.service';
+import { userRepository } from '../../users/infrastructure/user.repository';
 import { NotFoundError, ForbiddenError, ConflictError } from '../../../core/errors/app-error';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
@@ -88,6 +89,7 @@ export class VehicleService implements IVehicleContract {
 
     const vehicle = await VehicleModel.create({
       hostId: host._id,
+      fleetOwned: !!(await userRepository.findById(userId))?.roles?.includes('house_fleet'),
       make: dto.make,
       model: dto.model,
       year: dto.year,
@@ -504,6 +506,13 @@ export class VehicleService implements IVehicleContract {
           ? { status: 'paused' }
           : { status: 'draft', verificationStatus: 'rejected' };
     await VehicleModel.updateOne({ _id: vehicleId }, update);
+    return this.getById(vehicleId);
+  }
+
+  /** Record (or clear, with null) the rating a car earned elsewhere; shown with its source, never mixed into CatoDrive's own rating. */
+  async adminSetExternalRating(vehicleId: string, value: { source: string; rating: number; trips: number } | null): Promise<VehicleDoc> {
+    await this.getById(vehicleId);
+    await VehicleModel.updateOne({ _id: vehicleId }, value ? { $set: { externalRating: value } } : { $unset: { externalRating: 1 } });
     return this.getById(vehicleId);
   }
 

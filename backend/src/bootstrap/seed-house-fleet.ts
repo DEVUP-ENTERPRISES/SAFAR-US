@@ -3,6 +3,7 @@ import { config } from '../config';
 import { logger } from '../infrastructure/logging/logger';
 import { UserModel } from '../modules/users/infrastructure/user.model';
 import { hostService } from '../modules/hosts/application/host.service';
+import { VehicleModel } from '../modules/vehicles/infrastructure/vehicle.model';
 import { ROLES } from '../shared/constants/rbac';
 
 /**
@@ -48,4 +49,6 @@ export async function seedHouseFleet(): Promise<void> {
   if (host.verificationStatus !== 'verified') {
     await hostService.setVerification(host._id, 'verified');
   }
+  // Every fleet car carries the CatoDrive Fleet badge, including ones added before the flag existed.
+  await VehicleModel.updateMany({ hostId: host._id, fleetOwned: { $ne: true } }, { $set: { fleetOwned: true } });
 }
