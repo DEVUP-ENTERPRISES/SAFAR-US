@@ -40,3 +40,6 @@ export const authLimiter = buildLimiter('rl:auth:');
 
 // Login gets its own bucket so registering or contacting us never eats a member's sign-in attempts.
 export const loginLimiter = buildLimiter('rl:login:');
+
+// Unauthenticated look-ups keyed by an id (receipt verification) get their own bucket, so they cannot be swept for valid ids.
+export const lookupLimiter = buildLimiter('rl:lookup:');

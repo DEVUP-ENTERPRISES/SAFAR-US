@@ -86,6 +86,7 @@ export interface PlatformConfig {
     hostApprovalHours: number;
     verificationGraceHours: number;
     verificationCutoffHours: number;
+    verificationLapseFeeCents: number;
     minLeadMinutes: number;
     maxOpenPendingPerGuest: number;
     verificationReminderHours: number;

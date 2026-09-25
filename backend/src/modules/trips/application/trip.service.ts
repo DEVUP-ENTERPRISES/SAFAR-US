@@ -404,7 +404,7 @@ export class TripService {
     photos: string[],
   ): Promise<TripDoc> {
     const trip = await this.getDoc(tripId);
-    if (!(await this.isParticipant(userId, tripId))) throw new ForbiddenError('Not a participant');
+    if (!(await this.isParticipant(userId, tripId, 'incident:report'))) throw new ForbiddenError('Not a participant');
     await TripModel.updateOne(
       { _id: tripId },
       { $push: { damageReports: { description, photos, byUserId: userId, at: new Date() } } },
@@ -416,7 +416,7 @@ export class TripService {
   /** Emergency SOS during a trip. */
   async raiseSos(userId: string, tripId: string): Promise<void> {
     const trip = await this.getDoc(tripId);
-    if (!(await this.isParticipant(userId, tripId))) throw new ForbiddenError('Not a participant');
+    if (!(await this.isParticipant(userId, tripId, 'incident:report'))) throw new ForbiddenError('Not a participant');
     await TripModel.updateOne(
       { _id: tripId },
       { $push: { sosEvents: { byUserId: userId, at: new Date() } } },
@@ -438,7 +438,7 @@ export class TripService {
     note?: string,
   ): Promise<TripDoc> {
     const trip = await this.getDoc(tripId);
-    if (!(await this.isParticipant(userId, tripId))) throw new ForbiddenError('Not a participant');
+    if (!(await this.isParticipant(userId, tripId, 'incident:report'))) throw new ForbiddenError('Not a participant');
     if (trip.status !== 'active') throw new ConflictError('Only an active trip can raise an incident', 'INVALID_STATE');
     await TripModel.updateOne(
       { _id: tripId },
@@ -454,7 +454,7 @@ export class TripService {
   /** Resolve the open incident(s) and un-pause — the trip can complete again. */
   async resolveIncident(userId: string, tripId: string, note?: string): Promise<TripDoc> {
     const trip = await this.getDoc(tripId);
-    if (!(await this.isParticipant(userId, tripId))) throw new ForbiddenError('Not a participant');
+    if (!(await this.isParticipant(userId, tripId, 'incident:report'))) throw new ForbiddenError('Not a participant');
     await TripModel.updateOne(
       { _id: tripId, 'incidents.status': 'open' },
       { $set: { 'incidents.$[open].status': 'resolved', 'incidents.$[open].resolvedAt': new Date(), pausedForIncident: false } },
@@ -548,9 +548,9 @@ export class TripService {
   }
 
   /** Is this user a participant (guest or host) of the trip's booking? */
-  async isParticipant(userId: string, tripId: string): Promise<boolean> {
+  async isParticipant(userId: string, tripId: string, hostAbility: CaptainAbility = 'trip:view'): Promise<boolean> {
     const trip = await this.getDoc(tripId);
-    return trip.guestId === userId || (await this.isHost(userId, trip.hostId, trip.vehicleId));
+    return trip.guestId === userId || (await this.isHost(userId, trip.hostId, trip.vehicleId, hostAbility));
   }
 }
 

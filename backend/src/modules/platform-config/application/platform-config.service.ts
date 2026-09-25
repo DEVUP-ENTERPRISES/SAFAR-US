@@ -241,6 +241,7 @@ export class PlatformConfigService {
       booking: {
         hostApprovalHours: 24,
         verificationGraceHours: 72,
+        verificationLapseFeeCents: 500,
         verificationCutoffHours: 5,
         minLeadMinutes: 60,
         maxOpenPendingPerGuest: 3,

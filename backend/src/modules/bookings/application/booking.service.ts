@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomInt, timingSafeEqual } from 'crypto';
+import { createHmac, randomInt, timingSafeEqual } from 'crypto';
 import { config } from '../../../config';
 import { BookingModel, type BookingDoc, type BookingExtension } from '../infrastructure/booking.model';
 import { PaymentModel, type PaymentDoc } from '../../payments/infrastructure/payment.model';
@@ -29,6 +29,7 @@ import { ledgerService } from '../../payments/application/ledger.service';
 import { Account, type LedgerLeg } from '../../payments/domain/ledger.accounts';
 import { notificationService } from '../../notifications/application/notification.service';
 import { logger } from '../../../infrastructure/logging/logger';
+import { kv } from '../../../infrastructure/cache/kv-store';
 import { NotFoundError, ConflictError, ForbiddenError, ValidationError } from '../../../core/errors/app-error';
 import { uuid, randomId } from '../../../shared/utils/uuid';
 import { emit } from '../../../shared/events/event-bus';
@@ -162,7 +163,25 @@ export class BookingService {
     return { breakdown, priceLock };
   }
 
-  async create(
+  /** One booking request at a time per guest, so a double tap or replay cannot spend the wallet twice or slip past the open-request cap. */
+  async create(...args: Parameters<BookingService['createUnlocked']>): ReturnType<BookingService['createUnlocked']> {
+    const lockKey = `lock:booking-create:${args[0]}`;
+    // Redis down mid-request must not stop bookings: go ahead unlocked, the unique idempotency key and the atomic wallet spend still guard the money.
+    const held = await kv().acquire(lockKey, 60).catch((err: Error) => {
+      logger.warn({ err: err.message }, 'booking lock unavailable — continuing without it');
+      return null;
+    });
+    if (held === false) {
+      throw new ConflictError('Your last booking request is still being processed. Please wait a moment.', 'BOOKING_IN_PROGRESS');
+    }
+    try {
+      return await this.createUnlocked(...args);
+    } finally {
+      if (held) await kv().del(lockKey).catch(() => undefined);
+    }
+  }
+
+  private async createUnlocked(
     guestId: string,
     dto: CreateBookingDto,
     idempotencyKey?: string,
@@ -977,6 +996,10 @@ export class BookingService {
     if (!booking.pickupCodeHash) {
       throw new ConflictError('The guest has not generated a pickup code yet.', 'PICKUP_CODE_INVALID');
     }
+    // A code stored as a bare SHA-256 can be brute-forced offline (only a million possibilities): it is retired and the guest issues a fresh one.
+    if (!booking.pickupCodeHash.startsWith(PICKUP_HASH_V2)) {
+      throw new ConflictError('This pickup code is out of date. The guest must generate a new one.', 'PICKUP_CODE_INVALID');
+    }
     const max = (await platformConfigService.get()).handover.maxCodeAttempts;
     const reserved = await BookingModel.findOneAndUpdate(
       { _id: bookingId, pickupCodeHash: booking.pickupCodeHash, ...(max > 0 ? { pickupCodeAttempts: { $not: { $gte: max } } } : {}) },
@@ -987,10 +1010,8 @@ export class BookingService {
       throw new ConflictError('Too many wrong codes. The guest must generate a new pickup code.', 'PICKUP_CODE_LOCKED');
     }
 
-    // Codes issued before the keyed hash carry no prefix and are still honoured until they are regenerated.
-    const isV2 = booking.pickupCodeHash.startsWith(PICKUP_HASH_V2);
-    const given = isV2 ? pickupDigest(bookingId, code) : createHash('sha256').update(code).digest();
-    const stored = Buffer.from(isV2 ? booking.pickupCodeHash.slice(PICKUP_HASH_V2.length) : booking.pickupCodeHash, 'hex');
+    const given = pickupDigest(bookingId, code);
+    const stored = Buffer.from(booking.pickupCodeHash.slice(PICKUP_HASH_V2.length), 'hex');
     if (stored.length === given.length && timingSafeEqual(given, stored)) {
       await BookingModel.updateOne({ _id: bookingId }, { pickupVerifiedAt: new Date(), pickupVerifiedBy: byUserId, pickupCodeAttempts: 0 });
       return;
@@ -2033,11 +2054,17 @@ export class BookingService {
       ],
     }).lean<BookingDoc[]>();
     for (const b of due) {
+      let lapseFee = 0;
       try {
-        await paymentService.cancelAuthorization(b._id);
+        // A guest who left identity verification unfinished keeps the host's dates blocked for nothing: the configured fee is taken from the hold.
+        if (b.status === 'pending_verification' && bookingCfg.verificationLapseFeeCents > 0) {
+          lapseFee = await paymentService.captureLapseFee(b._id, bookingCfg.verificationLapseFeeCents);
+        } else {
+          await paymentService.cancelAuthorization(b._id);
+        }
         if (b.holdId) await availabilityService.releaseHold(b.holdId);
         const doc = await this.getDoc(b._id);
-        await this.transition(doc, 'expired', 'system', 'Approval window elapsed');
+        await this.transition(doc, 'expired', 'system', lapseFee > 0 ? 'Verification not completed — lapse fee taken' : 'Approval window elapsed');
       } catch (err) {
         // One stuck booking must not stop the rest of the sweep.
         logger.error({ err, bookingId: b._id }, 'could not expire booking');
@@ -2050,6 +2077,7 @@ export class BookingService {
         guestId: b.guestId,
         hostId: b.hostId,
         vehicleId: b.vehicleId,
+        feeCents: lapseFee,
         reason:
           b.status === 'pending_verification'
             ? 'verification'

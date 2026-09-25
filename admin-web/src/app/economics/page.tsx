@@ -311,6 +311,10 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={0} max={72} value={draft.booking.verificationCutoffHours}
               onChange={(e) => set((d) => { d.booking.verificationCutoffHours = Number(e.target.value); })} />
           </Field>
+          <Field label="Fee when verification lapses ($)" hint="Kept from the card hold if a guest never finishes ID verification and the request expires. 0 = free.">
+            <Input type="number" min={0} max={500} step="0.5" value={(draft.booking.verificationLapseFeeCents ?? 0) / 100}
+              onChange={(e) => set((d) => { d.booking.verificationLapseFeeCents = Math.round(Number(e.target.value) * 100); })} />
+          </Field>
           <Field label="Licence reminder (hours before pickup)" hint="One nudge to unverified guests.">
             <Input type="number" min={1} max={168} value={draft.booking.verificationReminderHours}
               onChange={(e) => set((d) => { d.booking.verificationReminderHours = Number(e.target.value); })} />

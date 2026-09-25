@@ -150,7 +150,7 @@ describe('booking privacy and the pickup code', () => {
     expect(toPublicBooking(b.toObject(), true)).not.toHaveProperty('pickupCodeHash');
   });
 
-  it('stores a keyed hash, verifies it, and still honours a legacy bare SHA-256 code', async () => {
+  it('stores a keyed hash, verifies it, and retires legacy bare SHA-256 codes', async () => {
     await seedPaidBooking('p2');
     const { code } = await bookingService.issuePickupCode(guest, 'p2');
     const stored = (await BookingModel.findById('p2').lean())?.pickupCodeHash;
@@ -160,8 +160,8 @@ describe('booking privacy and the pickup code', () => {
     expect((await BookingModel.findById('p2').lean())?.pickupVerifiedAt).toBeTruthy();
 
     await seedPaidBooking('p3', { pickupCodeHash: createHash('sha256').update('123456').digest('hex') });
-    await bookingService.verifyPickupCode('p3', '123456', 'hu');
-    expect((await BookingModel.findById('p3').lean())?.pickupVerifiedAt).toBeTruthy();
+    await expect(bookingService.verifyPickupCode('p3', '123456', 'hu')).rejects.toMatchObject({ code: 'PICKUP_CODE_INVALID' });
+    expect((await BookingModel.findById('p3').lean())?.pickupVerifiedAt).toBeFalsy();
   });
 });
 

@@ -1,3 +1,4 @@
+import { lookupLimiter } from '../../../shared/middleware/auth-rate-limit';
 import { cardLimiter } from '../../../shared/middleware/card-rate-limit';
 import { Router } from 'express';
 import { z } from 'zod';
@@ -30,6 +31,7 @@ router.get(
 // returns no PII. No auth: anyone holding the receipt can verify it.
 router.get(
   '/verify/:id',
+  lookupLimiter,
   asyncHandler(async (req, res) => {
     sendSuccess(res, await bookingService.publicVerify(req.params.id));
   }),

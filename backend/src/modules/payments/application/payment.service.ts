@@ -407,6 +407,44 @@ export class PaymentService implements IPaymentContract {
     await payment.save();
   }
 
+  /**
+   * Keep a small fee from a card hold when a booking lapses through the guest's own inaction, releasing the rest.
+   * Returns what was kept (0 when nothing could be, in which case the hold is simply released).
+   */
+  async captureLapseFee(bookingId: string, feeCents: number): Promise<number> {
+    const payment = await PaymentModel.findOne({ bookingId, type: 'booking' });
+    const wallet = payment?.walletApplied ?? 0;
+    const fee = payment ? Math.min(feeCents, payment.amount - wallet) : 0;
+    if (!payment || payment.status !== 'authorized' || fee <= 0) {
+      await this.cancelAuthorization(bookingId);
+      return 0;
+    }
+    try {
+      await paymentGateway.capture(payment.intentId, fee);
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, bookingId }, 'lapse fee could not be captured — releasing the hold');
+      await this.cancelAuthorization(bookingId);
+      return 0;
+    }
+    const txnId = await ledgerService.post({
+      refType: 'booking',
+      refId: bookingId,
+      currency: payment.currency,
+      description: `Verification lapse fee ${bookingId}`,
+      legs: [
+        { account: Account.gatewayClearing(), direction: 'credit', amount: fee },
+        { account: Account.platformRevenue(), direction: 'debit', amount: fee },
+      ],
+    });
+    await this.restoreWallet(bookingId, payment.userId, wallet, payment.currency);
+    // The record now describes only what was actually taken, so a later refund can never return more.
+    await PaymentModel.updateOne(
+      { _id: payment._id },
+      { status: 'succeeded', amount: fee, capturedAmount: fee, walletApplied: 0, hostEarnings: 0, commission: fee, tax: 0, ledgerTxnId: txnId },
+    );
+    return fee;
+  }
+
   async cancelAuthorization(bookingId: string): Promise<void> {
     const payment = await PaymentModel.findOne({ bookingId, type: 'booking' });
     if (!payment) return;

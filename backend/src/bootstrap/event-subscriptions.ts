@@ -203,7 +203,7 @@ export function registerEventSubscribers(): void {
   });
 
   eventBus.subscribe(EVENTS.BOOKING_EXPIRED, async (e) => {
-    const p = e.payload as { bookingId: string; guestId?: string; hostId?: string; reason?: string };
+    const p = e.payload as { bookingId: string; guestId?: string; hostId?: string; reason?: string; feeCents?: number };
     if (!p.guestId) return; // older payloads carried only the id
 
     const verification = p.reason === 'verification';
@@ -214,7 +214,9 @@ export function registerEventSubscribers(): void {
       templateKey: 'booking.expired',
       title: verification ? 'Your booking expired — verification incomplete' : 'Your request expired',
       body: verification
-        ? 'We couldn’t confirm your identity in time, so the dates were released. You haven’t been charged — finish verifying and book again.'
+        ? p.feeCents
+          ? `We couldn’t confirm your identity in time, so the dates were released. A $${(p.feeCents / 100).toFixed(2)} fee was kept from your card hold and the rest was released — finish verifying and book again.`
+          : 'We couldn’t confirm your identity in time, so the dates were released. You haven’t been charged — finish verifying and book again.'
         : 'The host didn’t respond in time, so we released your request. You haven’t been charged — here are other cars for your dates.',
       data: { bookingId: p.bookingId },
     });

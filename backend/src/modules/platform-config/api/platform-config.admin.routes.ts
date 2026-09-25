@@ -306,6 +306,7 @@ router.put(
         .object({
           hostApprovalHours: z.number().min(1).max(168).optional(),
           verificationGraceHours: z.number().min(1).max(336).optional(),
+          verificationLapseFeeCents: z.number().int().min(0).max(50_000).optional(),
           verificationCutoffHours: z.number().min(0).max(72).optional(),
           minLeadMinutes: z.number().int().min(0).max(10080).optional(),
           maxOpenPendingPerGuest: z.number().int().min(1).max(50).optional(),

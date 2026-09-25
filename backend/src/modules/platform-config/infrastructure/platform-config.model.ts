@@ -430,6 +430,8 @@ export interface PlatformConfigDoc {
     hostApprovalHours: number;
     verificationGraceHours: number;
     verificationCutoffHours: number;
+    /** Kept from the card hold when a request lapses because the guest never finished identity verification (minor units; 0 = free). */
+    verificationLapseFeeCents: number;
     /** The latest a guest may book, in minutes before pickup; a car's own advance notice can only raise it. */
     minLeadMinutes: number;
     /** Requests a guest may have waiting (approval, verification or payment) at once, so nobody can lock a rival's car with unpaid holds. */
@@ -740,6 +742,7 @@ const schema = new Schema<PlatformConfigDoc>(
     booking: {
       hostApprovalHours: { type: Number, default: 24 },
       verificationGraceHours: { type: Number, default: 72 },
+      verificationLapseFeeCents: { type: Number, default: 500 },
       verificationCutoffHours: { type: Number, default: 5 },
       minLeadMinutes: { type: Number, default: 60 },
       maxOpenPendingPerGuest: { type: Number, default: 3 },
