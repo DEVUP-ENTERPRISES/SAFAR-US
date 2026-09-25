@@ -77,8 +77,9 @@ async function sendInviteEmail(staff: HostStaffDoc, fleetName: string): Promise<
 
 /** The invite token is a bearer credential for the invitee only; it goes into the email and nowhere else. */
 function withoutToken<T extends { inviteToken?: string }>(staff: T): Omit<T, 'inviteToken'> {
-  const { inviteToken: _token, ...rest } = staff;
-  return rest;
+  const rest: Partial<T> = { ...staff };
+  delete rest.inviteToken;
+  return rest as Omit<T, 'inviteToken'>;
 }
 
 export const hostStaffService = {

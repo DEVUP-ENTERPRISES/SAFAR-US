@@ -64,7 +64,17 @@ jobs:
       # No lint step: the frontend has no ESLint config (next lint is
       # interactive and deprecated). typecheck + build are the real gates.
       - run: npm run typecheck
-      - run: npm run build
+      # The build's own error is copied into an annotation, because the raw log is only readable with admin rights.
+      - name: Build
+        shell: bash
+        run: |
+          set +e
+          npm run build 2>&1 | tee build.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            grep -v '^\s*$' build.log | tail -25 | while IFS= read -r line; do echo "::error::${line}"; done
+          fi
+          exit "$code"
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
           NEXT_PUBLIC_APP_NAME: CATO
@@ -78,6 +88,10 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          # There is no lockfile at the repo root, so the cache needs to be told where they are.
+          cache-dependency-path: |
+            frontend/package-lock.json
+            admin-web/package-lock.json
       # The admin app compiles shared source from ../frontend/src, so the public
       # app's dependencies must be present for those files to resolve.
       - run: npm ci

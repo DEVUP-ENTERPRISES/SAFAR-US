@@ -7,8 +7,11 @@ const approx = (n: number) => Math.round(n * APPROX_COORD_FACTOR) / APPROX_COORD
 
 /** The one serializer for every vehicle a non-owner can see: no codes, plate, VIN, spot photo or street address. */
 export function toPublicVehicle<T extends Partial<VehicleDoc>>(v: T): T {
-  const { vin: _vin, registrationNumber: _plate, pickup: _pickup, location, ...rest } = v as Partial<VehicleDoc>;
+  const { location, ...rest } = v as Partial<VehicleDoc>;
   const out: Partial<VehicleDoc> = { ...rest };
+  delete out.vin;
+  delete out.registrationNumber;
+  delete out.pickup;
   if (location) {
     const [lng, lat] = location.coordinates ?? [];
     out.location = {

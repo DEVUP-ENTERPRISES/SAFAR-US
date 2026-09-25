@@ -56,7 +56,8 @@ export function toPublicBooking<T extends object>(booking: T, isAdmin = false): 
     delete out.holdId;
     delete out.paymentId;
     if (out.terms && typeof out.terms === 'object') {
-      const { ip: _ip, ...terms } = out.terms as Record<string, unknown>;
+      const terms = { ...(out.terms as Record<string, unknown>) };
+      delete terms.ip;
       out.terms = terms;
     }
   }
