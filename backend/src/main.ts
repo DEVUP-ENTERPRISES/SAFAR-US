@@ -8,6 +8,7 @@ import { registerEventSubscribers } from './bootstrap/event-subscriptions';
 import { installCrashHandlers } from './infrastructure/observability/error-reporter';
 import { seedAdmin, enforceSingleSuperAdmin } from './bootstrap/seed-admin';
 import { seedHouseFleet } from './bootstrap/seed-house-fleet';
+import { seedLegal } from './bootstrap/seed-legal';
 import { initRealtime } from './realtime';
 import { initJobs, closeJobs, startFallbackJobs } from './jobs';
 import { verifyChannels } from './modules/notifications/infrastructure/channel.providers';
@@ -75,6 +76,7 @@ async function bootstrap(): Promise<void> {
   await seedAdmin();
   await enforceSingleSuperAdmin();
   await seedHouseFleet();
+  await seedLegal();
   registerEventSubscribers();
 
   // Background jobs need Redis (BullMQ). Skip gracefully in dev without Redis.

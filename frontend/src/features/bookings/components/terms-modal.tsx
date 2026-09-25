@@ -83,7 +83,7 @@ export function TermsModal({
           <Term n="Protection" t="Any protection plan you selected applies as described; without one, you’re responsible for damage up to the policy limits." />
           <p>
             This is a summary. Read the full{' '}
-            <a href={termsUrl || '/legal'} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">
+            <a href={termsUrl || '/terms'} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline">
               Terms &amp; Conditions and rental agreement
             </a>
             . Accepting records your consent to this version on your booking.

@@ -110,10 +110,10 @@ export function Footer() {
             desktop there was no route to them at all.
           */}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-            <Link href="/legal" className="transition-colors hover:text-foreground">
+            <Link href="/terms" className="transition-colors hover:text-foreground">
               Terms
             </Link>
-            <Link href="/legal" className="transition-colors hover:text-foreground">
+            <Link href="/privacy" className="transition-colors hover:text-foreground">
               Privacy
             </Link>
             <Link href="/insurance" className="transition-colors hover:text-foreground">

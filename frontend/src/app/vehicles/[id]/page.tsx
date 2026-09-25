@@ -1131,7 +1131,7 @@ export default function VehicleDetailPage() {
             {status === 'authenticated' && !agreedTerms && (
               <p className="text-center text-xs text-muted-foreground">
                 By continuing you’ll review and accept the{' '}
-                <a href={platformCfg.data?.legal?.termsUrl || '/legal'} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">
+                <a href={platformCfg.data?.legal?.termsUrl || '/terms'} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">
                   Terms &amp; Conditions
                 </a>
                 .
