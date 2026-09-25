@@ -266,6 +266,7 @@ router.put(
           verificationCutoffHours: z.number().min(0).max(72).optional(),
           verificationReminderHours: z.number().min(1).max(168).optional(),
           checkoutHoldMinutes: z.number().min(1).max(120).optional(),
+          paymentPendingMinutes: z.number().min(1).max(1440).optional(),
           priceLockMinutes: z.number().min(1).max(120).optional(),
         })
         .optional(),

@@ -87,6 +87,7 @@ export default function AdminEconomicsPage() {
         protection: draft.protection,
         legal: draft.legal,
         verification: draft.verification,
+        booking: draft.booking,
       });
     }
   };
@@ -262,6 +263,47 @@ export default function AdminEconomicsPage() {
               </div>
             );
           })}
+        </CardContent>
+      </Card>
+
+      {/* Booking timing — how long each stage may wait before it is released */}
+      <Card className="rounded-2xl shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Booking timing</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            How long a request may wait at each stage. When a clock runs out the booking is released, the card
+            authorisation is cancelled and the dates reopen — the guest is never charged.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="Host response (hours)" hint="Time a host has to accept a request.">
+            <Input type="number" min={1} max={168} value={draft.booking.hostApprovalHours}
+              onChange={(e) => set((d) => { d.booking.hostApprovalHours = Number(e.target.value); })} />
+          </Field>
+          <Field label="Verification window (hours)" hint="Max time a guest has to clear identity after booking.">
+            <Input type="number" min={1} max={336} value={draft.booking.verificationGraceHours}
+              onChange={(e) => set((d) => { d.booking.verificationGraceHours = Number(e.target.value); })} />
+          </Field>
+          <Field label="Licence cutoff (hours before pickup)" hint="Unverified bookings are released this long before pickup.">
+            <Input type="number" min={0} max={72} value={draft.booking.verificationCutoffHours}
+              onChange={(e) => set((d) => { d.booking.verificationCutoffHours = Number(e.target.value); })} />
+          </Field>
+          <Field label="Licence reminder (hours before pickup)" hint="One nudge to unverified guests.">
+            <Input type="number" min={1} max={168} value={draft.booking.verificationReminderHours}
+              onChange={(e) => set((d) => { d.booking.verificationReminderHours = Number(e.target.value); })} />
+          </Field>
+          <Field label="Checkout hold (minutes)" hint="How long dates are held while paying.">
+            <Input type="number" min={1} max={120} value={draft.booking.checkoutHoldMinutes}
+              onChange={(e) => set((d) => { d.booking.checkoutHoldMinutes = Number(e.target.value); })} />
+          </Field>
+          <Field label="Payment pending (minutes)" hint="Before an unfinished payment is released.">
+            <Input type="number" min={1} max={1440} value={draft.booking.paymentPendingMinutes}
+              onChange={(e) => set((d) => { d.booking.paymentPendingMinutes = Number(e.target.value); })} />
+          </Field>
+          <Field label="Price lock (minutes)" hint="How long a quoted price stays valid.">
+            <Input type="number" min={1} max={120} value={draft.booking.priceLockMinutes}
+              onChange={(e) => set((d) => { d.booking.priceLockMinutes = Number(e.target.value); })} />
+          </Field>
         </CardContent>
       </Card>
 

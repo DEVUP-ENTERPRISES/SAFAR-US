@@ -9,6 +9,7 @@ import { usePlatformConfig } from '@/features/platform/config';
 import { useAuthStore } from '@/features/auth/store';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Button } from '@/components/ui/button';
 import { AvatarUpload } from '@/components/ui/avatar-upload';
 import { useToast } from '@/components/ui/toast';
@@ -140,7 +141,7 @@ export default function AccountSetupPage() {
               <Input id="dob" type="date" value={form.dateOfBirth} onChange={set('dateOfBirth')} autoComplete="bday" required />
             </Field>
             <Field label="Mobile number" htmlFor="phone">
-              <Input id="phone" type="tel" value={form.phone} onChange={set('phone')} autoComplete="tel" placeholder="+1 555 000 0000" required />
+              <PhoneInput id="phone" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} required />
             </Field>
           </div>
         </section>
@@ -175,7 +176,7 @@ export default function AccountSetupPage() {
               <Input id="ecName" value={form.ecName} onChange={set('ecName')} required />
             </Field>
             <Field label="Phone" htmlFor="ecPhone">
-              <Input id="ecPhone" type="tel" value={form.ecPhone} onChange={set('ecPhone')} required />
+              <PhoneInput id="ecPhone" value={form.ecPhone} onChange={(v) => setForm((f) => ({ ...f, ecPhone: v }))} required />
             </Field>
             <Field label="Relationship (optional)" htmlFor="ecRelation">
               <Input id="ecRelation" value={form.ecRelation} onChange={set('ecRelation')} placeholder="Parent, partner, friend…" />

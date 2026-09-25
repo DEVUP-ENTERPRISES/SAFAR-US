@@ -12,6 +12,7 @@ import { AddCard } from '@/features/payments/add-card';
 import { AvatarUpload } from '@/components/ui/avatar-upload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Field } from '@/components/ui/field';
@@ -124,7 +125,7 @@ function Account() {
           <div className="grid gap-6 sm:grid-cols-2">
             <Field label="First name"><Input className="h-12 rounded-xl text-base" value={profile.firstName} onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} /></Field>
             <Field label="Last name"><Input className="h-12 rounded-xl text-base" value={profile.lastName} onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} /></Field>
-            <Field label="Phone"><Input className="h-12 rounded-xl text-base" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="+1 555 000 1234" /></Field>
+            <Field label="Phone"><PhoneInput value={profile.phone} onChange={(v) => setProfile((p) => ({ ...p, phone: v }))} /></Field>
             <Field label="Date of birth"><Input className="h-12 rounded-xl text-base" type="date" value={profile.dateOfBirth} onChange={(e) => setProfile({ ...profile, dateOfBirth: e.target.value })} /></Field>
             <Field label="Email"><Input className="h-12 rounded-xl text-base opacity-70" value={me.data.email ?? ''} disabled /></Field>
             <div className="flex items-end gap-4 h-full pt-6">

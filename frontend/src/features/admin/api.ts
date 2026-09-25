@@ -52,6 +52,16 @@ export interface PlatformConfig {
     payoutMethod: 'check' | 'zelle';
   };
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };
+  /** How long each stage of a booking may wait before the system releases it. */
+  booking: {
+    hostApprovalHours: number;
+    verificationGraceHours: number;
+    verificationCutoffHours: number;
+    verificationReminderHours: number;
+    checkoutHoldMinutes: number;
+    paymentPendingMinutes: number;
+    priceLockMinutes: number;
+  };
   rewards: { pointValueCents: number; pointsPerDollar: number };
   referral: { referrerCreditCents: number; refereeCreditCents: number };
   protection: { code: string; label: string; description: string; pricePerDay: number }[];
