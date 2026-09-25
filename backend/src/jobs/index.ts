@@ -1,3 +1,4 @@
+import { inspectionService } from '../modules/trips/application/inspection.service';
 import { makeQueue, makeWorker } from '../infrastructure/queue/bullmq.client';
 import { webhookRetryService } from '../modules/payments/application/webhook-retry.service';
 import { logger } from '../infrastructure/logging/logger';
@@ -65,8 +66,8 @@ export async function initJobs(): Promise<void> {
         return { reminded: n, verificationReminded: v };
       }
       case 'lifecycle-sweep': {
-        const r = await bookingService.sweepLifecycle();
-        if (r.late || r.escalated || r.notStarted) logger.info(r, 'lifecycle sweep');
+        const r = { ...(await bookingService.sweepLifecycle()), returnWindowOpened: await inspectionService.sweepReturnWindow() };
+        if (r.late || r.escalated || r.notStarted || r.returnWindowOpened) logger.info(r, 'lifecycle sweep');
         return r;
       }
       case 'compliance-sweep': {

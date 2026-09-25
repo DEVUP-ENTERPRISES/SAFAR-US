@@ -158,6 +158,15 @@ export class PlatformConfigService {
       },
       noShow: { graceHours: 2, guestForfeitBps: 5000, ...(doc.noShow ?? {}) },
       tracking: { approachWindowMinutes: 60, overdueGraceMinutes: 60, ...(doc.tracking ?? {}) },
+      inspection: {
+        preWindowMinutes: 60, postWindowMinutes: 30, minPrePhotos: 4, minReturnPhotos: 2,
+        maxPhotosPerPhase: 30, requireLocation: true, maxDistanceMeters: 0,
+        ...(doc.inspection ?? {}),
+      },
+      extension: {
+        enabled: true, maxDays: 30, swapPolicy: 'auto' as const, swapPriceToleranceBps: 1500, swapMaxAbsorbCents: 5000,
+        ...(doc.extension ?? {}),
+      },
       violations: {
         reportingWindowDays: 90, disputeWindowDays: 7, adminFeeCents: 1500, requireEvidence: true,
         ...(doc.violations ?? {}),

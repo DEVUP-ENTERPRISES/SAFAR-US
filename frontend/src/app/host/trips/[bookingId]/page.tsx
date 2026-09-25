@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -321,6 +322,23 @@ export default function HostTripDetailPage() {
             />
           </RowGroup>
 
+          {t.extensions.length > 0 && (
+            <>
+              <SectionLabel>Extensions</SectionLabel>
+              <RowGroup>
+                {t.extensions.map((e) => (
+                  <Row
+                    key={e._id}
+                    icon={<Receipt className="h-5 w-5" />}
+                    title={`+${e.days} day${e.days === 1 ? '' : 's'}, returns ${formatDate(e.newEnd)}`}
+                    subtitle={`Was ${formatDate(e.prevEnd)}`}
+                    value={`+${formatMoney({ amount: e.hostEarnings, currency: cur })}`}
+                  />
+                ))}
+              </RowGroup>
+            </>
+          )}
+
           {/* Mileage */}
           <SectionLabel>Mileage</SectionLabel>
           <RowGroup>
@@ -488,6 +506,14 @@ export default function HostTripDetailPage() {
               >
                 Get started
               </Button>
+              {handover.error && (
+                <p className="text-sm text-destructive">
+                  {handover.error instanceof Error ? handover.error.message : 'Could not start the trip.'}{' '}
+                  {(handover.error as { code?: string }).code === 'PRE_PHOTOS_REQUIRED' && (
+                    <Link href={`/host/trips/${t.bookingId}/photos`} className="font-semibold underline">Take pickup photos</Link>
+                  )}
+                </p>
+              )}
               {!t.licenseConfirmed && (
                 <p className="text-xs text-muted-foreground">
                   Confirm the licence first — it&apos;s required for your protection plan.

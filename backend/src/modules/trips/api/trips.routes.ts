@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { tripService, MIN_RETURN_PHOTOS } from '../application/trip.service';
+import { tripService } from '../application/trip.service';
 import { hostTripsService } from '../../bookings/application/host-trips.service';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
@@ -11,6 +11,7 @@ import { tripCarbon } from '../../../shared/utils/carbon';
 import { handoverService } from '../application/handover.service';
 import { trackingPhaseService } from '../application/tracking-phase.service';
 import { ForbiddenError } from '../../../core/errors/app-error';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
 const router = Router();
 
@@ -18,7 +19,7 @@ const router = Router();
 router.get(
   '/requirements',
   asyncHandler(async (_req, res) => {
-    sendSuccess(res, { minReturnPhotos: MIN_RETURN_PHOTOS });
+    sendSuccess(res, { minReturnPhotos: (await platformConfigService.get()).inspection.minReturnPhotos });
   }),
 );
 
@@ -81,6 +82,43 @@ router.get(
   }),
 );
 
+// `.strict()` so a client can never smuggle in its own `at`, `byUserId` or `source`.
+const photoSchema = z
+  .object({
+    url: z.string().min(1).max(1024),
+    key: z.string().min(1).max(512),
+    angle: z.string().min(1).max(40),
+    lat: z.number().min(-90).max(90).optional(),
+    lng: z.number().min(-180).max(180).optional(),
+    accuracyM: z.number().min(0).max(100000).optional(),
+    capturedAtClient: z.string().datetime().optional(),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  })
+  .strict();
+const photosBody = z.object({ phase: z.enum(['pre', 'post']), photos: z.array(photoSchema).min(1).max(10) }).strict();
+
+/** Window and photo state for a booking, before or after its trip exists. */
+router.get(
+  '/booking/:bookingId/inspection',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripService.inspection(req.principal!.userId, req.params.bookingId));
+  }),
+);
+
+/** Condition photos for a booking: `pre` from the pickup window, `post` from the return window. */
+router.post(
+  '/booking/:bookingId/photos',
+  authenticate,
+  validate({ body: photosBody }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await tripService.addPhotos(req.principal!.userId, req.params.bookingId, req.body.phase, req.body.photos),
+    );
+  }),
+);
+
 router.get(
   '/:id',
   authenticate,
@@ -101,7 +139,8 @@ router.get(
     } catch {
       /* vehicle gone — omit carbon */
     }
-    sendSuccess(res, { ...trip, carbon });
+    const inspection = trip.guestId === uid || trip.hostId === uid ? await tripService.inspection(uid, trip.bookingId) : null;
+    sendSuccess(res, { ...trip, carbon, inspection });
   }),
 );
 
@@ -233,20 +272,16 @@ router.post(
   }),
 );
 
-/** Condition photos: `pre` at check-in, `post` at checkout. */
+/** Same as the booking route, addressed by trip id. */
 router.post(
   '/:id/photos',
   authenticate,
-  validate({
-    body: z.object({
-      phase: z.enum(['pre', 'post']),
-      photos: z.array(z.object({ url: z.string().min(1), key: z.string().optional() })).min(1),
-    }),
-  }),
+  validate({ body: photosBody }),
   asyncHandler(async (req, res) => {
+    const trip = await tripService.get(req.params.id);
     sendSuccess(
       res,
-      await tripService.addPhotos(req.principal!.userId, req.params.id, req.body.phase, req.body.photos),
+      await tripService.addPhotos(req.principal!.userId, trip.bookingId, req.body.phase, req.body.photos),
     );
   }),
 );

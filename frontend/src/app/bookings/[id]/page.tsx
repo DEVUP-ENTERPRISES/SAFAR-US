@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Calendar, MapPin, MessageSquare, Receipt, Car, ShieldCheck, XCircle, Lock, BadgeCheck, Bell,
+  ArrowLeft, Calendar, CalendarPlus, MapPin, Shuffle, MessageSquare, Receipt, Car, ShieldCheck, XCircle, Lock, BadgeCheck, Bell,
 } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +27,9 @@ import { vehicleApi } from '@/features/vehicles/api';
 import { DepositStatus } from '@/features/payments/deposit-status';
 import { IncidentalCharges } from '@/features/bookings/components/incidental-charges';
 import { PickupCode } from '@/features/bookings/components/pickup-code';
+import { ExtendTrip } from '@/features/bookings/components/extend-trip';
+import { ExtensionHistory } from '@/features/bookings/components/extension-history';
+import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
 import { TripProgress } from '@/features/bookings/components/trip-progress';
 import { ApiError } from '@/lib/api/types';
 import { pushConfigured } from '@/features/push/firebase';
@@ -265,6 +268,21 @@ function BookingDetail({ id }: { id: string }) {
         </Card>
       )}
 
+      {b.swap && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex items-start gap-3 py-4">
+            <Shuffle className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div className="text-sm">
+              <p className="font-semibold">Your trip moved to a similar car — same dates, same price</p>
+              <p className="mt-0.5 text-muted-foreground">
+                Another guest extended their trip on your original car, so we moved you to {v ? `${v.year} ${v.make} ${v.model}` : 'a comparable car'}.
+                Your booking code, dates and total are unchanged.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <TripProgress
         status={String(b.status)}
         pickupAt={b.period.start}
@@ -277,11 +295,21 @@ function BookingDetail({ id }: { id: string }) {
           their window. */}
       <TrackingPanel bookingId={id} role="guest" />
       {['paid', 'confirmed', 'in_progress'].includes(String(b.status)) && <PickupCode bookingId={id} />}
+      {b.status === 'paid' && !b.tripId && <InspectionPhotos bookingId={id} phase="pre" />}
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-3 lg:items-start">
         {/* ── Main column ──────────────────────────────────────────────── */}
         <div className="min-w-0 space-y-6 lg:col-span-2">
           <DepositStatus bookingId={id} />
+
+          <ExtensionHistory bookingId={id} extensions={b.extensions} />
+
+          {['paid', 'in_progress'].includes(b.status) && (
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><CalendarPlus className="h-5 w-5 text-primary" /> Extend your trip</CardTitle></CardHeader>
+              <CardContent><ExtendTrip booking={b} /></CardContent>
+            </Card>
+          )}
 
           {/* Post-trip charges, itemised and disputable. */}
           {(b.incidentals?.length ?? 0) > 0 && (

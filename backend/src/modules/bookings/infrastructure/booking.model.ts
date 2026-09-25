@@ -7,6 +7,43 @@ interface MoneyField {
   currency: string;
 }
 
+/** The additive parts of an extension's quote, kept so the original receipt can be told apart from the roll-up. */
+export interface ExtensionParts {
+  base: number;
+  discount: number;
+  cleaningFee: number;
+  protection: number;
+  subtotal: number;
+  taxTotal: number;
+}
+
+export interface BookingExtension {
+  _id: string;
+  prevEnd: Date;
+  newEnd: Date;
+  days: number;
+  total: MoneyField;
+  hostEarnings: MoneyField;
+  commission: MoneyField;
+  tax: MoneyField;
+  parts: ExtensionParts;
+  paymentId: string;
+  receiptNo: string;
+  createdAt: Date;
+  /** Present when making room meant moving the next guest to another car. */
+  swap?: { movedBookingId: string; toVehicleId: string };
+}
+
+export interface BookingSwap {
+  fromVehicleId: string;
+  fromHostId: string;
+  toVehicleId: string;
+  toHostId: string;
+  reason: 'extension';
+  at: Date;
+  extendedByBookingId: string;
+}
+
 export interface BookingDoc {
   _id: string;
   code: string;
@@ -123,6 +160,10 @@ export interface BookingDoc {
   rebookedFrom?: string;
   coveredDifference?: MoneyField;
   tripId?: string;
+  /** One entry per paid extension — the receipts, and how the roll-up in priceBreakdown was built. */
+  extensions?: BookingExtension[];
+  /** Set when the platform moved this booking to a comparable car to make room for another guest's extension. */
+  swap?: BookingSwap;
   /** Which exception kind the guest has already been told about, so the notice
    *  is sent once per episode rather than on every read. */
   trackingNoticeSentFor?: 'sos' | 'overdue' | 'incident';
@@ -283,6 +324,41 @@ const schema = new Schema<BookingDoc>(
       refund: moneySchema,
     },
     tripId: String,
+    extensions: {
+      type: [
+        {
+          _id: { type: String, required: true },
+          prevEnd: Date,
+          newEnd: Date,
+          days: Number,
+          total: moneySchema,
+          hostEarnings: moneySchema,
+          commission: moneySchema,
+          tax: moneySchema,
+          parts: {
+            type: { _id: false, base: Number, discount: Number, cleaningFee: Number, protection: Number, subtotal: Number, taxTotal: Number },
+          },
+          paymentId: String,
+          receiptNo: String,
+          createdAt: Date,
+          swap: { type: { _id: false, movedBookingId: String, toVehicleId: String } },
+        },
+      ],
+      default: [],
+    },
+    swap: {
+      type: {
+        _id: false,
+        fromVehicleId: String,
+        fromHostId: String,
+        toVehicleId: String,
+        toHostId: String,
+        reason: { type: String, enum: ['extension'] },
+        at: Date,
+        extendedByBookingId: String,
+      },
+      default: undefined,
+    },
     trackingNoticeSentFor: { type: String, enum: ['sos', 'overdue', 'incident'] },
     approach: {
       guest: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date },

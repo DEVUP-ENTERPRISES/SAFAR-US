@@ -7,6 +7,7 @@ import { realtimeEmitter, RT } from '../realtime/emitter';
 import { rewardsService } from '../modules/rewards/application/rewards.service';
 import { referralService } from '../modules/referral/application/referral.service';
 import { bookingService } from '../modules/bookings/application/booking.service';
+import { vehicleService } from '../modules/vehicles/application/vehicle.service';
 import { favoritesService } from '../modules/favorites/application/favorites.service';
 import { savedSearchService } from '../modules/saved-search/application/saved-search.service';
 import { messageService } from '../modules/messaging/application/message.service';
@@ -464,6 +465,13 @@ export function registerEventSubscribers(): void {
     await notifyHost(p.hostId, 'trip.overdue', 'Still no return', 'Your car is more than a day overdue. Our team has been alerted and is contacting the guest.', { bookingId: p.bookingId }, 'critical');
   });
 
+  // Return time is close: put the return-photo camera in front of the guest.
+  eventBus.subscribe(EVENTS.TRIP_RETURN_WINDOW_OPEN, async (e) => {
+    const p = e.payload as { tripId: string; bookingId: string; guestId: string; hostId: string };
+    await notificationService.send({ userId: p.guestId, priority: 'high', deepLink: `/trips/${p.tripId}?capture=post`, templateKey: 'trip.return_photos_open', title: 'Time to take your return photos', body: 'Your return time is close. Open the camera and photograph the car from every side before you hand it back.', data: { tripId: p.tripId, bookingId: p.bookingId } });
+    await notifyHost(p.hostId, 'trip.return_photos_open', 'Return photos are open', 'The guest’s return time is close. You can take your own condition photos of the car from the trip page.', { tripId: p.tripId, bookingId: p.bookingId }, 'normal', `/host/trips/${p.bookingId}/photos`);
+  });
+
   eventBus.subscribe(EVENTS.BOOKING_CANCELLED, async (e) => {
     const p = e.payload as {
       bookingId: string; guestId: string; hostId: string; cancelledBy?: string;
@@ -715,11 +723,73 @@ export function registerEventSubscribers(): void {
     );
   });
   eventBus.subscribe(EVENTS.BOOKING_EXTENDED, async (e) => {
-    const p = e.payload as { bookingId: string; newEnd: Date | string; hostId?: string };
+    const p = e.payload as {
+      bookingId: string;
+      guestId?: string;
+      newEnd: Date | string;
+      hostId?: string;
+      days?: number;
+      receiptNo?: string;
+      total?: { amount: number; currency: string };
+      hostEarnings?: { amount: number; currency: string };
+    };
     await postSystemNote(p.bookingId, `Trip extended — the new return date is ${fmtDay(p.newEnd)}.`);
-    if (p.hostId) {
-      await notifyHost(p.hostId, 'booking.extended', 'Trip extended', `Your guest extended the trip — the new return date is ${fmtDay(p.newEnd)}.`, { bookingId: p.bookingId }, 'high', `/host/trips?booking=${p.bookingId}`);
+    if (p.guestId) {
+      await notificationService
+        .send({
+          userId: p.guestId,
+          priority: 'high',
+          templateKey: 'booking.extended',
+          title: 'Your trip is extended',
+          body: `New return date: ${fmtDay(p.newEnd)}.${p.total ? ` ${formatAmount(p.total.amount, p.total.currency)} was charged for the extra days.` : ''} Your receipt is ready.`,
+          deepLink: `/bookings/${p.bookingId}/receipt`,
+          actionLabel: 'View receipt',
+          data: { bookingId: p.bookingId, receiptNo: p.receiptNo },
+        })
+        .catch((err) => logger.warn({ err, bookingId: p.bookingId }, 'extension guest notification failed'));
     }
+    if (p.hostId) {
+      const added = p.hostEarnings ? ` You earn ${formatAmount(p.hostEarnings.amount, p.hostEarnings.currency)} more.` : '';
+      await notifyHost(p.hostId, 'booking.extended', 'Trip extended', `Your guest extended the trip — the new return date is ${fmtDay(p.newEnd)}.${added}`, { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
+    }
+  });
+
+  // A guest moved to a comparable car so another guest could extend: tell all three parties.
+  eventBus.subscribe(EVENTS.BOOKING_SWAPPED, async (e) => {
+    const p = e.payload as {
+      bookingId: string;
+      guestId: string;
+      fromHostId: string;
+      toVehicleId: string;
+      toHostId: string;
+      extensionEarnings?: { amount: number; currency: string };
+    };
+    const car = await vehicleService.getById(p.toVehicleId).then((v) => `${v.make} ${v.model} ${v.year}`, () => 'a similar car');
+    await postSystemNote(p.bookingId, `Your trip moved to ${car} — same dates, same price.`);
+    await notificationService
+      .send({
+        userId: p.guestId,
+        priority: 'critical',
+        templateKey: 'booking.swapped',
+        title: 'Your trip moved to a similar car',
+        body: `Same dates, same price: you will now be driving ${car}. Nothing else about your booking changed.`,
+        deepLink: `/bookings/${p.bookingId}`,
+        data: { bookingId: p.bookingId, toVehicleId: p.toVehicleId },
+      })
+      .catch((err) => logger.warn({ err, bookingId: p.bookingId }, 'swap guest notification failed'));
+    const earns = p.extensionEarnings ? ` You earn ${formatAmount(p.extensionEarnings.amount, p.extensionEarnings.currency)} from the extension.` : '';
+    await notifyHost(p.fromHostId, 'booking.swapped_out', 'An upcoming booking moved', `A guest extended their trip on your car, so an upcoming booking was moved to a similar car.${earns}`, { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
+    await notifyHost(p.toHostId, 'booking.swapped_in', 'New booking on your car', `A confirmed booking was placed on ${car}. It is already paid.`, { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
+  });
+  eventBus.subscribe(EVENTS.BOOKING_SWAP_FAILED, async (e) => {
+    const p = e.payload as { bookingId: string; extenderBookingId: string; stage: string; error: string };
+    await notifyStaff(
+      'booking.swap_failed',
+      'Booking swap needs attention',
+      `Moving booking ${p.bookingId} for the extension on ${p.extenderBookingId} stopped at "${p.stage}": ${p.error}. Check its days, host and ledger.`,
+      p,
+      'critical',
+    );
   });
   eventBus.subscribe(EVENTS.PAYOUT_SCHEDULED, async (e) => {
     const p = e.payload as { bookingId: string; hostId: string };

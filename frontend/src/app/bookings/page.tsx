@@ -14,6 +14,7 @@ import { ApiError } from '@/lib/api/types';
 import { BookingStatusBadge } from '@/features/bookings/components/status-badge';
 import { useMyBookings, useCancelBooking, useCompletePayment } from '@/features/bookings/hooks';
 import { bookingApi } from '@/features/bookings/api';
+import { ExtendTrip } from '@/features/bookings/components/extend-trip';
 import { tripApi } from '@/features/trips/api';
 import { formatMoney, formatDateTime } from '@/lib/utils/format';
 
@@ -37,23 +38,12 @@ function BookingsList() {
   const [extendId, setExtendId] = useState<string | null>(null);
   const [shortenId, setShortenId] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState<string | null>(null);
-  const [newEnd, setNewEnd] = useState('');
   const [shortEnd, setShortEnd] = useState('');
   const startTrip = useMutation({
     mutationFn: (bookingId: string) => tripApi.start(bookingId),
     onSuccess: (trip) => router.push(`/trips/${trip._id}`),
-  });
-  const extend = useMutation({
-    mutationFn: (id: string) => bookingApi.extend(id, new Date(newEnd).toISOString()),
-    onSuccess: () => { setExtendId(null); setNewEnd(''); qc.invalidateQueries({ queryKey: ['bookings'] }); },
-  });
-  // Live cost of the chosen extension — so the guest sees the added charge and
-  // whether the dates are even free before anything is captured.
-  const extPreview = useQuery({
-    queryKey: ['extension-preview', extendId, newEnd],
-    queryFn: () => bookingApi.extensionPreview(extendId!, new Date(newEnd).toISOString()),
-    enabled: !!extendId && !!newEnd,
-    retry: false,
+    // Pickup photos are taken from the booking page, so send them there instead of leaving a bare error.
+    onError: (err, bookingId) => { if (err instanceof ApiError && err.code === 'PRE_PHOTOS_REQUIRED') router.push(`/bookings/${bookingId}`); },
   });
   const shorten = useMutation({
     mutationFn: (id: string) => bookingApi.shorten(id, new Date(shortEnd).toISOString()),
@@ -127,7 +117,7 @@ function BookingsList() {
                   </Button>
                 )}
                 {['paid', 'in_progress'].includes(b.status) && (
-                  <Button size="sm" variant="outline" onClick={() => { setExtendId(extendId === b._id ? null : b._id); setNewEnd(''); setShortenId(null); }}>
+                  <Button size="sm" variant="outline" onClick={() => { setExtendId(extendId === b._id ? null : b._id); setShortenId(null); }}>
                     Extend
                   </Button>
                 )}
@@ -200,49 +190,8 @@ function BookingsList() {
             </div>
           </CardContent>
           {extendId === b._id && (
-            <div className="flex flex-wrap items-end gap-2 border-t border-border p-4">
-              <div className="flex-1">
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">New end date/time</label>
-                <Input type="datetime-local" value={newEnd} min={b.period.end.slice(0, 16)} onChange={(e) => setNewEnd(e.target.value)} />
-              </div>
-              <Button
-                size="sm"
-                disabled={!newEnd || !extPreview.data?.available}
-                loading={extend.isPending}
-                onClick={async () => {
-                  const p = extPreview.data;
-                  if (!p?.available || !p.extraCost) return;
-                  const { ok } = await confirm({
-                    title: 'Extend this trip?',
-                    description: (
-                      <span>
-                        Extending to {new Date(p.newEnd).toLocaleString()} adds{' '}
-                        <b>{formatMoney(p.extraCost)}</b>, charged now.
-                      </span>
-                    ),
-                    confirmLabel: `Pay ${formatMoney(p.extraCost)} & extend`,
-                  });
-                  if (ok) extend.mutate(b._id);
-                }}
-              >
-                Confirm extension
-              </Button>
-              {newEnd && extPreview.isFetching && (
-                <p className="w-full text-xs text-muted-foreground">Checking availability &amp; price…</p>
-              )}
-              {newEnd && extPreview.data && !extPreview.data.available && (
-                <p className="w-full text-sm text-destructive">{extPreview.data.reason}</p>
-              )}
-              {newEnd && extPreview.data?.available && extPreview.data.extraCost && (
-                <p className="w-full text-sm">
-                  Adds <b>{formatMoney(extPreview.data.extraCost)}</b> for the extra days.
-                </p>
-              )}
-              {extend.isError && (
-                <p className="w-full text-sm text-destructive">
-                  {extend.error instanceof ApiError ? extend.error.message : 'Extension failed'}
-                </p>
-              )}
+            <div className="border-t border-border p-4">
+              <ExtendTrip booking={b} onDone={() => setExtendId(null)} />
             </div>
           )}
           {shortenId === b._id && (

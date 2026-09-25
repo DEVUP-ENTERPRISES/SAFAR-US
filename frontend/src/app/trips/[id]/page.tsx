@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import { MapPin, Gauge, Fuel, ShieldAlert, CheckCircle2, Camera, KeyRound, Leaf, TreePine } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,8 @@ function TripDashboard() {
   const [damage, setDamage] = useState('');
   const [odoEnd, setOdoEnd] = useState('');
   const [fuelEnd, setFuelEnd] = useState('');
+  // The return-time notification links here with ?capture=post; the banner bumps it too.
+  const [captureSignal, setCaptureSignal] = useState(useSearchParams().get('capture') === 'post' ? 1 : 0);
 
   // Stream only while the server says tracking is open.
   const tracking = useTrackingState(trip?.bookingId ?? '');
@@ -39,6 +41,8 @@ function TripDashboard() {
   if (isError || !trip) return <ErrorState message="Trip not found." retry={() => refetch()} />;
 
   const returnPhotoCount = (trip.photos ?? []).filter((p) => p.phase === 'post').length;
+  const post = trip.inspection?.post;
+  const minReturnPhotos = post?.required ?? 0;
   const loc = trip.liveLocation;
   const isActive = trip.status === 'active';
   const isCompleted = trip.status === 'completed';
@@ -79,8 +83,8 @@ function TripDashboard() {
                   variant="primary"
                   className="flex-1 font-semibold text-base rounded-full shadow-md"
                   loading={complete.isPending}
-                  disabled={returnPhotoCount < 2}
-                  title={returnPhotoCount < 2 ? 'Add at least 2 return photos first' : undefined}
+                  disabled={returnPhotoCount < minReturnPhotos}
+                  title={returnPhotoCount < minReturnPhotos ? `Take at least ${minReturnPhotos} return photos first` : undefined}
                   onClick={() =>
                     complete.mutate({
                       odometerEnd: odoEnd ? Number(odoEnd) : undefined,
@@ -100,6 +104,19 @@ function TripDashboard() {
 
         {/* Critical Panels */}
         <div className="space-y-4">
+          {isActive && post?.open && returnPhotoCount < minReturnPhotos && (
+            <div className="flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-bold">Take your return photos</p>
+                <p className="text-sm text-muted-foreground">
+                  Your return time is close. Photograph the car from every side ({returnPhotoCount} of {minReturnPhotos} needed).
+                </p>
+              </div>
+              <Button className="shrink-0" onClick={() => setCaptureSignal((n) => n + 1)}>
+                <Camera className="mr-2 h-4 w-4" /> Open camera
+              </Button>
+            </div>
+          )}
           {isActive && !trip.checkin && <HandoverPanel tripId={trip._id} role="guest" />}
           {isActive && <IncidentButton tripId={trip._id} />}
           <TrackingPanel bookingId={trip.bookingId} role="guest" />
@@ -169,9 +186,9 @@ function TripDashboard() {
                 />
               </label>
             </div>
-            {returnPhotoCount < 2 && (
+            {returnPhotoCount < minReturnPhotos && (
               <p className="mt-5 text-sm font-medium text-amber-600 flex items-center gap-2 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
-                <Camera className="h-4 w-4" /> Add at least 2 return photos below to complete the trip.
+                <Camera className="h-4 w-4" /> Take at least {minReturnPhotos} return photos below to complete the trip ({returnPhotoCount} taken).
               </p>
             )}
           </section>
@@ -181,13 +198,13 @@ function TripDashboard() {
         <div className="space-y-10">
           <section>
             <h2 className="text-xl font-bold mb-4">Pickup condition</h2>
-            <InspectionPhotos trip={trip} phase="pre" editable={isActive} />
+            <InspectionPhotos bookingId={trip.bookingId} phase="pre" />
           </section>
 
           {(isActive || (trip.photos ?? []).some((p) => p.phase === 'post')) && (
             <section>
               <h2 className="text-xl font-bold mb-4">Return condition</h2>
-              <InspectionPhotos trip={trip} phase="post" editable={isActive} />
+              <InspectionPhotos bookingId={trip.bookingId} phase="post" openSignal={captureSignal} />
             </section>
           )}
         </div>
@@ -261,7 +278,9 @@ function MetricBox({ icon, label, value }: { icon: React.ReactNode; label: strin
 export default function TripPage() {
   return (
     <AuthGuard>
-      <TripDashboard />
+      <Suspense fallback={<Skeleton className="h-[70vh] w-full rounded-[2rem]" />}>
+        <TripDashboard />
+      </Suspense>
     </AuthGuard>
   );
 }

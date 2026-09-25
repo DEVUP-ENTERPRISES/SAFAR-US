@@ -12,10 +12,8 @@ import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
 import { milesToKm } from '../../../shared/utils/distance';
+import { inspectionService, type InspectionPhase, type InspectionState, type PhotoInput } from './inspection.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
-
-/** Minimum return-condition photos before a trip can be completed. */
-export const MIN_RETURN_PHOTOS = 2;
 
 export class TripService {
   /** Start the trip (handover). Booking must be paid. */
@@ -36,6 +34,8 @@ export class TripService {
     }
     const existing = await TripModel.findOne({ bookingId }).lean();
     if (existing) throw new ConflictError('Trip already started', 'TRIP_EXISTS');
+
+    await inspectionService.assertPrePhotosBeforeStart(booking);
 
     // The deposit is authorised at handover, not at booking: a card
     // authorisation only lives about a week, so one taken when a trip was
@@ -62,10 +62,11 @@ export class TripService {
       handover: { at: new Date(), ...handover },
     });
 
+    await inspectionService.moveToTrip(bookingId, trip._id);
     await bookingService.markInProgress(bookingId);
     await bookingService.attachTrip(bookingId, trip._id);
     emit(EVENTS.TRIP_STARTED, trip._id, { tripId: trip._id, bookingId });
-    return trip.toObject();
+    return this.getDoc(trip._id);
   }
 
   async updateLocation(userId: string, tripId: string, lng: number, lat: number): Promise<void> {
@@ -100,9 +101,10 @@ export class TripService {
     // without them means a later dispute has no evidence either way. The guest
     // is prompted to take them on the trip screen before this button enables.
     const returnPhotos = (trip.photos ?? []).filter((p) => p.phase === 'post').length;
-    if (returnPhotos < MIN_RETURN_PHOTOS) {
+    const minReturnPhotos = (await platformConfigService.get()).inspection.minReturnPhotos;
+    if (returnPhotos < minReturnPhotos) {
       throw new ConflictError(
-        `Add at least ${MIN_RETURN_PHOTOS} return photos before ending the trip (you have ${returnPhotos}).`,
+        `Add at least ${minReturnPhotos} return photos before ending the trip (you have ${returnPhotos}).`,
         'RETURN_PHOTOS_REQUIRED',
       );
     }
@@ -252,20 +254,24 @@ export class TripService {
     return this.getDoc(tripId);
   }
 
-  /** Condition photos. `pre` = check-in, `post` = checkout. */
-  async addPhotos(
-    userId: string,
-    tripId: string,
-    phase: 'pre' | 'post',
-    photos: { url: string; key?: string }[],
-  ): Promise<TripDoc> {
-    if (!(await this.isParticipant(userId, tripId))) throw new ForbiddenError('Not a participant');
-    const at = new Date();
-    await TripModel.updateOne(
-      { _id: tripId },
-      { $push: { photos: { $each: photos.map((p) => ({ ...p, phase, byUserId: userId, at })) } } },
-    );
-    return this.getDoc(tripId);
+  /** Condition photos, keyed by booking so pickup photos can be taken before the trip exists. */
+  async addPhotos(userId: string, bookingId: string, phase: InspectionPhase, photos: PhotoInput[]): Promise<InspectionState> {
+    const booking = await this.bookingForParticipant(userId, bookingId);
+    await inspectionService.add(booking, userId, phase, photos);
+    return inspectionService.state(booking, userId);
+  }
+
+  /** Window, count and photo state for both phases, for either party of the booking. */
+  async inspection(userId: string, bookingId: string): Promise<InspectionState> {
+    return inspectionService.state(await this.bookingForParticipant(userId, bookingId), userId);
+  }
+
+  private async bookingForParticipant(userId: string, bookingId: string) {
+    const booking = await bookingService.getDoc(bookingId);
+    if (booking.guestId !== userId && !(await this.isHost(userId, booking.hostId, booking.vehicleId, 'trip:handover'))) {
+      throw new ForbiddenError('Not a participant');
+    }
+    return booking;
   }
 
   /**

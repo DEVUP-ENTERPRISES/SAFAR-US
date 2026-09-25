@@ -17,7 +17,35 @@ export interface ExtensionPreview {
   available: boolean;
   reason?: string;
   extraCost?: Money;
+  days?: number;
   newEnd: string;
+  /** The car is taken, but the platform can make the extension work by moving the next guest. */
+  swap?: { possible: true; vehicle: { id: string; make: string; model: string; year: number } };
+}
+
+export interface ReceiptLine {
+  label: string;
+  amount: number;
+}
+
+export interface Receipt {
+  receiptNo: string;
+  kind: 'original' | 'extension';
+  extensionId?: string;
+  issuedAt: string;
+  period: { start: string; end: string };
+  days: number;
+  lines: ReceiptLine[];
+  total: Money;
+  paymentRef?: string;
+}
+
+export interface BookingReceipts {
+  bookingId: string;
+  code: string;
+  currency: string;
+  receipts: Receipt[];
+  summary: { period: { start: string; end: string }; days: number; total: Money };
 }
 
 export interface ShortenPreview {
@@ -42,6 +70,8 @@ export const bookingApi = {
   list: (role: 'guest' | 'host' = 'guest') =>
     api.get<Booking[]>('/bookings', { role }),
   getById: (id: string) => api.get<Booking>(`/bookings/${id}`),
+  /** The original receipt plus one per extension. */
+  receipts: (id: string) => api.get<BookingReceipts>(`/bookings/${id}/receipts`),
   confirm: (id: string) => api.post<Booking>(`/bookings/${id}/confirm`),
   decline: (id: string) => api.post<Booking>(`/bookings/${id}/decline`),
   /** Either side reports the other's no-show; the server decides who may and when. */
@@ -68,7 +98,7 @@ export const bookingApi = {
 
   /** Public receipt verification (for the receipt QR code). No auth. */
   verify: (id: string) =>
-    api.get<{ valid: boolean; code?: string; status?: string; period?: { start: string; end: string }; total?: number; currency?: string; issuedAt?: string }>(
+    api.get<{ valid: boolean; code?: string; status?: string; period?: { start: string; end: string }; total?: number; currency?: string; issuedAt?: string; receipts?: { receiptNo: string; kind: string; total: number; issuedAt: string }[] }>(
       `/bookings/verify/${id}`,
       undefined,
       false,

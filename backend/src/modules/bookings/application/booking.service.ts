@@ -1,5 +1,7 @@
 import { createHash, randomInt } from 'crypto';
-import { BookingModel, type BookingDoc } from '../infrastructure/booking.model';
+import { BookingModel, type BookingDoc, type BookingExtension } from '../infrastructure/booking.model';
+import { PaymentModel, type PaymentDoc } from '../../payments/infrastructure/payment.model';
+import type { AvailabilityDoc } from '../../availability/infrastructure/availability.model';
 import { canTransition, type BookingStatus } from '../domain/booking-status';
 import { computeRefund } from '../domain/cancellation-policy';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
@@ -10,7 +12,7 @@ import { trustScoreService } from '../../risk/application/trust-score.service';
 import type { VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
 import { verifyPriceLock, issuePriceLock, type PriceLock } from '../../pricing/domain/price-lock';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
-import { availabilityService } from '../../availability/application/availability.service';
+import { availabilityService, dayKeys, dayAfter, type BlockingRow } from '../../availability/application/availability.service';
 import { eligibilityService } from './eligibility.service';
 import { riskService } from '../../risk/application/risk.service';
 import { userRepository } from '../../users/infrastructure/user.repository';
@@ -21,7 +23,7 @@ import { walletService } from '../../wallet/application/wallet.service';
 import { couponService } from '../../coupons/application/coupon.service';
 import { hostService } from '../../hosts/application/host.service';
 import { ledgerService } from '../../payments/application/ledger.service';
-import { Account } from '../../payments/domain/ledger.accounts';
+import { Account, type LedgerLeg } from '../../payments/domain/ledger.accounts';
 import { notificationService } from '../../notifications/application/notification.service';
 import { logger } from '../../../infrastructure/logging/logger';
 import { NotFoundError, ConflictError, ForbiddenError, ValidationError } from '../../../core/errors/app-error';
@@ -43,6 +45,50 @@ const formatMinor = (minorUnits: number, currency = 'USD'): string =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(minorUnits / 100);
 const approvalWindowMs = async (): Promise<number> =>
   (await platformConfigService.get()).booking.hostApprovalHours * HOUR_MS;
+
+interface SwapOption {
+  candidate: VehicleDoc;
+  quote: PriceBreakdown;
+  /** What the platform pays when the replacement costs more than the guest paid. */
+  absorb: number;
+}
+
+interface SwapPlan {
+  blocker: BookingDoc;
+  payment: PaymentDoc;
+  paid: number;
+  /** Comparable cars, cheapest for the platform first. */
+  options: SwapOption[];
+}
+
+type ExtensionPlan =
+  | { ok: true; newEnd: Date; extraStart: Date; days: number; extra: PriceBreakdown; swap?: SwapPlan }
+  | { ok: false; code: string; reason: string; newEnd: Date | null };
+
+export interface ReceiptLine {
+  label: string;
+  amount: number;
+}
+
+export interface Receipt {
+  receiptNo: string;
+  kind: 'original' | 'extension';
+  extensionId?: string;
+  issuedAt: Date;
+  period: { start: Date; end: Date };
+  days: number;
+  lines: ReceiptLine[];
+  total: Money;
+  paymentRef?: string;
+}
+
+export interface BookingReceipts {
+  bookingId: string;
+  code: string;
+  currency: string;
+  receipts: Receipt[];
+  summary: { period: { start: Date; end: Date }; days: number; total: Money };
+}
 
 export class BookingService {
   async quote(dto: CreateBookingDto, guestId?: string): Promise<PriceBreakdown> {
@@ -272,18 +318,8 @@ export class BookingService {
         // unverified one is authorised only; capture happens when they clear.
         capture: effectiveInstant && eligibility.eligible,
         total: breakdown.total,
-        hostEarnings: breakdown.hostEarnings,
-        // Protection and the guest service fee both accrue to the platform, so
-        // they ride in the commission leg — keeps the ledger balanced:
-        // total = hostEarnings + commission + tax. Neither reduces host pay.
-        commission: {
-          amount:
-            breakdown.commission.amount +
-            breakdown.protection.amount +
-            breakdown.serviceFee.amount,
-          currency: breakdown.currency,
-        },
-        tax: breakdown.tax,
+        // Protection, service fee and rental tax ride in the platform legs so the ledger balances.
+        ...this.paymentSplit(breakdown),
         walletApplied,
         idempotencyKey: idempotencyKey ?? bookingId,
       });
@@ -1157,13 +1193,7 @@ export class BookingService {
     };
   }
 
-  /**
-   * What extending to a new end date would cost, and whether it is even
-   * possible, without charging anything.
-   *
-   * Mirrors the arithmetic of requestExtension exactly so the number shown is
-   * the number charged — same extra-day window, same pricing call.
-   */
+  /** The cost and feasibility of an extension, from the same plan requestExtension runs, without charging. */
   async extensionPreview(
     userId: string,
     bookingId: string,
@@ -1173,53 +1203,107 @@ export class BookingService {
     reason?: string;
     extraCost?: Money;
     newEnd: string;
+    days?: number;
+    swap?: { possible: true; vehicle: { id: string; make: string; model: string; year: number } };
   }> {
     const booking = await this.getDoc(bookingId);
     if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can extend');
 
-    const newEnd = new Date(newEndIso);
-    if (isNaN(newEnd.getTime()) || newEnd <= booking.period.end) {
-      return { available: false, reason: 'Pick a date after your current trip end.', newEnd: newEndIso };
+    const plan = await this.planExtension(booking, newEndIso);
+    if (!plan.ok) return { available: false, reason: plan.reason, newEnd: plan.newEnd?.toISOString() ?? newEndIso };
+
+    const base = { extraCost: plan.extra.total, days: plan.days, newEnd: plan.newEnd.toISOString() };
+    if (!plan.swap) return { available: true, ...base };
+    const { candidate } = plan.swap.options[0];
+    return {
+      available: false,
+      reason: 'The car is booked for some of those days, but we can arrange the extension for you.',
+      swap: { possible: true, vehicle: { id: candidate._id, make: candidate.make, model: candidate.model, year: candidate.year } },
+      ...base,
+    };
+  }
+
+  async requestExtension(userId: string, bookingId: string, newEndIso: string): Promise<BookingDoc> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can extend');
+
+    const plan = await this.planExtension(booking, newEndIso);
+    if (!plan.ok) {
+      if (['INVALID_DATE', 'TOO_SHORT', 'EXTENSION_TOO_LONG'].includes(plan.code)) throw new ValidationError(plan.reason);
+      throw new ConflictError(plan.reason, plan.code);
     }
+    const swap = plan.swap;
+    if (!swap) return this.commitExtension(booking, plan, userId);
+
+    return this.moveVehicle(swap, { extenderBookingId: bookingId, extensionEarnings: plan.extra.hostEarnings }, (chosen) =>
+      this.commitExtension(booking, plan, userId, { movedBookingId: swap.blocker._id, toVehicleId: chosen.candidate._id }),
+    );
+  }
+
+  /** Everything decided before any money or calendar row moves: rules, days, conflicts, price, swap. */
+  private async planExtension(booking: BookingDoc, newEndIso: string): Promise<ExtensionPlan> {
+    const cfg = (await platformConfigService.get()).extension;
+    const newEnd = new Date(newEndIso);
+    const fail = (code: string, reason: string): ExtensionPlan => ({
+      ok: false,
+      code,
+      reason,
+      newEnd: isNaN(newEnd.getTime()) ? null : newEnd,
+    });
+
+    if (!cfg.enabled) return fail('EXTENSIONS_DISABLED', 'Trip extensions are not available right now.');
     if (!['paid', 'in_progress'].includes(booking.status)) {
-      return { available: false, reason: 'Only an active trip can be extended.', newEnd: newEndIso };
+      return fail('INVALID_STATE', 'Only an active trip can be extended.');
+    }
+    if (isNaN(newEnd.getTime()) || newEnd <= booking.period.end) {
+      return fail('INVALID_DATE', 'Pick a date after your current trip end.');
+    }
+    // Extra days are whole calendar days, the same keys the availability calendar uses.
+    const extraStart = dayAfter(booking.period.end);
+    if (newEnd < extraStart) return fail('TOO_SHORT', 'Extend by at least one more calendar day.');
+    const days = dayKeys(extraStart, newEnd).length;
+    if (days > cfg.maxDays) {
+      return fail('EXTENSION_TOO_LONG', `You can extend by up to ${cfg.maxDays} day${cfg.maxDays === 1 ? '' : 's'} at a time.`);
     }
 
-    const extraStart = new Date(booking.period.end.getTime() + 86_400_000);
-    if (!(await availabilityService.isAvailable(booking.vehicleId, extraStart, newEnd))) {
-      return {
-        available: false,
-        reason: 'The car is already booked for those extra days.',
-        newEnd: newEnd.toISOString(),
-      };
+    const blockers = await availabilityService.blockingRows(booking.vehicleId, extraStart, newEnd, { excludeBookingId: booking._id });
+    let swap: SwapPlan | undefined;
+    if (blockers.length > 0) {
+      swap = (await this.findSwap(booking, blockers, cfg)) ?? undefined;
+      if (!swap) {
+        const states = new Set(blockers.map((r) => r.state));
+        return fail(
+          'NOT_AVAILABLE',
+          states.has('blocked')
+            ? 'The host has blocked those days.'
+            : states.has('booked')
+              ? 'Another guest has this car booked for those days.'
+              : 'Someone is checking out on this car for those days. Try again in a few minutes.',
+        );
+      }
     }
 
     const extra = await pricingService.quote({
       vehicleId: booking.vehicleId,
       start: extraStart,
       end: newEnd,
+      protectionPlan: booking.priceBreakdown.protectionPlan,
+      guestId: booking.guestId, // membership benefits apply to the extra days too
+      skipOneTimeFees: true,
     });
-    return { available: true, extraCost: extra.total, newEnd: newEnd.toISOString() };
+    return { ok: true, newEnd, extraStart, days, extra, swap };
   }
 
-  async requestExtension(userId: string, bookingId: string, newEndIso: string): Promise<BookingDoc> {
-    const booking = await this.getDoc(bookingId);
-    if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can extend');
-    if (!['paid', 'in_progress'].includes(booking.status)) {
-      throw new ConflictError('Only active bookings can be extended', 'INVALID_STATE');
-    }
-    const newEnd = new Date(newEndIso);
-    if (isNaN(newEnd.getTime()) || newEnd <= booking.period.end) {
-      throw new ValidationError('New end must be after the current end');
-    }
-    // Extra days start the day after the current end.
-    const extraStart = new Date(booking.period.end.getTime() + 86_400_000);
-    if (!(await availabilityService.isAvailable(booking.vehicleId, extraStart, newEnd))) {
-      throw new ConflictError('Vehicle is not available for the extended dates', 'NOT_AVAILABLE');
-    }
-
-    const extra = await pricingService.quote({ vehicleId: booking.vehicleId, start: extraStart, end: newEnd });
-    const holdId = await availabilityService.placeHold(booking.vehicleId, extraStart, newEnd);
+  /** Hold the days, take the money, and only then grant them. */
+  private async commitExtension(
+    booking: BookingDoc,
+    plan: { newEnd: Date; extraStart: Date; days: number; extra: PriceBreakdown },
+    userId: string,
+    swap?: { movedBookingId: string; toVehicleId: string },
+  ): Promise<BookingDoc> {
+    const { newEnd, extra } = plan;
+    const bookingId = booking._id;
+    const holdId = await availabilityService.placeHold(booking.vehicleId, plan.extraStart, newEnd);
     try {
       const extensionKey = `${bookingId}-ext-${newEnd.getTime()}`;
       const charge = await paymentService.chargeForBooking({
@@ -1228,9 +1312,7 @@ export class BookingService {
         hostId: booking.hostId,
         capture: true,
         total: extra.total,
-        hostEarnings: extra.hostEarnings,
-        commission: extra.commission,
-        tax: extra.tax,
+        ...this.paymentSplit(extra),
         idempotencyKey: extensionKey,
       });
       // Extra days are only granted for money that actually moved.
@@ -1240,29 +1322,393 @@ export class BookingService {
       }
       await availabilityService.confirmHold(holdId, bookingId);
 
-      // Roll the extra into the booking totals (immutable-style accumulation).
-      const pb = booking.priceBreakdown;
+      const receiptNo = `${booking.code}-R${(booking.extensions?.length ?? 0) + 1}`;
+      const at = new Date();
+      // $inc keeps the roll-up exact, and every additive part is rolled in so the totals still sum.
       await BookingModel.updateOne(
         { _id: bookingId },
         {
-          $set: {
-            'period.end': newEnd,
-            'priceBreakdown.total.amount': pb.total.amount + extra.total.amount,
-            'priceBreakdown.hostEarnings.amount': pb.hostEarnings.amount + extra.hostEarnings.amount,
-            'priceBreakdown.commission.amount': pb.commission.amount + extra.commission.amount,
-            'priceBreakdown.tax.amount': pb.tax.amount + extra.tax.amount,
-            'priceBreakdown.days': pb.days + extra.days,
+          $set: { 'period.end': newEnd },
+          $inc: {
+            'priceBreakdown.total.amount': extra.total.amount,
+            'priceBreakdown.hostEarnings.amount': extra.hostEarnings.amount,
+            'priceBreakdown.commission.amount': extra.commission.amount,
+            'priceBreakdown.tax.amount': extra.tax.amount,
+            'priceBreakdown.base.amount': extra.base.amount,
+            'priceBreakdown.subtotal.amount': extra.subtotal.amount,
+            'priceBreakdown.discount.amount': extra.discount.amount,
+            'priceBreakdown.cleaningFee.amount': extra.cleaningFee.amount,
+            'priceBreakdown.protection.amount': extra.protection.amount,
+            'priceBreakdown.taxTotal.amount': extra.taxTotal?.amount ?? 0,
+            'priceBreakdown.days': extra.days,
           },
-          $push: { statusHistory: { from: booking.status, to: booking.status, at: new Date(), by: userId, reason: `Extended to ${newEnd.toISOString()}` } },
+          $push: {
+            statusHistory: { from: booking.status, to: booking.status, at, by: userId, reason: `Extended to ${newEnd.toISOString()}` },
+            extensions: {
+              _id: uuid(),
+              prevEnd: booking.period.end,
+              newEnd,
+              days: extra.days,
+              total: extra.total,
+              hostEarnings: extra.hostEarnings,
+              commission: extra.commission,
+              tax: extra.tax,
+              parts: {
+                base: extra.base.amount,
+                discount: extra.discount.amount,
+                cleaningFee: extra.cleaningFee.amount,
+                protection: extra.protection.amount,
+                subtotal: extra.subtotal.amount,
+                taxTotal: extra.taxTotal?.amount ?? 0,
+              },
+              paymentId: charge.paymentId,
+              receiptNo,
+              createdAt: at,
+              ...(swap ? { swap } : {}),
+            },
+          },
         },
       );
-      emit(EVENTS.BOOKING_EXTENDED, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId, newEnd });
+      emit(EVENTS.BOOKING_EXTENDED, bookingId, {
+        bookingId,
+        guestId: booking.guestId,
+        hostId: booking.hostId,
+        newEnd,
+        days: extra.days,
+        receiptNo,
+        total: extra.total,
+        hostEarnings: extra.hostEarnings,
+      });
       return this.getDoc(bookingId);
     } catch (err) {
       await availabilityService.releaseHold(holdId);
-
       throw err;
     }
+  }
+
+  /** Split a quote into payment legs that sum to the total: protection and service fee ride in commission, rental tax in tax. */
+  private paymentSplit(b: PriceBreakdown): { hostEarnings: Money; commission: Money; tax: Money } {
+    const currency = b.currency;
+    return {
+      hostEarnings: b.hostEarnings,
+      commission: { amount: b.commission.amount + b.protection.amount + (b.serviceFee?.amount ?? 0), currency },
+      tax: { amount: b.tax.amount + (b.taxTotal?.amount ?? 0), currency },
+    };
+  }
+
+  /** A comparable car for the one paid, unstarted booking in the way, or null when no swap is allowed. */
+  private async findSwap(
+    booking: BookingDoc,
+    blockers: BlockingRow[],
+    cfg: { swapPolicy: 'auto' | 'off'; swapPriceToleranceBps: number; swapMaxAbsorbCents: number },
+  ): Promise<SwapPlan | null> {
+    if (cfg.swapPolicy !== 'auto') return null;
+    // One booked blocker and nothing else: never a host block, a checkout hold, or a pile-up.
+    if (blockers.some((r) => r.state !== 'booked' || !r.bookingId)) return null;
+    const ids = new Set(blockers.map((r) => r.bookingId!));
+    if (ids.size !== 1) return null;
+
+    const blocker = await BookingModel.findOne({ _id: [...ids][0], deletedAt: null }).lean<BookingDoc>();
+    if (
+      !blocker ||
+      blocker.status !== 'paid' ||
+      blocker.tripId ||
+      blocker.guestId === booking.guestId ||
+      blocker.vehicleId !== booking.vehicleId ||
+      blocker.period.start.getTime() <= Date.now() ||
+      blocker.delivery ||
+      (blocker.extensions?.length ?? 0) > 0
+    ) {
+      return null;
+    }
+
+    // One settled card payment, so re-splitting it is a single, exact ledger move.
+    const payments = await PaymentModel.find({ bookingId: blocker._id, type: 'booking' }).lean();
+    const [payment] = payments;
+    if (payments.length !== 1 || payment.status !== 'succeeded' || !payment.ledgerTxnId || payment.refundedAmount > 0) return null;
+    const paid = payment.amount;
+
+    const pb = blocker.priceBreakdown;
+    const addOnCodes = (pb.selectedAddOns ?? []).map((a) => a.code);
+    const candidates = await searchService.similarTo(blocker.vehicleId, {
+      start: blocker.period.start,
+      end: blocker.period.end,
+      limit: 12,
+    });
+
+    const options = (
+      await Promise.all(
+        candidates.map(async (candidate): Promise<SwapOption | null> => {
+          try {
+            const v = await vehicleService.getForBooking(candidate._id);
+            const hours = (blocker.period.end.getTime() - blocker.period.start.getTime()) / 3_600_000;
+            if (!v.bookable || !v.instantBook || hours < v.minTripHours || hours > v.maxTripHours) return null;
+            if (await documentComplianceService.hasExpiredMandatoryDoc(candidate._id)) return null;
+            if (!(await vehicleLifecycleService.isOperableForBooking(candidate._id))) return null;
+
+            const quote = await pricingService.quote({
+              vehicleId: candidate._id,
+              start: blocker.period.start,
+              end: blocker.period.end,
+              guestId: blocker.guestId,
+              protectionPlan: pb.protectionPlan,
+              addOnCodes,
+            });
+            if ((quote.selectedAddOns?.length ?? 0) !== addOnCodes.length) return null; // never drop what they paid for
+            const diff = quote.total.amount - paid;
+            if (Math.abs(diff) * 10_000 > paid * cfg.swapPriceToleranceBps) return null;
+            if (diff > cfg.swapMaxAbsorbCents) return null;
+            return { candidate, quote, absorb: Math.max(0, diff) };
+          } catch {
+            return null; // one unusable car must not sink the rest
+          }
+        }),
+      )
+    ).filter((o): o is SwapOption => o !== null);
+    if (options.length === 0) return null;
+
+    // The car that costs the platform least first; search order (category, rating) breaks ties.
+    options.sort((a, b) => a.absorb - b.absorb);
+    return { blocker, payment, paid, options };
+  }
+
+  /** Hold the new car, free the old days, run `extend`; if it fails, restore the old days and release the hold. */
+  private async moveVehicle<T>(
+    plan: SwapPlan,
+    ctx: { extenderBookingId: string; extensionEarnings: Money },
+    extend: (chosen: SwapOption) => Promise<T>,
+  ): Promise<T> {
+    const { blocker } = plan;
+    let chosen: SwapOption | null = null;
+    let holdId = '';
+    for (const option of plan.options) {
+      try {
+        holdId = await availabilityService.placeHold(option.candidate._id, blocker.period.start, blocker.period.end);
+        chosen = option;
+        break;
+      } catch (err) {
+        if ((err as { code?: string }).code !== 'NOT_AVAILABLE') throw err;
+      }
+    }
+    if (!chosen) throw new ConflictError('Vehicle is not available for the extended dates', 'NOT_AVAILABLE');
+
+    let detached: AvailabilityDoc[];
+    try {
+      detached = await availabilityService.detachBooking(blocker._id);
+    } catch (err) {
+      await availabilityService.releaseHold(holdId);
+      throw err;
+    }
+
+    let result: T;
+    try {
+      result = await extend(chosen);
+    } catch (err) {
+      try {
+        await availabilityService.restoreRows(detached);
+      } catch (restoreErr) {
+        logger.error({ err: restoreErr, bookingId: blocker._id }, 'could not restore the moved guest days after a failed extension');
+        emit(EVENTS.BOOKING_SWAP_FAILED, blocker._id, {
+          bookingId: blocker._id,
+          extenderBookingId: ctx.extenderBookingId,
+          stage: 'restore_days',
+          error: (restoreErr as Error).message,
+        });
+      }
+      await availabilityService.releaseHold(holdId);
+      throw err;
+    }
+
+    await this.finalizeSwap(plan, chosen, holdId, ctx);
+    return result;
+  }
+
+  /** Make the move true everywhere after the extension is paid; never throws, failures go to staff. */
+  private async finalizeSwap(
+    plan: SwapPlan,
+    chosen: SwapOption,
+    holdId: string,
+    ctx: { extenderBookingId: string; extensionEarnings: Money },
+  ): Promise<void> {
+    const { blocker, payment, paid } = plan;
+    const { candidate, quote } = chosen;
+    const at = new Date();
+    try {
+      await availabilityService.confirmHold(holdId, blocker._id);
+
+      const split = this.paymentSplit(quote);
+      const newEarnings = split.hostEarnings.amount;
+      const newTax = split.tax.amount;
+      // What the old legs put back, so the re-class balances by construction.
+      const settled = payment.hostEarnings + payment.commission + payment.tax;
+      const newRevenue = settled - newEarnings - newTax;
+      const shortfall = Math.max(0, -newRevenue);
+      const revenue = Math.max(0, newRevenue);
+
+      await BookingModel.updateOne(
+        { _id: blocker._id },
+        {
+          $set: {
+            vehicleId: candidate._id,
+            hostId: candidate.hostId,
+            'priceBreakdown.hostEarnings.amount': quote.hostEarnings.amount,
+            'priceBreakdown.commission.amount': quote.commission.amount,
+            'priceBreakdown.tax.amount': quote.tax.amount,
+            swap: {
+              fromVehicleId: blocker.vehicleId,
+              fromHostId: blocker.hostId,
+              toVehicleId: candidate._id,
+              toHostId: candidate.hostId,
+              reason: 'extension',
+              at,
+              extendedByBookingId: ctx.extenderBookingId,
+            },
+          },
+          $inc: { version: 1 },
+          $push: {
+            statusHistory: {
+              from: blocker.status,
+              to: blocker.status,
+              at,
+              by: 'system',
+              reason: 'Moved to a similar car so another guest could extend their trip',
+            },
+          },
+        },
+      );
+
+      await PaymentModel.updateMany(
+        { bookingId: blocker._id, type: 'booking' },
+        { $set: { hostId: candidate.hostId, hostEarnings: newEarnings, commission: revenue, tax: newTax } },
+      );
+
+      const legs: LedgerLeg[] = [
+        { account: Account.hostPayable(blocker.hostId), direction: 'credit', amount: payment.hostEarnings },
+        { account: Account.platformRevenue(), direction: 'credit', amount: payment.commission },
+        { account: Account.platformTax(), direction: 'credit', amount: payment.tax },
+        { account: Account.hostPayable(candidate.hostId), direction: 'debit', amount: newEarnings },
+        { account: Account.platformTax(), direction: 'debit', amount: newTax },
+        { account: Account.platformRevenue(), direction: 'debit', amount: revenue },
+        // The platform absorbs what the new car's split needs beyond what the guest paid.
+        { account: Account.guaranteeExpense(), direction: 'credit', amount: shortfall },
+      ];
+      await ledgerService.post({
+        txnId: `swap_${blocker._id}_${candidate._id}`,
+        refType: 'booking_swap',
+        refId: blocker._id,
+        currency: payment.currency,
+        description: `Booking ${blocker.code} moved to a similar car for another guest's extension`,
+        legs: legs.filter((l) => l.amount > 0),
+      });
+
+      emit(EVENTS.BOOKING_SWAPPED, blocker._id, {
+        bookingId: blocker._id,
+        guestId: blocker.guestId,
+        fromVehicleId: blocker.vehicleId,
+        fromHostId: blocker.hostId,
+        toVehicleId: candidate._id,
+        toHostId: candidate.hostId,
+        extendedByBookingId: ctx.extenderBookingId,
+        extensionEarnings: ctx.extensionEarnings,
+        paid,
+        absorbed: chosen.absorb,
+      });
+    } catch (err) {
+      logger.error({ err, bookingId: blocker._id }, 'booking swap could not be finalised');
+      emit(EVENTS.BOOKING_SWAP_FAILED, blocker._id, {
+        bookingId: blocker._id,
+        extenderBookingId: ctx.extenderBookingId,
+        toVehicleId: candidate._id,
+        stage: 'finalize',
+        error: (err as Error).message,
+      });
+    }
+  }
+
+  /** The original receipt plus one per extension, each summing to its own total; access follows `get`. */
+  async receipts(principal: Principal, bookingId: string): Promise<BookingReceipts> {
+    return this.buildReceipts(await this.get(principal, bookingId), true);
+  }
+
+  private async buildReceipts(b: BookingDoc, withPaymentRefs: boolean): Promise<BookingReceipts> {
+    const pb = b.priceBreakdown;
+    const cur = pb.currency;
+    const exts = b.extensions ?? [];
+    const sum = (pick: (e: BookingExtension) => number) => exts.reduce((s, e) => s + pick(e), 0);
+
+    const refs = new Map<string, string>();
+    if (withPaymentRefs) {
+      const ids = [b.paymentId, ...exts.map((e) => e.paymentId)].filter((x): x is string => !!x);
+      const rows = await PaymentModel.find({ _id: { $in: ids } }, { intentId: 1 }).lean<{ _id: string; intentId: string }[]>();
+      for (const r of rows) refs.set(String(r._id), r.intentId);
+    }
+
+    const lines = (
+      label: string,
+      parts: { base: number; discount: number; cleaningFee: number; protection: number; delivery?: number; addOns?: { label: string; amount: number }[] },
+      total: number,
+      protectionPlan?: string,
+    ): ReceiptLine[] => {
+      const out: ReceiptLine[] = [{ label, amount: parts.base }];
+      if (parts.cleaningFee) out.push({ label: 'Cleaning fee', amount: parts.cleaningFee });
+      if (parts.delivery) out.push({ label: 'Delivery', amount: parts.delivery });
+      for (const a of parts.addOns ?? []) out.push({ label: a.label, amount: a.amount });
+      if (parts.protection) out.push({ label: `Protection${protectionPlan ? ` · ${protectionPlan}` : ''}`, amount: parts.protection });
+      if (parts.discount) out.push({ label: 'Discounts', amount: -parts.discount });
+      // Whatever else was charged (service fee, rental tax), so the lines always add up to the total.
+      const rest = total - out.reduce((s, l) => s + l.amount, 0);
+      if (rest !== 0) out.push({ label: 'Service fee & taxes', amount: rest });
+      return out;
+    };
+
+    const originalTotal = pb.total.amount - sum((e) => e.total.amount);
+    const originalDays = pb.days - sum((e) => e.days);
+    const addOns = (pb.selectedAddOns ?? []).map((a) => ({ label: a.label, amount: a.amount.amount }));
+    const receipts: Receipt[] = [
+      {
+        receiptNo: `${b.code}-R0`,
+        kind: 'original',
+        issuedAt: b.createdAt,
+        period: { start: b.period.start, end: exts[0]?.prevEnd ?? b.period.end },
+        days: originalDays,
+        lines: lines(
+          `Rental · ${originalDays} day${originalDays === 1 ? '' : 's'}`,
+          {
+            base: (pb.base?.amount ?? 0) - sum((e) => e.parts.base),
+            discount: (pb.discount?.amount ?? 0) - sum((e) => e.parts.discount),
+            cleaningFee: (pb.cleaningFee?.amount ?? 0) - sum((e) => e.parts.cleaningFee),
+            protection: (pb.protection?.amount ?? 0) - sum((e) => e.parts.protection),
+            delivery: pb.delivery?.amount ?? 0,
+            addOns,
+          },
+          originalTotal,
+          pb.protectionPlan,
+        ),
+        total: { amount: originalTotal, currency: cur },
+        paymentRef: b.paymentId ? refs.get(b.paymentId) : undefined,
+      },
+      ...exts.map(
+        (e): Receipt => ({
+          receiptNo: e.receiptNo,
+          kind: 'extension',
+          extensionId: e._id,
+          issuedAt: e.createdAt,
+          period: { start: e.prevEnd, end: e.newEnd },
+          days: e.days,
+          lines: lines(`Extension · ${e.days} day${e.days === 1 ? '' : 's'}`, e.parts, e.total.amount, pb.protectionPlan),
+          total: e.total,
+          paymentRef: refs.get(e.paymentId),
+        }),
+      ),
+    ];
+
+    return {
+      bookingId: b._id,
+      code: b.code,
+      currency: cur,
+      receipts,
+      summary: { period: b.period, days: pb.days, total: pb.total },
+    };
   }
 
   /**
@@ -1295,7 +1741,7 @@ export class BookingService {
     }
 
     const removedStart = new Date(newEnd.getTime() + 86_400_000);
-    const removed = await pricingService.quote({ vehicleId: booking.vehicleId, start: removedStart, end: booking.period.end });
+    const removed = await pricingService.quote({ vehicleId: booking.vehicleId, start: removedStart, end: booking.period.end, skipOneTimeFees: true });
     return { available: true, refund: removed.total, newEnd: newEnd.toISOString() };
   }
 
@@ -1319,7 +1765,7 @@ export class BookingService {
 
     // Price only the released tail, refund it, and free those days for others.
     const removedStart = new Date(newEnd.getTime() + 86_400_000);
-    const removed = await pricingService.quote({ vehicleId: booking.vehicleId, start: removedStart, end: booking.period.end });
+    const removed = await pricingService.quote({ vehicleId: booking.vehicleId, start: removedStart, end: booking.period.end, skipOneTimeFees: true });
     if (removed.total.amount > 0) {
       await paymentService.refundBooking(bookingId, removed.total, `Trip shortened to ${newEnd.toISOString()}`);
     }
@@ -1657,10 +2103,13 @@ export class BookingService {
     total?: number;
     currency?: string;
     issuedAt?: Date;
+    receipts?: { receiptNo: string; kind: string; total: number; issuedAt: Date }[];
   }> {
     const b = await BookingModel.findOne({ _id: bookingId, deletedAt: null }).lean<BookingDoc>();
     if (!b) return { valid: false };
+    const { receipts } = await this.buildReceipts(b, false);
     return {
+      receipts: receipts.map((r) => ({ receiptNo: r.receiptNo, kind: r.kind, total: r.total.amount, issuedAt: r.issuedAt })),
       valid: true,
       code: b.code,
       status: b.status,

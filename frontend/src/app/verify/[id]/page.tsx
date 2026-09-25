@@ -48,6 +48,14 @@ export default function VerifyReceiptPage() {
               <Row label="Total" value={<span className="font-semibold">{formatMoney({ amount: data.total, currency: data.currency })}</span>} />
             )}
             {data.issuedAt && <Row label="Issued" value={formatDate(data.issuedAt)} />}
+            {data.receipts && data.receipts.length > 1 &&
+              data.receipts.map((r) => (
+                <Row
+                  key={r.receiptNo}
+                  label={<span className="font-mono text-xs">{r.receiptNo}</span>}
+                  value={formatMoney({ amount: r.total, currency: data.currency ?? 'USD' })}
+                />
+              ))}
           </dl>
         </div>
       ) : (
@@ -67,7 +75,7 @@ export default function VerifyReceiptPage() {
   );
 }
 
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
+function Row({ label, value }: { label: React.ReactNode; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-3">
       <dt className="text-muted-foreground">{label}</dt>

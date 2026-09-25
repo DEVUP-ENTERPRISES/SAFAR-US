@@ -117,6 +117,11 @@ class StripeIdentityProvider implements IdentityProvider {
 class StubIdentityProvider implements IdentityProvider {
   readonly kind = 'stub' as const;
   async createSession(userId: string): Promise<IdentitySession> {
+    // A stub session in production would let a guest believe they were verified; refuse loudly instead.
+    if (config.env === 'production') {
+      logger.error({ userId }, 'Identity verification is NOT configured (STRIPE_SECRET_KEY / STRIPE_IDENTITY_WEBHOOK_SECRET missing)');
+      throw new ExternalServiceError('Identity verification is temporarily unavailable. Please try again shortly.');
+    }
     logger.warn({ userId }, 'Identity: STUB session — no real verification will run');
     return { provider: 'stub', sessionId: `stub_${userId}_${Date.now()}`, url: 'about:blank' };
   }
@@ -129,4 +134,7 @@ export const identityProvider: IdentityProvider = config.kyc.identityEnabled
   ? new StripeIdentityProvider(config.stripe.secretKey!)
   : new StubIdentityProvider();
 
+if (config.env === 'production' && !config.kyc.identityEnabled) {
+  logger.error('Identity verification is DISABLED in production: set STRIPE_SECRET_KEY and STRIPE_IDENTITY_WEBHOOK_SECRET');
+}
 logger.info(`Identity verification: ${config.kyc.identityEnabled ? 'Stripe Identity (live)' : 'Stub (dev, manual review)'}`);

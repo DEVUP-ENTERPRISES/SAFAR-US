@@ -68,6 +68,8 @@ export interface QuoteInput {
   protectionPlan?: string;
   /** Who is booking — lets membership (CatoDrive Plus) benefits apply to the price. */
   guestId?: string;
+  /** Extending or shortening an existing trip: the cleaning fee was charged once at booking and must not repeat or be refunded. */
+  skipOneTimeFees?: boolean;
   /** Guest asks the host to deliver the car here (adds the host's delivery fee). */
   delivery?: DeliveryRequest;
 }

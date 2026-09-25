@@ -1,3 +1,4 @@
+import { logger } from '../../../infrastructure/logging/logger';
 import Stripe from 'stripe';
 import { PaymentMethodModel, type PaymentMethodDoc } from '../infrastructure/payment-method.model';
 import { config } from '../../../config';
@@ -78,11 +79,11 @@ export class PaymentMethodService {
       if (customer) {
         await this.stripe.paymentMethods
           .attach(card.stripePaymentMethodId, { customer })
-          .catch(() => undefined);
+          .catch((err) => logger.warn({ err, userId }, 'saved card could not be attached to the Stripe customer'));
         if (count === 0) {
           await this.stripe.customers
             .update(customer, { invoice_settings: { default_payment_method: card.stripePaymentMethodId } })
-            .catch(() => undefined);
+            .catch((err) => logger.warn({ err, userId }, 'saved card could not be made the customer default'));
         }
       }
     }

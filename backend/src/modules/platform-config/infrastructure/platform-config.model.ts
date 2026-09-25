@@ -356,6 +356,38 @@ export interface PlatformConfigDoc {
    * checkout hold survive — operational policy that trades conversion against
    * inventory certainty, so ops owns it.
    */
+  /**
+   * Condition photos: when they may be taken, how many are required, and how
+   * far from the handover point they may be. Ops tunes these without a deploy.
+   */
+  inspection: {
+    /** Pre-trip photos open this long before pickup. */
+    preWindowMinutes: number;
+    /** Post-trip photos open this long before the return time. */
+    postWindowMinutes: number;
+    /** Minimum handover photos before the trip can start; 0 = not required. */
+    minPrePhotos: number;
+    /** Minimum return photos before the trip can be completed. */
+    minReturnPhotos: number;
+    /** Hard cap per phase, so a runaway client cannot fill storage. */
+    maxPhotosPerPhase: number;
+    /** A photo must carry a GPS fix. */
+    requireLocation: boolean;
+    /** Reject a photo taken farther than this from the pickup point; 0 = do not check. */
+    maxDistanceMeters: number;
+  };
+  /** Extending a trip, and what happens when the next guest is in the way. */
+  extension: {
+    enabled: boolean;
+    /** Longest single extension, in days. */
+    maxDays: number;
+    /** 'auto' moves the next guest to a comparable car; 'off' just declines the extension. */
+    swapPolicy: 'auto' | 'off';
+    /** A replacement car may price this far above or below the original (basis points). */
+    swapPriceToleranceBps: number;
+    /** The most the platform absorbs when the replacement car costs more (minor units). */
+    swapMaxAbsorbCents: number;
+  };
   booking: {
     hostApprovalHours: number;
     verificationGraceHours: number;
@@ -622,6 +654,22 @@ const schema = new Schema<PlatformConfigDoc>(
         type: [{ key: String, label: String, min: Number, earnMultiplierBps: Number }],
         default: undefined, // absent → the service's default ladder applies
       },
+    },
+    inspection: {
+      preWindowMinutes: { type: Number, default: 60 },
+      postWindowMinutes: { type: Number, default: 30 },
+      minPrePhotos: { type: Number, default: 4 },
+      minReturnPhotos: { type: Number, default: 2 },
+      maxPhotosPerPhase: { type: Number, default: 30 },
+      requireLocation: { type: Boolean, default: true },
+      maxDistanceMeters: { type: Number, default: 0 },
+    },
+    extension: {
+      enabled: { type: Boolean, default: true },
+      maxDays: { type: Number, default: 30 },
+      swapPolicy: { type: String, enum: ['auto', 'off'], default: 'auto' },
+      swapPriceToleranceBps: { type: Number, default: 1500 },
+      swapMaxAbsorbCents: { type: Number, default: 5000 },
     },
     booking: {
       hostApprovalHours: { type: Number, default: 24 },

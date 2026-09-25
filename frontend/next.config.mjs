@@ -26,7 +26,8 @@ const nextConfig = {
           { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), payment=(), usb=(), interest-cohort=()' },
+          // Camera is needed by our own condition-photo capture and by Stripe Identity's document/selfie step, which runs in a Stripe iframe; blocking it there breaks live verification.
+          { key: 'Permissions-Policy', value: 'camera=(self "https://js.stripe.com" "https://verify.stripe.com"), microphone=(self "https://js.stripe.com" "https://verify.stripe.com"), geolocation=(self), payment=(self "https://js.stripe.com"), usb=(), interest-cohort=()' },
           // HSTS: once on HTTPS, never silently downgrade to HTTP. Safe because
           // production is TLS-only behind Cloudflare/Nginx.
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },

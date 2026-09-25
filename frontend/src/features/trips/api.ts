@@ -1,5 +1,57 @@
 import { api } from '@/lib/api/client';
 
+export type PhotoPhase = 'pre' | 'post';
+
+/** A stored condition photo. Read-only: there is no edit or delete anywhere in the API. */
+export interface TripPhoto {
+  url: string;
+  key?: string;
+  phase: PhotoPhase;
+  byUserId: string;
+  at: string;
+  angle?: string;
+  lat?: number;
+  lng?: number;
+  accuracyM?: number;
+  role?: 'guest' | 'host';
+}
+
+export interface PhaseState {
+  opensAt: string;
+  closesAt: string | null;
+  open: boolean;
+  reason: 'not_yet' | 'closed' | 'no_trip' | null;
+  required: number;
+  taken: number;
+  max: number;
+}
+
+export interface InspectionState {
+  bookingId: string;
+  tripId?: string;
+  code: string;
+  vehicleLabel: string;
+  plate?: string;
+  role: 'guest' | 'host';
+  requireLocation: boolean;
+  angles: { id: string; label: string }[];
+  pre: PhaseState;
+  post: PhaseState;
+  photos: TripPhoto[];
+}
+
+/** What the camera sends with each photo; the server sets the time and author itself. */
+export interface PhotoMeta {
+  url: string;
+  key: string;
+  angle: string;
+  lat?: number;
+  lng?: number;
+  accuracyM?: number;
+  capturedAtClient?: string;
+  sha256?: string;
+}
+
 export interface Trip {
   _id: string;
   bookingId: string;
@@ -12,7 +64,9 @@ export interface Trip {
   return?: { at: string; odometerEnd?: number; fuelEnd?: number };
   liveLocation?: { coordinates: [number, number]; updatedAt: string };
   /** Condition photos. `pre` = pickup, `post` = return — the damage baseline. */
-  photos?: { url: string; key?: string; phase: 'pre' | 'post'; byUserId: string; at: string }[];
+  photos?: TripPhoto[];
+  /** Window and count state for both photo phases; present for the guest and host of the trip. */
+  inspection?: InspectionState | null;
   damageReports: { description: string; photos: string[]; at: string }[];
   distanceKm: number;
   carbon?: {
@@ -40,8 +94,10 @@ export const tripApi = {
     api.post<Trip>(`/trips/${id}/complete`, { odometerEnd, fuelEnd }),
   updateLocation: (id: string, lng: number, lat: number) =>
     api.post<{ updated: boolean }>(`/trips/${id}/location`, { lng, lat }),
-  addPhotos: (id: string, phase: 'pre' | 'post', photos: { url: string; key?: string }[]) =>
-    api.post<Trip>(`/trips/${id}/photos`, { phase, photos }),
+  /** Keyed by booking, so pickup photos work before the trip exists. */
+  inspection: (bookingId: string) => api.get<InspectionState>(`/trips/booking/${bookingId}/inspection`),
+  addPhotos: (bookingId: string, phase: PhotoPhase, photos: PhotoMeta[]) =>
+    api.post<InspectionState>(`/trips/booking/${bookingId}/photos`, { phase, photos }),
   reportDamage: (id: string, description: string, photos: string[]) =>
     api.post<Trip>(`/trips/${id}/damage`, { description, photos }),
   sos: (id: string) => api.post<{ alerted: boolean }>(`/trips/${id}/sos`),

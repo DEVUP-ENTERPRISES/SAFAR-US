@@ -5,6 +5,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { connectSocket } from '@/lib/realtime/socket';
 import { tripApi } from './api';
 
+export function useInspection(bookingId: string) {
+  return useQuery({ queryKey: ['inspection', bookingId], queryFn: () => tripApi.inspection(bookingId), enabled: !!bookingId, refetchInterval: 60_000 });
+}
+
 export function useTrip(id: string) {
   const qc = useQueryClient();
   const query = useQuery({ queryKey: ['trip', id], queryFn: () => tripApi.get(id), enabled: !!id });

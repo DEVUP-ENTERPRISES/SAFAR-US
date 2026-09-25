@@ -23,6 +23,7 @@ export interface HostTrip {
     hostEarnings: number;
     total: number;
   };
+  extensions: { _id: string; days: number; prevEnd: string; newEnd: string; hostEarnings: number; createdAt: string }[];
   pickupAddress?: string;
   isDelivery: boolean;
   delivery?: { mode: string; address: string; flightNumber?: string; terminal?: string; arrivesAt?: string };
@@ -43,8 +44,6 @@ export const hostTripsApi = {
   /** Creates the trip — there is no trip to hand over to before this runs. */
   start: (bookingId: string, body: { odometerStart: number; fuelStart?: number; notes?: string }) =>
     api.post<{ _id: string }>('/trips/start', { bookingId, ...body }),
-  addPhotos: (tripId: string, phase: 'pre' | 'post', photos: { url: string; key?: string }[]) =>
-    api.post(`/trips/${tripId}/photos`, { phase, photos }),
   complete: (tripId: string, body: { odometerEnd?: number; fuelEnd?: number; notes?: string }) =>
     api.post(`/trips/${tripId}/complete`, body),
   reportDamage: (tripId: string, description: string, photos: string[]) =>

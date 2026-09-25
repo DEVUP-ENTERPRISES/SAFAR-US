@@ -1,5 +1,5 @@
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
-import { AvailabilityModel } from '../infrastructure/availability.model';
+import { AvailabilityModel, type AvailabilityDoc } from '../infrastructure/availability.model';
 import { ConflictError } from '../../../core/errors/app-error';
 import { randomId } from '../../../shared/utils/uuid';
 import type { IAvailabilityContract } from '../../../core/contracts/availability.contract';
@@ -11,7 +11,7 @@ const holdTtlMs = async (): Promise<number> =>
   (await platformConfigService.get()).booking.checkoutHoldMinutes * 60 * 1000;
 
 /** Enumerate the UTC day keys occupied by a [start, end] rental (inclusive). */
-function dayKeys(start: Date, end: Date): string[] {
+export function dayKeys(start: Date, end: Date): string[] {
   const keys: string[] = [];
   const d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
   const last = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
@@ -22,10 +22,22 @@ function dayKeys(start: Date, end: Date): string[] {
   return keys;
 }
 
-function addDays(d: Date, n: number): Date {
+export function addDays(d: Date, n: number): Date {
   const out = new Date(d);
   out.setUTCDate(out.getUTCDate() + n);
   return out;
+}
+
+/** The first UTC day after the one `d` falls on, at 00:00 — where an extension's extra days begin. */
+export function dayAfter(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1));
+}
+
+export interface BlockingRow {
+  dayKey: string;
+  state: 'blocked' | 'held' | 'booked';
+  bookingId?: string;
+  holdId?: string;
 }
 
 export class AvailabilityService implements IAvailabilityContract {
@@ -51,24 +63,54 @@ export class AvailabilityService implements IAvailabilityContract {
     start: Date,
     end: Date,
     excludeHoldId?: string,
+    excludeBookingId?: string,
   ): Promise<boolean> {
     // Widen the window by the host's turnaround so a new trip cannot start
     // inside the gap they keep for cleaning and servicing. Checked here rather
     // than written into the calendar so a host can change the setting without
     // rewriting every future day.
+    return (await this.blockingRows(vehicleId, start, end, { excludeHoldId, excludeBookingId }, 1)).length === 0;
+  }
+
+  /** Every live row in the way of the range, with isAvailable's turnaround widening. */
+  async blockingRows(
+    vehicleId: string,
+    start: Date,
+    end: Date,
+    opts: { excludeHoldId?: string; excludeBookingId?: string } = {},
+    limit = 200,
+  ): Promise<BlockingRow[]> {
     const turnaround = await this.turnaroundDays(vehicleId);
     const keys = turnaround > 0 ? dayKeys(addDays(start, -turnaround), addDays(end, turnaround)) : dayKeys(start, end);
     const now = new Date();
-    const blocking = await AvailabilityModel.findOne({
-      vehicleId,
-      dayKey: { $in: keys },
-      ...(excludeHoldId ? { holdId: { $ne: excludeHoldId } } : {}),
-      $or: [
-        { state: { $in: ['blocked', 'booked'] } },
-        { state: 'held', holdExpiresAt: { $gt: now } },
-      ],
-    }).lean();
-    return !blocking;
+    return AvailabilityModel.find(
+      {
+        vehicleId,
+        dayKey: { $in: keys },
+        ...(opts.excludeHoldId ? { holdId: { $ne: opts.excludeHoldId } } : {}),
+        ...(opts.excludeBookingId ? { bookingId: { $ne: opts.excludeBookingId } } : {}),
+        $or: [
+          { state: { $in: ['blocked', 'booked'] } },
+          { state: 'held', holdExpiresAt: { $gt: now } },
+        ],
+      },
+      { dayKey: 1, state: 1, bookingId: 1, holdId: 1 },
+    )
+      .limit(limit)
+      .lean<BlockingRow[]>();
+  }
+
+  /** Take a booking's days off the calendar, returning them so they can be put back. */
+  async detachBooking(bookingId: string): Promise<AvailabilityDoc[]> {
+    const rows = await AvailabilityModel.find({ bookingId }).lean<AvailabilityDoc[]>();
+    await AvailabilityModel.deleteMany({ bookingId });
+    return rows;
+  }
+
+  /** Put back rows removed by detachBooking (a rolled-back swap). */
+  async restoreRows(rows: AvailabilityDoc[]): Promise<void> {
+    if (rows.length === 0) return;
+    await AvailabilityModel.insertMany(rows, { ordered: true });
   }
 
   /**

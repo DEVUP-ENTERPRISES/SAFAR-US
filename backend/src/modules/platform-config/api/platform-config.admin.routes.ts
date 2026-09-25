@@ -104,6 +104,26 @@ router.put(
           overdueGraceMinutes: z.number().int().min(0).max(720).optional(),
         })
         .optional(),
+      inspection: z
+        .object({
+          preWindowMinutes: z.number().int().min(0).max(1440).optional(),
+          postWindowMinutes: z.number().int().min(0).max(1440).optional(),
+          minPrePhotos: z.number().int().min(0).max(30).optional(),
+          minReturnPhotos: z.number().int().min(0).max(30).optional(),
+          maxPhotosPerPhase: z.number().int().min(1).max(100).optional(),
+          requireLocation: z.boolean().optional(),
+          maxDistanceMeters: z.number().int().min(0).max(100000).optional(),
+        })
+        .optional(),
+      extension: z
+        .object({
+          enabled: z.boolean().optional(),
+          maxDays: z.number().int().min(1).max(365).optional(),
+          swapPolicy: z.enum(['auto', 'off']).optional(),
+          swapPriceToleranceBps: bps.optional(),
+          swapMaxAbsorbCents: cents.optional(),
+        })
+        .optional(),
       noShow: z
         .object({ graceHours: z.number().int().min(0).max(72).optional(), guestForfeitBps: bps.optional() })
         .optional(),

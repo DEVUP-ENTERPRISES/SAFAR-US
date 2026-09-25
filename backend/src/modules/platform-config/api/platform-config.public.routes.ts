@@ -35,6 +35,7 @@ router.get(
         multiplierBps: cfg.deposit.multiplierBps,
       },
       pricing: cfg.pricing,
+      inspection: cfg.inspection,
       protection: cfg.protection,
       hostTakeRateBps: cfg.commission.defaultBps,
       // The client needs the current Terms version to display + submit on

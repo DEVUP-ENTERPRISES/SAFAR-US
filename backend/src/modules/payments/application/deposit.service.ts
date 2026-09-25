@@ -1,4 +1,6 @@
 import { PaymentModel } from '../infrastructure/payment.model';
+import { PaymentMethodModel } from '../infrastructure/payment-method.model';
+import { paymentMethodService } from './payment-method.service';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { paymentGateway } from '../infrastructure/gateway.provider';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
@@ -90,13 +92,31 @@ export class DepositService {
       return { placed: false, amount };
     }
 
-    const intent = await paymentGateway.createIntent({
-      userId: input.userId,
-      amount,
-      capture: false, // authorisation only — never charged unless claimed against
-      idempotencyKey: `deposit_${input.bookingId}`,
-      metadata: { bookingId: input.bookingId, kind: 'security_deposit' },
-    });
+    // An intent with no card attached never holds anything: it needs the guest's saved card, confirmed off-session.
+    const [card, customerId] = await Promise.all([
+      PaymentMethodModel.findOne({ userId: input.userId, isDefault: true }).lean<{ stripePaymentMethodId?: string }>(),
+      paymentMethodService.customerFor(input.userId).catch(() => null),
+    ]);
+    let intent;
+    try {
+      intent = await paymentGateway.createIntent({
+        userId: input.userId,
+        amount,
+        capture: false, // authorisation only — never charged unless claimed against
+        idempotencyKey: `deposit_${input.bookingId}`,
+        metadata: { bookingId: input.bookingId, kind: 'security_deposit' },
+        customerId: customerId ?? undefined,
+        paymentMethodId: card?.stripePaymentMethodId,
+      });
+    } catch (err) {
+      logger.warn({ err, bookingId: input.bookingId }, 'DEPOSIT NOT PLACED — the card refused the hold');
+      return { placed: false, amount };
+    }
+    if (intent.status !== 'requires_capture') {
+      await paymentGateway.cancel(intent.intentId).catch(() => undefined);
+      logger.warn({ bookingId: input.bookingId, status: intent.status }, 'DEPOSIT NOT PLACED — no card could be held');
+      return { placed: false, amount };
+    }
 
     await PaymentModel.create({
       _id: uuid(),

@@ -134,6 +134,15 @@ router.get(
   }),
 );
 
+/** The original receipt plus one per extension, for the guest, the host or an admin. */
+router.get(
+  '/:id/receipts',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.receipts(req.principal!, req.params.id));
+  }),
+);
+
 router.post(
   '/:id/confirm',
   authenticate,

@@ -34,12 +34,17 @@ export const EVENTS = {
   BOOKING_REMINDER: 'booking.reminder',
   BOOKING_EXTENDED: 'booking.extended',
   BOOKING_SHORTENED: 'booking.shortened',
+  /** A booking was moved to a comparable car to make room for another guest's extension. */
+  BOOKING_SWAPPED: 'booking.swapped',
+  /** A swap left something half-done that staff must reconcile. */
+  BOOKING_SWAP_FAILED: 'booking.swap_failed',
   BOOKING_GUEST_NO_SHOW: 'booking.guest_no_show',
   BOOKING_HOST_NO_SHOW: 'booking.host_no_show',
   BOOKING_REBOOKING_NEEDED: 'booking.rebooking_needed',
 
   TRIP_STARTED: 'trip.started',
   TRIP_COMPLETED: 'trip.completed',
+  TRIP_RETURN_WINDOW_OPEN: 'trip.return_window.open',
 
   PAYMENT_SUCCEEDED: 'payment.succeeded',
   PAYMENT_REFUNDED: 'payment.refunded',

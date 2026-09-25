@@ -89,6 +89,8 @@ export default function AdminEconomicsPage() {
         verification: draft.verification,
         booking: draft.booking,
         tracking: draft.tracking,
+        inspection: draft.inspection,
+        extension: draft.extension,
       });
     }
   };
@@ -320,6 +322,85 @@ export default function AdminEconomicsPage() {
           <Field label="Price lock (minutes)" hint="How long a quoted price stays valid.">
             <Input type="number" min={1} max={120} value={draft.booking.priceLockMinutes}
               onChange={(e) => set((d) => { d.booking.priceLockMinutes = Number(e.target.value); })} />
+          </Field>
+        </CardContent>
+      </Card>
+
+      {/* Condition photos */}
+      <Card className="rounded-2xl shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Car className="h-5 w-5 text-primary" /> Trip condition photos</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Photos are taken in the app camera only, stamped with time and location, and cannot be changed afterwards.
+            These settings decide when they may be taken and how many are required.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="Pre-trip opens (minutes before pickup)">
+            <Input type="number" min={0} max={1440} value={draft.inspection.preWindowMinutes}
+              onChange={(e) => set((d) => { d.inspection.preWindowMinutes = Number(e.target.value); })} />
+          </Field>
+          <Field label="Return photos open (minutes before return)">
+            <Input type="number" min={0} max={1440} value={draft.inspection.postWindowMinutes}
+              onChange={(e) => set((d) => { d.inspection.postWindowMinutes = Number(e.target.value); })} />
+          </Field>
+          <Field label="Pre-trip photos required" hint="0 = not required to start.">
+            <Input type="number" min={0} max={30} value={draft.inspection.minPrePhotos}
+              onChange={(e) => set((d) => { d.inspection.minPrePhotos = Number(e.target.value); })} />
+          </Field>
+          <Field label="Return photos required">
+            <Input type="number" min={0} max={30} value={draft.inspection.minReturnPhotos}
+              onChange={(e) => set((d) => { d.inspection.minReturnPhotos = Number(e.target.value); })} />
+          </Field>
+          <Field label="Max photos per phase">
+            <Input type="number" min={1} max={100} value={draft.inspection.maxPhotosPerPhase}
+              onChange={(e) => set((d) => { d.inspection.maxPhotosPerPhase = Number(e.target.value); })} />
+          </Field>
+          <Field label="Max distance from pickup (metres)" hint="0 = do not check.">
+            <Input type="number" min={0} max={100000} value={draft.inspection.maxDistanceMeters}
+              onChange={(e) => set((d) => { d.inspection.maxDistanceMeters = Number(e.target.value); })} />
+          </Field>
+          <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
+            <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.inspection.requireLocation}
+              onChange={(e) => set((d) => { d.inspection.requireLocation = e.target.checked; })} />
+            Location required on every photo
+          </label>
+        </CardContent>
+      </Card>
+
+      {/* Extensions & swaps */}
+      <Card className="rounded-2xl shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Extensions &amp; swaps</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            When a guest extends into the next guest's booking, the next guest can be moved to a comparable car
+            so both trips go ahead.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
+            <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.extension.enabled}
+              onChange={(e) => set((d) => { d.extension.enabled = e.target.checked; })} />
+            Guests may extend trips
+          </label>
+          <Field label="Longest extension (days)">
+            <Input type="number" min={1} max={365} value={draft.extension.maxDays}
+              onChange={(e) => set((d) => { d.extension.maxDays = Number(e.target.value); })} />
+          </Field>
+          <Field label="Swap the next guest">
+            <Select value={draft.extension.swapPolicy}
+              onChange={(e) => set((d) => { d.extension.swapPolicy = e.target.value as 'auto' | 'off'; })}>
+              <option value="auto">Automatically to a comparable car</option>
+              <option value="off">Never - decline the extension</option>
+            </Select>
+          </Field>
+          <Field label="Replacement price tolerance %" hint="How far above or below the original price.">
+            <Input type="number" step="0.5" min={0} max={100} value={toPct(draft.extension.swapPriceToleranceBps)}
+              onChange={(e) => set((d) => { d.extension.swapPriceToleranceBps = toBps(e.target.value); })} />
+          </Field>
+          <Field label="Max platform absorbs ($)" hint="When the replacement car costs more.">
+            <Input type="number" step="0.01" min={0} value={toDollars(draft.extension.swapMaxAbsorbCents)}
+              onChange={(e) => set((d) => { d.extension.swapMaxAbsorbCents = toCents(e.target.value); })} />
           </Field>
         </CardContent>
       </Card>

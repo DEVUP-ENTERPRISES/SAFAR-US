@@ -40,6 +40,8 @@ export interface HostTrip {
     hostEarnings: number;
     total: number;
   };
+  /** Each paid extension and what it added to the host's earnings. */
+  extensions: { _id: string; days: number; prevEnd: Date; newEnd: Date; hostEarnings: number; createdAt: Date }[];
   pickupAddress?: string;
   isDelivery: boolean;
   /**
@@ -233,6 +235,14 @@ export class HostTripsService {
           hostEarnings: b.priceBreakdown.hostEarnings.amount,
           total: b.priceBreakdown.total.amount,
         },
+        extensions: (b.extensions ?? []).map((e) => ({
+          _id: e._id,
+          days: e.days,
+          prevEnd: e.prevEnd,
+          newEnd: e.newEnd,
+          hostEarnings: e.hostEarnings.amount,
+          createdAt: e.createdAt,
+        })),
         pickupAddress: b.delivery?.address ?? v?.location?.address,
         isDelivery: !!b.delivery,
         delivery: b.delivery

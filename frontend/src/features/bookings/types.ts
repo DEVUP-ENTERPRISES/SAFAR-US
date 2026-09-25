@@ -54,7 +54,29 @@ export type BookingStatus =
   | 'expired'
   | 'disputed';
 
+export interface BookingExtension {
+  _id: string;
+  prevEnd: string;
+  newEnd: string;
+  days: number;
+  total: Money;
+  hostEarnings: Money;
+  receiptNo: string;
+  createdAt: string;
+}
+
+export interface BookingSwap {
+  fromVehicleId: string;
+  toVehicleId: string;
+  reason: 'extension';
+  at: string;
+}
+
 export interface Booking {
+  /** One entry per paid extension, oldest first. */
+  extensions?: BookingExtension[];
+  /** Set when the platform moved this trip to a comparable car (same dates, same price). */
+  swap?: BookingSwap;
   /** Post-trip charges. Each carries an id and status so it can be disputed. */
   incidentals?: {
     _id: string; type: string; amount: number; qty?: number; note?: string;

@@ -24,17 +24,16 @@ export class PaymentService implements IPaymentContract {
     // Idempotency: a retry with the same key returns the existing payment.
     const existing = await PaymentModel.findOne({ idempotencyKey: input.idempotencyKey }).lean();
     if (existing) {
-      const intent = await paymentGateway.createIntent({
-        amount: input.total,
-        userId: input.guestId,
-        capture: input.capture,
-        idempotencyKey: input.idempotencyKey,
-      });
+      // Look the intent up instead of creating it again: re-sending an idempotency key with different parameters is rejected by Stripe.
+      const intent = existing.intentId.startsWith('wallet_')
+        ? { clientSecret: '', status: 'succeeded' as const }
+        : await paymentGateway.retrieveIntent(existing.intentId);
       return {
         paymentId: existing._id,
         intentId: existing.intentId,
         clientSecret: intent.clientSecret,
         status: existing.status,
+        requiresAction: intent.status === 'requires_action',
       };
     }
 
