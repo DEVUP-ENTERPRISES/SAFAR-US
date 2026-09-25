@@ -11,7 +11,11 @@ import { HostModel } from '../../hosts/infrastructure/host.model';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
 import { config } from '../../../config';
 
-beforeAll(connectTestDb);
+beforeAll(async () => {
+  // The report finds the fleet by configured email; CI has no .env, so pin one.
+  (config.houseFleet as { email?: string }).email = 'fleet@test.local';
+  await connectTestDb();
+});
 afterAll(disconnectTestDb);
 beforeEach(clearTestDb);
 

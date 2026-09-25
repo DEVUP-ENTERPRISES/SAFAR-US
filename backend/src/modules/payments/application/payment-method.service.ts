@@ -46,18 +46,28 @@ export class PaymentMethodService {
 
   /** Returns a client secret to collect a card (Stripe) or a mock handle (dev). */
   async setupIntent(userId: string): Promise<{ provider: 'mock' | 'stripe'; clientSecret: string }> {
-    if (this.stripe) {
+    if (!this.stripe) return { provider: 'mock', clientSecret: `seti_mock_${randomId()}` };
+    const create = async () => {
       const customer = await this.customerFor(userId);
-      const intent = await this.stripe.setupIntents.create({
+      return this.stripe!.setupIntents.create({
         // Without the customer the card is collected and then unusable later.
         customer: customer ?? undefined,
         metadata: { userId },
         usage: 'off_session',
         payment_method_types: ['card'],
       });
-      return { provider: 'stripe', clientSecret: intent.client_secret! };
+    };
+    let intent;
+    try {
+      intent = await create();
+    } catch (err) {
+      // A customer id saved under another Stripe account/mode (e.g. test keys) no longer exists: forget it and make a fresh one.
+      if ((err as { code?: string }).code !== 'resource_missing') throw err;
+      logger.warn({ userId }, 'stored Stripe customer not found, creating a new one');
+      await UserModel.updateOne({ _id: userId }, { $unset: { stripeCustomerId: 1 } });
+      intent = await create();
     }
-    return { provider: 'mock', clientSecret: `seti_mock_${randomId()}` };
+    return { provider: 'stripe', clientSecret: intent.client_secret! };
   }
 
   /** The saved card and Stripe customer to charge off-session, or null when there is none (or no live gateway). */
