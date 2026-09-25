@@ -22,7 +22,7 @@ import { ApiError } from '@/lib/api/types';
 import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
 import { SimilarCars } from '@/features/vehicles/components/similar-cars';
-import { usePlatformConfig, describeCancellation } from '@/features/platform/config';
+import { usePlatformConfig, describeCancellation, leadMinutes } from '@/features/platform/config';
 import { useRecentlyViewed } from '@/features/vehicles/recently-viewed';
 import { useQuote, useCreateBooking } from '@/features/bookings/hooks';
 import { bookingApi } from '@/features/bookings/api';
@@ -796,6 +796,7 @@ export default function VehicleDetailPage() {
               <TripDatesField
                 start={start}
                 end={end}
+                earliest={new Date(Date.now() + leadMinutes(platformCfg.data, v.listing?.advanceNoticeHours ?? 0) * 60_000)}
                 onChange={(s2, e2) => { setStart(s2); setEnd(e2); }}
               />
               <div className="p-3">

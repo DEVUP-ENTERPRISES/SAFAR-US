@@ -142,6 +142,11 @@ export interface BookingDoc {
   /** SHA-256 of the guest's pickup code — the host verifies it at handover to
    *  prove the guest is physically present. Never stored in the clear. */
   pickupCodeHash?: string;
+  /** The host side verified the pickup code (set before the trip exists). */
+  pickupVerifiedAt?: Date;
+  pickupVerifiedBy?: string;
+  /** Wrong code entries since the code was issued; locks at handover.maxCodeAttempts. */
+  pickupCodeAttempts?: number;
   /** Why this booking is held at pending_verification, for the guest's UI. */
   verificationBlockers?: string[];
   holdId?: string;
@@ -306,6 +311,9 @@ const schema = new Schema<BookingDoc>(
       default: [],
     },
     pickupCodeHash: String,
+    pickupVerifiedAt: Date,
+    pickupVerifiedBy: String,
+    pickupCodeAttempts: { type: Number, default: 0 },
     verificationBlockers: { type: [String], default: [] },
     holdId: String,
     paymentId: String,

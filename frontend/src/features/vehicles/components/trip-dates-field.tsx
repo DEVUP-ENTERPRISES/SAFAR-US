@@ -30,10 +30,13 @@ export function TripDatesField({
   start,
   end,
   onChange,
+  earliest,
 }: {
   start: string;
   end: string;
   onChange: (start: string, end: string) => void;
+  /** Soonest a trip can start (platform lead time or the car's notice). */
+  earliest?: Date;
 }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
@@ -93,13 +96,14 @@ export function TripDatesField({
         // Anchored to the panel rather than the field, so it cannot spill off
         // the side of a phone. The panel itself is only 400px on desktop.
         <div className="absolute inset-x-0 top-full z-40 mt-2 rounded-2xl border border-border bg-card p-4 shadow-2xl">
-          <DateRangePicker compact from={dateOf(start)} to={dateOf(end)} onChange={setDates} />
+          <DateRangePicker compact earliest={earliest} from={dateOf(start)} to={dateOf(end)} onChange={setDates} />
 
           <div className="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-3">
             <TimeField
               label="Pick-up"
               value={timeOf(start)}
               onChange={(t) => onChange(join(dateOf(start), t), end)}
+              tooSoon={(t) => !!earliest && !!dateOf(start) && new Date(join(dateOf(start), t)).getTime() < earliest.getTime()}
             />
             <TimeField
               label="Return"
@@ -125,10 +129,12 @@ function TimeField({
   label,
   value,
   onChange,
+  tooSoon,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  tooSoon?: (t: string) => boolean;
 }) {
   return (
     <div>
@@ -138,9 +144,10 @@ function TimeField({
           <button
             key={t}
             type="button"
+            disabled={tooSoon?.(t)}
             onClick={() => onChange(t)}
             className={cn(
-              'numeric rounded-lg px-2 py-1 text-xs font-medium transition-colors',
+              'numeric rounded-lg px-2 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-30',
               value === t ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/70',
             )}
           >

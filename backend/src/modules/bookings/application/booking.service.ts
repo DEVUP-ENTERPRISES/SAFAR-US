@@ -1,4 +1,4 @@
-import { createHash, randomInt } from 'crypto';
+import { createHash, randomInt, timingSafeEqual } from 'crypto';
 import { BookingModel, type BookingDoc, type BookingExtension } from '../infrastructure/booking.model';
 import { PaymentModel, type PaymentDoc } from '../../payments/infrastructure/payment.model';
 import type { AvailabilityDoc } from '../../availability/infrastructure/availability.model';
@@ -195,14 +195,13 @@ export class BookingService {
     // Advance notice: the host needs lead time before a trip can start. A start
     // sooner than that is rejected — checked against wall-clock now, not the
     // booking time, so a request that sat in a form for an hour is judged fresh.
-    if (vehicle.advanceNoticeHours > 0) {
-      const earliestStart = Date.now() + vehicle.advanceNoticeHours * 3_600_000;
-      if (start.getTime() < earliestStart) {
-        throw new ConflictError(
-          `This car needs at least ${vehicle.advanceNoticeHours} hours' notice before a trip starts.`,
-          'ADVANCE_NOTICE',
-        );
-      }
+    const noticeMinutes = Math.max(
+      (await platformConfigService.get()).booking.minLeadMinutes,
+      (vehicle.advanceNoticeHours ?? 0) * 60,
+    );
+    if (noticeMinutes > 0 && start.getTime() < Date.now() + noticeMinutes * 60_000) {
+      const label = noticeMinutes % 60 === 0 ? `${noticeMinutes / 60} hour${noticeMinutes === 60 ? '' : 's'}` : `${noticeMinutes} minutes`;
+      throw new ConflictError(`This car must be booked at least ${label} before pickup. Pick a later start time.`, 'ADVANCE_NOTICE');
     }
 
     if (!(await availabilityService.isAvailable(dto.vehicleId, start, end))) {
@@ -861,15 +860,51 @@ export class BookingService {
     }
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     const hash = createHash('sha256').update(code).digest('hex');
-    await BookingModel.updateOne({ _id: bookingId }, { pickupCodeHash: hash });
+    // A new code starts clean: attempts reset and any earlier verification no longer counts.
+    await BookingModel.updateOne(
+      { _id: bookingId },
+      { $set: { pickupCodeHash: hash, pickupCodeAttempts: 0 }, $unset: { pickupVerifiedAt: '', pickupVerifiedBy: '' } },
+    );
     return { code };
   }
 
-  /** Verify a presented pickup code against a booking's stored hash. */
-  async checkPickupCode(bookingId: string, code: string): Promise<boolean> {
+  /**
+   * Check a presented pickup code and, when right, record who verified it.
+   * Each try is reserved atomically first so parallel guesses cannot beat the
+   * attempt limit; the code locks until the guest issues a new one.
+   */
+  async verifyPickupCode(bookingId: string, code: string, byUserId: string): Promise<void> {
     const booking = await this.getDoc(bookingId);
-    if (!booking.pickupCodeHash) return false;
-    return createHash('sha256').update(code).digest('hex') === booking.pickupCodeHash;
+    if (booking.pickupVerifiedAt) return;
+    if (!booking.pickupCodeHash) {
+      throw new ConflictError('The guest has not generated a pickup code yet.', 'PICKUP_CODE_INVALID');
+    }
+    const max = (await platformConfigService.get()).handover.maxCodeAttempts;
+    const reserved = await BookingModel.findOneAndUpdate(
+      { _id: bookingId, pickupCodeHash: booking.pickupCodeHash, ...(max > 0 ? { pickupCodeAttempts: { $not: { $gte: max } } } : {}) },
+      { $inc: { pickupCodeAttempts: 1 } },
+      { new: true },
+    ).lean<BookingDoc>();
+    if (!reserved) {
+      throw new ConflictError('Too many wrong codes. The guest must generate a new pickup code.', 'PICKUP_CODE_LOCKED');
+    }
+
+    const given = createHash('sha256').update(code).digest();
+    const stored = Buffer.from(booking.pickupCodeHash, 'hex');
+    if (stored.length === given.length && timingSafeEqual(given, stored)) {
+      await BookingModel.updateOne({ _id: bookingId }, { pickupVerifiedAt: new Date(), pickupVerifiedBy: byUserId, pickupCodeAttempts: 0 });
+      return;
+    }
+
+    const remaining = max > 0 ? max - (reserved.pickupCodeAttempts ?? 0) : Infinity;
+    if (remaining <= 0) {
+      emit(EVENTS.PICKUP_CODE_LOCKED, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId });
+      throw new ConflictError('Too many wrong codes. The guest must generate a new pickup code.', 'PICKUP_CODE_LOCKED');
+    }
+    throw new ConflictError(
+      remaining === Infinity ? 'That pickup code is not correct.' : `That pickup code is not correct. ${remaining} ${remaining === 1 ? 'try' : 'tries'} left.`,
+      'PICKUP_CODE_INVALID',
+    );
   }
 
   /**

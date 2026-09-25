@@ -48,6 +48,26 @@ export interface HostTrip {
   licenseConfirmed: boolean;
   pickupVerified: boolean;
   photoCount: number;
+  /** Absent on a backend that predates the ordered handover. */
+  timeline?: TimelineStep[];
+  handover?: HostHandover;
+}
+
+export interface TimelineStep {
+  key: string;
+  label: string;
+  state: 'done' | 'current' | 'todo' | 'locked';
+  detail?: string;
+}
+
+export interface HostHandover {
+  inspection: { taken: number; required: number; open: boolean; opensAt: string | null };
+  guestVerified: boolean;
+  licenceValidThroughTrip: boolean | null;
+  licenceConfirmed: boolean;
+  pickupVerified: boolean;
+  codeLocked: boolean;
+  requirements: { hostInspectionRequired: boolean; pickupCodeRequired: boolean; hostOnlyStart: boolean };
 }
 
 export const hostTripsApi = {
@@ -57,7 +77,7 @@ export const hostTripsApi = {
 
   confirmLicense: (tripId: string) => api.post(`/trips/${tripId}/confirm-license`),
   /** Creates the trip — there is no trip to hand over to before this runs. */
-  start: (bookingId: string, body: { odometerStart: number; fuelStart?: number; notes?: string }) =>
+  start: (bookingId: string, body: { odometerStart: number; fuelStart?: number; notes?: string; licenceConfirmed?: boolean }) =>
     api.post<{ _id: string }>('/trips/start', { bookingId, ...body }),
   complete: (tripId: string, body: { odometerEnd?: number; fuelEnd?: number; notes?: string }) =>
     api.post(`/trips/${tripId}/complete`, body),

@@ -63,6 +63,13 @@ export interface PlatformConfig {
     requireLocation: boolean;
     maxDistanceMeters: number;
   };
+  handover: {
+    hostInspectionRequired: boolean;
+    pickupCodeRequired: boolean;
+    maxCodeAttempts: number;
+    hostOnlyStart: boolean;
+    baselineRequiredForCharges: boolean;
+  };
   extension: {
     enabled: boolean;
     maxDays: number;
@@ -75,6 +82,7 @@ export interface PlatformConfig {
     hostApprovalHours: number;
     verificationGraceHours: number;
     verificationCutoffHours: number;
+    minLeadMinutes: number;
     verificationReminderHours: number;
     overdueEscalationHours: number;
     documentExpiryReleaseHours: number;

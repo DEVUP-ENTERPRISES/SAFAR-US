@@ -7,7 +7,7 @@ import { recallHoldService } from '../../vehicles/application/recall-hold.servic
 import { depositService } from '../../payments/application/deposit.service';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
-import { NotFoundError, ConflictError, ForbiddenError } from '../../../core/errors/app-error';
+import { AppError, NotFoundError, ConflictError, ForbiddenError } from '../../../core/errors/app-error';
 import type { Principal } from '../../../core/types/common';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
@@ -17,18 +17,23 @@ import { inspectionService, type InspectionPhase, type InspectionState, type Pho
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
 export class TripService {
-  /** Start the trip (handover). Booking must be paid. */
+  /** Start the trip (handover), in a fixed order: host inspection, guest/licence check, pickup code, odometer. Booking must be paid. */
   async start(
-    userId: string,
+    principal: Principal,
     bookingId: string,
-    handover: { odometerStart?: number; fuelStart?: number; notes?: string },
+    handover: { odometerStart?: number; fuelStart?: number; notes?: string; licenceConfirmed?: boolean },
   ): Promise<TripDoc> {
+    const { licenceConfirmed, ...readings } = handover;
+    const userId = principal.userId;
     const booking = await bookingService.getDoc(bookingId);
-    if (
-      booking.guestId !== userId &&
-      !(await this.isHost(userId, booking.hostId, booking.vehicleId, 'trip:handover'))
-    ) {
+    const isAdmin = this.isAdmin(principal);
+    const hostSide = await this.isHost(userId, booking.hostId, booking.vehicleId, 'trip:handover');
+    if (booking.guestId !== userId && !hostSide && !isAdmin) {
       throw new ForbiddenError('Not a participant of this booking');
+    }
+    const cfg = (await platformConfigService.get()).handover;
+    if (cfg.hostOnlyStart && !hostSide && !isAdmin) {
+      throw new AppError({ code: 'HOST_ONLY_START', message: 'The host starts the trip when they hand over the car.', httpStatus: 403 });
     }
     if (booking.status !== 'paid') {
       throw new ConflictError('Booking must be paid before starting the trip', 'INVALID_STATE');
@@ -36,7 +41,21 @@ export class TripService {
     const existing = await TripModel.findOne({ bookingId }).lean();
     if (existing) throw new ConflictError('Trip already started', 'TRIP_EXISTS');
 
-    await inspectionService.assertPrePhotosBeforeStart(booking);
+    await inspectionService.assertPrePhotosBeforeStart(booking, isAdmin);
+
+    // Only the handing-over side vouches for a licence; a guest's own tick would prove nothing.
+    let licence: Partial<TripDoc> = {};
+    if (licenceConfirmed && (hostSide || isAdmin)) {
+      licence = await this.licenceCheck(booking.guestId, booking.period.end, userId);
+    } else if (cfg.hostOnlyStart) {
+      throw new ConflictError('Confirm the guest’s licence matches before starting the trip.', 'LICENCE_CONFIRMATION_REQUIRED');
+    }
+    if (cfg.pickupCodeRequired && !booking.pickupVerifiedAt) {
+      throw new ConflictError('Enter the guest’s pickup code before starting the trip.', 'PICKUP_CODE_REQUIRED');
+    }
+    if (readings.odometerStart == null) {
+      throw new ConflictError('Record the odometer reading before starting the trip.', 'ODOMETER_REQUIRED');
+    }
 
     // The deposit is authorised at handover, not at booking: a card
     // authorisation only lives about a week, so one taken when a trip was
@@ -60,7 +79,9 @@ export class TripService {
       guestId: booking.guestId,
       hostId: booking.hostId,
       status: 'active',
-      handover: { at: new Date(), ...handover },
+      handover: { at: new Date(), ...readings },
+      ...licence,
+      ...(booking.pickupVerifiedAt ? { pickupVerified: true, pickupVerifiedAt: booking.pickupVerifiedAt } : {}),
     });
 
     await inspectionService.moveToTrip(bookingId, trip._id);
@@ -248,27 +269,8 @@ export class TripService {
     if (!(await this.isHost(userId, trip.hostId, trip.vehicleId, 'trip:handover'))) {
       throw new ForbiddenError('Host only');
     }
-    // The host is vouching for a verified person, so there has to be one, with a licence good for the whole trip.
-    const kyc = await KycModel.findOne({ userId: trip.guestId }).lean<KycDoc>();
-    if (kyc?.status !== 'approved') {
-      throw new ConflictError('This guest has not completed identity verification.', 'GUEST_NOT_VERIFIED');
-    }
     const booking = await bookingService.getDoc(trip.bookingId);
-    if (kyc.licenceExpiry && new Date(kyc.licenceExpiry).getTime() < new Date(booking.period.end).getTime()) {
-      throw new ConflictError('This guest’s licence expires before the trip ends.', 'LICENCE_EXPIRES_DURING_TRIP');
-    }
-    await TripModel.updateOne(
-      { _id: tripId },
-      {
-        licenseConfirmed: true,
-        licenseConfirmedAt: new Date(),
-        licenseCheck: {
-          by: userId,
-          verifiedName: [kyc.verifiedFirstName, kyc.verifiedLastName].filter(Boolean).join(' ') || undefined,
-          licenceExpiry: kyc.licenceExpiry,
-        },
-      },
-    );
+    await TripModel.updateOne({ _id: tripId }, await this.licenceCheck(trip.guestId, booking.period.end, userId));
     return this.getDoc(tripId);
   }
 
@@ -380,21 +382,50 @@ export class TripService {
     return this.getDoc(tripId);
   }
 
+  /** The host is vouching for a verified person, so there has to be one, with a licence good for the whole trip. */
+  private async licenceCheck(guestId: string, tripEnd: Date, byUserId: string): Promise<Pick<TripDoc, 'licenseConfirmed' | 'licenseConfirmedAt' | 'licenseCheck'>> {
+    const kyc = await KycModel.findOne({ userId: guestId }).lean<KycDoc>();
+    if (kyc?.status !== 'approved') {
+      throw new ConflictError('This guest has not completed identity verification.', 'GUEST_NOT_VERIFIED');
+    }
+    if (kyc.licenceExpiry && new Date(kyc.licenceExpiry).getTime() < new Date(tripEnd).getTime()) {
+      throw new ConflictError('This guest’s licence expires before the trip ends.', 'LICENCE_EXPIRES_DURING_TRIP');
+    }
+    return {
+      licenseConfirmed: true,
+      licenseConfirmedAt: new Date(),
+      licenseCheck: {
+        by: byUserId,
+        verifiedName: [kyc.verifiedFirstName, kyc.verifiedLastName].filter(Boolean).join(' ') || undefined,
+        licenceExpiry: kyc.licenceExpiry,
+      },
+    };
+  }
+
+  private isAdmin(principal: Principal): boolean {
+    return principal.permissions.includes('*') || principal.permissions.includes('booking:read:any');
+  }
+
   /**
-   * Host verifies the guest's pickup code at handover — proof the guest is
-   * physically present with the car. A verification signal, recorded on the
-   * trip; a strong one because it can't be produced remotely.
+   * Host verifies the guest's pickup code — proof the guest is physically
+   * present with the car. Recorded on the booking, so it works before the trip
+   * exists; wrong tries are counted and lock the code (see bookingService).
    */
-  async verifyPickup(principal: Principal, tripId: string, code: string): Promise<TripDoc> {
-    const trip = await this.getDoc(tripId);
-    const isAdmin = principal.permissions.includes('*') || principal.permissions.includes('booking:read:any');
-    if (!isAdmin && !(await this.isHost(principal.userId, trip.hostId, trip.vehicleId, 'trip:handover'))) {
+  async verifyPickupForBooking(principal: Principal, bookingId: string, code: string): Promise<{ pickupVerified: true }> {
+    const booking = await bookingService.getDoc(bookingId);
+    if (!this.isAdmin(principal) && !(await this.isHost(principal.userId, booking.hostId, booking.vehicleId, 'trip:handover'))) {
       throw new ForbiddenError('Only the host verifies pickup');
     }
-    if (!(await bookingService.checkPickupCode(trip.bookingId, code))) {
-      throw new ConflictError('That pickup code is not correct', 'PICKUP_CODE_INVALID');
-    }
-    await TripModel.updateOne({ _id: tripId }, { pickupVerified: true, pickupVerifiedAt: new Date() });
+    await bookingService.verifyPickupCode(bookingId, code, principal.userId);
+    const trip = await TripModel.findOne({ bookingId }).lean<TripDoc>();
+    if (trip) await TripModel.updateOne({ _id: trip._id }, { pickupVerified: true, pickupVerifiedAt: new Date() });
+    return { pickupVerified: true };
+  }
+
+  /** Same check addressed by trip id, kept for existing clients. */
+  async verifyPickup(principal: Principal, tripId: string, code: string): Promise<TripDoc> {
+    const trip = await this.getDoc(tripId);
+    await this.verifyPickupForBooking(principal, trip.bookingId, code);
     return this.getDoc(tripId);
   }
 

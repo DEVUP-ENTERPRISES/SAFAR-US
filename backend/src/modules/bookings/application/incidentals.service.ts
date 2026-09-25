@@ -12,8 +12,12 @@ import { depositService } from '../../payments/application/deposit.service';
 import { emit } from '../../../shared/events/event-bus';
 import { PayoutModel } from '../../payouts/infrastructure/payout.model';
 import { EVENTS } from '../../../core/events/event-names';
+import { inspectionService } from '../../trips/application/inspection.service';
 
 export type IncidentalType = 'fuel' | 'cleaning' | 'smoking' | 'pet' | 'late_return' | 'toll' | 'fine' | 'other';
+
+/** Charges about the car's condition, which need a pickup baseline. */
+const BASELINE_TYPES: IncidentalType[] = ['cleaning', 'smoking', 'pet', 'fuel'];
 
 export interface IncidentalItem {
   type: IncidentalType;
@@ -149,6 +153,12 @@ export class IncidentalsService {
             'Open a claim instead.',
         );
       }
+    }
+
+    // 1b. BASELINE — a condition charge needs the pickup photos to be judged against.
+    const conditional = items.find((it) => BASELINE_TYPES.includes(it.type));
+    if (conditional && byUserId !== 'system') {
+      await inspectionService.assertBaseline(booking, `a ${conditional.type.replace('_', ' ')} charge`);
     }
 
     for (const it of items) {

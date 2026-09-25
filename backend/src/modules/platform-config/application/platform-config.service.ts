@@ -163,6 +163,10 @@ export class PlatformConfigService {
         maxPhotosPerPhase: 30, requireLocation: true, maxDistanceMeters: 0,
         ...(doc.inspection ?? {}),
       },
+      handover: {
+        hostInspectionRequired: true, pickupCodeRequired: true, maxCodeAttempts: 5, hostOnlyStart: true, baselineRequiredForCharges: true,
+        ...(doc.handover ?? {}),
+      },
       extension: {
         enabled: true, maxDays: 30, swapPolicy: 'auto' as const, swapPriceToleranceBps: 1500, swapMaxAbsorbCents: 5000,
         ...(doc.extension ?? {}),
@@ -237,6 +241,7 @@ export class PlatformConfigService {
         hostApprovalHours: 24,
         verificationGraceHours: 72,
         verificationCutoffHours: 5,
+        minLeadMinutes: 60,
         verificationReminderHours: 24,
         overdueEscalationHours: 24,
         documentExpiryReleaseHours: 72,

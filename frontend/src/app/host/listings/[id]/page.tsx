@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
+import { usePlatformConfig, leadMinutes, describeLead } from '@/features/platform/config';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { SectionLabel, RowGroup, Row } from '@/components/ui/rows';
@@ -695,6 +696,8 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
   const [maxDays, setMaxDays] = useState(String(Math.max(1, Math.round((l?.maxTripHours ?? 720) / 24))));
   const [turnaround, setTurnaround] = useState(String(l?.turnaroundDays ?? 0));
   const [notice, setNotice] = useState(String(l?.advanceNoticeHours ?? 0));
+  const platformCfg = usePlatformConfig();
+  const platformLead = describeLead(leadMinutes(platformCfg.data));
   const m = vehicle.mileageLimit;
   const [milesPerDay, setMilesPerDay] = useState(String(kmToMiles(m?.perDayKm ?? 0) || ''));
   const [overagePerMile, setOveragePerMile] = useState(String((perKmToPerMile(m?.overageFeePerKm ?? 0) / 100) || ''));
@@ -726,7 +729,7 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
         <Field label="Turnaround (days)" hint="Buffer kept free after each trip">
           <Input type="number" min={0} max={7} value={turnaround} onChange={(e) => setTurnaround(e.target.value)} />
         </Field>
-        <Field label="Advance notice (hours)" hint="Lead time before a trip can start">
+        <Field label="Advance notice (hours)" hint={`Guests can already book up to ${platformLead} before pickup. Set more here to require longer notice; it cannot go lower.`}>
           <Input type="number" min={0} max={720} value={notice} onChange={(e) => setNotice(e.target.value)} />
         </Field>
         <Field label="Miles included per day" hint="How far a guest can drive each day before an overage charge applies">

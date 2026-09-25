@@ -28,6 +28,7 @@ const startSchema = z.object({
   odometerStart: z.number().int().min(0).optional(),
   fuelStart: z.number().min(0).max(100).optional(),
   notes: z.string().max(500).optional(),
+  licenceConfirmed: z.boolean().optional(),
 });
 
 const locationSchema = z.object({
@@ -47,7 +48,7 @@ router.post(
   validate({ body: startSchema }),
   asyncHandler(async (req, res) => {
     const { bookingId, ...handover } = req.body;
-    const trip = await tripService.start(req.principal!.userId, bookingId, handover);
+    const trip = await tripService.start(req.principal!, bookingId, handover);
     sendCreated(res, trip);
   }),
 );
@@ -116,6 +117,16 @@ router.post(
       res,
       await tripService.addPhotos(req.principal!.userId, req.params.bookingId, req.body.phase, req.body.photos),
     );
+  }),
+);
+
+/** Host verifies the guest's pickup code before the trip exists. */
+router.post(
+  '/booking/:bookingId/verify-pickup',
+  authenticate,
+  validate({ body: z.object({ code: z.string().length(6) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripService.verifyPickupForBooking(req.principal!, req.params.bookingId, req.body.code));
   }),
 );
 

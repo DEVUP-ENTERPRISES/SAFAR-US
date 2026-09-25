@@ -33,6 +33,32 @@ export interface PlatformPublicConfig {
   };
   /** Stripe publishable key served at runtime; null when the platform has none. */
   stripe?: { publishableKey: string | null };
+  /** Absent on a backend that predates the handover gates. */
+  handover?: {
+    hostInspectionRequired: boolean;
+    pickupCodeRequired: boolean;
+    maxCodeAttempts: number;
+    hostOnlyStart: boolean;
+    baselineRequiredForCharges: boolean;
+  };
+  /** Absent on a backend that predates the lead-time setting. */
+  booking?: { minLeadMinutes: number };
+}
+
+/** Platform default when the config has not loaded or predates the setting. */
+const DEFAULT_MIN_LEAD_MINUTES = 60;
+
+/** Soonest a trip can start: the platform minimum, raised by the car's own advance notice. */
+export function leadMinutes(cfg: PlatformPublicConfig | undefined, advanceNoticeHours = 0): number {
+  const platform = cfg?.booking?.minLeadMinutes ?? DEFAULT_MIN_LEAD_MINUTES;
+  return Math.max(platform, Math.max(0, advanceNoticeHours) * 60);
+}
+
+/** Human form of a lead time, e.g. "1 hour", "90 minutes", "2 days". */
+export function describeLead(minutes: number): string {
+  if (minutes % 1440 === 0) return minutes === 1440 ? '1 day' : `${minutes / 1440} days`;
+  if (minutes % 60 === 0) return minutes === 60 ? '1 hour' : `${minutes / 60} hours`;
+  return `${minutes} minutes`;
 }
 
 export const platformApi = {

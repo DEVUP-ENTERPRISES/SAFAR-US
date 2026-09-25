@@ -28,10 +28,27 @@ import { hostTripsApi } from '@/features/host/trips.api';
 import { TripMessages } from '@/features/host/components/trip-messages';
 import { IncidentalsForm } from '@/features/host/components/incidentals-form';
 import { VerifyPickup } from '@/features/bookings/components/pickup-code';
+import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
+import { HandoverTimeline } from '@/features/host/components/handover-timeline';
+import { HandoverStep, type StepStatus } from '@/features/host/components/handover-step';
+import { usePlatformConfig } from '@/features/platform/config';
 
 type Tab = 'details' | 'messages' | 'help';
 
 const miles = (v: number) => `${kmToMiles(v).toLocaleString()} miles`;
+
+/** Plain message and the checklist step to send the host back to, per start error code. */
+const START_ERRORS: Record<string, { text: string; step?: string }> = {
+  HOST_ONLY_START: { text: 'Only the host can start this trip, at pickup. Refresh the page and try again.' },
+  HOST_INSPECTION_REQUIRED: { text: 'Take the pickup photos of the car before starting the trip.', step: 'handover-inspect' },
+  LICENCE_CONFIRMATION_REQUIRED: { text: 'Check the guest’s licence and confirm it before starting the trip.', step: 'handover-verify' },
+  GUEST_NOT_VERIFIED: { text: 'This guest has not finished identity verification. Ask them to complete it in their app, or contact support.', step: 'handover-verify' },
+  LICENCE_EXPIRES_DURING_TRIP: { text: 'The guest’s licence expires before the trip ends, so they cannot drive it. Contact support.', step: 'handover-verify' },
+  PICKUP_CODE_REQUIRED: { text: 'Enter the guest’s pickup code before starting the trip.', step: 'handover-code' },
+  ODOMETER_REQUIRED: { text: 'Enter the starting odometer reading.', step: 'handover-odo' },
+};
+
+const goToStep = (id?: string) => id && document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
 export default function HostTripDetailPage() {
   const { bookingId } = useParams<{ bookingId: string }>();
@@ -45,15 +62,16 @@ export default function HostTripDetailPage() {
   const [odoEnd, setOdoEnd] = useState('');
   const [fuelStart, setFuelStart] = useState('');
   const [fuelEnd, setFuelEnd] = useState('');
-  // Confirming the licence is gated on a trip existing, but the trip is only
-  // created by starting it — so this step is captured locally first, then
-  // sent to the server right after the trip is created (see handover below).
+  // Licence check ticked at the handover; sent with the start request.
   const [licenseChecked, setLicenseChecked] = useState(false);
+  const cfg = usePlatformConfig().data;
 
   const { data: t, isLoading, isError } = useQuery({
     queryKey: ['host-trip', bookingId],
     queryFn: () => hostTripsApi.one(bookingId),
   });
+
+  const licenceOk = !!(t?.licenseConfirmed || t?.handover?.licenceConfirmed || licenseChecked);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['host-trip', bookingId] });
@@ -65,18 +83,15 @@ export default function HostTripDetailPage() {
     onSuccess: invalidate,
   });
   const handover = useMutation({
-    // No trip exists yet at this point — this call is what creates it. The
-    // licence was confirmed locally (see licenseChecked); persist that
-    // against the real trip id the moment it exists, not before.
-    mutationFn: async () => {
-      const trip = await hostTripsApi.start(bookingId, {
+    // This call creates the trip and records the licence check with it.
+    mutationFn: () =>
+      hostTripsApi.start(bookingId, {
         odometerStart: Number(odoStart),
         ...(fuelStart ? { fuelStart: Number(fuelStart) } : {}),
-      });
-      if (licenseChecked) await hostTripsApi.confirmLicense(trip._id);
-      return trip;
-    },
+        licenceConfirmed: licenceOk,
+      }),
     onSuccess: invalidate,
+    onError: (e) => goToStep(e instanceof ApiError ? START_ERRORS[e.code]?.step : undefined),
   });
   const complete = useMutation({
     mutationFn: () =>
@@ -144,6 +159,25 @@ export default function HostTripDetailPage() {
   const unlimited = t.mileage.includedKm === 0;
   const started = t.status === 'in_progress';
   const finished = t.status === 'completed' || t.status === 'cancelled';
+
+  // Handover gates: the per-trip payload wins, then the public config; unknown means the server decides.
+  const hv = t.handover;
+  const inspectRequired = hv?.requirements?.hostInspectionRequired ?? cfg?.handover?.hostInspectionRequired ?? false;
+  const codeRequired = hv?.requirements?.pickupCodeRequired ?? cfg?.handover?.pickupCodeRequired ?? false;
+  const insp = hv?.inspection;
+  const inspectDone = !inspectRequired || (insp ? insp.taken >= insp.required : (t.photoCount ?? 0) > 0);
+  const guestVerified = hv ? hv.guestVerified : (t.guest.verification?.verified ?? true);
+  const licenceExpired = (hv?.licenceValidThroughTrip ?? t.guest.verification?.licenceValidThroughTrip) === false;
+  const verifyDone = guestVerified && !licenceExpired && licenceOk;
+  const codeDone = !codeRequired || !!t.pickupVerified || !!hv?.pickupVerified;
+  const odoDone = odoStart !== '' && Number(odoStart) >= 0;
+  const canStart = inspectDone && verifyDone && codeDone && odoDone;
+  const stepStatus = (done: boolean, prevDone: boolean, na = false): StepStatus =>
+    na ? 'na' : done ? 'done' : prevDone ? 'active' : 'locked';
+  const sInspect = stepStatus(inspectDone, true, !inspectRequired);
+  const sVerify = stepStatus(verifyDone, inspectDone);
+  const sCode = stepStatus(codeDone, inspectDone && verifyDone, !codeRequired);
+  const sOdo = stepStatus(odoDone, inspectDone && verifyDone && codeDone);
 
   const doCheckIn = async () => {
     const { ok } = await confirm({
@@ -216,6 +250,11 @@ export default function HostTripDetailPage() {
       {/* ── DETAILS ─────────────────────────────────────────────────── */}
       {tab === 'details' && (
         <div className="space-y-1">
+          {t.timeline && t.timeline.length > 0 && (
+            <div className="mt-6">
+              <HandoverTimeline timeline={t.timeline} />
+            </div>
+          )}
           {/* Dates */}
           <div className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-card p-5">
             <div>
@@ -232,16 +271,6 @@ export default function HostTripDetailPage() {
               </p>
             </div>
           </div>
-
-          {/* Before handover the useful thing is when to set off, not a map. */}
-          {/* Confirm the person collecting is the person who booked, before
-              anything else at the handover. */}
-          {!started && t.tripId && !t.pickupVerified && (
-            <>
-              <SectionLabel>Verify your guest</SectionLabel>
-              <VerifyPickup tripId={t.tripId} onVerified={invalidate} />
-            </>
-          )}
 
           {!started && t.tripId && (
             <>
@@ -295,7 +324,7 @@ export default function HostTripDetailPage() {
                   ? '✓ Licence confirmed'
                   : t.tripId
                     ? 'Awaiting licence'
-                    : 'Start the trip below first'
+                    : 'Confirm it in the check-in below'
               }
               action={
                 t.licenseConfirmed || finished || !t.tripId
@@ -436,7 +465,7 @@ export default function HostTripDetailPage() {
           description={
             started
               ? "Inspect and document your car's condition after your guest's trip."
-              : "Confirm your guest's licence and take pre-trip photos to qualify for your protection plan."
+              : 'Work down the steps in order. Each one unlocks when the one before it is done.'
           }
         >
           {started ? (
@@ -468,59 +497,110 @@ export default function HostTripDetailPage() {
             </>
           ) : (
             <>
-              <GuestVerification
-                guest={t.guest}
-                confirmed={!!t.licenseConfirmed}
-                checked={licenseChecked}
-                onToggle={() => setLicenseChecked((v) => !v)}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Starting odometer (miles)">
-                  <Input
-                    type="number"
-                    min={0}
-                    value={odoStart}
-                    onChange={(e) => setOdoStart(e.target.value)}
-                    placeholder="e.g. 40100"
-                  />
-                </Field>
-                <Field label="Fuel level (%)">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={fuelStart}
-                    onChange={(e) => setFuelStart(e.target.value)}
-                    placeholder="e.g. 95"
-                  />
-                </Field>
-              </div>
-              <Button
-                size="lg"
-                disabled={!(t.licenseConfirmed || licenseChecked) || !odoStart}
-                loading={handover.isPending}
-                onClick={doCheckIn}
+              <HandoverStep
+                id="handover-inspect"
+                n={1}
+                title="Inspect the car"
+                status={sInspect}
+                summary={insp ? `${insp.taken}${insp.required > 0 ? ` / ${insp.required}` : ''} photos` : undefined}
               >
-                Get started
+                <InspectionPhotos bookingId={t.bookingId} phase="pre" />
+              </HandoverStep>
+
+              <HandoverStep
+                id="handover-verify"
+                n={2}
+                title="Verify the guest"
+                status={sVerify}
+                lockedReason="Take the pickup photos first."
+              >
+                <GuestVerification
+                  guest={t.guest}
+                  confirmed={!!(t.licenseConfirmed || hv?.licenceConfirmed)}
+                  checked={licenseChecked}
+                  onToggle={() => setLicenseChecked((v) => !v)}
+                />
+              </HandoverStep>
+
+              <HandoverStep
+                id="handover-code"
+                n={3}
+                title="Guest’s pickup code"
+                status={sCode}
+                lockedReason="Verify the guest first."
+              >
+                {codeDone ? (
+                  <p className="text-sm font-medium text-success">Guest verified — you can hand over the keys.</p>
+                ) : (
+                  <VerifyPickup
+                    tripId={t.tripId}
+                    bookingId={t.bookingId}
+                    locked={!!hv?.codeLocked}
+                    onVerified={invalidate}
+                  />
+                )}
+              </HandoverStep>
+
+              <HandoverStep
+                id="handover-odo"
+                n={4}
+                title="Odometer and fuel"
+                status={sOdo}
+                lockedReason="Finish the steps above first."
+                showWhenLocked
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Starting odometer (miles)">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={odoStart}
+                      onChange={(e) => setOdoStart(e.target.value)}
+                      placeholder="e.g. 40100"
+                    />
+                  </Field>
+                  <Field label="Fuel level (%)">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={fuelStart}
+                      onChange={(e) => setFuelStart(e.target.value)}
+                      placeholder="e.g. 95"
+                    />
+                  </Field>
+                </div>
+              </HandoverStep>
+
+              <Button size="lg" disabled={!canStart} loading={handover.isPending} onClick={doCheckIn}>
+                Start trip
               </Button>
-              {handover.error && (
-                <p className="text-sm text-destructive">
-                  {handover.error instanceof Error ? handover.error.message : 'Could not start the trip.'}{' '}
-                  {(handover.error as { code?: string }).code === 'PRE_PHOTOS_REQUIRED' && (
-                    <Link href={`/host/trips/${t.bookingId}/photos`} className="font-semibold underline">Take pickup photos</Link>
-                  )}
-                </p>
-              )}
-              {!t.licenseConfirmed && (
+              {!canStart && (
                 <p className="text-xs text-muted-foreground">
-                  Confirm the licence first — it&apos;s required for your protection plan.
+                  {!inspectDone
+                    ? 'Take the pickup photos to continue.'
+                    : !verifyDone
+                      ? 'Verify the guest and confirm their licence to continue.'
+                      : !codeDone
+                        ? 'Enter the guest’s pickup code to continue.'
+                        : 'Enter the starting odometer to start the trip.'}
                 </p>
               )}
-              {!t.tripId && (
-                <p className="text-xs text-muted-foreground">
-                  The guest starts the trip from their app; check-in unlocks then.
-                </p>
-              )}
+              {handover.error && (() => {
+                const code = handover.error instanceof ApiError ? handover.error.code : undefined;
+                const known = code ? START_ERRORS[code] : undefined;
+                return (
+                  <p className="text-sm text-destructive">
+                    {known ? known.text : handover.error instanceof Error ? handover.error.message : 'Could not start the trip.'}{' '}
+                    {known?.step && (
+                      <button type="button" className="font-semibold underline" onClick={() => goToStep(known.step)}>Go to that step</button>
+                    )}
+                    {code === 'PRE_PHOTOS_REQUIRED' && (
+                      <Link href={`/host/trips/${t.bookingId}/photos`} className="font-semibold underline">Take pickup photos</Link>
+                    )}
+                  </p>
+                );
+              })()}
             </>
           )}
         </ActionSheet>

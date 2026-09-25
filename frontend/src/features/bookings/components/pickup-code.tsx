@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { KeyRound, ShieldCheck } from 'lucide-react';
+import { KeyRound, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api/types';
@@ -84,13 +84,34 @@ export function PickupCode({ bookingId }: { bookingId: string }) {
  * keys — six digits typed is more reliable than a camera trying to focus on
  * another phone's screen in sunlight.
  */
-export function VerifyPickup({ tripId, onVerified }: { tripId: string; onVerified?: () => void }) {
+export function VerifyPickup({
+  tripId,
+  bookingId,
+  locked = false,
+  onVerified,
+}: {
+  /** Once the trip exists. Before it does, verify by `bookingId` instead. */
+  tripId?: string;
+  bookingId?: string;
+  /** Server says too many wrong codes were entered. */
+  locked?: boolean;
+  onVerified?: () => void;
+}) {
   const [code, setCode] = useState('');
   const [ok, setOk] = useState(false);
+  const [lockedNow, setLockedNow] = useState(false);
 
   const verify = useMutation({
-    mutationFn: () => api.post<{ verified: boolean }>(`/trips/${tripId}/verify-pickup`, { code }),
+    mutationFn: () =>
+      api.post<{ verified: boolean }>(
+        tripId ? `/trips/${tripId}/verify-pickup` : `/trips/booking/${bookingId}/verify-pickup`,
+        { code },
+      ),
     onSuccess: () => { setOk(true); onVerified?.(); },
+    onError: (e) => {
+      setCode('');
+      if (e instanceof ApiError && e.code === 'PICKUP_CODE_LOCKED') setLockedNow(true);
+    },
   });
 
   if (ok) {
@@ -99,6 +120,25 @@ export function VerifyPickup({ tripId, onVerified }: { tripId: string; onVerifie
         <CardContent className="flex items-center gap-3 py-4">
           <ShieldCheck className="h-5 w-5 shrink-0 text-success" />
           <p className="text-sm font-medium">Guest verified — you can hand over the keys.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (locked || lockedNow) {
+    return (
+      <Card className="border-destructive/40 bg-destructive/5">
+        <CardContent className="py-4">
+          <p className="flex items-center gap-2 font-semibold text-destructive">
+            <ShieldAlert className="h-5 w-5 shrink-0" /> Code locked
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Too many wrong codes were entered. Ask the guest to generate a new code in their app, then enter it here.
+          </p>
+          {/* A fresh code clears the lock on the server; reload the state to pick that up. */}
+          <Button variant="outline" size="sm" className="mt-3" onClick={() => { setLockedNow(false); onVerified?.(); }}>
+            Guest made a new code
+          </Button>
         </CardContent>
       </Card>
     );

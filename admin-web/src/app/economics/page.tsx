@@ -91,6 +91,7 @@ export default function AdminEconomicsPage() {
         tracking: draft.tracking,
         inspection: draft.inspection,
         extension: draft.extension,
+        handover: draft.handover,
       });
     }
   };
@@ -287,6 +288,10 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={1} max={336} value={draft.booking.verificationGraceHours}
               onChange={(e) => set((d) => { d.booking.verificationGraceHours = Number(e.target.value); })} />
           </Field>
+          <Field label="Latest booking (minutes before pickup)" hint="How late a guest may book. A car's own advance notice can only raise this.">
+            <Input type="number" min={0} max={10080} value={draft.booking.minLeadMinutes}
+              onChange={(e) => set((d) => { d.booking.minLeadMinutes = Number(e.target.value); })} />
+          </Field>
           <Field label="Licence cutoff (hours before pickup)" hint="Unverified bookings are released this long before pickup.">
             <Input type="number" min={0} max={72} value={draft.booking.verificationCutoffHours}
               onChange={(e) => set((d) => { d.booking.verificationCutoffHours = Number(e.target.value); })} />
@@ -365,6 +370,43 @@ export default function AdminEconomicsPage() {
               onChange={(e) => set((d) => { d.inspection.requireLocation = e.target.checked; })} />
             Location required on every photo
           </label>
+        </CardContent>
+      </Card>
+
+      {/* Handover rules */}
+      <Card className="rounded-2xl shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Handover rules</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            What must happen before the keys change hands. The person handing over inspects the car with the live camera first,
+            so a later fine or damage claim has a record to stand on.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.handover.hostInspectionRequired}
+              onChange={(e) => set((d) => { d.handover.hostInspectionRequired = e.target.checked; })} />
+            Host inspection required before the trip starts
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.handover.pickupCodeRequired}
+              onChange={(e) => set((d) => { d.handover.pickupCodeRequired = e.target.checked; })} />
+            Guest&apos;s pickup code required
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.handover.hostOnlyStart}
+              onChange={(e) => set((d) => { d.handover.hostOnlyStart = e.target.checked; })} />
+            Only the host side can start a trip
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.handover.baselineRequiredForCharges}
+              onChange={(e) => set((d) => { d.handover.baselineRequiredForCharges = e.target.checked; })} />
+            Damage &amp; cleaning charges need pickup photos
+          </label>
+          <Field label="Wrong pickup-code tries before lock">
+            <Input type="number" min={1} max={20} value={draft.handover.maxCodeAttempts}
+              onChange={(e) => set((d) => { d.handover.maxCodeAttempts = Number(e.target.value); })} />
+          </Field>
         </CardContent>
       </Card>
 

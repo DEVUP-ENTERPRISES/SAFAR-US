@@ -115,6 +115,15 @@ router.put(
           maxDistanceMeters: z.number().int().min(0).max(100000).optional(),
         })
         .optional(),
+      handover: z
+        .object({
+          hostInspectionRequired: z.boolean().optional(),
+          pickupCodeRequired: z.boolean().optional(),
+          maxCodeAttempts: z.number().int().min(1).max(20).optional(),
+          hostOnlyStart: z.boolean().optional(),
+          baselineRequiredForCharges: z.boolean().optional(),
+        })
+        .optional(),
       extension: z
         .object({
           enabled: z.boolean().optional(),
@@ -284,6 +293,7 @@ router.put(
           hostApprovalHours: z.number().min(1).max(168).optional(),
           verificationGraceHours: z.number().min(1).max(336).optional(),
           verificationCutoffHours: z.number().min(0).max(72).optional(),
+          minLeadMinutes: z.number().int().min(0).max(10080).optional(),
           verificationReminderHours: z.number().min(1).max(168).optional(),
           overdueEscalationHours: z.number().min(1).max(336).optional(),
           documentExpiryReleaseHours: z.number().min(1).max(720).optional(),

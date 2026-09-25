@@ -2,7 +2,10 @@ import { KycModel, type KycDoc } from '../../kyc/infrastructure/kyc.model';
 import { BookingModel, type BookingDoc } from '../infrastructure/booking.model';
 import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
 import { UserModel } from '../../users/infrastructure/user.model';
-import { TripModel } from '../../trips/infrastructure/trip.model';
+import { TripModel, PrePhotoModel, type TripDoc, type TripPhoto } from '../../trips/infrastructure/trip.model';
+import { inspectionService } from '../../trips/application/inspection.service';
+import { PayoutModel, type PayoutDoc } from '../../payouts/infrastructure/payout.model';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { hostService } from '../../hosts/application/host.service';
 import { HostStaffModel, type HostStaffDoc } from '../../hosts/infrastructure/host-staff.model';
 import { TERMINAL_STATUSES } from '../domain/booking-status';
@@ -14,6 +17,24 @@ interface CallerScope {
   hostId: string;
   /** undefined = every car in the fleet; a Captain may be limited to some. */
   vehicleIds?: string[];
+}
+
+export interface TimelineStep {
+  key: string;
+  label: string;
+  state: 'done' | 'current' | 'todo' | 'locked';
+  detail?: string;
+}
+
+/** Where the handover stands, so the host UI can show what to do next without guessing. */
+export interface HostHandover {
+  inspection: { taken: number; required: number; open: boolean; opensAt: string | null };
+  guestVerified: boolean;
+  licenceValidThroughTrip: boolean | null;
+  licenceConfirmed: boolean;
+  pickupVerified: boolean;
+  codeLocked: boolean;
+  requirements: { hostInspectionRequired: boolean; pickupCodeRequired: boolean; hostOnlyStart: boolean };
 }
 
 /** Everything a host trip card / detail screen needs, in one shot. */
@@ -97,6 +118,9 @@ export interface HostTrip {
   /** The host has checked the guest's pickup code. Hides the check once done. */
   pickupVerified: boolean;
   photoCount: number;
+  /** The handover and return steps in order, with the state of each. */
+  timeline: TimelineStep[];
+  handover: HostHandover;
 }
 
 /**
@@ -190,6 +214,70 @@ export class HostTripsService {
     };
   }
 
+  /** Each step's state from real data; toggled-off steps read as done ("Not required"). */
+  private timelineFor(
+    b: BookingDoc,
+    t: TripDoc | null,
+    photos: TripPhoto[],
+    verification: HostTrip['guest']['verification'],
+    cfg: Awaited<ReturnType<typeof platformConfigService.get>>,
+    payout?: PayoutDoc,
+  ): { timeline: TimelineStep[]; handover: HostHandover } {
+    const req = cfg.handover;
+    const pre = inspectionService.hostPreState(b, t, photos, cfg.inspection);
+    const started = !!t;
+    const completed = t?.status === 'completed' || b.status === 'completed';
+    const inspectRequired = req.hostInspectionRequired && pre.required > 0;
+    const licenceConfirmed = !!t?.licenseConfirmed;
+    const pickupVerified = !!b.pickupVerifiedAt || !!t?.pickupVerified;
+    const codeLocked = !pickupVerified && req.maxCodeAttempts > 0 && (b.pickupCodeAttempts ?? 0) >= req.maxCodeAttempts;
+    const returned = photos.filter((p) => p.phase === 'post').length;
+    const returnRequired = cfg.inspection.minReturnPhotos;
+    const notRequired = 'Not required';
+
+    const drafts: { key: string; label: string; done: boolean; detail?: string; post?: boolean }[] = [
+      { key: 'inspect', label: 'Inspect the car', done: !inspectRequired || started || pre.taken >= pre.required, detail: inspectRequired ? `${pre.taken} of ${pre.required} photos` : notRequired },
+      {
+        key: 'verify_guest', label: 'Verify the guest', done: !req.hostOnlyStart || started || licenceConfirmed,
+        detail: !req.hostOnlyStart ? notRequired : !verification.verified ? 'Guest identity not verified' : verification.licenceValidThroughTrip === false ? 'Licence expires during the trip' : started || licenceConfirmed ? 'Licence confirmed' : 'Check the licence in person',
+      },
+      {
+        key: 'pickup_code', label: 'Guest’s pickup code', done: !req.pickupCodeRequired || pickupVerified || started,
+        detail: !req.pickupCodeRequired ? notRequired : codeLocked ? 'Locked — guest must generate a new code' : pickupVerified || started ? 'Verified' : 'Ask the guest for their code',
+      },
+      { key: 'start', label: 'Start the trip', done: started, detail: started ? 'Trip started' : undefined },
+      { key: 'on_trip', label: 'On the trip', done: completed, detail: completed ? 'Trip finished' : started ? 'In progress' : undefined, post: true },
+      { key: 'return_photos', label: 'Return photos', done: completed || returnRequired <= 0 || returned >= returnRequired, detail: returnRequired > 0 ? `${returned} of ${returnRequired} photos` : notRequired, post: true },
+      { key: 'return', label: 'Car returned & inspected', done: completed, detail: completed ? 'Returned' : undefined, post: true },
+      { key: 'payout', label: 'Payout', done: payout?.status === 'paid', detail: payout ? `Payout ${payout.status}` : undefined, post: true },
+    ];
+
+    let currentSeen = false;
+    const timeline = drafts.map((d): TimelineStep => {
+      const { done, post, ...rest } = d;
+      if (done) return { ...rest, state: 'done' };
+      if (!currentSeen) {
+        currentSeen = true;
+        return { ...rest, state: 'current' };
+      }
+      // Before the trip starts a step waits on the one before it; after, the rest are simply ahead.
+      return { ...rest, state: started && post ? 'todo' : 'locked' };
+    });
+
+    return {
+      timeline,
+      handover: {
+        inspection: { taken: pre.taken, required: pre.required, open: pre.open, opensAt: pre.opensAt.toISOString() },
+        guestVerified: verification.verified,
+        licenceValidThroughTrip: verification.licenceValidThroughTrip,
+        licenceConfirmed,
+        pickupVerified,
+        codeLocked,
+        requirements: { hostInspectionRequired: req.hostInspectionRequired, pickupCodeRequired: req.pickupCodeRequired, hostOnlyStart: req.hostOnlyStart },
+      },
+    };
+  }
+
   /** One batched join — never a query per row. */
   private async enrich(bookings: BookingDoc[]): Promise<HostTrip[]> {
     if (bookings.length === 0) return [];
@@ -198,7 +286,10 @@ export class HostTripsService {
     const guestIds = [...new Set(bookings.map((b) => b.guestId))];
     const tripIds = bookings.map((b) => b.tripId).filter((x): x is string => !!x);
 
-    const [vehicles, guests, trips, tripCounts, kycs] = await Promise.all([
+    const untripped = bookings.filter((b) => !b.tripId).map((b) => b._id);
+    const completedIds = bookings.filter((b) => b.status === 'completed').map((b) => b._id);
+
+    const [vehicles, guests, trips, tripCounts, kycs, staged, payouts, cfg] = await Promise.all([
       VehicleModel.find({ _id: { $in: vehicleIds } }).lean<VehicleDoc[]>(),
       UserModel.find({ _id: { $in: guestIds } })
         .select('firstName lastName avatarUrl createdAt')
@@ -210,6 +301,14 @@ export class HostTripsService {
         { $group: { _id: '$guestId', n: { $sum: 1 } } },
       ]),
       KycModel.find({ userId: { $in: guestIds }, status: 'approved' }).lean<KycDoc[]>(),
+      // Pickup photos taken before the trip exists are staged by booking.
+      untripped.length
+        ? PrePhotoModel.find({ bookingId: { $in: untripped }, movedToTripId: { $exists: false } }).lean<(TripPhoto & { bookingId: string })[]>()
+        : Promise.resolve([] as (TripPhoto & { bookingId: string })[]),
+      completedIds.length
+        ? PayoutModel.find({ bookingId: { $in: completedIds }, kind: 'trip' }).lean<PayoutDoc[]>()
+        : Promise.resolve([] as PayoutDoc[]),
+      platformConfigService.get(),
     ]);
 
     const vMap = new Map(vehicles.map((v) => [v._id, v]));
@@ -217,6 +316,9 @@ export class HostTripsService {
     const tMap = new Map((trips as { _id: string }[]).map((t) => [t._id, t as Record<string, unknown>]));
     const cMap = new Map(tripCounts.map((c) => [c._id, c.n]));
     const kMap = new Map(kycs.map((k) => [k.userId, k]));
+    const stagedMap = new Map<string, TripPhoto[]>();
+    for (const p of staged) stagedMap.set(p.bookingId, [...(stagedMap.get(p.bookingId) ?? []), p]);
+    const payoutMap = new Map(payouts.map((p) => [p.bookingId as string, p]));
 
     return bookings.map((b) => {
       const v = vMap.get(b.vehicleId);
@@ -238,6 +340,15 @@ export class HostTripsService {
       const perDayKm = v?.mileageLimit?.perDayKm ?? 0;
 
       const photos = ((t?.photos as unknown[]) ?? []).length;
+      const verification = this.verificationFor(kMap.get(b.guestId), b.period.end);
+      const { timeline, handover: handoverState } = this.timelineFor(
+        b,
+        (t as unknown as TripDoc | undefined) ?? null,
+        (t?.photos as TripPhoto[] | undefined) ?? stagedMap.get(b._id) ?? [],
+        verification,
+        cfg,
+        payoutMap.get(b._id),
+      );
 
       return {
         bookingId: b._id,
@@ -297,7 +408,7 @@ export class HostTripsService {
           avatarUrl: g?.avatarUrl,
           joinedAt: g?.createdAt ?? new Date(),
           tripCount: cMap.get(b.guestId) ?? 0,
-          verification: this.verificationFor(kMap.get(b.guestId), b.period.end),
+          verification,
         },
 
         mileage: {
@@ -309,6 +420,8 @@ export class HostTripsService {
         licenseConfirmed: !!(t?.licenseConfirmed as boolean),
         pickupVerified: !!(t?.pickupVerified as boolean),
         photoCount: photos,
+        timeline,
+        handover: handoverState,
       };
     });
   }

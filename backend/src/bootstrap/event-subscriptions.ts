@@ -472,6 +472,13 @@ export function registerEventSubscribers(): void {
     await notifyHost(p.hostId, 'trip.return_photos_open', 'Return photos are open', 'The guest’s return time is close. You can take your own condition photos of the car from the trip page.', { tripId: p.tripId, bookingId: p.bookingId }, 'normal', `/host/trips/${p.bookingId}/photos`);
   });
 
+  // Too many wrong pickup codes: the guest must generate a new one.
+  eventBus.subscribe(EVENTS.PICKUP_CODE_LOCKED, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string; hostId: string };
+    await notificationService.send({ userId: p.guestId, priority: 'high', deepLink: `/bookings/${p.bookingId}`, templateKey: 'booking.pickup_code_locked', title: 'Your pickup code is locked', body: 'Too many wrong codes were entered. Open your booking and generate a new pickup code to continue.', data: { bookingId: p.bookingId } });
+    await notifyHost(p.hostId, 'booking.pickup_code_locked', 'Pickup code locked', 'Too many wrong codes were entered. Ask the guest to generate a new pickup code from their booking.', { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
+  });
+
   eventBus.subscribe(EVENTS.BOOKING_CANCELLED, async (e) => {
     const p = e.payload as {
       bookingId: string; guestId: string; hostId: string; cancelledBy?: string;

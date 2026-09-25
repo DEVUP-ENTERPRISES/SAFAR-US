@@ -78,7 +78,7 @@ export class InspectionService {
     return PrePhotoModel.find({ bookingId, movedToTripId: { $exists: false } }).sort({ at: 1 }).lean<TripPhoto[]>();
   }
 
-  private phaseState(
+  phaseState(
     phase: InspectionPhase,
     booking: BookingDoc,
     trip: TripDoc | null,
@@ -215,16 +215,53 @@ export class InspectionService {
     seen.add(p.key);
   }
 
-  /** Start gate: enough pickup photos, but only while the window is open so a guest can never be locked out. */
-  async assertPrePhotosBeforeStart(booking: BookingDoc): Promise<void> {
-    const cfg = (await platformConfigService.get()).inspection;
-    if (cfg.minPrePhotos <= 0) return;
-    const staged = await this.allPhotos(booking._id, null);
-    const s = this.phaseState('pre', booking, null, cfg, staged, Date.now());
-    if (s.open && s.taken < cfg.minPrePhotos) {
+  /** Pickup photos taken by the handing-over side: anyone but the guest. */
+  hostPrePhotoCount(photos: TripPhoto[], guestId: string): number {
+    return photos.filter((p) => p.phase === 'pre' && p.byUserId !== guestId).length;
+  }
+
+  /** The host-side pickup inspection as the host UI shows it, from photos already loaded. */
+  hostPreState(
+    booking: BookingDoc,
+    trip: TripDoc | null,
+    photos: TripPhoto[],
+    cfg: Awaited<ReturnType<typeof platformConfigService.get>>['inspection'],
+    now = Date.now(),
+  ): { taken: number; required: number; open: boolean; opensAt: Date; closesAt: Date | null } {
+    const s = this.phaseState('pre', booking, trip, cfg, photos, now);
+    return { taken: this.hostPrePhotoCount(photos, booking.guestId), required: cfg.minPrePhotos, open: s.open, opensAt: s.opensAt, closesAt: s.closesAt };
+  }
+
+  /**
+   * Start gate: the host side must have photographed the car. Skipped only once
+   * the pickup window has closed (the guest could never be met inside it), and
+   * for admins acting for a host.
+   */
+  async assertPrePhotosBeforeStart(booking: BookingDoc, isAdmin = false): Promise<void> {
+    const all = await platformConfigService.get();
+    const cfg = all.inspection;
+    if (isAdmin || !all.handover.hostInspectionRequired || cfg.minPrePhotos <= 0) return;
+    const s = this.hostPreState(booking, null, await this.allPhotos(booking._id, null), cfg);
+    if (s.closesAt && Date.now() > +s.closesAt) return;
+    if (s.taken < cfg.minPrePhotos) {
       throw new ConflictError(
-        `Take at least ${cfg.minPrePhotos} pickup photos before starting the trip (you have ${s.taken}).`,
-        'PRE_PHOTOS_REQUIRED',
+        `Inspect the car and take at least ${cfg.minPrePhotos} live photos before the pickup code and trip start (you have ${s.taken}).`,
+        'HOST_INSPECTION_REQUIRED',
+      );
+    }
+  }
+
+  /** One baseline rule for charges and damage claims: the host side photographed the car at pickup. */
+  async assertBaseline(booking: { _id: string; guestId: string }, what: string): Promise<void> {
+    const all = await platformConfigService.get();
+    const min = all.inspection.minPrePhotos;
+    if (!all.handover.baselineRequiredForCharges || min <= 0) return;
+    const trip = await this.tripFor(booking._id);
+    const taken = this.hostPrePhotoCount(await this.allPhotos(booking._id, trip), booking.guestId);
+    if (taken < min) {
+      throw new ConflictError(
+        `The car was not inspected at pickup (${taken} of ${min} host photos), so ${what} cannot be charged to this guest.`,
+        'BASELINE_REQUIRED',
       );
     }
   }

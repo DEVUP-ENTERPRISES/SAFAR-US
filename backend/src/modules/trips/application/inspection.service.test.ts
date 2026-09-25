@@ -8,6 +8,7 @@ import { TripModel, PrePhotoModel } from '../infrastructure/trip.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { depositService } from '../../payments/application/deposit.service';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
 
 beforeAll(connectTestDb);
@@ -16,7 +17,15 @@ beforeEach(async () => {
   jest.restoreAllMocks();
   await clearTestDb();
   jest.spyOn(depositService, 'isEnabled').mockResolvedValue(false);
+  // These tests are about photos; the handover order has its own file.
+  const real = await platformConfigService.get();
+  jest.spyOn(platformConfigService, 'get').mockResolvedValue({
+    ...real,
+    handover: { ...real.handover, hostInspectionRequired: false, pickupCodeRequired: false, hostOnlyStart: false },
+  });
 });
+const asGuest = { userId: 'guest-1', roles: [], permissions: [], sessionId: 's' };
+const READINGS = { odometerStart: 1000 };
 
 const HOUR = 3_600_000;
 const GUEST = 'guest-1';
@@ -45,7 +54,7 @@ async function seed(startInHours: number, lengthHours = 48) {
 
 const startWithPhotos = async () => {
   await tripService.addPhotos(GUEST, 'bk-1', 'pre', ['front', 'rear', 'interior', 'dashboard'].map((angle) => photo({ angle })));
-  return tripService.start(GUEST, 'bk-1', {});
+  return tripService.start(asGuest, 'bk-1', READINGS);
 };
 
 describe('immutability', () => {
@@ -117,7 +126,6 @@ describe('per-photo rules', () => {
   });
 
   it('rejects a photo taken too far from the car when a radius is set', async () => {
-    const { platformConfigService } = await import('../../platform-config/application/platform-config.service');
     const real = await platformConfigService.get();
     jest.spyOn(platformConfigService, 'get').mockResolvedValue({ ...real, inspection: { ...real.inspection, maxDistanceMeters: 200 } });
     await expect(tripService.addPhotos(GUEST, 'bk-1', 'pre', [photo({ lat: 33.5, lng: -97 })])).rejects.toMatchObject({ code: 'PHOTO_TOO_FAR' });
@@ -125,7 +133,6 @@ describe('per-photo rules', () => {
   });
 
   it('enforces the per-phase cap', async () => {
-    const { platformConfigService } = await import('../../platform-config/application/platform-config.service');
     const real = await platformConfigService.get();
     jest.spyOn(platformConfigService, 'get').mockResolvedValue({ ...real, inspection: { ...real.inspection, maxPhotosPerPhase: 2 } });
     await tripService.addPhotos(GUEST, 'bk-1', 'pre', [photo(), photo()]);
@@ -134,18 +141,17 @@ describe('per-photo rules', () => {
 });
 
 describe('start gate and hand-over to the trip', () => {
-  it('blocks start until the minimum pickup photos exist, then carries them onto the trip', async () => {
+  it('carries the staged pickup photos onto the trip', async () => {
     await seed(0.5);
-    await expect(tripService.start(GUEST, 'bk-1', {})).rejects.toMatchObject({ code: 'PRE_PHOTOS_REQUIRED' });
     await tripService.addPhotos(GUEST, 'bk-1', 'pre', [photo(), photo({ angle: 'rear' }), photo({ angle: 'interior' }), photo({ angle: 'dashboard' })]);
-    const trip = await tripService.start(GUEST, 'bk-1', {});
+    const trip = await tripService.start(asGuest, 'bk-1', READINGS);
     expect(trip.photos.filter((p) => p.phase === 'pre')).toHaveLength(4);
     expect(await PrePhotoModel.countDocuments({ bookingId: 'bk-1', movedToTripId: trip._id })).toBe(4);
   });
 
   it('does not gate a start when the window is not open, so nobody can be locked out', async () => {
     await seed(10);
-    await expect(tripService.start(GUEST, 'bk-1', {})).resolves.toBeDefined();
+    await expect(tripService.start(asGuest, 'bk-1', READINGS)).resolves.toBeDefined();
   });
 
   it('return photos: closed until the trip has started and the return window opens', async () => {

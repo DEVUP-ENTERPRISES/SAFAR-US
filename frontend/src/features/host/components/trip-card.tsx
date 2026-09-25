@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { User } from 'lucide-react';
 import { StatusPill } from '@/components/ui/rows';
 import type { HostTrip } from '../trips.api';
+import { NextHandoverStep } from './handover-timeline';
 
 const time = (d: string) =>
   new Date(d).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -60,6 +61,8 @@ export function TripCard({ trip }: { trip: HostTrip }) {
                 : ''}
             </p>
           )}
+
+          {trip.status !== 'completed' && trip.status !== 'cancelled' && <NextHandoverStep timeline={trip.timeline} />}
 
           <div className="mt-3 flex items-center gap-2">
             {trip.guest.avatarUrl ? (

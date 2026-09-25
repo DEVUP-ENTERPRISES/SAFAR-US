@@ -45,6 +45,7 @@ export const EVENTS = {
   TRIP_STARTED: 'trip.started',
   TRIP_COMPLETED: 'trip.completed',
   TRIP_RETURN_WINDOW_OPEN: 'trip.return_window.open',
+  PICKUP_CODE_LOCKED: 'booking.pickup_code_locked',
 
   PAYMENT_SUCCEEDED: 'payment.succeeded',
   PAYMENT_REFUNDED: 'payment.refunded',

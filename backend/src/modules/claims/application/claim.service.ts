@@ -45,6 +45,11 @@ export class ClaimService {
         .lean<{ period: { end: Date }; status: string } | null>();
 
       if (booking) {
+        const { bookingService } = await import('../../bookings/application/booking.service');
+        const { inspectionService } = await import('../../trips/application/inspection.service');
+        const full = await bookingService.getDoc(input.bookingId);
+        // Only the host side needs a baseline; a guest reporting damage is not billing anyone.
+        if (full.guestId !== claimantId) await inspectionService.assertBaseline(full, 'damage');
         const deadline = new Date(booking.period.end).getTime() + cfg.filingWindowHours * 3_600_000;
         if (now.getTime() > deadline) {
           throw new ConflictError(

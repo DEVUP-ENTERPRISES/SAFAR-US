@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Sparkles, Info } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils/cn';
 import type { Vehicle } from '@/features/vehicles/types';
+import { usePlatformConfig, leadMinutes } from '@/features/platform/config';
 
 /**
  * The availability calendar.
@@ -75,7 +76,9 @@ export function AvailabilityCalendar({
 
   const p = vehicle.pricing;
   const minNights = Math.max(1, Math.ceil((vehicle.listing?.minTripHours ?? 24) / 24));
-  const noticeHours = vehicle.listing?.advanceNoticeHours ?? 0;
+  const platformCfg = usePlatformConfig();
+  // Platform minimum lead, raised by this car's own notice.
+  const noticeHours = leadMinutes(platformCfg.data, vehicle.listing?.advanceNoticeHours ?? 0) / 60;
 
   /**
    * A night's price, from the same levers the backend quote uses. Not a
@@ -272,7 +275,7 @@ export function AvailabilityCalendar({
                 onMouseEnter={() => anchor && setHover(d.key)}
                 title={
                   d.state === 'booked' ? 'Already booked'
-                    : d.state === 'notice' ? 'Too soon — this host needs more notice'
+                    : d.state === 'notice' ? 'Too soon — this trip needs more notice'
                       : d.state === 'short' ? `Only ${d.runLength} night${d.runLength === 1 ? '' : 's'} free here; minimum is ${minNights}`
                         : d.state === 'past' ? 'In the past'
                           : `${money(d.priceCents)} a night`

@@ -40,11 +40,14 @@ export function DateRangePicker({
    * for.
    */
   compact = false,
+  earliest,
 }: {
   from: string;
   to: string;
   onChange: (from: string, to: string) => void;
   compact?: boolean;
+  /** Soonest a trip can start; days that end before it are not offered. */
+  earliest?: Date;
 }) {
   const today = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
   const [offset, setOffset] = useState(0);
@@ -110,7 +113,7 @@ export function DateRangePicker({
               {Array.from({ length: mo.days }).map((_, i) => {
                 const date = new Date(mo.y, mo.m, i + 1);
                 const key = iso(date);
-                const past = date < today;
+                const past = date < today || (!!earliest && date.getTime() + 86_400_000 <= earliest.getTime());
                 const isStart = key === lo;
                 const isEnd = key === hi;
                 const inside = !!lo && !!hi && key > lo && key < hi;

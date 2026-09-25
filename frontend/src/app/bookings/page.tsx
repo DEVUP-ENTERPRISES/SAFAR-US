@@ -16,6 +16,7 @@ import { useMyBookings, useCancelBooking, useCompletePayment } from '@/features/
 import { bookingApi } from '@/features/bookings/api';
 import { ExtendTrip } from '@/features/bookings/components/extend-trip';
 import { tripApi } from '@/features/trips/api';
+import { usePlatformConfig } from '@/features/platform/config';
 import { formatMoney, formatDateTime } from '@/lib/utils/format';
 
 /** What the guest should do or expect next, per status — the "what happens now" of each trip. */
@@ -35,6 +36,9 @@ function BookingsList() {
   const { data, isLoading, isError, refetch } = useMyBookings('guest');
   const cancel = useCancelBooking();
   const completePayment = useCompletePayment();
+  // Only a loaded config that says host-only hides the guest's own start.
+  const hostOnlyStart = usePlatformConfig().data?.handover?.hostOnlyStart === true;
+  const HOST_STARTS = 'Your host starts the trip at pickup. Show them your pickup code.';
   const [extendId, setExtendId] = useState<string | null>(null);
   const [shortenId, setShortenId] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState<string | null>(null);
@@ -43,7 +47,9 @@ function BookingsList() {
     mutationFn: (bookingId: string) => tripApi.start(bookingId),
     onSuccess: (trip) => router.push(`/trips/${trip._id}`),
     // Pickup photos are taken from the booking page, so send them there instead of leaving a bare error.
-    onError: (err, bookingId) => { if (err instanceof ApiError && err.code === 'PRE_PHOTOS_REQUIRED') router.push(`/bookings/${bookingId}`); },
+    onError: (err, bookingId) => {
+      if (err instanceof ApiError && err.code === 'PRE_PHOTOS_REQUIRED') router.push(`/bookings/${bookingId}`);
+    },
   });
   const shorten = useMutation({
     mutationFn: (id: string) => bookingApi.shorten(id, new Date(shortEnd).toISOString()),
@@ -87,6 +93,12 @@ function BookingsList() {
               {NEXT_STEP[b.status] && (
                 <p className="mt-1 text-sm font-medium text-primary">{NEXT_STEP[b.status]}</p>
               )}
+              {b.status === 'paid' && (hostOnlyStart || (startTrip.error instanceof ApiError && startTrip.error.code === 'HOST_ONLY_START')) && (
+                <p className="mt-1 text-sm text-muted-foreground">{HOST_STARTS}</p>
+              )}
+              {b.status === 'paid' && startTrip.variables === b._id && startTrip.error instanceof ApiError && startTrip.error.code !== 'HOST_ONLY_START' && startTrip.error.code !== 'PRE_PHOTOS_REQUIRED' && (
+                <p className="mt-1 text-sm text-destructive">{startTrip.error.message}</p>
+              )}
             </button>
             <div className="flex flex-col items-end gap-1">
               <button
@@ -106,7 +118,7 @@ function BookingsList() {
                     Complete payment
                   </Button>
                 )}
-                {b.status === 'paid' && (
+                {b.status === 'paid' && !hostOnlyStart && (
                   <Button size="sm" loading={startTrip.isPending} onClick={() => startTrip.mutate(b._id)}>
                     Start trip
                   </Button>
