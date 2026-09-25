@@ -60,7 +60,7 @@ export function PayoutConnect() {
     mutationFn: () => api.post<{ url: string }>('/payouts/connect/onboard', { returnPath: '/host/earnings' }),
     // Stripe's flow replaces the page; coming back re-reads status.
     onSuccess: (r) => { window.location.href = r.url; },
-    onError: () => toast({ tone: 'error', title: 'Could not start payout setup' }),
+    onError: (e) => toast({ tone: 'error', title: 'Could not start payout setup', description: e instanceof Error ? e.message : undefined }),
   });
 
   const dashboard = useMutation({

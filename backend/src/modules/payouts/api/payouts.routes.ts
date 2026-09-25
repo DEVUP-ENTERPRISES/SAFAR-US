@@ -7,7 +7,7 @@ import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
 import { sendSuccess } from '../../../shared/http/api-response';
 import { connectService } from '../application/connect.service';
-import { config } from '../../../config';
+import { returnOrigin } from '../../../shared/http/allowed-origins';
 import { z } from 'zod';
 import { validate } from '../../../shared/middleware/validate';
 
@@ -75,7 +75,7 @@ router.post(
   asyncHandler(async (req, res) => {
     // Built from the configured origin, never from a caller-supplied URL: an
     // open redirect on a payment onboarding flow is a phishing gift.
-    const origin = config.cors.origins.find((o) => o !== '*') ?? config.app.publicUrl;
+    const origin = returnOrigin(req.get('origin'));
     const path = (req.body?.returnPath as string) ?? '/host/earnings';
     const safePath = path.startsWith('/') ? path : '/host/earnings';
     sendSuccess(

@@ -7,6 +7,7 @@ import compression from 'compression';
 import pinoHttp from 'pino-http';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
+import { allowedOrigins } from './shared/http/allowed-origins';
 import { logger } from './infrastructure/logging/logger';
 import { requestContext } from './shared/middleware/request-context';
 import { deviceContext } from './shared/middleware/device-context';
@@ -55,16 +56,7 @@ export function createApp(): Express {
 
   // 3. cors — reflect allowed origins (or any origin when '*' configured).
   const allowAllOrigins = config.cors.origins.some((o) => o === '*' || o.includes('*'));
-  // The production web origins, baked in as a safety net so the live site works
-  // even if CORS_ORIGINS was not updated on the server. CORS_ORIGINS still adds
-  // to this (previews, extra domains); this just guarantees the known ones.
-  const alwaysAllow = [
-    'https://www.catodrive.com',
-    'https://catodrive.com',
-    'https://housefleet.catodrive.com',
-    'https://integratedoperationscenter.catodrive.com',
-  ];
-  const allowed = new Set([...config.cors.origins, ...alwaysAllow]);
+  const allowed = allowedOrigins();
   app.use(
     cors({
       origin(origin, cb) {

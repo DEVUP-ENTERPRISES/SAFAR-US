@@ -66,34 +66,58 @@ export class ConnectService {
 
     let accountId = host.bankingDetails?.stripeConnectedAccountId;
 
-    if (!accountId) {
-      const user = await UserModel.findById(userId).lean<{ email?: string }>();
-      const account = await this.stripe.accounts.create({
-        type: 'express',
-        email: user?.email,
-        // Country drives which requirements Stripe asks for. US-only launch.
-        country: 'US',
-        business_type: 'individual',
-        capabilities: {
-          transfers: { requested: true },
-        },
-        metadata: { userId, hostId: host._id },
-      });
-      accountId = account.id;
-      await HostModel.updateOne(
-        { _id: host._id },
-        { $set: { 'bankingDetails.stripeConnectedAccountId': accountId } },
-      );
-      logger.info({ hostId: host._id, accountId }, 'Stripe Connect account created');
+    try {
+      if (!accountId) accountId = await this.createAccount(userId, host._id);
+      return await this.link(accountId, returnUrl, refreshUrl);
+    } catch (err) {
+      // A stored account from another Stripe account/mode no longer exists: forget it and start clean.
+      if ((err as { code?: string }).code === 'resource_missing' && accountId) {
+        logger.warn({ hostId: host._id }, 'stored Stripe Connect account not found, creating a new one');
+        await HostModel.updateOne({ _id: host._id }, { $unset: { 'bankingDetails.stripeConnectedAccountId': 1 } });
+        return this.link(await this.createAccount(userId, host._id), returnUrl, refreshUrl).catch((e) => this.fail(e));
+      }
+      return this.fail(err);
     }
+  }
 
-    const link = await this.stripe.accountLinks.create({
+  private async createAccount(userId: string, hostId: string): Promise<string> {
+    const user = await UserModel.findById(userId).lean<{ email?: string }>();
+    const base = {
+      email: user?.email,
+      // Country drives which requirements Stripe asks for. US-only launch.
+      country: 'US',
+      business_type: 'individual' as const,
+      capabilities: { transfers: { requested: true } },
+      metadata: { userId, hostId },
+    };
+    // Express needs the platform to carry losses; a platform on Stripe-managed risk is refused it, so fall back to Stripe carrying them.
+    const account = await this.stripe!.accounts.create({ ...base, type: 'express' }).catch((err: Error) => {
+      if (!/losses|Accounts v2|express/i.test(err.message)) throw err;
+      logger.warn({ hostId }, 'Express accounts refused for this platform, using Stripe-managed risk accounts');
+      return this.stripe!.accounts.create({
+        ...base,
+        controller: { stripe_dashboard: { type: 'full' }, fees: { payer: 'account' }, losses: { payments: 'stripe' }, requirement_collection: 'stripe' },
+      });
+    });
+    await HostModel.updateOne({ _id: hostId }, { $set: { 'bankingDetails.stripeConnectedAccountId': account.id } });
+    logger.info({ hostId, accountId: account.id }, 'Stripe Connect account created');
+    return account.id;
+  }
+
+  private async link(accountId: string, returnUrl: string, refreshUrl: string): Promise<{ url: string }> {
+    const link = await this.stripe!.accountLinks.create({
       account: accountId,
       type: 'account_onboarding',
       return_url: returnUrl,
       refresh_url: refreshUrl,
     });
     return { url: link.url };
+  }
+
+  /** Stripe's own reason, logged and shown, instead of an anonymous 500. */
+  private fail(err: unknown): never {
+    logger.error({ err: (err as Error).message }, 'Stripe Connect onboarding failed');
+    throw new ExternalServiceError(`Could not start payout setup: ${(err as Error).message}`);
   }
 
   /**
@@ -137,8 +161,9 @@ export class ConnectService {
     }>();
     const accountId = host?.bankingDetails?.stripeConnectedAccountId;
     if (!accountId) throw new ConflictError('This host has no payout account yet', 'NOT_CONNECTED');
-    const link = await this.stripe.accounts.createLoginLink(accountId);
-    return { url: link.url };
+    // Only Express accounts have a login link; others sign in to Stripe directly.
+    const link = await this.stripe.accounts.createLoginLink(accountId).catch(() => null);
+    return { url: link?.url ?? 'https://dashboard.stripe.com' };
   }
 
   /**
