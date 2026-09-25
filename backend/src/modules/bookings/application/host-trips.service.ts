@@ -1,3 +1,4 @@
+import { KycModel, type KycDoc } from '../../kyc/infrastructure/kyc.model';
 import { BookingModel, type BookingDoc } from '../infrastructure/booking.model';
 import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
 import { UserModel } from '../../users/infrastructure/user.model';
@@ -72,6 +73,16 @@ export interface HostTrip {
     avatarUrl?: string;
     joinedAt: Date;
     tripCount: number;
+    /** What identity verification established, for the host to compare with the physical licence. */
+    verification: {
+      verified: boolean;
+      verifiedName?: string;
+      age?: number;
+      licenceExpiry?: Date;
+      verifiedAt?: Date;
+      /** False when the licence lapses before this trip ends; null when the expiry is unknown. */
+      licenceValidThroughTrip: boolean | null;
+    };
   };
 
   mileage: {
@@ -165,6 +176,20 @@ export class HostTripsService {
     return { hostId: staff.hostId, vehicleIds: staff.vehicleIds.length ? staff.vehicleIds : undefined };
   }
 
+  private verificationFor(k: KycDoc | undefined, tripEnd: Date): HostTrip['guest']['verification'] {
+    if (!k) return { verified: false, licenceValidThroughTrip: null };
+    const name = [k.verifiedFirstName, k.verifiedLastName].filter(Boolean).join(' ');
+    const age = k.verifiedDob ? Math.floor((Date.now() - new Date(k.verifiedDob).getTime()) / (365.25 * 86_400_000)) : undefined;
+    return {
+      verified: true,
+      verifiedName: name || undefined,
+      age,
+      licenceExpiry: k.licenceExpiry,
+      verifiedAt: k.decisionAt,
+      licenceValidThroughTrip: k.licenceExpiry ? new Date(k.licenceExpiry).getTime() >= new Date(tripEnd).getTime() : null,
+    };
+  }
+
   /** One batched join — never a query per row. */
   private async enrich(bookings: BookingDoc[]): Promise<HostTrip[]> {
     if (bookings.length === 0) return [];
@@ -173,7 +198,7 @@ export class HostTripsService {
     const guestIds = [...new Set(bookings.map((b) => b.guestId))];
     const tripIds = bookings.map((b) => b.tripId).filter((x): x is string => !!x);
 
-    const [vehicles, guests, trips, tripCounts] = await Promise.all([
+    const [vehicles, guests, trips, tripCounts, kycs] = await Promise.all([
       VehicleModel.find({ _id: { $in: vehicleIds } }).lean<VehicleDoc[]>(),
       UserModel.find({ _id: { $in: guestIds } })
         .select('firstName lastName avatarUrl createdAt')
@@ -184,12 +209,14 @@ export class HostTripsService {
         { $match: { guestId: { $in: guestIds }, status: 'completed' } },
         { $group: { _id: '$guestId', n: { $sum: 1 } } },
       ]),
+      KycModel.find({ userId: { $in: guestIds }, status: 'approved' }).lean<KycDoc[]>(),
     ]);
 
     const vMap = new Map(vehicles.map((v) => [v._id, v]));
     const gMap = new Map(guests.map((g) => [g._id, g]));
     const tMap = new Map((trips as { _id: string }[]).map((t) => [t._id, t as Record<string, unknown>]));
     const cMap = new Map(tripCounts.map((c) => [c._id, c.n]));
+    const kMap = new Map(kycs.map((k) => [k.userId, k]));
 
     return bookings.map((b) => {
       const v = vMap.get(b.vehicleId);
@@ -270,6 +297,7 @@ export class HostTripsService {
           avatarUrl: g?.avatarUrl,
           joinedAt: g?.createdAt ?? new Date(),
           tripCount: cMap.get(b.guestId) ?? 0,
+          verification: this.verificationFor(kMap.get(b.guestId), b.period.end),
         },
 
         mileage: {

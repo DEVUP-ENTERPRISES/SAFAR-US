@@ -74,6 +74,9 @@ export class KycService {
           rejectionReason: approved ? undefined : (result.reason ?? 'verification_failed'),
           ...(result.licenceExpiry ? { licenceExpiry: new Date(result.licenceExpiry) } : {}),
           ...(result.licenceNumberHash ? { licenceNumberHash: result.licenceNumberHash } : {}),
+          ...(result.firstName ? { verifiedFirstName: result.firstName } : {}),
+          ...(result.lastName ? { verifiedLastName: result.lastName } : {}),
+          ...(result.dob ? { verifiedDob: new Date(result.dob) } : {}),
         },
       },
     );

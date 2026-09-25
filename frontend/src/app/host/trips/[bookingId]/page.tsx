@@ -23,6 +23,7 @@ import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/types';
 import { bookingApi } from '@/features/bookings/api';
 import { formatMoney, formatDate, kmToMiles, perKmToPerMile } from '@/lib/utils/format';
+import { GuestVerification } from '@/features/host/components/guest-verification';
 import { hostTripsApi } from '@/features/host/trips.api';
 import { TripMessages } from '@/features/host/components/trip-messages';
 import { IncidentalsForm } from '@/features/host/components/incidentals-form';
@@ -467,16 +468,12 @@ export default function HostTripDetailPage() {
             </>
           ) : (
             <>
-              {!t.licenseConfirmed && (
-                <Button
-                  size="lg"
-                  variant={licenseChecked ? 'primary' : 'outline'}
-                  onClick={() => setLicenseChecked((v) => !v)}
-                >
-                  <IdCard className="h-4 w-4" />
-                  {licenseChecked ? "Guest's licence confirmed" : "Confirm guest's licence"}
-                </Button>
-              )}
+              <GuestVerification
+                guest={t.guest}
+                confirmed={!!t.licenseConfirmed}
+                checked={licenseChecked}
+                onToggle={() => setLicenseChecked((v) => !v)}
+              />
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Starting odometer (miles)">
                   <Input

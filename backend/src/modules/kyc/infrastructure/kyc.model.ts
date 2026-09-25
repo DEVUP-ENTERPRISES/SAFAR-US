@@ -15,6 +15,10 @@ export interface KycDoc {
    *  that trip, so booking eligibility checks this against the trip end. */
   licenceExpiry?: Date;
   licenceNumberHash?: string;
+  /** The legal name and date of birth Stripe read off the document — what a host compares at handover. */
+  verifiedFirstName?: string;
+  verifiedLastName?: string;
+  verifiedDob?: Date;
   rejectionReason?: string;
   reviewedBy?: string;
   decisionAt?: Date;
@@ -38,6 +42,9 @@ const schema = new Schema<KycDoc>(
     // Hashed, not stored in clear: it is only ever used to detect the same
     // licence being reused across accounts.
     licenceNumberHash: String,
+    verifiedFirstName: String,
+    verifiedLastName: String,
+    verifiedDob: Date,
     rejectionReason: String,
     reviewedBy: String,
     decisionAt: Date,

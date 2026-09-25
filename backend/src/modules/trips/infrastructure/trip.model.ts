@@ -46,6 +46,8 @@ export interface TripDoc {
   /** Host confirmed the guest's driver's licence at handover. */
   licenseConfirmed?: boolean;
   licenseConfirmedAt?: Date;
+  /** What the host was shown when they confirmed, so the check can be reconstructed later. */
+  licenseCheck?: { by: string; verifiedName?: string; licenceExpiry?: Date };
   /** Condition photos. `phase` splits pre-trip (check-in) from post-trip (checkout). */
   photos: TripPhoto[];
   /** Set once the guest and host were told the return-photo window is open. */
@@ -84,6 +86,7 @@ const schema = new Schema<TripDoc>(
     },
     licenseConfirmed: { type: Boolean, default: false },
     licenseConfirmedAt: Date,
+    licenseCheck: { by: String, verifiedName: String, licenceExpiry: Date },
     photos: {
       type: [{ _id: false, ...photoFields }],
       default: [],

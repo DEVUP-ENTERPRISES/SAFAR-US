@@ -33,7 +33,11 @@ type CameraError = 'denied' | 'no_camera' | 'failed';
 
 const JPEG_QUALITY = 0.9;
 
-const whenFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'medium', timeZoneName: 'short' });
+// Explicit fields: dateStyle/timeStyle cannot be combined with timeZoneName and throw at load time.
+const whenFormat = new Intl.DateTimeFormat(undefined, {
+  year: 'numeric', month: 'short', day: 'numeric',
+  hour: 'numeric', minute: '2-digit', second: '2-digit', timeZoneName: 'short',
+});
 
 /** The stamp text, top line first; one function feeds both the live overlay and the saved pixels. */
 function stampLines(stamp: PhotoStamp, fix: Fix | null, now: Date): string[] {

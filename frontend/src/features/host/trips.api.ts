@@ -28,7 +28,22 @@ export interface HostTrip {
   isDelivery: boolean;
   delivery?: { mode: string; address: string; flightNumber?: string; terminal?: string; arrivesAt?: string };
   vehicle: { _id: string; make: string; model: string; year: number; plate?: string; photoUrl?: string };
-  guest: { _id: string; name: string; avatarUrl?: string; joinedAt: string; tripCount: number };
+  guest: {
+    _id: string;
+    name: string;
+    avatarUrl?: string;
+    joinedAt: string;
+    tripCount: number;
+    /** Absent when talking to a backend that predates identity details. */
+    verification?: {
+      verified: boolean;
+      verifiedName?: string;
+      age?: number;
+      licenceExpiry?: string;
+      verifiedAt?: string;
+      licenceValidThroughTrip: boolean | null;
+    };
+  };
   mileage: { includedKm: number; overageFeePerKm: number; drivenKm?: number };
   licenseConfirmed: boolean;
   pickupVerified: boolean;

@@ -1,5 +1,6 @@
 import { TripModel, type TripDoc } from '../infrastructure/trip.model';
 import type { CaptainAbility } from '../../hosts/infrastructure/host-staff.model';
+import { KycModel, type KycDoc } from '../../kyc/infrastructure/kyc.model';
 import { bookingService } from '../../bookings/application/booking.service';
 import { incidentalsService } from '../../bookings/application/incidentals.service';
 import { recallHoldService } from '../../vehicles/application/recall-hold.service';
@@ -247,9 +248,26 @@ export class TripService {
     if (!(await this.isHost(userId, trip.hostId, trip.vehicleId, 'trip:handover'))) {
       throw new ForbiddenError('Host only');
     }
+    // The host is vouching for a verified person, so there has to be one, with a licence good for the whole trip.
+    const kyc = await KycModel.findOne({ userId: trip.guestId }).lean<KycDoc>();
+    if (kyc?.status !== 'approved') {
+      throw new ConflictError('This guest has not completed identity verification.', 'GUEST_NOT_VERIFIED');
+    }
+    const booking = await bookingService.getDoc(trip.bookingId);
+    if (kyc.licenceExpiry && new Date(kyc.licenceExpiry).getTime() < new Date(booking.period.end).getTime()) {
+      throw new ConflictError('This guest’s licence expires before the trip ends.', 'LICENCE_EXPIRES_DURING_TRIP');
+    }
     await TripModel.updateOne(
       { _id: tripId },
-      { licenseConfirmed: true, licenseConfirmedAt: new Date() },
+      {
+        licenseConfirmed: true,
+        licenseConfirmedAt: new Date(),
+        licenseCheck: {
+          by: userId,
+          verifiedName: [kyc.verifiedFirstName, kyc.verifiedLastName].filter(Boolean).join(' ') || undefined,
+          licenceExpiry: kyc.licenceExpiry,
+        },
+      },
     );
     return this.getDoc(tripId);
   }
