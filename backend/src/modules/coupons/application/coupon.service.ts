@@ -93,26 +93,26 @@ export class CouponService {
   }
 
   /**
-   * Consume a redemption, atomically.
+   * Reserve a redemption, atomically — throws when the campaign cannot honour it.
    *
-   * The counters are incremented with the caps in the *filter*, so two
-   * concurrent bookings can never push a campaign past maxRedemptions or its
-   * budget — the previous version incremented unconditionally and could
-   * oversell. The redemption row is written first and is uniquely keyed on
-   * (coupon, booking), which makes a retried call a no-op instead of a
-   * double-spend.
+   * The caps sit in the update *filter*, so parallel bookings can never push a
+   * campaign past maxRedemptions or its budget, and a failed reservation aborts
+   * the booking instead of being honoured. The redemption row is unique on
+   * (coupon, booking), so a retried call is a no-op; the per-user limit is
+   * re-counted after the insert so parallel bookings by one guest cannot all pass.
    */
   async redeem(
     code: string,
     ctx: { userId: string; bookingId: string; discount: Money },
   ): Promise<void> {
     const coupon = await CouponModel.findOne({ code: code.toUpperCase(), deletedAt: null })
-      .select('_id')
-      .lean<{ _id: string }>();
+      .select('_id perUserLimit')
+      .lean<{ _id: string; perUserLimit: number }>();
     if (!coupon) throw new ConflictError('Coupon redemption failed', 'COUPON_REDEEM');
 
+    let row;
     try {
-      await CouponRedemptionModel.create({
+      row = await CouponRedemptionModel.create({
         couponId: coupon._id,
         code: code.toUpperCase(),
         userId: ctx.userId,
@@ -126,17 +126,39 @@ export class CouponService {
       throw err;
     }
 
+    if (coupon.perUserLimit > 0) {
+      const used = await CouponRedemptionModel.countDocuments({ couponId: coupon._id, userId: ctx.userId });
+      if (used > coupon.perUserLimit) {
+        await CouponRedemptionModel.deleteOne({ _id: row._id });
+        throw new ConflictError('You have already used this coupon', 'COUPON_PER_USER_LIMIT');
+      }
+    }
+
     const res = await CouponModel.updateOne(
       {
         _id: coupon._id,
-        $expr: { $lt: ['$redeemedCount', '$maxRedemptions'] },
+        $expr: {
+          $and: [
+            { $lt: ['$redeemedCount', '$maxRedemptions'] },
+            { $or: [{ $eq: ['$budget', 0] }, { $lte: [{ $add: ['$spent', ctx.discount.amount] }, '$budget'] }] },
+          ],
+        },
       },
       { $inc: { redeemedCount: 1, spent: ctx.discount.amount } },
     );
     if (res.matchedCount === 0) {
-      // The cap was hit between quote and redemption. The booking is already
-      // paid, so we honour the discount and log it rather than fail the trip.
-      logger.warn({ code, bookingId: ctx.bookingId }, 'coupon redeemed past its cap — honouring, campaign is now over');
+      await CouponRedemptionModel.deleteOne({ _id: row._id });
+      logger.warn({ code, bookingId: ctx.bookingId }, 'coupon cap or budget reached before redemption — booking refused');
+      throw new ConflictError('This coupon has just run out', 'COUPON_EXHAUSTED');
+    }
+  }
+
+  /** Give a reservation back when its booking fails or is cancelled; safe to call twice. */
+  async release(bookingId: string): Promise<void> {
+    const rows = await CouponRedemptionModel.find({ bookingId }).select('_id').lean<{ _id: string }[]>();
+    for (const r of rows) {
+      const gone = await CouponRedemptionModel.findOneAndDelete({ _id: r._id }).lean<{ couponId: string; discountAmount: number }>();
+      if (gone) await CouponModel.updateOne({ _id: gone.couponId }, { $inc: { redeemedCount: -1, spent: -gone.discountAmount } });
     }
   }
 

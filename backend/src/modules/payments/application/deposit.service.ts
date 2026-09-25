@@ -272,6 +272,9 @@ export class DepositService {
       });
       const disputedCharge = await BookingModel.exists({ _id: deposit.bookingId, 'incidentals.status': 'disputed' });
       if (openClaim || disputedCharge) continue;
+      const { TripModel } = await import('../../trips/infrastructure/trip.model');
+      // A return the host has not confirmed yet keeps its hold.
+      if (await TripModel.exists({ bookingId: deposit.bookingId, returnConfirmed: false })) continue;
 
       if (await this.release(deposit.bookingId, 'Inspection window closed with no claim')) {
         released += 1;

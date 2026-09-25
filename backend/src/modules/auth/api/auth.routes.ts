@@ -4,7 +4,7 @@ import { authController } from './auth.controller';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { validate } from '../../../shared/middleware/validate';
 import { authenticate } from '../../../shared/middleware/authenticate';
-import { authLimiter } from '../../../shared/middleware/auth-rate-limit';
+import { authLimiter, loginLimiter } from '../../../shared/middleware/auth-rate-limit';
 import { loginSchema, refreshSchema, registerSchema, otpRequestSchema, otpVerifySchema, forgotPasswordSchema, resetPasswordSchema } from '../dto/auth.schemas';
 import { authService } from '../application/auth.service';
 import { sendSuccess } from '../../../shared/http/api-response';
@@ -20,7 +20,7 @@ router.post(
 
 router.post(
   '/login',
-  authLimiter,
+  loginLimiter,
   validate({ body: loginSchema }),
   asyncHandler((req, res) => authController.login(req, res)),
 );
@@ -69,13 +69,13 @@ router.post(
 router.post(
   '/otp/phone/verify',
   authLimiter,
-  validate({ body: z.object({ phone: z.string().min(6).max(20), code: z.string().length(6) }) }),
+  validate({ body: z.object({ phone: z.string().min(6).max(20), code: z.string().length(6), mfaToken: z.string().length(6).optional() }) }),
   asyncHandler((req, res) => authController.verifyPhoneOtp(req, res)),
 );
 router.post(
   '/oauth/google',
   authLimiter,
-  validate({ body: z.object({ idToken: z.string().min(10) }) }),
+  validate({ body: z.object({ idToken: z.string().min(10), mfaToken: z.string().length(6).optional() }) }),
   asyncHandler((req, res) => authController.googleLogin(req, res)),
 );
 
@@ -87,12 +87,13 @@ router.post(
 router.post(
   '/oauth/:provider(apple|facebook)',
   authLimiter,
-  validate({ body: z.object({ token: z.string().min(10) }) }),
+  validate({ body: z.object({ token: z.string().min(10), mfaToken: z.string().length(6).optional() }) }),
   asyncHandler(async (req, res) => {
     const result = await authService.loginWithSocial(
       req.params.provider as 'apple' | 'facebook',
       req.body.token,
       { ip: req.ip, userAgent: req.get('user-agent') },
+      req.body.mfaToken,
     );
     sendSuccess(res, result);
   }),

@@ -44,7 +44,7 @@ export function PickupEditor({
     if (!file) return;
     setUploading(true);
     try {
-      const [target] = await hostApi.uploadUrls('vehicle_photo', 1, file.type || 'image/jpeg');
+      const [target] = await hostApi.uploadUrls('vehicle_photo', [file], file.type || 'image/jpeg');
       const res = await fetch(target.uploadUrl, {
         method: 'PUT',
         body: file,

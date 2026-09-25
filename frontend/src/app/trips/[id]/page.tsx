@@ -102,6 +102,13 @@ function TripDashboard() {
           </section>
         )}
 
+        {isCompleted && trip.returnConfirmed === false && (
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+            <p className="font-bold">Waiting for your host to confirm</p>
+            <p className="text-sm text-muted-foreground">Your deposit is released once your host confirms the car came back.</p>
+          </div>
+        )}
+
         {/* Critical Panels */}
         <div className="space-y-4">
           {isActive && post?.open && returnPhotoCount < minReturnPhotos && (

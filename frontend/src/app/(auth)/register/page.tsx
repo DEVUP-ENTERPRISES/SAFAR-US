@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { useRegister } from '@/features/auth/hooks';
 import { ApiError } from '@/lib/api/types';
+import { safeRedirect } from '@/lib/utils/safe-redirect';
 
 const schema = z.object({
   firstName: z.string().min(1, 'Required'),
@@ -31,9 +32,7 @@ function RegisterInner() {
 
   // Same-site only. An absolute URL here would be an open redirect, exactly
   // as on the login page. Resolved before it is handed to the mutation below.
-  const nextParam = qp.get('next');
-  const returnTo =
-    nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : '/search';
+  const returnTo = safeRedirect(qp.get('next'));
   const bookingReturn = returnTo.startsWith('/vehicles/');
 
   const registerMutation = useRegister({ redirectTo: returnTo });

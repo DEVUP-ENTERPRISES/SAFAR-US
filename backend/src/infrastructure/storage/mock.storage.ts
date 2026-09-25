@@ -26,15 +26,19 @@ export class MockStorageGateway implements StorageGateway {
     const ext = EXT[input.contentType.toLowerCase()] ?? 'bin';
     const base = `http://localhost:${config.app.port}/api/v1/media/mock-upload`;
 
-    return Array.from({ length: input.count }).map(() => {
+    return input.sizes.map(() => {
       const key = `${input.category}/${datePart}/${input.ownerId}/${randomId()}.${ext}`;
       return {
         key,
         uploadUrl: `${base}/${key}`,
         // picsum renders a real, deterministic image so dev previews look right.
-        publicUrl: `https://picsum.photos/seed/${encodeURIComponent(key)}/1200/800`,
+        publicUrl: this.publicUrlFor(key),
       };
     });
+  }
+
+  publicUrlFor(key: string): string {
+    return `https://picsum.photos/seed/${encodeURIComponent(key)}/1200/800`;
   }
 
   /** No real object in dev — return a deterministic placeholder to preview. */

@@ -131,7 +131,8 @@ async function verifyFacebookToken(accessToken: string): Promise<SocialIdentity>
       httpStatus: 400,
     });
   }
-  return { email: me.email, emailVerified: true, subject: me.id ?? me.email };
+  // Graph does not say whether the email is confirmed, so it is never trusted to link an existing account.
+  return { email: me.email, emailVerified: false, subject: me.id ?? me.email };
 }
 
 export const socialAuthService = {

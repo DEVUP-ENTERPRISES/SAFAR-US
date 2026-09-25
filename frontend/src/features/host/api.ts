@@ -248,8 +248,9 @@ export const hostApi = {
   payoutReadiness: () => api.get<PayoutReadiness>('/payouts/readiness'),
   instantPayout: () => api.post<InstantPayoutResult>('/payouts/instant'),
 
-  uploadUrls: (category: UploadCategory, count = 1, contentType = 'image/jpeg') =>
-    api.post<UploadTarget[]>('/media/upload-urls', { category, count, contentType }),
+  // The byte size of every file is signed into its link, so storage refuses a body of any other length.
+  uploadUrls: (category: UploadCategory, files: { size: number }[], contentType = 'image/jpeg') =>
+    api.post<UploadTarget[]>('/media/upload-urls', { category, sizes: files.map((f) => f.size), contentType }),
 
   fleets: () => api.get<Fleet[]>('/fleets'),
   createFleet: (name: string, region?: string) => api.post<Fleet>('/fleets', { name, region }),

@@ -8,7 +8,11 @@ import { RiskEventModel, DeviceModel } from '../../risk/infrastructure/risk.mode
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { HostModel } from '../../hosts/infrastructure/host.model';
 import { LegalHoldModel } from '../infrastructure/legal-hold.model';
-import { ConflictError, NotFoundError } from '../../../core/errors/app-error';
+import { ConflictError, NotFoundError, UnauthorizedError, ValidationError } from '../../../core/errors/app-error';
+import { verifyPassword } from '../../auth/application/password';
+import { otpService } from '../../auth/application/otp.service';
+import { channelProviders } from '../../notifications/infrastructure/channel.providers';
+import { config } from '../../../config';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /**
@@ -27,6 +31,39 @@ import { logger } from '../../../infrastructure/logging/logger';
  * financial and safety record is kept and de-identified.
  */
 export class DataRightsService {
+  /** Send a fresh single-use code to a passwordless account so it can confirm its own erasure. */
+  async requestErasureCode(userId: string): Promise<{ sent: true; devCode?: string }> {
+    const user = await UserModel.findById(userId).select('+passwordHash').lean();
+    if (!user) throw new NotFoundError('User');
+    if (user.passwordHash) throw new ValidationError('This account confirms erasure with its password');
+    const target = user.email ?? user.phone;
+    if (!target) throw new ValidationError('No email or phone on file to send a code to');
+    const code = await otpService.request('erase', target);
+    const message = {
+      target: { userId, email: user.email, phone: user.phone },
+      templateKey: 'auth.erase_confirm',
+      title: `${config.app.name} account deletion code`,
+      body: `${code} confirms permanent deletion of your account. It expires in 5 minutes. If this was not you, do not share it.`,
+    };
+    await (user.email ? channelProviders.email : channelProviders.sms).send(message);
+    return { sent: true, devCode: config.isProd ? undefined : code };
+  }
+
+  /** Erasure is irreversible: the holder proves it is them again, by password or (passwordless accounts) a fresh code. */
+  async assertErasureIntent(userId: string, proof: { password?: string; code?: string }): Promise<void> {
+    const user = await UserModel.findById(userId).select('+passwordHash').lean();
+    if (!user) throw new NotFoundError('User');
+    if (user.passwordHash) {
+      if (!proof.password) throw new UnauthorizedError('Enter your password to confirm');
+      const { valid } = await verifyPassword(user.passwordHash, proof.password);
+      if (!valid) throw new UnauthorizedError('Incorrect password');
+      return;
+    }
+    const target = user.email ?? user.phone;
+    if (!proof.code || !target) throw new UnauthorizedError('Enter the code we sent you to confirm');
+    await otpService.verify('erase', target, proof.code);
+  }
+
   /**
    * Everything held about one person, in one document.
    *

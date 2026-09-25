@@ -47,6 +47,7 @@ export interface HostTrip {
   mileage: { includedKm: number; overageFeePerKm: number; drivenKm?: number };
   licenseConfirmed: boolean;
   pickupVerified: boolean;
+  returnAwaitingConfirmation?: boolean;
   photoCount: number;
   /** Absent on a backend that predates the ordered handover. */
   timeline?: TimelineStep[];
@@ -81,6 +82,8 @@ export const hostTripsApi = {
     api.post<{ _id: string }>('/trips/start', { bookingId, ...body }),
   complete: (tripId: string, body: { odometerEnd?: number; fuelEnd?: number; notes?: string }) =>
     api.post(`/trips/${tripId}/complete`, body),
+  confirmReturn: (tripId: string, body: { odometerEnd?: number; fuelEnd?: number }) =>
+    api.post(`/trips/${tripId}/confirm-return`, body),
   reportDamage: (tripId: string, description: string, photos: string[]) =>
     api.post(`/trips/${tripId}/damage`, { description, photos }),
 };

@@ -1,3 +1,4 @@
+import { cardLimiter } from '../../../shared/middleware/card-rate-limit';
 import { Router } from 'express';
 import { z } from 'zod';
 import { ledgerService } from '../../payments/application/ledger.service';
@@ -33,6 +34,7 @@ router.get(
 router.post(
   '/topup',
   authenticate,
+  cardLimiter,
   validate({ body: z.object({ amount: z.number().int().min(100) }) }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await walletService.topup(req.principal!.userId, req.body.amount));

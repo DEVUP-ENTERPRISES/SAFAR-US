@@ -1,8 +1,9 @@
+import { cardLimiter } from '../../../shared/middleware/card-rate-limit';
 import { Router } from 'express';
 import { z } from 'zod';
 import { bookingService } from '../application/booking.service';
 import { eligibilityService } from '../application/eligibility.service';
-import { incidentalsService } from '../application/incidentals.service';
+import { incidentalsService, assertEvidenceUrl } from '../application/incidentals.service';
 import { riskService } from '../../risk/application/risk.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate, authenticateOptional } from '../../../shared/middleware/authenticate';
@@ -96,6 +97,7 @@ router.get(
 router.post(
   '/',
   authenticate,
+  cardLimiter,
   authorize('booking:create'),
   validate({ body: createBookingSchema }),
   asyncHandler(async (req, res) => {
@@ -215,6 +217,7 @@ router.post(
 router.post(
   '/:id/payment-session',
   authenticate,
+  cardLimiter,
   asyncHandler(async (req, res) => {
     sendSuccess(res, await bookingService.resumePayment(req.principal!, req.params.id));
   }),
@@ -260,6 +263,7 @@ router.post(
             amount: z.number().int().min(0).optional(),
             qty: z.number().min(0).optional(),
             note: z.string().max(300).optional(),
+            evidenceUrl: z.string().url().max(600).optional(),
           }),
         )
         .min(1),
@@ -270,6 +274,9 @@ router.post(
     const isHost = await bookingService.isHostOwner(req.principal!.userId, booking.hostId);
     const isAdmin = req.principal!.permissions.includes('*') || req.principal!.permissions.includes('booking:read:any');
     if (!isHost && !isAdmin) throw new ForbiddenError('Only the host can apply incidentals');
+    for (const it of req.body.items as { evidenceUrl?: string }[]) {
+      if (it.evidenceUrl) assertEvidenceUrl(it.evidenceUrl, isAdmin ? undefined : req.principal!.userId);
+    }
     sendSuccess(res, await incidentalsService.charge(req.params.id, req.body.items, req.principal!.userId));
   }),
 );
@@ -277,6 +284,7 @@ router.post(
 router.post(
   '/:id/extend',
   authenticate,
+  cardLimiter,
   validate({ body: extendSchema }),
   asyncHandler(async (req, res) => {
     const booking = await bookingService.requestExtension(
@@ -370,7 +378,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const b = await bookingService.getDoc(req.params.id);
     const uid = req.principal!.userId;
-    if (b.guestId !== uid && b.hostId !== uid) throw new ForbiddenError('Not your booking');
+    if (b.guestId !== uid && !(await bookingService.isHostOwner(uid, b.hostId))) throw new ForbiddenError('Not your booking');
     sendSuccess(res, await trackingNoticeService.resolveAndAnnounce(req.params.id));
   }),
 );

@@ -43,6 +43,21 @@ async function seedPayment(over: Partial<{ amount: number; wallet: number; earni
   });
 }
 
+/** The ledger entry a real wallet spend leaves behind. */
+async function seedWalletSpend(amount: number) {
+  await ledgerService.post({
+    txnId: `wallet_spend_${BOOKING}`,
+    refType: 'booking',
+    refId: BOOKING,
+    currency: 'USD',
+    description: 'seed',
+    legs: [
+      { account: Account.userWallet(GUEST), direction: 'debit', amount },
+      { account: Account.cardFunding(), direction: 'credit', amount },
+    ],
+  });
+}
+
 describe('refundBooking', () => {
   it('refunds a card-paid booking to the card only — no wallet credit', async () => {
     await seedPayment();
@@ -56,9 +71,28 @@ describe('refundBooking', () => {
 
   it('returns only the wallet-funded part to the wallet', async () => {
     await seedPayment({ wallet: 3_000 });
+    await seedWalletSpend(3_000);
     await paymentService.refundBooking(BOOKING, { amount: 10_000, currency: 'USD' }, 'cancelled');
 
-    expect(await ledgerService.balance(Account.userWallet(GUEST))).toBe(3_000);
+    // The spend took 3000 out, the refund puts 3000 back.
+    expect(await ledgerService.balance(Account.userWallet(GUEST))).toBe(0);
+  });
+
+  it('never credits a wallet part that was not spent', async () => {
+    await seedPayment({ wallet: 3_000 });
+    await paymentService.refundBooking(BOOKING, { amount: 10_000, currency: 'USD' }, 'cancelled');
+
+    expect(await ledgerService.balance(Account.userWallet(GUEST))).toBe(0);
+  });
+
+  it('restores a wallet spend once, and only if it was spent', async () => {
+    await paymentService.restoreWallet(BOOKING, GUEST, 3_000, 'USD');
+    expect(await ledgerService.balance(Account.userWallet(GUEST))).toBe(0);
+
+    await seedWalletSpend(3_000);
+    await paymentService.restoreWallet(BOOKING, GUEST, 3_000, 'USD');
+    await paymentService.restoreWallet(BOOKING, GUEST, 3_000, 'USD');
+    expect(await ledgerService.balance(Account.userWallet(GUEST))).toBe(0);
   });
 
   it('reverses host, commission and tax legs in proportion so the books close', async () => {

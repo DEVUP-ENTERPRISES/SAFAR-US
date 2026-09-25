@@ -1,4 +1,5 @@
-import { createHash, randomInt, timingSafeEqual } from 'crypto';
+import { createHash, createHmac, randomInt, timingSafeEqual } from 'crypto';
+import { config } from '../../../config';
 import { BookingModel, type BookingDoc, type BookingExtension } from '../infrastructure/booking.model';
 import { PaymentModel, type PaymentDoc } from '../../payments/infrastructure/payment.model';
 import type { AvailabilityDoc } from '../../availability/infrastructure/availability.model';
@@ -21,6 +22,7 @@ import { paymentService } from '../../payments/application/payment.service';
 import { depositService } from '../../payments/application/deposit.service';
 import { walletService } from '../../wallet/application/wallet.service';
 import { paymentMethodService } from '../../payments/application/payment-method.service';
+import { PrePhotoModel } from '../../trips/infrastructure/trip.model';
 import { couponService } from '../../coupons/application/coupon.service';
 import { hostService } from '../../hosts/application/host.service';
 import { ledgerService } from '../../payments/application/ledger.service';
@@ -36,6 +38,30 @@ import type { Page, Principal } from '../../../core/types/common';
 import type { Money } from '../../../core/types/money';
 import type { PriceBreakdown } from '../../../core/contracts/pricing.contract';
 import type { CreateBookingDto } from '../dto/booking.schemas';
+
+const PICKUP_HASH_V2 = 'v2:';
+
+/** Keyed digest of a pickup code, bound to its booking, so a leaked hash cannot be brute-forced offline. */
+function pickupDigest(bookingId: string, code: string): Buffer {
+  return createHmac('sha256', config.jwt.accessSecret).update(`${bookingId}:${code}`).digest();
+}
+
+/** A booking as clients may see it: never the pickup-code hash, and for non-admins no internal ids, idempotency key or terms IP. */
+export function toPublicBooking<T extends object>(booking: T, isAdmin = false): T {
+  const out = { ...booking } as Record<string, unknown>;
+  delete out.pickupCodeHash;
+  delete out.pickupCodeAttempts;
+  if (!isAdmin) {
+    delete out.idempotencyKey;
+    delete out.holdId;
+    delete out.paymentId;
+    if (out.terms && typeof out.terms === 'object') {
+      const { ip: _ip, ...terms } = out.terms as Record<string, unknown>;
+      out.terms = terms;
+    }
+  }
+  return out as T;
+}
 
 // The approval and verification windows are operational policy (they trade
 // conversion against inventory certainty), so they live in PlatformConfig.
@@ -151,9 +177,24 @@ export class BookingService {
       coords?: { lat: number; lng: number };
     },
   ): Promise<BookingDoc> {
-    if (idempotencyKey) {
-      const existing = await BookingModel.findOne({ idempotencyKey }).lean<BookingDoc>();
-      if (existing) return existing;
+    // Namespaced by guest so one user's key can never match, or read, another user's booking.
+    const scopedKey = idempotencyKey ? `${guestId}:${idempotencyKey}` : undefined;
+    if (scopedKey) {
+      const existing = await BookingModel.findOne({ guestId, idempotencyKey: scopedKey }).lean<BookingDoc>();
+      if (existing) return toPublicBooking(existing);
+    }
+
+    // Cap open requests per guest so one account cannot sit on many dates at once.
+    const openPending = await BookingModel.countDocuments({
+      guestId,
+      status: { $in: ['pending_approval', 'pending_verification', 'pending_payment'] },
+      deletedAt: null,
+    });
+    if (openPending >= (await platformConfigService.get()).booking.maxOpenPendingPerGuest) {
+      throw new ConflictError(
+        'You have too many booking requests waiting. Wait for a host to respond or cancel one before requesting another.',
+        'TOO_MANY_OPEN_REQUESTS',
+      );
     }
 
     const { start, end } = this.parsePeriod(dto.start, dto.end);
@@ -293,19 +334,6 @@ export class BookingService {
     const trustPerks = await trustScoreService.perks(guestId);
     const effectiveInstant = vehicle.instantBook && trustPerks.instantBookEligible;
 
-    // Pay-with-wallet: apply available balance, card charges the remainder.
-    // Supported on instant bookings (captured immediately).
-    let walletApplied = 0;
-    if (dto.useWallet && effectiveInstant && eligibility.eligible) {
-      const balance = await walletService.balance(guestId);
-      walletApplied = Math.min(balance, breakdown.total.amount);
-    }
-
-    // Without a card nothing is authorised, so "your card is held" would be untrue and a later capture would fail.
-    if (breakdown.total.amount - walletApplied > 0 && !(await paymentMethodService.hasChargeableCard(guestId))) {
-      throw new ConflictError('Add a payment card to book this trip. It isn’t charged until the trip is confirmed.', 'PAYMENT_METHOD_REQUIRED');
-    }
-
     // Reserve the slot BEFORE talking to the gateway (prevents double-booking
     // during the payment round-trip). Roll back on any downstream failure.
     const holdId = await availabilityService.placeHold(dto.vehicleId, start, end);
@@ -313,8 +341,19 @@ export class BookingService {
     // succeeded before a later step threw.
     let charged: { paymentId: string; intentId: string; status: string } | null = null;
     const bookingId = uuid();
+    let walletApplied = 0;
 
     try {
+      // Pay-with-wallet on instant bookings: spend FIRST, atomically, so the card only ever covers the remainder and a lost race can never refund money that was not spent.
+      if (dto.useWallet && effectiveInstant && eligibility.eligible) {
+        walletApplied = await walletService.spendUpTo(guestId, breakdown.total.amount, 'booking', bookingId, `wallet_spend_${bookingId}`);
+      }
+
+      // Without a card nothing is authorised, so "your card is held" would be untrue and a later capture would fail.
+      if (breakdown.total.amount - walletApplied > 0 && !(await paymentMethodService.hasChargeableCard(guestId))) {
+        throw new ConflictError('Add a payment card to book this trip. It isn’t charged until the trip is confirmed.', 'PAYMENT_METHOD_REQUIRED');
+      }
+
       const charge = await paymentService.chargeForBooking({
         bookingId,
         guestId,
@@ -326,15 +365,10 @@ export class BookingService {
         // Protection, service fee and rental tax ride in the platform legs so the ledger balances.
         ...this.paymentSplit(breakdown),
         walletApplied,
-        idempotencyKey: idempotencyKey ?? bookingId,
+        idempotencyKey: scopedKey ?? bookingId,
       });
 
       charged = { paymentId: charge.paymentId, intentId: charge.intentId, status: charge.status };
-
-      // Deduct the wallet portion (only after the card charge succeeded).
-      if (walletApplied > 0) {
-        await walletService.spend(guestId, walletApplied, 'booking', bookingId);
-      }
 
       /*
        * A booking is only 'paid' when the money actually moved.
@@ -377,11 +411,11 @@ export class BookingService {
         approvalDeadline: effectiveInstant
           ? undefined
           : new Date(Math.min(start.getTime(), now.getTime() + (await approvalWindowMs()))),
-        idempotencyKey,
+        idempotencyKey: scopedKey,
       });
 
       if (status === 'paid') {
-        await availabilityService.confirmHold(holdId, bookingId);
+        await availabilityService.confirmHold(holdId, bookingId, dayKeys(start, end).length);
       } else if (status === 'pending_approval') {
         // Held until the host's own response window, not the short
         // checkout-hold TTL — otherwise the days free up while the host
@@ -426,13 +460,14 @@ export class BookingService {
       // The client needs the secret to finish a 3-D Secure challenge, and needs
       // to know that it must.
       return {
-        ...booking.toObject(),
+        ...toPublicBooking(booking.toObject()),
         ...(charge.requiresAction
           ? { requiresAction: true, clientSecret: charge.clientSecret }
           : {}),
       };
     } catch (err) {
       await availabilityService.releaseHold(holdId);
+      await couponService.release(bookingId).catch(() => undefined);
 
       /*
        * Give the money back.
@@ -474,6 +509,13 @@ export class BookingService {
             'CRITICAL: guest was charged, booking failed, and the reversal ALSO failed — manual refund required',
           );
         }
+      } else if (walletApplied > 0) {
+        // The wallet was spent but no charge exists: give back exactly what was taken.
+        await paymentService
+          .restoreWallet(bookingId, guestId, walletApplied, breakdown.total.currency)
+          .catch((restoreErr) =>
+            logger.error({ bookingId, guestId, walletApplied, err: (restoreErr as Error).message }, 'CRITICAL: wallet spent, booking failed, restore failed — manual credit required'),
+          );
       }
 
       throw err;
@@ -543,13 +585,24 @@ export class BookingService {
 
       if (instantNow) {
         try {
+          booking.holdId = await this.ensureHold(booking);
+        } catch {
+          await this.systemCancel(booking._id, 'The dates were taken while we verified your licence');
+          continue;
+        }
+        try {
           await paymentService.captureBooking(booking._id);
         } catch (err) {
           // The hold lapsed or the card refused: hand it to the same path as any failed payment so both sides are told.
           emit(EVENTS.PAYMENT_FAILED, booking._id, { bookingId: booking._id, reason: (err as Error).message });
           continue;
         }
-        await availabilityService.confirmHold(booking.holdId!, booking._id);
+        try {
+          await availabilityService.confirmHold(booking.holdId!, booking._id, dayKeys(booking.period.start, booking.period.end).length);
+        } catch {
+          await this.cancelCapturedBooking(doc, 'The dates were no longer held when verification completed');
+          continue;
+        }
         await this.transition(doc, 'paid', guestId, 'Identity verified');
         emit(EVENTS.BOOKING_CONFIRMED, booking._id, {
           bookingId: booking._id,
@@ -585,11 +638,19 @@ export class BookingService {
 
     const total = booking.priceBreakdown.total;
     let refund = { amount: 0, currency: total.currency };
-    if (booking.status === 'paid' || booking.status === 'confirmed') {
-      refund = { ...total };
-      await paymentService.refundBooking(bookingId, refund, reason);
-    } else {
-      await paymentService.cancelAuthorization(bookingId);
+
+    // Claim first so a concurrent cancel cannot also refund.
+    await this.transition(booking, 'cancelled_system', 'system', reason);
+    try {
+      if (booking.status === 'paid' || booking.status === 'confirmed') {
+        refund = { ...total };
+        await paymentService.refundBooking(bookingId, refund, reason);
+      } else {
+        await paymentService.cancelAuthorization(bookingId);
+      }
+    } catch (err) {
+      await this.revertTransition(booking, 'cancelled_system');
+      throw err;
     }
 
     await availabilityService.releaseBooking(bookingId);
@@ -598,7 +659,6 @@ export class BookingService {
       { _id: bookingId },
       { cancellation: { by: 'system', role: 'system', at: new Date(), reason, refund } },
     );
-    await this.transition(booking, 'cancelled_system', 'system', reason);
     emit(EVENTS.BOOKING_CANCELLED, bookingId, {
       bookingId,
       guestId: booking.guestId,
@@ -651,11 +711,21 @@ export class BookingService {
     if (booking.status !== 'pending_approval') {
       throw new ConflictError('Booking is not awaiting approval', 'INVALID_STATE');
     }
+    if (booking.approvalDeadline && new Date(booking.approvalDeadline).getTime() <= Date.now()) {
+      throw new ConflictError('The response window for this request has passed', 'APPROVAL_EXPIRED');
+    }
+    // Dates must still be held before any money is captured.
+    const holdId = await this.ensureHold(booking);
     await paymentService.captureBooking(bookingId);
-    await availabilityService.confirmHold(booking.holdId!, bookingId);
+    try {
+      await availabilityService.confirmHold(holdId, bookingId, dayKeys(booking.period.start, booking.period.end).length);
+    } catch (err) {
+      await this.cancelCapturedBooking(booking, 'The dates were no longer held when the host approved');
+      throw err;
+    }
     await this.transition(booking, 'paid', userId, 'Host approved');
     emit(EVENTS.BOOKING_CONFIRMED, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId });
-    return this.getDoc(bookingId);
+    return toPublicBooking(await this.getDoc(bookingId));
   }
 
   /** Host declines a request-to-book booking. */
@@ -677,7 +747,7 @@ export class BookingService {
       hostId: booking.hostId,
       vehicleId: booking.vehicleId,
     });
-    return this.getDoc(bookingId);
+    return toPublicBooking(await this.getDoc(bookingId));
   }
 
   /** Guest or host cancels; refund computed by policy. */
@@ -703,18 +773,25 @@ export class BookingService {
     const total = booking.priceBreakdown.total;
     let refund = { amount: 0, currency: total.currency };
 
-    if (booking.status === 'paid' || booking.status === 'confirmed') {
-      // Host and admin cancellations refund in full — the guest did nothing
-      // wrong and is being stranded. Only a guest cancellation is policy-bound.
-      const cancelCfg = (await platformConfigService.get()).cancellation;
-      refund = isGuest
-        ? computeRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg)
-        : { ...total };
-      if (refund.amount > 0) {
-        await paymentService.refundBooking(bookingId, refund, reason);
+    // Claim the cancellation first (version-checked): a parallel cancel loses here, before any money moves.
+    await this.transition(booking, actor, principal.userId, reason);
+    try {
+      if (booking.status === 'paid' || booking.status === 'confirmed') {
+        // Host and admin cancellations refund in full — the guest did nothing
+        // wrong and is being stranded. Only a guest cancellation is policy-bound.
+        const cancelCfg = (await platformConfigService.get()).cancellation;
+        refund = isGuest
+          ? computeRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg)
+          : { ...total };
+        if (refund.amount > 0) {
+          await paymentService.refundBooking(bookingId, refund, reason);
+        }
+      } else {
+        await paymentService.cancelAuthorization(bookingId);
       }
-    } else {
-      await paymentService.cancelAuthorization(bookingId);
+    } catch (err) {
+      await this.revertTransition(booking, actor);
+      throw err;
     }
 
     await availabilityService.releaseBooking(bookingId);
@@ -732,7 +809,6 @@ export class BookingService {
         },
       },
     );
-    await this.transition(booking, actor, principal.userId, reason);
     emit(EVENTS.BOOKING_CANCELLED, bookingId, {
       bookingId,
       guestId: booking.guestId,
@@ -751,7 +827,7 @@ export class BookingService {
         start: booking.period.start, end: booking.period.end, reason: 'host_cancel',
       });
     }
-    return this.getDoc(bookingId);
+    return toPublicBooking(await this.getDoc(bookingId));
   }
 
   /**
@@ -800,32 +876,54 @@ export class BookingService {
         'TOO_EARLY',
       );
     }
+    // A host who inspected the car or verified the guest's code was at the handover, so the guest was not a no-show.
+    if (party === 'guest' && !isAdmin) {
+      const hostWasThere =
+        !!booking.pickupVerifiedAt ||
+        !!(await PrePhotoModel.exists({ bookingId, byUserId: { $ne: booking.guestId } }));
+      if (hostWasThere) {
+        throw new ConflictError('The handover was already under way, so this can’t be reported as a no-show. Contact support if there is a problem.', 'HANDOVER_STARTED');
+      }
+    }
 
     const total = booking.priceBreakdown.total;
 
     if (party === 'host') {
-      await paymentService.refundBooking(bookingId, total, 'Host no-show — full refund');
+      // Claim first so a concurrent no-show report cannot also refund.
+      await this.transition(booking, 'cancelled_host', principal.userId, 'Host no-show');
+      try {
+        await paymentService.refundBooking(bookingId, total, 'Host no-show — full refund');
+      } catch (err) {
+        await this.revertTransition(booking, 'cancelled_host');
+        throw err;
+      }
       await availabilityService.releaseBooking(bookingId);
       if (booking.holdId) await availabilityService.releaseHold(booking.holdId);
       await BookingModel.updateOne(
         { _id: bookingId },
         { cancellation: { by: principal.userId, role: isGuest ? 'guest' : 'admin', at: new Date(), reason: 'Host no-show', refund: total } },
       );
-      await this.transition(booking, 'cancelled_host', principal.userId, 'Host no-show');
       emit(EVENTS.BOOKING_HOST_NO_SHOW, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId });
       emit(EVENTS.BOOKING_REBOOKING_NEEDED, bookingId, {
         bookingId, guestId: booking.guestId, vehicleId: booking.vehicleId,
         start: booking.period.start, end: booking.period.end, reason: 'host_no_show',
       });
-      return this.getDoc(bookingId);
+      return toPublicBooking(await this.getDoc(bookingId));
     }
 
     // Guest no-show — forfeit a share, refund the rest, scale the host's earnings
     // to their part of the forfeit (paid via the payout subscriber).
     const forfeitBps = cfg.noShow.guestForfeitBps;
     const refundAmount = Math.round((total.amount * (10000 - forfeitBps)) / 10000);
+    // Claim first so a concurrent no-show report cannot also refund.
+    await this.transition(booking, 'cancelled_guest', principal.userId, 'Guest no-show — forfeit applied');
     if (refundAmount > 0) {
-      await paymentService.refundBooking(bookingId, { amount: refundAmount, currency: total.currency }, 'Guest no-show — partial forfeit');
+      try {
+        await paymentService.refundBooking(bookingId, { amount: refundAmount, currency: total.currency }, 'Guest no-show — partial forfeit');
+      } catch (err) {
+        await this.revertTransition(booking, 'cancelled_guest');
+        throw err;
+      }
     }
     const pb = booking.priceBreakdown;
     const scale = forfeitBps / 10000;
@@ -842,9 +940,8 @@ export class BookingService {
       },
     );
     await availabilityService.releaseBooking(bookingId);
-    await this.transition(booking, 'cancelled_guest', principal.userId, 'Guest no-show — forfeit applied');
     emit(EVENTS.BOOKING_GUEST_NO_SHOW, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId });
-    return this.getDoc(bookingId);
+    return toPublicBooking(await this.getDoc(bookingId));
   }
 
   /**
@@ -859,7 +956,7 @@ export class BookingService {
       throw new ConflictError('A pickup code applies only to a confirmed trip', 'INVALID_STATE');
     }
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
-    const hash = createHash('sha256').update(code).digest('hex');
+    const hash = `${PICKUP_HASH_V2}${pickupDigest(bookingId, code).toString('hex')}`;
     // A new code starts clean: attempts reset and any earlier verification no longer counts.
     await BookingModel.updateOne(
       { _id: bookingId },
@@ -889,8 +986,10 @@ export class BookingService {
       throw new ConflictError('Too many wrong codes. The guest must generate a new pickup code.', 'PICKUP_CODE_LOCKED');
     }
 
-    const given = createHash('sha256').update(code).digest();
-    const stored = Buffer.from(booking.pickupCodeHash, 'hex');
+    // Codes issued before the keyed hash carry no prefix and are still honoured until they are regenerated.
+    const isV2 = booking.pickupCodeHash.startsWith(PICKUP_HASH_V2);
+    const given = isV2 ? pickupDigest(bookingId, code) : createHash('sha256').update(code).digest();
+    const stored = Buffer.from(isV2 ? booking.pickupCodeHash.slice(PICKUP_HASH_V2.length) : booking.pickupCodeHash, 'hex');
     if (stored.length === given.length && timingSafeEqual(given, stored)) {
       await BookingModel.updateOne({ _id: bookingId }, { pickupVerifiedAt: new Date(), pickupVerifiedBy: byUserId, pickupCodeAttempts: 0 });
       return;
@@ -1046,7 +1145,7 @@ export class BookingService {
       return 0;
     });
 
-    return covered > 0 ? this.getDoc(replacement._id) : replacement;
+    return toPublicBooking(covered > 0 ? await this.getDoc(replacement._id) : replacement);
   }
 
   /**
@@ -1070,21 +1169,30 @@ export class BookingService {
     if (covered <= 0) return 0;
 
     const currency = replacement.priceBreakdown.total.currency;
-    await ledgerService.post({
-      refType: 'rebooking_protection',
-      refId: replacement._id,
-      currency,
-      description: `Rebooking guarantee: covered the difference after a host cancellation (${original.code})`,
-      legs: [
-        { account: Account.guaranteeExpense(), direction: 'debit', amount: covered },
-        { account: Account.userWallet(original.guestId), direction: 'credit', amount: covered },
-      ],
-    });
-
-    await BookingModel.updateOne(
-      { _id: replacement._id },
+    // Claim atomically before paying: a replayed rebook finds it already applied.
+    const claimed = await BookingModel.updateOne(
+      { _id: replacement._id, 'coveredDifference.amount': { $in: [null, 0] } },
       { rebookedFrom: original._id, coveredDifference: { amount: covered, currency } },
     );
+    if (claimed.modifiedCount === 0) return 0;
+
+    try {
+      await ledgerService.post({
+        txnId: `rebook_guarantee_${original._id}`,
+        refType: 'rebooking_protection',
+        refId: replacement._id,
+        currency,
+        description: `Rebooking guarantee: covered the difference after a host cancellation (${original.code})`,
+        legs: [
+          { account: Account.guaranteeExpense(), direction: 'debit', amount: covered },
+          { account: Account.userWallet(original.guestId), direction: 'credit', amount: covered },
+        ],
+      });
+    } catch (err) {
+      // Nothing was paid, so release the claim and let a retry apply it.
+      await BookingModel.updateOne({ _id: replacement._id }, { $unset: { coveredDifference: '', rebookedFrom: '' } });
+      throw err;
+    }
 
     // Only claim they paid nothing extra when that is actually true — the cap
     // means a very large gap is covered in part, and saying otherwise would be
@@ -1305,6 +1413,12 @@ export class BookingService {
     if (isNaN(newEnd.getTime()) || newEnd <= booking.period.end) {
       return fail('INVALID_DATE', 'Pick a date after your current trip end.');
     }
+    if (booking.period.end.getTime() <= Date.now()) return fail('TRIP_ENDED', 'This trip has already ended and cannot be extended.');
+    // The licence and account must still be good through the NEW end date.
+    const eligibility = await eligibilityService.evaluate(booking.guestId, newEnd);
+    if (!eligibility.eligible) {
+      return fail('NOT_ELIGIBLE', 'Your verification does not cover the extended dates. Update your documents to extend.');
+    }
     // Extra days are whole calendar days, the same keys the availability calendar uses.
     const extraStart = dayAfter(booking.period.end);
     if (newEnd < extraStart) return fail('TOO_SHORT', 'Extend by at least one more calendar day.');
@@ -1426,7 +1540,7 @@ export class BookingService {
         total: extra.total,
         hostEarnings: extra.hostEarnings,
       });
-      return this.getDoc(bookingId);
+      return toPublicBooking(await this.getDoc(bookingId));
     } catch (err) {
       await availabilityService.releaseHold(holdId);
       throw err;
@@ -1789,7 +1903,7 @@ export class BookingService {
 
     const removedStart = new Date(newEnd.getTime() + 86_400_000);
     const removed = await pricingService.quote({ vehicleId: booking.vehicleId, start: removedStart, end: booking.period.end, skipOneTimeFees: true });
-    return { available: true, refund: removed.total, newEnd: newEnd.toISOString() };
+    return { available: true, refund: await this.shortenRefund(booking, removed, removedStart), newEnd: newEnd.toISOString() };
   }
 
   async requestShorten(userId: string, bookingId: string, newEndIso: string): Promise<BookingDoc> {
@@ -1813,23 +1927,36 @@ export class BookingService {
     // Price only the released tail, refund it, and free those days for others.
     const removedStart = new Date(newEnd.getTime() + 86_400_000);
     const removed = await pricingService.quote({ vehicleId: booking.vehicleId, start: removedStart, end: booking.period.end, skipOneTimeFees: true });
-    if (removed.total.amount > 0) {
-      await paymentService.refundBooking(bookingId, removed.total, `Trip shortened to ${newEnd.toISOString()}`);
+    const refund = await this.shortenRefund(booking, removed, removedStart);
+
+    // Claim the change (version-checked) before money moves, so a parallel shorten cannot refund the same tail twice.
+    const claim = await BookingModel.updateOne(
+      { _id: bookingId, status: 'paid', version: booking.version },
+      { $set: { 'period.end': newEnd }, $inc: { version: 1 } },
+    );
+    if (claim.matchedCount === 0) throw new ConflictError('Booking was modified concurrently, retry', 'VERSION_CONFLICT');
+    if (refund.amount > 0) {
+      try {
+        await paymentService.refundBooking(bookingId, refund, `Trip shortened to ${newEnd.toISOString()}`);
+      } catch (err) {
+        await BookingModel.updateOne({ _id: bookingId, version: booking.version + 1 }, { $set: { 'period.end': booking.period.end }, $inc: { version: 1 } });
+        throw err;
+      }
     }
     await availabilityService.releaseRange(bookingId, removedStart, booking.period.end);
 
-    // Roll the reduction into the booking totals so the host is paid for the
-    // days actually kept, not the ones given back.
+    // Roll the reduction into the booking totals: the host keeps their share of whatever was not refunded.
     const pb = booking.priceBreakdown;
+    const kept = removed.total.amount > 0 ? refund.amount / removed.total.amount : 0;
+    const cut = (part: number) => Math.round(part * kept);
     await BookingModel.updateOne(
       { _id: bookingId },
       {
         $set: {
-          'period.end': newEnd,
-          'priceBreakdown.total.amount': Math.max(0, pb.total.amount - removed.total.amount),
-          'priceBreakdown.hostEarnings.amount': Math.max(0, pb.hostEarnings.amount - removed.hostEarnings.amount),
-          'priceBreakdown.commission.amount': Math.max(0, pb.commission.amount - removed.commission.amount),
-          'priceBreakdown.tax.amount': Math.max(0, pb.tax.amount - removed.tax.amount),
+          'priceBreakdown.total.amount': Math.max(0, pb.total.amount - refund.amount),
+          'priceBreakdown.hostEarnings.amount': Math.max(0, pb.hostEarnings.amount - cut(removed.hostEarnings.amount)),
+          'priceBreakdown.commission.amount': Math.max(0, pb.commission.amount - cut(removed.commission.amount)),
+          'priceBreakdown.tax.amount': Math.max(0, pb.tax.amount - cut(removed.tax.amount)),
           'priceBreakdown.days': Math.max(1, pb.days - removed.days),
         },
         $push: {
@@ -1838,7 +1965,16 @@ export class BookingService {
       },
     );
     emit(EVENTS.BOOKING_SHORTENED, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId, newEnd });
-    return this.getDoc(bookingId);
+    return toPublicBooking(await this.getDoc(bookingId));
+  }
+
+  /** What a shortened trip refunds: the tail priced on its own, cut by the cancellation policy, and never more than that tail's share of what was really paid (coupons and plans included). */
+  private async shortenRefund(booking: BookingDoc, removed: PriceBreakdown, removedStart: Date): Promise<Money> {
+    const pb = booking.priceBreakdown;
+    const share = pb.days > 0 ? Math.floor((pb.total.amount * Math.min(removed.days, pb.days)) / pb.days) : 0;
+    const rules = (await platformConfigService.get()).cancellation;
+    const byPolicy = computeRefund(booking.cancellationPolicy, removed.total, removedStart, rules);
+    return { amount: Math.min(byPolicy.amount, share), currency: removed.total.currency };
   }
 
   async get(principal: Principal, bookingId: string): Promise<BookingDoc> {
@@ -1847,7 +1983,7 @@ export class BookingService {
       booking.guestId === principal.userId || (await this.isHostOwner(principal.userId, booking.hostId));
     const isAdmin = principal.permissions.includes('booking:read:any') || principal.permissions.includes('*');
     if (!isParticipant && !isAdmin) throw new ForbiddenError('Not your booking');
-    return booking;
+    return toPublicBooking(booking, isAdmin);
   }
 
   async listForGuest(guestId: string, cursorRaw?: string, limit = 20): Promise<Page<BookingDoc>> {
@@ -1856,7 +1992,7 @@ export class BookingService {
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
       .lean<BookingDoc[]>();
-    return toPage(rows, limit);
+    return toPage(rows.map((r) => toPublicBooking(r)), limit);
   }
 
   async listForHost(userId: string, cursorRaw?: string, limit = 20): Promise<Page<BookingDoc>> {
@@ -1866,7 +2002,7 @@ export class BookingService {
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
       .lean<BookingDoc[]>();
-    return toPage(rows, limit);
+    return toPage(rows.map((r) => toPublicBooking(r)), limit);
   }
 
   /**
@@ -2014,7 +2150,7 @@ export class BookingService {
       BookingModel.find(filter).sort({ createdAt: -1 }).skip(opts.skip ?? 0).limit(limit).lean<BookingDoc[]>(),
       BookingModel.countDocuments(filter),
     ]);
-    return { items, total };
+    return { items: items.map((i) => toPublicBooking(i, true)), total };
   }
 
   /** Admin intervention: force-cancel with a full refund + audit reason. */
@@ -2035,11 +2171,18 @@ export class BookingService {
     }
     const total = booking.priceBreakdown.total;
     let refund = { amount: 0, currency: total.currency };
-    if (booking.status === 'paid' || booking.status === 'confirmed') {
-      refund = { ...total }; // admin cancellation = full refund
-      if (refund.amount > 0) await paymentService.refundBooking(bookingId, refund, reason);
-    } else {
-      await paymentService.cancelAuthorization(bookingId);
+    // Claim first so a concurrent cancel cannot also refund.
+    await this.transition(booking, 'cancelled_system', actorId, `[admin] ${reason}`);
+    try {
+      if (booking.status === 'paid' || booking.status === 'confirmed') {
+        refund = { ...total }; // admin cancellation = full refund
+        if (refund.amount > 0) await paymentService.refundBooking(bookingId, refund, reason);
+      } else {
+        await paymentService.cancelAuthorization(bookingId);
+      }
+    } catch (err) {
+      await this.revertTransition(booking, 'cancelled_system');
+      throw err;
     }
     await availabilityService.releaseBooking(bookingId);
     if (booking.holdId) await availabilityService.releaseHold(booking.holdId);
@@ -2055,14 +2198,13 @@ export class BookingService {
         },
       },
     );
-    await this.transition(booking, 'cancelled_system', actorId, `[admin] ${reason}`);
     emit(EVENTS.BOOKING_CANCELLED, bookingId, {
       bookingId,
       guestId: booking.guestId,
       hostId: booking.hostId,
       refund,
     });
-    return this.getDoc(bookingId);
+    return toPublicBooking(await this.getDoc(bookingId), true);
   }
 
   /** Cron: remind guests of trips starting within 24h (once). */
@@ -2189,14 +2331,14 @@ export class BookingService {
       { _id: bookingId },
       { $push: { additionalDrivers: { ...driver, addedAt: new Date() } } },
     );
-    return this.getDoc(bookingId);
+    return toPublicBooking(await this.getDoc(bookingId));
   }
 
   async removeDriver(userId: string, bookingId: string, name: string): Promise<BookingDoc> {
     const booking = await this.getDoc(bookingId);
     if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can remove drivers');
     await BookingModel.updateOne({ _id: bookingId }, { $pull: { additionalDrivers: { name } } });
-    return this.getDoc(bookingId);
+    return toPublicBooking(await this.getDoc(bookingId));
   }
 
   private async transition(
@@ -2223,6 +2365,43 @@ export class BookingService {
     if (res.matchedCount === 0) {
       throw new ConflictError('Booking was modified concurrently, retry', 'VERSION_CONFLICT');
     }
+    // A booking that ends without being used gives its coupon back; release is idempotent.
+    if (['cancelled', 'cancelled_guest', 'cancelled_host', 'cancelled_system', 'declined', 'expired'].includes(to)) {
+      void couponService.release(booking._id).catch((err) => logger.warn({ err, bookingId: booking._id }, 'coupon release failed'));
+    }
+  }
+
+  /** The booking's hold if it is still there, else a fresh one on the same dates (throws if they are gone). */
+  private async ensureHold(booking: BookingDoc): Promise<string> {
+    if (booking.holdId && (await availabilityService.holdExists(booking.holdId))) return booking.holdId;
+    const holdId = await availabilityService.placeHold(booking.vehicleId, booking.period.start, booking.period.end);
+    await BookingModel.updateOne({ _id: booking._id }, { holdId });
+    return holdId;
+  }
+
+  /** Money was captured but the dates could not be secured: give it all back and end the booking. */
+  private async cancelCapturedBooking(booking: BookingDoc, reason: string): Promise<void> {
+    await paymentService.refundBooking(booking._id, booking.priceBreakdown.total, reason);
+    await this.transition(booking, 'cancelled_system', 'system', reason);
+    emit(EVENTS.BOOKING_CANCELLED, booking._id, {
+      bookingId: booking._id,
+      guestId: booking.guestId,
+      hostId: booking.hostId,
+      cancelledBy: 'system',
+      refund: booking.priceBreakdown.total,
+    });
+  }
+
+  /** Undo a claim made by transition() when the money step after it failed. */
+  private async revertTransition(booking: BookingDoc, to: BookingStatus): Promise<void> {
+    await BookingModel.updateOne(
+      { _id: booking._id, status: to, version: booking.version + 1 },
+      {
+        $set: { status: booking.status },
+        $inc: { version: 1 },
+        $push: { statusHistory: { from: to, to: booking.status, at: new Date(), by: 'system', reason: 'Refund failed — cancellation rolled back' } },
+      },
+    ).catch((err) => logger.error({ err, bookingId: booking._id }, 'could not roll back a failed cancellation'));
   }
 
   private parsePeriod(startIn: unknown, endIn: unknown): { start: Date; end: Date } {

@@ -1,4 +1,6 @@
-import type { AccountStatus } from '../domain/account-status';
+import { isSessionBlocked, type AccountStatus } from '../domain/account-status';
+import { kv } from '../../../infrastructure/cache/kv-store';
+import { sessionStore } from '../../auth/infrastructure/session.store';
 import { UserModel, type UserDoc } from './user.model';
 import { cursorFilter, decodeCursor, toPage } from '../../../shared/utils/pagination';
 import type { Page } from '../../../core/types/common';
@@ -8,6 +10,9 @@ import type { Page } from '../../../core/types/common';
  * users through the users contract, never through this repository directly.
  * All default reads exclude soft-deleted documents.
  */
+const STATUS_CACHE_SECONDS = 60;
+const statusCacheKey = (userId: string): string => `ustatus:${userId}`;
+
 export class UserRepository {
   async create(data: Partial<UserDoc>): Promise<UserDoc> {
     const doc = await UserModel.create(data);
@@ -36,6 +41,20 @@ export class UserRepository {
 
   async findByPhone(phone: string): Promise<UserDoc | null> {
     return UserModel.findOne({ phone, deletedAt: null }).lean<UserDoc>().exec();
+  }
+
+  /** The TOTP secret is never selected by default; only the 2FA check asks for it. */
+  async mfaSecretOf(userId: string): Promise<string | undefined> {
+    const doc = await UserModel.findOne({ _id: userId }).select('+mfa.secret').lean<UserDoc>();
+    return doc?.mfa?.secret;
+  }
+
+  /** Proof of ownership arrived (verified code or provider email): drop any password set before it, so a pre-registration squatter is locked out. */
+  async claimVerifiedContact(userId: string, contact: 'email' | 'phone'): Promise<void> {
+    await UserModel.updateOne(
+      { _id: userId },
+      { $set: contact === 'email' ? { emailVerified: true } : { phoneVerified: true }, $unset: { passwordHash: 1 } },
+    );
   }
 
   async existsByEmail(email: string): Promise<boolean> {
@@ -84,6 +103,19 @@ export class UserRepository {
         ...(status === 'closed' ? { closedAt: new Date() } : {}),
       },
     );
+    await kv().del(statusCacheKey(userId)).catch(() => undefined);
+    // Suspending or banning must end the sessions already open, not just block the next login.
+    if (isSessionBlocked(status)) await sessionStore.revokeAllForUser(userId);
+  }
+
+  /** Account status for the per-request check, cached briefly (and dropped on any status change) so it adds no query per call. */
+  async statusOf(userId: string): Promise<AccountStatus | null> {
+    const cached = await kv().get(statusCacheKey(userId)).catch(() => null);
+    if (cached) return cached as AccountStatus;
+    const doc = await UserModel.findOne({ _id: userId, deletedAt: null }, { status: 1 }).lean<{ status: AccountStatus }>();
+    if (!doc) return null;
+    await kv().set(statusCacheKey(userId), doc.status, STATUS_CACHE_SECONDS).catch(() => undefined);
+    return doc.status;
   }
 
   /**

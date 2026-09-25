@@ -3,6 +3,8 @@ import { paymentGateway } from '../infrastructure/gateway.provider';
 import { paymentService } from './payment.service';
 import { PaymentModel } from '../infrastructure/payment.model';
 import { riskService } from '../../risk/application/risk.service';
+import { dashboardRefundService } from './dashboard-refund.service';
+import { chargebackService } from './chargeback.service';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
@@ -44,9 +46,15 @@ export async function runStripeEvent(event: {
             .catch((err) => logger.warn({ err, intentId: obj.id }, 'card risk lookup failed'));
         }
         break;
-      case 'charge.refunded':
+      case 'charge.refunded': {
+        // Book any refund we did not make ourselves (e.g. from the Stripe dashboard).
+        const charge = event.data.object as { payment_intent?: string; amount_refunded?: number };
+        if (charge.payment_intent && typeof charge.amount_refunded === 'number') {
+          await dashboardRefundService.reconcile(charge.payment_intent, charge.amount_refunded);
+        }
         if (bookingId) emit(EVENTS.PAYMENT_REFUNDED, bookingId, { bookingId });
         break;
+      }
       // A card can fail asynchronously, minutes after the booking was made.
       // Unhandled, that booking sat as paid with no money behind it.
       case 'payment_intent.payment_failed':
@@ -68,7 +76,10 @@ export async function runStripeEvent(event: {
       case 'charge.dispute.closed': {
         // A dispute carries its own metadata, not the booking's — resolve it
         // through the payment intent it is against.
-        const dispute = event.data.object as { payment_intent?: string; status?: string };
+        const dispute = event.data.object as { id: string; amount?: number; payment_intent?: string; status?: string };
+        // A wallet top-up has no booking: debit the wallet and flag the account instead.
+        if (event.type === 'charge.dispute.created' && dispute.payment_intent && typeof dispute.amount === 'number'
+          && (await chargebackService.onTopupDispute(dispute.id, dispute.payment_intent, dispute.amount))) break;
         const payment = dispute.payment_intent
           ? await PaymentModel.findOne({ intentId: dispute.payment_intent }).lean<{ bookingId?: string }>()
           : null;

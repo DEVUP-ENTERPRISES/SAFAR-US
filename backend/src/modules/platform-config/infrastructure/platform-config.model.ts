@@ -328,6 +328,12 @@ export interface PlatformConfigDoc {
     evidenceRequiredAboveCents: number;
     /** Hours a guest has to dispute a charge after it is applied. */
     disputeWindowHours: number;
+    /** Ceiling on all incidentals combined per booking, in basis points of the booking total. */
+    maxTotalBps: number;
+    /** Most fuel percentage points a host may bill in one charge. */
+    maxFuelPercent: number;
+    /** Most late-return hours a host may bill in one charge. */
+    maxLateHours: number;
   };
   payout: {
     /** Hold window before scheduled payouts are released. */
@@ -376,6 +382,19 @@ export interface PlatformConfigDoc {
     /** Reject a photo taken farther than this from the pickup point; 0 = do not check. */
     maxDistanceMeters: number;
   };
+  /** Abuse limits on actions that touch a card, so we cannot be used to test stolen card numbers. */
+  security: {
+    /** Card-touching attempts (top-up, save a card, book, pay) one member may make per hour. */
+    cardAttemptsPerHour: number;
+    /** Wrong passwords or codes one account (email/phone) may enter before it locks. */
+    loginAttemptsPerAccount: number;
+    /** Base lockout in minutes; it doubles each time the same account locks again. */
+    loginLockoutMinutes: number;
+    /** Largest photo or document upload, in megabytes. */
+    maxUploadMb: number;
+    /** Upload links one member may request per hour. */
+    uploadUrlsPerHour: number;
+  };
   /** What must happen before the keys change hands, and who may start the trip. */
   handover: {
     /** The person handing over must photograph the car (inspection.minPrePhotos) before the trip can start. */
@@ -388,6 +407,8 @@ export interface PlatformConfigDoc {
     hostOnlyStart: boolean;
     /** Damage, cleaning, smoking and pet charges need the handing-over party's pickup photos as a baseline. */
     baselineRequiredForCharges: boolean;
+    /** Hours the host has to confirm a guest-ended return before it auto-confirms (an open dispute blocks it). */
+    returnConfirmHours: number;
   };
   /** Extending a trip, and what happens when the next guest is in the way. */
   extension: {
@@ -407,6 +428,8 @@ export interface PlatformConfigDoc {
     verificationCutoffHours: number;
     /** The latest a guest may book, in minutes before pickup; a car's own advance notice can only raise it. */
     minLeadMinutes: number;
+    /** Requests a guest may have waiting (approval, verification or payment) at once, so nobody can lock a rival's car with unpaid holds. */
+    maxOpenPendingPerGuest: number;
     verificationReminderHours: number;
     overdueEscalationHours: number;
     documentExpiryReleaseHours: number;
@@ -437,6 +460,10 @@ export interface PlatformConfigDoc {
     /** Loyalty points awarded on top of the cash credit. */
     referrerPoints: number;
     refereePoints: number;
+    /** The referred guest's first completed trip must total at least this before anyone is rewarded. */
+    minTripSpendCents: number;
+    /** Most referrals one member is ever rewarded for. */
+    maxRewardsPerReferrer: number;
   };
   protection: {
     /** Per-day price of each protection tier, in cents. */
@@ -655,6 +682,9 @@ const schema = new Schema<PlatformConfigDoc>(
       windowDays: { type: Number, default: 7 },
       evidenceRequiredAboveCents: { type: Number, default: 5_000 }, // $50
       disputeWindowHours: { type: Number, default: 72 },
+      maxTotalBps: { type: Number, default: 3000 },
+      maxFuelPercent: { type: Number, default: 100 },
+      maxLateHours: { type: Number, default: 72 },
     },
     payout: {
       holdHours: { type: Number, default: 24 },
@@ -679,12 +709,20 @@ const schema = new Schema<PlatformConfigDoc>(
       requireLocation: { type: Boolean, default: true },
       maxDistanceMeters: { type: Number, default: 0 },
     },
+    security: {
+      cardAttemptsPerHour: { type: Number, default: 12 },
+      loginAttemptsPerAccount: { type: Number, default: 8 },
+      loginLockoutMinutes: { type: Number, default: 15 },
+      maxUploadMb: { type: Number, default: 12 },
+      uploadUrlsPerHour: { type: Number, default: 60 },
+    },
     handover: {
       hostInspectionRequired: { type: Boolean, default: true },
       pickupCodeRequired: { type: Boolean, default: true },
       maxCodeAttempts: { type: Number, default: 5 },
       hostOnlyStart: { type: Boolean, default: true },
       baselineRequiredForCharges: { type: Boolean, default: true },
+      returnConfirmHours: { type: Number, default: 12 },
     },
     extension: {
       enabled: { type: Boolean, default: true },
@@ -698,6 +736,7 @@ const schema = new Schema<PlatformConfigDoc>(
       verificationGraceHours: { type: Number, default: 72 },
       verificationCutoffHours: { type: Number, default: 5 },
       minLeadMinutes: { type: Number, default: 60 },
+      maxOpenPendingPerGuest: { type: Number, default: 3 },
       verificationReminderHours: { type: Number, default: 24 },
       overdueEscalationHours: { type: Number, default: 24 },
       documentExpiryReleaseHours: { type: Number, default: 72 },
@@ -721,6 +760,8 @@ const schema = new Schema<PlatformConfigDoc>(
       refereeCreditCents: { type: Number, default: 1000 },
       referrerPoints: { type: Number, default: 200 },
       refereePoints: { type: Number, default: 100 },
+      minTripSpendCents: { type: Number, default: 5000 },
+      maxRewardsPerReferrer: { type: Number, default: 10 },
     },
     protection: {
       type: [

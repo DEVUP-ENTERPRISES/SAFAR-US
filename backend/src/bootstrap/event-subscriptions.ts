@@ -15,6 +15,7 @@ import { vehicleLifecycleService } from '../modules/vehicles/application/vehicle
 import { TripModel } from '../modules/trips/infrastructure/trip.model';
 import { logger } from '../infrastructure/logging/logger';
 import { userRepository } from '../modules/users/infrastructure/user.repository';
+import { platformConfigService } from '../modules/platform-config/application/platform-config.service';
 import { ROLES } from '../shared/constants/rbac';
 
 /** Best-effort system note into a booking conversation; never breaks the flow. */
@@ -373,6 +374,30 @@ export function registerEventSubscribers(): void {
     }
   });
 
+  // A refund made in the Stripe dashboard bypassed our policy: the host payout is held, ops reviews.
+  eventBus.subscribe(EVENTS.PAYMENT_REFUNDED_EXTERNALLY, async (e) => {
+    const p = e.payload as { bookingId: string; amount: number; currency: string; payoutHeld: boolean };
+    await notifyStaff(
+      'payment.refunded_externally',
+      'Refund issued from the Stripe dashboard',
+      `Booking ${p.bookingId}: ${formatAmount(p.amount, p.currency)} was refunded outside the platform. ${p.payoutHeld ? 'The host payout is on hold.' : 'The host payout had already gone out — arrange recovery.'}`,
+      { bookingId: p.bookingId },
+      'critical',
+    );
+  });
+
+  // A top-up chargeback is platform cash gone: the wallet was debited, ops decides the rest.
+  eventBus.subscribe(EVENTS.WALLET_TOPUP_DISPUTED, async (e) => {
+    const p = e.payload as { userId: string; disputeId: string; amount: number; debited: number; shortfall: number; currency: string };
+    await notifyStaff(
+      'wallet.topup_disputed',
+      'Wallet top-up chargeback',
+      `User ${p.userId}: ${formatAmount(p.amount, p.currency)} pulled back (dispute ${p.disputeId}). Wallet debited ${formatAmount(p.debited, p.currency)}${p.shortfall > 0 ? `, ${formatAmount(p.shortfall, p.currency)} already spent — platform loss` : ''}. Account is under review.`,
+      { userId: p.userId, disputeId: p.disputeId },
+      'critical',
+    );
+  });
+
   eventBus.subscribe(EVENTS.PAYMENT_DISPUTE_CLOSED, async (e) => {
     const p = e.payload as { bookingId: string; won: boolean };
     try {
@@ -430,7 +455,8 @@ export function registerEventSubscribers(): void {
   // Money collected after the trip (overage, a late fee, a toll…) is the host's.
   eventBus.subscribe(EVENTS.BOOKING_CHARGE_COLLECTED, async (e) => {
     const p = e.payload as { bookingId: string; hostId: string; amount: number; currency: string; key: string };
-    await payoutService.scheduleExtra(p.bookingId, p.hostId, p.amount, p.currency, `charge_${p.key}`);
+    const { incidentals } = await platformConfigService.get();
+    await payoutService.scheduleExtra(p.bookingId, p.hostId, p.amount, p.currency, `charge_${p.key}`, incidentals.disputeWindowHours);
   });
 
   // A charge we could not collect is money owed that nobody is chasing unless we say so.
@@ -590,7 +616,8 @@ export function registerEventSubscribers(): void {
   // Trip completion → schedule host payout after the hold window.
   eventBus.subscribe(EVENTS.BOOKING_COMPLETED, async (e) => {
     const p = e.payload as { bookingId: string; guestId: string; hostId: string };
-    await payoutService.scheduleForBooking(p.bookingId);
+    // A guest-ended return is paid out only once the host confirms it (tripService.confirmReturn schedules it).
+    if (!(await TripModel.exists({ bookingId: p.bookingId, returnConfirmed: false }))) await payoutService.scheduleForBooking(p.bookingId);
 
     // CatoDrive Rewards: 1 point per $1 spent (× tier multiplier), idempotent per booking.
     try {
@@ -601,7 +628,7 @@ export function registerEventSubscribers(): void {
       logger.warn({ err, bookingId: p.bookingId }, 'reward award failed');
     }
     // Referral: convert on the referee's first completed trip (both parties rewarded).
-    await referralService.convert(p.guestId).catch(() => undefined);
+    await referralService.convert(p.guestId, p.bookingId).catch(() => undefined);
 
     await notificationService.send({
       userId: p.guestId,
@@ -722,13 +749,13 @@ export function registerEventSubscribers(): void {
     );
   });
   eventBus.subscribe(EVENTS.TRIP_COMPLETED, async (e) => {
-    const p = e.payload as { bookingId: string };
-    await postSystemNote(p.bookingId, 'Trip completed — the car has been returned.');
+    const p = e.payload as { bookingId: string; awaitingConfirmation?: boolean };
+    await postSystemNote(p.bookingId, p.awaitingConfirmation ? 'The guest ended the trip — waiting for the host to confirm the return.' : 'Trip completed — the car has been returned.');
     await notifyParties(
       p.bookingId,
       'trip.returned',
-      { title: 'Car returned', body: 'Thanks — your host now has a short window to inspect the car before your deposit is released.' },
-      { title: 'Car returned', body: 'Your guest has returned the car. Inspect it and report any damage within the inspection window.' },
+      { title: 'Car returned', body: p.awaitingConfirmation ? 'Waiting for your host to confirm the return. Your deposit is released after they do.' : 'Thanks — your host now has a short window to inspect the car before your deposit is released.' },
+      { title: p.awaitingConfirmation ? 'Confirm the return' : 'Car returned', body: p.awaitingConfirmation ? 'Your guest ended the trip. Check the car and confirm the return, or report a problem, before it auto-confirms.' : 'Your guest has returned the car. Inspect it and report any damage within the inspection window.' },
     );
   });
   eventBus.subscribe(EVENTS.BOOKING_EXTENDED, async (e) => {

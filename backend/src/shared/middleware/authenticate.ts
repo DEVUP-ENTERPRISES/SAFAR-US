@@ -2,6 +2,8 @@ import type { Request, Response, NextFunction } from 'express';
 import { UnauthorizedError } from '../../core/errors/app-error';
 import { tokenService } from '../../modules/auth/application/token.service';
 import { sessionStore } from '../../modules/auth/infrastructure/session.store';
+import { userRepository } from '../../modules/users/infrastructure/user.repository';
+import { isSessionBlocked } from '../../modules/users/domain/account-status';
 
 /**
  * Verifies the bearer access token AND checks the session is still live in
@@ -19,6 +21,8 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
 
       const live = await sessionStore.isActive(claims.sid);
       if (!live) throw new UnauthorizedError('Session expired or revoked');
+      const status = await userRepository.statusOf(claims.sub);
+      if (!status || isSessionBlocked(status)) throw new UnauthorizedError('Session expired or revoked');
 
       req.principal = {
         userId: claims.sub,
@@ -53,7 +57,8 @@ export function authenticateOptional(req: Request, _res: Response, next: NextFun
       if (!header?.startsWith('Bearer ')) return next();
 
       const claims = tokenService.verifyAccess(header.slice(7));
-      if (await sessionStore.isActive(claims.sid)) {
+      const status = await userRepository.statusOf(claims.sub);
+      if ((await sessionStore.isActive(claims.sid)) && status && !isSessionBlocked(status)) {
         req.principal = {
           userId: claims.sub,
           sessionId: claims.sid,

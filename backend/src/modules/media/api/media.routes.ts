@@ -12,6 +12,9 @@ import {
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { validate } from '../../../shared/middleware/validate';
+import { messageService } from '../../messaging/application/message.service';
+import { uploadLimiter } from '../../../shared/middleware/upload-rate-limit';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { ForbiddenError, ValidationError } from '../../../core/errors/app-error';
 import { sendSuccess } from '../../../shared/http/api-response';
 
@@ -22,8 +25,12 @@ const router = Router();
 const uploadUrlSchema = z.object({
   category: z.enum(UPLOAD_CATEGORIES),
   contentType: z.enum(ALLOWED_CONTENT_TYPES).default('image/jpeg'),
-  count: z.number().int().min(1).max(20).default(1),
+  // The exact byte size of each file: it is signed into the link, so storage refuses anything bigger.
+  sizes: z.array(z.number().int().min(1)).min(1).max(20),
 });
+
+/** Categories anyone may view unauthenticated; chat photos are participant-only and go through /download. */
+const PUBLIC_VIEW_CATEGORIES = ['vehicle_photo', 'trip_photo', 'avatar'];
 
 /**
  * Returns presigned upload targets. The client PUTs bytes directly to
@@ -32,13 +39,19 @@ const uploadUrlSchema = z.object({
 router.post(
   '/upload-urls',
   authenticate,
+  uploadLimiter,
   validate({ body: uploadUrlSchema }),
   asyncHandler(async (req, res) => {
+    const { maxUploadMb } = (await platformConfigService.get()).security;
+    const sizes = req.body.sizes as number[];
+    if (sizes.some((s) => s > maxUploadMb * 1024 * 1024)) {
+      throw new ValidationError(`Each file must be ${maxUploadMb} MB or smaller`);
+    }
     const targets = await storageGateway.createUploadTargets({
       ownerId: req.principal!.userId,
       category: req.body.category,
       contentType: req.body.contentType,
-      count: req.body.count,
+      sizes,
     });
     sendSuccess(res, targets);
   }),
@@ -73,6 +86,10 @@ router.get(
       }
     }
 
+    if (parsed.category === 'message' && parsed.ownerId !== req.principal!.userId) {
+      await messageService.assertAttachmentAccess(req.principal!.userId, key);
+    }
+
     const url = await storageGateway.createDownloadUrl(key);
     sendSuccess(res, { url, expiresInSeconds: 120 });
   }),
@@ -96,8 +113,8 @@ router.get(
     const key = String(req.query.key);
     const parsed = parseKey(key);
     if (!parsed) throw new ValidationError('Malformed object key');
-    if (isPrivateCategory(parsed.category)) {
-      throw new ForbiddenError('This document is not public');
+    if (!PUBLIC_VIEW_CATEGORIES.includes(parsed.category)) {
+      throw new ForbiddenError('This file is not public');
     }
 
     const url = await storageGateway.createDownloadUrl(key);

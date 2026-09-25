@@ -194,6 +194,15 @@ export class MessageService {
     await this.authorize(userId, bookingId);
   }
 
+  /** A chat photo may be read only by the person who uploaded it or a participant of the conversation it was sent in. */
+  async assertAttachmentAccess(userId: string, key: string): Promise<void> {
+    const msg = await MessageModel.findOne({ 'attachments.url': { $regex: key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') } })
+      .select('bookingId')
+      .lean<{ bookingId: string }>();
+    if (!msg) throw new ForbiddenError('You are not allowed to view this photo');
+    await this.authorize(userId, msg.bookingId);
+  }
+
   /** Verify the user is a participant and return the counterpart's userId. */
   private async authorize(userId: string, bookingId: string) {
     const booking = await bookingService.getDoc(bookingId);

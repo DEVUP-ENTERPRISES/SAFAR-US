@@ -67,6 +67,10 @@ export interface TripDoc {
   /** The host verified the guest's pickup code at handover (physical presence). */
   pickupVerified?: boolean;
   pickupVerifiedAt?: Date;
+  /** False while a guest-ended return waits for the host; absent on trips ended by the host or before this existed. */
+  returnConfirmed?: boolean;
+  returnConfirmedAt?: Date;
+  returnConfirmedBy?: string;
   distanceKm: number;
   createdAt: Date;
   updatedAt: Date;
@@ -126,6 +130,9 @@ const schema = new Schema<TripDoc>(
       coordinates: [Number],
       updatedAt: Date,
     },
+    returnConfirmed: Boolean,
+    returnConfirmedAt: Date,
+    returnConfirmedBy: String,
     distanceKm: { type: Number, default: 0 },
   },
   { timestamps: true, _id: false },

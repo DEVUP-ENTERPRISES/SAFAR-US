@@ -5,6 +5,7 @@ import { auditService } from '../../audit/application/audit.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
+import { authLimiter } from '../../../shared/middleware/auth-rate-limit';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
 
@@ -58,19 +59,32 @@ router.get(
 /**
  * Erase my account.
  *
- * Requires the password again: this is irreversible, and a hijacked session
+ * Requires the password (or a fresh emailed/texted code for passwordless accounts): this is irreversible, and a hijacked session
  * must not be able to destroy someone's account and its evidence trail.
  */
 router.post(
+  '/me/erase/code',
+  authenticate,
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await dataRightsService.requestErasureCode(req.principal!.userId));
+  }),
+);
+
+router.post(
   '/me/erase',
   authenticate,
+  authLimiter,
   validate({
     body: z.object({
       confirm: z.literal('DELETE MY ACCOUNT'),
+      password: z.string().min(1).max(200).optional(),
+      code: z.string().min(4).max(10).optional(),
       reason: z.string().max(500).default('Requested by the account holder'),
     }),
   }),
   asyncHandler(async (req, res) => {
+    await dataRightsService.assertErasureIntent(req.principal!.userId, req.body);
     const result = await dataRightsService.erase(
       req.principal!.userId,
       req.principal!.userId,

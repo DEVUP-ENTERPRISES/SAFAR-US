@@ -166,7 +166,7 @@ async function raw<T>(path: string, opts: RequestOptions, retry = true): Promise
 /** Type-safe API surface. Returns unwrapped `data`; use `raw` for meta. */
 export const api = {
   raw,
-  async get<T>(path: string, query?: RequestOptions['query'], auth = true): Promise<T> {
+  async get<T>(path: string, query?: RequestOptions['query'], auth: boolean | 'optional' = true): Promise<T> {
     return (await raw<T>(path, { method: 'GET', query, auth })).data;
   },
   async post<T>(path: string, body?: unknown, opts?: Partial<RequestOptions>): Promise<T> {

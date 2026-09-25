@@ -19,13 +19,14 @@ export const refreshSchema = z.object({
 });
 
 export const otpRequestSchema = z.object({ email: z.string().email() });
-export const otpVerifySchema = z.object({ email: z.string().email(), code: z.string().length(6) });
+export const otpVerifySchema = z.object({ email: z.string().email(), code: z.string().length(6), mfaToken: z.string().length(6).optional() });
 
 export const forgotPasswordSchema = z.object({ email: z.string().email() });
 export const resetPasswordSchema = z.object({
   email: z.string().email(),
   code: z.string().length(6),
   password: z.string().min(8, 'Password must be at least 8 characters'),
+  mfaToken: z.string().length(6).optional(),
 });
 
 export type RegisterDto = z.infer<typeof registerSchema>;

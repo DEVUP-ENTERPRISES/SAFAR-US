@@ -38,7 +38,7 @@ router.post(
   authenticate,
   asyncHandler(async (req, res) => {
     const host = await hostService.requireHostForUser(req.principal!.userId);
-    sendSuccess(res, await payoutService.instantPayout(host._id));
+    sendSuccess(res, await payoutService.instantPayout(host._id, req.principal!.userId));
   }),
 );
 

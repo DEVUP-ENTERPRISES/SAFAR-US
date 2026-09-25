@@ -24,7 +24,7 @@ export const kycApi = {
   startVerification: () => api.post<VerificationSession>('/kyc/verification-session', {}),
 
   /** Manual review fallback: uploaded document URLs go to ops for approval. */
-  submitDocuments: (documents: { type: 'license' | 'passport' | 'national_id' | 'selfie'; url: string }[]) =>
+  submitDocuments: (documents: { type: 'license' | 'passport' | 'national_id' | 'selfie'; key: string }[]) =>
     api.post('/kyc/submit', { documents }),
 
   /**

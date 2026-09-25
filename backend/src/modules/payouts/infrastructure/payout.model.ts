@@ -7,8 +7,10 @@ export interface PayoutDoc {
   bookingId?: string;
   amount: number;
   currency: string;
-  status: 'scheduled' | 'held' | 'paid' | 'failed';
+  status: 'scheduled' | 'processing' | 'held' | 'paid' | 'failed';
   instant?: boolean;
+  /** Set while a run owns the row, so two runs can never pay the same payout. */
+  claimToken?: string;
   /** 'extra' = money collected after the main trip payout was scheduled (overage, a late fee, a kept cancellation share). */
   kind?: 'trip' | 'extra';
   /** Idempotency tag for extra payouts, so a replayed event cannot pay twice. */
@@ -31,7 +33,8 @@ const schema = new Schema<PayoutDoc>(
     bookingId: String,
     amount: { type: Number, required: true },
     currency: { type: String, required: true },
-    status: { type: String, default: 'scheduled', enum: ['scheduled', 'held', 'paid', 'failed'] },
+    status: { type: String, default: 'scheduled', enum: ['scheduled', 'processing', 'held', 'paid', 'failed'] },
+    claimToken: String,
     instant: { type: Boolean, default: false },
     kind: { type: String, enum: ['trip', 'extra'], default: 'trip' },
     tag: { type: String, sparse: true, unique: true },

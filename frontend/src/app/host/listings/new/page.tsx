@@ -200,7 +200,7 @@ export default function NewListingPage() {
       const groups = await Promise.all(
         Array.from(byType.entries()).map(async ([type, files]) => ({
           files,
-          targets: await hostApi.uploadUrls('vehicle_photo', files.length, type),
+          targets: await hostApi.uploadUrls('vehicle_photo', files, type),
         })),
       );
       const pairs = groups.flatMap((g) => g.files.map((f, i) => ({ file: f, target: g.targets[i] })));

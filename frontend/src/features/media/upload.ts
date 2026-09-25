@@ -18,7 +18,6 @@ export interface UploadTarget {
 }
 
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_BYTES = 12 * 1024 * 1024;
 
 /**
  * The real upload flow, in one place: presign → PUT the bytes to storage →
@@ -42,14 +41,14 @@ export async function uploadFiles(
     if (!ALLOWED.includes(f.type)) {
       throw new Error(`${f.name}: use a JPG, PNG or WebP image.`);
     }
-    if (f.size > MAX_BYTES) {
-      throw new Error(`${f.name}: keep each image under 12 MB.`);
+    if (f.size <= 0) {
+      throw new Error(`${f.name}: the file is empty.`);
     }
   }
 
   const targets = await api.post<UploadTarget[]>('/media/upload-urls', {
     category,
-    count: files.length,
+    sizes: files.map((f) => f.size),
     contentType: files[0].type,
   });
 

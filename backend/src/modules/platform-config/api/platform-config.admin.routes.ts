@@ -115,6 +115,15 @@ router.put(
           maxDistanceMeters: z.number().int().min(0).max(100000).optional(),
         })
         .optional(),
+      security: z
+        .object({
+          cardAttemptsPerHour: z.number().int().min(1).max(500).optional(),
+          loginAttemptsPerAccount: z.number().int().min(3).max(50).optional(),
+          loginLockoutMinutes: z.number().int().min(1).max(1440).optional(),
+          maxUploadMb: z.number().int().min(1).max(50).optional(),
+          uploadUrlsPerHour: z.number().int().min(5).max(1000).optional(),
+        })
+        .optional(),
       handover: z
         .object({
           hostInspectionRequired: z.boolean().optional(),
@@ -122,6 +131,7 @@ router.put(
           maxCodeAttempts: z.number().int().min(1).max(20).optional(),
           hostOnlyStart: z.boolean().optional(),
           baselineRequiredForCharges: z.boolean().optional(),
+          returnConfirmHours: z.number().int().min(1).max(168).optional(),
         })
         .optional(),
       extension: z
@@ -257,6 +267,9 @@ router.put(
           windowDays: z.number().int().min(0).max(90).optional(),
           evidenceRequiredAboveCents: z.number().int().min(0).max(100_000).optional(),
           disputeWindowHours: z.number().int().min(1).max(720).optional(),
+          maxTotalBps: z.number().int().min(0).max(10000).optional(),
+          maxFuelPercent: z.number().int().min(1).max(100).optional(),
+          maxLateHours: z.number().int().min(1).max(720).optional(),
         })
         .optional(),
       surge: z
@@ -294,6 +307,7 @@ router.put(
           verificationGraceHours: z.number().min(1).max(336).optional(),
           verificationCutoffHours: z.number().min(0).max(72).optional(),
           minLeadMinutes: z.number().int().min(0).max(10080).optional(),
+          maxOpenPendingPerGuest: z.number().int().min(1).max(50).optional(),
           verificationReminderHours: z.number().min(1).max(168).optional(),
           overdueEscalationHours: z.number().min(1).max(336).optional(),
           documentExpiryReleaseHours: z.number().min(1).max(720).optional(),
@@ -344,6 +358,8 @@ router.put(
           refereeCreditCents: cents.optional(),
           referrerPoints: z.number().int().min(0).max(100000).optional(),
           refereePoints: z.number().int().min(0).max(100000).optional(),
+          minTripSpendCents: cents.optional(),
+          maxRewardsPerReferrer: z.number().int().min(1).max(10000).optional(),
         })
         .optional(),
       protection: z

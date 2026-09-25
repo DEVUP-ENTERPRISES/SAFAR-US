@@ -15,6 +15,7 @@ import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { KycModel } from '../../kyc/infrastructure/kyc.model';
 import { TripModel } from '../infrastructure/trip.model';
+import { eligibilityService } from '../../bookings/application/eligibility.service';
 import { depositService } from '../../payments/application/deposit.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { eventBus } from '../../../shared/events/event-bus';
@@ -56,7 +57,7 @@ async function seed(startInHours = 0.5) {
   return BookingModel.create({
     _id: 'bk-1', code: 'CD-1', guestId: GUEST, hostId: 'host-1', vehicleId: 'veh-1', status: 'paid',
     period: { start, end: new Date(+start + 48 * HOUR) },
-    priceBreakdown: { days: 2, currency: 'USD', total: { amount: 1, currency: 'USD' } },
+    priceBreakdown: { days: 2, currency: 'USD', total: { amount: 100_000, currency: 'USD' } },
     cancellationPolicy: 'flexible',
   });
 }
@@ -73,6 +74,7 @@ beforeEach(async () => {
   jest.restoreAllMocks();
   await clearTestDb();
   jest.spyOn(depositService, 'isEnabled').mockResolvedValue(false);
+  jest.spyOn(eligibilityService, 'evaluate').mockResolvedValue({ eligible: true, canRequest: true, blockers: [], awaitingReview: false });
   jest.spyOn(tripService as unknown as { isHost: () => Promise<boolean> }, 'isHost').mockImplementation(
     (async (userId: string) => userId === HOST) as never,
   );
@@ -203,8 +205,11 @@ describe('pickup code', () => {
 });
 
 describe('baseline for charges and claims', () => {
-  const charge = (type: 'cleaning' | 'toll', by = HOST) =>
-    incidentalsService.charge('bk-1', [{ type, amount: 500, note: 'a long enough note', evidenceUrl: 'https://x.test/e.jpg' }], by);
+  // Host charges are only allowed once the trip is completed; these tests are about the pickup-photo baseline.
+  const charge = async (type: 'cleaning' | 'toll', by = HOST) => {
+    await BookingModel.updateOne({ _id: 'bk-1' }, { status: 'completed' });
+    return incidentalsService.charge('bk-1', [{ type, amount: 500, note: 'a long enough note', evidenceUrl: 'https://x.test/e.jpg' }], by);
+  };
 
   beforeEach(() => {
     jest.spyOn(incidentalsService, 'collect').mockResolvedValue('card');

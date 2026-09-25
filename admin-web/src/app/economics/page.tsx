@@ -82,6 +82,7 @@ export default function AdminEconomicsPage() {
         serviceFee: draft.serviceFee,
         tax: draft.tax,
         payout: draft.payout,
+        incidentals: draft.incidentals,
         rewards: draft.rewards,
         referral: draft.referral,
         protection: draft.protection,
@@ -92,6 +93,7 @@ export default function AdminEconomicsPage() {
         inspection: draft.inspection,
         extension: draft.extension,
         handover: draft.handover,
+        security: draft.security,
       });
     }
   };
@@ -292,6 +294,10 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={0} max={10080} value={draft.booking.minLeadMinutes}
               onChange={(e) => set((d) => { d.booking.minLeadMinutes = Number(e.target.value); })} />
           </Field>
+          <Field label="Open requests per guest" hint="Requests one guest may have waiting at once.">
+            <Input type="number" min={1} max={50} value={draft.booking.maxOpenPendingPerGuest}
+              onChange={(e) => set((d) => { d.booking.maxOpenPendingPerGuest = Number(e.target.value); })} />
+          </Field>
           <Field label="Licence cutoff (hours before pickup)" hint="Unverified bookings are released this long before pickup.">
             <Input type="number" min={0} max={72} value={draft.booking.verificationCutoffHours}
               onChange={(e) => set((d) => { d.booking.verificationCutoffHours = Number(e.target.value); })} />
@@ -373,6 +379,39 @@ export default function AdminEconomicsPage() {
         </CardContent>
       </Card>
 
+      {/* Abuse limits */}
+      <Card className="rounded-2xl shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Abuse limits</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Stops someone using the platform to test stolen card numbers. Applies to topping up the wallet, saving a card,
+            booking and paying.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="Card attempts per member per hour">
+            <Input type="number" min={1} max={500} value={draft.security.cardAttemptsPerHour}
+              onChange={(e) => set((d) => { d.security.cardAttemptsPerHour = Number(e.target.value); })} />
+          </Field>
+          <Field label="Wrong passwords or codes before an account locks">
+            <Input type="number" min={3} max={50} value={draft.security.loginAttemptsPerAccount}
+              onChange={(e) => set((d) => { d.security.loginAttemptsPerAccount = Number(e.target.value); })} />
+          </Field>
+          <Field label="Base lockout (minutes, doubles on repeat)">
+            <Input type="number" min={1} max={1440} value={draft.security.loginLockoutMinutes}
+              onChange={(e) => set((d) => { d.security.loginLockoutMinutes = Number(e.target.value); })} />
+          </Field>
+          <Field label="Largest upload (MB)">
+            <Input type="number" min={1} max={50} value={draft.security.maxUploadMb}
+              onChange={(e) => set((d) => { d.security.maxUploadMb = Number(e.target.value); })} />
+          </Field>
+          <Field label="Upload links per member per hour">
+            <Input type="number" min={5} max={1000} value={draft.security.uploadUrlsPerHour}
+              onChange={(e) => set((d) => { d.security.uploadUrlsPerHour = Number(e.target.value); })} />
+          </Field>
+        </CardContent>
+      </Card>
+
       {/* Handover rules */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -406,6 +445,10 @@ export default function AdminEconomicsPage() {
           <Field label="Wrong pickup-code tries before lock">
             <Input type="number" min={1} max={20} value={draft.handover.maxCodeAttempts}
               onChange={(e) => set((d) => { d.handover.maxCodeAttempts = Number(e.target.value); })} />
+          </Field>
+          <Field label="Hours for the host to confirm a guest-ended return">
+            <Input type="number" min={1} max={168} value={draft.handover.returnConfirmHours}
+              onChange={(e) => set((d) => { d.handover.returnConfirmHours = Number(e.target.value); })} />
           </Field>
         </CardContent>
       </Card>
@@ -468,6 +511,31 @@ export default function AdminEconomicsPage() {
         </CardContent>
       </Card>
 
+      {/* Post-trip charges */}
+      <Card className="rounded-2xl shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Post-trip charges</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <Field label="Max fuel billed (% points)">
+            <Input type="number" min={1} max={100} value={draft.incidentals.maxFuelPercent}
+              onChange={(e) => set((d) => { d.incidentals.maxFuelPercent = Number(e.target.value); })} />
+          </Field>
+          <Field label="Max late hours billed">
+            <Input type="number" min={1} value={draft.incidentals.maxLateHours}
+              onChange={(e) => set((d) => { d.incidentals.maxLateHours = Number(e.target.value); })} />
+          </Field>
+          <Field label="Max total per booking (% of trip)" hint="Ceiling on every host-applied charge combined.">
+            <Input type="number" step="0.5" value={toPct(draft.incidentals.maxTotalBps)}
+              onChange={(e) => set((d) => { d.incidentals.maxTotalBps = toBps(e.target.value); })} />
+          </Field>
+          <Field label="Guest dispute window (hours)" hint="A host is paid for a charge only after this.">
+            <Input type="number" min={1} value={draft.incidentals.disputeWindowHours}
+              onChange={(e) => set((d) => { d.incidentals.disputeWindowHours = Number(e.target.value); })} />
+          </Field>
+        </CardContent>
+      </Card>
+
       {/* Protection */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -522,6 +590,14 @@ export default function AdminEconomicsPage() {
             <Field label="Referee credit ($)">
               <Input type="number" step="0.01" value={toDollars(draft.referral.refereeCreditCents)}
                 onChange={(e) => set((d) => { d.referral.refereeCreditCents = toCents(e.target.value); })} />
+            </Field>
+            <Field label="Minimum first trip ($)" hint="Nobody is rewarded until the referred guest's trip totals this much.">
+              <Input type="number" step="0.01" value={toDollars(draft.referral.minTripSpendCents)}
+                onChange={(e) => set((d) => { d.referral.minTripSpendCents = toCents(e.target.value); })} />
+            </Field>
+            <Field label="Max rewarded referrals per member">
+              <Input type="number" min={1} value={draft.referral.maxRewardsPerReferrer}
+                onChange={(e) => set((d) => { d.referral.maxRewardsPerReferrer = Number(e.target.value); })} />
             </Field>
           </CardContent>
         </Card>

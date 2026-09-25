@@ -163,8 +163,9 @@ export class PlatformConfigService {
         maxPhotosPerPhase: 30, requireLocation: true, maxDistanceMeters: 0,
         ...(doc.inspection ?? {}),
       },
+      security: { cardAttemptsPerHour: 12, loginAttemptsPerAccount: 8, loginLockoutMinutes: 15, maxUploadMb: 12, uploadUrlsPerHour: 60, ...(doc.security ?? {}) },
       handover: {
-        hostInspectionRequired: true, pickupCodeRequired: true, maxCodeAttempts: 5, hostOnlyStart: true, baselineRequiredForCharges: true,
+        hostInspectionRequired: true, pickupCodeRequired: true, maxCodeAttempts: 5, hostOnlyStart: true, baselineRequiredForCharges: true, returnConfirmHours: 12,
         ...(doc.handover ?? {}),
       },
       extension: {
@@ -224,7 +225,7 @@ export class PlatformConfigService {
       incidentals: {
         fuelPerPercentCents: 300, cleaningCents: 7500, smokingCents: 25000, petCents: 10000, lateReturnPerHourCents: 2500,
         maxTollCents: 10_000, maxFineCents: 50_000, maxOtherCents: 15_000,
-        windowDays: 7, evidenceRequiredAboveCents: 5_000, disputeWindowHours: 72,
+        windowDays: 7, evidenceRequiredAboveCents: 5_000, disputeWindowHours: 72, maxTotalBps: 3000, maxFuelPercent: 100, maxLateHours: 72,
         ...(doc.incidentals ?? {}),
       },
       payout: { holdHours: 24, instantFeeBps: 150, instantFeeMinCents: 50, ...(doc.payout ?? {}) },
@@ -242,6 +243,7 @@ export class PlatformConfigService {
         verificationGraceHours: 72,
         verificationCutoffHours: 5,
         minLeadMinutes: 60,
+        maxOpenPendingPerGuest: 3,
         verificationReminderHours: 24,
         overdueEscalationHours: 24,
         documentExpiryReleaseHours: 72,
@@ -262,7 +264,7 @@ export class PlatformConfigService {
           ...(doc.search?.ranking ?? {}),
         },
       },
-      referral: { referrerCreditCents: 2000, refereeCreditCents: 1000, referrerPoints: 200, refereePoints: 100, ...(doc.referral ?? {}) },
+      referral: { referrerCreditCents: 2000, refereeCreditCents: 1000, referrerPoints: 200, refereePoints: 100, minTripSpendCents: 5000, maxRewardsPerReferrer: 10, ...(doc.referral ?? {}) },
       protection: doc.protection?.length
         ? doc.protection
         : [

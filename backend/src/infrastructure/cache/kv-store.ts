@@ -14,6 +14,8 @@ export interface KeyValueStore {
   del(key: string): Promise<void>;
   /** Atomic set-if-absent with TTL — the basis for a short-lived lock. */
   acquire(key: string, ttlSeconds: number): Promise<boolean>;
+  /** Atomic increment; the TTL is set when the counter is created, so the window is fixed. Returns the new count. */
+  incr(key: string, ttlSeconds: number): Promise<number>;
 }
 
 /** Redis-backed implementation (production). */
@@ -37,6 +39,16 @@ export class RedisKvStore implements KeyValueStore {
     // SET key 1 EX ttl NX — atomic; returns 'OK' only if the key was absent.
     const res = await this.client.set(key, '1', 'EX', ttlSeconds, 'NX');
     return res === 'OK';
+  }
+  async incr(key: string, ttlSeconds: number): Promise<number> {
+    // One Lua script so the counter and its expiry can never be split by a crash.
+    const n = await this.client.eval(
+      "local v=redis.call('INCR',KEYS[1]) if v==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end return v",
+      1,
+      key,
+      String(ttlSeconds),
+    );
+    return Number(n);
   }
 }
 
@@ -70,9 +82,22 @@ export class InMemoryKvStore implements KeyValueStore {
     this.map.delete(key);
   }
   async acquire(key: string, ttlSeconds: number): Promise<boolean> {
-    if (await this.exists(key)) return false;
-    await this.set(key, '1', ttlSeconds);
+    // No await between the check and the write, so the lock is atomic on the single Node thread.
+    const entry = this.map.get(key);
+    if (entry && !this.isExpired(entry)) return false;
+    this.map.set(key, { value: '1', expiresAt: Date.now() + ttlSeconds * 1000 });
     return true;
+  }
+  async incr(key: string, ttlSeconds: number): Promise<number> {
+    // No await between read and write, so this is atomic on the single Node thread.
+    const entry = this.map.get(key);
+    if (!entry || this.isExpired(entry)) {
+      this.map.set(key, { value: '1', expiresAt: Date.now() + ttlSeconds * 1000 });
+      return 1;
+    }
+    const next = Number(entry.value) + 1;
+    entry.value = String(next);
+    return next;
   }
 }
 

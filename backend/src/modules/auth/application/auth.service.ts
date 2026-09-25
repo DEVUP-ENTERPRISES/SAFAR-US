@@ -8,12 +8,17 @@ import { verifyTotp } from '../../../shared/utils/totp';
 import { userRepository } from '../../users/infrastructure/user.repository';
 import { tokenService, type TokenPair } from './token.service';
 import { otpService } from './otp.service';
+import { attemptGuard } from './attempt-guard';
+import { isSessionBlocked } from '../../users/domain/account-status';
 import { channelProviders } from '../../notifications/infrastructure/channel.providers';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { sessionStore } from '../infrastructure/session.store';
 import type { RegisterDto, LoginDto } from '../dto/auth.schemas';
 import { socialAuthService } from './social-auth.service';
+
+let dummyHashPromise: Promise<string> | undefined;
+const dummyHash = (): Promise<string> => (dummyHashPromise ??= hashPassword('not-a-real-password'));
 
 export interface AuthResult {
   user: { id: string; email?: string; roles: string[] };
@@ -27,7 +32,8 @@ export interface AuthResult {
 export class AuthService {
   async register(dto: RegisterDto, ctx?: AuthCtx): Promise<AuthResult> {
     if (await userRepository.existsByEmail(dto.email)) {
-      throw new ConflictError('An account with this email already exists', 'EMAIL_TAKEN');
+      // Generic on purpose: a distinct answer would let anyone probe which emails have accounts.
+      throw new ConflictError('We could not create an account with these details. If you already have one, sign in or reset your password.', 'REGISTRATION_FAILED');
     }
     const passwordHash = await hashPassword(dto.password);
     const user = await userRepository.create({
@@ -52,11 +58,15 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, ctx?: AuthCtx): Promise<AuthResult> {
+    await attemptGuard.assertOpen('login', dto.email);
     const user = await userRepository.findByEmail(dto.email, true);
-    if (!user?.passwordHash) throw new UnauthorizedError('Invalid credentials');
 
-    const { valid, needsRehash } = await verifyPassword(user.passwordHash, dto.password);
-    if (!valid) throw new UnauthorizedError('Invalid credentials');
+    // Unknown and password-less accounts pay the same argon2 cost, so timing reveals nothing.
+    const { valid, needsRehash } = await verifyPassword(user?.passwordHash ?? (await dummyHash()), dto.password);
+    if (!user?.passwordHash || !valid) {
+      await attemptGuard.recordFailure('login', dto.email);
+      throw new UnauthorizedError('Invalid credentials');
+    }
 
     if (user.status !== 'active') throw new ForbiddenError('Account is not active');
 
@@ -69,17 +79,36 @@ export class AuthService {
         .catch(() => undefined);
     }
 
-    // Two-factor: if enabled, a valid TOTP code is required.
-    if (user.mfa?.enabled) {
-      if (!dto.mfaToken) {
-        throw new AppError({ code: 'MFA_REQUIRED', message: 'A 2FA code is required', httpStatus: 401 });
-      }
-      if (!user.mfa.secret || !verifyTotp(user.mfa.secret, dto.mfaToken)) {
-        throw new UnauthorizedError('Invalid 2FA code');
-      }
-    }
+    await this.assertMfa(user, dto.mfaToken);
+
+    await attemptGuard.clear('login', dto.email);
 
     return this.issueSession(user._id, user.email, user.roles, ctx);
+  }
+
+  /** Two-factor: every way of signing in must pass it for an account that turned it on, not just the password. */
+  private async assertMfa(user: { _id: string; mfa?: { enabled: boolean; secret?: string } }, mfaToken?: string): Promise<void> {
+    if (!user.mfa?.enabled) return;
+    if (!mfaToken) {
+      throw new AppError({ code: 'MFA_REQUIRED', message: 'A 2FA code is required', httpStatus: 401 });
+    }
+    await attemptGuard.assertOpen('mfa', user._id);
+    const secret = user.mfa.secret ?? (await userRepository.mfaSecretOf(user._id));
+    if (!secret || !verifyTotp(secret, mfaToken)) {
+      await attemptGuard.recordFailure('mfa', user._id);
+      throw new UnauthorizedError('Invalid 2FA code');
+    }
+    await attemptGuard.clear('mfa', user._id);
+  }
+
+  /** An unverified account matched by a now-proven email/phone was made by someone else first: wipe its password and sessions. */
+  private async adoptVerifiedContact(
+    user: { _id: string; emailVerified?: boolean; phoneVerified?: boolean },
+    contact: 'email' | 'phone',
+  ): Promise<void> {
+    if (contact === 'email' ? user.emailVerified : user.phoneVerified) return;
+    await userRepository.claimVerifiedContact(user._id, contact);
+    await sessionStore.revokeAllForUser(user._id);
   }
 
   async refresh(refreshToken: string): Promise<TokenPair> {
@@ -97,6 +126,10 @@ export class AuthService {
 
     const user = await userRepository.findById(decoded.sub);
     if (!user) throw new UnauthorizedError('User no longer exists');
+    if (isSessionBlocked(user.status)) {
+      await sessionStore.revoke(decoded.sid);
+      throw new UnauthorizedError('Session expired or revoked');
+    }
 
     const permissions = permissionsForRoles(user.roles);
     const tokens = tokenService.issuePair({
@@ -189,13 +222,14 @@ export class AuthService {
    * the moment you want to kick out anyone who might have had access, including
    * whoever the reset was protecting against.
    */
-  async resetPassword(email: string, code: string, newPassword: string): Promise<{ reset: boolean }> {
+  async resetPassword(email: string, code: string, newPassword: string, mfaToken?: string): Promise<{ reset: boolean }> {
     // Throws on a bad/expired code (attempt-capped inside otpService).
     await otpService.verify('password_reset', email, code);
     const user = await userRepository.findByEmail(email, true);
     if (!user || user.status !== 'active') {
       throw new UnauthorizedError('This reset link is no longer valid.');
     }
+    await this.assertMfa(user, mfaToken);
     const passwordHash = await hashPassword(newPassword);
     await userRepository.updatePasswordHash(user._id, passwordHash);
     // Sign out everywhere — old sessions must not survive a reset.
@@ -220,16 +254,18 @@ export class AuthService {
     return { sent: true, devCode: config.isProd ? undefined : code };
   }
 
-  async verifyPhoneOtp(phone: string, code: string, ctx?: AuthCtx): Promise<AuthResult> {
+  async verifyPhoneOtp(phone: string, code: string, ctx?: AuthCtx, mfaToken?: string): Promise<AuthResult> {
     await otpService.verify('phone', phone, code);
     let user = await userRepository.findByPhone(phone);
     if (!user) user = await userRepository.create({ phone, phoneVerified: true });
+    else await this.adoptVerifiedContact(user, 'phone');
     if (user.status !== 'active') throw new ForbiddenError('Account is not active');
+    await this.assertMfa(user, mfaToken);
     return this.issueSession(user._id, user.email, user.roles, ctx);
   }
 
   /** Google Sign-In: verify the id_token server-side, then find-or-create. */
-  async loginWithGoogle(idToken: string, ctx?: AuthCtx): Promise<AuthResult> {
+  async loginWithGoogle(idToken: string, ctx?: AuthCtx, mfaToken?: string): Promise<AuthResult> {
     if (!config.google.enabled) {
       throw new AppError({ code: 'OAUTH_DISABLED', message: 'Google login is not configured', httpStatus: 501 });
     }
@@ -237,10 +273,14 @@ export class AuthService {
     if (!res.ok) throw new UnauthorizedError('Invalid Google token');
     const info = (await res.json()) as { aud?: string; email?: string; email_verified?: string };
     if (info.aud !== config.google.clientId || !info.email) throw new UnauthorizedError('Google token rejected');
+    // An unverified Google email proves nothing, so it must never reach an existing account.
+    if (String(info.email_verified) !== 'true') throw new UnauthorizedError('Google email is not verified');
 
     let user = await userRepository.findByEmail(info.email);
     if (!user) user = await userRepository.create({ email: info.email, emailVerified: true });
+    else await this.adoptVerifiedContact(user, 'email');
     if (user.status !== 'active') throw new ForbiddenError('Account is not active');
+    await this.assertMfa(user, mfaToken);
     return this.issueSession(user._id, user.email, user.roles, ctx);
   }
 
@@ -256,12 +296,20 @@ export class AuthService {
     provider: 'apple' | 'facebook',
     token: string,
     ctx?: AuthCtx,
+    mfaToken?: string,
   ): Promise<AuthResult> {
     const identity = await socialAuthService.verify(provider, token);
     const subjectKey = socialAuthService.subjectHash(provider, identity.subject);
 
     let user = await userRepository.findBySocialSubject(subjectKey);
-    if (!user) user = await userRepository.findByEmail(identity.email);
+    if (!user) {
+      user = await userRepository.findByEmail(identity.email);
+      // Linking by email needs the provider to vouch for it; otherwise anyone could claim an existing account.
+      if (user && !identity.emailVerified) {
+        throw new ForbiddenError('Sign in with your email and password first, then link this provider.');
+      }
+      if (user) await this.adoptVerifiedContact(user, 'email');
+    }
 
     if (!user) {
       user = await userRepository.create({
@@ -274,19 +322,18 @@ export class AuthService {
     await userRepository.linkSocialSubject(user._id, subjectKey);
 
     if (user.status !== 'active') throw new ForbiddenError('Account is not active');
+    await this.assertMfa(user, mfaToken);
     return this.issueSession(user._id, user.email, user.roles, ctx);
   }
 
   /** Verify email OTP → find-or-create the user and issue a session. */
-  async verifyEmailOtp(email: string, code: string, ctx?: AuthCtx): Promise<AuthResult> {
+  async verifyEmailOtp(email: string, code: string, ctx?: AuthCtx, mfaToken?: string): Promise<AuthResult> {
     await otpService.verify('login', email, code);
     let user = await userRepository.findByEmail(email);
-    if (!user) {
-      user = await userRepository.create({ email, emailVerified: true });
-    } else if (!user.emailVerified) {
-      await userRepository.setStatus(user._id, user.status); // no-op guard
-    }
+    if (!user) user = await userRepository.create({ email, emailVerified: true });
+    else await this.adoptVerifiedContact(user, 'email');
     if (user.status !== 'active') throw new ForbiddenError('Account is not active');
+    await this.assertMfa(user, mfaToken);
     return this.issueSession(user._id, user.email, user.roles, ctx);
   }
 

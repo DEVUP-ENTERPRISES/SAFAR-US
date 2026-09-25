@@ -21,20 +21,33 @@ export class DocumentComplianceService {
   private async expiredVehicleIds(now = new Date()): Promise<Set<string>> {
     const docs = await DocumentModel.find(
       { category: { $in: MANDATORY as unknown as string[] }, expiresAt: { $lt: now }, deletedAt: null },
-      { vehicleId: 1 },
+      { vehicleId: 1, ownerId: 1 },
     ).lean();
-    return new Set(docs.map((d) => d.vehicleId).filter((v): v is string => !!v));
+    const ids = new Set<string>();
+    for (const d of docs) {
+      if (d.vehicleId && (await this.isHostsOwnDoc(d.vehicleId, d.ownerId))) ids.add(d.vehicleId);
+    }
+    return ids;
+  }
+
+  /** A document counts only when uploaded by the vehicle's own host, so a stranger cannot pause a rival's car. */
+  private async isHostsOwnDoc(vehicleId: string, ownerId: string): Promise<boolean> {
+    const v = await VehicleModel.findOne({ _id: vehicleId }, { hostId: 1 }).lean();
+    if (!v) return false;
+    const host = await hostService.getById(v.hostId).catch(() => null);
+    return !!host && host.userId === ownerId;
   }
 
   /** Booking-time guard — belt-and-suspenders for the gap between sweeps. */
   async hasExpiredMandatoryDoc(vehicleId: string): Promise<boolean> {
-    const doc = await DocumentModel.findOne({
+    const docs = await DocumentModel.find({
       vehicleId,
       category: { $in: MANDATORY as unknown as string[] },
       expiresAt: { $lt: new Date() },
       deletedAt: null,
     }).lean();
-    return !!doc;
+    for (const d of docs) if (await this.isHostsOwnDoc(vehicleId, d.ownerId)) return true;
+    return false;
   }
 
   private async notifyHost(hostId: string, vehicleId: string, kind: 'paused' | 'restored'): Promise<void> {

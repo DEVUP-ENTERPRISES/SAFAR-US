@@ -1,3 +1,4 @@
+import { sanitizeRequest } from './shared/middleware/sanitize';
 import './shared/http/request-augmentation';
 import express, { type Express } from 'express';
 import helmet from 'helmet';
@@ -119,6 +120,7 @@ export function createApp(): Express {
   // Every mutation across the whole API is audited, not just the admin
   // surface — a disputed trip needs its booking/trip/claim/payment actions
   // reconstructable regardless of which router handled them.
+  app.use(config.app.apiPrefix, sanitizeRequest);
   app.use(config.app.apiPrefix, auditLog());
   app.use(config.app.apiPrefix, buildApiRouter());
 

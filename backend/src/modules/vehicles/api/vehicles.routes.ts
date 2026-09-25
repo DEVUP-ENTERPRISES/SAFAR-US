@@ -11,7 +11,7 @@ import { OPERATIONAL_STATES } from '../domain/vehicle-lifecycle';
 import { availabilityService } from '../../availability/application/availability.service';
 import { searchService } from '../../search/application/search.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
-import { authenticate } from '../../../shared/middleware/authenticate';
+import { authenticate, authenticateOptional } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
@@ -145,23 +145,22 @@ router.get(
   '/:id/history',
   asyncHandler(async (req, res) => {
     const v = await vehicleService.getById(req.params.id);
-    sendSuccess(
-      res,
-      await vehicleHistoryService.full({
-        vin: v.vin,
-        make: v.make,
-        model: v.model,
-        year: v.year,
-      }),
-    );
+    const history = await vehicleHistoryService.full({
+      vin: v.vin,
+      make: v.make,
+      model: v.model,
+      year: v.year,
+    });
+    // The VIN is used for the lookup only; the public response never echoes it.
+    sendSuccess(res, { ...history, vin: undefined });
   }),
 );
 
 router.get(
   '/:id',
+  authenticateOptional,
   asyncHandler(async (req, res) => {
-    const v = await vehicleService.getById(req.params.id);
-    sendSuccess(res, v);
+    sendSuccess(res, await vehicleService.getForViewer(req.principal?.userId, req.params.id));
   }),
 );
 

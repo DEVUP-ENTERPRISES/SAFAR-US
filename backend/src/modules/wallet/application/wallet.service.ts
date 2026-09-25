@@ -126,6 +126,32 @@ export class WalletService {
     }
   }
 
+  /** Spend up to `max` of the balance in one locked step and return what was actually taken (a retry under the same txnId does not double-spend). */
+  async spendUpTo(userId: string, max: number, refType: string, refId: string, txnId: string): Promise<number> {
+    if (max <= 0) return 0;
+
+    const lockKey = `lock:wallet:${userId}`;
+    if (!(await kv().acquire(lockKey, 15))) throw new ConflictError('Another wallet transaction is in progress — please retry.', 'WALLET_BUSY');
+    try {
+      const spent = Math.min(await this.balance(userId), max);
+      if (spent <= 0) return 0;
+      await ledgerService.post({
+        txnId,
+        refType,
+        refId,
+        currency: 'USD',
+        description: 'Paid with wallet',
+        legs: [
+          { account: Account.userWallet(userId), direction: 'debit', amount: spent },
+          { account: Account.cardFunding(), direction: 'credit', amount: spent },
+        ],
+      });
+      return spent;
+    } finally {
+      await kv().del(lockKey);
+    }
+  }
+
   // ── Admin / support ─────────────────────────────────────────────────
 
   /**

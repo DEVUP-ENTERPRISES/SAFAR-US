@@ -2,6 +2,8 @@ import { BookingModel, type BookingDoc } from '../../bookings/infrastructure/boo
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { handoverService } from './handover.service';
 import { routingProvider } from '../../maps/infrastructure/routing.provider';
+import { tripService } from './trip.service';
+import { hostService } from '../../hosts/application/host.service';
 import { notificationService } from '../../notifications/application/notification.service';
 import { NotFoundError, ForbiddenError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
@@ -53,8 +55,16 @@ export interface ApproachState {
   pickup?: { instructions?: string; spotPhotoUrl?: string; accessCode?: string } | null;
 }
 
-function counterpartOf(b: BookingDoc, party: Party): string {
-  return party === 'guest' ? b.hostId : b.guestId;
+/** Who to notify: the guest's user id, or the host document's owner (b.hostId is a host id, not a user id). */
+async function counterpartOf(b: BookingDoc, party: Party): Promise<string | null> {
+  if (party === 'host') return b.guestId;
+  return (await hostService.getById(b.hostId).catch(() => null))?.userId ?? null;
+}
+
+/** Which side of the booking this user is on, or null when they are neither (owner or Captain who may run the handover). */
+async function partyOf(b: BookingDoc, userId: string): Promise<Party | null> {
+  if (b.guestId === userId) return 'guest';
+  return (await tripService.isHostSideOf(userId, b, 'trip:handover')) ? 'host' : null;
 }
 
 function metresBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -70,7 +80,7 @@ export const approachService = {
   async state(bookingId: string, viewerId: string): Promise<ApproachState> {
     const b = await BookingModel.findById(bookingId).lean<BookingDoc>();
     if (!b) throw new NotFoundError('Booking not found');
-    if (b.guestId !== viewerId && b.hostId !== viewerId) throw new ForbiddenError('Not your booking');
+    if (!(await partyOf(b, viewerId))) throw new ForbiddenError('Not your booking');
 
     const vehicle = await VehicleModel.findById(b.vehicleId)
       .select('pickup')
@@ -97,8 +107,8 @@ export const approachService = {
   async setOnWay(bookingId: string, userId: string): Promise<ApproachState> {
     const b = await BookingModel.findById(bookingId).lean<BookingDoc>();
     if (!b) throw new NotFoundError('Booking not found');
-    if (b.guestId !== userId && b.hostId !== userId) throw new ForbiddenError('Not your booking');
-    const party: Party = b.hostId === userId ? 'host' : 'guest';
+    const party = await partyOf(b, userId);
+    if (!party) throw new ForbiddenError('Not your booking');
 
     // Idempotent: tapping twice must not send a second notification.
     if (b.approach?.[party]?.onWayAt) return this.state(bookingId, userId);
@@ -108,9 +118,10 @@ export const approachService = {
       { $set: { [`approach.${party}.onWayAt`]: new Date() } },
     );
 
-    await notificationService
+    const notifyUserId = await counterpartOf(b, party);
+    if (notifyUserId) await notificationService
       .send({
-        userId: counterpartOf(b, party),
+        userId: notifyUserId,
         priority: 'high',
         templateKey: 'trip.approach.on_way',
         title: party === 'host' ? 'Your host is on the way' : 'Your guest is on the way',
@@ -158,9 +169,10 @@ export const approachService = {
         { _id: bookingId },
         { $set: { [`approach.${party}.arrivedAt`]: new Date() } },
       );
-      await notificationService
+      const arrivedNotifyId = await counterpartOf(b, party);
+      if (arrivedNotifyId) await notificationService
         .send({
-          userId: counterpartOf(b, party),
+          userId: arrivedNotifyId,
           priority: 'high',
           templateKey: 'trip.approach.arrived',
           title: party === 'host' ? 'Your host has arrived' : 'Your guest has arrived',
@@ -201,9 +213,10 @@ export const approachService = {
       { _id: bookingId },
       { $set: { [`approach.${party}.etaNotifiedAt`]: etaAt } },
     );
-    await notificationService
+    const slipNotifyId = await counterpartOf(b, party);
+    if (slipNotifyId) await notificationService
       .send({
-        userId: counterpartOf(b, party),
+        userId: slipNotifyId,
         priority: 'high',
         templateKey: 'trip.approach.eta_slipped',
         title: party === 'host' ? 'Your host is running late' : 'Your guest is running late',

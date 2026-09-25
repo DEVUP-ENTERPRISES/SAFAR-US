@@ -5,6 +5,7 @@ import { config } from '../config';
 import { logger } from '../infrastructure/logging/logger';
 import { redis, isRedisHealthy } from '../infrastructure/cache/redis.client';
 import { tokenService } from '../modules/auth/application/token.service';
+import { sessionStore } from '../modules/auth/infrastructure/session.store';
 import { realtimeEmitter, RT } from './emitter';
 import { trackingPhaseService } from '../modules/trips/application/tracking-phase.service';
 import { approachService } from '../modules/trips/application/approach.service';
@@ -37,13 +38,15 @@ export function initRealtime(httpServer: HttpServer): SocketServer {
   }
 
   // ── Handshake auth: verify the access token once, bind the principal. ──
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     try {
       const token =
         (socket.handshake.auth?.token as string | undefined) ??
         socket.handshake.headers.authorization?.replace('Bearer ', '');
       if (!token) return next(new Error('unauthorized'));
       const claims = tokenService.verifyAccess(token);
+      // A revoked or signed-out session must not open a socket with its still-valid JWT.
+      if (!(await sessionStore.isActive(claims.sid))) return next(new Error('unauthorized'));
       (socket.data as { principal: SocketPrincipal }).principal = {
         userId: claims.sub,
         sessionId: claims.sid,
@@ -58,13 +61,21 @@ export function initRealtime(httpServer: HttpServer): SocketServer {
     const principal = (socket.data as { principal: SocketPrincipal }).principal;
     // Every device of a user joins their personal room (multi-device fan-out).
     void socket.join(`user:${principal.userId}`);
+
+    // A session revoked after connect is dropped on its next event.
+    socket.use((_packet, next) => {
+      void sessionStore.isActive(principal.sessionId).then((active) => {
+        if (active) return next();
+        socket.disconnect(true);
+      });
+    });
     logger.debug({ userId: principal.userId }, 'socket connected');
 
     // Join a trip room — only participants may (verified against the trip).
     socket.on('trip:join', async (tripId: string, ack?: (ok: boolean) => void) => {
       try {
         const trip = await tripService.get(tripId);
-        const allowed = trip.guestId === principal.userId || (await tripService.isHostUser(principal.userId, trip.hostId));
+        const allowed = trip.guestId === principal.userId || (await tripService.isHostSideOf(principal.userId, trip));
         if (!allowed) return ack?.(false);
         await socket.join(`trip:${tripId}`);
         await socket.join(`booking:${trip.bookingId}`);
@@ -82,9 +93,9 @@ export function initRealtime(httpServer: HttpServer): SocketServer {
      */
     socket.on('booking:join', async (bookingId: string, ack?: (ok: boolean) => void) => {
       try {
-        const b = await BookingModel.findById(bookingId).lean<{ guestId: string; hostId: string }>();
+        const b = await BookingModel.findById(bookingId).lean<{ guestId: string; hostId: string; vehicleId: string }>();
         if (!b) return ack?.(false);
-        if (b.guestId !== principal.userId && b.hostId !== principal.userId) return ack?.(false);
+        if (b.guestId !== principal.userId && !(await tripService.isHostSideOf(principal.userId, b))) return ack?.(false);
         await socket.join(`booking:${bookingId}`);
         ack?.(true);
       } catch {
@@ -125,12 +136,11 @@ export function initRealtime(httpServer: HttpServer): SocketServer {
     socket.on('trip:location', async (data: { bookingId: string; lng: number; lat: number }) => {
       try {
         const booking = await BookingModel.findById(data.bookingId).lean<{
-          _id: string; guestId: string; hostId: string; tripId?: string;
+          _id: string; guestId: string; hostId: string; vehicleId: string; tripId?: string;
         }>();
         if (!booking) return;
-        if (booking.guestId !== principal.userId && booking.hostId !== principal.userId) return;
-
-        const role = booking.hostId === principal.userId ? 'host' : 'guest';
+        const role = booking.guestId === principal.userId ? 'guest' : 'host';
+        if (role === 'host' && !(await tripService.isHostSideOf(principal.userId, booking, 'trip:handover'))) return;
         if (!(await trackingPhaseService.mayBroadcast(data.bookingId, role))) return;
 
         // trip.liveLocation means "where the car is", so only the guest's

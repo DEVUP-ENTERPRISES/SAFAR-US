@@ -2,6 +2,7 @@ import { HostModel } from '../infrastructure/host.model';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
+import { toPublicVehicle } from '../../vehicles/application/vehicle-public';
 import { KycModel } from '../../kyc/infrastructure/kyc.model';
 import { NotFoundError } from '../../../core/errors/app-error';
 
@@ -89,10 +90,11 @@ export class HostProfileService {
    * listings are the host's business, not the public's.
    */
   async publicVehicles(hostId: string) {
-    return VehicleModel.find({ hostId, status: 'listed', verificationStatus: 'verified' })
+    const vehicles = await VehicleModel.find({ hostId, status: 'listed', verificationStatus: 'verified' })
       .sort({ ratingAvg: -1, createdAt: -1 })
       .limit(24)
       .lean();
+    return vehicles.map(toPublicVehicle);
   }
 
   /**

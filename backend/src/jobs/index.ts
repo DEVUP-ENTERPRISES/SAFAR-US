@@ -1,4 +1,5 @@
 import { inspectionService } from '../modules/trips/application/inspection.service';
+import { tripService } from '../modules/trips/application/trip.service';
 import { makeQueue, makeWorker } from '../infrastructure/queue/bullmq.client';
 import { webhookRetryService } from '../modules/payments/application/webhook-retry.service';
 import { logger } from '../infrastructure/logging/logger';
@@ -17,6 +18,8 @@ const QUEUE = 'cato-maintenance';
 const MIN = 60_000;
 /** How long a Stripe result gets to arrive by webhook before we go and ask Stripe ourselves. */
 const WEBHOOK_GRACE_MS = 3 * MIN;
+/** A payout claimed this long ago and still unfinished was interrupted, not slow. */
+const STUCK_PAYOUT_MS = 20 * MIN;
 
 interface JobDef {
   name: string;
@@ -103,8 +106,8 @@ const JOBS: JobDef[] = [
     name: 'lifecycle-sweep',
     everyMs: 15 * MIN,
     run: async () => {
-      const r = { ...(await bookingService.sweepLifecycle()), returnWindowOpened: await inspectionService.sweepReturnWindow() };
-      if (r.late || r.escalated || r.notStarted || r.returnWindowOpened) logger.info(r, 'lifecycle sweep');
+      const r = { ...(await bookingService.sweepLifecycle()), returnWindowOpened: await inspectionService.sweepReturnWindow(), returnsAutoConfirmed: await tripService.sweepUnconfirmedReturns() };
+      if (r.late || r.escalated || r.notStarted || r.returnWindowOpened || r.returnsAutoConfirmed) logger.info(r, 'lifecycle sweep');
       return r;
     },
   },
@@ -115,8 +118,9 @@ const JOBS: JobDef[] = [
     run: async () => {
       const payments = await paymentService.reconcilePending(WEBHOOK_GRACE_MS);
       const identity = await kycService.syncStalePending(WEBHOOK_GRACE_MS);
-      if (payments.succeeded || payments.authorized || payments.cancelled || identity) logger.warn({ payments, identity }, 'reconciled state a webhook had not delivered');
-      return { payments, identity };
+      const payoutsReleased = await payoutService.releaseStaleClaims(STUCK_PAYOUT_MS);
+      if (payments.succeeded || payments.authorized || payments.cancelled || identity || payoutsReleased) logger.warn({ payments, identity, payoutsReleased }, 'reconciled state a webhook had not delivered');
+      return { payments, identity, payoutsReleased };
     },
   },
   {

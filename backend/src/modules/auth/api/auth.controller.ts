@@ -36,8 +36,8 @@ export class AuthController {
   }
 
   async verifyOtp(req: Request, res: Response): Promise<void> {
-    const { email, code } = req.body as { email: string; code: string };
-    const result = await authService.verifyEmailOtp(email, code, ctxOf(req));
+    const { email, code, mfaToken } = req.body as { email: string; code: string; mfaToken?: string };
+    const result = await authService.verifyEmailOtp(email, code, ctxOf(req), mfaToken);
     sendSuccess(res, result);
   }
 
@@ -47,8 +47,8 @@ export class AuthController {
   }
 
   async resetPassword(req: Request, res: Response): Promise<void> {
-    const { email, code, password } = req.body as { email: string; code: string; password: string };
-    const result = await authService.resetPassword(email, code, password);
+    const { email, code, password, mfaToken } = req.body as { email: string; code: string; password: string; mfaToken?: string };
+    const result = await authService.resetPassword(email, code, password, mfaToken);
     sendSuccess(res, result);
   }
 
@@ -57,12 +57,13 @@ export class AuthController {
   }
 
   async verifyPhoneOtp(req: Request, res: Response): Promise<void> {
-    const { phone, code } = req.body as { phone: string; code: string };
-    sendSuccess(res, await authService.verifyPhoneOtp(phone, code, ctxOf(req)));
+    const { phone, code, mfaToken } = req.body as { phone: string; code: string; mfaToken?: string };
+    sendSuccess(res, await authService.verifyPhoneOtp(phone, code, ctxOf(req), mfaToken));
   }
 
   async googleLogin(req: Request, res: Response): Promise<void> {
-    const result = await authService.loginWithGoogle((req.body as { idToken: string }).idToken, ctxOf(req));
+    const { idToken, mfaToken } = req.body as { idToken: string; mfaToken?: string };
+    const result = await authService.loginWithGoogle(idToken, ctxOf(req), mfaToken);
     sendSuccess(res, result);
   }
 

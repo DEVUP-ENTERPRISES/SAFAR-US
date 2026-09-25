@@ -11,6 +11,11 @@ export function canAuthenticate(status: AccountStatus): boolean {
   return status !== 'banned' && status !== 'closed';
 }
 
+/** Accounts whose existing sessions must die and cannot be refreshed; under_review/restricted keep access to trips they already have. */
+export function isSessionBlocked(status: AccountStatus): boolean {
+  return status === 'suspended' || status === 'banned' || status === 'closed';
+}
+
 /**
  * Can this account book?
  *

@@ -1,11 +1,14 @@
 import { otpService } from './otp.service';
 import { setKvStore, InMemoryKvStore, kv } from '../../../infrastructure/cache/kv-store';
+import { connectTestDb, disconnectTestDb } from '../../../testing/mongo';
 
 /**
  * OTP security against the in-memory KV store. Codes must be single-use,
  * brute-force-capped, send-throttled, and never stored in the clear.
  */
 let store: InMemoryKvStore;
+beforeAll(connectTestDb);
+afterAll(disconnectTestDb);
 beforeEach(() => {
   store = new InMemoryKvStore();
   setKvStore(store);
@@ -49,5 +52,22 @@ describe('otpService', () => {
     const raw = await kv().get('otp:login:a@x.com');
     expect(raw).toBeTruthy();
     expect(raw).not.toContain(code);
+  });
+
+  it('counts parallel guesses atomically: 50 concurrent wrong codes never exceed the cap', async () => {
+    await otpService.request('login', 'a@x.com');
+    const results = await Promise.allSettled(
+      Array.from({ length: 50 }, () => otpService.verify('login', 'a@x.com', '000000')),
+    );
+    const invalid = results.filter((r) => r.status === 'rejected' && /invalid code/i.test(String(r.reason?.message)));
+    expect(invalid.length).toBeLessThanOrEqual(5);
+  });
+
+  it('locks the target across codes once the per-account cap is hit', async () => {
+    for (let round = 0; round < 3; round += 1) {
+      await otpService.request('login', 'b@x.com').catch(() => undefined);
+      for (let i = 0; i < 5; i += 1) await otpService.verify('login', 'b@x.com', '000000').catch(() => undefined);
+    }
+    await expect(otpService.verify('login', 'b@x.com', '123456')).rejects.toThrow(/too many/i);
   });
 });

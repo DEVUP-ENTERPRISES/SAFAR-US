@@ -4,6 +4,7 @@ import { paymentMethodService } from './payment-method.service';
 import { PaymentModel, type PaymentDoc } from '../infrastructure/payment.model';
 import { paymentGateway } from '../infrastructure/gateway.provider';
 import { ledgerService } from './ledger.service';
+import { LedgerModel } from '../infrastructure/ledger.model';
 import { Account, type LedgerLeg } from '../domain/ledger.accounts';
 import { NotFoundError, ConflictError } from '../../../core/errors/app-error';
 import { emit } from '../../../shared/events/event-bus';
@@ -23,7 +24,7 @@ import type { Money } from '../../../core/types/money';
 export class PaymentService implements IPaymentContract {
   async chargeForBooking(input: ChargeBookingInput): Promise<ChargeResult> {
     // Idempotency: a retry with the same key returns the existing payment.
-    const existing = await PaymentModel.findOne({ idempotencyKey: input.idempotencyKey }).lean();
+    const existing = await PaymentModel.findOne({ userId: input.guestId, idempotencyKey: input.idempotencyKey }).lean();
     if (existing) {
       // Look the intent up instead of creating it again: re-sending an idempotency key with different parameters is rejected by Stripe.
       const intent = existing.intentId.startsWith('wallet_')
@@ -213,7 +214,8 @@ export class PaymentService implements IPaymentContract {
         { account: Account.platformRevenue(), direction: 'credit', amount: commissionPart },
         { account: Account.platformTax(), direction: 'credit', amount: taxPart },
       ].filter((l) => l.amount > 0) as LedgerLeg[];
-      if (walletPart > 0) {
+      // Wallet money goes back only if this booking's wallet spend really happened.
+      if (walletPart > 0 && (await this.walletWasSpent(payment.bookingId!, payment.userId))) {
         legs.push(
           { account: Account.cardFunding(), direction: 'debit', amount: walletPart },
           { account: Account.userWallet(payment.userId), direction: 'credit', amount: walletPart },
@@ -419,21 +421,28 @@ export class PaymentService implements IPaymentContract {
       await payment.save();
 
       // Wallet money was spent up front; nothing was captured, so give it back.
-      const walletApplied = payment.walletApplied ?? 0;
-      if (walletApplied > 0) {
-        await ledgerService.post({
-          txnId: `wallet_restore_${payment._id}`,
-          refType: 'wallet_restore',
-          refId: bookingId,
-          currency: payment.currency,
-          description: 'Wallet funds returned: booking not completed',
-          legs: [
-            { account: Account.cardFunding(), direction: 'debit', amount: walletApplied },
-            { account: Account.userWallet(payment.userId), direction: 'credit', amount: walletApplied },
-          ],
-        });
-      }
+      await this.restoreWallet(bookingId, payment.userId, payment.walletApplied ?? 0, payment.currency);
     }
+  }
+
+  private async walletWasSpent(bookingId: string, userId: string): Promise<boolean> {
+    return !!(await LedgerModel.exists({ account: Account.userWallet(userId), direction: 'debit', refType: 'booking', refId: bookingId }));
+  }
+
+  /** Return a booking's wallet spend to the wallet, once, and only if it was actually spent. */
+  async restoreWallet(bookingId: string, userId: string, amount: number, currency: string): Promise<void> {
+    if (amount <= 0 || !(await this.walletWasSpent(bookingId, userId))) return;
+    await ledgerService.post({
+      txnId: `wallet_restore_${bookingId}`,
+      refType: 'wallet_restore',
+      refId: bookingId,
+      currency,
+      description: 'Wallet funds returned: booking not completed',
+      legs: [
+        { account: Account.cardFunding(), direction: 'debit', amount },
+        { account: Account.userWallet(userId), direction: 'credit', amount },
+      ],
+    });
   }
 
   private async postBookingLedger(payment: PaymentDoc): Promise<void> {

@@ -54,6 +54,10 @@ export const EVENTS = {
   /** The cardholder's bank is pulling the money back. */
   PAYMENT_DISPUTED: 'payment.disputed',
   PAYMENT_DISPUTE_CLOSED: 'payment.dispute.closed',
+  /** A refund was issued from the Stripe dashboard and reconciled into our books. */
+  PAYMENT_REFUNDED_EXTERNALLY: 'payment.refunded.externally',
+  /** A bank pulled back a wallet top-up. */
+  WALLET_TOPUP_DISPUTED: 'wallet.topup.disputed',
   BOOKING_CHARGE_COLLECTED: 'booking.charge.collected',
   BOOKING_CHARGE_FAILED: 'booking.charge.failed',
   BOOKING_OVERDUE: 'booking.overdue',

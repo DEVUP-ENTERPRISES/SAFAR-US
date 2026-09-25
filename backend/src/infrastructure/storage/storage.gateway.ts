@@ -54,7 +54,8 @@ export interface CreateUploadInput {
   ownerId: string;
   category: UploadCategory;
   contentType: string;
-  count: number;
+  /** Exact byte size of each file to upload; one target is issued per entry and its length is signed in. */
+  sizes: number[];
 }
 
 /**
@@ -88,8 +89,11 @@ export const PRIVATE_CATEGORY_PERMISSION: Record<string, string> = {
  * category and owner back out so a download can be authorized against them.
  */
 export function parseKey(key: string): { category: string; ownerId: string } | null {
+  if (key.startsWith('/') || key.includes('\\')) return null;
   const parts = key.split('/');
   if (parts.length < 5) return null;
+  if (parts.some((p) => p === '' || p === '.' || p === '..')) return null;
+  if (!(UPLOAD_CATEGORIES as readonly string[]).includes(parts[0])) return null;
   return { category: parts[0], ownerId: parts[3] };
 }
 
@@ -97,4 +101,6 @@ export interface StorageGateway {
   createUploadTargets(input: CreateUploadInput): Promise<UploadTarget[]>;
   /** Short-lived read URL for a private object (presigned GET on S3). */
   createDownloadUrl(key: string): Promise<string>;
+  /** The durable URL an object is served from once uploaded. */
+  publicUrlFor(key: string): string;
 }

@@ -35,8 +35,8 @@ export default function HouseFleetLoginPage() {
         return;
       }
       const url = new URL('/host/bridge', WEB_URL);
-      url.searchParams.set('at', result.tokens.accessToken);
-      url.searchParams.set('rt', result.tokens.refreshToken);
+      // Fragment, not query: it is never sent to a server, logged, or leaked through Referer.
+      url.hash = new URLSearchParams({ at: result.tokens.accessToken, rt: result.tokens.refreshToken }).toString();
       window.location.href = url.toString();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not sign in');

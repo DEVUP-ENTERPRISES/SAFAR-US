@@ -3,12 +3,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
 
-const PRIVATE_PREFIXES = ['kyc/', 'registration/', 'insurance/', 'claim/'];
+const PRIVATE_PREFIXES = ['kyc/', 'registration/', 'insurance/', 'claim/', 'message/'];
 
 /** Pull the object key out of a stored URL: the pathname, minus the leading slash. */
 function keyFromUrl(url: string): string | null {
   try {
-    const path = new URL(url).pathname.replace(/^\/+/, '');
+    const parsed = new URL(url);
+    // Without a CDN the durable URL is /media/view?key=<key>, so the key is the query value.
+    const path = parsed.searchParams.get('key') ?? parsed.pathname.replace(/^\/+/, '');
     return path || null;
   } catch {
     return null;

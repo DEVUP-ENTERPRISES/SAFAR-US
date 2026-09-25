@@ -1,4 +1,5 @@
 import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
+import { toPublicVehicle } from '../../vehicles/application/vehicle-public';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import type { PlatformConfigDoc } from '../../platform-config/infrastructure/platform-config.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
@@ -109,7 +110,7 @@ export class SearchService {
     if (['relevance', 'trending', 'rating'].includes(sort)) {
       results = [...results].sort((a, b) => Number(!!b.hostIsSuperhost) - Number(!!a.hostIsSuperhost));
     }
-    return results.slice(0, limit);
+    return results.slice(0, limit).map(toPublicVehicle);
   }
 
   /**
@@ -284,7 +285,7 @@ export class SearchService {
         Number(b.category === base.category) - Number(a.category === base.category) ||
         (b.ratingAvg || 0) - (a.ratingAvg || 0),
     );
-    return pool.slice(0, limit);
+    return pool.slice(0, limit).map(toPublicVehicle);
   }
 
   /**
@@ -351,7 +352,8 @@ export class SearchService {
             b.ratingAvg - a.ratingAvg ||
             b.totalTrips - a.totalTrips,
         )
-        .slice(0, limit);
+        .slice(0, limit)
+        .map(toPublicVehicle);
     }
 
     // Ranking weights are a competitive lever (quality vs. proximity vs. new
@@ -361,7 +363,7 @@ export class SearchService {
       .map((v) => ({ v, s: this.affinityScore(v, catWeight, bodyWeight, avgPrice, search.ranking) }))
       .sort((a, b) => b.s - a.s)
       .slice(0, limit)
-      .map((x) => x.v);
+      .map((x) => toPublicVehicle(x.v));
     return scored;
   }
 

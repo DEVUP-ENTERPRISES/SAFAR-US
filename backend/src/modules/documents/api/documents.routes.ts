@@ -7,6 +7,8 @@ import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
+import { vehicleService } from '../../vehicles/application/vehicle.service';
+import { resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
 import { NotFoundError } from '../../../core/errors/app-error';
 
 const router = Router();
@@ -14,8 +16,9 @@ const router = Router();
 const createSchema = z.object({
   vehicleId: z.string().optional(),
   category: z.enum(['registration', 'insurance', 'pollution', 'fitness', 'kyc', 'claim', 'recall_receipt']),
-  url: z.string().url(),
-  key: z.string().optional(),
+  // A server-issued upload key (or the URL it produced); the stored URL is always derived from the key.
+  url: z.string().max(2048).optional(),
+  key: z.string().max(512).optional(),
   expiresAt: z.coerce.date().optional(),
 });
 
@@ -24,7 +27,11 @@ router.post(
   authenticate,
   validate({ body: createSchema }),
   asyncHandler(async (req, res) => {
-    const doc = await DocumentModel.create({ ownerId: req.principal!.userId, ...req.body });
+    const userId = req.principal!.userId;
+    // Only the car's own host may attach documents to it; anyone could otherwise expire a rival's insurance.
+    if (req.body.vehicleId) await vehicleService.assertOwnerById(userId, req.body.vehicleId);
+    const upload = resolveOwnedUpload(req.body, userId, req.body.category);
+    const doc = await DocumentModel.create({ ...req.body, ownerId: userId, ...upload });
     sendCreated(res, doc.toObject());
   }),
 );

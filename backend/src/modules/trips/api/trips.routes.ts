@@ -139,7 +139,8 @@ router.get(
     // trip, including both parties' ids, live location, odometer and photos.
     const uid = req.principal!.userId;
     const isStaff = !!req.principal?.permissions?.some((p) => p === '*' || p === 'booking:read:any');
-    if (trip.guestId !== uid && trip.hostId !== uid && !isStaff) {
+    const hostSide = trip.guestId !== uid && (await tripService.isHostSideOf(uid, trip));
+    if (trip.guestId !== uid && !hostSide && !isStaff) {
       throw new ForbiddenError('Not your trip');
     }
     // Attach carbon footprint + EV savings (needs the vehicle's fuel type).
@@ -150,7 +151,7 @@ router.get(
     } catch {
       /* vehicle gone — omit carbon */
     }
-    const inspection = trip.guestId === uid || trip.hostId === uid ? await tripService.inspection(uid, trip.bookingId) : null;
+    const inspection = trip.guestId === uid || hostSide ? await tripService.inspection(uid, trip.bookingId) : null;
     sendSuccess(res, { ...trip, carbon, inspection });
   }),
 );
@@ -189,6 +190,16 @@ router.post(
   asyncHandler(async (req, res) => {
     const trip = await tripService.complete(req.principal!.userId, req.params.id, req.body);
     sendSuccess(res, trip);
+  }),
+);
+
+/** Host side confirms a guest-ended return, optionally correcting the readings. */
+router.post(
+  '/:id/confirm-return',
+  authenticate,
+  validate({ body: z.object({ odometerEnd: z.number().int().min(0).optional(), fuelEnd: z.number().min(0).max(100).optional() }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripService.confirmReturn(req.principal!, req.params.id, req.body));
   }),
 );
 

@@ -16,6 +16,7 @@ const mockConfig = {
 jest.mock('../../platform-config/application/platform-config.service', () => ({
   platformConfigService: { get: jest.fn(async () => mockConfig) },
 }));
+jest.mock('./eligibility.service', () => ({ eligibilityService: { evaluate: jest.fn(async () => ({ eligible: true, canRequest: true, blockers: [] })) } }));
 jest.mock('../../pricing/application/pricing.service', () => ({ pricingService: { quote: jest.fn() } }));
 jest.mock('../../search/application/search.service', () => ({ searchService: { similarTo: jest.fn() } }));
 jest.mock('../../vehicles/application/vehicle.service', () => ({ vehicleService: { getForBooking: jest.fn(), getById: jest.fn() } }));

@@ -270,7 +270,7 @@ function ManualUpload({ disabled, onSubmitted }: { disabled: boolean; onSubmitte
       const uploaded = await Promise.all(
         MANUAL_FIELDS.map((f) => uploadFiles('kyc', [new File([shots[f.id]!.blob], `${f.id}.jpg`, { type: 'image/jpeg' })])),
       );
-      return kycApi.submitDocuments(MANUAL_FIELDS.map((f, i) => ({ type: f.type, url: uploaded[i][0].url })));
+      return kycApi.submitDocuments(MANUAL_FIELDS.map((f, i) => ({ type: f.type, key: uploaded[i][0].key })));
     },
     onSuccess: onSubmitted,
     onError: (e) => toast({ title: e instanceof ApiError ? e.message : (e as Error).message, tone: 'error' }),

@@ -116,7 +116,7 @@ export default function ManageListingPage() {
 
   const docUpload = useMutation({
     mutationFn: async ({ category, file }: { category: 'registration' | 'insurance' | 'recall_receipt'; file: File }) => {
-      const [target] = await hostApi.uploadUrls(category, 1, file.type || 'application/pdf');
+      const [target] = await hostApi.uploadUrls(category, [file], file.type || 'application/pdf');
       await putToStorage(target.uploadUrl, file);
       return api.post('/documents', { vehicleId: id, category, url: target.publicUrl, key: target.key });
     },
@@ -130,7 +130,7 @@ export default function ManageListingPage() {
     setUploading(true);
     try {
       const list = Array.from(files);
-      const targets = await hostApi.uploadUrls('vehicle_photo', list.length, list[0].type || 'image/jpeg');
+      const targets = await hostApi.uploadUrls('vehicle_photo', list, list[0].type || 'image/jpeg');
       await Promise.all(list.map((f, i) => putToStorage(targets[i].uploadUrl, f)));
       await vehicleApi.addPhotos(id, targets.map((t) => ({ url: t.publicUrl, key: t.key })));
       invalidate();

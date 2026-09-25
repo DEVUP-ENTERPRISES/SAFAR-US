@@ -3,6 +3,7 @@ import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { ConflictError, ValidationError } from '../../../core/errors/app-error';
+import { kv } from '../../../infrastructure/cache/kv-store';
 
 export interface Tier {
   key: string;
@@ -123,21 +124,36 @@ export class RewardsService {
     const cfg = await platformConfigService.get();
     const min = cfg.rewards.minRedemptionPoints;
     if (points < min) throw new ValidationError(`Minimum redemption is ${min} points`);
-    const balance = await this.balance(userId);
-    if (points > balance) throw new ConflictError('Not enough points', 'INSUFFICIENT_POINTS');
-
     const creditCents = points * cfg.rewards.pointValueCents;
-    await ledgerService.post({
-      refType: 'reward_redeem',
-      refId: userId,
-      currency: 'USD',
-      description: `Redeemed ${points} CatoDrive points`,
-      legs: [
-        { account: Account.promoExpense(), direction: 'debit', amount: creditCents },
-        { account: Account.userWallet(userId), direction: 'credit', amount: creditCents },
-      ],
-    });
-    await RewardEntryModel.create({ userId, points: -points, type: 'redeem', refType: 'wallet', refId: '', description: `Redeemed for $${(creditCents / 100).toFixed(2)} wallet credit` });
+
+    // One redemption at a time per member, so parallel calls cannot all pass the balance check.
+    const lockKey = `lock:rewards:${userId}`;
+    if (!(await kv().acquire(lockKey, 30))) throw new ConflictError('Another redemption is in progress — please retry.', 'REWARDS_BUSY');
+    try {
+      const balance = await this.balance(userId);
+      if (points > balance) throw new ConflictError('Not enough points', 'INSUFFICIENT_POINTS');
+
+      // The debit is written first; the credit is keyed on it so a replay cannot pay twice.
+      const entry = await RewardEntryModel.create({ userId, points: -points, type: 'redeem', refType: 'wallet', refId: '', description: `Redeemed for $${(creditCents / 100).toFixed(2)} wallet credit` });
+      try {
+        await ledgerService.post({
+          txnId: `redeem_${entry._id}`,
+          refType: 'reward_redeem',
+          refId: userId,
+          currency: 'USD',
+          description: `Redeemed ${points} CatoDrive points`,
+          legs: [
+            { account: Account.promoExpense(), direction: 'debit', amount: creditCents },
+            { account: Account.userWallet(userId), direction: 'credit', amount: creditCents },
+          ],
+        });
+      } catch (err) {
+        await RewardEntryModel.deleteOne({ _id: entry._id });
+        throw err;
+      }
+    } finally {
+      await kv().del(lockKey);
+    }
     return { redeemed: points, creditCents };
   }
 }

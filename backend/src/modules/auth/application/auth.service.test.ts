@@ -54,7 +54,7 @@ describe('register', () => {
 
   it('rejects a duplicate email', async () => {
     await reg();
-    await expect(reg()).rejects.toMatchObject({ code: 'EMAIL_TAKEN' });
+    await expect(reg()).rejects.toMatchObject({ code: 'REGISTRATION_FAILED' });
   });
 });
 
@@ -88,6 +88,39 @@ describe('login', () => {
     await UserModel.updateOne({ _id: res.user.id }, { mfa: { enabled: true, secret: 'JBSWY3DPEHPK3PXP' } });
     await expect(authService.login({ email: 'guest@x.com', password: PW }))
       .rejects.toMatchObject({ code: 'MFA_REQUIRED' });
+  });
+});
+
+describe('login brute-force protection', () => {
+  it('locks the account after the configured wrong attempts, even for the right password', async () => {
+    await reg();
+    for (let i = 0; i < 8; i += 1) {
+      await expect(authService.login({ email: 'guest@x.com', password: 'wrong-pass' })).rejects.toThrow();
+    }
+    await expect(authService.login({ email: 'guest@x.com', password: PW })).rejects.toThrow(/too many attempts/i);
+  });
+
+  it('locks an unknown email identically, so lockout is no account oracle', async () => {
+    for (let i = 0; i < 8; i += 1) {
+      await expect(authService.login({ email: 'ghost@x.com', password: 'x' })).rejects.toThrow(/invalid credentials/i);
+    }
+    await expect(authService.login({ email: 'ghost@x.com', password: 'x' })).rejects.toThrow(/too many attempts/i);
+  });
+
+  it('runs the password hash for an unknown email (constant-time path)', async () => {
+    const argon2 = jest.requireActual('argon2');
+    const spy = jest.spyOn(argon2, 'verify');
+    await expect(authService.login({ email: 'nobody2@x.com', password: PW })).rejects.toThrow(/invalid credentials/i);
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it('a successful login clears the failure count', async () => {
+    await reg();
+    for (let i = 0; i < 5; i += 1) await authService.login({ email: 'guest@x.com', password: 'bad-pass' }).catch(() => undefined);
+    await authService.login({ email: 'guest@x.com', password: PW });
+    for (let i = 0; i < 5; i += 1) await authService.login({ email: 'guest@x.com', password: 'bad-pass' }).catch(() => undefined);
+    await expect(authService.login({ email: 'guest@x.com', password: PW })).resolves.toBeTruthy();
   });
 });
 

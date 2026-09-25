@@ -8,6 +8,9 @@ import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
 import { PaymentModel } from '../../payments/infrastructure/payment.model';
+import { payoutReadinessService } from './payout-readiness.service';
+import { ConflictError } from '../../../core/errors/app-error';
+import { uuid } from '../../../shared/utils/uuid';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
 // Hold window and instant-payout fee come from PlatformConfig — finance tunes
@@ -39,8 +42,19 @@ export class PayoutService {
     logger.info({ bookingId, hostId: booking.hostId }, 'Payout scheduled');
   }
 
+  /**
+   * A crash mid-payout leaves rows claimed but never finished. Put them back so the next run retries; that is safe because the transfer and the ledger post are both keyed on the payout id.
+   */
+  async releaseStaleClaims(olderThanMs: number): Promise<number> {
+    const res = await PayoutModel.updateMany(
+      { status: 'processing', updatedAt: { $lte: new Date(Date.now() - olderThanMs) } },
+      { status: 'scheduled', lastError: 'Released after an interrupted payout run', $unset: { claimToken: 1 } },
+    );
+    return res.modifiedCount;
+  }
+
   /** Pay the host money collected after the main payout was scheduled. */
-  async scheduleExtra(bookingId: string, hostId: string, amount: number, currency: string, tag: string): Promise<void> {
+  async scheduleExtra(bookingId: string, hostId: string, amount: number, currency: string, tag: string, minHoldHours = 0): Promise<void> {
     if (amount <= 0) return;
     if (await PayoutModel.exists({ tag })) return; // replayed event
     const cfg = await platformConfigService.get();
@@ -52,7 +66,8 @@ export class PayoutService {
       currency,
       kind: 'extra',
       status: 'scheduled',
-      scheduledFor: new Date(Date.now() + cfg.payout.holdHours * 3_600_000),
+      // A charge the guest may still dispute is not paid out before that window closes.
+      scheduledFor: new Date(Date.now() + Math.max(cfg.payout.holdHours, minHoldHours) * 3_600_000),
     });
     logger.info({ bookingId, hostId, amount }, 'Extra payout scheduled');
   }
@@ -103,104 +118,113 @@ export class PayoutService {
     );
   }
 
+  /** Atomically take ownership of scheduled rows; only the rows this call flipped come back. */
+  private async claim(filter: Record<string, unknown>): Promise<PayoutDoc[]> {
+    const claimToken = uuid();
+    await PayoutModel.updateMany({ ...filter, status: 'scheduled' }, { status: 'processing', claimToken });
+    return PayoutModel.find({ status: 'processing', claimToken }).lean<PayoutDoc[]>();
+  }
+
+  /** Give a claimed row back to the queue with the reason it did not go out. */
+  private async release(payoutId: string, reason: string): Promise<void> {
+    await PayoutModel.updateOne(
+      { _id: payoutId, status: 'processing' },
+      { status: 'scheduled', lastError: reason.slice(0, 300), $unset: { claimToken: 1 } },
+    );
+  }
+
   /**
-   * Instant payout: a host cashes out ALL scheduled earnings immediately
-   * (bypassing the hold window) for a small fee. Fee accrues to the platform.
+   * Send one claimed payout: transfer first, then the ledger, keyed on the payout
+   * so a replay can neither pay a host twice nor post twice. `fee` is the instant fee.
    */
-  async instantPayout(hostId: string): Promise<{ paidCount: number; gross: number; fee: number; net: number }> {
-    const due = await PayoutModel.find({ hostId, status: 'scheduled' });
-    const gross = due.reduce((s, p) => s + p.amount, 0);
-    if (gross <= 0) return { paidCount: 0, gross: 0, fee: 0, net: 0 };
+  private async settle(payout: PayoutDoc, fee = 0, instant = false): Promise<boolean> {
+    const net = payout.amount - fee;
+    try {
+      let providerRef: string | undefined;
+      if (connectService.enabled) {
+        const { transferId } = await connectService.transfer(
+          payout.hostId,
+          { amount: net, currency: payout.currency },
+          `payout_${payout._id}`,
+          `Payout to host ${payout.hostId}`,
+        );
+        providerRef = transferId;
+      }
+      const txnId = await ledgerService.post({
+        txnId: `payout_${payout._id}`,
+        refType: instant ? 'instant_payout' : 'payout',
+        refId: payout._id,
+        currency: payout.currency,
+        description: `${instant ? 'Instant payout' : 'Payout'} to host ${payout.hostId}${fee > 0 ? ` (fee ${fee})` : ''}`,
+        legs: [
+          { account: Account.hostPayable(payout.hostId), direction: 'credit', amount: payout.amount },
+          { account: Account.gatewayClearing(), direction: 'debit', amount: net },
+          ...(fee > 0 ? [{ account: Account.platformRevenue(), direction: 'debit' as const, amount: fee }] : []),
+        ],
+      });
+      await PayoutModel.updateOne(
+        { _id: payout._id },
+        { status: 'paid', paidAt: new Date(), ledgerTxnId: txnId, ...(providerRef ? { providerRef } : {}), ...(instant ? { instant: true } : {}), $unset: { claimToken: 1, lastError: 1 } },
+      );
+      return true;
+    } catch (err) {
+      await this.release(payout._id, (err as Error).message);
+      logger.error({ hostId: payout.hostId, payoutId: payout._id, err: (err as Error).message }, 'payout failed — left scheduled');
+      return false;
+    }
+  }
 
+  /**
+   * Instant payout: an established host cashes out their scheduled trip earnings
+   * immediately (bypassing the hold window) for a small fee. New hosts, extras and
+   * held (disputed) payouts are excluded, and the host must be payout-ready.
+   */
+  async instantPayout(hostId: string, userId: string): Promise<{ paidCount: number; gross: number; fee: number; net: number }> {
     const cfg = await platformConfigService.get();
-    const fee = Math.max(
-      cfg.payout.instantFeeMinCents,
-      Math.round((gross * cfg.payout.instantFeeBps) / 10000),
-    );
-    const net = gross - fee;
+    const priorTrips = await BookingModel.countDocuments({ hostId, status: 'completed' });
+    if (priorTrips < cfg.payoutTrust.newHostTripThreshold) {
+      throw new ConflictError('Instant payout unlocks after your first completed trips.', 'INSTANT_PAYOUT_NOT_ELIGIBLE');
+    }
+    if (!(await payoutReadinessService.forHost(userId)).ready) {
+      throw new ConflictError('Finish your payout setup before cashing out.', 'PAYOUT_NOT_READY');
+    }
 
-    const txnId = await ledgerService.post({
-      refType: 'instant_payout',
-      refId: hostId,
-      currency: 'USD',
-      description: `Instant payout to host ${hostId} (fee ${fee})`,
-      legs: [
-        { account: Account.hostPayable(hostId), direction: 'credit', amount: gross },
-        { account: Account.gatewayClearing(), direction: 'debit', amount: net },
-        { account: Account.platformRevenue(), direction: 'debit', amount: fee },
-      ],
-    });
+    const due = await this.claim({ hostId, kind: { $ne: 'extra' } });
+    const gross = due.reduce((s, p) => s + p.amount, 0);
+    if (gross <= 0) {
+      for (const p of due) await this.release(p._id, 'nothing to pay');
+      return { paidCount: 0, gross: 0, fee: 0, net: 0 };
+    }
+    const totalFee = Math.min(gross, Math.max(cfg.payout.instantFeeMinCents, Math.round((gross * cfg.payout.instantFeeBps) / 10000)));
 
-    const now = new Date();
-    await PayoutModel.updateMany(
-      { _id: { $in: due.map((p) => p._id) } },
-      { status: 'paid', paidAt: now, ledgerTxnId: txnId, instant: true },
-    );
-    logger.info({ hostId, gross, fee, net }, '⚡ instant payout executed');
-    return { paidCount: due.length, gross, fee, net };
+    let paidGross = 0;
+    let paidFee = 0;
+    let paidCount = 0;
+    let feeLeft = totalFee;
+    for (const p of due) {
+      // Proportional fee per payout; the last one absorbs rounding.
+      const fee = p === due[due.length - 1] ? feeLeft : Math.round((totalFee * p.amount) / gross);
+      feeLeft -= fee;
+      if (await this.settle(p, fee, true)) {
+        paidGross += p.amount;
+        paidFee += fee;
+        paidCount += 1;
+      }
+    }
+    logger.info({ hostId, paidGross, paidFee }, 'instant payout executed');
+    return { paidCount, gross: paidGross, fee: paidFee, net: paidGross - paidFee };
   }
 
   /** Execute all due scheduled payouts for a host (finance-triggered / cron). */
   async runForHost(hostId: string): Promise<{ paid: number; amount: number }> {
-    const due = await PayoutModel.find({
-      hostId,
-      status: 'scheduled',
-      scheduledFor: { $lte: new Date() },
-    });
-
+    const due = await this.claim({ hostId, scheduledFor: { $lte: new Date() } });
     let total = 0;
     let paid = 0;
-
     for (const payout of due) {
-      /*
-       * Send the money BEFORE writing that we sent it.
-       *
-       * This used to post a ledger entry and mark the payout paid without ever
-       * calling a payment processor — the row said "paid", the host's bank
-       * never saw anything. Everything downstream then agreed with a fiction:
-       * balances, statements, and eventually tax.
-       *
-       * When Connect is configured the transfer is real, and a failure leaves
-       * the payout scheduled with the reason attached rather than silently
-       * marking it settled.
-       */
-      if (connectService.enabled) {
-        try {
-          const { transferId } = await connectService.transfer(
-            hostId,
-            { amount: payout.amount, currency: payout.currency },
-            // Keyed on the payout, so a retry cannot pay a host twice.
-            `payout_${payout._id}`,
-            `Payout to host ${hostId}`,
-          );
-          payout.providerRef = transferId;
-        } catch (err) {
-          payout.lastError = (err as Error).message.slice(0, 300);
-          await payout.save();
-          logger.error(
-            { hostId, payoutId: payout._id, err: payout.lastError },
-            'payout transfer failed — left scheduled',
-          );
-          continue;
-        }
+      if (await this.settle(payout)) {
+        total += payout.amount;
+        paid += 1;
       }
-
-      const txnId = await ledgerService.post({
-        refType: 'payout',
-        refId: payout._id,
-        currency: payout.currency,
-        description: `Payout to host ${hostId}`,
-        legs: [
-          { account: Account.hostPayable(hostId), direction: 'credit', amount: payout.amount },
-          { account: Account.gatewayClearing(), direction: 'debit', amount: payout.amount },
-        ],
-      });
-      payout.status = 'paid';
-      payout.paidAt = new Date();
-      payout.ledgerTxnId = txnId;
-      await payout.save();
-      total += payout.amount;
-      paid += 1;
     }
     return { paid, amount: total };
   }

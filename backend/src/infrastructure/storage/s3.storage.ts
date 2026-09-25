@@ -50,6 +50,8 @@ function placeholderReason(value: string): string | null {
  * Hardening applied here:
  *  - content type is allowlisted AND baked into the signature, so a client
  *    cannot swap an image upload for an HTML/executable one after signing;
+ *  - the exact byte length is signed in (the route caps it by security.maxUploadMb),
+ *    so an upload link cannot be used to park a huge object in the bucket;
  *  - keys are date-partitioned and random (no user-controlled path segments —
  *    that's how you get path traversal / object overwrites);
  *  - objects are written with a long immutable Cache-Control, because the key
@@ -132,7 +134,7 @@ export class S3StorageGateway implements StorageGateway {
     const ext = EXT[contentType] ?? 'bin';
 
     return Promise.all(
-      Array.from({ length: input.count }, async () => {
+      input.sizes.map(async (size) => {
         // Random, date-partitioned key. Nothing user-supplied ends up in the path.
         const key = `${input.category}/${datePart}/${input.ownerId}/${randomId()}.${ext}`;
 
@@ -142,9 +144,10 @@ export class S3StorageGateway implements StorageGateway {
             Bucket: this.bucket,
             Key: key,
             ContentType: contentType, // signed in — the client cannot change it
+            ContentLength: size, // signed in — S3 rejects a body of any other length
             CacheControl: 'public, max-age=31536000, immutable',
           }),
-          { expiresIn: PRESIGN_TTL_SECONDS },
+          { expiresIn: PRESIGN_TTL_SECONDS, signableHeaders: new Set(['content-length']) },
         );
 
         return { key, uploadUrl, publicUrl: this.publicUrlFor(key) };

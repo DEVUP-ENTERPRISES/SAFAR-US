@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils/cn';
 import { useAuthStore } from '@/features/auth/store';
 import { useToast } from '@/components/ui/toast';
 import { uploadFiles } from '@/features/media/upload';
+import { SecureDoc } from '@/features/media/secure-doc';
 import { useMessages, SYSTEM_SENDER } from './hooks';
 
 /** Canned openers so coordinating a trip is one tap, not a paragraph. */
@@ -125,10 +126,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
                 >
                   {m.attachments?.map((a, i) =>
                     a.kind === 'image' ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <a key={i} href={a.url} target="_blank" rel="noreferrer">
-                        <img src={a.url} alt={a.name ?? 'shared photo'} className="max-h-64 w-full object-cover" />
-                      </a>
+                      <SecureDoc key={i} url={a.url} alt={a.name ?? 'shared photo'} className="max-h-64 w-full object-cover" />
                     ) : (
                       <a key={i} href={a.url} target="_blank" rel="noreferrer" className="block px-3.5 py-2 underline">
                         {a.name ?? 'Attachment'}

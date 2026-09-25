@@ -119,7 +119,7 @@ export const vehicleApi = {
     ),
   recommendations: (limit = 12) =>
     api.get<Vehicle[]>('/search/recommendations', { limit }),
-  getById: (id: string) => api.get<Vehicle>(`/vehicles/${id}`, undefined, false),
+  getById: (id: string) => api.get<Vehicle>(`/vehicles/${id}`, undefined, 'optional'),
   /** Real view counts for this listing, from actual visitor analytics. */
   interest: (id: string) =>
     api.get<{ viewersLast24h: number; viewersLast7d: number }>(`/vehicles/${id}/interest`, undefined, false),

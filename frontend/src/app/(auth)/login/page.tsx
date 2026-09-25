@@ -13,6 +13,7 @@ import { useLogin, useOnAuthSuccess, ADMIN_ROLES } from '@/features/auth/hooks';
 import { SocialSignIn } from '@/features/auth/social-signin';
 import { ReturnContext } from '@/features/auth/return-context';
 import { ApiError } from '@/lib/api/types';
+import { safeRedirect } from '@/lib/utils/safe-redirect';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -25,8 +26,7 @@ function LoginInner() {
   const qp = useSearchParams();
   // Send people back to whatever they were trying to do. Only same-site paths
   // are honoured — an absolute URL here would be an open redirect.
-  const next = qp.get('next');
-  const returnTo = next && next.startsWith('/') && !next.startsWith('//') ? next : '/search';
+  const returnTo = safeRedirect(qp.get('next'));
 
   const login = useLogin({ redirectTo: returnTo, denyAnyRole: ADMIN_ROLES });
   const router = useRouter();

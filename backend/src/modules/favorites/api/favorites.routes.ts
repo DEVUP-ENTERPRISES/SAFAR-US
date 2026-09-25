@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { FavoriteModel } from '../infrastructure/favorite.model';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
+import { toPublicVehicle } from '../../vehicles/application/vehicle-public';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { validate } from '../../../shared/middleware/validate';
@@ -18,7 +19,7 @@ router.get(
       .sort({ createdAt: -1 })
       .lean();
     const vehicles = await vehicleService.getByIds(favs.map((f) => f.vehicleId));
-    sendSuccess(res, vehicles);
+    sendSuccess(res, vehicles.map(toPublicVehicle));
   }),
 );
 

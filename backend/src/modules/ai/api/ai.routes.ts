@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { aiGateway } from '../infrastructure/ai.gateway';
 import { damageReviewService } from '../application/damage-review.service';
 import { caseFileService } from '../application/case-file.service';
+import { tripService } from '../../trips/application/trip.service';
 import { TripModel } from '../../trips/infrastructure/trip.model';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
@@ -48,7 +49,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const trip = await TripModel.findById(req.params.tripId).lean();
     const uid = req.principal!.userId;
-    const isParty = !!trip && (trip.guestId === uid || trip.hostId === uid);
+    const isParty = !!trip && (trip.guestId === uid || (await tripService.isHostSideOf(uid, trip)));
     // Not a party and not staff reads the same as "no assessment": the
     // existence of a damage finding is itself information about the trip.
     sendSuccess(res, isParty || isStaff(req) ? await damageReviewService.get(req.params.tripId) : null);
@@ -62,7 +63,7 @@ router.post(
     const uid = req.principal!.userId;
     const trip = await TripModel.findById(req.params.tripId).lean();
     if (!trip) throw new NotFoundError('Trip not found');
-    if (trip.hostId !== uid && !isStaff(req)) {
+    if (!(await tripService.isHostSideOf(uid, trip, 'incident:report')) && !isStaff(req)) {
       throw new ForbiddenError('Only the host or staff can run a damage review');
     }
     sendSuccess(res, await damageReviewService.review(req.params.tripId, uid));

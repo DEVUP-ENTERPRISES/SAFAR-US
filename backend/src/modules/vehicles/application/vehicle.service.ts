@@ -10,6 +10,7 @@ import type {
 } from '../../../core/contracts/vehicle.contract';
 import type { CreateVehicleDto } from '../dto/vehicle.schemas';
 import { vinDecodeService } from './vin-decode.service';
+import { toPublicVehicle } from './vehicle-public';
 
 /**
  * Minimum photos before a listing can be submitted for verification. Turo
@@ -128,6 +129,16 @@ export class VehicleService implements IVehicleContract {
     return v;
   }
 
+  /** The full document for the owning host; everyone else gets the public projection. */
+  async getForViewer(viewerId: string | undefined, vehicleId: string): Promise<VehicleDoc> {
+    const v = await this.getById(vehicleId);
+    if (viewerId) {
+      const host = await hostService.getByUserId(viewerId);
+      if (host && host._id === v.hostId) return v;
+    }
+    return toPublicVehicle(v);
+  }
+
   /** Batch resolve (avoids N+1 for favorites / recently-viewed hydration). */
   async getByIds(ids: string[]): Promise<VehicleDoc[]> {
     if (ids.length === 0) return [];
@@ -191,8 +202,40 @@ export class VehicleService implements IVehicleContract {
       if (patch[k] !== undefined) update[k] = patch[k];
     }
     if (patch.specs) update.specs = { ...vehicle.specs, ...patch.specs };
+
+    // Changing what the car IS or where it is voids the approval it was given, so it goes back to the admin queue.
+    const needsReview = vehicle.verificationStatus === 'verified' && this.identityChanged(vehicle, update);
+    if (needsReview) {
+      update.status = 'pending_verification';
+      update.verificationStatus = 'pending';
+      if (['make', 'model', 'year'].some((k) => update[k] !== undefined && update[k] !== vehicle[k as 'make'])) update.vinVerified = false;
+    }
     await VehicleModel.updateOne({ _id: vehicleId }, update);
+    if (needsReview) {
+      const { notificationService } = await import('../../notifications/application/notification.service');
+      await notificationService
+        .send({
+          userId,
+          priority: 'high',
+          templateKey: 'vehicle.re_review',
+          title: 'Your car is paused for a quick review',
+          body: `You changed the details of your ${vehicle.make} ${vehicle.model}, so it is hidden from search until our team approves the change. Existing trips are not affected.`,
+          deepLink: `/host/listings/${vehicleId}`,
+          data: { vehicleId },
+        })
+        .catch(() => undefined);
+    }
     return this.getById(vehicleId);
+  }
+
+  /** True when the pending update alters make, model, year, plate or the pin/address of the car. */
+  private identityChanged(vehicle: VehicleDoc, update: Record<string, unknown>): boolean {
+    if (['make', 'model', 'year', 'registrationNumber'].some((k) => update[k] !== undefined && update[k] !== vehicle[k as 'make'])) return true;
+    const loc = update.location as VehicleDoc['location'] | undefined;
+    if (!loc) return false;
+    const [lng, lat] = loc.coordinates;
+    const [oldLng, oldLat] = vehicle.location.coordinates;
+    return loc.address !== vehicle.location.address || lng !== oldLng || lat !== oldLat;
   }
 
   /** Update pricing engine settings (manual/dynamic/seasonal/discounts/promo). */

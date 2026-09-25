@@ -52,6 +52,8 @@ export interface PlatformConfig {
     payoutMethod: 'check' | 'zelle';
   };
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };
+  /** Post-trip charges: the combined ceiling per booking (bps of the booking total) and the guest's dispute window. */
+  incidentals: { maxTotalBps: number; disputeWindowHours: number; maxFuelPercent: number; maxLateHours: number };
   /** Handover and return timing: when live location opens, and how long past the return time before a trip counts as overdue. */
   tracking: { approachWindowMinutes: number; overdueGraceMinutes: number };
   inspection: {
@@ -63,12 +65,14 @@ export interface PlatformConfig {
     requireLocation: boolean;
     maxDistanceMeters: number;
   };
+  security: { cardAttemptsPerHour: number; loginAttemptsPerAccount: number; loginLockoutMinutes: number; maxUploadMb: number; uploadUrlsPerHour: number };
   handover: {
     hostInspectionRequired: boolean;
     pickupCodeRequired: boolean;
     maxCodeAttempts: number;
     hostOnlyStart: boolean;
     baselineRequiredForCharges: boolean;
+    returnConfirmHours: number;
   };
   extension: {
     enabled: boolean;
@@ -83,6 +87,7 @@ export interface PlatformConfig {
     verificationGraceHours: number;
     verificationCutoffHours: number;
     minLeadMinutes: number;
+    maxOpenPendingPerGuest: number;
     verificationReminderHours: number;
     overdueEscalationHours: number;
     documentExpiryReleaseHours: number;
@@ -91,7 +96,7 @@ export interface PlatformConfig {
     priceLockMinutes: number;
   };
   rewards: { pointValueCents: number; pointsPerDollar: number };
-  referral: { referrerCreditCents: number; refereeCreditCents: number };
+  referral: { referrerCreditCents: number; refereeCreditCents: number; minTripSpendCents: number; maxRewardsPerReferrer: number };
   protection: { code: string; label: string; description: string; pricePerDay: number }[];
   support: { slaHours: { urgent: number; high: number; normal: number; low: number } };
   surge: {

@@ -3,6 +3,7 @@
  * append-only storage, and a start gate that can never lock a guest out.
  */
 import { tripService } from './trip.service';
+import { eligibilityService } from '../../bookings/application/eligibility.service';
 import { inspectionService, type PhotoInput } from './inspection.service';
 import { TripModel, PrePhotoModel } from '../infrastructure/trip.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
@@ -17,6 +18,7 @@ beforeEach(async () => {
   jest.restoreAllMocks();
   await clearTestDb();
   jest.spyOn(depositService, 'isEnabled').mockResolvedValue(false);
+  jest.spyOn(eligibilityService, 'evaluate').mockResolvedValue({ eligible: true, canRequest: true, blockers: [], awaitingReview: false });
   // These tests are about photos; the handover order has its own file.
   const real = await platformConfigService.get();
   jest.spyOn(platformConfigService, 'get').mockResolvedValue({

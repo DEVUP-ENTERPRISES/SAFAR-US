@@ -15,6 +15,10 @@ import { logger } from '../../../infrastructure/logging/logger';
 import { milesToKm } from '../../../shared/utils/distance';
 import { inspectionService, type InspectionPhase, type InspectionState, type PhotoInput } from './inspection.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { eligibilityService } from '../../bookings/application/eligibility.service';
+import { payoutService } from '../../payouts/application/payout.service';
+import { ClaimModel } from '../../claims/infrastructure/claim.model';
+import { BookingModel } from '../../bookings/infrastructure/booking.model';
 
 export class TripService {
   /** Start the trip (handover), in a fixed order: host inspection, guest/licence check, pickup code, odometer. Booking must be paid. */
@@ -42,6 +46,14 @@ export class TripService {
     if (existing) throw new ConflictError('Trip already started', 'TRIP_EXISTS');
 
     await inspectionService.assertPrePhotosBeforeStart(booking, isAdmin);
+
+    // The guest was eligible when they booked; a suspension or revoked KYC since then must stop the handover.
+    if (!isAdmin) {
+      const eligibility = await eligibilityService.evaluate(booking.guestId, booking.period.end);
+      if (!eligibility.eligible) {
+        throw new ConflictError(eligibilityService.describe(eligibility.blockers)[0] ?? 'This guest is not eligible to drive.', 'GUEST_NOT_ELIGIBLE');
+      }
+    }
 
     // Only the handing-over side vouches for a licence; a guest's own tick would prove nothing.
     let licence: Partial<TripDoc> = {};
@@ -100,17 +112,15 @@ export class TripService {
     );
   }
 
-  /** Return + finalize. Triggers payout scheduling via events. */
+  /** Return + finalize. A host-side completion is final; a guest's waits for the host to confirm before deposit and payout. */
   async complete(
     userId: string,
     tripId: string,
     ret: { odometerEnd?: number; fuelEnd?: number; notes?: string },
   ): Promise<TripDoc> {
     const trip = await this.getDoc(tripId);
-    if (
-      trip.guestId !== userId &&
-      !(await this.isHost(userId, trip.hostId, trip.vehicleId, 'trip:handover'))
-    ) {
+    const hostSide = await this.isHost(userId, trip.hostId, trip.vehicleId, 'trip:handover');
+    if (trip.guestId !== userId && !hostSide) {
       throw new ForbiddenError('Not a participant of this trip');
     }
     if (trip.status !== 'active') throw new ConflictError('Trip is not active', 'INVALID_STATE');
@@ -131,24 +141,19 @@ export class TripService {
       );
     }
 
-    // Odometers read miles on a US dashboard; mileage limits/fees are stored
-    // in km, so the raw delta has to convert before it can be billed against.
-    const distanceKm =
-      ret.odometerEnd != null && trip.handover.odometerStart != null
-        ? Math.max(0, milesToKm(ret.odometerEnd - trip.handover.odometerStart))
-        : trip.distanceKm;
-
-    // Charge the guest for driving past the included mileage. Real money —
-    // booked to the ledger and paid to the host, exactly like rental income.
-    const overage = await this.chargeMileageOverage(trip, distanceKm);
+    const distanceKm = this.distanceFor(trip, ret.odometerEnd);
+    const now = new Date();
+    // Mileage and fuel are billed from the host's confirmed readings, never a guest's own number.
+    const overage = hostSide ? await this.chargeMileageOverage(trip, distanceKm) : null;
 
     await TripModel.updateOne(
       { _id: tripId },
       {
         status: 'completed',
-        return: { at: new Date(), ...ret },
+        return: { at: now, ...ret },
         distanceKm,
         ...(overage ? { mileageOverage: overage } : {}),
+        ...(hostSide ? { returnConfirmed: true, returnConfirmedAt: now, returnConfirmedBy: userId } : { returnConfirmed: false }),
       },
     );
     // Late return: billed once, on the way in, for the hours past the grace window.
@@ -162,15 +167,7 @@ export class TripService {
     }
 
     await bookingService.markCompleted(trip.bookingId);
-
-    // Auto fuel shortfall: the guest brought it back with less than they left
-    // with. Cleaning/smoking/tolls are host-reported through the incidentals
-    // endpoint; fuel is measured, so it charges itself.
-    try {
-      await incidentalsService.chargeFuelShortfall(trip.bookingId, trip.handover.fuelStart, ret.fuelEnd);
-    } catch (err) {
-      logger.warn({ err, bookingId: trip.bookingId }, 'fuel shortfall charge failed');
-    }
+    if (hostSide) await this.chargeFuel(trip, ret.fuelEnd);
 
     // Recall check happens now, not before the trip — a guest with the keys
     // already must never be stranded by a recall that published mid-rental.
@@ -185,8 +182,93 @@ export class TripService {
       tripId,
       bookingId: trip.bookingId,
       hostId: trip.hostId,
+      awaitingConfirmation: !hostSide,
     });
     return this.getDoc(tripId);
+  }
+
+  /** The host side (or staff) confirms a guest-ended return, optionally correcting the readings; billing and payout follow. */
+  async confirmReturn(
+    principal: Principal,
+    tripId: string,
+    corrections: { odometerEnd?: number; fuelEnd?: number } = {},
+  ): Promise<TripDoc> {
+    const trip = await this.getDoc(tripId);
+    if (!this.isAdmin(principal) && !(await this.isHost(principal.userId, trip.hostId, trip.vehicleId, 'trip:handover'))) {
+      throw new ForbiddenError('Only the host confirms the return');
+    }
+    if (trip.status !== 'completed' || trip.returnConfirmed !== false) {
+      throw new ConflictError('There is no return waiting for confirmation.', 'INVALID_STATE');
+    }
+    await this.finalizeReturn(trip, principal.userId, corrections);
+    return this.getDoc(tripId);
+  }
+
+  /** Cron: auto-confirm guest-ended returns the host left alone past the window, unless a dispute is open. */
+  async sweepUnconfirmedReturns(): Promise<number> {
+    const hours = (await platformConfigService.get()).handover.returnConfirmHours;
+    const cutoff = new Date(Date.now() - hours * 3_600_000);
+    const waiting = await TripModel.find({ status: 'completed', returnConfirmed: false, 'return.at': { $lte: cutoff } }).lean<TripDoc[]>();
+    let confirmed = 0;
+    for (const trip of waiting) {
+      try {
+        if (await this.hasReturnDispute(trip)) continue;
+        await this.finalizeReturn(trip, 'system', {});
+        confirmed += 1;
+      } catch (err) {
+        logger.warn({ err, tripId: trip._id }, 'auto-confirm return failed');
+      }
+    }
+    return confirmed;
+  }
+
+  /** A host report (damage, open claim, disputed charge or incident) means a human must decide, not the clock. */
+  private async hasReturnDispute(trip: TripDoc): Promise<boolean> {
+    if ((trip.damageReports ?? []).some((r) => r.byUserId !== trip.guestId)) return true;
+    if ((trip.incidents ?? []).some((i) => i.status === 'open')) return true;
+    if (await ClaimModel.exists({ bookingId: trip.bookingId, deletedAt: null, status: { $nin: ['settled', 'rejected', 'closed'] } })) return true;
+    return !!(await BookingModel.exists({ _id: trip.bookingId, 'incidentals.status': 'disputed' }));
+  }
+
+  /** Bill mileage and fuel from the confirmed readings, mark the return confirmed and schedule the payout. */
+  private async finalizeReturn(trip: TripDoc, by: string, corrections: { odometerEnd?: number; fuelEnd?: number }): Promise<void> {
+    const odometerEnd = corrections.odometerEnd ?? trip.return?.odometerEnd;
+    const fuelEnd = corrections.fuelEnd ?? trip.return?.fuelEnd;
+    const distanceKm = this.distanceFor(trip, odometerEnd);
+    const overage = await this.chargeMileageOverage(trip, distanceKm);
+    const claimed = await TripModel.updateOne(
+      { _id: trip._id, returnConfirmed: false },
+      {
+        $set: {
+          returnConfirmed: true,
+          returnConfirmedAt: new Date(),
+          returnConfirmedBy: by,
+          distanceKm,
+          ...(odometerEnd != null ? { 'return.odometerEnd': odometerEnd } : {}),
+          ...(fuelEnd != null ? { 'return.fuelEnd': fuelEnd } : {}),
+          ...(overage ? { mileageOverage: overage } : {}),
+        },
+      },
+    );
+    if (!claimed.modifiedCount) return;
+    await this.chargeFuel(trip, fuelEnd);
+    await payoutService.scheduleForBooking(trip.bookingId).catch((err) => logger.error({ err, bookingId: trip.bookingId }, 'payout scheduling after return confirm failed'));
+  }
+
+  /** Odometers read miles on a US dashboard; mileage limits/fees are km, so the delta converts before billing. */
+  private distanceFor(trip: TripDoc, odometerEnd?: number): number {
+    return odometerEnd != null && trip.handover.odometerStart != null
+      ? Math.max(0, milesToKm(odometerEnd - trip.handover.odometerStart))
+      : trip.distanceKm;
+  }
+
+  /** Fuel is measured, so a shortfall charges itself; cleaning/smoking/tolls are host-reported. */
+  private async chargeFuel(trip: TripDoc, fuelEnd?: number): Promise<void> {
+    try {
+      await incidentalsService.chargeFuelShortfall(trip.bookingId, trip.handover.fuelStart, fuelEnd);
+    } catch (err) {
+      logger.warn({ err, bookingId: trip.bookingId }, 'fuel shortfall charge failed');
+    }
   }
 
   async get(tripId: string): Promise<TripDoc> {
@@ -453,6 +535,11 @@ export class TripService {
     const { hostStaffService } = await import('../../hosts/application/host-staff.service');
     const { allowed } = await hostStaffService.can(userId, ability, hostId, vehicleId);
     return allowed;
+  }
+
+  /** Host-side access to a trip (owner, or a captain who may view it). */
+  async isHostSideOf(userId: string, trip: Pick<TripDoc, 'hostId' | 'vehicleId'>, ability: CaptainAbility = 'trip:view'): Promise<boolean> {
+    return this.isHost(userId, trip.hostId, trip.vehicleId, ability);
   }
 
   /** Public participant check (used by the realtime gateway). */

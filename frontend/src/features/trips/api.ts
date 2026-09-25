@@ -62,6 +62,8 @@ export interface Trip {
   checkin?: { at: string; method: string };
   handover: { at: string; odometerStart?: number; fuelStart?: number };
   return?: { at: string; odometerEnd?: number; fuelEnd?: number };
+  /** False while a guest-ended return waits for the host to confirm it. */
+  returnConfirmed?: boolean;
   liveLocation?: { coordinates: [number, number]; updatedAt: string };
   /** Condition photos. `pre` = pickup, `post` = return — the damage baseline. */
   photos?: TripPhoto[];

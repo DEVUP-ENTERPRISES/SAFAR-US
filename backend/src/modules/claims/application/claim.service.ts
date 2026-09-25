@@ -8,6 +8,7 @@ import { paymentService } from '../../payments/application/payment.service';
 import { depositService } from '../../payments/application/deposit.service';
 import { notificationService } from '../../notifications/application/notification.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { TripModel } from '../../trips/infrastructure/trip.model';
 import { damageReviewService } from '../../ai/application/damage-review.service';
 import type { DamageAssessmentDoc } from '../../ai/infrastructure/damage-assessment.model';
 
@@ -22,8 +23,9 @@ export interface CreateClaimInput {
 }
 
 export class ClaimService {
-  async create(claimantId: string, input: CreateClaimInput): Promise<ClaimDoc> {
+  async create(claimantId: string, rawInput: CreateClaimInput): Promise<ClaimDoc> {
     const now = new Date();
+    const input = await this.scopeToParticipant(claimantId, rawInput);
 
     /*
      * A finished trip must actually finish.
@@ -91,6 +93,26 @@ export class ClaimService {
 
     this.notify(respondentId, 'claim.opened', 'A claim was filed against you', 'A claim was opened on one of your trips. Review the evidence and respond.', claim._id);
     return claim.toObject();
+  }
+
+  /** A claim may only be filed by the guest or the host side of the booking, and a trip must belong to that booking. */
+  private async scopeToParticipant(claimantId: string, input: CreateClaimInput): Promise<CreateClaimInput> {
+    const denied = () => new ForbiddenError('You are not a participant of this booking');
+    let bookingId = input.bookingId;
+    if (input.tripId) {
+      const trip = await TripModel.findById(input.tripId).select('bookingId').lean<{ bookingId: string } | null>();
+      if (!trip || (bookingId && trip.bookingId !== bookingId)) throw denied();
+      bookingId = trip.bookingId;
+    }
+    if (!bookingId) return { ...input, hostId: undefined };
+    const { bookingService } = await import('../../bookings/application/booking.service');
+    const booking = await bookingService.getDoc(bookingId).catch(() => null);
+    if (!booking) throw denied();
+    if (booking.guestId !== claimantId) {
+      const { tripService } = await import('../../trips/application/trip.service');
+      if (!(await tripService.isHostSideOf(claimantId, booking, 'incident:report'))) throw denied();
+    }
+    return { ...input, bookingId, hostId: booking.hostId };
   }
 
   /**

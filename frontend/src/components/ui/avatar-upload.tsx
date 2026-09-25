@@ -53,7 +53,7 @@ export function AvatarUpload({
 
     setBusy(true);
     try {
-      const [target] = await hostApi.uploadUrls('avatar', 1, file.type);
+      const [target] = await hostApi.uploadUrls('avatar', [file], file.type);
       const res = await fetch(target.uploadUrl, {
         method: 'PUT',
         body: file,

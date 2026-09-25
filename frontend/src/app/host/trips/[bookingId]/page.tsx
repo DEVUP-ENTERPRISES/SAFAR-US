@@ -105,6 +105,16 @@ export default function HostTripDetailPage() {
     },
   });
 
+  const confirmReturn = useMutation({
+    mutationFn: () =>
+      hostTripsApi.confirmReturn(t!.tripId!, {
+        ...(odoEnd ? { odometerEnd: Number(odoEnd) } : {}),
+        ...(fuelEnd ? { fuelEnd: Number(fuelEnd) } : {}),
+      }),
+    onSuccess: () => { invalidate(); toast({ tone: 'success', title: 'Return confirmed' }); },
+    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not confirm the return' }),
+  });
+
   const cancelBooking = useMutation({
     mutationFn: (reason: string) => bookingApi.cancel(t!.bookingId, reason),
     onSuccess: () => { invalidate(); router.push('/host/trips'); },
@@ -456,6 +466,23 @@ export default function HostTripDetailPage() {
             />
           </RowGroup>
         </div>
+      )}
+
+      {t.returnAwaitingConfirmation && (
+        <ActionSheet
+          title="Confirm return"
+          description="Your guest ended the trip. Check the car, correct the readings if they are wrong, then confirm. Your payout and the guest's deposit wait for this; report any problem instead of confirming."
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Ending odometer (miles)">
+              <Input type="number" min={0} value={odoEnd} onChange={(e) => setOdoEnd(e.target.value)} placeholder="Leave blank to accept the guest's" />
+            </Field>
+            <Field label="Fuel level (%)">
+              <Input type="number" min={0} max={100} value={fuelEnd} onChange={(e) => setFuelEnd(e.target.value)} placeholder="Leave blank to accept the guest's" />
+            </Field>
+          </div>
+          <Button size="lg" loading={confirmReturn.isPending} onClick={() => confirmReturn.mutate()}>Confirm return</Button>
+        </ActionSheet>
       )}
 
       {/* ── Sticky action sheet ─────────────────────────────────────── */}

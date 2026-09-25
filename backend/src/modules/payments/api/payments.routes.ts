@@ -1,3 +1,4 @@
+import { cardLimiter } from '../../../shared/middleware/card-rate-limit';
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { stripeGateway } from '../infrastructure/gateway.provider';
@@ -25,11 +26,13 @@ router.get(
 router.post(
   '/methods/setup-intent',
   authenticate,
+  cardLimiter,
   asyncHandler(async (req, res) => sendSuccess(res, await paymentMethodService.setupIntent(req.principal!.userId))),
 );
 router.post(
   '/methods',
   authenticate,
+  cardLimiter,
   validate({
     body: z.object({
       brand: z.string().min(1),

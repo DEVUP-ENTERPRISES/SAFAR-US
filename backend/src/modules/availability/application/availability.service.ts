@@ -246,11 +246,18 @@ export class AvailabilityService implements IAvailabilityContract {
     return !!(await AvailabilityModel.exists({ holdId }));
   }
 
-  async confirmHold(holdId: string, bookingId: string): Promise<void> {
-    await AvailabilityModel.updateMany(
-      { holdId },
+  /** Turn a hold into a booking; throws if the hold had lapsed, so a trip is never confirmed on dates that were released. */
+  async confirmHold(holdId: string, bookingId: string, expectedRows?: number): Promise<void> {
+    const res = await AvailabilityModel.updateMany(
+      { holdId, state: 'held' },
       { $set: { state: 'booked', bookingId }, $unset: { holdExpiresAt: '' } },
     );
+    // A repeat confirm finds the rows already booked for this booking, which is fine.
+    const already = res.modifiedCount === 0 ? await AvailabilityModel.countDocuments({ holdId, bookingId, state: 'booked' }) : 0;
+    const confirmed = res.modifiedCount + already;
+    if (confirmed === 0 || (expectedRows !== undefined && confirmed !== expectedRows)) {
+      throw new ConflictError('These dates are no longer held for this booking.', 'HOLD_LOST');
+    }
   }
 
   async releaseHold(holdId: string): Promise<void> {
@@ -295,15 +302,15 @@ export class AvailabilityService implements IAvailabilityContract {
     vehicleId: string,
     from: Date,
     to: Date,
-  ): Promise<{ dayKey: string; state: string; bookingId?: string }[]> {
+  ): Promise<{ dayKey: string; state: string }[]> {
     const keys = dayKeys(from, to);
     const docs = await AvailabilityModel.find({ vehicleId, dayKey: { $in: keys } })
-      .select('dayKey state bookingId')
+      .select('dayKey state holdExpiresAt')
       .lean();
     const now = new Date();
     return docs
       .filter((d) => !(d.state === 'held' && d.holdExpiresAt && d.holdExpiresAt <= now))
-      .map((d) => ({ dayKey: d.dayKey, state: d.state, bookingId: d.bookingId }));
+      .map((d) => ({ dayKey: d.dayKey, state: d.state }));
   }
 }
 

@@ -27,7 +27,9 @@ export interface ConversionDoc {
   code: string;
   referrerId: string;
   refereeId: string;
-  status: 'pending' | 'converted';
+  status: 'pending' | 'converted' | 'rejected';
+  /** Why a referral was not rewarded, for review. */
+  rejectedReason?: string;
   convertedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -38,7 +40,8 @@ const convSchema = new Schema<ConversionDoc>(
     code: { type: String, required: true },
     referrerId: { type: String, required: true },
     refereeId: { type: String, required: true },
-    status: { type: String, enum: ['pending', 'converted'], default: 'pending' },
+    status: { type: String, enum: ['pending', 'converted', 'rejected'], default: 'pending' },
+    rejectedReason: String,
     convertedAt: Date,
   },
   { timestamps: true, _id: false },

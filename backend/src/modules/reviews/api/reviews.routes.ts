@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { reviewService } from '../application/review.service';
+import { bookingService } from '../../bookings/application/booking.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { validate } from '../../../shared/middleware/validate';
@@ -50,6 +51,8 @@ router.get(
   '/booking/:bookingId',
   authenticate,
   asyncHandler(async (req, res) => {
+    // Participants and staff only; throws Forbidden for anyone else.
+    await bookingService.get(req.principal!, req.params.bookingId);
     sendSuccess(res, await reviewService.listForBooking(req.params.bookingId, req.principal!.userId));
   }),
 );

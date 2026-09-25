@@ -5,6 +5,7 @@ import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
+import { resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
 import { config } from '../../../config';
 import { logger } from '../../../infrastructure/logging/logger';
 
@@ -16,7 +17,8 @@ const submitSchema = z.object({
     .array(
       z.object({
         type: z.enum(['license', 'passport', 'national_id', 'selfie']),
-        url: z.string().url(),
+        url: z.string().max(2048).optional(),
+        key: z.string().max(512).optional(),
       }),
     )
     .min(1),
@@ -27,7 +29,13 @@ router.post(
   authenticate,
   validate({ body: submitSchema }),
   asyncHandler(async (req, res) => {
-    sendCreated(res, await kycService.submit(req.principal!.userId, req.body));
+    const userId = req.principal!.userId;
+    // Documents must be the caller's own kyc uploads; the URL is derived from the key server-side.
+    const documents = (req.body.documents as { type: string; key?: string; url?: string }[]).map((d) => ({
+      type: d.type,
+      url: resolveOwnedUpload(d, userId, 'kyc').url,
+    }));
+    sendCreated(res, await kycService.submit(userId, { ...req.body, documents }));
   }),
 );
 

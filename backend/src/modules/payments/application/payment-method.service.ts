@@ -2,7 +2,7 @@ import { logger } from '../../../infrastructure/logging/logger';
 import Stripe from 'stripe';
 import { PaymentMethodModel, type PaymentMethodDoc } from '../infrastructure/payment-method.model';
 import { config } from '../../../config';
-import { NotFoundError } from '../../../core/errors/app-error';
+import { ForbiddenError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { randomId } from '../../../shared/utils/uuid';
 
@@ -86,21 +86,27 @@ export class PaymentMethodService {
   ): Promise<PaymentMethodDoc> {
     const count = await PaymentMethodModel.countDocuments({ userId });
 
-    // Attach to the customer and make it their default, so a booking can charge
-    // it without the guest present. A SetupIntent confirmed with a customer
-    // usually attaches already; this is idempotent and covers the case where it
-    // was collected without one.
-    if (this.stripe && card.stripePaymentMethodId) {
+    // Live Stripe: the record is built from what Stripe says about the card, never from the client's brand/last4/expiry.
+    if (this.stripe) {
+      if (!card.stripePaymentMethodId) throw new ValidationError('Add the card through the secure card form');
       const customer = await this.customerFor(userId);
-      if (customer) {
-        await this.stripe.paymentMethods
-          .attach(card.stripePaymentMethodId, { customer })
-          .catch((err) => logger.warn({ err, userId }, 'saved card could not be attached to the Stripe customer'));
-        if (count === 0) {
-          await this.stripe.customers
-            .update(customer, { invoice_settings: { default_payment_method: card.stripePaymentMethodId } })
-            .catch((err) => logger.warn({ err, userId }, 'saved card could not be made the customer default'));
-        }
+      if (!customer) throw new ValidationError('Could not prepare your account to save a card');
+      const pm = await this.stripe.paymentMethods.retrieve(card.stripePaymentMethodId).catch(() => null);
+      if (!pm?.card) throw new ValidationError('That card could not be found');
+      const owner = typeof pm.customer === 'string' ? pm.customer : pm.customer?.id;
+      if (owner && owner !== customer) throw new ForbiddenError('That card belongs to another account');
+      // Saved only when it is really attached to this customer, else it could never be charged.
+      if (!owner) {
+        await this.stripe.paymentMethods.attach(pm.id, { customer }).catch((err) => {
+          logger.warn({ err, userId }, 'saved card could not be attached to the Stripe customer');
+          throw new ValidationError('We could not save this card. Please try again or use another card.');
+        });
+      }
+      card = { brand: pm.card.brand, last4: pm.card.last4, expMonth: pm.card.exp_month, expYear: pm.card.exp_year, stripePaymentMethodId: pm.id };
+      if (count === 0) {
+        await this.stripe.customers
+          .update(customer, { invoice_settings: { default_payment_method: card.stripePaymentMethodId } })
+          .catch((err) => logger.warn({ err, userId }, 'saved card could not be made the customer default'));
       }
     }
 

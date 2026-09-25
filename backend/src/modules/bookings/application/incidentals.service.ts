@@ -12,6 +12,7 @@ import { depositService } from '../../payments/application/deposit.service';
 import { emit } from '../../../shared/events/event-bus';
 import { PayoutModel } from '../../payouts/infrastructure/payout.model';
 import { EVENTS } from '../../../core/events/event-names';
+import { parseKey } from '../../../infrastructure/storage/storage.gateway';
 import { inspectionService } from '../../trips/application/inspection.service';
 
 export type IncidentalType = 'fuel' | 'cleaning' | 'smoking' | 'pet' | 'late_return' | 'toll' | 'fine' | 'other';
@@ -53,6 +54,26 @@ interface IncidentalConfig {
   windowDays?: number;
   evidenceRequiredAboveCents?: number;
   disputeWindowHours?: number;
+  maxTotalBps?: number;
+  maxFuelPercent?: number;
+  maxLateHours?: number;
+}
+
+/** Evidence must be one of our own uploads: a trip photo or claim file (owned by the caller unless staff). */
+export function assertEvidenceUrl(url: string, ownerId?: string): void {
+  let raw: string;
+  try {
+    const u = new URL(url);
+    raw = decodeURIComponent(u.searchParams.get('key') ?? u.pathname);
+  } catch {
+    throw new ValidationError('Evidence must be a valid link to an uploaded file');
+  }
+  const parts = raw.split('/').filter(Boolean);
+  const at = parts.findIndex((seg) => seg === 'trip_photo' || seg === 'claim');
+  const parsed = at >= 0 ? parseKey(parts.slice(at).join('/')) : null;
+  if (!parsed || (ownerId && parsed.ownerId !== ownerId)) {
+    throw new ValidationError('Evidence must be a photo or file you uploaded through the app');
+  }
 }
 
 export class IncidentalsService {
@@ -136,6 +157,11 @@ export class IncidentalsService {
     const currency = booking.priceBreakdown.currency;
     const existing = booking.incidentals ?? [];
 
+    // Host-applied charges wait for the trip to finish; the system's own trip-completion charges are exempt.
+    if (byUserId !== 'system' && booking.status !== 'completed') {
+      throw new ConflictError('Post-trip charges can only be applied once the trip is completed.', 'TRIP_NOT_COMPLETED');
+    }
+
     /*
      * Every rule is enforced here rather than in the form, because the form is
      * not the only way to reach this. All of it charges a card the guest
@@ -161,9 +187,40 @@ export class IncidentalsService {
       await inspectionService.assertBaseline(booking, `a ${conditional.type.replace('_', ' ')} charge`);
     }
 
+    // Running totals across earlier charges AND this request, so splitting one big charge into small ones still hits the ceiling.
+    const live = existing.filter((e) => e.status !== 'refunded');
+    const bookingTotal = booking.priceBreakdown.total.amount;
+    const totalCap = Math.round((bookingTotal * (cfg.maxTotalBps ?? 3000)) / 10000);
+    let runningTotal = live.reduce((s, e) => s + e.amount, 0);
+    const runningByType = new Map<string, number>();
+    for (const e of live) runningByType.set(e.type, (runningByType.get(e.type) ?? 0) + e.amount);
+
     for (const it of items) {
       const cap = this.capFor(it.type, cfg);
       const amount = this.priceFor(it.type, cfg, it);
+
+      if (byUserId !== 'system') {
+        if (it.type === 'fuel' && (it.qty ?? 0) > (cfg.maxFuelPercent ?? 100)) {
+          throw new ValidationError(`Fuel can be billed for at most ${cfg.maxFuelPercent ?? 100} percentage points.`);
+        }
+        if (it.type === 'late_return' && (it.qty ?? 0) > (cfg.maxLateHours ?? 72)) {
+          throw new ValidationError(`Late return can be billed for at most ${cfg.maxLateHours ?? 72} hours.`);
+        }
+        if (runningTotal + amount > totalCap) {
+          throw new ConflictError(
+            `Post-trip charges on this booking cannot exceed ${(totalCap / 100).toFixed(2)} ${currency} in total. File a damage claim for anything larger.`,
+            'INCIDENTAL_CAP',
+          );
+        }
+        if (cap !== null && (runningByType.get(it.type) ?? 0) + amount > cap) {
+          throw new ConflictError(
+            `${it.type} charges on this booking cannot exceed ${(cap / 100).toFixed(2)} ${currency} in total.`,
+            'INCIDENTAL_CAP',
+          );
+        }
+      }
+      runningTotal += amount;
+      runningByType.set(it.type, (runningByType.get(it.type) ?? 0) + amount);
 
       if (cap !== null) {
         // 2. CEILING — per category, because a toll is a few dollars and a

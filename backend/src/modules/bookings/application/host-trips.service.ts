@@ -117,6 +117,8 @@ export interface HostTrip {
   licenseConfirmed: boolean;
   /** The host has checked the guest's pickup code. Hides the check once done. */
   pickupVerified: boolean;
+  /** The guest ended the trip and the host has not yet confirmed the car came back. */
+  returnAwaitingConfirmation?: boolean;
   photoCount: number;
   /** The handover and return steps in order, with the state of each. */
   timeline: TimelineStep[];
@@ -248,7 +250,7 @@ export class HostTripsService {
       { key: 'start', label: 'Start the trip', done: started, detail: started ? 'Trip started' : undefined },
       { key: 'on_trip', label: 'On the trip', done: completed, detail: completed ? 'Trip finished' : started ? 'In progress' : undefined, post: true },
       { key: 'return_photos', label: 'Return photos', done: completed || returnRequired <= 0 || returned >= returnRequired, detail: returnRequired > 0 ? `${returned} of ${returnRequired} photos` : notRequired, post: true },
-      { key: 'return', label: 'Car returned & inspected', done: completed, detail: completed ? 'Returned' : undefined, post: true },
+      { key: 'return', label: 'Car returned & inspected', done: completed && t?.returnConfirmed !== false, detail: completed ? (t?.returnConfirmed === false ? 'Guest ended the trip — confirm the return' : 'Returned') : undefined, post: true },
       { key: 'payout', label: 'Payout', done: payout?.status === 'paid', detail: payout ? `Payout ${payout.status}` : undefined, post: true },
     ];
 
@@ -419,6 +421,7 @@ export class HostTripsService {
 
         licenseConfirmed: !!(t?.licenseConfirmed as boolean),
         pickupVerified: !!(t?.pickupVerified as boolean),
+        returnAwaitingConfirmation: t?.returnConfirmed === false,
         photoCount: photos,
         timeline,
         handover: handoverState,
