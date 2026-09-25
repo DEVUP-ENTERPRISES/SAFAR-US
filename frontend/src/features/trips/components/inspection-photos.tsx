@@ -35,9 +35,10 @@ export function InspectionPhotos({
   const [angleId, setAngleId] = useState<string | null>(null);
   const handled = useRef(0);
 
+  const angles = state?.angles ?? [];
   const win = state?.[phase];
   const taken = useMemo(() => (state?.photos ?? []).filter((p) => p.phase === phase), [state?.photos, phase]);
-  const nextAngle = state?.angles.find((a) => !taken.some((p) => p.angle === a.id))?.id ?? state?.angles[0]?.id ?? null;
+  const nextAngle = angles.find((a) => !taken.some((p) => p.angle === a.id))?.id ?? angles[0]?.id ?? null;
   const canShoot = !!win?.open && taken.length < win.max;
 
   useEffect(() => {
@@ -49,7 +50,7 @@ export function InspectionPhotos({
 
   if (isLoading || !state || !win) return <Skeleton className="h-40 w-full rounded-2xl" />;
 
-  const angle = state.angles.find((a) => a.id === angleId);
+  const angle = angles.find((a) => a.id === angleId);
   const title = phase === 'pre' ? 'Pickup photos' : 'Return photos';
   const enough = taken.length >= win.required;
 
@@ -117,7 +118,7 @@ export function InspectionPhotos({
         )}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {state.angles.map((a) => {
+          {angles.map((a) => {
             const photo = taken.find((p) => p.angle === a.id);
             return (
               <button
