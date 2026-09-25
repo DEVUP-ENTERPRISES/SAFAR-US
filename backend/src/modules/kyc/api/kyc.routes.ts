@@ -63,7 +63,8 @@ router.post(
 );
 
 /** Dev/test only: force a decision offline. Refused when a live provider runs. */
-if (!config.kyc.identityEnabled) {
+// Never in production: with the identity secret unset this would let any member approve their own identity.
+if (!config.isProd && !config.kyc.identityEnabled) {
   router.post(
     '/dev/decide',
     authenticate,

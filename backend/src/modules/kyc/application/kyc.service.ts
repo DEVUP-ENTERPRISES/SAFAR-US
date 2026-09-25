@@ -1,3 +1,4 @@
+import { config } from '../../../config';
 import { KycModel, type KycDoc } from '../infrastructure/kyc.model';
 import { identityProvider, type IdentityResult, type IdentitySession } from '../infrastructure/identity.provider';
 import { NotFoundError, ValidationError } from '../../../core/errors/app-error';
@@ -132,7 +133,7 @@ export class KycService {
    * configured — decisions must then come from the provider.
    */
   async forceDecision(userId: string, result: IdentityResult): Promise<void> {
-    if (identityProvider.kind !== 'stub') {
+    if (config.isProd || identityProvider.kind !== 'stub') {
       throw new ValidationError('A live identity provider is configured — decisions come from its webhook');
     }
     await this.applyProviderResult(userId, result);
