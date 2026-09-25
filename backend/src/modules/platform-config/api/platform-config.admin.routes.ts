@@ -122,6 +122,7 @@ router.put(
           loginLockoutMinutes: z.number().int().min(1).max(1440).optional(),
           maxUploadMb: z.number().int().min(1).max(50).optional(),
           uploadUrlsPerHour: z.number().int().min(5).max(1000).optional(),
+          refreshRetryLeewaySeconds: z.number().int().min(0).max(600).optional(),
         })
         .optional(),
       handover: z

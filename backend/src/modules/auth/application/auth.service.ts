@@ -14,6 +14,7 @@ import { channelProviders } from '../../notifications/infrastructure/channel.pro
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { sessionStore } from '../infrastructure/session.store';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import type { RegisterDto, LoginDto } from '../dto/auth.schemas';
 import { socialAuthService } from './social-auth.service';
 
@@ -115,11 +116,15 @@ export class AuthService {
     const decoded = tokenService.verifyRefresh(refreshToken);
 
     // The stored jti lives in the durable session record, so this holds through a Redis outage or restart.
-    const storedJti = await sessionStore.getRefreshJti(decoded.sid);
-    if (!storedJti) throw new UnauthorizedError('Session expired or revoked');
+    const state = await sessionStore.getRefreshState(decoded.sid);
+    if (!state) throw new UnauthorizedError('Session expired or revoked');
 
-    // A rotated-out refresh token is treated as theft → revoke the whole session.
-    if (storedJti !== decoded.jti) {
+    // The token this one replaced is accepted for a short leeway: a refresh whose response was lost (a restart, a dropped connection) is retried by the client with the old token.
+    const leewayMs = (await platformConfigService.get()).security.refreshRetryLeewaySeconds * 1000;
+    const isRetry = decoded.jti === state.prevJti && !!state.rotatedAt && Date.now() - state.rotatedAt.getTime() <= leewayMs;
+
+    // Any other rotated-out refresh token is treated as theft → revoke the whole session.
+    if (state.jti !== decoded.jti && !isRetry) {
       await sessionStore.revoke(decoded.sid);
       throw new UnauthorizedError('Refresh token reuse detected — session revoked');
     }

@@ -20,6 +20,8 @@ import { SessionModel } from './session.model';
 export interface SessionMeta {
   userId: string;
   refreshJti: string;
+  prevRefreshJti?: string;
+  rotatedAt?: string;
   userAgent?: string;
   ip?: string;
   createdAt: string;
@@ -75,6 +77,8 @@ export class SessionStore {
     const record: SessionMeta = {
       userId: doc.userId,
       refreshJti: doc.refreshJti,
+      prevRefreshJti: doc.prevRefreshJti,
+      rotatedAt: doc.rotatedAt?.toISOString(),
       userAgent: doc.userAgent,
       ip: doc.ip,
       createdAt: doc.createdAt.toISOString(),
@@ -92,6 +96,12 @@ export class SessionStore {
     return (await this.read(sessionId))?.refreshJti ?? null;
   }
 
+  /** The current refresh id plus the one it replaced and when, so a retried refresh can be told from a stolen token. */
+  async getRefreshState(sessionId: string): Promise<{ jti: string; prevJti?: string; rotatedAt?: Date } | null> {
+    const s = await this.read(sessionId);
+    return s ? { jti: s.refreshJti, prevJti: s.prevRefreshJti, rotatedAt: s.rotatedAt ? new Date(s.rotatedAt) : undefined } : null;
+  }
+
   /** Rotate the refresh token id, keeping device metadata and sliding the expiry. */
   async rotate(sessionId: string, userId: string, newRefreshJti: string): Promise<void> {
     // A session that only ever lived in the cache (created before it was persisted) is written to the database here.
@@ -100,7 +110,7 @@ export class SessionStore {
     await SessionModel.updateOne(
       { _id: sessionId },
       {
-        $set: { userId, refreshJti: newRefreshJti, expiresAt, userAgent: prior?.userAgent, ip: prior?.ip },
+        $set: { userId, refreshJti: newRefreshJti, prevRefreshJti: prior?.refreshJti, rotatedAt: new Date(), expiresAt, userAgent: prior?.userAgent, ip: prior?.ip },
         $setOnInsert: { createdAt: prior ? new Date(prior.createdAt) : new Date() },
       },
       { upsert: true },
@@ -108,6 +118,8 @@ export class SessionStore {
     const record: SessionMeta = {
       userId,
       refreshJti: newRefreshJti,
+      prevRefreshJti: prior?.refreshJti,
+      rotatedAt: new Date().toISOString(),
       userAgent: prior?.userAgent,
       ip: prior?.ip,
       createdAt: prior?.createdAt ?? new Date().toISOString(),

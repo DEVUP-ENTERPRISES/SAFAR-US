@@ -163,7 +163,7 @@ export class PlatformConfigService {
         maxPhotosPerPhase: 30, requireLocation: true, maxDistanceMeters: 0,
         ...(doc.inspection ?? {}),
       },
-      security: { cardAttemptsPerHour: 12, loginAttemptsPerAccount: 8, loginLockoutMinutes: 15, maxUploadMb: 12, uploadUrlsPerHour: 60, ...(doc.security ?? {}) },
+      security: { cardAttemptsPerHour: 12, loginAttemptsPerAccount: 8, loginLockoutMinutes: 15, maxUploadMb: 12, uploadUrlsPerHour: 60, refreshRetryLeewaySeconds: 60, ...(doc.security ?? {}) },
       handover: {
         hostInspectionRequired: true, pickupCodeRequired: true, maxCodeAttempts: 5, hostOnlyStart: true, baselineRequiredForCharges: true, returnConfirmHours: 12,
         ...(doc.handover ?? {}),

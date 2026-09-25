@@ -410,6 +410,10 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={1} max={1440} value={draft.security.loginLockoutMinutes}
               onChange={(e) => set((d) => { d.security.loginLockoutMinutes = Number(e.target.value); })} />
           </Field>
+          <Field label="Seconds a used sign-in token can be retried" hint="Keeps people signed in when a restart drops a reply. 0 = strict.">
+            <Input type="number" min={0} max={600} value={draft.security.refreshRetryLeewaySeconds ?? 60}
+              onChange={(e) => set((d) => { d.security.refreshRetryLeewaySeconds = Number(e.target.value); })} />
+          </Field>
           <Field label="Largest upload (MB)">
             <Input type="number" min={1} max={50} value={draft.security.maxUploadMb}
               onChange={(e) => set((d) => { d.security.maxUploadMb = Number(e.target.value); })} />

@@ -65,7 +65,7 @@ export interface PlatformConfig {
     requireLocation: boolean;
     maxDistanceMeters: number;
   };
-  security: { cardAttemptsPerHour: number; loginAttemptsPerAccount: number; loginLockoutMinutes: number; maxUploadMb: number; uploadUrlsPerHour: number };
+  security: { cardAttemptsPerHour: number; loginAttemptsPerAccount: number; loginLockoutMinutes: number; maxUploadMb: number; uploadUrlsPerHour: number; refreshRetryLeewaySeconds: number };
   handover: {
     hostInspectionRequired: boolean;
     pickupCodeRequired: boolean;

@@ -396,6 +396,8 @@ export interface PlatformConfigDoc {
     maxUploadMb: number;
     /** Upload links one member may request per hour. */
     uploadUrlsPerHour: number;
+    /** Seconds an already-used refresh token is still accepted, so a refresh whose reply was lost can be retried without signing the member out. */
+    refreshRetryLeewaySeconds: number;
   };
   /** What must happen before the keys change hands, and who may start the trip. */
   handover: {
@@ -718,6 +720,7 @@ const schema = new Schema<PlatformConfigDoc>(
       loginLockoutMinutes: { type: Number, default: 15 },
       maxUploadMb: { type: Number, default: 12 },
       uploadUrlsPerHour: { type: Number, default: 60 },
+      refreshRetryLeewaySeconds: { type: Number, default: 60 },
     },
     handover: {
       hostInspectionRequired: { type: Boolean, default: true },

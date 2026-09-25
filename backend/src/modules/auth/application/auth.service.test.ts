@@ -11,6 +11,7 @@ jest.mock('../../../infrastructure/cache/redis.client', () => ({
 
 import { authService } from './auth.service';
 import { tokenService } from './token.service';
+import { SessionModel } from '../infrastructure/session.model';
 import { sessionStore } from '../infrastructure/session.store';
 import { userRepository } from '../../users/infrastructure/user.repository';
 import { UserModel } from '../../users/infrastructure/user.model';
@@ -136,8 +137,20 @@ describe('refresh & logout', () => {
     const { tokens } = await reg();
     const sid = tokenService.verifyRefresh(tokens.refreshToken).sid;
     await authService.refresh(tokens.refreshToken); // rotates; old token now stale
+    // Past the retry leeway the old token can only be a replay.
+    await SessionModel.updateOne({ _id: sid }, { rotatedAt: new Date(Date.now() - 10 * 60_000) });
+    setKvStore(new InMemoryKvStore()); // drop the cached copy so the database record is read
     await expect(authService.refresh(tokens.refreshToken)).rejects.toThrow(/reuse/i);
     expect(await sessionStore.isActive(sid)).toBe(false); // whole session revoked
+  });
+
+  it('lets a client retry a refresh whose reply was lost, without logging it out', async () => {
+    const { tokens } = await reg();
+    const sid = tokenService.verifyRefresh(tokens.refreshToken).sid;
+    await authService.refresh(tokens.refreshToken); // the server rotated but the reply never arrived
+    const retry = await authService.refresh(tokens.refreshToken); // the client retries with the old token
+    expect(retry.refreshToken).toBeTruthy();
+    expect(await sessionStore.isActive(sid)).toBe(true);
   });
 
   it('logout invalidates the session so its refresh token stops working', async () => {

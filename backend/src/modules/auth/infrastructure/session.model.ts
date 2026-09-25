@@ -5,6 +5,9 @@ export interface SessionDoc {
   _id: string;
   userId: string;
   refreshJti: string;
+  /** The token id this one replaced, honoured briefly so a lost refresh response can be retried. */
+  prevRefreshJti?: string;
+  rotatedAt?: Date;
   userAgent?: string;
   ip?: string;
   createdAt: Date;
@@ -17,6 +20,8 @@ const schema = new Schema<SessionDoc>(
     _id: { type: String, required: true },
     userId: { type: String, required: true },
     refreshJti: { type: String, required: true },
+    prevRefreshJti: String,
+    rotatedAt: Date,
     userAgent: String,
     ip: String,
     createdAt: { type: Date, default: () => new Date() },
