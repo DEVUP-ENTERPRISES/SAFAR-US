@@ -499,6 +499,13 @@ export const adminApi = {
 
   auditLogs: (q: Q = {}) => api.get<any[]>('/admin/audit-logs', q),
 
+  staff: () => api.get<any[]>('/admin/staff'),
+  createStaff: (body: { name: string; role: string; email?: string }) =>
+    api.post<{ id: string; username: string; password: string; role: string }>('/admin/staff', body),
+  setStaffRole: (id: string, role: string) => api.post(`/admin/staff/${id}/role`, { role }),
+  resetStaffPassword: (id: string) => api.post<{ username: string; password: string }>(`/admin/staff/${id}/reset-password`, {}),
+  setStaffActive: (id: string, active: boolean) => api.post(`/admin/staff/${id}/active`, { active }),
+
   kyc: (q: Q = {}) => api.get<any[]>('/admin/kyc', q),
   reviewKyc: (id: string, decision: 'approved' | 'rejected', reason?: string) =>
     api.post(`/admin/kyc/${id}/review`, { decision, reason }),

@@ -15,6 +15,7 @@ import { taxAdminRoutes } from './api/tax.admin.routes';
 import { violationsAdminRoutes } from './api/violations.admin.routes';
 import { memberEconomyAdminRoutes } from './api/member-economy.admin.routes';
 import { platformAdminRoutes } from './api/platform.admin.routes';
+import { staffAdminRoutes } from './api/staff.admin.routes';
 import { kycAdminRoutes } from './api/kyc.admin.routes';
 import { navAdminRoutes } from './api/nav.admin.routes';
 import { oversightAdminRoutes } from './api/oversight.admin.routes';
@@ -65,6 +66,7 @@ export function buildAdminRouter(): Router {
   admin.use(violationsAdminRoutes);
   admin.use(memberEconomyAdminRoutes);
   admin.use(platformAdminRoutes);
+  admin.use(staffAdminRoutes);
   admin.use(kycAdminRoutes);
   admin.use(platformConfigAdminRoutes);
   admin.use(growthAdminRoutes);

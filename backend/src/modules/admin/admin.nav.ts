@@ -84,7 +84,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
 
   { slug: 'ai', path: A('ai'), apiPath: '/ai/usage', label: 'AI Usage', group: 'Platform', permission: 'platform:manage' },
   { slug: 'feature-flags', path: A('settings'), apiPath: '/admin/feature-flags', label: 'Feature Flags', group: 'Platform', permission: 'admin:read' },
-  { slug: 'audit', path: A('audit'), apiPath: '/admin/audit-logs', label: 'Audit Logs', group: 'Platform', permission: 'admin:read' },
+  { slug: 'audit', path: A('audit'), apiPath: '/admin/audit-logs', label: 'Audit Logs', group: 'Platform', permission: '*' },
+  { slug: 'staff', path: A('staff'), apiPath: '/admin/staff', label: 'Staff Accounts', group: 'Platform', permission: '*' },
 ];
 
 // Fail fast at boot if a group's entries got split by a later insertion — the

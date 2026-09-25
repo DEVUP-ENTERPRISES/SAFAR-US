@@ -65,11 +65,12 @@ router.get(
 // ── Audit logs ────────────────────────────────────────────────────────
 router.get(
   '/audit-logs',
-  authorize('admin:read'),
+  authorize('*'),
   asyncHandler(async (req, res) => {
     const result = await auditService.query({
       actorId: req.query.actorId as string,
       action: req.query.action as string,
+      staffOnly: req.query.staffOnly !== 'false',
       limit: req.query.limit ? Number(req.query.limit) : undefined,
       skip: req.query.skip ? Number(req.query.skip) : undefined,
     });

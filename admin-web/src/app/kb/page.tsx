@@ -21,6 +21,7 @@ export default function AdminKbPage() {
   const toast = useToast();
   const [status, setStatus] = useState('');
   const [composing, setComposing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState({ title: '', summary: '', category: 'general', body: '' });
 
   const refresh = () => {
@@ -35,11 +36,12 @@ export default function AdminKbPage() {
   const stats = useQuery({ queryKey: ['admin-kb-stats'], queryFn: () => adminApi.kbStats() });
 
   const create = useMutation({
-    mutationFn: () => adminApi.createKbArticle(draft),
+    mutationFn: () => (editingId ? adminApi.updateKbArticle(editingId, draft) : adminApi.createKbArticle(draft)),
     onSuccess: () => {
+      toast({ tone: 'success', title: editingId ? 'Changes saved' : 'Draft created' });
       setComposing(false);
+      setEditingId(null);
       setDraft({ title: '', summary: '', category: 'general', body: '' });
-      toast({ tone: 'success', title: 'Draft created' });
       refresh();
     },
     onError: (e) => toast({ tone: 'error', title: e instanceof Error ? e.message : 'Could not create the article' }),
@@ -88,6 +90,18 @@ export default function AdminKbPage() {
           <Button
             size="sm"
             variant="outline"
+            onClick={() => {
+              setDraft({ title: a.title, summary: a.summary ?? '', category: a.category, body: a.body });
+              setEditingId(a._id);
+              setComposing(true);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={async () => {
               const { ok } = await confirm({
                 title: 'Delete this article?',
@@ -109,7 +123,7 @@ export default function AdminKbPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="display text-display-sm">Knowledge base</h1>
-        <Button onClick={() => setComposing((v) => !v)}>{composing ? 'Cancel' : 'New article'}</Button>
+        <Button onClick={() => { setComposing((v) => !v); setEditingId(null); setDraft({ title: '', summary: '', category: 'general', body: '' }); }}>{composing ? 'Cancel' : 'New article'}</Button>
       </div>
 
       {/* Health — what's live, what's read, and what readers dislike. */}
@@ -156,7 +170,7 @@ export default function AdminKbPage() {
               disabled={draft.title.trim().length < 3 || draft.body.trim().length < 10}
               onClick={() => create.mutate()}
             >
-              Save as draft
+              {editingId ? 'Save changes' : 'Save as draft'}
             </Button>
           </CardContent>
         </Card>
