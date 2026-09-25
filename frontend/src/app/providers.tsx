@@ -10,12 +10,14 @@ import { ApiError } from '@/lib/api/types';
 import { useSessionBootstrap } from '@/features/auth/hooks';
 import { usePushRegistration } from '@/features/push/use-push';
 import { useAuthStore } from '@/features/auth/store';
+import { useLiveUpdates } from '@/lib/realtime/use-live-updates';
 import { ProfileGate } from '@/features/account/profile-gate';
 
 function AuthBootstrap({ children }: { children: ReactNode }) {
   // Registers this browser for push once signed in (no-op until permission is
   // granted via the opt-in button; never nags on load).
   usePushRegistration();
+  useLiveUpdates();
   const setStatus = useAuthStore((s) => s.setStatus);
   const { isError, isSuccess } = useSessionBootstrap();
 

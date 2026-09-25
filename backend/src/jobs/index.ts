@@ -17,6 +17,7 @@ const QUEUE = 'cato-maintenance';
  *   - run-payouts      every hour    → pay hosts whose hold window elapsed
  *   - trip-reminders   every hour    → notify guests of imminent trips
  *   - release-deposits every 30 min  → free holds whose inspection window closed
+ *   - lifecycle-sweep  every 15 min  → flag overdue returns and pickups nobody did
  *   - retry-webhooks   every 5 min   → replay payment events whose handler failed
  * These run here in dev; in prod they run in a dedicated worker process
  * (same code, started via PM2) so the API tier stays latency-focused.
@@ -36,6 +37,7 @@ export async function initJobs(): Promise<void> {
   await queue.add('compliance-sweep', {}, { repeat: { every: 60 * 60_000 }, jobId: 'compliance-sweep' });
   await queue.add('maintenance-reminders', {}, { repeat: { every: 6 * 60 * 60_000 }, jobId: 'maintenance-reminders' });
   await queue.add('release-reviews', {}, { repeat: { every: 60 * 60_000 }, jobId: 'release-reviews' });
+  await queue.add('lifecycle-sweep', {}, { repeat: { every: 15 * 60_000 }, jobId: 'lifecycle-sweep' });
   await queue.add('retry-webhooks', {}, { repeat: { every: 5 * 60_000 }, jobId: 'retry-webhooks' });
   await queue.add('apply-scheduled-config', {}, { repeat: { every: 5 * 60_000 }, jobId: 'apply-scheduled-config' });
 
@@ -61,6 +63,11 @@ export async function initJobs(): Promise<void> {
         const v = await bookingService.remindVerification();
         if (n || v) logger.info({ n, v }, 'trip reminders sent');
         return { reminded: n, verificationReminded: v };
+      }
+      case 'lifecycle-sweep': {
+        const r = await bookingService.sweepLifecycle();
+        if (r.late || r.escalated || r.notStarted) logger.info(r, 'lifecycle sweep');
+        return r;
       }
       case 'compliance-sweep': {
         // Warn before pausing: a host whose first notice is the car going

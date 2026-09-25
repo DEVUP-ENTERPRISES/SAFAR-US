@@ -202,6 +202,15 @@ router.post(
   }),
 );
 
+/** Guest finishes an unfinished payment (3-D Secure or a missing card). */
+router.post(
+  '/:id/payment-session',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.resumePayment(req.principal!, req.params.id));
+  }),
+);
+
 /** Guest fetches (or rotates) their pickup code for the handover handshake. */
 router.post(
   '/:id/pickup-code',

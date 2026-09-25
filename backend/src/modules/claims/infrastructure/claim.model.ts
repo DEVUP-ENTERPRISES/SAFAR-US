@@ -24,6 +24,8 @@ export interface ClaimDoc {
   evidence: { url: string; kind: 'image' | 'file'; note?: string; addedBy?: string }[];
   amountClaimed?: number;
   amountApproved?: number;
+  /** Cash actually taken from the guest (deposit + card); the rest was platform-funded. */
+  collectedCents?: number;
   /** Who was found at fault, and what it cost them. */
   liableUserId?: string;
   penaltyCents?: number;
@@ -53,6 +55,7 @@ const schema = new Schema<ClaimDoc>(
     },
     amountClaimed: Number,
     amountApproved: Number,
+    collectedCents: Number,
     liableUserId: String,
     penaltyCents: { type: Number, default: 0 },
     warningIssued: { type: Boolean, default: false },

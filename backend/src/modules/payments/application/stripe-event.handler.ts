@@ -1,5 +1,7 @@
 import { WebhookEventModel } from '../infrastructure/webhook-event.model';
 import { paymentGateway } from '../infrastructure/gateway.provider';
+import { paymentService } from './payment.service';
+import { PaymentModel } from '../infrastructure/payment.model';
 import { riskService } from '../../risk/application/risk.service';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
@@ -29,7 +31,10 @@ export async function runStripeEvent(event: {
     const bookingId = obj.metadata?.bookingId;
     switch (event.type) {
       case 'payment_intent.succeeded':
-        if (bookingId) emit(EVENTS.PAYMENT_SUCCEEDED, bookingId, { bookingId });
+        if (bookingId) {
+          await paymentService.recordIntentSucceeded(obj.id);
+          emit(EVENTS.PAYMENT_SUCCEEDED, bookingId, { bookingId });
+        }
         // Best-effort: feeds this user's FUTURE risk decisions, never blocks
         // or reverses a charge that already succeeded.
         if (obj.metadata?.userId) {
@@ -60,9 +65,26 @@ export async function runStripeEvent(event: {
       // immediately; silently losing this is how a marketplace pays a host
       // out of a charge that no longer exists.
       case 'charge.dispute.created':
-        logger.error({ bookingId, eventId: event.id }, 'CHARGEBACK opened — funds are being reversed');
-        if (bookingId) emit(EVENTS.PAYMENT_DISPUTED, bookingId, { bookingId });
+      case 'charge.dispute.closed': {
+        // A dispute carries its own metadata, not the booking's — resolve it
+        // through the payment intent it is against.
+        const dispute = event.data.object as { payment_intent?: string; status?: string };
+        const payment = dispute.payment_intent
+          ? await PaymentModel.findOne({ intentId: dispute.payment_intent }).lean<{ bookingId?: string }>()
+          : null;
+        const disputedBookingId = payment?.bookingId ?? bookingId;
+        if (!disputedBookingId) {
+          logger.error({ eventId: event.id }, 'CHARGEBACK event could not be matched to a booking');
+          break;
+        }
+        if (event.type === 'charge.dispute.created') {
+          logger.error({ bookingId: disputedBookingId, eventId: event.id }, 'CHARGEBACK opened — funds are being reversed');
+          emit(EVENTS.PAYMENT_DISPUTED, disputedBookingId, { bookingId: disputedBookingId });
+        } else {
+          emit(EVENTS.PAYMENT_DISPUTE_CLOSED, disputedBookingId, { bookingId: disputedBookingId, won: dispute.status === 'won' });
+        }
         break;
+      }
       default:
         break;
     }

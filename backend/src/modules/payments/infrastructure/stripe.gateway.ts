@@ -13,6 +13,18 @@ import type {
  * minor units already (Money.amount), which is exactly what Stripe expects.
  * Selected at boot when STRIPE_SECRET_KEY is present.
  */
+function toIntentResult(intent: Stripe.PaymentIntent): IntentResult {
+  const status: IntentResult['status'] =
+    intent.status === 'succeeded' || intent.status === 'requires_capture' || intent.status === 'requires_action'
+      ? intent.status
+      : intent.status === 'requires_payment_method'
+        ? 'requires_payment_method'
+        : intent.status === 'canceled'
+          ? 'canceled'
+          : 'requires_confirmation';
+  return { intentId: intent.id, clientSecret: intent.client_secret ?? '', status };
+}
+
 export class StripeGateway implements PaymentGateway {
   private readonly stripe: Stripe;
 
@@ -48,18 +60,7 @@ export class StripeGateway implements PaymentGateway {
         },
         { idempotencyKey: input.idempotencyKey },
       );
-      return {
-        intentId: intent.id,
-        clientSecret: intent.client_secret ?? '',
-        status:
-          intent.status === 'succeeded'
-            ? 'succeeded'
-            : intent.status === 'requires_capture'
-              ? 'requires_capture'
-              : intent.status === 'requires_action'
-                ? 'requires_action'
-                : 'requires_confirmation',
-      };
+      return toIntentResult(intent);
     } catch (err) {
       throw new ExternalServiceError(`Stripe createIntent failed: ${(err as Error).message}`);
     }
@@ -89,6 +90,27 @@ export class StripeGateway implements PaymentGateway {
   async cancel(intentId: string): Promise<{ status: 'cancelled' }> {
     await this.stripe.paymentIntents.cancel(intentId);
     return { status: 'cancelled' };
+  }
+
+  async retrieveIntent(intentId: string): Promise<IntentResult> {
+    try {
+      return toIntentResult(await this.stripe.paymentIntents.retrieve(intentId));
+    } catch (err) {
+      throw new ExternalServiceError(`Stripe retrieveIntent failed: ${(err as Error).message}`);
+    }
+  }
+
+  async confirmIntent(intentId: string, input: { customerId: string; paymentMethodId: string }): Promise<IntentResult> {
+    try {
+      return toIntentResult(
+        await this.stripe.paymentIntents.confirm(intentId, {
+          payment_method: input.paymentMethodId,
+          off_session: true,
+        }),
+      );
+    } catch (err) {
+      throw new ExternalServiceError(`Stripe confirmIntent failed: ${(err as Error).message}`);
+    }
   }
 
   async getIntentRisk(intentId: string): Promise<IntentRisk | null> {

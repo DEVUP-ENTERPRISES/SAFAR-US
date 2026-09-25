@@ -150,6 +150,7 @@ export class DepositService {
     requested: Money,
     reason: string,
     hostId: string,
+    opts: { postLedger?: boolean } = {},
   ): Promise<Money> {
     const deposit = await this.forBooking(bookingId);
     if (!deposit) throw new NotFoundError('Deposit for this booking');
@@ -181,6 +182,10 @@ export class DepositService {
     // Only now does the ledger see it — an authorisation is not money, so the
     // deposit is invisible to the books until some of it is actually taken.
     // A damage settlement compensates the host, so it lands in their payable.
+    if (opts.postLedger === false) {
+      logger.info({ bookingId, taken, reason }, 'deposit captured (caller posts the ledger)');
+      return { amount: taken, currency: deposit.currency };
+    }
     try {
       await ledgerService.post({
         txnId: `deposit_capture_${bookingId}`,
@@ -237,6 +242,16 @@ export class DepositService {
       // Only completed trips. A live or disputed one keeps its hold.
       if (booking.status !== 'completed') continue;
       if (new Date(booking.period.end).getTime() > cutoff.getTime()) continue;
+
+      // A claim or a disputed charge is still being argued: its money is this hold.
+      const { ClaimModel } = await import('../../claims/infrastructure/claim.model');
+      const openClaim = await ClaimModel.exists({
+        bookingId: deposit.bookingId,
+        deletedAt: null,
+        status: { $nin: ['settled', 'rejected', 'closed'] },
+      });
+      const disputedCharge = await BookingModel.exists({ _id: deposit.bookingId, 'incidentals.status': 'disputed' });
+      if (openClaim || disputedCharge) continue;
 
       if (await this.release(deposit.bookingId, 'Inspection window closed with no claim')) {
         released += 1;

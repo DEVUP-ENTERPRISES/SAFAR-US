@@ -379,7 +379,7 @@ export class BookingService {
         verificationBlockers: eligibility.blockers,
       });
       if (status === 'paid') {
-        emit(EVENTS.BOOKING_CONFIRMED, bookingId, { bookingId, guestId, hostId: vehicle.hostId });
+        emit(EVENTS.BOOKING_CONFIRMED, bookingId, { bookingId, guestId, hostId: vehicle.hostId, instant: true });
       }
 
       // The client needs the secret to finish a 3-D Secure challenge, and needs
@@ -508,6 +508,7 @@ export class BookingService {
           bookingId: booking._id,
           guestId,
           hostId: booking.hostId,
+          instant: true,
         });
       } else {
         await BookingModel.updateOne(
@@ -560,6 +561,37 @@ export class BookingService {
     });
   }
 
+  /**
+   * The platform took a car off the road (safety recall, expired insurance).
+   * Guests holding future trips on it are released with a full refund and no
+   * host penalty, and offered a replacement — never left to find out at pickup.
+   */
+  async cancelUpcomingForVehicle(vehicleId: string, reason: string, withinHours?: number): Promise<number> {
+    const upcoming = await BookingModel.find({
+      vehicleId,
+      status: { $in: ['pending_verification', 'pending_approval', 'pending_payment', 'confirmed', 'paid'] },
+      'period.start': {
+        $gt: new Date(),
+        // A renewable problem only threatens trips that start before it can be fixed.
+        ...(withinHours ? { $lte: new Date(Date.now() + withinHours * HOUR_MS) } : {}),
+      },
+    }).lean<BookingDoc[]>();
+    let cancelled = 0;
+    for (const b of upcoming) {
+      try {
+        await this.systemCancel(b._id, `Your car is unavailable: ${reason}`);
+        emit(EVENTS.BOOKING_REBOOKING_NEEDED, b._id, {
+          bookingId: b._id, guestId: b.guestId, vehicleId: b.vehicleId,
+          start: b.period.start, end: b.period.end, reason: 'vehicle_unavailable',
+        });
+        cancelled += 1;
+      } catch (err) {
+        logger.error({ err, bookingId: b._id, vehicleId }, 'could not release booking on unavailable vehicle');
+      }
+    }
+    return cancelled;
+  }
+
   /** Bookings parked waiting on this guest's identity check. */
   async listHeldForVerification(guestId: string): Promise<BookingDoc[]> {
     return BookingModel.find({ guestId, status: 'pending_verification' }).lean<BookingDoc[]>();
@@ -609,7 +641,7 @@ export class BookingService {
     const isAdmin = principal.permissions.includes('booking:read:any') || principal.permissions.includes('*');
     if (!isGuest && !isHost && !isAdmin) throw new ForbiddenError('Cannot cancel this booking');
 
-    if (!['pending_verification', 'pending_approval', 'confirmed', 'paid'].includes(booking.status)) {
+    if (!['pending_verification', 'pending_approval', 'pending_payment', 'confirmed', 'paid'].includes(booking.status)) {
       throw new ConflictError('Booking cannot be cancelled in its current state', 'INVALID_STATE');
     }
 
@@ -1189,7 +1221,8 @@ export class BookingService {
     const extra = await pricingService.quote({ vehicleId: booking.vehicleId, start: extraStart, end: newEnd });
     const holdId = await availabilityService.placeHold(booking.vehicleId, extraStart, newEnd);
     try {
-      await paymentService.chargeForBooking({
+      const extensionKey = `${bookingId}-ext-${newEnd.getTime()}`;
+      const charge = await paymentService.chargeForBooking({
         bookingId,
         guestId: booking.guestId,
         hostId: booking.hostId,
@@ -1198,8 +1231,13 @@ export class BookingService {
         hostEarnings: extra.hostEarnings,
         commission: extra.commission,
         tax: extra.tax,
-        idempotencyKey: `${bookingId}-ext-${newEnd.getTime()}`,
+        idempotencyKey: extensionKey,
       });
+      // Extra days are only granted for money that actually moved.
+      if (charge.status !== 'succeeded') {
+        await paymentService.cancelByKey(extensionKey).catch(() => undefined);
+        throw new ConflictError('The payment for the extra days did not go through. Check your card and try again.', 'PAYMENT_INCOMPLETE');
+      }
       await availabilityService.confirmHold(holdId, bookingId);
 
       // Roll the extra into the booking totals (immutable-style accumulation).
@@ -1365,10 +1403,16 @@ export class BookingService {
       ],
     }).lean<BookingDoc[]>();
     for (const b of due) {
-      await paymentService.cancelAuthorization(b._id);
-      if (b.holdId) await availabilityService.releaseHold(b.holdId);
-      const doc = await this.getDoc(b._id);
-      await this.transition(doc, 'expired', 'system', 'Approval window elapsed');
+      try {
+        await paymentService.cancelAuthorization(b._id);
+        if (b.holdId) await availabilityService.releaseHold(b.holdId);
+        const doc = await this.getDoc(b._id);
+        await this.transition(doc, 'expired', 'system', 'Approval window elapsed');
+      } catch (err) {
+        // One stuck booking must not stop the rest of the sweep.
+        logger.error({ err, bookingId: b._id }, 'could not expire booking');
+        continue;
+      }
       // Carry the parties, so the guest can actually be told their request
       // lapsed rather than discovering it on their next visit.
       emit(EVENTS.BOOKING_EXPIRED, b._id, {
@@ -1385,6 +1429,51 @@ export class BookingService {
       });
     }
     return due.length;
+  }
+
+  /**
+   * The money for a booking parked as pending_payment has landed (3-D Secure
+   * finished, or a card was entered later). Confirms it once; any other state
+   * means it was already handled, cancelled or expired, so this does nothing.
+   */
+  async confirmAfterPayment(bookingId: string): Promise<void> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.status !== 'pending_payment') return;
+
+    // The checkout hold is short. If it lapsed the dates may be gone, and taking
+    // the trip anyway would double-book the car — give the money back instead.
+    if (booking.holdId && !(await availabilityService.holdExists(booking.holdId))) {
+      try {
+        booking.holdId = await availabilityService.placeHold(booking.vehicleId, booking.period.start, booking.period.end);
+        await BookingModel.updateOne({ _id: bookingId }, { holdId: booking.holdId });
+      } catch {
+        await paymentService.refundBooking(bookingId, booking.priceBreakdown.total, 'Dates were no longer held');
+        await this.transition(booking, 'cancelled_system', 'system', 'Payment arrived after the dates were released');
+        emit(EVENTS.BOOKING_CANCELLED, bookingId, {
+          bookingId,
+          guestId: booking.guestId,
+          hostId: booking.hostId,
+          cancelledBy: 'system',
+          refund: booking.priceBreakdown.total,
+        });
+        return;
+      }
+    }
+    if (booking.holdId) await availabilityService.confirmHold(booking.holdId, bookingId);
+    await this.transition(booking, 'paid', 'system', 'Payment completed');
+    emit(EVENTS.BOOKING_CONFIRMED, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId, instant: true });
+  }
+
+  /** Guest resumes an unfinished payment; confirms the booking when it clears. */
+  async resumePayment(principal: Principal, bookingId: string) {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== principal.userId) throw new ForbiddenError('Only the guest can pay for this booking');
+    if (booking.status !== 'pending_payment') {
+      throw new ConflictError('This booking is not waiting on a payment', 'INVALID_STATE');
+    }
+    const result = await paymentService.resume(bookingId);
+    if (result.status === 'succeeded') await this.confirmAfterPayment(bookingId);
+    return result;
   }
 
   /**
@@ -1514,6 +1603,34 @@ export class BookingService {
       await BookingModel.updateOne({ _id: b._id }, { verificationReminderSentAt: new Date() });
     }
     return due.length;
+  }
+
+  /**
+   * Cron: watch the two ways a paid trip goes quiet — a pickup nobody did, and
+   * a return nobody made. Each stage fires once per booking, and the final one
+   * reaches ops, because a car that has not come back is theirs to chase.
+   */
+  async sweepLifecycle(): Promise<{ late: number; escalated: number; notStarted: number }> {
+    const now = Date.now();
+    const graceMs = ((await platformConfigService.get()).tracking?.overdueGraceMinutes ?? 60) * 60_000;
+    const stage = async (
+      filter: Record<string, unknown>,
+      marker: 'overdueNotifiedAt' | 'overdueEscalatedAt' | 'notStartedNotifiedAt',
+      kind: 'late' | 'escalated' | 'never_started',
+    ) => {
+      const due = await BookingModel.find({ ...filter, [marker]: { $exists: false } }).lean<BookingDoc[]>();
+      for (const b of due) {
+        // Marked first: a crash after this can only skip a nudge, never repeat one.
+        await BookingModel.updateOne({ _id: b._id }, { [marker]: new Date() });
+        emit(EVENTS.BOOKING_OVERDUE, b._id, { bookingId: b._id, guestId: b.guestId, hostId: b.hostId, stage: kind });
+      }
+      return due.length;
+    };
+    return {
+      late: await stage({ status: 'in_progress', 'period.end': { $lte: new Date(now - graceMs) } }, 'overdueNotifiedAt', 'late'),
+      escalated: await stage({ status: 'in_progress', 'period.end': { $lte: new Date(now - 24 * HOUR_MS) } }, 'overdueEscalatedAt', 'escalated'),
+      notStarted: await stage({ status: 'paid', 'period.start': { $lte: new Date(now - graceMs) } }, 'notStartedNotifiedAt', 'never_started'),
+    };
   }
 
   // ── internals ────────────────────────────────────────────────────────

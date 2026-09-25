@@ -13,6 +13,8 @@ import { messageService } from '../modules/messaging/application/message.service
 import { vehicleLifecycleService } from '../modules/vehicles/application/vehicle-lifecycle.service';
 import { TripModel } from '../modules/trips/infrastructure/trip.model';
 import { logger } from '../infrastructure/logging/logger';
+import { userRepository } from '../modules/users/infrastructure/user.repository';
+import { ROLES } from '../shared/constants/rbac';
 
 /** Best-effort system note into a booking conversation; never breaks the flow. */
 async function postSystemNote(bookingId: string, body: string): Promise<void> {
@@ -50,6 +52,26 @@ export function registerEventSubscribers(): void {
       await notificationService.send({ userId: host.userId, templateKey, title, body, data, priority, deepLink });
     } catch (err) {
       logger.warn({ err, hostId }, 'notify host failed');
+    }
+  };
+
+  // Ops needs to hear about anything the platform itself must act on.
+  const notifyStaff = async (
+    templateKey: string,
+    title: string,
+    body: string,
+    data: Record<string, unknown>,
+    priority: 'critical' | 'high' = 'high',
+  ) => {
+    try {
+      const staff = await userRepository.findByAnyRole([ROLES.SUPPORT, ROLES.OPS, ROLES.SUPER_ADMIN]);
+      await Promise.all(
+        staff.slice(0, 50).map((u) =>
+          notificationService.send({ userId: u._id, templateKey, title, body, data, priority }),
+        ),
+      );
+    } catch (err) {
+      logger.warn({ err, templateKey }, 'notify staff failed');
     }
   };
 
@@ -130,7 +152,12 @@ export function registerEventSubscribers(): void {
   });
 
   eventBus.subscribe(EVENTS.BOOKING_CONFIRMED, async (e) => {
-    const p = e.payload as { bookingId: string; guestId: string; hostId: string };
+    const p = e.payload as { bookingId: string; guestId: string; hostId: string; instant?: boolean };
+    // A host who approved a request already knows; an Instant Book arrives unannounced.
+    if (p.instant) {
+      await notifyHost(p.hostId, 'booking.confirmed', 'New booking', 'A guest booked your car instantly. It’s confirmed and on your calendar.', { bookingId: p.bookingId }, 'high', `/host/trips?booking=${p.bookingId}`);
+      realtimeEmitter.toBooking(p.bookingId, RT.BOOKING_UPDATE, { bookingId: p.bookingId, status: 'paid' });
+    }
     await notificationService.send({
       userId: p.guestId,
       priority: 'critical',
@@ -321,17 +348,47 @@ export function registerEventSubscribers(): void {
     const p = e.payload as { bookingId: string };
     try {
       const booking = await bookingService.getDoc(p.bookingId);
-      await notificationService.send({
-        userId: booking.hostId,
-        priority: 'high',
-        deepLink: `/host/trips?booking=${p.bookingId}`,
-        templateKey: 'payment.disputed',
-        title: 'A charge on your trip is under dispute',
-        body: 'The guest\'s bank has opened a dispute on this trip\'s charge. Our team is on it — no action needed from you right now.',
-        data: { bookingId: p.bookingId },
-      });
+      const held = await payoutService.holdForBooking(p.bookingId, 'Chargeback opened');
+      await notifyHost(
+        booking.hostId,
+        'payment.disputed',
+        'A charge on your trip is under dispute',
+        'The guest’s bank has opened a dispute on this trip’s charge. Your payout for it is on hold until the bank decides.',
+        { bookingId: p.bookingId },
+        'high',
+        `/host/trips?booking=${p.bookingId}`,
+      );
+      await notifyStaff(
+        'payment.disputed',
+        'Chargeback opened',
+        held
+          ? `Booking ${booking.code}: payout placed on hold. Submit evidence in Stripe.`
+          : `Booking ${booking.code}: the host was ALREADY PAID for this trip. Submit evidence in Stripe and arrange recovery.`,
+        { bookingId: p.bookingId },
+        'critical',
+      );
     } catch (err) {
-      logger.warn({ err, bookingId: p.bookingId }, 'payment.disputed notification failed');
+      logger.warn({ err, bookingId: p.bookingId }, 'payment.disputed handling failed');
+    }
+  });
+
+  eventBus.subscribe(EVENTS.PAYMENT_DISPUTE_CLOSED, async (e) => {
+    const p = e.payload as { bookingId: string; won: boolean };
+    try {
+      await payoutService.resolveHold(p.bookingId, p.won);
+      await notifyStaff('payment.dispute_closed', p.won ? 'Chargeback won' : 'Chargeback lost', `Booking ${p.bookingId}: payout ${p.won ? 'released' : 'written off'}.`, { bookingId: p.bookingId });
+    } catch (err) {
+      logger.warn({ err, bookingId: p.bookingId }, 'payment.dispute_closed handling failed');
+    }
+  });
+
+  // A card payment that needed the cardholder just cleared: confirm the trip.
+  eventBus.subscribe(EVENTS.PAYMENT_SUCCEEDED, async (e) => {
+    const p = e.payload as { bookingId: string };
+    try {
+      await bookingService.confirmAfterPayment(p.bookingId);
+    } catch (err) {
+      logger.error({ err, bookingId: p.bookingId }, 'could not confirm booking after payment');
     }
   });
 
@@ -344,14 +401,81 @@ export function registerEventSubscribers(): void {
       at: new Date().toISOString(),
     });
     logger.warn({ tripId: p.tripId, by: p.byUserId }, '🚨 SOS raised on trip');
+    try {
+      const booking = await bookingService.getDoc(p.bookingId);
+      await notifyStaff('trip.sos', 'SOS on an active trip', `Booking ${booking.code}: a participant pressed SOS. Contact them now.`, { bookingId: p.bookingId, tripId: p.tripId }, 'critical');
+      const other = p.byUserId === booking.guestId ? null : booking.guestId;
+      if (other) {
+        await notificationService.send({ userId: other, priority: 'critical', deepLink: `/bookings/${p.bookingId}`, templateKey: 'trip.sos', title: 'SOS raised on your trip', body: 'An emergency alert was sent for your trip. Our team is following up.', data: { bookingId: p.bookingId } });
+      } else {
+        await notifyHost(booking.hostId, 'trip.sos', 'SOS raised on your car', 'Your guest pressed SOS during the trip. Our team is following up.', { bookingId: p.bookingId }, 'critical');
+      }
+    } catch (err) {
+      logger.warn({ err, bookingId: p.bookingId }, 'sos notification failed');
+    }
+  });
+
+  // A car pulled off the road takes its future bookings with it.
+  eventBus.subscribe(EVENTS.VEHICLE_UNAVAILABLE, async (e) => {
+    const p = e.payload as { vehicleId: string; reason: string; withinHours?: number };
+    try {
+      const n = await bookingService.cancelUpcomingForVehicle(p.vehicleId, p.reason, p.withinHours);
+      if (n) await notifyStaff('vehicle.unavailable', 'Bookings released', `${n} upcoming booking(s) were cancelled and refunded because the car became unavailable (${p.reason}).`, { vehicleId: p.vehicleId }, 'high');
+    } catch (err) {
+      logger.error({ err, vehicleId: p.vehicleId }, 'could not release bookings for unavailable vehicle');
+    }
+  });
+
+  // Money collected after the trip (overage, a late fee, a toll…) is the host's.
+  eventBus.subscribe(EVENTS.BOOKING_CHARGE_COLLECTED, async (e) => {
+    const p = e.payload as { bookingId: string; hostId: string; amount: number; currency: string; key: string };
+    await payoutService.scheduleExtra(p.bookingId, p.hostId, p.amount, p.currency, `charge_${p.key}`);
+  });
+
+  // A charge we could not collect is money owed that nobody is chasing unless we say so.
+  eventBus.subscribe(EVENTS.BOOKING_CHARGE_FAILED, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string; hostId: string; amount: number; label: string };
+    await notificationService.send({
+      userId: p.guestId,
+      priority: 'critical',
+      deepLink: '/account',
+      templateKey: 'booking.charge_failed',
+      title: 'We couldn’t collect a charge',
+      body: `${p.label} (${formatAmount(p.amount)}) could not be charged to your card. Please update your payment method.`,
+      data: { bookingId: p.bookingId },
+    });
+    await notifyStaff('booking.charge_failed', 'Post-trip charge not collected', `Booking ${p.bookingId}: ${p.label} (${formatAmount(p.amount)}) could not be collected from the guest's card or deposit.`, { bookingId: p.bookingId });
+  });
+
+  // A trip that should have ended and hasn't.
+  eventBus.subscribe(EVENTS.BOOKING_OVERDUE, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string; hostId: string; stage: 'late' | 'escalated' | 'never_started' };
+    if (p.stage === 'never_started') {
+      await notificationService.send({ userId: p.guestId, priority: 'high', deepLink: `/bookings/${p.bookingId}`, templateKey: 'booking.not_started', title: 'Your pickup time has passed', body: 'Your trip hasn’t started yet. Meet your host, or report a no-show from your trip page if they haven’t turned up.', data: { bookingId: p.bookingId } });
+      await notifyHost(p.hostId, 'booking.not_started', 'Guest hasn’t picked up yet', 'The pickup time has passed and the trip hasn’t started. Start the trip when you meet, or report a no-show.', { bookingId: p.bookingId }, 'high', `/host/trips?booking=${p.bookingId}`);
+      return;
+    }
+    if (p.stage === 'late') {
+      await notificationService.send({ userId: p.guestId, priority: 'critical', deepLink: `/bookings/${p.bookingId}`, templateKey: 'trip.overdue', title: 'Your return time has passed', body: 'Please return the car now. Late fees apply per hour after the grace period.', data: { bookingId: p.bookingId } });
+      await notifyHost(p.hostId, 'trip.overdue', 'Your car is overdue', 'The guest hasn’t returned the car on time. We’ve reminded them and late fees will apply.', { bookingId: p.bookingId }, 'high', `/host/trips?booking=${p.bookingId}`);
+      return;
+    }
+    await notifyStaff('trip.overdue_escalated', 'Vehicle not returned', `Booking ${p.bookingId} is more than a day overdue. Contact the guest; consider the recovery process.`, { bookingId: p.bookingId }, 'critical');
+    await notifyHost(p.hostId, 'trip.overdue', 'Still no return', 'Your car is more than a day overdue. Our team has been alerted and is contacting the guest.', { bookingId: p.bookingId }, 'critical');
   });
 
   eventBus.subscribe(EVENTS.BOOKING_CANCELLED, async (e) => {
     const p = e.payload as {
-      bookingId: string; guestId: string; hostId: string;
+      bookingId: string; guestId: string; hostId: string; cancelledBy?: string;
       refund: { amount: number; currency?: string };
     };
     const refunded = p.refund?.amount ?? 0;
+    // A late guest cancel keeps part of the money; the host's share of it is theirs.
+    if (p.cancelledBy === 'guest') {
+      await payoutService.scheduleRetainedShare(p.bookingId).catch((err) => logger.error({ err, bookingId: p.bookingId }, 'retained share payout failed'));
+    }
+    realtimeEmitter.toUser(p.guestId, RT.BOOKING_UPDATE, { bookingId: p.bookingId, status: 'cancelled' });
+    realtimeEmitter.toBooking(p.bookingId, RT.BOOKING_UPDATE, { bookingId: p.bookingId, status: 'cancelled' });
     await notificationService.send({
       userId: p.guestId,
       priority: 'critical',
@@ -362,12 +486,22 @@ export function registerEventSubscribers(): void {
       // (and occasionally a float artefact) with no currency at all.
       body: refunded > 0
         ? `Your booking was cancelled. We're refunding ${formatAmount(refunded, p.refund?.currency)}.`
-        : 'Your booking was cancelled. No refund was due under the cancellation policy.',
+        : p.cancelledBy === 'system'
+          ? 'Your booking was cancelled by CatoDrive. You haven’t been charged.'
+          : 'Your booking was cancelled. No refund was due under the cancellation policy.',
       data: { bookingId: p.bookingId },
     });
-    await notifyHost(p.hostId, 'booking.cancelled', 'Booking cancelled', 'A booking was cancelled.', {
-      bookingId: p.bookingId,
-    });
+    await notifyHost(
+      p.hostId,
+      'booking.cancelled',
+      'Booking cancelled',
+      p.cancelledBy === 'guest'
+        ? 'Your guest cancelled the trip. Your calendar is open again, and you keep your share of anything the cancellation policy retains.'
+        : 'A booking was cancelled and your calendar is open again.',
+      { bookingId: p.bookingId },
+      'high',
+      `/host/trips?booking=${p.bookingId}`,
+    );
   });
 
   // Guest no-show → the host earns their share of the forfeit (payout), and the
@@ -434,6 +568,7 @@ export function registerEventSubscribers(): void {
       await notificationService.send({ userId, priority: 'critical', deepLink: `/trips`, templateKey: 'trip.incident', title: 'Emergency reported', body, data: { bookingId: p.bookingId, type: p.type } });
     }
     await notifyHost(p.hostId, 'trip.incident', 'Emergency reported on your car', body, { bookingId: p.bookingId, type: p.type });
+    await notifyStaff('trip.incident', `Incident: ${p.type}`, `An incident (${p.type}) was reported on booking ${p.bookingId}. The trip is paused.`, { bookingId: p.bookingId, type: p.type }, 'critical');
     logger.error({ bookingId: p.bookingId, type: p.type, by: p.byUserId }, 'TRIP INCIDENT RAISED');
   });
 
@@ -542,17 +677,53 @@ export function registerEventSubscribers(): void {
   // ── System notes into the booking conversation ─────────────────────────
   // The chat thread doubles as the trip's running record: the milestones that
   // both parties care about are written into it as they happen.
+  // Both sides get a real notification at each milestone, not just a chat note.
+  const notifyParties = async (
+    bookingId: string,
+    templateKey: string,
+    guestCopy: { title: string; body: string },
+    hostCopy: { title: string; body: string },
+  ) => {
+    try {
+      const booking = await bookingService.getDoc(bookingId);
+      await notificationService.send({ userId: booking.guestId, priority: 'high', deepLink: `/bookings/${bookingId}`, templateKey, ...guestCopy, data: { bookingId } });
+      await notifyHost(booking.hostId, templateKey, hostCopy.title, hostCopy.body, { bookingId }, 'high', `/host/trips?booking=${bookingId}`);
+      realtimeEmitter.toBooking(bookingId, RT.BOOKING_UPDATE, { bookingId, status: booking.status });
+    } catch (err) {
+      logger.warn({ err, bookingId, templateKey }, 'party notification failed');
+    }
+  };
+
   eventBus.subscribe(EVENTS.TRIP_STARTED, async (e) => {
     const p = e.payload as { bookingId: string };
     await postSystemNote(p.bookingId, 'Trip started — the handover is complete and the car is on the road.');
+    await notifyParties(
+      p.bookingId,
+      'trip.started',
+      { title: 'Your trip has started', body: 'Enjoy the drive — return the car on time to avoid late fees.' },
+      { title: 'Trip started', body: 'Your guest has the car. You’ll be told when it’s returned.' },
+    );
   });
   eventBus.subscribe(EVENTS.TRIP_COMPLETED, async (e) => {
     const p = e.payload as { bookingId: string };
     await postSystemNote(p.bookingId, 'Trip completed — the car has been returned.');
+    await notifyParties(
+      p.bookingId,
+      'trip.returned',
+      { title: 'Car returned', body: 'Thanks — your host now has a short window to inspect the car before your deposit is released.' },
+      { title: 'Car returned', body: 'Your guest has returned the car. Inspect it and report any damage within the inspection window.' },
+    );
   });
   eventBus.subscribe(EVENTS.BOOKING_EXTENDED, async (e) => {
-    const p = e.payload as { bookingId: string; newEnd: Date | string };
+    const p = e.payload as { bookingId: string; newEnd: Date | string; hostId?: string };
     await postSystemNote(p.bookingId, `Trip extended — the new return date is ${fmtDay(p.newEnd)}.`);
+    if (p.hostId) {
+      await notifyHost(p.hostId, 'booking.extended', 'Trip extended', `Your guest extended the trip — the new return date is ${fmtDay(p.newEnd)}.`, { bookingId: p.bookingId }, 'high', `/host/trips?booking=${p.bookingId}`);
+    }
+  });
+  eventBus.subscribe(EVENTS.PAYOUT_SCHEDULED, async (e) => {
+    const p = e.payload as { bookingId: string; hostId: string };
+    await notifyHost(p.hostId, 'payout.scheduled', 'Earnings on the way', 'Your earnings from a completed trip are scheduled for payout.', { bookingId: p.bookingId });
   });
   eventBus.subscribe(EVENTS.BOOKING_SHORTENED, async (e) => {
     const p = e.payload as { bookingId: string; newEnd: Date | string };

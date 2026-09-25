@@ -40,6 +40,15 @@ export class MockGateway implements PaymentGateway {
     return { status: 'cancelled' };
   }
 
+  async retrieveIntent(intentId: string): Promise<IntentResult> {
+    const i = this.intents.get(intentId);
+    return { intentId, clientSecret: `${intentId}_secret`, status: (i?.status ?? 'succeeded') as IntentResult['status'] };
+  }
+
+  async confirmIntent(intentId: string): Promise<IntentResult> {
+    return this.retrieveIntent(intentId);
+  }
+
   async getIntentRisk(): Promise<IntentRisk | null> {
     return { riskLevel: 'normal', cvcCheck: 'pass', addressCheck: 'pass' };
   }

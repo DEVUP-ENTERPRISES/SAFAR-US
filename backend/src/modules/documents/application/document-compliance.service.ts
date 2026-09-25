@@ -1,3 +1,5 @@
+import { emit } from '../../../shared/events/event-bus';
+import { EVENTS } from '../../../core/events/event-names';
 import { DocumentModel } from '../infrastructure/document.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { notificationService } from '../../notifications/application/notification.service';
@@ -132,6 +134,7 @@ export class DocumentComplianceService {
       if (v && v.status === 'listed') {
         await VehicleModel.updateOne({ _id: vehicleId }, { status: 'paused', complianceHold: true });
         await this.notifyHost(v.hostId, vehicleId, 'paused');
+        emit(EVENTS.VEHICLE_UNAVAILABLE, vehicleId, { vehicleId, reason: 'an expired mandatory document', withinHours: 72 });
         paused += 1;
       }
     }

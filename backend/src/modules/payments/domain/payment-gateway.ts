@@ -23,7 +23,7 @@ export interface IntentResult {
   /** `requires_action` is 3-D Secure: the bank wants the cardholder present,
    *  and the client must finish it. Treating that as a failure would decline
    *  perfectly good European and increasingly US cards. */
-  status: 'requires_confirmation' | 'requires_action' | 'succeeded' | 'requires_capture';
+  status: 'requires_confirmation' | 'requires_payment_method' | 'requires_action' | 'succeeded' | 'requires_capture' | 'canceled';
 }
 
 export interface IntentRisk {
@@ -39,6 +39,10 @@ export interface PaymentGateway {
   capture(intentId: string, amountCents?: number): Promise<{ status: 'succeeded' }>;
   refund(intentId: string, amount: Money, idempotencyKey: string): Promise<{ refundId: string }>;
   cancel(intentId: string): Promise<{ status: 'cancelled' }>;
+  /** Current state of an intent, so an unfinished payment can be resumed. */
+  retrieveIntent(intentId: string): Promise<IntentResult>;
+  /** Confirm an unfinished intent with a saved card, off-session where the bank allows. */
+  confirmIntent(intentId: string, input: { customerId: string; paymentMethodId: string }): Promise<IntentResult>;
   /** Radar's verdict + card-check results on the charge behind an intent, for feeding future risk decisions. */
   getIntentRisk(intentId: string): Promise<IntentRisk | null>;
 }

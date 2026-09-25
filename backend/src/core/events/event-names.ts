@@ -47,6 +47,11 @@ export const EVENTS = {
   PAYMENT_FAILED: 'payment.failed',
   /** The cardholder's bank is pulling the money back. */
   PAYMENT_DISPUTED: 'payment.disputed',
+  PAYMENT_DISPUTE_CLOSED: 'payment.dispute.closed',
+  BOOKING_CHARGE_COLLECTED: 'booking.charge.collected',
+  BOOKING_CHARGE_FAILED: 'booking.charge.failed',
+  BOOKING_OVERDUE: 'booking.overdue',
+  VEHICLE_UNAVAILABLE: 'vehicle.unavailable',
   WALLET_TOPPED_UP: 'wallet.topped_up',
   PLATFORM_CONFIG_UPDATED: 'platform.config_updated',
 

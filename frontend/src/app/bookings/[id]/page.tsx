@@ -21,6 +21,7 @@ import { useLocationStreaming, useTrackingState } from '@/features/trips/hooks';
 import { cn } from '@/lib/utils/cn';
 import { ChatPanel } from '@/features/messaging/chat-panel';
 import { bookingApi } from '@/features/bookings/api';
+import { useCompletePayment } from '@/features/bookings/hooks';
 import { claimsApi } from '@/features/claims/api';
 import { vehicleApi } from '@/features/vehicles/api';
 import { DepositStatus } from '@/features/payments/deposit-status';
@@ -86,6 +87,17 @@ function BookingDetail({ id }: { id: string }) {
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not cancel' }),
   });
 
+  const completePayment = useCompletePayment();
+  const noShow = useMutation({
+    mutationFn: () => bookingApi.noShow(id, 'host'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['booking', id] });
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      toast({ tone: 'success', title: 'Reported. Your refund is on its way.' });
+    },
+    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not report the no-show' }),
+  });
+
   // Push only ever turns on from an explicit ask — this is that ask. Hidden
   // once permission has already been decided (granted or denied) or push
   // isn't configured for this deployment.
@@ -143,6 +155,18 @@ function BookingDetail({ id }: { id: string }) {
       reason: { label: 'Reason', placeholder: 'e.g. Plans changed', required: true },
     });
     if (ok && reason) cancel.mutate(reason);
+  };
+
+  const canReportNoShow = b.status === 'paid' && !b.tripId && new Date(b.period.start).getTime() < Date.now();
+
+  const onNoShow = async () => {
+    const { ok } = await confirm({
+      title: 'Report that the host didn’t show up?',
+      description: `You’ll be refunded the full ${formatMoney(b.priceBreakdown.total)}, this trip will be cancelled, and we’ll offer you a replacement car. Only report this if you were at the pickup point and the host never arrived.`,
+      confirmLabel: 'Report no-show',
+      tone: 'destructive',
+    });
+    if (ok) noShow.mutate();
   };
 
   const p = b.priceBreakdown;
@@ -210,6 +234,11 @@ function BookingDetail({ id }: { id: string }) {
               <Link href={`/vehicles/${b.vehicleId}`}>
                 <Button variant="outline" size="sm">View listing</Button>
               </Link>
+              {b.status === 'pending_payment' && (
+                <Button size="sm" loading={completePayment.isPending} onClick={() => completePayment.mutate(id)}>
+                  Complete payment
+                </Button>
+              )}
               {b.status === 'cancelled_host' && (
                 <Button size="sm" onClick={() => router.push(`/bookings/${id}/rebook`)}>
                   Find a replacement car
@@ -339,9 +368,19 @@ function BookingDetail({ id }: { id: string }) {
                   <ShieldCheck className="h-4 w-4" /> Go to trip
                 </Button>
               )}
-              <Button variant="outline" className="w-full" onClick={() => router.push('/support')}>
+              <Button variant="outline" className="w-full" onClick={() => router.push(`/support?bookingId=${id}`)}>
                 Get help
               </Button>
+              {canReportNoShow && (
+                <Button
+                  variant="outline"
+                  className="w-full text-destructive hover:text-destructive"
+                  loading={noShow.isPending}
+                  onClick={onNoShow}
+                >
+                  Host didn’t show up
+                </Button>
+              )}
               {canCancel && (
                 <Button
                   variant="outline"

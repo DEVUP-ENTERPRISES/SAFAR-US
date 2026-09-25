@@ -7,6 +7,11 @@ import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '.
 import { logger } from '../../../infrastructure/logging/logger';
 import { auditService } from '../../audit/application/audit.service';
 import { uuid } from '../../../shared/utils/uuid';
+import { paymentService } from '../../payments/application/payment.service';
+import { depositService } from '../../payments/application/deposit.service';
+import { emit } from '../../../shared/events/event-bus';
+import { PayoutModel } from '../../payouts/infrastructure/payout.model';
+import { EVENTS } from '../../../core/events/event-names';
 
 export type IncidentalType = 'fuel' | 'cleaning' | 'smoking' | 'pet' | 'late_return' | 'toll' | 'fine' | 'other';
 
@@ -69,6 +74,53 @@ export class IncidentalsService {
     return null; // rated — the host does not choose the amount
   }
 
+  /**
+   * Take the money for one charge: the guest's card first, then whatever the
+   * security deposit covers. Books the ledger only for money actually taken,
+   * and tells the payout pipeline to pay the host their share.
+   */
+  async collect(
+    booking: { _id: string; guestId: string; hostId: string },
+    amount: number,
+    currency: string,
+    key: string,
+    label: string,
+  ): Promise<'card' | 'deposit' | null> {
+    let via: 'card' | 'deposit' | null = null;
+    let collected = 0;
+
+    if (await paymentService.chargeGuest({ bookingId: booking._id, guestId: booking.guestId, amount, currency, idempotencyKey: `charge_${key}` })) {
+      via = 'card';
+      collected = amount;
+      await ledgerService.post({
+        txnId: `charge_${key}`,
+        refType: 'incidental',
+        refId: booking._id,
+        currency,
+        description: label,
+        legs: [
+          { account: Account.gatewayClearing(), direction: 'credit', amount },
+          { account: Account.hostPayable(booking.hostId), direction: 'debit', amount },
+        ],
+      });
+    } else {
+      try {
+        const taken = await depositService.capture(booking._id, { amount, currency }, label, booking.hostId);
+        via = 'deposit';
+        collected = taken.amount;
+      } catch {
+        via = null;
+      }
+    }
+
+    if (via) {
+      emit(EVENTS.BOOKING_CHARGE_COLLECTED, booking._id, { bookingId: booking._id, hostId: booking.hostId, amount: collected, currency, key });
+    } else {
+      emit(EVENTS.BOOKING_CHARGE_FAILED, booking._id, { bookingId: booking._id, guestId: booking.guestId, hostId: booking.hostId, amount, label });
+    }
+    return via;
+  }
+
   async charge(
     bookingId: string,
     items: IncidentalItem[],
@@ -126,7 +178,7 @@ export class IncidentalsService {
       //    one is an assertion. Applies to rated types too — a large fuel
       //    shortfall should be photographed.
       const needsEvidence = amount > (cfg.evidenceRequiredAboveCents ?? 5_000);
-      if (needsEvidence && !it.evidenceUrl) {
+      if (needsEvidence && !it.evidenceUrl && byUserId !== 'system') {
         throw new ValidationError(
           `A ${it.type} charge over ${((cfg.evidenceRequiredAboveCents ?? 5_000) / 100).toFixed(0)} ${currency} ` +
             'needs a photo — the receipt, the citation, or the state of the car.',
@@ -166,16 +218,12 @@ export class IncidentalsService {
     const total = priced.reduce((s, p) => s + p.amount, 0);
     if (total <= 0) throw new ValidationError('No chargeable incidental in this request');
 
-    await ledgerService.post({
-      refType: 'incidental',
-      refId: bookingId,
-      currency,
-      description: `Incidentals: ${priced.map((p) => p.type).join(', ')}`,
-      legs: [
-        { account: Account.gatewayClearing(), direction: 'credit', amount: total },
-        { account: Account.hostPayable(booking.hostId), direction: 'debit', amount: total },
-      ],
-    });
+    const uncollected: string[] = [];
+    for (const p of priced) {
+      const via = await this.collect(booking, p.amount, currency, p._id, `Incidental: ${p.type}`);
+      if (via) (p as { collectedVia?: 'card' | 'deposit' }).collectedVia = via;
+      else uncollected.push(p.type);
+    }
     await BookingModel.updateOne({ _id: bookingId }, { $push: { incidentals: { $each: priced } } });
 
     // Every charge is written down with who applied it and what it was for.
@@ -197,9 +245,10 @@ export class IncidentalsService {
         priority: 'high',
         deepLink: `/bookings/${bookingId}`,
         templateKey: 'booking.incidental_charged',
-        title: 'A post-trip charge was applied',
+        title: uncollected.length ? 'A post-trip charge needs your attention' : 'A post-trip charge was applied',
         body:
           `${priced.map((p) => p.type.replace('_', ' ')).join(', ')} — ${(total / 100).toFixed(2)} ${currency}. ` +
+          (uncollected.length ? 'We could not charge your card — please update your payment method. ' : '') +
           `If this is wrong you have ${cfg.disputeWindowHours ?? 72} hours to dispute it.`,
         data: { bookingId },
       })
@@ -302,8 +351,16 @@ export class IncidentalsService {
       throw new ConflictError('That charge is not under dispute', 'NOT_DISPUTED');
     }
 
-    if (outcome === 'refund') {
+    let collectedVia = item.collectedVia;
+    if (outcome === 'refund' && collectedVia) {
+      // Real money was taken, so real money goes back — and the host's share stops.
+      await paymentService.refundCharge(bookingId, incidentalId, collectedVia, item.amount);
+      await PayoutModel.updateOne(
+        { tag: `charge_${incidentalId}`, status: { $in: ['scheduled', 'held'] } },
+        { status: 'failed', lastError: 'Charge refunded after dispute' },
+      );
       await ledgerService.post({
+        txnId: `incidental_refund_${incidentalId}`,
         refType: 'incidental_refund',
         refId: `${bookingId}:${incidentalId}`,
         currency: booking.priceBreakdown.currency,
@@ -313,6 +370,11 @@ export class IncidentalsService {
           { account: Account.gatewayClearing(), direction: 'debit', amount: item.amount },
         ],
       });
+    } else if (outcome === 'uphold' && !collectedVia) {
+      // Upheld but never collected: try again now that the guest has had their say.
+      collectedVia =
+        (await this.collect(booking, item.amount, booking.priceBreakdown.currency, incidentalId, `Incidental: ${item.type}`)) ??
+        undefined;
     }
 
     await BookingModel.updateOne(
@@ -320,6 +382,7 @@ export class IncidentalsService {
       {
         $set: {
           'incidentals.$.status': outcome === 'refund' ? 'refunded' : 'upheld',
+          ...(collectedVia ? { 'incidentals.$.collectedVia': collectedVia } : {}),
           'incidentals.$.resolvedAt': new Date(),
           'incidentals.$.resolvedBy': staffUserId,
           'incidentals.$.resolutionNote': note,

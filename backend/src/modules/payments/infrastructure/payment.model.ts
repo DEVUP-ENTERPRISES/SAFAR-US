@@ -2,6 +2,7 @@ import { Schema, model } from 'mongoose';
 import { uuid } from '../../../shared/utils/uuid';
 
 export type PaymentStatus =
+  | 'pending'
   | 'requires_action'
   | 'authorized'
   | 'succeeded'
@@ -15,14 +16,16 @@ export interface PaymentDoc {
   bookingId?: string;
   userId: string;
   hostId?: string;
-  type: 'booking' | 'topup' | 'deposit';
+  type: 'booking' | 'topup' | 'deposit' | 'charge';
   intentId: string;
   amount: number;
   currency: string;
   hostEarnings: number;
   commission: number;
   tax: number;
+  /** Card money captured; the wallet-funded part of `amount` is `walletApplied`. */
   capturedAmount: number;
+  walletApplied: number;
   refundedAmount: number;
   status: PaymentStatus;
   ledgerTxnId?: string;
@@ -41,7 +44,7 @@ const schema = new Schema<PaymentDoc>(
     bookingId: { type: String },
     userId: { type: String, required: true },
     hostId: { type: String },
-    type: { type: String, required: true, enum: ['booking', 'topup', 'deposit'] },
+    type: { type: String, required: true, enum: ['booking', 'topup', 'deposit', 'charge'] },
     intentId: { type: String, required: true },
     amount: { type: Number, required: true },
     currency: { type: String, required: true },
@@ -49,6 +52,7 @@ const schema = new Schema<PaymentDoc>(
     commission: { type: Number, default: 0 },
     tax: { type: Number, default: 0 },
     capturedAmount: { type: Number, default: 0 },
+    walletApplied: { type: Number, default: 0 },
     refundedAmount: { type: Number, default: 0 },
     status: { type: String, required: true },
     ledgerTxnId: String,

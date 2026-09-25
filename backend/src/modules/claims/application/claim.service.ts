@@ -4,6 +4,9 @@ import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { logger } from '../../../infrastructure/logging/logger';
+import { paymentService } from '../../payments/application/payment.service';
+import { depositService } from '../../payments/application/deposit.service';
+import { notificationService } from '../../notifications/application/notification.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { damageReviewService } from '../../ai/application/damage-review.service';
 import type { DamageAssessmentDoc } from '../../ai/infrastructure/damage-assessment.model';
@@ -81,6 +84,7 @@ export class ClaimService {
         .catch((err) => logger.warn({ err, tripId, claimId: claim._id }, 'AI damage review kickoff failed'));
     }
 
+    this.notify(respondentId, 'claim.opened', 'A claim was filed against you', 'A claim was opened on one of your trips. Review the evidence and respond.', claim._id);
     return claim.toObject();
   }
 
@@ -188,6 +192,7 @@ export class ClaimService {
       throw new ConflictError('This claim is already resolved', 'CLAIM_CLOSED');
     }
     await this.transition(claimId, 'disputed', userId, note);
+    this.notify(claim.claimantId, 'claim.disputed', 'Your claim was disputed', 'The other party has contested your claim. Our team will review both sides.', claimId);
     return this.getDoc(claimId);
   }
 
@@ -249,23 +254,43 @@ export class ClaimService {
       throw new ConflictError('Claim is already resolved', 'CLAIM_CLOSED');
     }
 
-    // 1. Pay the claimant (platform/insurer bears the cost).
+    // 1. Collect from the guest, then pay the claimant. Only money actually
+    //    taken is booked as recovered; whatever could not be collected is the
+    //    platform's cost, so the claimant is made whole either way.
     if (input.amountApproved > 0) {
-      await ledgerService.post({
-        refType: 'claim_settlement',
-        refId: claimId,
-        currency: 'USD',
-        description: `Claim settlement: ${input.note}`,
-        legs: [
-          { account: Account.claimsExpense(), direction: 'debit', amount: input.amountApproved },
-          { account: Account.userWallet(claim.claimantId), direction: 'credit', amount: input.amountApproved },
-        ],
-      });
+      const collected = claim.collectedCents ?? (await this.collectFromGuest(claim, input.amountApproved));
+      if (claim.collectedCents === undefined) await ClaimModel.updateOne({ _id: claimId }, { collectedCents: collected });
+      const fromPlatform = input.amountApproved - collected;
+      const legs = (debit: string, amount: number) => [
+        { account: debit, direction: 'debit' as const, amount },
+        { account: Account.userWallet(claim.claimantId), direction: 'credit' as const, amount },
+      ];
+      if (collected > 0) {
+        await ledgerService.post({
+          txnId: `claim_recovery_${claimId}`,
+          refType: 'claim_recovery',
+          refId: claimId,
+          currency: 'USD',
+          description: `Claim recovered from guest: ${input.note}`,
+          legs: legs(Account.cardFunding(), collected),
+        });
+      }
+      if (fromPlatform > 0) {
+        await ledgerService.post({
+          txnId: `claim_settlement_${claimId}`,
+          refType: 'claim_settlement',
+          refId: claimId,
+          currency: 'USD',
+          description: `Claim settlement: ${input.note}`,
+          legs: legs(Account.claimsExpense(), fromPlatform),
+        });
+      }
     }
 
     // 2. Penalise the party at fault — recovers part of the loss.
     if (input.liableUserId && input.penaltyCents && input.penaltyCents > 0) {
       await ledgerService.post({
+        txnId: `claim_penalty_${claimId}`,
         refType: 'claim_penalty',
         refId: claimId,
         currency: 'USD',
@@ -292,11 +317,44 @@ export class ClaimService {
       warningIssued: !!input.warning,
     });
 
+    const outcome = input.amountApproved > 0 ? 'A decision was made on your claim and the amount has been credited to your wallet.' : 'A decision was made on your claim.';
+    this.notify(claim.claimantId, 'claim.settled', 'Your claim was decided', outcome, claimId);
+    this.notify(claim.respondentId, 'claim.settled', 'A claim against you was decided', 'A decision was made on the claim against you. See the outcome in your claims.', claimId);
+
     logger.info(
       { claimId, amountApproved: input.amountApproved, penalty: input.penaltyCents ?? 0 },
       '⚖️  claim settled',
     );
     return this.getDoc(claimId);
+  }
+
+  /** Damage is owed by the guest: take it from the deposit first, then their card. */
+  private async collectFromGuest(claim: ClaimDoc, amount: number): Promise<number> {
+    if (!claim.bookingId) return 0;
+    const { bookingService } = await import('../../bookings/application/booking.service');
+    const booking = await bookingService.getDoc(claim.bookingId);
+    if (claim.respondentId !== booking.guestId) return 0;
+
+    const currency = booking.priceBreakdown.currency;
+    let collected = 0;
+    try {
+      const taken = await depositService.capture(booking._id, { amount, currency }, `Claim ${claim._id}`, booking.hostId, { postLedger: false });
+      collected += taken.amount;
+    } catch {
+      // No deposit held, or already settled: fall through to the card.
+    }
+    const remaining = amount - collected;
+    if (remaining > 0 && (await paymentService.chargeGuest({ bookingId: booking._id, guestId: booking.guestId, amount: remaining, currency, idempotencyKey: `charge_claim_${claim._id}` }))) {
+      collected += remaining;
+    }
+    return collected;
+  }
+
+  private notify(userId: string | undefined, templateKey: string, title: string, body: string, claimId: string): void {
+    if (!userId) return;
+    void notificationService
+      .send({ userId, priority: 'high', deepLink: `/claims/${claimId}`, templateKey, title, body, data: { claimId } })
+      .catch((err) => logger.warn({ err, claimId, templateKey }, 'claim notification failed'));
   }
 
   async count(filter: Record<string, unknown> = {}): Promise<number> {

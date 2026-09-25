@@ -18,6 +18,8 @@ import { TrackingPanel } from '@/features/trips/components/tracking-panel';
 import { HandoverPanel } from '@/features/trips/components/handover-panel';
 import { DamageReviewPanel } from '@/features/ai/components/damage-review-panel';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { useToast } from '@/components/ui/toast';
+import { ApiError } from '@/lib/api/types';
 import { bookingApi } from '@/features/bookings/api';
 import { formatMoney, formatDate, kmToMiles, perKmToPerMile } from '@/lib/utils/format';
 import { hostTripsApi } from '@/features/host/trips.api';
@@ -34,6 +36,7 @@ export default function HostTripDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const confirm = useConfirm();
+  const toast = useToast();
   const [tab, setTab] = useState<Tab>('details');
 
   const [odoStart, setOdoStart] = useState('');
@@ -89,6 +92,22 @@ export default function HostTripDetailPage() {
     mutationFn: (reason: string) => bookingApi.cancel(t!.bookingId, reason),
     onSuccess: () => { invalidate(); router.push('/host/trips'); },
   });
+
+  const guestNoShow = useMutation({
+    mutationFn: () => bookingApi.noShow(bookingId, 'guest'),
+    onSuccess: () => { invalidate(); toast({ tone: 'success', title: 'Guest no-show recorded' }); router.push('/host/trips'); },
+    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not record the no-show' }),
+  });
+
+  const doGuestNoShow = async () => {
+    const { ok } = await confirm({
+      title: 'Report that the guest didn’t show up?',
+      description: 'The trip is cancelled and the guest forfeits part of what they paid; you earn your share of that through your normal payout. The rest is refunded to the guest. This cannot be undone.',
+      confirmLabel: 'Report no-show',
+      tone: 'destructive',
+    });
+    if (ok) guestNoShow.mutate();
+  };
 
   const doHostCancel = async () => {
     // Show the host exactly what cancelling costs — the guest's full refund
@@ -482,6 +501,14 @@ export default function HostTripDetailPage() {
             </>
           )}
         </ActionSheet>
+      )}
+
+      {t.status === 'paid' && !t.tripId && tab === 'details' && new Date(t.period.start).getTime() < Date.now() && (
+        <div className="mt-3">
+          <Button variant="outline" className="w-full" loading={guestNoShow.isPending} onClick={doGuestNoShow}>
+            Guest didn’t show up
+          </Button>
+        </div>
       )}
 
       {/* A host may cancel an upcoming trip, but it is costly and clearly framed. */}

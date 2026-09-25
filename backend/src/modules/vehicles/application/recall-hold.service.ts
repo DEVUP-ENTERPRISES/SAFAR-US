@@ -1,3 +1,5 @@
+import { emit } from '../../../shared/events/event-bus';
+import { EVENTS } from '../../../core/events/event-names';
 import { VehicleModel, type VehicleDoc } from '../infrastructure/vehicle.model';
 import { DocumentModel } from '../../documents/infrastructure/document.model';
 import { vehicleHistoryService } from './vehicle-history.service';
@@ -40,6 +42,7 @@ export const recallHoldService = {
       if (await this.hasVerifiedReceipt(vehicleId)) return false;
 
       await VehicleModel.updateOne({ _id: vehicleId }, { status: 'paused', recallHold: true });
+      emit(EVENTS.VEHICLE_UNAVAILABLE, vehicleId, { vehicleId, reason: 'an open safety recall' });
       logger.warn({ vehicleId, recalls: recalls.length }, '🛠️ vehicle placed on recall hold after trip');
       return true;
     } catch (err) {

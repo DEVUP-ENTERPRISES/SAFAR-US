@@ -44,6 +44,10 @@ export const bookingApi = {
   getById: (id: string) => api.get<Booking>(`/bookings/${id}`),
   confirm: (id: string) => api.post<Booking>(`/bookings/${id}/confirm`),
   decline: (id: string) => api.post<Booking>(`/bookings/${id}/decline`),
+  /** Either side reports the other's no-show; the server decides who may and when. */
+  noShow: (id: string, party: 'guest' | 'host') => api.post<Booking>(`/bookings/${id}/no-show`, { party }),
+  paymentSession: (id: string) =>
+    api.post<{ status: 'succeeded' | 'requires_action' | 'requires_payment_method'; clientSecret?: string }>(`/bookings/${id}/payment-session`),
   cancellationPreview: (id: string) =>
     api.get<CancellationPreview>(`/bookings/${id}/cancellation-preview`),
   extensionPreview: (id: string, newEnd: string) =>

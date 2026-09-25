@@ -6,14 +6,13 @@ import { recallHoldService } from '../../vehicles/application/recall-hold.servic
 import { depositService } from '../../payments/application/deposit.service';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { VehicleModel, type VehicleDoc } from '../../vehicles/infrastructure/vehicle.model';
-import { ledgerService } from '../../payments/application/ledger.service';
-import { Account } from '../../payments/domain/ledger.accounts';
 import { NotFoundError, ConflictError, ForbiddenError } from '../../../core/errors/app-error';
 import type { Principal } from '../../../core/types/common';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
 import { milesToKm } from '../../../shared/utils/distance';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
 /** Minimum return-condition photos before a trip can be completed. */
 export const MIN_RETURN_PHOTOS = 2;
@@ -128,6 +127,16 @@ export class TripService {
         ...(overage ? { mileageOverage: overage } : {}),
       },
     );
+    // Late return: billed once, on the way in, for the hours past the grace window.
+    try {
+      const booking = await bookingService.getDoc(trip.bookingId);
+      const graceMinutes = (await platformConfigService.get()).tracking?.overdueGraceMinutes ?? 60;
+      const lateMs = Date.now() - new Date(booking.period.end).getTime() - graceMinutes * 60_000;
+      if (lateMs > 0) await incidentalsService.chargeLateReturn(trip.bookingId, Math.ceil(lateMs / 3_600_000));
+    } catch (err) {
+      logger.warn({ err, bookingId: trip.bookingId }, 'late return fee failed');
+    }
+
     await bookingService.markCompleted(trip.bookingId);
 
     // Auto fuel shortfall: the guest brought it back with less than they left
@@ -198,19 +207,14 @@ export class TripService {
     if (overKm <= 0) return null;
 
     const amountCents = overKm * feePerKm;
-    // Same shape as postBookingLedger: cash collected from the guest is a
-    // CREDIT to gateway_clearing, and what the host is owed is a DEBIT to their
-    // payable (host_payable is debit-normal in this ledger).
-    await ledgerService.post({
-      refType: 'mileage_overage',
-      refId: trip.bookingId,
-      currency: booking.priceBreakdown.currency,
-      description: `Mileage overage: ${overKm} km over ${includedKm} km included`,
-      legs: [
-        { account: Account.gatewayClearing(), direction: 'credit', amount: amountCents },
-        { account: Account.hostPayable(trip.hostId), direction: 'debit', amount: amountCents },
-      ],
-    });
+    // Real money: taken from the guest's card (or deposit), then paid to the host.
+    await incidentalsService.collect(
+      booking,
+      amountCents,
+      booking.priceBreakdown.currency,
+      `overage_${trip._id}`,
+      `Mileage overage: ${overKm} km over ${includedKm} km included`,
+    );
 
     logger.info(
       { tripId: trip._id, overKm, includedKm, amountCents },

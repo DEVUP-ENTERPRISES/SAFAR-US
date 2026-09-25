@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Send, Plus, BookOpen, ChevronRight } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,13 +17,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils/cn';
 import { connectSocket } from '@/lib/realtime/socket';
 import { supportApi } from '@/features/support/api';
+import { bookingApi } from '@/features/bookings/api';
 import { useAuthStore } from '@/features/auth/store';
 
 function Support() {
   const qc = useQueryClient();
   const me = useAuthStore((s) => s.user);
+  const bookingId = useSearchParams().get('bookingId');
   const [selected, setSelected] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(!!bookingId);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [reply, setReply] = useState('');
@@ -33,6 +36,8 @@ function Support() {
     queryFn: () => supportApi.get(selected!),
     enabled: !!selected,
   });
+
+  const about = useQuery({ queryKey: ['booking', bookingId], queryFn: () => bookingApi.getById(bookingId!), enabled: !!bookingId, retry: false });
 
   // Live: refresh when an agent replies.
   useEffect(() => {
@@ -46,7 +51,7 @@ function Support() {
   }, [qc, selected]);
 
   const create = useMutation({
-    mutationFn: () => supportApi.create({ subject, body }),
+    mutationFn: () => supportApi.create({ subject, body, ...(bookingId ? { relatedType: 'booking', relatedId: bookingId } : {}) }),
     onSuccess: (t) => { setCreating(false); setSubject(''); setBody(''); setSelected(t._id); qc.invalidateQueries({ queryKey: ['my-tickets'] }); },
   });
   const sendReply = useMutation({
@@ -89,6 +94,9 @@ function Support() {
             <Card>
               <CardHeader><CardTitle>New ticket</CardTitle></CardHeader>
               <CardContent className="space-y-3">
+                {bookingId && about.data && (
+                  <p className="text-sm text-muted-foreground">About booking <span className="font-mono font-medium text-foreground">{about.data.code}</span></p>
+                )}
                 <Field label="Subject"><Input value={subject} onChange={(e) => setSubject(e.target.value)} /></Field>
                 <Field label="How can we help?"><Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} /></Field>
                 <Button disabled={!subject || !body} loading={create.isPending} onClick={() => create.mutate()}>Submit</Button>
@@ -124,5 +132,5 @@ function Support() {
 }
 
 export default function SupportPage() {
-  return <AuthGuard><Support /></AuthGuard>;
+  return <AuthGuard><Suspense fallback={null}><Support /></Suspense></AuthGuard>;
 }

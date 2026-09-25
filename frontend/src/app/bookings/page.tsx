@@ -12,7 +12,7 @@ import { EmptyState, ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ApiError } from '@/lib/api/types';
 import { BookingStatusBadge } from '@/features/bookings/components/status-badge';
-import { useMyBookings, useCancelBooking } from '@/features/bookings/hooks';
+import { useMyBookings, useCancelBooking, useCompletePayment } from '@/features/bookings/hooks';
 import { bookingApi } from '@/features/bookings/api';
 import { tripApi } from '@/features/trips/api';
 import { formatMoney, formatDateTime } from '@/lib/utils/format';
@@ -33,6 +33,7 @@ function BookingsList() {
   const qc = useQueryClient();
   const { data, isLoading, isError, refetch } = useMyBookings('guest');
   const cancel = useCancelBooking();
+  const completePayment = useCompletePayment();
   const [extendId, setExtendId] = useState<string | null>(null);
   const [shortenId, setShortenId] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState<string | null>(null);
@@ -106,6 +107,15 @@ function BookingsList() {
                 {formatMoney(b.priceBreakdown.total)}
               </button>
               <div className="flex items-center gap-1">
+                {b.status === 'pending_payment' && (
+                  <Button
+                    size="sm"
+                    loading={completePayment.isPending && completePayment.variables === b._id}
+                    onClick={() => completePayment.mutate(b._id)}
+                  >
+                    Complete payment
+                  </Button>
+                )}
                 {b.status === 'paid' && (
                   <Button size="sm" loading={startTrip.isPending} onClick={() => startTrip.mutate(b._id)}>
                     Start trip

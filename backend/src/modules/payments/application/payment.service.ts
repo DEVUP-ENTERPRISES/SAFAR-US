@@ -3,7 +3,7 @@ import { paymentMethodService } from './payment-method.service';
 import { PaymentModel, type PaymentDoc } from '../infrastructure/payment.model';
 import { paymentGateway } from '../infrastructure/gateway.provider';
 import { ledgerService } from './ledger.service';
-import { Account } from '../domain/ledger.accounts';
+import { Account, type LedgerLeg } from '../domain/ledger.accounts';
 import { NotFoundError, ConflictError } from '../../../core/errors/app-error';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
@@ -50,15 +50,19 @@ export class PaymentService implements IPaymentContract {
       paymentMethodService.customerFor(input.guestId).catch(() => null),
     ]);
 
-    const intent = await paymentGateway.createIntent({
-      amount: { amount: cardAmount, currency: input.total.currency },
-      userId: input.guestId,
-      capture: input.capture,
-      idempotencyKey: input.idempotencyKey,
-      metadata: { bookingId: input.bookingId, hostId: input.hostId },
-      customerId: customerId ?? undefined,
-      paymentMethodId: card?.stripePaymentMethodId,
-    });
+    // A wallet-funded total has no card leg — Stripe rejects a zero-amount intent.
+    const intent =
+      cardAmount > 0
+        ? await paymentGateway.createIntent({
+            amount: { amount: cardAmount, currency: input.total.currency },
+            userId: input.guestId,
+            capture: input.capture,
+            idempotencyKey: input.idempotencyKey,
+            metadata: { bookingId: input.bookingId, hostId: input.hostId },
+            customerId: customerId ?? undefined,
+            paymentMethodId: card?.stripePaymentMethodId,
+          })
+        : { intentId: `wallet_${input.idempotencyKey}`, clientSecret: '', status: 'succeeded' as const };
 
     /*
      * Status comes from the GATEWAY, not from what we intended.
@@ -87,6 +91,7 @@ export class PaymentService implements IPaymentContract {
       commission: input.commission.amount,
       tax: input.tax.amount,
       capturedAmount: status === 'succeeded' ? cardAmount : 0,
+      walletApplied: input.walletApplied ?? 0,
       status,
       idempotencyKey: input.idempotencyKey,
     });
@@ -122,7 +127,7 @@ export class PaymentService implements IPaymentContract {
 
     await paymentGateway.capture(payment.intentId);
     payment.status = 'succeeded';
-    payment.capturedAmount = payment.amount;
+    payment.capturedAmount = payment.amount - (payment.walletApplied ?? 0);
     await payment.save();
 
     // Now that funds are captured, record the split in the ledger.
@@ -130,14 +135,37 @@ export class PaymentService implements IPaymentContract {
     emit(EVENTS.PAYMENT_SUCCEEDED, bookingId, { bookingId });
   }
 
+  /**
+   * Refund `amount` of a booking, oldest payment first (an extension is a
+   * second payment on the same booking). Each payment refunds what actually
+   * came from its card back to the card, and only the wallet-funded part back
+   * to the wallet, so the guest is never paid twice.
+   */
   async refundBooking(bookingId: string, amount: Money, reason: string): Promise<void> {
-    const payment = await PaymentModel.findOne({ bookingId, type: 'booking' });
-    if (!payment) throw new NotFoundError('Payment');
-    const priorRefunded = payment.refundedAmount;
-    if (priorRefunded + amount.amount > payment.capturedAmount) {
+    const payments = await PaymentModel.find({
+      bookingId,
+      type: 'booking',
+      status: { $in: ['succeeded', 'partially_refunded'] },
+    }).sort({ createdAt: 1 });
+    if (!payments.length) throw new NotFoundError('Payment');
+
+    const refundable = (p: PaymentDoc) => p.capturedAmount + (p.walletApplied ?? 0) - p.refundedAmount;
+    if (payments.reduce((sum, p) => sum + refundable(p), 0) < amount.amount) {
       throw new ConflictError('Refund exceeds captured amount', 'REFUND_TOO_LARGE');
     }
 
+    let remaining = amount.amount;
+    for (const payment of payments) {
+      const take = Math.min(remaining, refundable(payment));
+      if (take <= 0) continue;
+      await this.refundPayment(payment, take, amount.currency, reason);
+      remaining -= take;
+      if (remaining <= 0) break;
+    }
+    emit(EVENTS.PAYMENT_REFUNDED, bookingId, { bookingId, amount });
+  }
+
+  private async refundPayment(payment: PaymentDoc, take: number, currency: string, reason: string): Promise<void> {
     /*
      * Claim this refund step atomically before any money moves.
      *
@@ -145,16 +173,17 @@ export class PaymentService implements IPaymentContract {
      * dispute, a Stripe `charge.refunded` webhook — and two of them can land at
      * once. The update only succeeds if refundedAmount is still what we read, so
      * exactly one caller wins; a duplicate or concurrent refund fails the
-     * condition and stops here, before it can refund at Stripe a second time or
-     * double-credit the guest's wallet (the ledger post is not idempotent).
+     * condition and stops here, before it can refund at Stripe a second time.
      */
-    const nextRefunded = priorRefunded + amount.amount;
+    const priorRefunded = payment.refundedAmount;
+    const nextRefunded = priorRefunded + take;
+    const walletApplied = payment.walletApplied ?? 0;
     const claimed = await PaymentModel.findOneAndUpdate(
       { _id: payment._id, refundedAmount: priorRefunded },
       {
         $set: {
           refundedAmount: nextRefunded,
-          status: nextRefunded >= payment.capturedAmount ? 'refunded' : 'partially_refunded',
+          status: nextRefunded >= payment.capturedAmount + walletApplied ? 'refunded' : 'partially_refunded',
         },
       },
       { new: true },
@@ -163,49 +192,208 @@ export class PaymentService implements IPaymentContract {
       throw new ConflictError('A refund for this booking is already being processed', 'REFUND_IN_PROGRESS');
     }
 
-    try {
-      // Deterministic idempotency key — NOT Date.now(). A retry of this exact
-      // step reuses the key, so Stripe processes one refund; a later, distinct
-      // partial refund has a different prior total and its own key.
-      await paymentGateway.refund(payment.intentId, amount, `refund_${payment.intentId}_${priorRefunded}`);
+    // Card first, wallet-funded remainder last.
+    const cardPart = Math.min(take, Math.max(0, payment.capturedAmount - Math.min(priorRefunded, payment.capturedAmount)));
+    const walletPart = take - cardPart;
 
-      // Reverse money to the guest's wallet (fast, encourages re-booking).
+    try {
+      // Deterministic key — NOT Date.now(): a retry of this exact step reuses it.
+      if (cardPart > 0) {
+        await paymentGateway.refund(payment.intentId, { amount: cardPart, currency }, `refund_${payment.intentId}_${priorRefunded}`);
+      }
+
+      // Reverse the booking's own legs in proportion, so host payable, revenue
+      // and tax fall back with the refund instead of staying booked.
+      const hostPart = Math.round((take * payment.hostEarnings) / payment.amount);
+      const commissionPart = Math.round((take * payment.commission) / payment.amount);
+      const taxPart = take - hostPart - commissionPart;
+      const legs: LedgerLeg[] = [
+        { account: Account.gatewayClearing(), direction: 'debit', amount: take },
+        { account: Account.hostPayable(payment.hostId!), direction: 'credit', amount: hostPart },
+        { account: Account.platformRevenue(), direction: 'credit', amount: commissionPart },
+        { account: Account.platformTax(), direction: 'credit', amount: taxPart },
+      ].filter((l) => l.amount > 0) as LedgerLeg[];
+      if (walletPart > 0) {
+        legs.push(
+          { account: Account.cardFunding(), direction: 'debit', amount: walletPart },
+          { account: Account.userWallet(payment.userId), direction: 'credit', amount: walletPart },
+        );
+      }
       await ledgerService.post({
+        txnId: `refund_${payment._id}_${priorRefunded}`,
         refType: 'refund',
-        refId: bookingId,
-        currency: amount.currency,
+        refId: payment.bookingId!,
+        currency,
         description: `Refund: ${reason}`,
-        legs: [
-          { account: Account.gatewayClearing(), direction: 'debit', amount: amount.amount },
-          { account: Account.userWallet(payment.userId), direction: 'credit', amount: amount.amount },
-        ],
+        legs,
       });
     } catch (err) {
-      // Money did not move — release the claim so the step can be retried. The
-      // deterministic key above makes a retry safe even if Stripe had partially
-      // succeeded.
+      // Money did not move — release the claim so the step can be retried; the
+      // deterministic keys make a retry safe even if Stripe had partially succeeded.
       await PaymentModel.updateOne(
         { _id: payment._id },
-        {
-          $set: {
-            refundedAmount: priorRefunded,
-            status: priorRefunded > 0 ? 'partially_refunded' : 'captured',
-          },
-        },
+        { $set: { refundedAmount: priorRefunded, status: priorRefunded > 0 ? 'partially_refunded' : 'succeeded' } },
       ).catch(() => undefined);
       throw err;
     }
+  }
 
-    emit(EVENTS.PAYMENT_REFUNDED, bookingId, { bookingId, amount });
+  /**
+   * A card payment that needed the cardholder (3-D Secure, or a card entered at
+   * checkout) succeeded after the booking was created. Books it exactly once:
+   * only a payment still waiting flips, so a duplicate webhook is a no-op.
+   */
+  async recordIntentSucceeded(intentId: string): Promise<boolean> {
+    const payment = await PaymentModel.findOneAndUpdate(
+      { intentId, type: 'booking', status: { $in: ['pending', 'requires_action'] } },
+      [{ $set: { status: 'succeeded', capturedAmount: { $subtract: ['$amount', { $ifNull: ['$walletApplied', 0] }] } } }],
+      { new: true },
+    );
+    if (!payment) return false;
+    await this.postBookingLedger(payment.toObject());
+    return true;
+  }
+
+  /**
+   * Resume a payment the guest has not finished: try their saved card, or hand
+   * back what the client needs (a 3-D Secure secret, or "add a card").
+   */
+  async resume(bookingId: string): Promise<{ status: 'succeeded' | 'requires_action' | 'requires_payment_method'; clientSecret?: string }> {
+    const payment = await PaymentModel.findOne({ bookingId, type: 'booking' }).sort({ createdAt: 1 });
+    if (!payment) throw new NotFoundError('Payment');
+    if (payment.status === 'succeeded' || payment.status === 'authorized') return { status: 'succeeded' };
+
+    let intent = await paymentGateway.retrieveIntent(payment.intentId);
+    if (intent.status === 'requires_payment_method' || intent.status === 'requires_confirmation') {
+      const [card, customerId] = await Promise.all([
+        PaymentMethodModel.findOne({ userId: payment.userId, isDefault: true }).lean<{ stripePaymentMethodId?: string }>(),
+        paymentMethodService.customerFor(payment.userId).catch(() => null),
+      ]);
+      if (card?.stripePaymentMethodId && customerId) {
+        intent = await paymentGateway
+          .confirmIntent(payment.intentId, { customerId, paymentMethodId: card.stripePaymentMethodId })
+          .catch(() => intent);
+      }
+    }
+    if (intent.status === 'succeeded') {
+      await this.recordIntentSucceeded(payment.intentId);
+      return { status: 'succeeded' };
+    }
+    if (intent.status === 'requires_action') return { status: 'requires_action', clientSecret: intent.clientSecret };
+    return { status: 'requires_payment_method' };
+  }
+
+  /**
+   * Charge a guest's saved card for something that happens after booking
+   * (overage, a toll, a late fee, damage). Never throws: a declined or absent
+   * card is an expected outcome the caller decides how to handle, and the
+   * idempotency key makes a retry of the same charge safe.
+   */
+  async chargeGuest(input: {
+    bookingId: string;
+    guestId: string;
+    amount: number;
+    currency: string;
+    idempotencyKey: string;
+  }): Promise<boolean> {
+    const done = await PaymentModel.findOne({ idempotencyKey: input.idempotencyKey }).lean();
+    if (done) return done.status === 'succeeded';
+
+    const [card, customerId] = await Promise.all([
+      PaymentMethodModel.findOne({ userId: input.guestId, isDefault: true }).lean<{ stripePaymentMethodId?: string }>(),
+      paymentMethodService.customerFor(input.guestId).catch(() => null),
+    ]);
+    if (!card?.stripePaymentMethodId || !customerId) return false;
+
+    try {
+      const intent = await paymentGateway.createIntent({
+        amount: { amount: input.amount, currency: input.currency },
+        userId: input.guestId,
+        capture: true,
+        idempotencyKey: input.idempotencyKey,
+        metadata: { bookingId: input.bookingId, kind: 'post_trip_charge' },
+        customerId,
+        paymentMethodId: card.stripePaymentMethodId,
+      });
+      if (intent.status !== 'succeeded') {
+        // A bank challenge cannot be answered off-session; don't leave it open to be paid later.
+        await paymentGateway.cancel(intent.intentId).catch(() => undefined);
+        return false;
+      }
+      await PaymentModel.create({
+        bookingId: input.bookingId,
+        userId: input.guestId,
+        type: 'charge',
+        intentId: intent.intentId,
+        amount: input.amount,
+        currency: input.currency,
+        capturedAmount: input.amount,
+        status: 'succeeded',
+        idempotencyKey: input.idempotencyKey,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Give back a post-trip charge that was upheld against the guest and then reversed. */
+  async refundCharge(bookingId: string, key: string, via: 'card' | 'deposit', amount: number): Promise<void> {
+    const source =
+      via === 'card'
+        ? await PaymentModel.findOne({ idempotencyKey: `charge_${key}`, type: 'charge' })
+        : await PaymentModel.findOne({ bookingId, type: 'deposit' });
+    if (!source) throw new NotFoundError('Payment');
+    await paymentGateway.refund(source.intentId, { amount, currency: source.currency }, `refund_charge_${key}`);
+    await PaymentModel.updateOne(
+      { _id: source._id },
+      { $inc: { refundedAmount: amount }, ...(via === 'card' ? { status: 'refunded' } : {}) },
+    );
+  }
+
+  /** Abandon one specific unfinished payment (e.g. a failed extension) without touching the booking's main payment. */
+  async cancelByKey(idempotencyKey: string): Promise<void> {
+    const payment = await PaymentModel.findOne({ idempotencyKey });
+    if (!payment || ['succeeded', 'cancelled', 'refunded'].includes(payment.status)) return;
+    await paymentGateway.cancel(payment.intentId);
+    payment.status = 'cancelled';
+    await payment.save();
   }
 
   async cancelAuthorization(bookingId: string): Promise<void> {
     const payment = await PaymentModel.findOne({ bookingId, type: 'booking' });
     if (!payment) return;
-    if (payment.status === 'authorized') {
-      await paymentGateway.cancel(payment.intentId);
+    // An unfinished payment (3-D Secure, no card yet) must be cancelled too, or
+    // the guest could complete it later and be charged for a trip that is gone.
+    if (['authorized', 'pending', 'requires_action'].includes(payment.status)) {
+      try {
+        await paymentGateway.cancel(payment.intentId);
+      } catch (err) {
+        // The card cleared while we were cancelling: book it, then give it back.
+        const intent = await paymentGateway.retrieveIntent(payment.intentId);
+        if (intent.status !== 'succeeded') throw err;
+        await this.recordIntentSucceeded(payment.intentId);
+        await this.refundBooking(bookingId, { amount: payment.amount, currency: payment.currency }, 'Booking cancelled while payment was completing');
+        return;
+      }
       payment.status = 'cancelled';
       await payment.save();
+
+      // Wallet money was spent up front; nothing was captured, so give it back.
+      const walletApplied = payment.walletApplied ?? 0;
+      if (walletApplied > 0) {
+        await ledgerService.post({
+          txnId: `wallet_restore_${payment._id}`,
+          refType: 'wallet_restore',
+          refId: bookingId,
+          currency: payment.currency,
+          description: 'Wallet funds returned: booking not completed',
+          legs: [
+            { account: Account.cardFunding(), direction: 'debit', amount: walletApplied },
+            { account: Account.userWallet(payment.userId), direction: 'credit', amount: walletApplied },
+          ],
+        });
+      }
     }
   }
 

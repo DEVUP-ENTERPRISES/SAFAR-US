@@ -199,6 +199,11 @@ export class AvailabilityService implements IAvailabilityContract {
     );
   }
 
+  /** Whether a hold still exists — a TTL-expired hold has silently freed its dates. */
+  async holdExists(holdId: string): Promise<boolean> {
+    return !!(await AvailabilityModel.exists({ holdId }));
+  }
+
   async confirmHold(holdId: string, bookingId: string): Promise<void> {
     await AvailabilityModel.updateMany(
       { holdId },

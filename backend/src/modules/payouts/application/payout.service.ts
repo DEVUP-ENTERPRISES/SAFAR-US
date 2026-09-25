@@ -7,6 +7,7 @@ import { Account } from '../../payments/domain/ledger.accounts';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
+import { PaymentModel } from '../../payments/infrastructure/payment.model';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
 // Hold window and instant-payout fee come from PlatformConfig — finance tunes
@@ -16,7 +17,7 @@ export class PayoutService {
   /** Called on BOOKING_COMPLETED: schedule the host's earnings for payout. */
   async scheduleForBooking(bookingId: string): Promise<void> {
     const booking = await bookingService.getDoc(bookingId);
-    const existing = await PayoutModel.findOne({ bookingId }).lean();
+    const existing = await PayoutModel.findOne({ bookingId, kind: { $ne: 'extra' } }).lean();
     if (existing) return; // idempotent
     const cfg = await platformConfigService.get();
 
@@ -36,6 +37,70 @@ export class PayoutService {
     });
     emit(EVENTS.PAYOUT_SCHEDULED, bookingId, { bookingId, hostId: booking.hostId });
     logger.info({ bookingId, hostId: booking.hostId }, 'Payout scheduled');
+  }
+
+  /** Pay the host money collected after the main payout was scheduled. */
+  async scheduleExtra(bookingId: string, hostId: string, amount: number, currency: string, tag: string): Promise<void> {
+    if (amount <= 0) return;
+    if (await PayoutModel.exists({ tag })) return; // replayed event
+    const cfg = await platformConfigService.get();
+    await PayoutModel.create({
+      tag,
+      hostId,
+      bookingId,
+      amount,
+      currency,
+      kind: 'extra',
+      status: 'scheduled',
+      scheduledFor: new Date(Date.now() + cfg.payout.holdHours * 3_600_000),
+    });
+    logger.info({ bookingId, hostId, amount }, 'Extra payout scheduled');
+  }
+
+  /**
+   * A guest cancelled late and the policy kept part of the money. The host's
+   * share of what was kept is theirs — otherwise the platform pockets a host's
+   * lost booking. Idempotent per booking.
+   */
+  async scheduleRetainedShare(bookingId: string): Promise<void> {
+    const payments = await PaymentModel.find({
+      bookingId,
+      type: 'booking',
+      status: { $in: ['succeeded', 'partially_refunded'] },
+    }).lean();
+    let share = 0;
+    let currency = 'USD';
+    for (const p of payments) {
+      const kept = p.amount - p.refundedAmount;
+      if (kept > 0 && p.amount > 0) share += Math.round((kept * p.hostEarnings) / p.amount);
+      currency = p.currency;
+    }
+    if (share <= 0) return;
+    const booking = await bookingService.getDoc(bookingId);
+    await this.scheduleExtra(bookingId, booking.hostId, share, currency, `retained_${bookingId}`);
+  }
+
+  /**
+   * A chargeback opened: the host must not be paid out of a charge the bank is
+   * pulling back. Returns false when the payout has already gone out, which
+   * ops must chase manually.
+   */
+  async holdForBooking(bookingId: string, reason: string): Promise<boolean> {
+    const held = await PayoutModel.updateOne(
+      { bookingId, status: 'scheduled' },
+      { status: 'held', lastError: reason.slice(0, 300) },
+    );
+    return held.modifiedCount > 0;
+  }
+
+  /** The dispute closed: pay the host if the bank sided with us, otherwise write the payout off. */
+  async resolveHold(bookingId: string, won: boolean): Promise<void> {
+    await PayoutModel.updateOne(
+      { bookingId, status: 'held' },
+      won
+        ? { status: 'scheduled', $unset: { lastError: 1 } }
+        : { status: 'failed', lastError: 'Chargeback lost — funds reversed by the card network' },
+    );
   }
 
   /**

@@ -91,6 +91,8 @@ export interface BookingDoc {
     /** Photo of the receipt, the citation, or the state of the car. */
     evidenceUrl?: string;
     status: 'charged' | 'disputed' | 'refunded' | 'upheld';
+    /** How the money was actually taken; absent means it could not be collected yet. */
+    collectedVia?: 'card' | 'deposit';
     disputeReason?: string;
     disputedAt?: Date;
     /** Set when staff rule on a dispute. */
@@ -141,6 +143,10 @@ export interface BookingDoc {
   idempotencyKey?: string;
   reminderSentAt?: Date;
   verificationReminderSentAt?: Date;
+  /** Once-only markers for the overdue / never-started sweep. */
+  overdueNotifiedAt?: Date;
+  overdueEscalatedAt?: Date;
+  notStartedNotifiedAt?: Date;
   version: number;
   createdAt: Date;
   updatedAt: Date;
@@ -246,6 +252,7 @@ const schema = new Schema<BookingDoc>(
             enum: ['charged', 'disputed', 'refunded', 'upheld'],
             default: 'charged',
           },
+          collectedVia: { type: String, enum: ['card', 'deposit'] },
           disputeReason: String,
           disputedAt: Date,
           resolvedAt: Date,
@@ -286,6 +293,9 @@ const schema = new Schema<BookingDoc>(
     idempotencyKey: String,
     reminderSentAt: Date,
     verificationReminderSentAt: Date,
+    overdueNotifiedAt: Date,
+    overdueEscalatedAt: Date,
+    notStartedNotifiedAt: Date,
     version: { type: Number, default: 0 },
     deletedAt: { type: Date, default: null },
   },
