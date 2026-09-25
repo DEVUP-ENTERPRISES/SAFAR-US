@@ -1350,13 +1350,16 @@ export class BookingService {
     const { booking: bookingCfg } = await platformConfigService.get();
     const verificationCutoff = new Date(now.getTime() - bookingCfg.verificationGraceHours * HOUR_MS);
     const paymentCutoff = new Date(now.getTime() - bookingCfg.paymentPendingMinutes * 60_000);
+    const verificationDeadline = new Date(now.getTime() + bookingCfg.verificationCutoffHours * HOUR_MS);
     const due = await BookingModel.find({
       $or: [
         { status: 'pending_approval', approvalDeadline: { $lte: now } },
         { status: 'pending_verification', createdAt: { $lte: verificationCutoff } },
         // A held request whose trip has already started is dead regardless of
         // which clock it was on — nobody can take a car they missed.
-        { status: 'pending_verification', 'period.start': { $lte: now } },
+        // Unverified this close to pickup: the host can't be left waiting on a
+        // guest who may never clear the licence check.
+        { status: 'pending_verification', 'period.start': { $lte: verificationDeadline } },
         { status: 'pending_payment', createdAt: { $lte: paymentCutoff } },
         { status: 'pending_payment', 'period.start': { $lte: now } },
       ],
@@ -1492,6 +1495,23 @@ export class BookingService {
     for (const b of due) {
       emit(EVENTS.BOOKING_REMINDER, b._id, { bookingId: b._id, guestId: b.guestId, start: b.period.start });
       await BookingModel.updateOne({ _id: b._id }, { reminderSentAt: new Date() });
+    }
+    return due.length;
+  }
+
+  /** Cron: warn unverified guests, once, that their licence check is due before pickup. */
+  async remindVerification(): Promise<number> {
+    const now = new Date();
+    const { booking: cfg } = await platformConfigService.get();
+    const due = await BookingModel.find({
+      status: 'pending_verification',
+      'period.start': { $lte: new Date(now.getTime() + cfg.verificationReminderHours * HOUR_MS), $gt: now },
+      verificationReminderSentAt: { $exists: false },
+    }).lean<BookingDoc[]>();
+    for (const b of due) {
+      const deadline = new Date(b.period.start.getTime() - cfg.verificationCutoffHours * HOUR_MS);
+      emit(EVENTS.BOOKING_REMINDER, b._id, { bookingId: b._id, guestId: b.guestId, start: b.period.start, kind: 'verification', deadline });
+      await BookingModel.updateOne({ _id: b._id }, { verificationReminderSentAt: new Date() });
     }
     return due.length;
   }

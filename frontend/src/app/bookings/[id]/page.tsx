@@ -1,11 +1,11 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Calendar, MapPin, MessageSquare, Receipt, Car, ShieldCheck, XCircle, Lock,
+  ArrowLeft, Calendar, MapPin, MessageSquare, Receipt, Car, ShieldCheck, XCircle, Lock, BadgeCheck, Bell,
 } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
-import { formatMoney, formatDate } from '@/lib/utils/format';
+import { formatMoney, formatDateTime } from '@/lib/utils/format';
 import { TrackingPanel } from '@/features/trips/components/tracking-panel';
 import { useLocationStreaming, useTrackingState } from '@/features/trips/hooks';
 import { cn } from '@/lib/utils/cn';
@@ -26,7 +26,10 @@ import { vehicleApi } from '@/features/vehicles/api';
 import { DepositStatus } from '@/features/payments/deposit-status';
 import { IncidentalCharges } from '@/features/bookings/components/incidental-charges';
 import { PickupCode } from '@/features/bookings/components/pickup-code';
+import { TripProgress } from '@/features/bookings/components/trip-progress';
 import { ApiError } from '@/lib/api/types';
+import { pushConfigured } from '@/features/push/firebase';
+import { enablePush } from '@/features/push/use-push';
 
 /** How each state reads to the guest, and what it means for them. */
 const STATE: Record<string, { tone: 'success' | 'warning' | 'destructive' | 'muted' | 'default'; label: string; detail: string }> = {
@@ -82,6 +85,25 @@ function BookingDetail({ id }: { id: string }) {
     },
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not cancel' }),
   });
+
+  // Push only ever turns on from an explicit ask — this is that ask. Hidden
+  // once permission has already been decided (granted or denied) or push
+  // isn't configured for this deployment.
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unsupported'>('unsupported');
+  useEffect(() => {
+    setPushPermission(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission);
+  }, []);
+  const [enablingPush, setEnablingPush] = useState(false);
+  const onEnablePush = async () => {
+    setEnablingPush(true);
+    try {
+      const ok = await enablePush(toast);
+      if (ok) setPushPermission('granted');
+    } finally {
+      setEnablingPush(false);
+    }
+  };
+  const showPushBanner = pushConfigured() && pushPermission === 'default';
 
   if (booking.isLoading) {
     return (
@@ -175,11 +197,16 @@ function BookingDetail({ id }: { id: string }) {
 
             {/* The two dates that define the trip, given equal billing. */}
             <div className="mt-5 grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
-              <DateBlock label="Pick-up" value={formatDate(b.period.start)} />
-              <DateBlock label="Return" value={formatDate(b.period.end)} />
+              <DateBlock label="Pick-up" value={formatDateTime(b.period.start)} />
+              <DateBlock label="Return" value={formatDateTime(b.period.end)} />
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
+              {b.status === 'pending_verification' && (
+                <Button size="sm" onClick={() => router.push('/account/verify-identity')}>
+                  <BadgeCheck className="h-4 w-4" /> Verify identity
+                </Button>
+              )}
               <Link href={`/vehicles/${b.vehicleId}`}>
                 <Button variant="outline" size="sm">View listing</Button>
               </Link>
@@ -192,6 +219,29 @@ function BookingDetail({ id }: { id: string }) {
           </div>
         </div>
       </Card>
+
+      {showPushBanner && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex flex-col items-start justify-between gap-3 py-4 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <Bell className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <p className="text-sm text-muted-foreground">
+                Turn on notifications to hear the moment your identity clears, your host replies, or your trip status changes.
+              </p>
+            </div>
+            <Button size="sm" loading={enablingPush} onClick={onEnablePush} className="w-full shrink-0 sm:w-auto">
+              Enable notifications
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <TripProgress
+        status={String(b.status)}
+        pickupAt={b.period.start}
+        sharingOpensAt={tracking.data?.opensAt}
+        onVerify={() => router.push('/account/verify-identity')}
+      />
 
       {/* Time-critical and full width: this is the screen a guest is actually
           on in the half hour before pickup. Both hide themselves outside

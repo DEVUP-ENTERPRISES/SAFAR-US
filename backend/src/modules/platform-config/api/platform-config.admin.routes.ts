@@ -263,6 +263,8 @@ router.put(
         .object({
           hostApprovalHours: z.number().min(1).max(168).optional(),
           verificationGraceHours: z.number().min(1).max(336).optional(),
+          verificationCutoffHours: z.number().min(0).max(72).optional(),
+          verificationReminderHours: z.number().min(1).max(168).optional(),
           checkoutHoldMinutes: z.number().min(1).max(120).optional(),
           priceLockMinutes: z.number().min(1).max(120).optional(),
         })

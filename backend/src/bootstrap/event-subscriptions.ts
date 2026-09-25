@@ -246,7 +246,22 @@ export function registerEventSubscribers(): void {
 
   // Trip reminder (from the scheduled job).
   eventBus.subscribe(EVENTS.BOOKING_REMINDER, async (e) => {
-    const p = e.payload as { bookingId: string; guestId: string };
+    const p = e.payload as { bookingId: string; guestId: string; kind?: string; deadline?: string | Date };
+    if (p.kind === 'verification') {
+      const by = p.deadline
+        ? new Date(p.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+        : 'shortly before pickup';
+      await notificationService.send({
+        userId: p.guestId,
+        priority: 'critical',
+        deepLink: '/account/verify-identity',
+        templateKey: 'booking.verification_reminder',
+        title: 'Verify your licence to keep your trip',
+        body: `Finish your identity check by ${by} or the booking will be released. You haven’t been charged.`,
+        data: { bookingId: p.bookingId },
+      });
+      return;
+    }
     await notificationService.send({
       userId: p.guestId,
       priority: 'critical',

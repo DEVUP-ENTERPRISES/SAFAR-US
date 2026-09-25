@@ -19,6 +19,11 @@ export function formatDate(value: string | Date): string {
   return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+export function formatDateTime(value: string | Date): string {
+  const d = typeof value === 'string' ? new Date(value) : value;
+  return d.toLocaleString('en-US', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+}
+
 export function formatDateRange(start: string | Date, end: string | Date): string {
   return `${formatDate(start)} → ${formatDate(end)}`;
 }

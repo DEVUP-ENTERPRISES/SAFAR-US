@@ -140,6 +140,7 @@ export interface BookingDoc {
   };
   idempotencyKey?: string;
   reminderSentAt?: Date;
+  verificationReminderSentAt?: Date;
   version: number;
   createdAt: Date;
   updatedAt: Date;
@@ -284,6 +285,7 @@ const schema = new Schema<BookingDoc>(
     },
     idempotencyKey: String,
     reminderSentAt: Date,
+    verificationReminderSentAt: Date,
     version: { type: Number, default: 0 },
     deletedAt: { type: Date, default: null },
   },

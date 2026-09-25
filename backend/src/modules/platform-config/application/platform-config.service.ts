@@ -227,6 +227,8 @@ export class PlatformConfigService {
       booking: {
         hostApprovalHours: 24,
         verificationGraceHours: 72,
+        verificationCutoffHours: 5,
+        verificationReminderHours: 24,
         checkoutHoldMinutes: 15,
         paymentPendingMinutes: 30,
         priceLockMinutes: 10,

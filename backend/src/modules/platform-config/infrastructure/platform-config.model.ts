@@ -359,6 +359,8 @@ export interface PlatformConfigDoc {
   booking: {
     hostApprovalHours: number;
     verificationGraceHours: number;
+    verificationCutoffHours: number;
+    verificationReminderHours: number;
     checkoutHoldMinutes: number;
     paymentPendingMinutes: number;
     priceLockMinutes: number;
@@ -622,6 +624,8 @@ const schema = new Schema<PlatformConfigDoc>(
     booking: {
       hostApprovalHours: { type: Number, default: 24 },
       verificationGraceHours: { type: Number, default: 72 },
+      verificationCutoffHours: { type: Number, default: 5 },
+      verificationReminderHours: { type: Number, default: 24 },
       checkoutHoldMinutes: { type: Number, default: 15 },
       paymentPendingMinutes: { type: Number, default: 30 },
       priceLockMinutes: { type: Number, default: 10 },

@@ -58,8 +58,9 @@ export async function initJobs(): Promise<void> {
       }
       case 'trip-reminders': {
         const n = await bookingService.remindUpcoming();
-        if (n) logger.info({ n }, 'trip reminders sent');
-        return { reminded: n };
+        const v = await bookingService.remindVerification();
+        if (n || v) logger.info({ n, v }, 'trip reminders sent');
+        return { reminded: n, verificationReminded: v };
       }
       case 'compliance-sweep': {
         // Warn before pausing: a host whose first notice is the car going

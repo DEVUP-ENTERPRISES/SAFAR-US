@@ -15,7 +15,17 @@ import { BookingStatusBadge } from '@/features/bookings/components/status-badge'
 import { useMyBookings, useCancelBooking } from '@/features/bookings/hooks';
 import { bookingApi } from '@/features/bookings/api';
 import { tripApi } from '@/features/trips/api';
-import { formatMoney, formatDateRange } from '@/lib/utils/format';
+import { formatMoney, formatDateTime } from '@/lib/utils/format';
+
+/** What the guest should do or expect next, per status — the "what happens now" of each trip. */
+const NEXT_STEP: Record<string, string> = {
+  pending_verification: 'Next: verify your licence before pickup — tap to continue',
+  pending_approval: 'Next: waiting for the host to accept',
+  pending_payment: 'Next: finish your payment to lock in the trip',
+  paid: 'Next: show your pickup code to the host at the car',
+  confirmed: 'Next: show your pickup code to the host at the car',
+  in_progress: 'Trip in progress',
+};
 
 function BookingsList() {
   const router = useRouter();
@@ -81,8 +91,11 @@ function BookingsList() {
                 <BookingStatusBadge status={b.status} />
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {formatDateRange(b.period.start, b.period.end)}
+                Pick-up {formatDateTime(b.period.start)} → Return {formatDateTime(b.period.end)}
               </p>
+              {NEXT_STEP[b.status] && (
+                <p className="mt-1 text-sm font-medium text-primary">{NEXT_STEP[b.status]}</p>
+              )}
             </button>
             <div className="flex flex-col items-end gap-1">
               <button
