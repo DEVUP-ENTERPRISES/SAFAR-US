@@ -9,6 +9,7 @@ import { EVENTS } from '../../../core/events/event-names';
 import { kv } from '../../../infrastructure/cache/kv-store';
 import { logger } from '../../../infrastructure/logging/logger';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { paymentMethodService } from '../../payments/application/payment-method.service';
 import { trustScoreService } from '../../risk/application/trust-score.service';
 
 /**
@@ -38,37 +39,58 @@ export class WalletService {
       );
     }
 
-    const idempotencyKey = `topup_${userId}_${randomId()}`;
-    const intent = await paymentGateway.createIntent({
-      amount: { amount, currency: 'USD' },
-      userId,
-      capture: true,
-      idempotencyKey,
-      metadata: { type: 'wallet_topup' },
-    });
-    const payment = await PaymentModel.create({
-      userId,
-      type: 'topup',
-      intentId: intent.intentId,
-      amount,
-      currency: 'USD',
-      capturedAmount: amount,
-      status: 'succeeded',
-      idempotencyKey,
-    });
-    // card → wallet (credit user_wallet increases the balance).
-    await ledgerService.post({
-      refType: 'wallet_topup',
-      refId: payment._id,
-      currency: 'USD',
-      description: 'Wallet top-up',
-      legs: [
-        { account: Account.cardFunding(), direction: 'debit', amount },
-        { account: Account.userWallet(userId), direction: 'credit', amount },
-      ],
-    });
-    emit(EVENTS.WALLET_TOPPED_UP, userId, { userId, amount });
-    return { balance: await this.balance(userId), paymentId: payment._id };
+    // Money only enters the wallet once the card has actually been charged.
+    if (!(await paymentMethodService.hasChargeableCard(userId))) {
+      throw new ConflictError('Add a payment card to top up your wallet.', 'PAYMENT_METHOD_REQUIRED');
+    }
+    const saved = await paymentMethodService.savedCardFor(userId);
+
+    // One top-up at a time per member, so a double tap cannot charge twice.
+    const lockKey = `lock:wallet:${userId}`;
+    if (!(await kv().acquire(lockKey, 30))) throw new ConflictError('Another wallet transaction is in progress — please retry.', 'WALLET_BUSY');
+    try {
+      const idempotencyKey = `topup_${userId}_${randomId()}`;
+      const intent = await paymentGateway.createIntent({
+        amount: { amount, currency: 'USD' },
+        userId,
+        capture: true,
+        idempotencyKey,
+        metadata: { type: 'wallet_topup' },
+        customerId: saved?.customerId,
+        paymentMethodId: saved?.paymentMethodId,
+      });
+      if (intent.status !== 'succeeded') {
+        // A bank challenge or a decline: nothing was taken, so nothing is credited.
+        await paymentGateway.cancel(intent.intentId).catch(() => undefined);
+        throw new ConflictError('We couldn’t charge your card, so your wallet wasn’t topped up. Check your card and try again.', 'TOPUP_NOT_CHARGED');
+      }
+      const payment = await PaymentModel.create({
+        userId,
+        type: 'topup',
+        intentId: intent.intentId,
+        amount,
+        currency: 'USD',
+        capturedAmount: amount,
+        status: 'succeeded',
+        idempotencyKey,
+      });
+      // card → wallet (credit user_wallet increases the balance).
+      await ledgerService.post({
+        txnId: `topup_${payment._id}`,
+        refType: 'wallet_topup',
+        refId: payment._id,
+        currency: 'USD',
+        description: 'Wallet top-up',
+        legs: [
+          { account: Account.cardFunding(), direction: 'debit', amount },
+          { account: Account.userWallet(userId), direction: 'credit', amount },
+        ],
+      });
+      emit(EVENTS.WALLET_TOPPED_UP, userId, { userId, amount });
+      return { balance: await this.balance(userId), paymentId: payment._id };
+    } finally {
+      await kv().del(lockKey);
+    }
   }
 
   /**

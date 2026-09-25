@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { walletApi } from '@/features/wallet/api';
+import { AddCard } from '@/features/payments/add-card';
+import { ApiError } from '@/lib/api/types';
 
 const PRESETS = [2500, 5000, 10000, 20000]; // cents
 
@@ -79,7 +81,17 @@ function Wallet() {
             </Button>
           </div>
           {topup.isSuccess && <p className="text-sm text-success">Added to your wallet ✓</p>}
-          {topup.isError && <p className="text-sm text-destructive">Top-up failed. Please try again.</p>}
+          {topup.isError &&
+            (topup.error instanceof ApiError && topup.error.code === 'PAYMENT_METHOD_REQUIRED' ? (
+              <div className="space-y-3 rounded-xl border border-border p-3">
+                <p className="text-sm font-medium">{topup.error.message}</p>
+                <AddCard onSaved={() => topup.reset()} />
+              </div>
+            ) : (
+              <p className="text-sm text-destructive">
+                {topup.error instanceof ApiError ? topup.error.message : 'Top-up failed. Please try again.'}
+              </p>
+            ))}
         </CardContent>
       </Card>
 

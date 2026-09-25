@@ -42,7 +42,7 @@ export function AddCard({ onSaved }: { onSaved?: () => void }) {
           {/* Never surface internal config (env var names, provider setup) to a
               guest — that is reconnaissance for an attacker. Just say it's not
               available yet. */}
-          <p className="break-words">Card payments are coming soon — you’ll be able to securely save a card here shortly.</p>
+          <p className="break-words">Saving a card isn’t available right now. Please try again in a little while.</p>
         </CardContent>
       </Card>
     );

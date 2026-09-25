@@ -60,6 +60,16 @@ export class PaymentMethodService {
     return { provider: 'mock', clientSecret: `seti_mock_${randomId()}` };
   }
 
+  /** The saved card and Stripe customer to charge off-session, or null when there is none (or no live gateway). */
+  async savedCardFor(userId: string): Promise<{ customerId: string; paymentMethodId: string } | null> {
+    if (!this.stripe) return null;
+    const [card, customerId] = await Promise.all([
+      PaymentMethodModel.findOne({ userId, isDefault: true }).lean<{ stripePaymentMethodId?: string }>(),
+      this.customerFor(userId).catch(() => null),
+    ]);
+    return card?.stripePaymentMethodId && customerId ? { customerId, paymentMethodId: card.stripePaymentMethodId } : null;
+  }
+
   /** Whether this guest has a card we can charge off-session (always true with the mock gateway in dev). */
   async hasChargeableCard(userId: string): Promise<boolean> {
     if (!this.stripe) return true;
