@@ -36,6 +36,8 @@ export interface SessionView {
 
 const sKey = (id: string): string => `session:${id}`;
 const ttlMs = (): number => config.jwt.refreshTtl * 1000;
+/** The cache only bounds how stale a revocation can look: if a delete is missed (cache outage, another instance), the database wins within this many seconds. */
+const CACHE_SECONDS = 60;
 
 /** The cache is an optimisation; its failure must never fail a request. */
 async function cache<T>(op: () => Promise<T>, fallback: T): Promise<T> {
@@ -64,12 +66,12 @@ export class SessionStore {
       { upsert: true },
     );
     const record: SessionMeta = { userId, refreshJti, userAgent: meta.userAgent, ip: meta.ip, createdAt: now.toISOString() };
-    await cache(() => kv().set(sKey(sessionId), JSON.stringify(record), config.jwt.refreshTtl), undefined);
+    await cache(() => kv().set(sKey(sessionId), JSON.stringify(record), CACHE_SECONDS), undefined);
   }
 
   /** Cache first, then the database (refilling the cache); null when the session is gone or expired. */
-  private async read(sessionId: string): Promise<SessionMeta | null> {
-    const cached = await cache(() => kv().get(sKey(sessionId)), null);
+  private async read(sessionId: string, fresh = false): Promise<SessionMeta | null> {
+    const cached = fresh ? null : await cache(() => kv().get(sKey(sessionId)), null);
     if (cached) return JSON.parse(cached) as SessionMeta;
 
     const doc = await SessionModel.findById(sessionId).lean();
@@ -83,7 +85,7 @@ export class SessionStore {
       ip: doc.ip,
       createdAt: doc.createdAt.toISOString(),
     };
-    const remaining = Math.max(1, Math.floor((doc.expiresAt.getTime() - Date.now()) / 1000));
+    const remaining = Math.min(CACHE_SECONDS, Math.max(1, Math.floor((doc.expiresAt.getTime() - Date.now()) / 1000)));
     await cache(() => kv().set(sKey(sessionId), JSON.stringify(record), remaining), undefined);
     return record;
   }
@@ -98,7 +100,8 @@ export class SessionStore {
 
   /** The current refresh id plus the one it replaced and when, so a retried refresh can be told from a stolen token. */
   async getRefreshState(sessionId: string): Promise<{ jti: string; prevJti?: string; rotatedAt?: Date } | null> {
-    const s = await this.read(sessionId);
+    // Always from the database: a stale copy on one instance must never make a valid refresh look like token theft.
+    const s = await this.read(sessionId, true);
     return s ? { jti: s.refreshJti, prevJti: s.prevRefreshJti, rotatedAt: s.rotatedAt ? new Date(s.rotatedAt) : undefined } : null;
   }
 
@@ -124,7 +127,7 @@ export class SessionStore {
       ip: prior?.ip,
       createdAt: prior?.createdAt ?? new Date().toISOString(),
     };
-    await cache(() => kv().set(sKey(sessionId), JSON.stringify(record), config.jwt.refreshTtl), undefined);
+    await cache(() => kv().set(sKey(sessionId), JSON.stringify(record), CACHE_SECONDS), undefined);
   }
 
   async revoke(sessionId: string): Promise<void> {

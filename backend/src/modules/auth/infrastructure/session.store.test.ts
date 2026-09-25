@@ -115,3 +115,19 @@ describe('sessionStore', () => {
     });
   });
 });
+
+describe('a revocation the cache missed', () => {
+  it('cannot be used to refresh: the refresh state always comes from the database', async () => {
+    await sessionStore.create('s1', 'u1', 'jti1');
+    await SessionModel.deleteOne({ _id: 's1' }); // revoked in the database while the cache still holds the record
+    expect(await sessionStore.getRefreshState('s1')).toBeNull();
+  });
+
+  it('is only trusted by the cache for a bounded time', async () => {
+    await sessionStore.create('s1', 'u1', 'jti1');
+    const store = (await import('../../../infrastructure/cache/kv-store')).kv();
+    const spy = jest.spyOn(store, 'set');
+    await sessionStore.rotate('s1', 'u1', 'jti2');
+    expect(spy.mock.calls[0][2]).toBeLessThanOrEqual(60);
+  });
+});
