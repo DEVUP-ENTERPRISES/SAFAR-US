@@ -372,6 +372,12 @@ export class PaymentService implements IPaymentContract {
           out.cancelled += 1;
         }
       } catch (err) {
+        // An intent this Stripe account has never heard of (made under the old test keys) can never be paid: close it instead of retrying forever.
+        if (/No such payment_intent/i.test((err as Error).message)) {
+          await PaymentModel.updateOne({ _id: p._id, status: { $in: ['pending', 'requires_action'] } }, { status: 'cancelled' });
+          out.cancelled += 1;
+          continue;
+        }
         logger.warn({ err: (err as Error).message, intentId: p.intentId }, 'payment reconciliation failed for one intent');
       }
     }
