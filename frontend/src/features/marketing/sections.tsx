@@ -127,7 +127,7 @@ function AudienceCard({ icon: Icon, image, title, body, href, cta }: {
   return (
     <Link
       href={href}
-      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
     >
       <div className="relative aspect-[16/9] w-full overflow-hidden">
         <Image

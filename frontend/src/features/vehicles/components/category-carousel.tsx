@@ -101,7 +101,7 @@ export function CategoryCarousel({ city }: { city: string }) {
                     : 'bg-gradient-to-t from-black/80 via-black/40 to-black/20',
                 )}
               />
-              <div className="absolute inset-0 rounded-[1.4rem] ring-1 ring-inset ring-white/10 transition-all duration-500 group-hover:ring-white/25" />
+              <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/10 transition-all duration-500 group-hover:ring-white/25" />
               {available && (
                 <div className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-[900ms] ease-out group-hover:translate-x-full" />
               )}
@@ -131,7 +131,7 @@ export function CategoryCarousel({ city }: { city: string }) {
           );
 
           const shell =
-            'group animate-slide-up relative flex h-[220px] w-[150px] shrink-0 snap-start flex-col justify-end overflow-hidden rounded-[1.4rem] shadow-lift transition-all duration-500 sm:w-[165px]';
+            'group animate-slide-up relative flex h-[204px] w-[150px] shrink-0 snap-start flex-col justify-end overflow-hidden rounded-xl shadow-lift transition-all duration-500 sm:w-[165px]';
           const style = { animationDelay: `${i * 70}ms`, animationFillMode: 'backwards' as const };
 
           return available ? (
@@ -155,7 +155,7 @@ export function CategoryCarousel({ city }: { city: string }) {
         <Link
           href={config.assetPartnersOnly ? '/asset-partners' : '/host'}
           style={{ animationDelay: `${tiles.length * 70}ms`, animationFillMode: 'backwards' }}
-          className="group animate-slide-up flex h-[220px] w-[150px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-[1.4rem] border-2 border-dashed border-border bg-card/40 p-4 text-center transition-all duration-500 hover:border-primary/50 hover:bg-card sm:w-[165px]"
+          className="group animate-slide-up flex h-[204px] w-[150px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card/40 p-4 text-center transition-all duration-500 hover:border-primary/50 hover:bg-card sm:w-[165px]"
         >
           <span className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-primary transition-transform duration-500 group-hover:scale-110">
             <ArrowRight className="h-4 w-4" />

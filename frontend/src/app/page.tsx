@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -96,7 +96,7 @@ export default function HomePage() {
   return (
     <div className="-mt-24">
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
+      <section className="full-bleed relative isolate grain overflow-visible hero-mesh">
         <div className="mx-auto max-w-7xl px-4 pb-12 pt-16 sm:px-6 sm:pb-16 sm:pt-20 lg:pt-24">
           <div className="max-w-3xl">
             {/*
@@ -139,12 +139,12 @@ export default function HomePage() {
             marketplace, and the number is not what anyone is choosing on.
           */}
           <div className="mt-8 max-w-4xl animate-slide-up sm:mt-10">
-            <SearchBarFields />
+            <SearchBarFields calendarPlacement="flow" />
           </div>
 
           {/* The three promises, stated on the first screen. Each one is a
               shipped mechanic, not a marketing line. */}
-          <div className="mt-8 grid max-w-4xl gap-3 overflow-hidden rounded-2xl border border-white/15 bg-white/10 sm:mt-11 sm:gap-px sm:grid-cols-3">
+          <div className="mt-8 grid max-w-4xl gap-px overflow-hidden rounded-xl border border-white/15 bg-white/10 sm:mt-11 sm:grid-cols-3">
             {[
               {
                 t: 'Your host cancels, you still drive',
@@ -191,48 +191,48 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="space-y-12 py-8 sm:space-y-14 sm:py-10">
+      <div className="space-y-12 py-8 sm:space-y-16 sm:py-12">
         {/* ── Browse by category ─────────────────────────────────────── */}
-        <Reveal as="section" className="space-y-6">
-          <div>
-            <h2 className="display text-display-sm">Browse by style</h2>
-            <p className="mt-2 text-muted-foreground">Whatever the trip calls for.</p>
+        <section className="space-y-5">
+          <div className="flex items-baseline gap-3">
+            <h2 className="display text-2xl text-foreground sm:text-3xl">Browse by style</h2>
+            <span className="hidden h-px flex-1 bg-border sm:block" />
+            <p className="shrink-0 text-sm text-muted-foreground">Whatever the trip calls for.</p>
           </div>
           <CategoryCarousel city={city} />
-        </Reveal>
+        </section>
 
         {/* ── For You (personalized) ─────────────────────────────────── */}
         {user && forYou.data && forYou.data.length > 0 && (
-          <Reveal as="section" className="space-y-6">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <h2 className="display flex items-center gap-2.5 text-display-sm">
-                  <Sparkles className="h-7 w-7 text-primary" /> For you
-                </h2>
-                <p className="mt-2 text-muted-foreground">Picked from the cars you&apos;ve loved.</p>
-              </div>
+          <section className="space-y-5">
+            <div className="flex items-baseline gap-3">
+              <h2 className="display flex items-center gap-2 text-2xl text-foreground sm:text-3xl">
+                <Sparkles className="h-5 w-5 text-primary" /> For you
+              </h2>
+              <span className="hidden h-px flex-1 bg-border sm:block" />
+              <p className="shrink-0 text-sm text-muted-foreground">Picked from the cars you&apos;ve loved.</p>
             </div>
             <div className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-4 pb-4 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6 sm:pb-0">
               {forYou.data.slice(0, 4).map((v) => (
                 <VehicleCard key={v._id} vehicle={v} className="w-[85vw] shrink-0 snap-center sm:w-auto" />
               ))}
             </div>
-          </Reveal>
+          </section>
         )}
 
         {/* ── Trending ───────────────────────────────────────────────── */}
-        <Reveal as="section" className="space-y-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="display text-display-sm">Trending in {city}</h2>
-              <p className="mt-2 text-muted-foreground">The most-booked cars near you right now.</p>
+        <section className="space-y-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <div className="flex items-baseline gap-3">
+              <h2 className="display text-2xl text-foreground sm:text-3xl">Trending in {city}</h2>
+              <p className="hidden text-sm text-muted-foreground sm:block">Most-booked right now.</p>
             </div>
             <div className="hide-scrollbar flex gap-2 overflow-x-auto">
               {cities.map((c) => (
                 <button
                   key={c.city}
                   onClick={() => setCity(c.city)}
-                  className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+                  className={`shrink-0 rounded-full border px-3.5 py-1 text-xs font-medium transition-colors ${
                     c.city === city
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-border bg-card hover:border-primary/40'
@@ -279,24 +279,21 @@ export default function HomePage() {
               </p>
             </div>
           )}
-        </Reveal>
+        </section>
 
         {/* ── How it works ───────────────────────────────────────────── */}
-        {/* No decorative glow behind this section. It carried a blurred radial
-            orb tinted with the brand colour, which is the stock "AI landing
-            page" backdrop and did nothing for the content - the three photos
-            are the visual interest here. */}
-        <Reveal as="section" className="space-y-12 sm:space-y-16 pt-10">
-          <div className="text-center sm:text-start">
-            <h2 className="display text-3xl text-foreground sm:text-4xl sm:text-start sm:text-5xl">How CatoDrive works</h2>
-            <p className="mt-3 text-base text-muted-foreground sm:mt-4 sm:text-lg sm:text-xl font-medium max-w-xl">Three steps. No counter, no queue, no paperwork.</p>
+        <Reveal as="section" className="space-y-8 sm:space-y-10">
+          <div className="max-w-xl sm:text-start">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-primary">How it works</p>
+            <h2 className="display text-3xl text-foreground sm:text-4xl lg:text-5xl">No counter. No queue. No paperwork.</h2>
+            <p className="mt-3 text-base text-muted-foreground sm:mt-4 sm:text-lg">Three steps from search to keys in hand.</p>
           </div>
-          <div className="grid gap-8 sm:gap-y-6 md:grid-cols-3 md:gap-x-12">
+          <div className="grid gap-5 sm:gap-y-5 md:grid-cols-3 md:gap-x-8">
             {STEPS.map((s, i) => (
               <div key={s.title} className="relative">
                 <Reveal
                   delay={i * 120}
-                  className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card shadow-card transition-all duration-500 hover:-translate-y-2 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
+                  className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
                 >
                   {/* The real photo leads. A slow zoom on hover keeps it alive. */}
                   <div className="relative aspect-[16/10] w-full overflow-hidden">
@@ -309,7 +306,7 @@ export default function HomePage() {
                     />
                     {/* Nothing sits on the photo - the image stays clean. */}
                   </div>
-                  <div className="flex flex-col p-6 sm:p-7">
+                  <div className="flex flex-col p-5">
                     {/* Icon + title live in the content, off the image. */}
                     <div className="flex items-center gap-2.5">
                       <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
@@ -327,116 +324,40 @@ export default function HomePage() {
         </Reveal>
 
         {/* ── The reservation, step by step ─────────────────────────── */}
-        <Reveal as="section" className="relative isolate overflow-hidden rounded-3xl hero-mesh px-6 py-14 sm:px-10 sm:py-16 lg:px-14">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur">
-              One reservation, end to end
-            </span>
-            <h2 className="display mt-6 text-[2.4rem] leading-[1.02] text-white sm:text-5xl">
-              Pick the exact car. Get it at the curb.
-            </h2>
-            <p className="mt-5 text-lg leading-relaxed text-white/70">
-              Not a request form that somebody calls you back about. A real reservation, on a real
-              vehicle, held the moment you book it.
-            </p>
-          </div>
+        <ReservationFlowSection />
 
-          {/* The 5-step flow - numbered, connected, reads left-to-right on
-              desktop and top-to-bottom on mobile. */}
-          <div className="mt-12 grid gap-6 sm:grid-cols-5 sm:gap-4">
-            {RESERVATION_FLOW.map((s, i) => (
-              <div key={s.label} className="relative flex gap-4 sm:flex-col sm:items-start sm:gap-0">
-                <div className="flex flex-col items-center sm:items-start">
-                  <span className="numeric flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15">
-                    <s.icon className="h-5 w-5" />
-                  </span>
-                  {i < RESERVATION_FLOW.length - 1 && (
-                    <span className="mt-2 block h-6 w-px flex-none bg-gradient-to-b from-white/25 to-transparent sm:hidden" />
-                  )}
-                  {i < RESERVATION_FLOW.length - 1 && (
-                    <span className="mt-2 hidden h-px flex-1 w-full bg-gradient-to-r from-white/25 to-transparent sm:block" />
-                  )}
-                </div>
-                <div className="flex-1 pb-1 sm:pt-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-primary">{s.label}</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-white/65">{s.body}</p>
-                </div>
+        {/* ── Trust strip ────────────────────────────────────────────── */}
+        {/* These were three photo cards identical in template to "How it works",
+            which made the page look like repeating slides. As a horizontal
+            strip they read as supporting evidence that sits between content,
+            not another "section" demanding equal visual attention. */}
+        <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          {[
+            { icon: ShieldCheck, stat: 'Verified', label: 'Every host and car is checked before listing.' },
+            { icon: BadgeCheck, stat: 'Protected', label: 'Choose a plan at checkout - up to $0 deductible.' },
+            { icon: Zap, stat: 'Instant Book', label: 'Confirmed the moment you pay. No waiting.' },
+          ].map((t) => (
+            <div key={t.stat} className="flex items-start gap-4 bg-card p-5 sm:p-6">
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <t.icon className="h-4.5 w-4.5" />
+              </span>
+              <div>
+                <p className="font-semibold text-foreground">{t.stat}</p>
+                <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{t.label}</p>
               </div>
-            ))}
-          </div>
-
-          {/* The money callout - the whole point of Hold → Capture. */}
-          <div className="mt-10 inline-flex items-center gap-3 rounded-2xl border border-primary/40 bg-primary/15 px-5 py-3.5">
-            <Lock className="h-4 w-4 shrink-0 text-primary" />
-            <p className="text-sm font-bold uppercase tracking-wider text-primary">
-              The money never moved until it had to.
-            </p>
-          </div>
-
-          {/* Trust points + CTA. */}
-          <div className="mt-10 flex flex-col gap-8 border-t border-white/10 pt-10 lg:flex-row lg:items-center lg:justify-between">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-5">
-              {RESERVATION_TRUST.map((t) => (
-                <span key={t.label} className="flex items-center gap-2 text-sm font-medium text-white/75">
-                  <t.icon className="h-4 w-4 shrink-0 text-primary" /> {t.label}
-                </span>
-              ))}
             </div>
-            <Link href="/search" className="group inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
-              Book Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-          </div>
-        </Reveal>
-
-        {/* ── Trust ──────────────────────────────────────────────────── */}
-        <section>
-          <div className="grid gap-8 sm:gap-y-6 md:grid-cols-3 md:gap-x-12">
-            {[
-              { icon: ShieldCheck, image: '/sections/cato-verified.webp', stat: 'Verified', label: 'Every host and every car is checked before it ever gets listed.' },
-              { icon: BadgeCheck, image: '/sections/cato-protected.webp', stat: 'Protected', label: 'Choose a protection plan at checkout - up to zero deductible.' },
-              { icon: Zap, image: '/sections/cato-instant.webp', stat: 'Instant', label: 'Instant Book cars are confirmed the moment you pay. No waiting.' },
-            ].map((t, i, arr) => (
-              <div key={t.stat} className="relative">
-                <Reveal
-                  delay={i * 120}
-                  className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card shadow-card transition-all duration-500 hover:-translate-y-2 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
-                >
-                  <div className="relative aspect-[16/10] w-full overflow-hidden">
-                    <Image
-                      src={t.image}
-                      alt={t.stat}
-                      fill
-                      sizes="(min-width: 768px) 33vw, 100vw"
-                      className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
-                    />
-                    {/* Clean photo - nothing overlaid. */}
-                  </div>
-                  <div className="flex flex-col p-6">
-                    {/* Icon + promise live below the image, ahead of the detail. */}
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
-                        <t.icon className="h-5 w-5" />
-                      </span>
-                      <span className="display text-xl text-foreground">{t.stat}</span>
-                    </div>
-                    <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{t.label}</p>
-                  </div>
-                </Reveal>
-                {i < arr.length - 1 && <StepConnector />}
-              </div>
-            ))}
-          </div>
+          ))}
         </section>
 
-        {/* ── Traction + who we serve (shared with the About page) ───── */}
-        {/* excludeLive: the hero above already shows the live rating and trip
-            count from the marketplace API - see the note on TractionStats. */}
-        <TractionStats heading="Backed by real numbers." excludeLive />
+        {/* ── Traction + who we serve ──────────────────────────────── */}
+        <div className="pt-4 sm:pt-6">
+          <TractionStats heading="Backed by real numbers." excludeLive />
+        </div>
 
         <AudienceSection heading="Built for two kinds of people." />
 
         {/* ── Host / Asset Partner CTA ─────────────────────────────────── */}
-        <Reveal as="section" className="relative isolate grain overflow-hidden rounded-3xl hero-mesh px-8 py-14 sm:px-16 sm:py-16">
+        <Reveal as="section" className="relative isolate grain overflow-hidden rounded-2xl hero-mesh px-8 py-14 sm:px-16 sm:py-16">
           {/* An existing host shouldn't be pitched on hosting - send them to
               their dashboard instead. A NEW visitor sees the Asset Partner
               pitch while config.assetPartnersOnly is on: the self-serve "list
@@ -492,5 +413,96 @@ export default function HomePage() {
         </Reveal>
       </div>
     </div>
+  );
+}
+
+function ReservationFlowSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [offset, setOffset] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const section = sectionRef.current;
+      const track = trackRef.current;
+      if (!section || !track || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      const start = section.offsetTop;
+      const travel = Math.max(1, section.offsetHeight - window.innerHeight);
+      const progress = Math.min(1, Math.max(0, (window.scrollY - start) / travel));
+      const eased = progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const maxOffset = Math.max(0, track.scrollWidth - track.parentElement!.clientWidth);
+      setOffset(maxOffset * eased);
+    };
+
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, []);
+
+  return (
+    <section ref={sectionRef} className="relative isolate overflow-hidden rounded-2xl hero-mesh px-6 py-10 min-h-[calc(100vh+16rem)] sm:px-10 sm:py-12 lg:px-14">
+      <div className="sticky top-20 flex min-h-[calc(100vh-6rem)] flex-col justify-center sm:top-24 sm:min-h-[calc(100vh-8rem)]">
+        <div className="max-w-2xl">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur">
+            One reservation, end to end
+          </span>
+          <h2 className="display mt-6 text-[2.4rem] leading-[1.02] text-white sm:text-5xl">
+            Pick the exact car. Get it at the curb.
+          </h2>
+          <p className="mt-5 text-lg leading-relaxed text-white/70">
+            Not a request form that somebody calls you back about. A real reservation, on a real
+            vehicle, held the moment you book it.
+          </p>
+        </div>
+
+        <div className="mt-8 overflow-hidden sm:mt-10">
+          <div
+            ref={trackRef}
+            className="flex w-max gap-4 transition-transform duration-700 ease-out motion-reduce:translate-x-0 motion-reduce:transition-none"
+            style={{ transform: `translate3d(-${offset}px, 0, 0)` }}
+          >
+            {RESERVATION_FLOW.map((step, i) => (
+              <article key={step.label} className="w-[min(78vw,19rem)] shrink-0 rounded-2xl border border-white/10 bg-black/20 p-5 shadow-xl backdrop-blur-sm sm:w-[17rem] sm:p-6">
+                <div className="flex items-center justify-between">
+                  <span className="numeric flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/15">
+                    <step.icon className="h-5 w-5" />
+                  </span>
+                  <span className="numeric text-xs text-white/40">0{i + 1}</span>
+                </div>
+                <p className="mt-8 text-xs font-bold uppercase tracking-widest text-primary">{step.label}</p>
+                <p className="mt-2 min-h-24 text-sm leading-relaxed text-white/70">{step.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 inline-flex w-fit items-center gap-3 rounded-2xl border border-primary/40 bg-primary/15 px-5 py-3.5">
+          <Lock className="h-4 w-4 shrink-0 text-primary" />
+          <p className="text-sm font-bold uppercase tracking-wider text-primary">
+            The money never moved until it had to.
+          </p>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-4 border-t border-white/10 pt-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-5">
+            {RESERVATION_TRUST.map((trust) => (
+              <span key={trust.label} className="flex items-center gap-2 text-sm font-medium text-white/75">
+                <trust.icon className="h-4 w-4 shrink-0 text-primary" /> {trust.label}
+              </span>
+            ))}
+          </div>
+          <Link href="/search" className="group inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
+            Book Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }

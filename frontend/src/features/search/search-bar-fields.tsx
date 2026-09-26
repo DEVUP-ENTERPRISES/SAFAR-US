@@ -30,7 +30,13 @@ import { useSearchBar } from './search-store';
 
 const TIMES = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
 
-export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }) {
+export function SearchBarFields({
+  variant = 'bar',
+  calendarPlacement = 'overlay',
+}: {
+  variant?: 'bar' | 'nav';
+  calendarPlacement?: 'overlay' | 'flow';
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const facets = useFacets();
@@ -123,7 +129,7 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
 
       {/* ── Popovers ── */}
       {open === 'where' && (
-        <Panel>
+        <Panel flow={calendarPlacement === 'flow'}>
           <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Cities with cars</p>
           {cities.length === 0 ? (
             <p className="py-2 text-sm text-muted-foreground">
@@ -162,7 +168,7 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
       )}
 
       {open === 'when' && (
-        <Panel>
+        <Panel flow={calendarPlacement === 'flow'}>
           <DateRangePicker
             from={s.fromDate}
             to={s.untilDate}
@@ -209,9 +215,12 @@ function Field({
   );
 }
 
-function Panel({ children }: { children: React.ReactNode }) {
+function Panel({ children, flow = false }: { children: React.ReactNode; flow?: boolean }) {
   return (
-    <div className="absolute inset-x-0 top-full z-50 mt-2 rounded-2xl border border-border bg-card p-4 shadow-2xl sm:inset-x-auto sm:start-0 sm:w-auto sm:min-w-[22rem]">
+    <div className={cn(
+      'z-50 mt-3 max-h-[min(38rem,calc(100vh-7rem))] overflow-auto rounded-2xl border border-border bg-card p-4 shadow-2xl ring-1 ring-black/5 sm:w-auto sm:min-w-[24rem]',
+      flow ? 'relative' : 'absolute inset-x-0 top-full sm:inset-x-auto sm:start-0',
+    )}>
       {children}
     </div>
   );
