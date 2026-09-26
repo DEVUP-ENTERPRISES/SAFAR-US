@@ -7,10 +7,12 @@ export function formatMoney(m: Money | undefined | null): string {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: m.currency,
-      maximumFractionDigits: 0,
+      // Whole dollars stay whole ($45); anything with cents shows them ($2.50), so a fee or discount is never rounded away.
+      minimumFractionDigits: m.amount % 100 === 0 ? 0 : 2,
+      maximumFractionDigits: m.amount % 100 === 0 ? 0 : 2,
     }).format(m.amount / 100);
   } catch {
-    return `${(m.amount / 100).toFixed(0)} ${m.currency}`;
+    return `${(m.amount / 100).toFixed(m.amount % 100 === 0 ? 0 : 2)} ${m.currency}`;
   }
 }
 
