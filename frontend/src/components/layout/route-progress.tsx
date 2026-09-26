@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 /**
- * A thin brand progress bar across the top on navigation — the Linear/GitHub
+ * A thin brand progress bar across the top on navigation - the Linear/GitHub
  * pattern. It starts the moment a same-origin link is clicked (so it reacts to
  * intent, not just arrival) and completes when the new route renders.
  *

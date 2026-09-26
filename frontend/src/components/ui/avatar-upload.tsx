@@ -32,7 +32,7 @@ export function AvatarUpload({
   size?: number;
   disabled?: boolean;
   /**
-   * Override the description under "Profile photo" — e.g. a page that wants
+   * Override the description under "Profile photo" - e.g. a page that wants
    * to say WHO sees the photo, not just the file constraints. Falls back to
    * the generic file-requirements copy so most callers need nothing here.
    */
@@ -68,7 +68,7 @@ export function AvatarUpload({
         body: file,
         headers: { 'Content-Type': file.type },
       });
-      // fetch resolves on 4xx/5xx — without this a rejected upload would be
+      // fetch resolves on 4xx/5xx - without this a rejected upload would be
       // saved as the user's photo and render broken.
       if (!res.ok) throw new Error(`Storage rejected the upload (${res.status}).`);
       onChange({ url: target.publicUrl, key: target.key });

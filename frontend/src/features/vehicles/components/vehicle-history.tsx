@@ -46,7 +46,7 @@ interface History {
  *    card says so. Implying otherwise sends hosts chasing work already done and
  *    frightens guests off cars that are fine.
  *  - "NOT CHECKED" IS NOT "CLEAN". Title history is a paid lookup. When it has
- *    not run, the card says it has not run — it never shows a green tick for a
+ *    not run, the card says it has not run - it never shows a green tick for a
  *    check nobody paid for.
  */
 export function VehicleHistory({ vehicleId, audience }: { vehicleId: string; audience: 'guest' | 'host' }) {

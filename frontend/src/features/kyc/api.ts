@@ -11,7 +11,7 @@ export interface KycStatusView {
 export interface VerificationSession {
   provider: 'stripe' | 'stub';
   sessionId: string;
-  /** Present for the live Stripe flow — opens the hosted capture modal. */
+  /** Present for the live Stripe flow - opens the hosted capture modal. */
   clientSecret?: string;
   /** Hosted fallback URL, or the stub's about:blank in dev. */
   url?: string;

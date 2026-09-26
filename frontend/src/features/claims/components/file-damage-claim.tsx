@@ -22,7 +22,7 @@ import { uploadFiles } from '@/features/media/upload';
  * This closes the loop on the inspection photos: the return ('post') photos are
  * the baseline, so they are pulled in as evidence automatically, and the host
  * adds close-ups of the specific damage. The claim then goes to the ops queue,
- * where an operator assesses it and — if upheld — captures the amount from the
+ * where an operator assesses it and - if upheld - captures the amount from the
  * security deposit already held for the trip.
  *
  * The host cannot touch the deposit directly: they file with evidence, a human
@@ -188,7 +188,7 @@ export function FileDamageClaim({
             </label>
           ) : (
             <p className="text-xs text-warning">
-              No return inspection photos were taken — add close-ups of the damage below to support your claim.
+              No return inspection photos were taken - add close-ups of the damage below to support your claim.
             </p>
           )}
 

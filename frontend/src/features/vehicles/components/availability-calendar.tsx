@@ -12,7 +12,7 @@ import { TripQuotes } from './trip-quotes';
  * The availability calendar.
  *
  * The version this replaces showed one month with no way to reach the next,
- * two flat colours, and no prices — so it answered "is the 14th free?" and
+ * two flat colours, and no prices - so it answered "is the 14th free?" and
  * nothing else. Three things a guest actually needs, that it did not give:
  *
  *  1. WHAT A NIGHT COSTS. This platform prices weekends, seasons and lead time
@@ -21,7 +21,7 @@ import { TripQuotes } from './trip-quotes';
  *     uses, with the peak named when nights differ.
  *
  *     It is deliberately NOT printed into every cell. A figure repeated across
- *     thirty squares is chrome, not information — it competes with the shape
+ *     thirty squares is chrome, not information - it competes with the shape
  *     the grid exists to show, and it forces each cell tall enough to stack two
  *     lines. Premium nights get a dot; the exact figure is a hover away, and
  *     the total for a selected range appears under the grid.
@@ -83,7 +83,7 @@ export function AvailabilityCalendar({
 
   /**
    * A night's price, from the same levers the backend quote uses. Not a
-   * promise — the quote is authoritative and says so below — but a good-faith
+   * promise - the quote is authoritative and says so below - but a good-faith
    * figure beats no figure, which is what the guest had before.
    */
   const priceFor = (d: Date): number => {
@@ -117,7 +117,7 @@ export function AvailabilityCalendar({
       let state: DayState = 'open';
       if (date.getTime() < todayMid) state = 'past';
       else if (busy.has(key)) state = 'booked';
-      // A day inside the host's notice window is free but not offerable —
+      // A day inside the host's notice window is free but not offerable -
       // distinct from "someone booked it", because the reason differs.
       else if (date.getTime() + MS_DAY <= bookableFrom) state = 'notice';
       list.push({ key, date, dom, state, priceCents: priceFor(date), runLength: 0 });
@@ -146,7 +146,7 @@ export function AvailabilityCalendar({
     /*
      * The baseline is the most common nightly rate in view, not the lowest.
      * Using the minimum would mark a whole month as "more expensive" the moment
-     * one promo night appeared, which is the opposite of useful — the guest
+     * one promo night appeared, which is the opposite of useful - the guest
      * wants to know what the normal night costs and which ones break from it.
      */
     const tally = new Map<number, number>();
@@ -190,7 +190,7 @@ export function AvailabilityCalendar({
       return;
     }
     const [from, to] = [anchor, d.key].sort();
-    // Refuse a range that crosses anything unbookable — silently accepting it
+    // Refuse a range that crosses anything unbookable - silently accepting it
     // and failing at checkout is the behaviour this calendar exists to end.
     const crosses = days.some((x) => x.key >= from && x.key <= to && x.state !== 'open');
     if (crosses) { setAnchor(d.key); return; }
@@ -206,7 +206,7 @@ export function AvailabilityCalendar({
   return (
     <Card>
       <CardContent className="p-5 sm:p-6">
-        {/* Month navigation — the previous calendar had none at all, so a trip
+        {/* Month navigation - the previous calendar had none at all, so a trip
             in the following month was invisible. */}
         <div className="flex items-center justify-between">
           <button
@@ -251,7 +251,7 @@ export function AvailabilityCalendar({
                 onMouseEnter={() => anchor && setHover(d.key)}
                 title={
                   d.state === 'booked' ? 'Already booked'
-                    : d.state === 'notice' ? 'Too soon — this trip needs more notice'
+                    : d.state === 'notice' ? 'Too soon - this trip needs more notice'
                       : d.state === 'short' ? `Only ${d.runLength} night${d.runLength === 1 ? '' : 's'} free here; minimum is ${minNights}`
                         : d.state === 'past' ? 'In the past'
                           : undefined
@@ -271,7 +271,7 @@ export function AvailabilityCalendar({
                 {/*
                   A day number, and nothing else.
 
-                  A calendar is a grid people scan for shape — which stretches
+                  A calendar is a grid people scan for shape - which stretches
                   are free, how long they run. A second line of type in every
                   cell competes with that, and it made each cell tall enough to
                   need two lines of its own. The rate lives above the grid now,

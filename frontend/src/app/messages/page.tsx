@@ -21,7 +21,7 @@ function Inbox() {
       <PageHeader title="Messages" description="Every conversation with your hosts and guests, in one place." />
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
-        {/* Conversation list — hidden on mobile once a chat is open */}
+        {/* Conversation list - hidden on mobile once a chat is open */}
         <div className={cn('space-y-2', selected && 'hidden lg:block')}>
           {conversations.isLoading ? (
             [0, 1, 2].map((i) => <Skeleton key={i} className="h-20 w-full" />)
@@ -48,7 +48,7 @@ function Inbox() {
                     </div>
                     <p className="truncate text-xs text-muted-foreground">{c.vehicle.title}</p>
                     <p className={cn('truncate text-sm', c.unread > 0 ? 'font-medium text-foreground' : 'text-muted-foreground')}>
-                      {c.last.fromMe && 'You: '}{c.last.system && !c.last.preview ? 'Trip update' : c.last.preview || '—'}
+                      {c.last.fromMe && 'You: '}{c.last.system && !c.last.preview ? 'Trip update' : c.last.preview || '-'}
                     </p>
                   </div>
                   {c.unread > 0 && (

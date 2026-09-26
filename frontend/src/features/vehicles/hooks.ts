@@ -60,13 +60,13 @@ export function useTrending(lng?: number, lat?: number) {
   return useQuery({
     queryKey: ['trending', lng ?? null, lat ?? null],
     queryFn: () => vehicleApi.search({ lng: lng!, lat: lat!, radiusKm: 60, sort: 'trending', limit: 8 }),
-    // The origin comes from live facets, so it is undefined on first paint —
+    // The origin comes from live facets, so it is undefined on first paint -
     // firing then would search 0,0 (the Atlantic) and render an empty state.
     enabled: lng !== undefined && lat !== undefined,
   });
 }
 
-/** "For You" — personalized picks from the signed-in user's booking history. */
+/** "For You" - personalized picks from the signed-in user's booking history. */
 export function useRecommendations(enabled: boolean) {
   return useQuery({
     queryKey: ['recommendations'],

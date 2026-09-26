@@ -1,4 +1,4 @@
-/* Firebase Cloud Messaging service worker — receives push while the app is
+/* Firebase Cloud Messaging service worker - receives push while the app is
  * closed or backgrounded. A service worker can't read NEXT_PUBLIC_* env, so the
  * (public) web config is inlined here; none of it is secret. */
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');

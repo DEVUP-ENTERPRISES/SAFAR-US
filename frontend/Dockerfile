@@ -11,7 +11,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # NEXT_PUBLIC_* values are inlined into the client bundle at BUILD time, not
-# read at runtime — so they must be passed as build args. Setting them only as
+# read at runtime - so they must be passed as build args. Setting them only as
 # runtime env vars is the classic "why is my API URL undefined in prod" bug.
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_APP_NAME

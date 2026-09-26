@@ -21,7 +21,7 @@ export interface ConfirmOptions {
   requireText?: string;
   /**
    * Captures an operator-supplied reason (audited server-side). When `required`,
-   * Confirm stays locked until it's filled — so reasons are never invented.
+   * Confirm stays locked until it's filled - so reasons are never invented.
    */
   reason?: { label: string; placeholder?: string; required?: boolean };
 }
@@ -38,7 +38,7 @@ const ConfirmContext = createContext<((o: ConfirmOptions) => Promise<ConfirmResu
 
 /**
  * Promise-based confirmation. Any component can `const confirm = useConfirm()`
- * and `const { ok, reason } = await confirm({...})` — so no destructive mutation
+ * and `const { ok, reason } = await confirm({...})` - so no destructive mutation
  * in the app can fire on a single stray click.
  */
 export function useConfirm() {

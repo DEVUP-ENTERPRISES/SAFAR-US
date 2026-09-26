@@ -17,7 +17,7 @@ import { aiApi } from '@/features/ai/api';
  *
  * The brief separates what the evidence settles from what it does not, and ends
  * with the questions to go and ask. It never names a liable party and never
- * proposes an amount — those are the adjuster's, and a model that volunteered
+ * proposes an amount - those are the adjuster's, and a model that volunteered
  * them would be quietly making the decision.
  */
 export function CaseFilePanel({ claimId }: { claimId: string }) {
@@ -63,7 +63,7 @@ export function CaseFilePanel({ claimId }: { claimId: string }) {
                   {q.data.file.timeline.map((t, i) => (
                     <li key={i} className="flex gap-3 text-sm">
                       <span className="numeric shrink-0 text-muted-foreground">
-                        {t.at ? new Date(t.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                        {t.at ? new Date(t.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
                       </span>
                       <span>{t.what}</span>
                     </li>

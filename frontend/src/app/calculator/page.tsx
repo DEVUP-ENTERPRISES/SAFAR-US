@@ -16,7 +16,7 @@ const money = (cents: number) =>
   `$${Math.round(cents / 100).toLocaleString('en-US')}`;
 
 /**
- * The Carculator — what a car would actually earn on this marketplace.
+ * The Carculator - what a car would actually earn on this marketplace.
  *
  * Every number is live. The daily-rate band comes from the real price range of
  * cars already listed in the selected city and category; the take rate comes
@@ -55,7 +55,7 @@ export default function CarculatorPage() {
 
   // With one listed car the observed min and max are the same number, so a
   // slider bounded by them cannot move. Open a range around that single point
-  // and say plainly that the bounds are ours, not the market's — the figure
+  // and say plainly that the bounds are ours, not the market's - the figure
   // itself is still real, the spread around it is not evidence.
   const singlePoint = !!observed && observed.min === observed.max;
   const band = observed
@@ -83,7 +83,7 @@ export default function CarculatorPage() {
     <div className="mx-auto max-w-4xl space-y-8 py-6">
       <PageHeader
         title="Carculator"
-        description="What your car could earn here — priced off cars actually listed near you, not an industry average."
+        description="What your car could earn here - priced off cars actually listed near you, not an industry average."
       />
 
       {loading ? (
@@ -107,7 +107,7 @@ export default function CarculatorPage() {
                 <Select value={selectedCity?.city ?? ''} onChange={(e) => { setCity(e.target.value); setRate(null); }}>
                   {cities.map((c) => (
                     <option key={c.city} value={c.city}>
-                      {c.city} — {c.vehicles} car{c.vehicles === 1 ? '' : 's'} listed
+                      {c.city} - {c.vehicles} car{c.vehicles === 1 ? '' : 's'} listed
                     </option>
                   ))}
                 </Select>
@@ -225,7 +225,7 @@ export default function CarculatorPage() {
               <div className="space-y-1.5">
                 <p>
                   <span className="font-medium text-foreground">This is a projection, not an offer.</span> It assumes
-                  you are booked the number of days you picked — new listings usually take a few weeks to get there.
+                  you are booked the number of days you picked - new listings usually take a few weeks to get there.
                 </p>
                 <p>
                   The rate shown is our standard cut. Some hosts are on a lower one, so this is a floor on what you

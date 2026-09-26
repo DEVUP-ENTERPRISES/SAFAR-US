@@ -34,7 +34,7 @@ export function StatTile({
   icon?: ReactNode;
   href?: string;
   tone?: Tone;
-  /** Highlights the tile — use for action queues that need attention. */
+  /** Highlights the tile - use for action queues that need attention. */
   emphasis?: boolean;
   className?: string;
 }) {

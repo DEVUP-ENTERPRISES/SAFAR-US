@@ -27,7 +27,7 @@ const NAV: PanelNavItem[] = [
 
 export function CorporateSidebar() {
   const me = useQuery({ queryKey: ['corp-me'], queryFn: () => corporateApi.me(), retry: false });
-  // Surface pending approvals as a live badge — the one queue that blocks travel.
+  // Surface pending approvals as a live badge - the one queue that blocks travel.
   const pendingRequests = useQuery({
     queryKey: ['corp-requests', 'pending'],
     queryFn: () => corporateApi.requests('pending'),

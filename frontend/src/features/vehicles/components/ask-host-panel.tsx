@@ -10,10 +10,10 @@ import { useVehicleInquiry } from '@/features/messaging/inquiry-hooks';
 import { SYSTEM_SENDER } from '@/features/messaging/hooks';
 
 /**
- * Pre-booking "Ask the host a question" — the thing Turo has and we didn't:
+ * Pre-booking "Ask the host a question" - the thing Turo has and we didn't:
  * a prospective guest can message a host before reserving, without a
  * booking existing yet. Deliberately lighter than the trip ChatPanel (no
- * attachments, no read receipts, no realtime) — a booking's chat carries an
+ * attachments, no read receipts, no realtime) - a booking's chat carries an
  * active trip; a listing inquiry is a handful of messages before a decision.
  */
 export function AskHostPanel({ vehicleId, hostName }: { vehicleId: string; hostName: string }) {

@@ -41,7 +41,7 @@ function blankLocation(kind: DeliveryLocationKind): DeliveryLocation {
 
 /**
  * Turo-style delivery setup: a map of the host's coverage, their home
- * location (free, fixed — edited on the Details panel, not here), and a
+ * location (free, fixed - edited on the Details panel, not here), and a
  * priced, addable/editable list of delivery locations. Reused by both the
  * new-listing wizard and the listing edit page so a host configures delivery
  * exactly the same way whether they are creating or editing a car.

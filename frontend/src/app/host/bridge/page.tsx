@@ -11,7 +11,7 @@ import { useAuthStore } from '@/features/auth/store';
  * Receives the House Fleet session minted in the admin console and drops the
  * operator into the normal Host dashboard. Admin and this app are separate
  * origins with separate localStorage, so the tokens have to cross once in the
- * URL fragment — stripped immediately via replaceState(), never left in history.
+ * URL fragment - stripped immediately via replaceState(), never left in history.
  */
 function BridgeInner() {
   const router = useRouter();

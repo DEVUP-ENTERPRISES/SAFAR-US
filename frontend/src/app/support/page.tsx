@@ -66,10 +66,10 @@ function Support() {
         <Button onClick={() => { setCreating(true); setSelected(null); }}><Plus className="h-4 w-4" /> New ticket</Button>
       </div>
 
-      {/* Deflect to self-serve first — most questions are answered in the help centre. */}
+      {/* Deflect to self-serve first - most questions are answered in the help centre. */}
       <Link href="/help" className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3 transition-colors hover:bg-muted">
         <BookOpen className="h-5 w-5 shrink-0 text-primary" />
-        <span className="text-sm"><span className="font-medium">Browse the help centre</span> — answers to common questions, no waiting.</span>
+        <span className="text-sm"><span className="font-medium">Browse the help centre</span> - answers to common questions, no waiting.</span>
         <ChevronRight className="ms-auto h-4 w-4 shrink-0 text-muted-foreground" />
       </Link>
 

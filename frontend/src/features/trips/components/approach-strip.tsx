@@ -56,7 +56,7 @@ export function ApproachStrip({ bookingId, role }: { bookingId: string; role: 'g
   return (
     <Card>
       <CardContent className="space-y-4 py-5">
-        {/* Their status — the thing the messages were asking about. */}
+        {/* Their status - the thing the messages were asking about. */}
         <div className="flex items-start gap-3">
           {theirs.arrivedAt ? (
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" />
@@ -78,7 +78,7 @@ export function ApproachStrip({ bookingId, role }: { bookingId: string; role: 'g
                 ? `Arrived at ${clock(theirs.arrivedAt)}.`
                 : theirs.onWayAt
                   ? theirs.etaAt
-                    ? `Expected around ${clock(theirs.etaAt)}. You will be told if that changes — no need to check.`
+                    ? `Expected around ${clock(theirs.etaAt)}. You will be told if that changes - no need to check.`
                     : 'Working out their arrival time.'
                   : 'You will be notified the moment they set off.'}
             </p>
@@ -99,7 +99,7 @@ export function ApproachStrip({ bookingId, role }: { bookingId: string; role: 'g
           </p>
         )}
 
-        {/* Finding the car — the second most common message after "where are you". */}
+        {/* Finding the car - the second most common message after "where are you". */}
         {role === 'guest' && pickup && (pickup.instructions || pickup.spotPhotoUrl || pickup.accessCode) && (
           <div className="border-t border-border pt-4">
             <p className="flex items-center gap-2 text-sm font-semibold">

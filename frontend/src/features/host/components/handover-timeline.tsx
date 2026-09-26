@@ -44,7 +44,7 @@ export function NextHandoverStep({ timeline }: { timeline?: TimelineStep[] | nul
   if (!cur) return null;
   return (
     <p className="mt-2 truncate text-[13px] font-medium text-primary">
-      Next: {cur.label}{cur.detail ? ` — ${cur.detail}` : ''}
+      Next: {cur.label}{cur.detail ? ` - ${cur.detail}` : ''}
     </p>
   );
 }

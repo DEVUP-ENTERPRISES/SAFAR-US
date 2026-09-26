@@ -34,7 +34,7 @@ interface Line { type: Kind; qty?: number; amount?: number; note: string }
  * Post-trip charges.
  *
  * This bills a card the guest already handed over, with nobody standing
- * between the host and that card — so the server enforces a window, a ceiling
+ * between the host and that card - so the server enforces a window, a ceiling
  * on free-form amounts, and a required explanation. This screen states those
  * limits up front rather than letting a host write out a $900 charge and
  * discover on submit that it was never allowed.
@@ -99,7 +99,7 @@ export function IncidentalsForm({ bookingId, onDone }: { bookingId: string; onDo
           {/* The rules, before the form rather than after the rejection. */}
           <p className="mt-1 text-sm text-muted-foreground">
             Within 7 days of the trip ending. Tolls, fines and other charges are capped at $250 each and need an
-            explanation your guest will read — anything larger belongs in a damage claim.
+            explanation your guest will read - anything larger belongs in a damage claim.
           </p>
         </div>
 
@@ -157,7 +157,7 @@ export function IncidentalsForm({ bookingId, onDone }: { bookingId: string; onDo
 
             <Field
               label={isFreeform(l.type) ? 'Explain the charge' : 'Note'}
-              hint={isFreeform(l.type) ? 'Required — your guest sees this' : 'Optional'}
+              hint={isFreeform(l.type) ? 'Required - your guest sees this' : 'Optional'}
             >
               <Input
                 size="sm"
@@ -169,7 +169,7 @@ export function IncidentalsForm({ bookingId, onDone }: { bookingId: string; onDo
 
             {isFreeform(l.type) && l.note.trim().length > 0 && l.note.trim().length < 10 && (
               <p className="flex items-center gap-1.5 text-xs text-warning">
-                <AlertTriangle className="h-3.5 w-3.5" /> A bit more detail — an unexplained charge gets disputed.
+                <AlertTriangle className="h-3.5 w-3.5" /> A bit more detail - an unexplained charge gets disputed.
               </p>
             )}
           </div>

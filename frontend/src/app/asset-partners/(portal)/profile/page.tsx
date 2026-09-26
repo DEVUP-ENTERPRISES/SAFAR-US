@@ -21,7 +21,7 @@ import { ApiError } from '@/lib/api/types';
  * Where the partner's money goes, and their programme terms.
  *
  * Terms (management fee, insurance, detailing, payout day, check vs Zelle) are
- * a negotiated agreement — this page shows them but never edits them, the same
+ * a negotiated agreement - this page shows them but never edits them, the same
  * separation the backend enforces (setPayoutDetails vs the admin-only
  * setTerms). What IS the partner's to keep current is the recipient detail
  * that term requires: the mailing address or the Zelle handle.
@@ -30,10 +30,10 @@ export default function PartnerProfilePage() {
   const qc = useQueryClient();
   const toast = useToast();
 
-  // Contact-on-file (name, email, phone) still comes from the application —
+  // Contact-on-file (name, email, phone) still comes from the application -
   // that is where it was actually typed. Payout details come from /me, the
   // only endpoint that returns the SAVED value rather than a dashboard
-  // summary — the form below has to start from real data, not blank fields.
+  // summary - the form below has to start from real data, not blank fields.
   const { data: dash, isLoading: dashLoading } = useQuery({
     queryKey: ['asset-partner-dashboard'],
     queryFn: () => assetPartnerApi.dashboard(),
@@ -47,7 +47,7 @@ export default function PartnerProfilePage() {
   const [zelleHandle, setZelleHandle] = useState('');
   const [touched, setTouched] = useState(false);
 
-  // Pre-fill exactly once the real data arrives — after that, the partner's
+  // Pre-fill exactly once the real data arrives - after that, the partner's
   // own typing owns the fields, so a background refetch can't clobber a
   // draft mid-edit.
   if (!touched && me.data?.partner.payoutDetails) {
@@ -111,7 +111,7 @@ export default function PartnerProfilePage() {
         description="Where your monthly net goes, and the terms it’s calculated on."
       />
 
-      {/* Contact — read-only here. Account-level identity is managed on the
+      {/* Contact - read-only here. Account-level identity is managed on the
           main account page; duplicating an editable copy here is how two
           records go stale in different directions. */}
       <Card>
@@ -133,7 +133,7 @@ export default function PartnerProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Terms — display only. */}
+      {/* Terms - display only. */}
       {terms && (
         <Card>
           <CardHeader>
@@ -153,7 +153,7 @@ export default function PartnerProfilePage() {
         </Card>
       )}
 
-      {/* Payout recipient — the only thing on this page the partner can edit. */}
+      {/* Payout recipient - the only thing on this page the partner can edit. */}
       <PayoutDetailsCard
         method={terms?.payoutMethod}
         mailingAddress={mailingAddress}
@@ -220,7 +220,7 @@ function PayoutDetailsCard({
         </CardTitle>
         <p className="mt-1 text-sm text-muted-foreground">
           You’re paid by <span className="font-semibold capitalize">{method ?? 'check'}</span>. Keep
-          this current — a wrong address or handle delays your payout.
+          this current - a wrong address or handle delays your payout.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -71,7 +71,7 @@ export default function VehicleDetailPage() {
   const status = useAuthStore((s) => s.status);
   const { track } = useRecentlyViewed();
 
-  // Gallery selection — setter is used by the thumbnail grid; the value is not
+  // Gallery selection - setter is used by the thumbnail grid; the value is not
   // read yet (lightbox is not wired up).
   // Which photo the full-screen viewer is showing; null means closed.
   const [lightbox, setLightbox] = useState<number | null>(null);
@@ -84,7 +84,7 @@ export default function VehicleDetailPage() {
   const [showTerms, setShowTerms] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState<'airport' | 'home' | 'hotel' | 'business' | ''>('');
   // Which of the host's configured delivery locations was picked. Empty
-  // string is "pick up myself" — the same sentinel `deliveryMode` already used.
+  // string is "pick up myself" - the same sentinel `deliveryMode` already used.
   const [deliveryLocationId, setDeliveryLocationId] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   // Airport pickups: the flight is what tells the host when to actually be
@@ -146,7 +146,7 @@ export default function VehicleDetailPage() {
     queryFn: () => vehicleApi.getCalendar(id),
     enabled: !!id,
   });
-  // Real market comparison for the "great deal" badge — the local median for
+  // Real market comparison for the "great deal" badge - the local median for
   // this category, so the claim is earned rather than always shown.
   const marketPrice = useQuery({
     queryKey: ['price-suggestion', id],
@@ -161,7 +161,7 @@ export default function VehicleDetailPage() {
   });
 
   // Real dollar savings for the two length-of-stay tiers, from the same quote
-  // engine a real booking uses — "10% off" makes a guest do arithmetic;
+  // engine a real booking uses - "10% off" makes a guest do arithmetic;
   // "$52 off a week" is the thing they're actually deciding whether to book.
   const savingsPreview = useQuery({
     queryKey: ['savings-preview', id],
@@ -184,7 +184,7 @@ export default function VehicleDetailPage() {
    * Put the guest back where they left off.
    *
    * Fires on mount rather than on auth becoming true, because the draft is
-   * also worth restoring if they came back without signing in — the work they
+   * also worth restoring if they came back without signing in - the work they
    * did is theirs either way.
    */
   useEffect(() => {
@@ -205,7 +205,7 @@ export default function VehicleDetailPage() {
     toast({
       tone: 'success',
       title: 'Picked up where you left off',
-      description: 'Your dates and options are still here — check them and book.',
+      description: 'Your dates and options are still here - check them and book.',
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -214,7 +214,7 @@ export default function VehicleDetailPage() {
     vehicleId: id,
     start: iso(start),
     end: iso(end),
-    // Trimmed, and omitted when blank — an empty string is not "no coupon" to
+    // Trimmed, and omitted when blank - an empty string is not "no coupon" to
     // the validator. The server is the one that decides if it's valid; a bad
     // code surfaces as a quote error, not a silent no-op.
     couponCode: couponCode.trim() || undefined,
@@ -224,7 +224,7 @@ export default function VehicleDetailPage() {
     // The Terms version the guest is accepting on this booking. The quote
     // endpoint ignores it; the create endpoint requires it.
     acceptedTermsVersion: platformCfg.data?.legal?.termsVersion,
-    // Only send delivery once a mode AND an address are chosen — a mode with no
+    // Only send delivery once a mode AND an address are chosen - a mode with no
     // address would be a delivery the host can't fulfil.
     delivery:
       deliveryMode && deliveryAddress.trim()
@@ -243,7 +243,7 @@ export default function VehicleDetailPage() {
         : undefined,
   });
   // Delivery needs an address before it can be quoted/booked.
-  // Airport delivery also needs the flight — the API rejects it otherwise, so
+  // Airport delivery also needs the flight - the API rejects it otherwise, so
   // the button should not promise a quote it cannot get.
   const deliveryReady =
     !deliveryMode ||
@@ -321,14 +321,14 @@ export default function VehicleDetailPage() {
     ? Math.max(1, Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86_400_000))
     : undefined;
 
-  // Real signals — no hardcoded claims.
+  // Real signals - no hardcoded claims.
   const median = marketPrice.data?.median ?? 0;
   const isGreatDeal = median > 0 && v.pricing.dailyPrice < median;
   const dealPct = isGreatDeal ? Math.round(((median - v.pricing.dailyPrice) / median) * 100) : 0;
   const weeklyPct = Math.round((v.pricing.weeklyDiscountBps ?? 0) / 100);
   const monthlyPct = Math.round((v.pricing.monthlyDiscountBps ?? 0) / 100);
   const mileage = v.mileageLimit;
-  // Cancellation copy generated from live platform config — never hardcoded.
+  // Cancellation copy generated from live platform config - never hardcoded.
   const cancelTerms = describeCancellation(v.listing.cancellationPolicy, platformCfg.data);
 
   return (
@@ -362,7 +362,7 @@ export default function VehicleDetailPage() {
           {/*
             The desktop grid is explicitly two rows. It was cols-4 with the hero
             spanning two rows and no row definition, so the secondary photos
-            flowed into implicit rows and were clipped by the fixed height —
+            flowed into implicit rows and were clipped by the fixed height -
             which is why the bottom row appeared cut in half.
           */}
           <div className="flex h-[35vh] snap-x snap-mandatory overflow-x-auto hide-scrollbar sm:grid sm:h-[55vh] sm:grid-cols-4 sm:grid-rows-2 sm:gap-2 sm:overflow-visible">
@@ -429,7 +429,7 @@ export default function VehicleDetailPage() {
             </button>
           )}
 
-          {/* Mobile gets a position counter instead — a button would sit on top
+          {/* Mobile gets a position counter instead - a button would sit on top
               of the photo people are swiping. */}
           {photos.length > 1 && (
             <span className="absolute bottom-3 end-3 z-10 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-md sm:hidden">
@@ -453,7 +453,7 @@ export default function VehicleDetailPage() {
 
         A grid track sized `1fr` still has `min-width: auto`, so it refuses to
         shrink below the intrinsic width of its widest child. Anything wide in
-        this column — the spec grid, a long unbroken string, the calendar —
+        this column - the spec grid, a long unbroken string, the calendar -
         pushed the track past the viewport, and because body carries
         overflow-x-hidden the excess was silently CLIPPED rather than
         scrollable. On a phone that meant the right-hand side of this page,
@@ -489,7 +489,7 @@ export default function VehicleDetailPage() {
           <Spec icon={<Gauge className="h-4 w-4" />} label={v.transmission} />
         </div>
 
-        {/* Great deal — shown only when genuinely below the local median */}
+        {/* Great deal - shown only when genuinely below the local median */}
         {isGreatDeal && (
           <div className="rounded-2xl bg-success/10 p-4 text-success">
             <p className="font-bold">Great deal!</p>
@@ -575,7 +575,7 @@ export default function VehicleDetailPage() {
               ) : (
                 <div>
                   <p className="text-[17px] font-medium">Unlimited distance</p>
-                  <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">Drive as far as you like — no mileage cap on this car.</p>
+                  <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">Drive as far as you like - no mileage cap on this car.</p>
                 </div>
               )}
             </div>
@@ -673,7 +673,7 @@ export default function VehicleDetailPage() {
           )}
         </div>
 
-        {/* Safety recalls and title history — a guest should be able to see an
+        {/* Safety recalls and title history - a guest should be able to see an
             open recall before getting into a stranger's car. */}
         <VehicleHistory vehicleId={id} audience="guest" />
 
@@ -730,20 +730,20 @@ export default function VehicleDetailPage() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No reviews yet — be the first to book.</p>
+            <p className="text-sm text-muted-foreground">No reviews yet - be the first to book.</p>
           )}
         </div>
       </div>
 
       {/*
-        Booking widget — one panel, two presentations.
+        Booking widget - one panel, two presentations.
 
         Desktop: a sticky card in the second column, so the price and the
         book button stay on screen while the guest reads down the page.
 
         Mobile: a bottom sheet the guest opens from the price bar. It used to
         render inline below the reviews, which meant choosing dates and seeing
-        the total were at opposite ends of a very long page — the guest had to
+        the total were at opposite ends of a very long page - the guest had to
         scroll up and down to book.
 
         Deliberately NOT two copies of the markup: the dates, protection and
@@ -751,7 +751,7 @@ export default function VehicleDetailPage() {
         surfaces silently drift apart.
       */}
       <div className="relative">
-        {/* Scrim — mobile only; on desktop the panel is always visible. */}
+        {/* Scrim - mobile only; on desktop the panel is always visible. */}
         {sheetOpen && (
           <div
             className="fixed inset-0 z-[60] animate-fade-in bg-black/50 lg:hidden"
@@ -803,7 +803,7 @@ export default function VehicleDetailPage() {
                 <div className="text-sm font-medium truncate">{v.location.address || v.location.city}</div>
               </div>
             </div>
-            {/* Delivery — only when the host offers it */}
+            {/* Delivery - only when the host offers it */}
             {activeDeliveryLocations.length > 0 ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -1016,7 +1016,7 @@ export default function VehicleDetailPage() {
               </div>
             )}
 
-            {/* Promo code — validated and redeemed server-side; the discount it
+            {/* Promo code - validated and redeemed server-side; the discount it
                 yields shows in the breakdown below, and a bad code fails the quote. */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground">Promo code</label>
@@ -1133,7 +1133,7 @@ export default function VehicleDetailPage() {
                   ? 'Continue'
                   : 'Request to book'}
             </Button>
-            {/* A booking is a contract — tapping the button opens the Terms
+            {/* A booking is a contract - tapping the button opens the Terms
                 popup, and the version accepted is recorded on the booking. */}
             {status === 'authenticated' && !agreedTerms && (
               <p className="text-center text-xs text-muted-foreground">
@@ -1157,7 +1157,7 @@ export default function VehicleDetailPage() {
     </div>
 
       {/*
-        Mobile price bar — the only way into the booking sheet.
+        Mobile price bar - the only way into the booking sheet.
 
         It sits outside the two-column grid on purpose: it used to be nested
         inside the booking panel, so hiding that panel on mobile took the bar
@@ -1185,7 +1185,7 @@ export default function VehicleDetailPage() {
             </>
           )}
         </div>
-        {/* Always opens the sheet — never books straight from here. The guest
+        {/* Always opens the sheet - never books straight from here. The guest
             has to see what they are agreeing to and what it costs. */}
         <Button
           size="lg"
@@ -1196,7 +1196,7 @@ export default function VehicleDetailPage() {
         </Button>
       </div>
 
-      {/* Similar cars — full-width strip under the two-column layout */}
+      {/* Similar cars - full-width strip under the two-column layout */}
       <SimilarCars vehicleId={id} start={start || undefined} end={end || undefined} days={days} />
   </div>
   );

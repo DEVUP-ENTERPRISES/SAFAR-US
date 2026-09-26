@@ -137,7 +137,7 @@ function AcceptInner() {
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                You already have a CatoDrive account with this email — accepting links it to this fleet. Your
+                You already have a CatoDrive account with this email - accepting links it to this fleet. Your
                 existing password keeps working.
               </p>
             )}

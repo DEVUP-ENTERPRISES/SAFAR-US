@@ -54,7 +54,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
-  // Errors linger — a failure the user missed is the whole problem we're solving.
+  // Errors linger - a failure the user missed is the whole problem we're solving.
   useEffect(() => {
     const ms = toast.tone === 'error' ? 8000 : 4000;
     const timer = setTimeout(onDismiss, ms);

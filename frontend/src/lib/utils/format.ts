@@ -2,7 +2,7 @@ import type { Money } from '@/lib/api/types';
 
 /** Backend money is integer minor units + ISO currency. Render as currency. */
 export function formatMoney(m: Money | undefined | null): string {
-  if (!m) return '—';
+  if (!m) return '-';
   try {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',

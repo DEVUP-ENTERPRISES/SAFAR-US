@@ -16,12 +16,12 @@ import { hostApi } from '@/features/host/api';
  * Where the car actually is, and how to get into it.
  *
  * A map pin is street level; the car is on P3 in bay 44. Every host explains
- * this by message, to every guest, every time — so it is stored once here and
+ * this by message, to every guest, every time - so it is stored once here and
  * shown automatically when the guest is on their way.
  *
  * The access code is treated differently from the other two because it is the
  * only field that opens something. It is released to the guest only after they
- * tap "on my way", and never to anyone else — a code sent at booking time has
+ * tap "on my way", and never to anyone else - a code sent at booking time has
  * been sitting in an inbox for a week by the time it is used.
  */
 export function PickupEditor({

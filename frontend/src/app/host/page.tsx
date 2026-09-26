@@ -27,13 +27,13 @@ import type { Vehicle } from '@/features/vehicles/types';
  * The order now follows what a host opens this page to find out:
  *
  *  1. IS ANYTHING WAITING ON ME. Approvals expire, documents lapse, cars come
- *     back. That is the only genuinely urgent content, so it is first — and it
+ *     back. That is the only genuinely urgent content, so it is first - and it
  *     is absent entirely when nothing is wrong, rather than showing an
  *     "all clear" card that trains people to scroll past the position.
  *  2. HOW AM I DOING. Money, shown as one figure with the rest supporting it,
  *     not four equal tiles competing for attention.
  *  3. MY CARS. With photographs, because that is what a car host recognises
- *     their fleet by — not by reading make and model as a list.
+ *     their fleet by - not by reading make and model as a list.
  *
  * A host with no history sees a start-here panel instead of a wall of zeros.
  * Nothing is fabricated to fill the space.
@@ -56,7 +56,7 @@ export default function HostDashboardPage() {
 
   return (
     <div className="space-y-8 pb-8">
-      {/* Greeting. Compact — the page is a workspace, not a landing page. */}
+      {/* Greeting. Compact - the page is a workspace, not a landing page. */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">Host</p>
@@ -80,7 +80,7 @@ export default function HostDashboardPage() {
         </Link>
       </div>
 
-      {/* 1 — Waiting on you. Rendered only when something actually is. */}
+      {/* 1 - Waiting on you. Rendered only when something actually is. */}
       {(actions.length > 0 || blockers.length > 0) && (
         <section className="space-y-4">
           <div className="flex items-baseline justify-between gap-3 px-1">
@@ -128,7 +128,7 @@ export default function HostDashboardPage() {
         </section>
       )}
 
-      {/* 2 — Money. One headline figure, the rest supporting it. */}
+      {/* 2 - Money. One headline figure, the rest supporting it. */}
       {earnings.isLoading ? (
         <Skeleton className="h-40 w-full rounded-3xl" />
       ) : hasHistory ? (
@@ -189,7 +189,7 @@ export default function HostDashboardPage() {
         </section>
       )}
 
-      {/* 3 — The fleet, with photographs. */}
+      {/* 3 - The fleet, with photographs. */}
       <section className="space-y-6 pt-4">
         <div className="flex items-baseline justify-between gap-3 px-1">
           <h2 className="text-xl font-bold tracking-tight">Your cars</h2>
@@ -211,7 +211,7 @@ export default function HostDashboardPage() {
             </span>
             <p className="mt-6 text-xl font-bold">No cars listed yet</p>
             <p className="mt-2 text-base font-medium text-muted-foreground max-w-sm mx-auto">
-              Adding a car takes a few minutes — we read most of the details from the VIN.
+              Adding a car takes a few minutes - we read most of the details from the VIN.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
               <Link href="/host/listings/new"><Button size="lg" className="w-full sm:w-auto rounded-full font-bold"><Plus className="h-5 w-5 mr-2" /> Add a car</Button></Link>
@@ -241,7 +241,7 @@ function Figure({ label, value, tone }: { label: string; value: string; tone?: '
  * A car, shown as a car.
  *
  * The photograph is the point: a host recognises their fleet by sight, and a
- * listing with no cover image is also a listing guests scroll past — so a
+ * listing with no cover image is also a listing guests scroll past - so a
  * missing photo is surfaced as something to fix rather than hidden behind a
  * grey rectangle.
  */

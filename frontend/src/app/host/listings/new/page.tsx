@@ -28,7 +28,7 @@ import type { DeliveryLocation } from '@/features/vehicles/types';
 
 const STEPS = ['Basics', 'Details', 'Photos', 'Pricing', 'Delivery', 'Standards', 'Review'];
 
-/** SHA-256 of the file's bytes — identifies the same photo under any filename. */
+/** SHA-256 of the file's bytes - identifies the same photo under any filename. */
 async function fingerprintFile(file: File): Promise<string> {
   try {
     const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
@@ -36,7 +36,7 @@ async function fingerprintFile(file: File): Promise<string> {
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
   } catch {
-    // Non-secure context — fall back to a weaker but still useful identity.
+    // Non-secure context - fall back to a weaker but still useful identity.
     return `${file.name}:${file.size}:${file.lastModified}`;
   }
 }
@@ -91,7 +91,7 @@ const ADDON_PRESETS: Record<string, { label: string; priceType: 'per_trip' | 'pe
     label: 'Fuel surcharge',
     priceType: 'per_trip',
     amount: 140,
-    note: '$8/gallon + $20 service fee — guest returns it unfuelled',
+    note: '$8/gallon + $20 service fee - guest returns it unfuelled',
   },
 };
 
@@ -114,7 +114,7 @@ export default function NewListingPage() {
   const [d, setD] = useState<Draft>(initial);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((p) => ({ ...p, [k]: v }));
 
-  // Restore whatever was in progress — refresh, back button, or a closed tab.
+  // Restore whatever was in progress - refresh, back button, or a closed tab.
   // Runs once, before the first save effect can overwrite it.
   const [restored, setRestored] = useState(false);
   useEffect(() => {
@@ -131,7 +131,7 @@ export default function NewListingPage() {
   }, [d, step, restored]);
 
   // Continue/Back leaves the scroll position wherever it was on the previous
-  // step — the new step then renders starting mid-screen, under the navbar,
+  // step - the new step then renders starting mid-screen, under the navbar,
   // instead of from its own top. Skip on the initial mount (restoring a draft
   // mid-wizard should not yank the screen before the host has scrolled at all).
   const stepMounted = useRef(false);
@@ -161,13 +161,13 @@ export default function NewListingPage() {
     setUploading(true);
     try {
       // Same picture twice is always a mistake, and it costs a listing slot.
-      // Fingerprint the bytes, not the filename — the same photo re-saved from
+      // Fingerprint the bytes, not the filename - the same photo re-saved from
       // a phone gallery comes back with a different name every time.
       const incoming = Array.from(files);
       const fingerprints = await Promise.all(incoming.map(fingerprintFile));
       const seen = new Set(d.photos.map((p) => p.fingerprint).filter(Boolean) as string[]);
       const list: File[] = [];
-      // Keyed by File, not by index — the upload batches below are grouped by
+      // Keyed by File, not by index - the upload batches below are grouped by
       // content type, so positional order does not survive a mixed selection.
       const fpOf = new Map<File, string>();
       let duplicates = 0;
@@ -185,7 +185,7 @@ export default function NewListingPage() {
         notify({
           tone: 'error',
           title: `${duplicates} photo${duplicates === 1 ? ' was' : 's were'} already added`,
-          description: 'Skipped the duplicates — pick different shots of the car.',
+          description: 'Skipped the duplicates - pick different shots of the car.',
         });
       }
       if (!list.length) return;
@@ -211,7 +211,7 @@ export default function NewListingPage() {
             body: f,
             headers: { 'Content-Type': f.type || 'application/octet-stream' },
           });
-          // fetch resolves on 4xx/5xx — without this a rejected upload would be
+          // fetch resolves on 4xx/5xx - without this a rejected upload would be
           // recorded as a photo.
           if (!res.ok) throw new Error(`Storage rejected the upload (${res.status}).`);
         }),
@@ -285,7 +285,7 @@ export default function NewListingPage() {
         location: {
           lng: d.lng!,
           lat: d.lat!,
-          address: [d.address, d.pickupNotes].filter(Boolean).join(' — '),
+          address: [d.address, d.pickupNotes].filter(Boolean).join(' - '),
           city: d.city,
         },
         listing: {
@@ -331,7 +331,7 @@ export default function NewListingPage() {
    *
    * The wizard used to gate only make/model and photo count, so a host could
    * reach Review without ever picking a location and the create call came back
-   * with a bare "Validation failed" — no indication of which field, six steps
+   * with a bare "Validation failed" - no indication of which field, six steps
    * from where the mistake was made. Requirements are checked on the step that
    * owns them and the offending input is marked there.
    */
@@ -348,7 +348,7 @@ export default function NewListingPage() {
       // A listing with no coordinates cannot be searched, so this is the one
       // field a host must not be able to skip past.
       if (d.lng === null || d.lat === null) e.location = 'Pick a pickup location from the suggestions';
-      else if (!d.city.trim()) e.location = 'That address has no city — pick a more specific one';
+      else if (!d.city.trim()) e.location = 'That address has no city - pick a more specific one';
     }
     if (forStep === 2) {
       if (d.photos.length < minPhotos) {
@@ -361,9 +361,9 @@ export default function NewListingPage() {
     }
     if (forStep === 4) {
       // Unlimited mileage isn't offered, and the included allowance is capped
-      // against the daily rate — 4 miles per dollar per day.
+      // against the daily rate - 4 miles per dollar per day.
       if (!Number(d.mileagePerDay) || Number(d.mileagePerDay) < 1) {
-        e.mileagePerDay = 'Set a daily mileage limit — unlimited is not allowed';
+        e.mileagePerDay = 'Set a daily mileage limit - unlimited is not allowed';
       } else if (Number(d.mileagePerDay) > mileageCap) {
         e.mileagePerDay = `Max ${mileageCap} miles/day for a $${d.dailyPrice}/day car`;
       }
@@ -377,7 +377,7 @@ export default function NewListingPage() {
   const errors = stepErrors(step);
   const canNext = () => Object.keys(errors).length === 0;
 
-  /** Every unmet requirement across the whole wizard — shown on Review. */
+  /** Every unmet requirement across the whole wizard - shown on Review. */
   const allBlockers = [0, 1, 2, 3, 4, 5].flatMap((i) =>
     Object.entries(stepErrors(i)).map(([field, msg]) => ({ step: i, field, msg })),
   );
@@ -411,7 +411,7 @@ export default function NewListingPage() {
           {step === 0 && (
             <div className="space-y-4">
               <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-                <Field label="VIN" hint="Enter it first — we'll fill in make, model, year and the rest from it.">
+                <Field label="VIN" hint="Enter it first - we'll fill in make, model, year and the rest from it.">
                   <div className="flex gap-2">
                     <Input
                       value={d.vin}
@@ -434,15 +434,15 @@ export default function NewListingPage() {
                 {vinResult?.ok && (
                   <p className="mt-2 flex items-center gap-1.5 text-sm text-success">
                     <Check className="h-4 w-4" /> {vinResult.year} {vinResult.make} {vinResult.model}
-                    {vinResult.trim ? ` ${vinResult.trim}` : ''} — details filled in below.
-                    {vinResult.missing.length > 0 && ` Check ${vinResult.missing.join(', ')} — the VIN didn't include it.`}
+                    {vinResult.trim ? ` ${vinResult.trim}` : ''} - details filled in below.
+                    {vinResult.missing.length > 0 && ` Check ${vinResult.missing.join(', ')} - the VIN didn't include it.`}
                   </p>
                 )}
                 {vinResult?.duplicate && (
                   <p className="mt-2 text-sm text-destructive">This VIN is already on one of your listings.</p>
                 )}
                 {vinResult && !vinResult.ok && (
-                  <p className="mt-2 text-sm text-destructive">{vinResult.error ?? "Couldn't decode that VIN — enter the details below manually."}</p>
+                  <p className="mt-2 text-sm text-destructive">{vinResult.error ?? "Couldn't decode that VIN - enter the details below manually."}</p>
                 )}
               </div>
 
@@ -488,7 +488,7 @@ export default function NewListingPage() {
                 label="Where guests pick it up *"
                 className="sm:col-span-2"
                 error={errors.location}
-                hint={d.city ? `Listed in ${d.city}` : 'Search any address — you are not limited to a fixed list of cities.'}
+                hint={d.city ? `Listed in ${d.city}` : 'Search any address - you are not limited to a fixed list of cities.'}
               >
                 <LocationSearch
                   placeholder="Start typing an address or city"
@@ -503,7 +503,7 @@ export default function NewListingPage() {
                   }}
                 />
               </Field>
-              <Field label="Pickup notes" className="sm:col-span-2" hint="Optional — where exactly to meet, parking, gate codes">
+              <Field label="Pickup notes" className="sm:col-span-2" hint="Optional - where exactly to meet, parking, gate codes">
                 <Input value={d.pickupNotes} onChange={(e) => set('pickupNotes', e.target.value)} placeholder="Garage level 2, spot 14" />
               </Field>
               <Field label="Color" hint="Guests filter by this, so pick the closest match">
@@ -513,7 +513,7 @@ export default function NewListingPage() {
               <Field label="Description" className="sm:col-span-2">
                 <Textarea value={d.description} onChange={(e) => set('description', e.target.value)} rows={3} />
               </Field>
-              <Field label="Features" className="sm:col-span-2" hint="Guests filter by these — pick everything that applies">
+              <Field label="Features" className="sm:col-span-2" hint="Guests filter by these - pick everything that applies">
                 <FeaturePicker value={d.features} onChange={(v) => set('features', v)} />
               </Field>
             </div>
@@ -529,7 +529,7 @@ export default function NewListingPage() {
                 <p className={`mt-1 text-sm font-medium ${d.photos.length >= minPhotos ? 'text-success' : 'text-destructive'}`}>
                   {d.photos.length >= minPhotos
                     ? `${d.photos.length} photos added`
-                    : `${d.photos.length} of ${minPhotos} required photos added — ${errors.photos}`}
+                    : `${d.photos.length} of ${minPhotos} required photos added - ${errors.photos}`}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -549,7 +549,7 @@ export default function NewListingPage() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={p.url} alt="" className="h-full w-full object-cover" />
 
-                      {/* The whole tile is the target — a small icon is a poor
+                      {/* The whole tile is the target - a small icon is a poor
                           touch target on a phone, which is where hosts list. */}
                       {!isCover && (
                         <button
@@ -636,7 +636,7 @@ export default function NewListingPage() {
 
           {step === 4 && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Offer delivery to earn more — each location can have its own fee.</p>
+              <p className="text-sm text-muted-foreground">Offer delivery to earn more - each location can have its own fee.</p>
               <DeliveryLocationsEditor
                 value={d.deliveryLocations}
                 onChange={(next) => set('deliveryLocations', next)}
@@ -785,7 +785,7 @@ export default function NewListingPage() {
                       {create.error.details.map((det, i) => (
                         <li key={i}>
                           {det.field ? <span className="font-mono">{det.field}</span> : null}
-                          {det.field ? ' — ' : ''}
+                          {det.field ? ' - ' : ''}
                           {det.issue}
                         </li>
                       ))}
@@ -825,7 +825,7 @@ export default function NewListingPage() {
 }
 
 /**
- * Options may be plain strings or {value,label} pairs — needed because the
+ * Options may be plain strings or {value,label} pairs - needed because the
  * stored value and the word a host reads are not always the same. "petrol"
  * is stored, but a US host is looking for "Gas".
  */

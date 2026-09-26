@@ -63,14 +63,14 @@ export function useSos(id: string) {
 
 /**
  * Streams the guest's own device location to the trip while it's active, so the
- * host can watch the car move in real time. Emits over the socket — that path
+ * host can watch the car move in real time. Emits over the socket - that path
  * both persists the fix and broadcasts it to everyone watching the trip room
  * (the REST endpoint only persists). Uses the browser's geolocation watch,
  * throttled to at most one update every 15s to spare battery and bandwidth, and
  * stops the moment the trip is no longer active or the screen unmounts.
  */
 /**
- * Streams this device's position — but only while the server says tracking is
+ * Streams this device's position - but only while the server says tracking is
  * open for the trip.
  *
  * This used to run for as long as the trip was active, which for a car rental
@@ -82,7 +82,7 @@ export function useTrackingState(bookingId: string) {
   return useQuery({
     queryKey: ['tracking', bookingId],
     queryFn: () => tripApi.tracking(bookingId),
-    // Cheap, and the phase turns over on a clock — a stale answer would either
+    // Cheap, and the phase turns over on a clock - a stale answer would either
     // leak position or hide a map someone needs.
     refetchInterval: 60_000,
     enabled: !!bookingId,
@@ -104,7 +104,7 @@ export function useLocationStreaming(bookingId: string, active: boolean) {
         socket.emit('trip:location', { bookingId, lng: pos.coords.longitude, lat: pos.coords.latitude });
       },
       () => {
-        /* permission denied / unavailable — the trip simply has no live location */
+        /* permission denied / unavailable - the trip simply has no live location */
       },
       { enableHighAccuracy: true, maximumAge: 10_000, timeout: 20_000 },
     );

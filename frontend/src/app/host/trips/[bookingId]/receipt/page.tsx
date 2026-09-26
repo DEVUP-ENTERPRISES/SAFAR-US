@@ -90,7 +90,7 @@ function Receipt() {
               <p className="mt-5 font-mono text-2xl font-bold">{t.code}</p>
               <p className="mt-1 text-xs text-white/60">Issued {formatDate(r.issuedAt)}</p>
             </div>
-            {/* QR — verify authenticity */}
+            {/* QR - verify authenticity */}
             <div className="shrink-0 text-center">
               {qr && (
                 // eslint-disable-next-line @next/next/no-img-element

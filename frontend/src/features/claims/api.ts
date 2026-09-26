@@ -28,7 +28,7 @@ export const claimsApi = {
 };
 
 export interface Settlement {
-  /** Null until the trip has actually ended — the clock starts at return. */
+  /** Null until the trip has actually ended - the clock starts at return. */
   closesAt: string | null;
   closed: boolean;
   hoursRemaining: number | null;

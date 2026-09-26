@@ -118,7 +118,7 @@ export function useLogout() {
     onSuccess: () => {
       signOut();
       qc.clear();
-      // The socket carries its own identity, established at handshake — it is
+      // The socket carries its own identity, established at handshake - it is
       // not covered by clearing tokens or the query cache. Left connected, the
       // next person to sign in on this browser inherited a live realtime
       // session authenticated as the previous user.

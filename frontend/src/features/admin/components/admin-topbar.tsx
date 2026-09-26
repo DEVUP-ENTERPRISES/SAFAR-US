@@ -32,7 +32,7 @@ export function AdminTopbar() {
           </span>
         </Link>
 
-        {/* Environment badge — the cheapest way to stop someone running a
+        {/* Environment badge - the cheapest way to stop someone running a
             destructive action against the wrong environment. */}
         <span
           className={`hidden rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider sm:inline ${

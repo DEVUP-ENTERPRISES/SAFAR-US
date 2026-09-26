@@ -9,7 +9,7 @@ import { config } from '@/lib/config';
 
 /**
  * Shared CatoDrive marketing sections, so the homepage and the About page show
- * the same social proof and audience story from ONE source — change it once,
+ * the same social proof and audience story from ONE source - change it once,
  * it changes everywhere. Figures are business-supplied marketing copy.
  */
 
@@ -38,7 +38,7 @@ const STATS = [
  * `excludeLive` drops the two tiles the homepage hero already renders from the
  * live marketplace API (rating and completed trips). Without it the homepage
  * showed a live average rating in the hero and a hardcoded 4.96★ three
- * sections below it — two different ratings for the same company on one
+ * sections below it - two different ratings for the same company on one
  * screen, which reads as fabricated even when both numbers are genuine. The
  * live figure wins there; these historical, year-labelled ones stand alone on
  * /about where there is no hero to contradict.
@@ -54,8 +54,8 @@ export function TractionStats({
     <section>
       <Reveal className="mx-auto max-w-2xl text-center">
         <SectionEyebrow>Proven traction · Zero outside capital</SectionEyebrow>
-        <h2 className="display mt-4 text-4xl sm:text-5xl">{heading}</h2>
-        <p className="mt-4 text-lg text-muted-foreground">Real figures from a real fleet — 100% bootstrapped.</p>
+        <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">{heading}</h2>
+        <p className="mt-4 text-base text-muted-foreground sm:text-lg">Real figures from a real fleet - 100% bootstrapped.</p>
       </Reveal>
       <div className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((s, i) => (
@@ -72,30 +72,30 @@ function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label,
   prefix?: string; value: number; suffix?: string; decimals?: number; comma?: boolean; label: string; sub?: string;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10">
+    <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10 sm:p-6">
       <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/10 blur-2xl transition-opacity duration-500 group-hover:opacity-80" />
-      <p className="numeric text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
+      <p className="numeric text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
         {prefix}
         <CountUp value={value} decimals={decimals} comma={comma} />
         {suffix}
       </p>
-      <p className="mt-3 text-sm font-medium text-foreground">{label}</p>
+      <p className="mt-2 text-sm font-medium text-foreground sm:mt-3">{label}</p>
       {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }
 
-/* ── Who we serve — image cards ────────────────────────────────────────── */
+/* ── Who we serve - image cards ────────────────────────────────────────── */
 
 /**
  * Corporate/Enterprise cards drop out entirely while config.assetPartnersOnly
- * is on — see the config comment. Two cards left still fills the same
+ * is on - see the config comment. Two cards left still fills the same
  * 2-column grid cleanly; nothing needed to change in the layout below.
  */
 const AUDIENCES = [
-  // Was pointed at /host — the self-serve flow, not this program. A visitor
+  // Was pointed at /host - the self-serve flow, not this program. A visitor
   // clicking "Become a partner" landed on the wrong pitch entirely.
-  { icon: TrendingUp, image: '/newsections/asset_partners.webp', title: 'Asset Partners', body: 'List a vehicle you already own. Net $1,066–$1,878/month — you keep 80% of every booking.', href: '/asset-partners', cta: 'Become a partner' },
+  { icon: TrendingUp, image: '/newsections/asset_partners.webp', title: 'Asset Partners', body: 'List a vehicle you already own. Net $1,066–$1,878/month - you keep 80% of every booking.', href: '/asset-partners', cta: 'Become a partner' },
   { icon: Briefcase, image: '/newsections/business_travels.webp', title: 'Business Travelers', body: 'Car delivered to your terminal at DFW or Love Field, 5–15% below market rate. Paperless end-to-end. Zero friction.', href: '/search', cta: 'Book a car' },
   { icon: Building2, image: '/newsections/corporate_accounts.webp', title: 'Corporate Accounts', body: 'B2B fleet accounts for enterprises and staffing agencies, auto-repair loaner programs, and white-glove SUV delivery to private terminals.', href: '/corporate', cta: 'Talk to us' },
   { icon: Users, image: '/newsections/enterprise_volume.webp', title: 'Enterprise & Volume', body: 'Volume pricing, dedicated account management, consolidated billing, and priority terminal delivery for regular DFW travel.', href: '/corporate', cta: 'Corporate portal' },
@@ -107,8 +107,8 @@ export function AudienceSection({ heading = 'Two sides of one platform.' }: { he
     <section>
       <Reveal className="max-w-3xl">
         <SectionEyebrow>Who {BRAND} serves</SectionEyebrow>
-        <h2 className="display mt-4 text-4xl sm:text-5xl">{heading}</h2>
-        <p className="mt-5 text-lg leading-relaxed text-muted-foreground">Travel without hassle. Earn without effort.</p>
+        <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">{heading}</h2>
+        <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:mt-5 sm:text-lg">Travel without hassle. Earn without effort.</p>
       </Reveal>
       <div className="mt-12 grid gap-4 sm:grid-cols-2">
         {audiences.map((a, i) => (

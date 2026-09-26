@@ -10,7 +10,7 @@ import { bookingApi } from '@/features/bookings/api';
 import { formatMoney, formatDateRange, formatDate } from '@/lib/utils/format';
 
 /**
- * Public receipt verification — the page a CatoDrive receipt's QR code opens.
+ * Public receipt verification - the page a CatoDrive receipt's QR code opens.
  *
  * No login required and no PII shown: it only confirms that a receipt with this
  * reference is genuine and states its dates, status and total, so anyone holding

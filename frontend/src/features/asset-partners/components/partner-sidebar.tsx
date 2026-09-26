@@ -17,12 +17,12 @@ const ICONS = {
 };
 
 /*
- * mobileLabel on the three longer items below isn't a style choice — at 6
+ * mobileLabel on the three longer items below isn't a style choice - at 6
  * equal columns, a real phone gives each one roughly 60px, and "Statements"
  * / "Maintenance" / "Documents" at that width don't fit even at 9-10px
  * type. Truncating them to "Stateme…" / "Maintena…" / "Documen…" (what
  * showed before this) isn't a smaller version of the word, it's an
- * unreadable one — the fix is a genuinely shorter word, not tighter CSS
+ * unreadable one - the fix is a genuinely shorter word, not tighter CSS
  * around the long one. "Dashboard", "Vehicles" and "Profile" fit as-is and
  * don't need an override.
  */
@@ -39,7 +39,7 @@ const NAV: PanelNavItem[] = [
     group: 'Vehicle care',
     // Was mobile: false, leaving the mobile bar at 5 items with a real page
     // (title deeds, agreements, insurance docs) reachable only from the
-    // desktop sidebar. The mobile bar now takes 6 (see panel-sidebar.tsx —
+    // desktop sidebar. The mobile bar now takes 6 (see panel-sidebar.tsx -
     // it was hard-capped at 5 with no route behind that number), so there's
     // room for it without crowding anything else out.
   },

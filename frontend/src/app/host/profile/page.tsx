@@ -123,7 +123,7 @@ export default function HostProfilePage() {
             <Field label="Languages spoken" className="sm:col-span-2" hint="Comma separated">
               <Input value={form.languages} onChange={f('languages')} placeholder="English, Spanish" />
             </Field>
-            <Field label="About you" className="sm:col-span-2" hint="A short intro builds trust — why you host, what you love to drive">
+            <Field label="About you" className="sm:col-span-2" hint="A short intro builds trust - why you host, what you love to drive">
               <Textarea
                 value={form.bio}
                 onChange={(e) => setForm({ ...form, bio: e.target.value })}

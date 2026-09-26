@@ -11,9 +11,9 @@ import { useFavoriteIds } from '@/features/favorites/hooks';
 import { useUnreadMessages } from '@/features/messaging/hooks';
 
 /**
- * The GUEST phone navigation bar (host mode has its own — HostMobileTabBar).
+ * The GUEST phone navigation bar (host mode has its own - HostMobileTabBar).
  *
- * Six equal tabs — no lifted centre, nothing oversized. Product call: the core
+ * Six equal tabs - no lifted centre, nothing oversized. Product call: the core
  * loop of a rental marketplace is browse → search → save → trip → talk →
  * manage, so those are the six, and Home is the CatoDrive mark itself so the brand
  * is present without a logo row stealing space. Everything else lives in the
@@ -41,13 +41,13 @@ export function MobileTabBar() {
   const saved = user ? (favourites.data?.length ?? 0) : 0;
 
   /*
-   * Chrome for browsing — hidden where the screen is already a full-height
+   * Chrome for browsing - hidden where the screen is already a full-height
    * workspace it would only cover, OR where the page renders its own fixed
    * bottom action bar.
    *
    * /vehicles/[id] and /bookings/[id]/rebook both do the latter: a price/
    * booking bar pinned to the same inset-x-0 bottom-0 as this nav. Two fixed
-   * bars at the same edge fight for the same strip of screen — the gap this
+   * bars at the same edge fight for the same strip of screen - the gap this
    * nav's own spacer reserves opens up above whichever bar actually painted
    * on top, which is what read as a broken/empty band under the page content.
    */
@@ -105,9 +105,9 @@ function Tab({
   label: string;
   on: boolean;
   count?: number;
-  /** A car is out — pulse this tab. */
+  /** A car is out - pulse this tab. */
   live?: boolean;
-  /** Home uses the logo, which carries its own colour — don't tint it active. */
+  /** Home uses the logo, which carries its own colour - don't tint it active. */
   flat?: boolean;
 }) {
   return (

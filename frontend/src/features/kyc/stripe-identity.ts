@@ -1,13 +1,13 @@
 import { getStripePublishableKey } from '@/features/payments/stripe-key';
 
-/** Minimal shape of the bits of Stripe.js we touch — no SDK dependency. */
+/** Minimal shape of the bits of Stripe.js we touch - no SDK dependency. */
 interface StripeLike {
   verifyIdentity(clientSecret: string): Promise<{ error?: { code?: string; message?: string } }>;
 }
 type StripeCtor = (key: string) => StripeLike;
 
 /**
- * Loads Stripe.js once per page from Stripe's CDN — same runtime-injection
+ * Loads Stripe.js once per page from Stripe's CDN - same runtime-injection
  * pattern as the map loaders. Stripe.js MUST be served from js.stripe.com (they
  * refuse to run when self-hosted), so a script tag is the only option; we just
  * make sure concurrent callers share one tag.
@@ -42,7 +42,7 @@ export type VerifyOutcome = 'completed' | 'canceled';
 
 /**
  * Opens Stripe Identity's hosted modal for document + selfie capture against a
- * verification session's client secret. Resolves once the modal closes —
+ * verification session's client secret. Resolves once the modal closes -
  * `completed` when the user finished submitting (the decision still arrives by
  * webhook), `canceled` if they dismissed it. Throws only on a genuine failure.
  */

@@ -1,7 +1,7 @@
 import { api } from '@/lib/api/client';
 
 /**
- * The documents endpoint has existed on the backend with no caller at all —
+ * The documents endpoint has existed on the backend with no caller at all -
  * insurance, registration and title were collected on the Asset Partner
  * application and then never surfaced or renewable anywhere.
  *
@@ -33,7 +33,7 @@ export interface CreateDocumentInput {
   category: DocumentCategory;
   url: string;
   key?: string;
-  /** ISO date — surfaced as an expiry warning before the policy lapses. */
+  /** ISO date - surfaced as an expiry warning before the policy lapses. */
   expiresAt?: string;
 }
 

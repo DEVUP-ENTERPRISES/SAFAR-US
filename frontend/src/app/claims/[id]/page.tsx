@@ -26,7 +26,7 @@ const STATUS_COPY: Record<string, string> = {
   opened: 'Filed and waiting for our team to pick it up.',
   investigating: 'Our team is reviewing the evidence.',
   assigned: 'Assigned to a specialist for review.',
-  approved: 'Upheld — settlement is being processed.',
+  approved: 'Upheld - settlement is being processed.',
   settled: 'Resolved and settled.',
   rejected: 'Reviewed and not upheld.',
   closed: 'Closed.',
@@ -98,7 +98,7 @@ function ClaimDetail() {
         </CardContent>
       </Card>
 
-      {/* Timeline — the live status trail an operator moves it through. */}
+      {/* Timeline - the live status trail an operator moves it through. */}
       <div>
         <h2 className="mb-3 text-sm font-semibold">Progress</h2>
         <ol className="space-y-0">

@@ -29,7 +29,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 /*
  * When a 401 outlives a refresh, the API layer announces it here. Flipping the
  * store to "unauthenticated" is what makes every AuthGuard redirect to its
- * portal's sign-in page — without this the token was cleared but the app still
+ * portal's sign-in page - without this the token was cleared but the app still
  * believed it was signed in, so the user was shown the raw API error
  * ("Missing bearer token") instead of a login screen.
  */

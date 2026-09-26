@@ -7,7 +7,7 @@
  * a comment saying this avoided "dropping them on search having lost their
  * dates and options". It preserved the URL and nothing else: every field on
  * that page is component state, so returning from login remounted it empty.
- * Dates, protection plan, add-ons, delivery address, flight, coupon — all of
+ * Dates, protection plan, add-ons, delivery address, flight, coupon - all of
  * it had to be entered a second time, at the exact moment someone has already
  * decided to pay.
  *
@@ -41,13 +41,13 @@ export function saveDraft(draft: Omit<BookingDraft, 'savedAt'>): void {
   try {
     sessionStorage.setItem(KEY, JSON.stringify({ ...draft, savedAt: Date.now() }));
   } catch {
-    /* storage unavailable — the guest re-enters, which is today's behaviour */
+    /* storage unavailable - the guest re-enters, which is today's behaviour */
   }
 }
 
 /**
  * Returns the draft only if it belongs to this car and is still fresh, and
- * clears it either way — restoring is a one-shot, or a back button would keep
+ * clears it either way - restoring is a one-shot, or a back button would keep
  * re-filling a form the guest has since changed.
  */
 export function takeDraft(vehicleId: string): BookingDraft | null {

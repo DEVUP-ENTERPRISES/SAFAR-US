@@ -6,18 +6,18 @@ import { NextResponse, type NextRequest } from 'next/server';
  * The back office moved to its own application on port 3005 (see admin-web/),
  * reachable only through its own hostname behind Cloudflare Access. So on the
  * public site both the old secret slug and the literal /admin path must reveal
- * nothing — a scanner or a curious user gets the same 404 as any missing page,
+ * nothing - a scanner or a curious user gets the same 404 as any missing page,
  * and there is no console code in this bundle to reach even if they guessed a
  * route.
  */
 const SLUG = process.env.NEXT_PUBLIC_ADMIN_SLUG || 'admin';
-// House Fleet's own subdomain — same app, but it opens on the host area.
+// House Fleet's own subdomain - same app, but it opens on the host area.
 const HF_HOST = process.env.NEXT_PUBLIC_HOUSE_FLEET_HOST || '';
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Only the root — anything else (assets, sw.js, /host/*) is left alone.
+  // Only the root - anything else (assets, sw.js, /host/*) is left alone.
   if (HF_HOST && req.nextUrl.hostname === HF_HOST && pathname === '/') {
     const url = req.nextUrl.clone();
     url.pathname = '/host';

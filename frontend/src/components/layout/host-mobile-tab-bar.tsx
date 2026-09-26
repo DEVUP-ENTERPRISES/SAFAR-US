@@ -8,7 +8,7 @@ import { useAuthStore } from '@/features/auth/store';
 import { useUnreadMessages } from '@/features/messaging/hooks';
 
 /**
- * The HOST phone navigation bar — the mobile workspace for someone managing
+ * The HOST phone navigation bar - the mobile workspace for someone managing
  * their fleet. Its own component (not a mode inside the guest bar): a host on
  * their dashboard should see host chrome, so AppChrome mounts this instead of
  * the guest MobileTabBar while inside /host/*.
@@ -22,7 +22,7 @@ interface HostTab {
   href: string;
   label: string;
   icon: React.ReactNode;
-  /** Active only on an exact match — for the dashboard root, which prefixes
+  /** Active only on an exact match - for the dashboard root, which prefixes
    *  every other host route. */
   exact?: boolean;
   count?: number;

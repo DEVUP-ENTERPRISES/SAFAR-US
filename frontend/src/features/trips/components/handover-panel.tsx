@@ -27,7 +27,7 @@ function minutesUntil(iso?: string): number | null {
  * The handover, as both parties see it.
  *
  * The guest gets navigation to the car. The host gets a countdown to when they
- * should leave — computed from where the guest actually is, not from the booked
+ * should leave - computed from where the guest actually is, not from the booked
  * start time. So if the guest is stuck, the host's departure moves with them and
  * neither person waits in a car park.
  *

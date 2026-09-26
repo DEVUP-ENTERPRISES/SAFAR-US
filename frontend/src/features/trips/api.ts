@@ -65,7 +65,7 @@ export interface Trip {
   /** False while a guest-ended return waits for the host to confirm it. */
   returnConfirmed?: boolean;
   liveLocation?: { coordinates: [number, number]; updatedAt: string };
-  /** Condition photos. `pre` = pickup, `post` = return — the damage baseline. */
+  /** Condition photos. `pre` = pickup, `post` = return - the damage baseline. */
   photos?: TripPhoto[];
   /** Window and count state for both photo phases; present for the guest and host of the trip. */
   inspection?: InspectionState | null;
@@ -83,8 +83,8 @@ export interface Trip {
 
 export const tripApi = {
   get: (id: string) => api.get<Trip>(`/trips/${id}`),
-  /** Read before streaming or rendering a map — the server owns this decision. */
-  /** All three key on the BOOKING — the trip does not exist until handover. */
+  /** Read before streaming or rendering a map - the server owns this decision. */
+  /** All three key on the BOOKING - the trip does not exist until handover. */
   tracking: (bookingId: string) => api.get<TrackingState>(`/bookings/${bookingId}/tracking`),
   approach: (bookingId: string) => api.get<ApproachState>(`/bookings/${bookingId}/approach`),
   onMyWay: (bookingId: string) => api.post<ApproachState>(`/bookings/${bookingId}/on-my-way`, {}),
@@ -118,7 +118,7 @@ export interface TrackingState {
   closesAt?: string;
 }
 
-/** The hour before a handover — see approach.service on the backend. */
+/** The hour before a handover - see approach.service on the backend. */
 export interface ApproachLeg {
   onWayAt?: string;
   arrivedAt?: string;

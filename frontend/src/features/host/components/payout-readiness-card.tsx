@@ -48,7 +48,7 @@ export function PayoutReadinessCard() {
               </p>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {blocking.length > 0
-                  ? 'Your earnings keep accruing — they just can’t be sent yet.'
+                  ? 'Your earnings keep accruing - they just can’t be sent yet.'
                   : d.destination.platformOwned
                     ? 'These trips are our own cars, so no payout account is needed.'
                     : d.nextPayoutAt
@@ -72,7 +72,7 @@ export function PayoutReadinessCard() {
           )}
         </div>
 
-        {/* Every blocker names the screen that clears it — "on hold" with no
+        {/* Every blocker names the screen that clears it - "on hold" with no
             next step is just anxiety. */}
         {(blocking.length > 0 || warnings.length > 0) && (
           <ul className="divide-y divide-border border-t border-border">

@@ -137,8 +137,8 @@ export default function HostTripDetailPage() {
   };
 
   const doHostCancel = async () => {
-    // Show the host exactly what cancelling costs — the guest's full refund
-    // and the standing penalty — before they commit. This is the marketplace's
+    // Show the host exactly what cancelling costs - the guest's full refund
+    // and the standing penalty - before they commit. This is the marketplace's
     // most damaging event, so it is deliberately heavy.
     let desc: ReactNode = 'The guest is fully refunded and this counts against your standing.';
     try {
@@ -192,7 +192,7 @@ export default function HostTripDetailPage() {
   const doCheckIn = async () => {
     const { ok } = await confirm({
       title: 'Start the trip?',
-      description: `Recording ${Number(odoStart).toLocaleString()} miles as the starting odometer. Every mileage charge is measured from this — it cannot be changed afterwards.`,
+      description: `Recording ${Number(odoStart).toLocaleString()} miles as the starting odometer. Every mileage charge is measured from this - it cannot be changed afterwards.`,
       confirmLabel: 'Start trip',
     });
     if (ok) handover.mutate();
@@ -394,7 +394,7 @@ export default function HostTripDetailPage() {
             <Row
               icon={<Gauge className="h-5 w-5" />}
               title="Distance driven"
-              value={t.mileage.drivenKm != null ? miles(t.mileage.drivenKm) : '—'}
+              value={t.mileage.drivenKm != null ? miles(t.mileage.drivenKm) : '-'}
             />
           </RowGroup>
 
@@ -406,7 +406,7 @@ export default function HostTripDetailPage() {
               title={`${t.vehicle.make} ${t.vehicle.model} ${t.vehicle.year || ''}`}
               action={{ label: 'View listing', href: `/host/listings/${t.vehicle._id}` }}
             />
-            <Row title="Licence plate number" value={t.vehicle.plate ?? '—'} />
+            <Row title="Licence plate number" value={t.vehicle.plate ?? '-'} />
           </RowGroup>
 
           {/* Post-trip: rate the guest, and file a damage claim if needed */}
@@ -557,7 +557,7 @@ export default function HostTripDetailPage() {
                 lockedReason="Verify the guest first."
               >
                 {codeDone ? (
-                  <p className="text-sm font-medium text-success">Guest verified — you can hand over the keys.</p>
+                  <p className="text-sm font-medium text-success">Guest verified - you can hand over the keys.</p>
                 ) : (
                   <VerifyPickup
                     tripId={t.tripId}

@@ -65,7 +65,7 @@ function Receipt() {
   const receipts = useQuery({ queryKey: ['receipts', id], queryFn: () => bookingApi.receipts(id) });
   const b = booking.data;
 
-  // The car — best-effort: a receipt still renders if the listing was later delisted.
+  // The car - best-effort: a receipt still renders if the listing was later delisted.
   const vehicle = useQuery({
     queryKey: ['vehicle', b?.vehicleId],
     queryFn: () => vehicleApi.getById(b!.vehicleId),
@@ -139,7 +139,7 @@ function Receipt() {
           ) : null}
           {pb.memberSavings && pb.memberSavings.amount > 0 && <p>CatoDrive Plus saved you {formatMoney(pb.memberSavings)} on this trip.</p>}
           {b.delivery && <p>Delivered to {b.delivery.address} ({b.delivery.mode}).</p>}
-          <p className="mt-1">Prices shown are what you were quoted and charged — CatoDrive does not change a price after booking.</p>
+          <p className="mt-1">Prices shown are what you were quoted and charged - CatoDrive does not change a price after booking.</p>
         </div>
       )}
 

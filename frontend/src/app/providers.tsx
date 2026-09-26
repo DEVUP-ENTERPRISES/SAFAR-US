@@ -46,7 +46,7 @@ function AuthBootstrap({ children }: { children: ReactNode }) {
  * Creates the QueryClient with a global mutation-error handler.
  *
  * Most action pages never rendered `mutation.isError`, so a failed
- * "Suspend user" / "Approve KYC" / "Save policy" did nothing visible — the
+ * "Suspend user" / "Approve KYC" / "Save policy" did nothing visible - the
  * operator couldn't tell a failure from a no-op. Catching it centrally means
  * every mutation, including future ones, reports its own failure.
  */

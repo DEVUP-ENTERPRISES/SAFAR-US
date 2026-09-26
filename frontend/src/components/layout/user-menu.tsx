@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils/cn';
 
 /**
  * Avatar dropdown. Collapses what used to be nine flat nav buttons into a
- * single grouped menu — the pattern every consumer marketplace uses.
+ * single grouped menu - the pattern every consumer marketplace uses.
  */
 export function UserMenu() {
   const { user } = useAuthStore();
@@ -65,7 +65,7 @@ export function UserMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={unread > 0 ? `Account — ${unread} unread messages` : 'Account'}
+        aria-label={unread > 0 ? `Account - ${unread} unread messages` : 'Account'}
         className={cn(
           'relative flex items-center gap-2 rounded-full border border-border bg-card py-1 ps-1 pe-2.5',
           'shadow-soft transition-all hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -114,7 +114,7 @@ export function UserMenu() {
           </div>
 
           <div className="border-t border-border py-1">
-            {/* Asset-Partners-only launch — see config.assetPartnersOnly.
+            {/* Asset-Partners-only launch - see config.assetPartnersOnly.
                 Both links show unconditionally to every signed-in user (there
                 is no isHost/isCorporate gate here), so they read as an
                 invitation to self-onboard, not just a shortcut for someone

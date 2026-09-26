@@ -35,7 +35,7 @@ export default function CorporateDashboard() {
       <PageHeader
         eyebrow={data.role.replace('_', ' ')}
         title={data.org.name}
-        description="Corporate mobility — manage members, budgets, policy and invoices."
+        description="Corporate mobility - manage members, budgets, policy and invoices."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -59,10 +59,10 @@ export default function CorporateDashboard() {
         <StatTile icon={<Wallet className="h-5 w-5" />} label="Cost centers" value={data.costCenters} href="/corporate/cost-centers" />
       </div>
 
-      {/* Spend analytics — real data from billable bookings. */}
+      {/* Spend analytics - real data from billable bookings. */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="rounded-2xl shadow-soft">
-          <CardHeader><CardTitle>Spend — last 6 months</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Spend - last 6 months</CardTitle></CardHeader>
           <CardContent>
             <BarChart
               data={(data.spendByMonth ?? []).map((d) => ({ label: monthLabel(d.month), value: d.amount }))}

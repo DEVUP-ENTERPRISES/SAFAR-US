@@ -65,7 +65,7 @@ function HostInbox() {
         <div>
           <h1 className="display text-display-sm">Inbox</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sorted by what it costs to ignore — not by what arrived last.
+            Sorted by what it costs to ignore - not by what arrived last.
           </p>
         </div>
         {/* The number that makes a host open this screen. */}
@@ -120,7 +120,7 @@ function HostInbox() {
                       <p className="truncate font-semibold">{c.counterpart.name}</p>
                       <p className="truncate text-xs text-muted-foreground">{c.vehicle.title}</p>
                       <p className={cn('truncate text-sm', c.unread > 0 ? 'font-medium' : 'text-muted-foreground')}>
-                        {c.last.fromMe && 'You: '}{c.last.preview || '—'}
+                        {c.last.fromMe && 'You: '}{c.last.preview || '-'}
                       </p>
                     </div>
                     {c.unread > 0 && (
@@ -154,7 +154,7 @@ function HostInbox() {
                       <p className="truncate font-semibold">{t.counterpart.name}</p>
                       <p className="truncate text-xs text-muted-foreground">{t.vehicle.title}</p>
                       <p className={cn('truncate text-sm', t.unread > 0 ? 'font-medium' : 'text-muted-foreground')}>
-                        {t.last.fromMe && 'You: '}{t.last.preview || '—'}
+                        {t.last.fromMe && 'You: '}{t.last.preview || '-'}
                       </p>
                     </div>
                     {t.unread > 0 && (

@@ -72,7 +72,7 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
               <p className="mt-1 truncate text-sm font-medium text-muted-foreground/80 flex items-center gap-1.5">
                 {vehicle.year} 
                 <span className="h-1 w-1 rounded-full bg-muted-foreground/40"></span> 
-                {vehicle.location.city || '—'}
+                {vehicle.location.city || '-'}
               </p>
             </div>
             <VehicleRating vehicle={vehicle} className="shrink-0 rounded-full bg-foreground/5 px-2.5 py-1 text-[13px] leading-none text-foreground border border-border/50" />

@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils/cn';
  * by direct labels + legend, never colour alone; one y-axis, never two.
  */
 
-// Categorical palette — validated for the light surface (CVD normal-vision
+// Categorical palette - validated for the light surface (CVD normal-vision
 // floor ≥ 15, chroma floor met). Identity is always reinforced with a label,
 // which is what makes the floor band legal.
 export const SERIES = ['#0f9d6a', '#6366f1', '#f59e0b', '#f43f5e', '#06b6d4'] as const;
@@ -239,7 +239,7 @@ export function Donut({
         </div>
       </div>
 
-      {/* Legend — identity is label + colour, never colour alone. */}
+      {/* Legend - identity is label + colour, never colour alone. */}
       <ul className="min-w-0 flex-1 space-y-1.5">
         {data.map((d, i) => (
           <li

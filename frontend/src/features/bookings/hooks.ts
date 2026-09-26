@@ -12,7 +12,7 @@ import type { QuoteInput } from './types';
 export function useMyBookings(role: 'guest' | 'host' = 'guest') {
   // Gated on being signed in. Nothing needed this while the hook was only
   // mounted on pages behind an auth guard, but the phone tab bar shows a trip
-  // count on every screen — without this, every signed-out visitor fires a
+  // count on every screen - without this, every signed-out visitor fires a
   // request that can only ever 401.
   const status = useAuthStore((s) => s.status);
   return useQuery({

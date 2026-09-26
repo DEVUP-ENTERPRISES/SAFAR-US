@@ -4,7 +4,7 @@ import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, isSupported, type Messaging } from 'firebase/messaging';
 
 /**
- * Firebase web config. All of these are public by design — the web config
+ * Firebase web config. All of these are public by design - the web config
  * identifies the project to Google's SDK, it is not a secret, and it ships in
  * the browser bundle. The service-account key that CAN send push lives only on
  * the server.
@@ -42,7 +42,7 @@ async function getMessagingIfSupported(): Promise<Messaging | null> {
 
 /**
  * Ask for permission (if not already decided), register the service worker,
- * and return the FCM device token — or null if the user declined or the device
+ * and return the FCM device token - or null if the user declined or the device
  * can't do web push. Never throws to the caller.
  */
 export async function requestPushToken(): Promise<string | null> {
@@ -65,7 +65,7 @@ export async function requestPushToken(): Promise<string | null> {
   }
 }
 
-/** Foreground messages — while the tab is open, the SW doesn't fire. */
+/** Foreground messages - while the tab is open, the SW doesn't fire. */
 export async function onForegroundMessage(cb: (title: string, body: string, data?: Record<string, string>) => void) {
   const m = await getMessagingIfSupported();
   if (!m) return () => undefined;

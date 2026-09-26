@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils/cn';
  * Full-screen photo viewer.
  *
  * The detail page previously showed five photos and had no way to reach the
- * rest — clicking one called a setter whose value was discarded, so it looked
+ * rest - clicking one called a setter whose value was discarded, so it looked
  * interactive and did nothing at all.
  *
  * Behaviour people already expect from a gallery, and therefore try:
@@ -63,7 +63,7 @@ export function PhotoLightbox({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`${alt} — photo ${index + 1} of ${total}`}
+      aria-label={`${alt} - photo ${index + 1} of ${total}`}
       className="fixed inset-0 z-[100] flex flex-col bg-black/95 backdrop-blur-sm"
       onClick={onClose}
     >
@@ -98,7 +98,7 @@ export function PhotoLightbox({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={photos[index].url}
-          alt={`${alt} — photo ${index + 1}`}
+          alt={`${alt} - photo ${index + 1}`}
           className="max-h-full max-w-full rounded-lg object-contain"
         />
 
@@ -113,7 +113,7 @@ export function PhotoLightbox({
         )}
       </div>
 
-      {/* Thumbnails — jumping beats paging once there are more than a handful. */}
+      {/* Thumbnails - jumping beats paging once there are more than a handful. */}
       {total > 1 && (
         <div
           className="flex gap-2 overflow-x-auto p-4 hide-scrollbar"

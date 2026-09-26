@@ -11,7 +11,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        // Display is its own face now — previously it aliased the body font,
+        // Display is its own face now - previously it aliased the body font,
         // which is why headings never felt like headings.
         display: ['var(--font-display)', 'var(--font-sans)', 'ui-sans-serif', 'sans-serif'],
         mono: ['var(--font-mono)', 'ui-monospace', 'SFMono-Regular', 'monospace'],
@@ -46,7 +46,7 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontSize: {
-        // Marketing display scale — fluid, so it reads big on desktop
+        // Marketing display scale - fluid, so it reads big on desktop
         // without blowing out on mobile.
         'display-sm': ['clamp(2rem,1.4rem + 2.6vw,2.75rem)', { lineHeight: '1.15', letterSpacing: '-0.03em' }],
         'display': ['clamp(2.5rem,1.6rem + 4vw,4rem)', { lineHeight: '1.1', letterSpacing: '-0.035em' }],
@@ -72,13 +72,13 @@ const config: Config = {
           to: { opacity: '1', transform: 'scale(1)' },
         },
         // Used by the auth form panel and the mobile nav drawer, and never
-        // defined — so the drawer popped into existence instead of sliding in
+        // defined - so the drawer popped into existence instead of sliding in
         // from the edge it is anchored to, which is the whole affordance.
         'slide-in-right': {
           from: { opacity: '0', transform: 'translateX(16px)' },
           to: { opacity: '1', transform: 'translateX(0)' },
         },
-        // A gentle forward nudge — used on the step connectors so the journey
+        // A gentle forward nudge - used on the step connectors so the journey
         // reads as moving 1 → 2 → 3.
         'nudge-x': {
           '0%,100%': { transform: 'translateX(0)' },

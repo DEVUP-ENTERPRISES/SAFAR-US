@@ -16,7 +16,7 @@ export interface KbArticle extends KbArticleSummary {
   body: string;
 }
 
-/** Public help centre — no auth (readable while logged out). */
+/** Public help centre - no auth (readable while logged out). */
 export const kbApi = {
   list: (params: { q?: string; category?: string } = {}) =>
     api.get<KbArticleSummary[]>('/support/kb/articles', params, false),

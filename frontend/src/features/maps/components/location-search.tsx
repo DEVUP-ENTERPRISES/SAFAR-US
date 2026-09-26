@@ -9,7 +9,7 @@ import { mapsApi } from '../api';
 export function LocationSearch({ onPick, placeholder = 'Search a city or place', bare = false }: {
   onPick: (loc: { lat: number; lng: number; label: string; city: string }) => void;
   placeholder?: string;
-  /** Borderless, no magnifier — blends into a segmented bar (e.g. the navbar). */
+  /** Borderless, no magnifier - blends into a segmented bar (e.g. the navbar). */
   bare?: boolean;
 }) {
   const [q, setQ] = useState('');

@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils/cn';
  * so picking a return before the pickup is possible and only caught on submit.
  *
  * One calendar, two clicks, and an invalid range is unreachable rather than
- * rejected — the second click always lands after the first because clicking
+ * rejected - the second click always lands after the first because clicking
  * earlier simply restarts the range.
  */
 
@@ -99,7 +99,7 @@ export function DateRangePicker({
 
       <div className={cn('grid gap-6', !compact && 'sm:grid-cols-2')}>
         {months.map((mo, mi) => (
-          // The second month is hidden on small screens rather than squeezed —
+          // The second month is hidden on small screens rather than squeezed -
           // a cramped calendar is worse than one month at a time.
           <div key={mi} className={cn(mi === 1 && (compact ? 'hidden' : 'hidden sm:block'))}>
             <p className="mb-2 text-center text-sm font-semibold">{mo.label}</p>

@@ -36,17 +36,17 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   reviews: Star,
   trips: Route,
   audit: ScrollText,
-  // The intake queue vs the programme itself — distinct icons, because they
+  // The intake queue vs the programme itself - distinct icons, because they
   // sit next to each other and are different jobs.
   'asset-partners': ClipboardCheck,
   partners: Handshake,
-  // The programme's own economics — a fee, not a commission rule.
+  // The programme's own economics - a fee, not a commission rule.
   'asset-partner-terms': Receipt,
 };
 
 export function AdminSidebar() {
   const { data } = useQuery({ queryKey: ['admin-nav'], queryFn: () => adminApi.nav(), staleTime: 300_000 });
-  // Live queue counts — the sidebar shows real work waiting, not static labels.
+  // Live queue counts - the sidebar shows real work waiting, not static labels.
   const { data: metrics } = useQuery({
     queryKey: ['admin-metrics'],
     queryFn: () => adminApi.metrics(),

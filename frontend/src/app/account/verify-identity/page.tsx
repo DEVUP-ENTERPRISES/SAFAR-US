@@ -104,7 +104,7 @@ function VerifyIdentity() {
 
       <PageHeader
         title="Verify your identity"
-        description="Every driver on CatoDrive is identity-verified against a government-issued ID. It's mandatory before you can book — so hosts and guests always know exactly who they're dealing with."
+        description="Every driver on CatoDrive is identity-verified against a government-issued ID. It's mandatory before you can book - so hosts and guests always know exactly who they're dealing with."
       />
 
       {/* ── Terminal & in-progress states ─────────────────────────── */}
@@ -125,7 +125,7 @@ function VerifyIdentity() {
             <Clock className="h-12 w-12 text-warning" />
             <h2 className="text-xl font-bold">Under review</h2>
             <p className="max-w-sm text-sm text-muted-foreground">
-              We’ve got your documents and are reviewing them now. Most checks finish in a few minutes — we’ll notify you the moment it’s done.
+              We’ve got your documents and are reviewing them now. Most checks finish in a few minutes - we’ll notify you the moment it’s done.
             </p>
             <Button variant="outline" onClick={refreshStatus} className="mt-2"><RefreshCw className="h-4 w-4" /> Check again</Button>
           </CardContent>
@@ -141,7 +141,7 @@ function VerifyIdentity() {
                 <div>
                   <p className="font-semibold text-destructive">Your last check didn’t pass</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {reasonLabel(status.data?.reason)} You can try again — a clear, well-lit photo of a valid license usually does it.
+                    {reasonLabel(status.data?.reason)} You can try again - a clear, well-lit photo of a valid license usually does it.
                   </p>
                 </div>
               </CardContent>
@@ -156,7 +156,7 @@ function VerifyIdentity() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>Every driver is checked against a government-issued ID so hosts know exactly who’s behind the wheel — and so you can trust the guests and hosts you meet. It’s how we keep fraud and unsafe drivers off the platform.</p>
+              <p>Every driver is checked against a government-issued ID so hosts know exactly who’s behind the wheel - and so you can trust the guests and hosts you meet. It’s how we keep fraud and unsafe drivers off the platform.</p>
               <p>Your license images are handled by our verification partner and are never shared with hosts or stored on your profile.</p>
             </CardContent>
           </Card>
@@ -185,11 +185,11 @@ function VerifyIdentity() {
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">These must match the license you’re about to scan.</p>
               <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Detail label="Legal name" value={nameKnown ? `${profile!.firstName} ${profile!.lastName}` : '—'} />
-                <Detail label="Date of birth" value={profile?.dateOfBirth ? formatDate(profile.dateOfBirth) : '—'} />
+                <Detail label="Legal name" value={nameKnown ? `${profile!.firstName} ${profile!.lastName}` : '-'} />
+                <Detail label="Date of birth" value={profile?.dateOfBirth ? formatDate(profile.dateOfBirth) : '-'} />
                 <Detail
                   label="Address"
-                  value={primaryAddress ? [primaryAddress.line1, primaryAddress.line2, primaryAddress.city, [primaryAddress.state, primaryAddress.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '—'}
+                  value={primaryAddress ? [primaryAddress.line1, primaryAddress.line2, primaryAddress.city, [primaryAddress.state, primaryAddress.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '-'}
                   full
                 />
               </dl>
@@ -229,7 +229,7 @@ function VerifyIdentity() {
               {/* Dev-only offline decision (no live provider configured). */}
               {isDev && devSession && (
                 <div className="rounded-lg border border-dashed border-border p-3">
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Dev: no live provider — simulate a decision</p>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Dev: no live provider - simulate a decision</p>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" loading={decide.isPending} onClick={() => decide.mutate('verified')}>Approve</Button>
                     <Button size="sm" variant="outline" loading={decide.isPending} onClick={() => decide.mutate('rejected')}>Reject</Button>

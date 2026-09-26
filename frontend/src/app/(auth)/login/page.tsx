@@ -25,7 +25,7 @@ type FormValues = z.infer<typeof schema>;
 function LoginInner() {
   const qp = useSearchParams();
   // Send people back to whatever they were trying to do. Only same-site paths
-  // are honoured — an absolute URL here would be an open redirect.
+  // are honoured - an absolute URL here would be an open redirect.
   const returnTo = safeRedirect(qp.get('next'));
 
   const login = useLogin({ redirectTo: returnTo, denyAnyRole: ADMIN_ROLES });
@@ -41,25 +41,25 @@ function LoginInner() {
       {/*
         The heading answers why they are here, not what the form is.
 
-        Someone stopped mid-booking is not "welcoming back" — they are being
+        Someone stopped mid-booking is not "welcoming back" - they are being
         interrupted, and the useful thing to say is that the car and the dates
         they picked are still waiting. ReturnContext renders the car itself
         above it and stays silent when there is nothing to return to.
       */}
       <ReturnContext next={returnTo === '/search' ? null : returnTo} />
 
-      <div className="mb-8 text-center lg:text-start">
-        <h2 className="display text-4xl text-foreground sm:text-5xl">
+      <div className="mb-7 text-center lg:text-start">
+        <h2 className="display text-3xl text-foreground sm:text-4xl">
           {bookingReturn ? 'One step left' : 'Welcome back'}
         </h2>
-        <p className="mt-3 text-[17px] text-muted-foreground">
+        <p className="mt-2.5 text-base text-muted-foreground">
           {bookingReturn
             ? 'Sign in to confirm your trip. Nothing you picked has been lost.'
             : 'Sign in to pick up your trips, messages and saved cars.'}
         </p>
       </div>
       
-      <form onSubmit={handleSubmit((v) => login.mutate(v))} className="space-y-6">
+      <form onSubmit={handleSubmit((v) => login.mutate(v))} className="space-y-4">
             <Field label="Email" htmlFor="email" error={formState.errors.email?.message}>
               <Input id="email" type="email" autoComplete="email" {...register('email')} />
             </Field>
@@ -87,7 +87,7 @@ function LoginInner() {
             </Button>
           </form>
 
-          <div className="mt-8">
+          <div className="mt-6">
             <SocialSignIn
               onSuccess={(result) => {
                 onAuthSuccess(result);
@@ -96,7 +96,7 @@ function LoginInner() {
             />
           </div>
 
-          <p className="mt-8 text-center text-base font-medium text-muted-foreground">
+          <p className="mt-6 text-center text-base font-medium text-muted-foreground">
             New to CatoDrive?{' '}
             <Link href={`/register?next=${encodeURIComponent(returnTo)}`} className="font-bold text-primary hover:underline">
               Create an account

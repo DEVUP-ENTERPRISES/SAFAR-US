@@ -1,4 +1,4 @@
-# Secrets must never enter the build context — COPY . . would otherwise bake
+# Secrets must never enter the build context - COPY . . would otherwise bake
 # them into an image layer, where they persist even if deleted later.
 .env
 .env.*

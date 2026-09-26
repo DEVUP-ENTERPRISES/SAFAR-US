@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 
 /**
- * A deliberately small Markdown renderer for help articles — headings, bullet
+ * A deliberately small Markdown renderer for help articles - headings, bullet
  * and numbered lists, paragraphs, and inline **bold** / [links](url). It builds
  * React elements (never dangerouslySetInnerHTML), so untrusted article text
  * can't inject markup. Anything fancier than this belongs in a real library,

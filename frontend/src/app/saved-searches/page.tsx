@@ -82,14 +82,14 @@ function SavedSearches() {
                 <Link href={toSearchHref(s.criteria)} className="min-w-0 flex-1">
                   <p className="truncate font-semibold hover:text-primary hover:underline">{s.label}</p>
                   <p className="truncate text-sm text-muted-foreground">
-                    {s.criteria.city ? `${s.criteria.city} — ` : ''}{summarise(s.criteria)}
+                    {s.criteria.city ? `${s.criteria.city} - ` : ''}{summarise(s.criteria)}
                   </p>
                 </Link>
                 <div className="flex shrink-0 items-center gap-1">
                   <Button
                     size="icon"
                     variant="ghost"
-                    title={s.alertsEnabled ? 'Alerts on — mute' : 'Alerts off — unmute'}
+                    title={s.alertsEnabled ? 'Alerts on - mute' : 'Alerts off - unmute'}
                     loading={toggle.isPending}
                     onClick={() => toggle.mutate({ id: s._id, enabled: !s.alertsEnabled })}
                   >

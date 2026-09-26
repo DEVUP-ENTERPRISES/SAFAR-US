@@ -28,7 +28,7 @@ import {
 } from '@/features/asset-partners/api';
 
 /**
- * The Asset Partner's dashboard — an OVERVIEW, not a copy of the portal.
+ * The Asset Partner's dashboard - an OVERVIEW, not a copy of the portal.
  *
  * An Asset Partner is a passive owner: CatoDrive lists, prices, delivers, cleans
  * and services the car. So this is deliberately not the host dashboard, built
@@ -63,7 +63,7 @@ const STATUS_META: Record<
   rejected: {
     label: 'Not approved',
     tone: 'destructive',
-    detail: 'We couldn’t take this vehicle on. The reason is below — talk to us if anything has changed.',
+    detail: 'We couldn’t take this vehicle on. The reason is below - talk to us if anything has changed.',
   },
 };
 
@@ -121,9 +121,9 @@ export default function PartnerDashboardPage() {
    * Gating this page on applications.length alone assumed every partner
    * arrived through the public intake form. That stopped being true the
    * moment ops could add a partner directly (the ~20 owners who signed
-   * before the website existed) — that path creates a real partner record
+   * before the website existed) - that path creates a real partner record
    * with ZERO applications behind it. Those accounts hit "No application
-   * yet — Apply to become a partner" on this page while their own Vehicles
+   * yet - Apply to become a partner" on this page while their own Vehicles
    * page correctly showed them as an enrolled partner: two pages of the
    * same account disagreeing about whether they were in the programme.
    */
@@ -158,7 +158,7 @@ export default function PartnerDashboardPage() {
   );
 }
 
-/** Nothing to show — they reached this page without ever applying. */
+/** Nothing to show - they reached this page without ever applying. */
 function NotAppliedYet() {
   return (
     <Card>
@@ -170,7 +170,7 @@ function NotAppliedYet() {
           <p className="display text-xl">No application yet</p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
             Put the car you already own to work. We list it, price it, deliver it, clean it and
-            service it — you keep 80% of every booking.
+            service it - you keep 80% of every booking.
           </p>
         </div>
         <Link href="/asset-partners/apply">
@@ -198,7 +198,7 @@ function Applied({
   const s = data.currentStatement;
   const cur = s?.currency ?? 'USD';
   const money = (v: number) => formatMoney({ amount: v, currency: cur });
-  // Closed months only — the running month is shown in full above and would
+  // Closed months only - the running month is shown in full above and would
   // read as a dip in the chart while it is still filling up.
   const closed = (data.history ?? []).filter((h) => h.final).slice().reverse();
   const preview = data.vehicles.slice(0, 3);
@@ -330,7 +330,7 @@ function Applied({
       )}
 
       {/* A partner ops added directly has no application behind them at
-          all — an empty "Your applications" heading over nothing is its
+          all - an empty "Your applications" heading over nothing is its
           own small broken-looking state, so this section only renders when
           there's a real application to show. */}
       {data.applications.length > 0 && (
@@ -399,7 +399,7 @@ function ApplicationCard({ app, isEarning }: { app: PartnerApplication; isEarnin
             </p>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               We’ll photograph the car, confirm the agreement and complete the inspection. Your car
-              goes live straight after — nothing more is needed from you until we call.
+              goes live straight after - nothing more is needed from you until we call.
             </p>
           </div>
         )}

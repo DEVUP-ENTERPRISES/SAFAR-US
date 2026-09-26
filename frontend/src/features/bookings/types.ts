@@ -33,12 +33,12 @@ export interface PriceBreakdown {
 /**
  * Mirrors the backend BookingStatus exactly. It had drifted: the states a
  * booking is actually held in while waiting on verification, and the three
- * cancellation states that record WHO cancelled, were missing — so any UI
+ * cancellation states that record WHO cancelled, were missing - so any UI
  * switching on status silently failed to handle them.
  */
 export type BookingStatus =
   | 'pending_verification'
-  /** Held, but the money has not moved — a 3-D Secure challenge, or no saved
+  /** Held, but the money has not moved - a 3-D Secure challenge, or no saved
    *  card. Not a confirmed trip, and must never be shown as one. */
   | 'pending_payment'
   | 'pending_approval'
@@ -83,7 +83,7 @@ export interface Booking {
     evidenceUrl?: string; status: 'charged' | 'disputed' | 'refunded' | 'upheld';
     disputeReason?: string; resolutionNote?: string; at: string;
   }[];
-  /** Set when the card needs the cardholder — a 3-D Secure challenge. The trip
+  /** Set when the card needs the cardholder - a 3-D Secure challenge. The trip
    *  is held, not confirmed, until the client finishes it. */
   requiresAction?: boolean;
   clientSecret?: string;

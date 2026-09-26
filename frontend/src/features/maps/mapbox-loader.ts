@@ -1,7 +1,7 @@
 import { MAPBOX_TOKEN } from './api';
 
 /**
- * Loads Mapbox GL JS once per page, from Mapbox's CDN — same no-dependency
+ * Loads Mapbox GL JS once per page, from Mapbox's CDN - same no-dependency
  * pattern as the Google loader, and for the same reason: the library has to be
  * fetched at runtime anyway, and concurrent map mounts must share one script
  * tag and one stylesheet rather than injecting N of each.

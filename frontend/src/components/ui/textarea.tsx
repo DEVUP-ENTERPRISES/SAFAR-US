@@ -6,7 +6,7 @@ import { CONTROL_SURFACE } from './control';
 
 /**
  * There was no Textarea primitive, so nine of them were hand-rolled as
- * `rounded-md border-input bg-background px-3 py-2 text-sm` — a different
+ * `rounded-md border-input bg-background px-3 py-2 text-sm` - a different
  * radius, fill, padding and type size from the Input directly above them in
  * the same form.
  *

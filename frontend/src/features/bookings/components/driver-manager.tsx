@@ -16,7 +16,7 @@ const MAX_DRIVERS = 5;
 /**
  * Additional drivers on a trip.
  *
- * Only people added here are covered to drive the car — Turo makes the same
+ * Only people added here are covered to drive the car - Turo makes the same
  * point, because an unlisted driver voids the protection. The backend caps the
  * list at five and only lets the booking's guest manage it; this surfaces that
  * to the guest, who otherwise had no way to add anyone.

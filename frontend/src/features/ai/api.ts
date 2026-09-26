@@ -18,7 +18,7 @@ export interface DamageAssessment {
   overallNote?: string;
   photosCompared: { pre: number; post: number };
   verdict: 'no_new_damage' | 'damage_found';
-  /** Something was seen, but nothing confidently — a person should look. */
+  /** Something was seen, but nothing confidently - a person should look. */
   needsHuman: boolean;
   model: string;
   reviewedAt: string;
@@ -46,7 +46,7 @@ export interface AiUsage {
 }
 
 export const aiApi = {
-  /** Whether to render AI surfaces at all — no key means hide, not error. */
+  /** Whether to render AI surfaces at all - no key means hide, not error. */
   status: () => api.get<{ enabled: boolean }>('/ai/status', undefined, false),
   damageReview: (tripId: string) =>
     api.get<DamageAssessment | null>(`/ai/trips/${tripId}/damage-review`),

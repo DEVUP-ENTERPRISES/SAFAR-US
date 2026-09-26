@@ -31,10 +31,10 @@ const INTEREST_OPTIONS: { value: ContactInterest; label: string }[] = [
 ];
 
 const FAQ_ITEMS = [
-  { q: 'How do I become an asset partner?', a: `Start the intake form on the Asset Partners page — it takes about 10 minutes. Our team reviews every submission and schedules an in-person vehicle assessment within 2–3 business days.` },
-  { q: 'What’s the fastest way to reach you?', a: 'Call or text (214) 814-0402 — we’re available 7 days a week, 8 AM–10 PM Central. For anything that needs documents or detail attached, email is usually faster to act on.' },
-  { q: 'Do you offer corporate accounts?', a: `Yes — B2B fleet accounts for enterprises and staffing agencies, with volume pricing and consolidated billing. Select "A corporate account" below and tell us your team size and use case.` },
-  { q: 'Where are you located?', a: `${BRAND} operates near DFW International Airport and Dallas Love Field, serving the greater Dallas/Fort Worth area. Our office is by appointment only — reach out to schedule a visit.` },
+  { q: 'How do I become an asset partner?', a: `Start the intake form on the Asset Partners page - it takes about 10 minutes. Our team reviews every submission and schedules an in-person vehicle assessment within 2–3 business days.` },
+  { q: 'What’s the fastest way to reach you?', a: 'Call or text (214) 814-0402 - we’re available 7 days a week, 8 AM–10 PM Central. For anything that needs documents or detail attached, email is usually faster to act on.' },
+  { q: 'Do you offer corporate accounts?', a: `Yes - B2B fleet accounts for enterprises and staffing agencies, with volume pricing and consolidated billing. Select "A corporate account" below and tell us your team size and use case.` },
+  { q: 'Where are you located?', a: `${BRAND} operates near DFW International Airport and Dallas Love Field, serving the greater Dallas/Fort Worth area. Our office is by appointment only - reach out to schedule a visit.` },
 ] as const;
 
 const DFW_AIRPORT = { lat: 32.8998, lng: -97.0403 };
@@ -50,7 +50,7 @@ function ContactForm() {
   const [interest, setInterest] = useState<ContactInterest | ''>('');
   const [message, setMessage] = useState('');
 
-  // Pre-select from ?interest= — e.g. the Investors page's "Request the Full
+  // Pre-select from ?interest= - e.g. the Investors page's "Request the Full
   // Deck" routes here instead of a bare mailto:, so the lead is a durable,
   // admin-visible record too, not just an email that only ever lives in an inbox.
   useEffect(() => {
@@ -85,26 +85,26 @@ function ContactForm() {
     <div className="-mt-6">
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
-        <div className="mx-auto max-w-5xl px-5 py-14 sm:py-20">
+        <div className="mx-auto max-w-5xl px-4 pb-20 pt-14 sm:px-6 sm:pb-28 sm:pt-20">
           <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-soft backdrop-blur">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur">
               Contact Us
             </span>
           </Reveal>
           <Reveal delay={80}>
-            <h1 className="display mt-7 max-w-2xl text-[2.7rem] leading-[0.98] text-white sm:text-[4rem]">Get in touch.</h1>
+            <h1 className="display mt-6 max-w-2xl text-[2.3rem] leading-[0.98] text-white sm:mt-7 sm:text-[4rem]">Get in touch.</h1>
           </Reveal>
           <Reveal delay={160}>
-            <p className="mt-7 max-w-xl text-lg leading-relaxed text-white/70 sm:text-xl">
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-white/70 sm:mt-7 sm:text-xl">
               Interested in becoming an asset partner? Have questions about {BRAND}? We’re here to help.
             </p>
           </Reveal>
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl space-y-14 px-5 pb-16 pt-10 sm:pt-12">
+      <div className="mx-auto max-w-6xl space-y-14 px-4 pb-16 sm:px-6 pt-10 sm:pt-12">
         {/* ── INFO CARDS ───────────────────────────────────────────────── */}
-        <section className="-mt-24 sm:-mt-28">
+        <section className="-mt-10 sm:-mt-20">
           <div className="grid gap-4 sm:grid-cols-3">
             {INFO_CARDS.map((c, i) => (
               <Reveal key={c.title} delay={i * 80}>
@@ -125,9 +125,8 @@ function ContactForm() {
         <section>
           <Reveal className="max-w-2xl">
             <SectionEyebrow>Send Us a Message</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Whether it’s a car or a question.</h2>
-            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-              Whether you’re interested in listing your vehicle or have questions about {BRAND}, we’ll get back to
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Whether it’s a car or a question.</h2>
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground">Whether you’re interested in listing your vehicle or have questions about {BRAND}, we’ll get back to
               you within 24 hours.
             </p>
           </Reveal>
@@ -152,7 +151,7 @@ function ContactForm() {
                   </span>
                   <h3 className="display mt-5 text-2xl">Message sent</h3>
                   <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-muted-foreground">
-                    Thanks for reaching out — we’ll get back to you within 24 hours.
+                    Thanks for reaching out - we’ll get back to you within 24 hours.
                   </p>
                 </div>
               ) : (
@@ -196,7 +195,7 @@ function ContactForm() {
         <section>
           <Reveal className="mx-auto max-w-2xl text-center">
             <SectionEyebrow>Quick Answers</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Common questions we get.</h2>
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Common questions we get.</h2>
           </Reveal>
           <div className="mx-auto mt-12 max-w-3xl divide-y divide-border overflow-hidden rounded-3xl border border-border">
             {FAQ_ITEMS.map((item) => (
@@ -209,14 +208,14 @@ function ContactForm() {
         <section>
           <Reveal className="max-w-2xl">
             <SectionEyebrow>Find Us</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Dallas–Fort Worth.</h2>
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Dallas–Fort Worth.</h2>
             <p className="mt-4 text-[15px] text-muted-foreground">
-              Operations centered near DFW International Airport. Office visits by appointment only —{' '}
+              Operations centered near DFW International Airport. Office visits by appointment only -{' '}
               <Link href="tel:+12148140402" className="font-semibold text-primary">call ahead to schedule</Link>.
             </p>
           </Reveal>
           <Reveal delay={80}>
-            <LocationMap lat={DFW_AIRPORT.lat} lng={DFW_AIRPORT.lng} label="CatoDrive — Dallas/Fort Worth" zoom={9.5} className="mt-8 h-80 w-full sm:h-96" />
+            <LocationMap lat={DFW_AIRPORT.lat} lng={DFW_AIRPORT.lng} label="CatoDrive - Dallas/Fort Worth" zoom={9.5} className="mt-8 h-80 w-full sm:h-96" />
           </Reveal>
         </section>
       </div>

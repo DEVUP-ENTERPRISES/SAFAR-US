@@ -23,7 +23,7 @@ function isPrivateKey(key: string | null): key is string {
 
 /**
  * Renders a document image. For PRIVATE keys (KYC, licence, insurance, claim) it
- * exchanges the durable URL for a short-lived, authorized presigned GET — so a
+ * exchanges the durable URL for a short-lived, authorized presigned GET - so a
  * driver's licence is never reachable by anyone who merely has the link. Public
  * assets and dev placeholders render straight through.
  */

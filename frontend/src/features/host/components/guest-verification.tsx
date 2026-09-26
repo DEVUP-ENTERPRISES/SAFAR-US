@@ -59,8 +59,8 @@ export function GuestVerification({
 
       {known && verified && (
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Fact label="Legal name" value={v?.verifiedName || '—'} />
-          <Fact label="Age" value={v?.age != null ? String(v.age) : '—'} />
+          <Fact label="Legal name" value={v?.verifiedName || '-'} />
+          <Fact label="Age" value={v?.age != null ? String(v.age) : '-'} />
           <Fact
             label="Licence expires"
             value={v?.licenceExpiry ? formatDate(v.licenceExpiry) : 'Not recorded'}
@@ -91,7 +91,7 @@ export function GuestVerification({
             onClick={onToggle}
           >
             <IdCard className="h-4 w-4" />
-            {checked ? 'Licence confirmed — details match' : 'Details match — confirm licence'}
+            {checked ? 'Licence confirmed - details match' : 'Details match - confirm licence'}
           </Button>
         </>
       )}

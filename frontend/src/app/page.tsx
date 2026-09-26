@@ -26,12 +26,12 @@ const STEPS = [
   { icon: Route, image: '/sections/hit-the-road.webp', title: 'Hit the road', body: 'Pick it up, or have it delivered to your door, hotel, or the airport.' },
 ];
 
-// The reservation, one step deeper than STEPS — what actually happens
+// The reservation, one step deeper than STEPS - what actually happens
 // between "Book in seconds" and "Hit the road": the exact vehicle gets
 // locked to the reservation, identity gets checked, and the card only
 // gets charged once the trip is confirmed.
 const RESERVATION_FLOW = [
-  { icon: Search, label: 'Choose', body: 'The exact car — real photos, real plate. Not a class or a placeholder.' },
+  { icon: Search, label: 'Choose', body: 'The exact car - real photos, real plate. Not a class or a placeholder.' },
   { icon: UserCheck, label: 'Verify', body: 'Identity checked in the flow. No separate office visit.' },
   { icon: FileCheck2, label: 'Documents', body: 'License and insurance on file before pickup, not at the curb.' },
   { icon: Lock, label: 'Hold', body: 'The card is authorized, not charged. The vehicle is locked to you.' },
@@ -54,7 +54,7 @@ const RESERVATION_TRUST = [
  * Deliberately still: it previously ran a permanent `nudge-x` on the icon and
  * a permanent `ping` halo behind it. Two looping animations per connector,
  * two connectors on screen, is four things moving forever on the section a
- * visitor is trying to read — motion that communicates nothing, which is
+ * visitor is trying to read - motion that communicates nothing, which is
  * exactly what makes a page feel generated rather than designed. The arrow
  * already states the direction; it does not need to twitch to prove it.
  */
@@ -97,7 +97,7 @@ export default function HomePage() {
     <div className="-mt-24">
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
-        <div className="mx-auto max-w-7xl px-4 pb-12 pt-16 sm:px-6 sm:pb-16 sm:pt-20">
+        <div className="mx-auto max-w-7xl px-4 pb-12 pt-16 sm:px-6 sm:pb-16 sm:pt-20 lg:pt-24">
           <div className="max-w-3xl">
             {/*
               Was a Sparkles icon reading "The Mobility Operating System".
@@ -113,14 +113,14 @@ export default function HomePage() {
             {/* The display face, and no gradient-to-transparent: that trick
                 is everywhere, and it throws away contrast on the one line the
                 whole page is built around. */}
-            <h1 className="display mt-8 text-[3.1rem] leading-[0.95] text-white sm:text-[4.6rem] lg:text-[5.6rem]">
+            <h1 className="display mt-6 text-[2.6rem] leading-[0.95] text-white sm:mt-8 sm:text-[4.6rem] lg:text-[5.6rem]">
               Drive away
               <br />
               certain.
             </h1>
 
-            <p className="mt-7 max-w-xl text-lg font-medium leading-relaxed text-white/75 sm:text-xl">
-              Real cars from local hosts, delivered where you need them — with three promises no
+            <p className="mt-5 max-w-xl text-base font-medium leading-relaxed text-white/75 sm:mt-7 sm:text-xl">
+              Real cars from local hosts, delivered where you need them - with three promises no
               other rental makes.
             </p>
           </div>
@@ -128,7 +128,7 @@ export default function HomePage() {
           {/*
             One search bar, not two.
 
-            The hero ran its own widget — a native <select> listing cities with
+            The hero ran its own widget - a native <select> listing cities with
             a "(1)" vehicle count after each, and two native date inputs
             rendering dd-mm-yyyy in an OS-drawn picker. The navbar and the
             search page had already moved to SearchBarFields, so the product
@@ -138,13 +138,13 @@ export default function HomePage() {
             The counts went with it. A city offering one car reads as an empty
             marketplace, and the number is not what anyone is choosing on.
           */}
-          <div className="mt-10 max-w-4xl animate-slide-up">
+          <div className="mt-8 max-w-4xl animate-slide-up sm:mt-10">
             <SearchBarFields />
           </div>
 
           {/* The three promises, stated on the first screen. Each one is a
               shipped mechanic, not a marketing line. */}
-          <div className="mt-11 grid max-w-4xl gap-px overflow-hidden rounded-2xl border border-white/15 bg-white/10 sm:grid-cols-3">
+          <div className="mt-8 grid max-w-4xl gap-3 overflow-hidden rounded-2xl border border-white/15 bg-white/10 sm:mt-11 sm:gap-px sm:grid-cols-3">
             {[
               {
                 t: 'Your host cancels, you still drive',
@@ -159,15 +159,15 @@ export default function HomePage() {
                 d: 'Neither side sees the other until both are in. Nobody can retaliate.',
               },
             ].map((p) => (
-              <div key={p.t} className="bg-[hsl(var(--ink))]/70 p-5 backdrop-blur-sm">
+              <div key={p.t} className="rounded-xl bg-[hsl(var(--ink))]/70 p-4 backdrop-blur-sm sm:rounded-none sm:p-5">
                 <p className="text-[15px] font-semibold leading-snug text-white">{p.t}</p>
                 <p className="mt-1.5 text-[13.5px] leading-relaxed text-white/60">{p.d}</p>
               </div>
             ))}
           </div>
 
-          {/* Live marketplace numbers — supporting evidence, not the pitch. */}
-          <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-white/55">
+          {/* Live marketplace numbers - supporting evidence, not the pitch. */}
+          <div className="mt-6 flex flex-col gap-y-2 text-sm text-white/55 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8 sm:gap-y-3">
             {stats && stats.ratingAvg !== null && (
               <span className="flex items-center gap-2">
                 <Star className="h-4 w-4 fill-white/70 text-white/70" />
@@ -191,7 +191,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="space-y-14 py-10">
+      <div className="space-y-12 py-8 sm:space-y-14 sm:py-10">
         {/* ── Browse by category ─────────────────────────────────────── */}
         <Reveal as="section" className="space-y-6">
           <div>
@@ -268,7 +268,7 @@ export default function HomePage() {
           ) : (
             <div className="rounded-2xl border border-dashed border-border py-20 text-center">
               <p className="text-muted-foreground">
-                No cars listed yet in {city}. Be the first —{' '}
+                No cars listed yet in {city}. Be the first -{' '}
                 <Link
                   href={config.assetPartnersOnly ? '/asset-partners/apply' : '/host'}
                   className="font-medium text-primary underline underline-offset-4"
@@ -284,12 +284,12 @@ export default function HomePage() {
         {/* ── How it works ───────────────────────────────────────────── */}
         {/* No decorative glow behind this section. It carried a blurred radial
             orb tinted with the brand colour, which is the stock "AI landing
-            page" backdrop and did nothing for the content — the three photos
+            page" backdrop and did nothing for the content - the three photos
             are the visual interest here. */}
         <Reveal as="section" className="space-y-12 sm:space-y-16 pt-10">
           <div className="text-center sm:text-start">
-            <h2 className="display text-4xl text-foreground sm:text-5xl">How CatoDrive works</h2>
-            <p className="mt-4 text-muted-foreground text-lg sm:text-xl font-medium max-w-xl">Three steps. No counter, no queue, no paperwork.</p>
+            <h2 className="display text-3xl text-foreground sm:text-4xl sm:text-start sm:text-5xl">How CatoDrive works</h2>
+            <p className="mt-3 text-base text-muted-foreground sm:mt-4 sm:text-lg sm:text-xl font-medium max-w-xl">Three steps. No counter, no queue, no paperwork.</p>
           </div>
           <div className="grid gap-8 sm:gap-y-6 md:grid-cols-3 md:gap-x-12">
             {STEPS.map((s, i) => (
@@ -307,7 +307,7 @@ export default function HomePage() {
                       sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                       className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
                     />
-                    {/* Nothing sits on the photo — the image stays clean. */}
+                    {/* Nothing sits on the photo - the image stays clean. */}
                   </div>
                   <div className="flex flex-col p-6 sm:p-7">
                     {/* Icon + title live in the content, off the image. */}
@@ -329,7 +329,7 @@ export default function HomePage() {
         {/* ── The reservation, step by step ─────────────────────────── */}
         <Reveal as="section" className="relative isolate overflow-hidden rounded-3xl hero-mesh px-6 py-14 sm:px-10 sm:py-16 lg:px-14">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-soft backdrop-blur">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur">
               One reservation, end to end
             </span>
             <h2 className="display mt-6 text-[2.4rem] leading-[1.02] text-white sm:text-5xl">
@@ -341,31 +341,34 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* The 5-step flow — numbered, connected, reads left-to-right on
+          {/* The 5-step flow - numbered, connected, reads left-to-right on
               desktop and top-to-bottom on mobile. */}
           <div className="mt-12 grid gap-6 sm:grid-cols-5 sm:gap-4">
             {RESERVATION_FLOW.map((s, i) => (
-              <div key={s.label} className="relative flex sm:flex-col sm:items-start gap-4 sm:gap-0">
+              <div key={s.label} className="relative flex gap-4 sm:flex-col sm:items-start sm:gap-0">
                 <div className="flex flex-col items-center sm:items-start">
                   <span className="numeric flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15">
                     <s.icon className="h-5 w-5" />
                   </span>
                   {i < RESERVATION_FLOW.length - 1 && (
+                    <span className="mt-2 block h-6 w-px flex-none bg-gradient-to-b from-white/25 to-transparent sm:hidden" />
+                  )}
+                  {i < RESERVATION_FLOW.length - 1 && (
                     <span className="mt-2 hidden h-px flex-1 w-full bg-gradient-to-r from-white/25 to-transparent sm:block" />
                   )}
                 </div>
-                <div className="pb-1 sm:pt-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-primary-soft">{s.label}</p>
+                <div className="flex-1 pb-1 sm:pt-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-primary">{s.label}</p>
                   <p className="mt-1.5 text-sm leading-relaxed text-white/65">{s.body}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* The money callout — the whole point of Hold → Capture. */}
-          <div className="mt-10 inline-flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/10 px-5 py-3.5">
-            <Lock className="h-4 w-4 shrink-0 text-primary-soft" />
-            <p className="text-sm font-bold uppercase tracking-wider text-primary-soft">
+          {/* The money callout - the whole point of Hold → Capture. */}
+          <div className="mt-10 inline-flex items-center gap-3 rounded-2xl border border-primary/40 bg-primary/15 px-5 py-3.5">
+            <Lock className="h-4 w-4 shrink-0 text-primary" />
+            <p className="text-sm font-bold uppercase tracking-wider text-primary">
               The money never moved until it had to.
             </p>
           </div>
@@ -375,7 +378,7 @@ export default function HomePage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-5">
               {RESERVATION_TRUST.map((t) => (
                 <span key={t.label} className="flex items-center gap-2 text-sm font-medium text-white/75">
-                  <t.icon className="h-4 w-4 shrink-0 text-primary-soft" /> {t.label}
+                  <t.icon className="h-4 w-4 shrink-0 text-primary" /> {t.label}
                 </span>
               ))}
             </div>
@@ -390,7 +393,7 @@ export default function HomePage() {
           <div className="grid gap-8 sm:gap-y-6 md:grid-cols-3 md:gap-x-12">
             {[
               { icon: ShieldCheck, image: '/sections/cato-verified.webp', stat: 'Verified', label: 'Every host and every car is checked before it ever gets listed.' },
-              { icon: BadgeCheck, image: '/sections/cato-protected.webp', stat: 'Protected', label: 'Choose a protection plan at checkout — up to zero deductible.' },
+              { icon: BadgeCheck, image: '/sections/cato-protected.webp', stat: 'Protected', label: 'Choose a protection plan at checkout - up to zero deductible.' },
               { icon: Zap, image: '/sections/cato-instant.webp', stat: 'Instant', label: 'Instant Book cars are confirmed the moment you pay. No waiting.' },
             ].map((t, i, arr) => (
               <div key={t.stat} className="relative">
@@ -406,7 +409,7 @@ export default function HomePage() {
                       sizes="(min-width: 768px) 33vw, 100vw"
                       className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
                     />
-                    {/* Clean photo — nothing overlaid. */}
+                    {/* Clean photo - nothing overlaid. */}
                   </div>
                   <div className="flex flex-col p-6">
                     {/* Icon + promise live below the image, ahead of the detail. */}
@@ -427,14 +430,14 @@ export default function HomePage() {
 
         {/* ── Traction + who we serve (shared with the About page) ───── */}
         {/* excludeLive: the hero above already shows the live rating and trip
-            count from the marketplace API — see the note on TractionStats. */}
+            count from the marketplace API - see the note on TractionStats. */}
         <TractionStats heading="Backed by real numbers." excludeLive />
 
         <AudienceSection heading="Built for two kinds of people." />
 
         {/* ── Host / Asset Partner CTA ─────────────────────────────────── */}
         <Reveal as="section" className="relative isolate grain overflow-hidden rounded-3xl hero-mesh px-8 py-14 sm:px-16 sm:py-16">
-          {/* An existing host shouldn't be pitched on hosting — send them to
+          {/* An existing host shouldn't be pitched on hosting - send them to
               their dashboard instead. A NEW visitor sees the Asset Partner
               pitch while config.assetPartnersOnly is on: the self-serve "list
               it yourself" story is what's switched off, not the CTA slot. */}
@@ -459,8 +462,8 @@ export default function HomePage() {
               {isHost
                 ? 'Check today’s trips, cash out your earnings, and keep your calendar up to date.'
                 : config.assetPartnersOnly
-                  ? 'We list it, price it, deliver it and service it. You keep 80% of every booking — no calendar to manage.'
-                  : 'List in minutes, set your own price, and get paid out — instantly, if you want it. You stay in control of your calendar.'}
+                  ? 'We list it, price it, deliver it and service it. You keep 80% of every booking - no calendar to manage.'
+                  : 'List in minutes, set your own price, and get paid out - instantly, if you want it. You stay in control of your calendar.'}
             </p>
             <Link
               href={isHost ? '/host/trips' : config.assetPartnersOnly ? '/asset-partners' : '/host'}

@@ -19,9 +19,9 @@ import { tripApi } from '@/features/trips/api';
 import { usePlatformConfig } from '@/features/platform/config';
 import { formatMoney, formatDateTime } from '@/lib/utils/format';
 
-/** What the guest should do or expect next, per status — the "what happens now" of each trip. */
+/** What the guest should do or expect next, per status - the "what happens now" of each trip. */
 const NEXT_STEP: Record<string, string> = {
-  pending_verification: 'Next: verify your licence before pickup — tap to continue',
+  pending_verification: 'Next: verify your licence before pickup - tap to continue',
   pending_approval: 'Next: waiting for the host to accept',
   pending_payment: 'Next: finish your payment to lock in the trip',
   paid: 'Next: show your pickup code to the host at the car',
@@ -150,12 +150,12 @@ function BookingsList() {
                     className="text-destructive"
                     loading={cancel.isPending || previewing === b._id}
                     onClick={async () => {
-                      // Fetch the exact refund first, the way Turo does — a
+                      // Fetch the exact refund first, the way Turo does - a
                       // guest deciding whether to eat a loss deserves the real
                       // number, not "it depends on the policy".
                       setPreviewing(b._id);
                       let desc: ReactNode =
-                        'This cannot be undone — you would need to rebook.';
+                        'This cannot be undone - you would need to rebook.';
                       try {
                         const p = await bookingApi.cancellationPreview(b._id);
                         const policyLabel = { flexible: 'Flexible', moderate: 'Moderate', strict: 'Strict' }[p.policy];
@@ -166,7 +166,7 @@ function BookingsList() {
                               {p.isFullRefund ? (
                                 <>You’ll be refunded the <b>full {formatMoney(p.refund)}</b>.</>
                               ) : p.refund.amount > 0 ? (
-                                <>You’ll be refunded <b>{formatMoney(p.refund)}</b> — {formatMoney(p.nonRefundable)} is non-refundable under this host’s {policyLabel.toLowerCase()} policy.</>
+                                <>You’ll be refunded <b>{formatMoney(p.refund)}</b> - {formatMoney(p.nonRefundable)} is non-refundable under this host’s {policyLabel.toLowerCase()} policy.</>
                               ) : (
                                 <>This is <b>non-refundable</b> under this host’s {policyLabel.toLowerCase()} policy.</>
                               )}
@@ -176,7 +176,7 @@ function BookingsList() {
                                 A full refund was available until {new Date(p.fullRefundUntil).toLocaleString()}.
                               </span>
                             )}
-                            <span className="block text-xs text-muted-foreground">This cannot be undone — you would need to rebook.</span>
+                            <span className="block text-xs text-muted-foreground">This cannot be undone - you would need to rebook.</span>
                           </span>
                         );
                       } catch {

@@ -48,7 +48,7 @@ export function TripCard({ trip }: { trip: HostTrip }) {
             <p className="mt-1.5 truncate text-[15px] font-medium text-foreground/80">{trip.pickupAddress}</p>
           )}
 
-          {/* An airport handover is only as good as the flight info — this is
+          {/* An airport handover is only as good as the flight info - this is
               what tells the host when to actually leave for the terminal. */}
           {trip.delivery?.mode === 'airport' && trip.delivery.flightNumber && (
             <p className="mt-1 text-[13px] font-medium text-primary">

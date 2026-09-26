@@ -21,11 +21,11 @@ export function ArticleView({ slug }: { slug: string }) {
   });
 
   if (article.isLoading) {
-    return <div className="mx-auto max-w-2xl space-y-4 py-6"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-64 w-full" /></div>;
+    return <div className="mx-auto max-w-2xl space-y-4 px-4 py-6 sm:px-6"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-64 w-full" /></div>;
   }
   if (article.isError || !article.data) {
     return (
-      <div className="mx-auto max-w-2xl py-6">
+      <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
         <ErrorState message="We couldn’t find that article." />
         <div className="mt-4"><Link href="/help" className="text-sm font-medium text-primary underline">Back to help centre</Link></div>
       </div>
@@ -34,25 +34,27 @@ export function ArticleView({ slug }: { slug: string }) {
 
   const a = article.data;
   return (
-    <div className="mx-auto max-w-2xl space-y-6 py-6">
+    <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 sm:px-6">
       <Link href="/help" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Help centre
       </Link>
 
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-primary">{titleCase(a.category)}</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight">{a.title}</h1>
-        {a.summary && <p className="mt-2 text-lg text-muted-foreground">{a.summary}</p>}
+        <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{a.title}</h1>
+        {a.summary && <p className="mt-2 text-base text-muted-foreground sm:text-lg">{a.summary}</p>}
       </div>
 
-      <article><Markdown source={a.body} /></article>
+      <article className="prose prose-sm sm:prose max-w-none dark:prose-invert break-words">
+        <Markdown source={a.body} />
+      </article>
 
       {/* Was this helpful? */}
       <Card>
         <CardContent className="py-5">
           {voted ? (
             <p className="text-sm text-muted-foreground">
-              {voted === 'up' ? 'Thanks for the feedback!' : 'Thanks — we’ll work on making this clearer.'}
+              {voted === 'up' ? 'Thanks for the feedback!' : 'Thanks - we’ll work on making this clearer.'}
             </p>
           ) : (
             <div className="flex flex-wrap items-center gap-3">

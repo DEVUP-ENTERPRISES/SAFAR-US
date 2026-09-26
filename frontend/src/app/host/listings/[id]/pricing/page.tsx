@@ -54,12 +54,12 @@ export default function PricingDiscountsPage() {
   if (vError || !v) return <ErrorState message="Couldn't load this vehicle." retry={() => refetchV()} />;
   if (pError || !preview) return <ErrorState message="Couldn't load pricing." retry={() => refetchP()} />;
 
-  // Where this car's own rate lands against the market for its category/area —
+  // Where this car's own rate lands against the market for its category/area -
   // the same comps Smart Price already computes, read as a 4-bar dial instead
   // of a single "suggested" number.
   const competitiveness = (() => {
     if (!comps.data) return 0;
-    const nightly = v.pricing.dailyPrice; // the base rate — tier discounts don't change how it reads on the market
+    const nightly = v.pricing.dailyPrice; // the base rate - tier discounts don't change how it reads on the market
     if (nightly <= comps.data.p25) return 4;
     if (nightly <= comps.data.median) return 3;
     if (nightly <= comps.data.p75) return 2;
@@ -136,7 +136,7 @@ export default function PricingDiscountsPage() {
             </p>
             <p className="text-sm text-muted-foreground">
               Every listing offers a discount for trips booked at least 4 days in advance (your early-bird
-              rate, set below). It protects your earnings if a guest cancels close to the trip — the discount
+              rate, set below). It protects your earnings if a guest cancels close to the trip - the discount
               is what they paid for booking ahead, not a refund CatoDrive owes back.
             </p>
           </CardContent>

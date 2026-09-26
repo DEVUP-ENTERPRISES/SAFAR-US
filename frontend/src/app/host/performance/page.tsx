@@ -39,7 +39,7 @@ export default function HostPerformancePage() {
       <PageHeader
         eyebrow="Host"
         title="Performance"
-        description="How your fleet is doing — earnings trend, how full your cars are, and which ones earn the most."
+        description="How your fleet is doing - earnings trend, how full your cars are, and which ones earn the most."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

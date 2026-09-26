@@ -11,7 +11,7 @@ import { DailyPrice, ProBadge } from '@/features/subscriptions/member-ui';
 import { useMembership } from '@/features/subscriptions/hooks';
 
 /**
- * Horizontal result card — photo left, details right, price bottom-right —
+ * Horizontal result card - photo left, details right, price bottom-right -
  * matching the list layout of the reference marketplace. Used beside the map.
  * When trip dates are set it shows the base total for those days; otherwise the
  * nightly rate. All figures are the car's real price data.
@@ -43,7 +43,7 @@ export function VehicleListCard({
           Photo.
 
           `sm:aspect-auto` was the reason no two cards were the same height. It
-          removes the ratio, and the img inside is `h-full` — which against an
+          removes the ratio, and the img inside is `h-full` - which against an
           auto-height parent resolves to auto, so each card ended up as tall as
           its own photo happened to be. A landscape shot gave a short card, a
           squarer one gave a card nearly twice the height, and a list of them
@@ -90,7 +90,7 @@ export function VehicleListCard({
               )}
             </p>
             <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5" /> {vehicle.location.city || '—'}
+              <MapPin className="h-3.5 w-3.5" /> {vehicle.location.city || '-'}
             </p>
             {dateLabel && (
               <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">

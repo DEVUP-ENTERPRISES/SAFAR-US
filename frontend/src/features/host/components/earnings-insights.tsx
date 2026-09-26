@@ -20,7 +20,7 @@ const money2 = (c: number) => `$${(c / 100).toFixed(2)}`;
  * The rest of the earnings page reports totals, which cannot be acted on: a car
  * that earned more may simply have been listed longer. Everything here is a
  * rate, so two cars can be compared honestly, and the ranking is by revenue per
- * available day rather than by revenue — usually a different order, and the
+ * available day rather than by revenue - usually a different order, and the
  * order that decides which car to reprice.
  */
 export function EarningsInsights() {
@@ -72,7 +72,7 @@ export function EarningsInsights() {
                 <TrendingUp className="h-4 w-4 text-primary" /> Earnings per available day
               </p>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                What each car returns for every day you had it listed — the fair way to compare cars that have
+                What each car returns for every day you had it listed - the fair way to compare cars that have
                 been on the platform for different lengths of time.
               </p>
               <div className="mt-4 space-y-3">
@@ -92,7 +92,7 @@ export function EarningsInsights() {
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   That is your own daily rate multiplied by the days each car sat unbooked in this window. It is
-                  not a bill — it is what the fleet could have earned at full occupancy, which no fleet reaches.
+                  not a bill - it is what the fleet could have earned at full occupancy, which no fleet reaches.
                   Use it to decide which car to reprice first.
                 </p>
               </CardContent>
@@ -117,7 +117,7 @@ export function EarningsInsights() {
               </CardContent>
             </Card>
 
-            {/* Weekday pattern — answers whether the weekend multiplier is right. */}
+            {/* Weekday pattern - answers whether the weekend multiplier is right. */}
             <Card>
               <CardContent className="py-5">
                 <p className="flex items-center gap-2 font-semibold">
@@ -142,7 +142,7 @@ export function EarningsInsights() {
             </Card>
           </div>
 
-          {/* Lead time — is early-bird or last-minute pricing worth running? */}
+          {/* Lead time - is early-bird or last-minute pricing worth running? */}
           {d.leadTime.length > 0 && (
             <Card>
               <CardContent className="py-5">

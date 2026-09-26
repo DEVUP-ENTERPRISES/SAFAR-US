@@ -42,7 +42,7 @@ const STATE: Record<string, { tone: 'success' | 'warning' | 'destructive' | 'mut
   pending_payment: { tone: 'warning', label: 'Payment incomplete', detail: 'Your dates are held but the payment didn’t finish. This trip isn’t confirmed until it does.' },
   paid: { tone: 'success', label: 'Confirmed', detail: 'You’re booked. The host will meet you at pickup.' },
   confirmed: { tone: 'success', label: 'Confirmed', detail: 'You’re booked. The host will meet you at pickup.' },
-  in_progress: { tone: 'default', label: 'Trip in progress', detail: 'Enjoy the drive — return it on time to avoid late fees.' },
+  in_progress: { tone: 'default', label: 'Trip in progress', detail: 'Enjoy the drive - return it on time to avoid late fees.' },
   completed: { tone: 'muted', label: 'Completed', detail: 'This trip is finished. Thanks for riding.' },
   declined: { tone: 'destructive', label: 'Declined by host', detail: 'The host couldn’t take this trip. You haven’t been charged.' },
   expired: { tone: 'destructive', label: 'Request expired', detail: 'The host didn’t respond in time. You haven’t been charged.' },
@@ -71,7 +71,7 @@ function BookingDetail({ id }: { id: string }) {
   });
 
   // After a trip ends there is a window in which damage can still be claimed.
-  // Guests deserve to know when that shuts — it is the difference between
+  // Guests deserve to know when that shuts - it is the difference between
   // "probably fine" and "this trip can no longer cost me anything".
   const settlement = useQuery({
     queryKey: ['settlement', id],
@@ -101,7 +101,7 @@ function BookingDetail({ id }: { id: string }) {
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not report the no-show' }),
   });
 
-  // Push only ever turns on from an explicit ask — this is that ask. Hidden
+  // Push only ever turns on from an explicit ask - this is that ask. Hidden
   // once permission has already been decided (granted or denied) or push
   // isn't configured for this deployment.
   const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unsupported'>('unsupported');
@@ -273,7 +273,7 @@ function BookingDetail({ id }: { id: string }) {
           <CardContent className="flex items-start gap-3 py-4">
             <Shuffle className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <div className="text-sm">
-              <p className="font-semibold">Your trip moved to a similar car — same dates, same price</p>
+              <p className="font-semibold">Your trip moved to a similar car - same dates, same price</p>
               <p className="mt-0.5 text-muted-foreground">
                 Another guest extended their trip on your original car, so we moved you to {v ? `${v.year} ${v.make} ${v.model}` : 'a comparable car'}.
                 Your booking code, dates and total are unchanged.
@@ -387,7 +387,7 @@ function BookingDetail({ id }: { id: string }) {
             </CardContent>
           </Card>
 
-          {/* Full-width stacked buttons, not a wrapping row — these were the
+          {/* Full-width stacked buttons, not a wrapping row - these were the
               last thing on a long page and easy to miss entirely. */}
           <Card>
             <CardContent className="space-y-2 py-5">

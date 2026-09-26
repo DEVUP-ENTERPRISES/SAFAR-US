@@ -1,9 +1,9 @@
 /*
- * CatoDrive service worker — deliberately conservative.
+ * CatoDrive service worker - deliberately conservative.
  *
  * The one rule that must never break: money and availability are always live.
  * The API is a different origin (api.catodrive.com), and this worker only ever
- * touches SAME-origin GETs, so API/booking/pricing requests are never cached —
+ * touches SAME-origin GETs, so API/booking/pricing requests are never cached -
  * they always hit the network. No stale prices, ever.
  *
  * Caching, by request type:
@@ -40,7 +40,7 @@ function isStaticAsset(url) {
 }
 
 self.addEventListener('install', (event) => {
-  // Take over as soon as it's ready — no waiting for every tab to close.
+  // Take over as soon as it's ready - no waiting for every tab to close.
   self.skipWaiting();
   event.waitUntil(caches.open(PAGE_CACHE));
 });
@@ -61,7 +61,7 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  // Only same-origin — the cross-origin API, Mapbox, CDNs go straight to network.
+  // Only same-origin - the cross-origin API, Mapbox, CDNs go straight to network.
   if (url.origin !== self.location.origin) return;
 
   // Page navigations: network-first, cache as a fallback for offline revisits.
@@ -92,7 +92,7 @@ self.addEventListener('fetch', (event) => {
         const cached = await caches.match(request);
         const network = fetch(request)
           .then((res) => {
-            // Clone synchronously, before returning res — the browser starts
+            // Clone synchronously, before returning res - the browser starts
             // consuming the returned body immediately, and cloning after that
             // race started threw "Response body is already used".
             if (res && res.status === 200) {

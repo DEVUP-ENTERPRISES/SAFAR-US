@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils/cn';
 
 /**
- * The branded "loading ride" — a short car animation with cycling status copy,
+ * The branded "loading ride" - a short car animation with cycling status copy,
  * shown while a real wait happens (navigation, search, checkout). Route-level
  * loading uses it too, so it greets a navigation before the page renders.
  *

@@ -21,7 +21,7 @@ export interface AdminNavItem {
   permission: string;
 }
 
-/** The flag key is the document `_id` — the backend has no separate `key` field. */
+/** The flag key is the document `_id` - the backend has no separate `key` field. */
 export interface FeatureFlag {
   _id: string;
   description?: string;
@@ -293,7 +293,7 @@ export interface AdminPayouts {
   totals: { scheduled: number; paid: number };
 }
 
-/** A jurisdiction's tax rule. Rules stack — country + state + city + airport
+/** A jurisdiction's tax rule. Rules stack - country + state + city + airport
  *  all apply to the same booking, unlike commission rules which resolve to a
  *  single most-specific winner. */
 export interface TaxRule {
@@ -347,7 +347,7 @@ export const adminApi = {
   setHostVerification: (id: string, status: string) =>
     api.post(`/admin/hosts/${id}/verification`, { status }),
 
-  // Asset Partner applications — the primary acquisition intake. Approving is
+  // Asset Partner applications - the primary acquisition intake. Approving is
   // the gate: the reviewed applicant's host account is verified so
   // vehicle.service will let them list a car.
   assetPartnerApplications: (q: Q = {}) => api.get<any[]>('/admin/asset-partner-applications', q),
@@ -355,13 +355,13 @@ export const adminApi = {
   reviewAssetPartnerApplication: (id: string, decision: 'approved' | 'rejected', notes?: string) =>
     api.post(`/admin/asset-partner-applications/${id}/review`, { decision, notes }),
 
-  // The programme itself — members, lifecycle and negotiated terms. Separate
+  // The programme itself - members, lifecycle and negotiated terms. Separate
   // from the intake queue above, and from hosts: a partner is paid a monthly
   // net after a management fee, insurance and detailing, which no host is.
   assetPartners: (q: Q = {}) => api.get<any[]>('/admin/asset-partners', q),
 
   /**
-   * Add a partner who never applied — the owners who signed before the site
+   * Add a partner who never applied - the owners who signed before the site
    * existed. Only what ops actually knows; the partner supplies payout
    * details and documents themselves from their portal.
    */
@@ -385,7 +385,7 @@ export const adminApi = {
   setAssetPartnerTerms: (id: string, terms: Record<string, number | string | undefined>) =>
     api.patch(`/admin/asset-partners/${id}/terms`, terms),
 
-  // Contact page leads — every inbound inquiry (asset partner, investor,
+  // Contact page leads - every inbound inquiry (asset partner, investor,
   // corporate, general) lands here so ops sees who's reaching out in one place.
   contactInquiries: (q: Q = {}) => api.get<any[]>('/admin/contact-inquiries', q),
   contactInquiryCounts: () => api.get<Record<string, number>>('/admin/contact-inquiries/counts'),
@@ -420,10 +420,10 @@ export const adminApi = {
   liveTraffic: () => api.get<LiveTrafficSummary>('/admin/analytics/live-traffic'),
   trafficGeo: (days = 30) => api.get<GeoSummaryEntry[]>('/admin/analytics/geo', { days }),
 
-  // NOTE: the flag's `_id` IS its key (see feature-flag.model.ts) — there is no
+  // NOTE: the flag's `_id` IS its key (see feature-flag.model.ts) - there is no
   // separate `key` field. Typing it stops us reading `f.key` and rendering undefined.
 
-  // Platform economics — every rate the business runs on, tunable live.
+  // Platform economics - every rate the business runs on, tunable live.
   config: () => api.get<PlatformConfig>('/admin/config'),
   saveConfig: (patch: Partial<PlatformConfig> & { reason?: string }) =>
     api.raw<PlatformConfig>('/admin/config', { method: 'PUT', body: patch }).then((r) => r.data),
@@ -534,7 +534,7 @@ export const adminApi = {
   // ── Referrals ──
   referralStats: (days = 30) => api.get<ReferralStats>('/admin/referrals/stats', { days }),
 
-  // Tax rules — jurisdiction stack. platform:manage gated.
+  // Tax rules - jurisdiction stack. platform:manage gated.
   taxRules: (params: { scope?: string; active?: boolean } = {}) =>
     api.get<TaxRule[]>('/admin/tax-rules', params as Record<string, string | boolean | undefined>),
   createTaxRule: (body: Partial<TaxRule>) => api.post<TaxRule>('/admin/tax-rules', body),

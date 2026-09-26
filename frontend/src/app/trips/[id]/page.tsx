@@ -136,7 +136,7 @@ function TripDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <MetricBox icon={<KeyRound />} label="Check-in" value={trip.checkin ? trip.checkin.method : 'Pending'} />
             <MetricBox icon={<Gauge />} label="Distance" value={`${trip.distanceKm} km`} />
-            <MetricBox icon={<Fuel />} label="Fuel start" value={trip.handover.fuelStart != null ? `${trip.handover.fuelStart}%` : '—'} />
+            <MetricBox icon={<Fuel />} label="Fuel start" value={trip.handover.fuelStart != null ? `${trip.handover.fuelStart}%` : '-'} />
             <MetricBox icon={<MapPin />} label="Location" value={loc ? `${loc.coordinates[1].toFixed(3)}, ${loc.coordinates[0].toFixed(3)}` : 'No signal'} />
           </div>
         </section>

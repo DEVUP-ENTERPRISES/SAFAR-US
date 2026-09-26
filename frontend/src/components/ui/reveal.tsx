@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils/cn';
  * choose, which is the difference between a page you scan and a page that
  * leads you.
  *
- * Deliberately restrained — a short rise and a fade, once. Content that
+ * Deliberately restrained - a short rise and a fade, once. Content that
  * re-animates every time it scrolls past is a page that will not sit still to
  * be read, and on a booking flow that reads as broken rather than lively.
  */

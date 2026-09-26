@@ -61,7 +61,7 @@ function Rebook({ id }: { id: string }) {
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {covered
-                  ? 'Your host cancelled, so you shouldn’t pay more for the same trip. Pick any car below — we make up the difference, up to ' +
+                  ? 'Your host cancelled, so you shouldn’t pay more for the same trip. Pick any car below - we make up the difference, up to ' +
                     formatMoney({ amount: d!.protection.maxCoverageCents, currency: d!.originalTotal.currency }) +
                     '.'
                   : 'These cars are free for your original dates.'}
@@ -85,7 +85,7 @@ function Rebook({ id }: { id: string }) {
       {!d || d.options.length === 0 ? (
         <EmptyState
           title="No cars free for those dates"
-          description="Nothing comparable is available right now. Our team can help you find something — or refund you in full."
+          description="Nothing comparable is available right now. Our team can help you find something - or refund you in full."
         />
       ) : (
         <div className="space-y-3">
@@ -153,7 +153,7 @@ function OptionCard({ option: o, selected, onSelect }: { option: RebookingOption
             </div>
 
             {/* The maths, in the open. A guest who was just let down will not
-                take "trust us" — show the sticker price, what we absorb, and
+                take "trust us" - show the sticker price, what we absorb, and
                 what actually leaves their account. */}
             <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
               {o.covered > 0 ? (

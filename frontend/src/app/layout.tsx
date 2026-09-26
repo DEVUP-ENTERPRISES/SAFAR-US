@@ -8,7 +8,7 @@ import { AppChrome } from '@/components/layout/app-chrome';
  * Three voices, not one.
  *
  * Outfit previously did display AND body, so nothing on any screen carried
- * emphasis — everything spoke in the same tone. Archivo takes weight and
+ * emphasis - everything spoke in the same tone. Archivo takes weight and
  * tightens toward signage at large sizes; Instrument Sans stays quiet
  * underneath it; and numbers move to a mono face because prices, totals,
  * plates and citation references are data and must line up in a column.
@@ -43,12 +43,12 @@ const fontMono = IBM_Plex_Mono({
  * (and poweredByHeader is off in next.config, so no X-Powered-By header ships).
  */
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://catodrive.com';
-// The company name, not a runtime config value — hardcoded so it can never
+// The company name, not a runtime config value - hardcoded so it can never
 // drift from whatever NEXT_PUBLIC_APP_NAME happens to be set to in a given
 // environment (this is exactly how it once rendered "CATO Drive" in
 // production: the env var was "CATO", and " Drive" got appended onto it).
 const BRAND = 'CatoDrive';
-const TAGLINE = `${BRAND} — rent the perfect car from local hosts`;
+const TAGLINE = `${BRAND} - rent the perfect car from local hosts`;
 const DESCRIPTION =
   `${BRAND} is a peer-to-peer car rental marketplace: book a car from a trusted local host, ` +
   `or earn by sharing yours. Verified hosts, protected trips, no rental counters.`;
@@ -127,7 +127,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         overflow-x must be `clip`, never `hidden`.
 
         Setting overflow-x:hidden forces the computed overflow-y to `auto`, which
-        makes <body> a scroll container — and `position: sticky` resolves against
+        makes <body> a scroll container - and `position: sticky` resolves against
         its nearest scrolling ancestor. Every sticky element in the app was
         therefore sticking to the body box rather than the viewport, which is why
         the booking panel on a vehicle page scrolled away instead of staying put.

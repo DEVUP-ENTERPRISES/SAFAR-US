@@ -25,7 +25,7 @@ export interface InquiryThread {
   unread: number;
 }
 
-/** A guest's own pre-booking question thread on one car — poll, no socket (Turo doesn't real-time-push these either). */
+/** A guest's own pre-booking question thread on one car - poll, no socket (Turo doesn't real-time-push these either). */
 export function useVehicleInquiry(vehicleId: string, myUserId?: string) {
   const qc = useQueryClient();
   const query = useQuery({
@@ -62,7 +62,7 @@ export function useInquiryThread(vehicleId: string, guestId: string) {
   return { messages: query.data ?? [], isLoading: query.isLoading, send, markRead };
 }
 
-/** The caller's inbox — their own threads if a guest, every guest's inquiry if a host. */
+/** The caller's inbox - their own threads if a guest, every guest's inquiry if a host. */
 export function useInquiryInbox(enabled = true) {
   return useQuery({
     queryKey: ['inquiry-inbox'],

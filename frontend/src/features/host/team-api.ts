@@ -7,13 +7,13 @@ export type CaptainAbility =
   | 'calendar:manage'
   | 'incident:report';
 
-/** Plain-language labels — a host should never read a permission string. */
+/** Plain-language labels - a host should never read a permission string. */
 export const ABILITY_LABELS: Record<CaptainAbility, { label: string; detail: string }> = {
   'trip:view': { label: 'See trips', detail: 'Who has which car, and when it is due back' },
   'trip:handover': { label: 'Do handovers', detail: 'Check-in and checkout, odometer, fuel, photos' },
   'trip:message': { label: 'Message guests', detail: 'Reply in the chat for their cars' },
   'calendar:manage': { label: 'Block dates', detail: 'Take a car off the calendar for servicing' },
-  'incident:report': { label: 'Report damage', detail: 'Raise damage and citations — cannot charge for them' },
+  'incident:report': { label: 'Report damage', detail: 'Raise damage and citations - cannot charge for them' },
 };
 
 export interface Captain {

@@ -17,7 +17,7 @@ import { LocationSearch } from '@/features/maps/components/location-search';
 import { hostApi, type RowPreview, type ImportResult } from '@/features/host/api';
 
 /**
- * Fleet import & bulk edit — one shared address for the whole batch (set
+ * Fleet import & bulk edit - one shared address for the whole batch (set
  * once, above the box); each pasted line is a VIN plus the things a VIN
  * can't know: plate, an optional title, and a status. Re-pasting a VIN
  * already in the fleet updates that car instead of being skipped.
@@ -32,7 +32,7 @@ interface ParsedRow {
 
 const STATUS_VALUES = ['listed', 'unlisted', 'risk'] as const;
 
-/** VIN, license plate, optional title, status — one row per car. */
+/** VIN, license plate, optional title, status - one row per car. */
 const SAMPLE = `4T1C11AK5NU123456, TXA1234, , Listed
 5YJ3E1EA7KF317834, TXB5678, Tesla Model 3 Long Range, Unlisted`;
 
@@ -64,7 +64,7 @@ function parse(text: string): { rows: ParsedRow[]; errors: string[] } {
   return { rows, errors };
 }
 
-/** The fleet's home base — pre-filled since every car in a batch import shares it. */
+/** The fleet's home base - pre-filled since every car in a batch import shares it. */
 const DEFAULT_ADDRESS = '3001 Esters Road, Irving, TX 75062';
 
 export default function ImportPage() {
@@ -96,7 +96,7 @@ export default function ImportPage() {
   });
 
   // A duplicate row still counts as ready when it carries an edit (plate,
-  // title or status) — re-pasting a VIN already in the fleet updates it.
+  // title or status) - re-pasting a VIN already in the fleet updates it.
   const readyCount = (preview ?? []).filter((p) => {
     const row = rows.find((r) => r.vin === p.vin);
     if (p.duplicate) return !!(row?.registrationNumber || row?.title || row?.status);
@@ -124,7 +124,7 @@ export default function ImportPage() {
             <p className="mt-0.5 text-muted-foreground">
               Year, make, model, trim, body type, fuel, transmission and seats are read from the VIN, and a
               starting price is suggested from comparable listings. Every new car also gets your standard
-              delivery setup (both airports, the hotel, and a 20-mile custom radius) — adjust per car on the
+              delivery setup (both airports, the hotel, and a 20-mile custom radius) - adjust per car on the
               listing page. Set the real price, add photos and publish from there too. Re-pasting a VIN already
               in your fleet updates its plate, title or status instead of creating a duplicate.
             </p>
@@ -212,7 +212,7 @@ export default function ImportPage() {
                 {blocked.length > 0 && (
                   <p className="mt-0.5 text-sm text-muted-foreground">
                     {blocked.length} need{blocked.length === 1 ? 's' : ''} attention, but every car is still
-                    attempted — you&apos;ll see the exact reason for each one below.
+                    attempted - you&apos;ll see the exact reason for each one below.
                   </p>
                 )}
               </div>
@@ -248,7 +248,7 @@ export default function ImportPage() {
                     <div className="shrink-0">
                       {p.duplicate ? (
                         <Badge tone={row?.registrationNumber || row?.title || row?.status ? 'default' : 'muted'}>
-                          {row?.registrationNumber || row?.title || row?.status ? 'Already yours — will update' : 'Already yours'}
+                          {row?.registrationNumber || row?.title || row?.status ? 'Already yours - will update' : 'Already yours'}
                         </Badge>
                       ) : !p.ok ? (
                         <Badge tone="destructive">{p.error ?? 'Could not decode'}</Badge>
@@ -275,7 +275,7 @@ export default function ImportPage() {
               {results.filter((r) => r.status === 'updated').length} updated
             </p>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              New cars land as drafts — add photos, set a real price, then publish. A car without photos will
+              New cars land as drafts - add photos, set a real price, then publish. A car without photos will
               not attract bookings.
             </p>
             <ul className="mt-4 divide-y divide-border text-sm">

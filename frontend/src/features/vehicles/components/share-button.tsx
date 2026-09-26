@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/toast';
 
 /**
  * Share a listing. Uses the native share sheet where available (mobile), and
- * falls back to copying the link to the clipboard with a toast — so it works
+ * falls back to copying the link to the clipboard with a toast - so it works
  * everywhere without a hard dependency on the Web Share API.
  */
 export function ShareButton({ title, className }: { title: string; className?: string }) {
@@ -22,7 +22,7 @@ export function ShareButton({ title, className }: { title: string; className?: s
         await nav.share({ title, text: `Check out this ${title} on CatoDrive`, url });
         return;
       } catch {
-        // User dismissed the share sheet, or it failed — fall through to copy.
+        // User dismissed the share sheet, or it failed - fall through to copy.
       }
     }
     try {

@@ -48,7 +48,7 @@ interface MbNamespace {
  *     a shape read as a vehicle in motion rather than a sticker.
  *
  * During handover both parties broadcast, so positions are tracked per role and
- * rendered as two distinct markers — the car and the person meeting it. Without
+ * rendered as two distinct markers - the car and the person meeting it. Without
  * the role on the event these would be one marker flicking between two people.
  */
 export function TripLiveMap({
@@ -213,7 +213,7 @@ class MarkerAnimator {
            <span class="relative block text-teal-600 drop-shadow">${CAR_SVG}</span>
          </div>`
       // The person meeting the car is deliberately a different shape, not just
-      // a different colour — colour alone fails for a colour-blind viewer.
+      // a different colour - colour alone fails for a colour-blind viewer.
       : `<span class="block h-4 w-4 rounded-full border-2 border-white bg-slate-800 shadow-lg"></span>`;
 
     this.el = wrap;
@@ -263,7 +263,7 @@ function placePin(mb: MbNamespace, map: MbMap, c: LngLat) {
   new mb.Marker({ element: el, anchor: 'center' }).setLngLat(c).addTo(map);
 }
 
-/** Metres between two points — only needs to be good enough to detect movement. */
+/** Metres between two points - only needs to be good enough to detect movement. */
 function distance([lng1, lat1]: LngLat, [lng2, lat2]: LngLat): number {
   const dx = (lng2 - lng1) * 111_320 * Math.cos((lat1 * Math.PI) / 180);
   const dy = (lat2 - lat1) * 110_540;

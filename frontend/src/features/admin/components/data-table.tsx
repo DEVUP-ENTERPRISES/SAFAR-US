@@ -13,7 +13,7 @@ export interface Column<T> {
 
 /**
  * The table behind every admin/corporate list view. Sticky header, zebra rows,
- * and a row count — so long queues stay readable while you scroll them.
+ * and a row count - so long queues stay readable while you scroll them.
  */
 export function DataTable<T extends { _id: string }>({
   columns,

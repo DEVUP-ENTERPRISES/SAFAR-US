@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils/cn';
  *
  * The title now actually uses the display FACE. It was set with `font-black
  * tracking-tight`, which only changes the weight and spacing of the BODY font
- * — so the display family loaded on every page and never appeared on any of
+ * - so the display family loaded on every page and never appeared on any of
  * the thirty-four screens that use this header. The type pairing existed on
  * paper only.
  */
@@ -31,11 +31,11 @@ export function PageHeader({
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
         )}
         {/* balance stops a two-line title breaking with one orphaned word. */}
-        <h1 className="display text-4xl text-foreground [text-wrap:balance] sm:text-[2.75rem]">
+        <h1 className="display text-3xl text-foreground [text-wrap:balance] sm:text-4xl">
           {title}
         </h1>
         {description && (
-          <p className="mt-3 max-w-2xl text-[17px] leading-relaxed text-muted-foreground">
+          <p className="mt-2.5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:mt-3 sm:text-[17px]">
             {description}
           </p>
         )}

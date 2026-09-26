@@ -55,7 +55,7 @@ export default function PartnerStatementsPage() {
   }
 
   const currency = data[0]?.currency ?? 'USD';
-  // Closed months only for the totals and the chart — the running month is
+  // Closed months only for the totals and the chart - the running month is
   // incomplete, and averaging it in would understate every figure.
   const closed = data.filter((s) => s.final);
   const lifetimeNet = closed.reduce((sum, s) => sum + s.totals.net, 0);
@@ -70,7 +70,7 @@ export default function PartnerStatementsPage() {
       <PageHeader
         eyebrow="Asset Partners"
         title="Statements"
-        description="Every month, itemised — gross, management fee, insurance, detailing and your net."
+        description="Every month, itemised - gross, management fee, insurance, detailing and your net."
       />
 
       <div className="hide-scrollbar flex gap-2 overflow-x-auto">
@@ -95,7 +95,7 @@ export default function PartnerStatementsPage() {
             <StatTile label="Gross, closed months" value={formatMoney({ amount: lifetimeGross, currency })} />
             <StatTile
               label="Best month"
-              value={bestMonth ? formatMoney({ amount: bestMonth.totals.net, currency }) : '—'}
+              value={bestMonth ? formatMoney({ amount: bestMonth.totals.net, currency }) : '-'}
               sub={bestMonth?.period}
             />
           </div>

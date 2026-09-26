@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils/cn';
 
 /**
  * The row-list language used across the host app (Turo-style): an UPPERCASE
- * section label, then divider-separated rows with a right-aligned action —
+ * section label, then divider-separated rows with a right-aligned action -
  * either a CAPS text link, a chevron, or a value.
  *
  * These exist so every host screen is laid out from the same vocabulary
@@ -110,7 +110,7 @@ export function Row({
 }
 
 /**
- * The sticky bottom action sheet — Turo's signature "Start check-in" / "End
+ * The sticky bottom action sheet - Turo's signature "Start check-in" / "End
  * trip" panel. Always reachable, so the next action is never hunted for.
  *
  * Collapsible all the way down: the whole panel slides away and leaves one slim

@@ -15,12 +15,12 @@ interface MbNamespace {
 }
 
 /**
- * A single-pin location map — for a contact/office page, not a search
+ * A single-pin location map - for a contact/office page, not a search
  * results grid. Deliberately standalone rather than reusing MapboxPanel,
  * which is built around plotting many vehicles with price pills.
  *
  * Degrades to a plain address card when no Mapbox token is configured, same
- * pattern as every other optional-provider surface in the app — a missing
+ * pattern as every other optional-provider surface in the app - a missing
  * map must never be a broken page.
  */
 export function LocationMap({

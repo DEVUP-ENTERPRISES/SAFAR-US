@@ -25,7 +25,7 @@ interface Deposit {
  * API nobody had connected.
  *
  * The distinction that does the work here is HELD versus CHARGED. A hold is not
- * a charge — the money never left, it is only unavailable — and guests who do
+ * a charge - the money never left, it is only unavailable - and guests who do
  * not know that read a pending line on their statement as a second payment and
  * open a dispute. Saying it plainly costs nothing and prevents that.
  */
@@ -78,7 +78,7 @@ export function DepositStatus({ bookingId }: { bookingId: string }) {
             <span className="text-muted-foreground">
               Nothing was taken
               {d.settledAt
-                ? ` — released ${new Date(d.settledAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}.`
+                ? ` - released ${new Date(d.settledAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}.`
                 : '.'}
             </span>
           </p>
@@ -89,7 +89,7 @@ export function DepositStatus({ bookingId }: { bookingId: string }) {
             <p className="numeric text-sm">
               <span className="font-semibold">{formatMoney(d.captured!)}</span> taken from your{' '}
               {formatMoney(d.amount!)} deposit
-              {partial && <span className="text-muted-foreground"> — the rest was released</span>}
+              {partial && <span className="text-muted-foreground"> - the rest was released</span>}
             </p>
             {/* Never a charge without the reason attached. */}
             {d.reason && (

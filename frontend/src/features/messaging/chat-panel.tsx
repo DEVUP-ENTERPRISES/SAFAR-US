@@ -35,7 +35,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
-  // Grow the input with its content, up to a cap — the WhatsApp behaviour, so a
+  // Grow the input with its content, up to a cap - the WhatsApp behaviour, so a
   // long message wraps and pushes the box up instead of scrolling a one-liner.
   const grow = () => {
     const el = taRef.current;
@@ -164,7 +164,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
         ))}
       </div>
 
-      {/* Composer — a WhatsApp-style pill that grows, plus a round send button. */}
+      {/* Composer - a WhatsApp-style pill that grows, plus a round send button. */}
       <div className="flex items-end gap-2 p-3">
         <input
           ref={fileRef}

@@ -77,7 +77,7 @@ export const hostTripsApi = {
   one: (bookingId: string) => api.get<HostTrip>(`/trips/host/booking/${bookingId}`),
 
   confirmLicense: (tripId: string) => api.post(`/trips/${tripId}/confirm-license`),
-  /** Creates the trip — there is no trip to hand over to before this runs. */
+  /** Creates the trip - there is no trip to hand over to before this runs. */
   start: (bookingId: string, body: { odometerStart: number; fuelStart?: number; notes?: string; licenceConfirmed?: boolean }) =>
     api.post<{ _id: string }>('/trips/start', { bookingId, ...body }),
   complete: (tripId: string, body: { odometerEnd?: number; fuelEnd?: number; notes?: string }) =>

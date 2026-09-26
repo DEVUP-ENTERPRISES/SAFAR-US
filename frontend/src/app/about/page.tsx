@@ -10,7 +10,7 @@ import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, TractionStats, AudienceSection, BRAND } from '@/features/marketing/sections';
 
 /**
- * About CatoDrive — the brand story, the traction, and the owner economics.
+ * About CatoDrive - the brand story, the traction, and the owner economics.
  *
  * The booking experience is the homepage; this is where the pitch lives. Built
  * on the same dark hero-mesh / display-type / Reveal system as the homepage so
@@ -18,7 +18,7 @@ import { SectionEyebrow, TractionStats, AudienceSection, BRAND } from '@/feature
  * shared marketing module, so they stay identical to the ones on the homepage.
  *
  * Every figure here is CatoDrive marketing copy supplied by the business.
- * Confirm current numbers before each campaign — stale claims on a rental site
+ * Confirm current numbers before each campaign - stale claims on a rental site
  * are a trust and legal risk.
  */
 
@@ -26,21 +26,21 @@ const PILLARS = [
   { n: '01', icon: PlaneTakeoff, title: 'Free Terminal Valet', body: 'Car delivered straight to your terminal at DFW International and Love Field. Returned the same way. No shuttles. No satellite lots. Ever.' },
   { n: '02', icon: Car, title: 'Exact Car, Guaranteed', body: 'Book the precise vehicle you want. Real photos, real car. No bait-and-switch. Every vehicle SOP-maintained, spotless, and road-ready.' },
   { n: '03', icon: Banknote, title: 'Owners Net $1,066–$1,878/mo', body: '80% of every booking goes to you. After maintenance (~$100–200/mo), the average owner nets over $1,000/month per vehicle. The car pays for itself in 36–40 months.' },
-  { n: '04', icon: Settings2, title: 'Full Fleet Management', body: 'Owners do nothing. We list, price, deliver, clean, and service — a 24/7 operations team based in DFW. Your only job is cashing the check.' },
+  { n: '04', icon: Settings2, title: 'Full Fleet Management', body: 'Owners do nothing. We list, price, deliver, clean, and service - a 24/7 operations team based in DFW. Your only job is cashing the check.' },
 ] as const;
 
 const STEPS = [
-  { n: '01', icon: Car, title: 'List the Car You Own', body: 'You already own an eligible vehicle — no purchase required. We take it from there.', tag: 'Use the car you already own' },
+  { n: '01', icon: Car, title: 'List the Car You Own', body: 'You already own an eligible vehicle - no purchase required. We take it from there.', tag: 'Use the car you already own' },
   { n: '02', icon: Camera, title: `${BRAND} Lists It`, body: 'We photograph it, list it, and price it dynamically. You do nothing.', tag: '$0 additional effort from you' },
   { n: '03', icon: ClipboardCheck, title: 'Guest Books Online', body: 'A vetted traveler books online. We screen every trip. You’re never involved.', tag: 'Full vetting on every reservation' },
-  { n: '04', icon: Settings2, title: 'We Manage Everything', body: 'Valet pickup, terminal delivery, cleaning, maintenance coordination — full white-glove service.', tag: '100% of operations handled' },
+  { n: '04', icon: Settings2, title: 'We Manage Everything', body: 'Valet pickup, terminal delivery, cleaning, maintenance coordination - full white-glove service.', tag: '100% of operations handled' },
   { n: '05', icon: Wallet, title: 'You Get Paid', body: '80% of every booking hits your account monthly. No invoices. No chasing.', tag: 'Net $1,066–$1,878 / month' },
 ] as const;
 
 const RISKS = [
   { scenario: 'Renter damages the vehicle', detail: '$750K liability + collision coverage per trip. The owner does not pay and never files directly.', owner: 'CatoDrive' as const },
   { scenario: 'The car sits empty', detail: 'We manage pricing, listing optimization and the booking pipeline 24/7. Your exposure is zero.', owner: 'CatoDrive' as const },
-  { scenario: 'Routine maintenance', detail: 'The owner’s only cost: ~$100–200/month for oil, tires and washes — offset many times over by net income.', owner: 'Owner' as const },
+  { scenario: 'Routine maintenance', detail: 'The owner’s only cost: ~$100–200/month for oil, tires and washes - offset many times over by net income.', owner: 'Owner' as const },
   { scenario: 'Guest no-show or late return', detail: 'Our operations team handles all guest issues, rescheduling and late-fee recovery.', owner: 'CatoDrive' as const },
 ] as const;
 
@@ -49,31 +49,31 @@ export default function AboutPage() {
     <div className="-mt-6">
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
-        <div className="mx-auto max-w-6xl px-5 pb-14 pt-16 sm:pb-20 sm:pt-20">
+        <div className="mx-auto max-w-6xl px-4 pb-20 pt-14 sm:px-6 sm:pb-28 sm:pt-20">
           <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-soft backdrop-blur">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur">
               <PlaneTakeoff className="h-3.5 w-3.5" /> Airport mobility, reimagined
             </span>
           </Reveal>
           <Reveal delay={80}>
-            <h1 className="display mt-7 max-w-4xl text-[2.7rem] leading-[0.98] text-white sm:text-[4rem] lg:text-[4.9rem]">
+            <h1 className="display mt-6 max-w-4xl text-[2.4rem] leading-[0.98] text-white sm:mt-7 sm:text-[4rem] lg:text-[4.9rem]">
               Airport mobility is trapped in{' '}
               <span className="text-white/30 line-through decoration-primary/70 decoration-4">1995</span>.
             </h1>
           </Reveal>
           <Reveal delay={160}>
-            <p className="mt-7 max-w-2xl text-lg leading-relaxed text-white/70 sm:text-xl">
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70 sm:mt-7 sm:text-xl">
               Every rental company makes you take a shuttle bus to a satellite lot. {BRAND} delivers your
-              car <span className="font-semibold text-white">curbside at the terminal</span> — DFW and Love Field.
+              car <span className="font-semibold text-white">curbside at the terminal</span> - DFW and Love Field.
               Keys in hand.
             </p>
           </Reveal>
           <Reveal delay={240}>
-            <div className="mt-10 flex flex-wrap gap-3">
-              <Link href="/search" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
+            <div className="mt-8 flex flex-wrap gap-4 sm:mt-10">
+              <Link href="/search" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
                 Book a car <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
-              <Link href="/asset-partners" className="inline-flex h-14 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-7 py-3.5 text-base font-bold text-white backdrop-blur transition-colors hover:bg-white/10">
+              <Link href="/asset-partners" className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10 sm:h-14 sm:px-7 sm:text-base">
                 Become an Asset Partner
               </Link>
             </div>
@@ -81,14 +81,14 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* People shot — overlaps the seam between hero and content. Kept OUTSIDE
+      {/* People shot - overlaps the seam between hero and content. Kept OUTSIDE
           the hero section (which is overflow-hidden for the grain texture and
-          full-bleed trick) — a translated element bleeding past a clipped
+          full-bleed trick) - a translated element bleeding past a clipped
           section gets cut off, which is exactly what was chopping this photo
           in half on mobile. A real negative margin does the overlap safely,
           and a responsive aspect ratio keeps it a real photo at every width
           instead of squashing into a thin strip on small screens. */}
-      <div className="relative z-10 mx-auto -mt-14 max-w-6xl px-5 sm:-mt-20">
+      <div className="relative z-10 mx-auto -mt-10 max-w-6xl px-4 sm:-mt-20 sm:px-6">
         <Reveal delay={300}>
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.75rem] border border-border shadow-2xl shadow-black/20 sm:aspect-[16/9] lg:aspect-[21/9]">
             <Image
@@ -103,21 +103,21 @@ export default function AboutPage() {
         </Reveal>
       </div>
 
-      <div className="mx-auto max-w-6xl space-y-16 px-5 pb-16 pt-10 sm:pt-12">
-        {/* Traction — shared with the homepage. */}
+      <div className="mx-auto max-w-6xl space-y-14 px-4 pb-16 pt-8 sm:space-y-16 sm:px-6 sm:pt-12">
+        {/* Traction - shared with the homepage. */}
         <TractionStats />
 
         {/* ── THE SOLUTION ───────────────────────────────────────────── */}
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>The solution</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">
               A premium experience for travelers.{' '}
               <span className="text-primary">Passive income for owners.</span>
             </h2>
-            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-              {BRAND} built what Enterprise, Hertz and Avis never would — actual terminal delivery at both DFW
-              airports — and turned it into a passive-income engine for vehicle owners.
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:mt-5 sm:text-lg">
+              {BRAND} built what Enterprise, Hertz and Avis never would - actual terminal delivery at both DFW
+              airports - and turned it into a passive-income engine for vehicle owners.
             </p>
           </Reveal>
           <div className="mt-12 grid gap-4 sm:grid-cols-2">
@@ -133,9 +133,9 @@ export default function AboutPage() {
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>How it works</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Five steps. Zero headaches. Income in 30 days.</h2>
-            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-              From vehicle to passive income — {BRAND} handles 100% of operations, from listing to payout.
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Five steps. Zero headaches. Income in 30 days.</h2>
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:mt-5 sm:text-lg">
+              From vehicle to passive income - {BRAND} handles 100% of operations, from listing to payout.
             </p>
           </Reveal>
           <ol className="mt-12 space-y-3">
@@ -151,7 +151,7 @@ export default function AboutPage() {
           The testimonials section that sat here is gone.
 
           It ran three quotes attributed to a "Portfolio Owner", an "Asset
-          Partner" and a "DFW Investor" — people who do not exist — under a
+          Partner" and a "DFW Investor" - people who do not exist - under a
           row of five hardcoded amber stars. This page already carries the real
           evidence: live traction figures above, and the risk/responsibility
           table below that states plainly who covers what. Invented quotes
@@ -161,15 +161,15 @@ export default function AboutPage() {
           where they go.
         */}
 
-        {/* Who we serve — shared with the homepage (image cards). */}
+        {/* Who we serve - shared with the homepage (image cards). */}
         <AudienceSection />
 
         {/* ── RISK & RESPONSIBILITY ──────────────────────────────────── */}
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Risk &amp; responsibility</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Every risk has an owner. Most of them are us.</h2>
-            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Every risk has an owner. Most of them are us.</h2>
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:mt-5 sm:text-lg">
               Backed by a commercial policy with <span className="font-semibold text-foreground">$750K liability per trip</span>.
               The owner never files a claim directly.
             </p>
@@ -185,7 +185,7 @@ export default function AboutPage() {
 
         {/* ── CLOSING CTA (image background) ─────────────────────────── */}
         <Reveal>
-          <section className="relative isolate overflow-hidden rounded-[2rem] px-6 py-20 text-center sm:px-12 sm:py-24">
+          <section className="relative isolate overflow-hidden rounded-[2rem] px-5 py-16 text-center sm:px-12 sm:py-24">
             <Image
               src="/newsections/become_asset_partner.webp"
               alt=""
@@ -195,18 +195,18 @@ export default function AboutPage() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/80 to-ink/70" />
             <div className="relative">
-              <Sparkles className="mx-auto h-8 w-8 text-primary-soft" />
-              <h2 className="display mx-auto mt-5 max-w-2xl text-4xl text-white sm:text-5xl">
+              <Sparkles className="mx-auto h-8 w-8 text-primary" />
+              <h2 className="display mx-auto mt-5 max-w-2xl text-3xl text-white sm:text-4xl lg:text-5xl">
                 Your car could be earning next month.
               </h2>
-              <p className="mx-auto mt-4 max-w-xl text-lg text-white/75">
+              <p className="mx-auto mt-4 max-w-xl text-base text-white/75 sm:text-lg">
                 List the vehicle you already own, or book a car delivered to your terminal. Either way, {BRAND} does the work.
               </p>
-              <div className="mt-9 flex flex-wrap justify-center gap-3">
-                <Link href="/asset-partners" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
+              <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <Link href="/asset-partners" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
                   Become an Asset Partner <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
-                <Link href="/search" className="inline-flex h-14 items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-7 py-3.5 text-base font-bold text-white backdrop-blur transition-colors hover:bg-white/20">
+                <Link href="/search" className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-6 py-3 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/20 sm:h-14 sm:px-7 sm:text-base">
                   Book a car
                 </Link>
               </div>

@@ -9,7 +9,7 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'>
 }
 
 /**
- * Default is `lg` (48px), which is also Button's `lg` — so an input and the
+ * Default is `lg` (48px), which is also Button's `lg` - so an input and the
  * button beside it are the same height without either side guessing.
  *
  * This used to be `h-12 sm:h-14`, which silently grew to 56px on desktop and

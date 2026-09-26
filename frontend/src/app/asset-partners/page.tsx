@@ -12,13 +12,13 @@ import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, CountUp, BRAND } from '@/features/marketing/sections';
 
 /**
- * Asset Partners — CatoDrive's primary acquisition page (v1 priority, per the
+ * Asset Partners - CatoDrive's primary acquisition page (v1 priority, per the
  * business). Someone who already owns an eligible car lists it here; CatoDrive runs
  * 100% of operations and pays them a monthly share. Host (self-managed listing)
  * and Corporate/Fleet remain as v2/v3 surfaces, unchanged by this page.
  *
  * All figures are business-supplied (owner economics, fleet revenue, vehicle
- * tiers, testimonials) — confirm before each campaign. "Apply Now" routes to
+ * tiers, testimonials) - confirm before each campaign. "Apply Now" routes to
  * the dedicated Asset Partner intake form (/asset-partners/apply), which
  * submits a real application for admin review.
  */
@@ -31,11 +31,11 @@ const STATS = [
 ] as const;
 
 const STEPS = [
-  { n: '01', icon: Car, title: 'List the Car You Own', body: 'You already own an eligible vehicle — CatoDrive lists it, photographs it, and prices it dynamically. No purchase or financing required.' },
+  { n: '01', icon: Car, title: 'List the Car You Own', body: 'You already own an eligible vehicle - CatoDrive lists it, photographs it, and prices it dynamically. No purchase or financing required.' },
   { n: '02', icon: Camera, title: `${BRAND} Lists It`, body: 'We photograph, list, price dynamically, and manage your car. You do nothing. $0 additional effort.' },
   { n: '03', icon: ClipboardCheck, title: 'Guest Books Online', body: 'A vetted traveler books. CatoDrive screens every trip. You’re never involved.' },
   { n: '04', icon: Settings2, title: 'We Manage Everything', body: 'Valet pickup, terminal delivery, cleaning, maintenance coordination. Full white-glove service.' },
-  { n: '05', icon: Wallet, title: 'You Get Paid', body: '80% of every booking hits your account monthly — check on the 5th or Zelle. No invoices. No chasing.', tag: 'Net $1,029–$1,841 / month' },
+  { n: '05', icon: Wallet, title: 'You Get Paid', body: '80% of every booking hits your account monthly - check on the 5th or Zelle. No invoices. No chasing.', tag: 'Net $1,029–$1,841 / month' },
 ] as const;
 
 const ECONOMICS: { label: string; value: string; muted?: boolean }[] = [
@@ -62,13 +62,13 @@ const GROWTH = [
 const REQUIREMENTS = [
   { icon: Calendar, label: 'Model year', value: '2018 or newer' },
   { icon: Gauge, label: 'Mileage', value: 'Under 130,000 miles at onboarding' },
-  { icon: FileCheck, label: 'Title', value: 'Clean only — no salvage, rebuilt, flood, or lien' },
+  { icon: FileCheck, label: 'Title', value: 'Clean only - no salvage, rebuilt, flood, or lien' },
   { icon: ShieldCheck, label: 'Condition', value: 'No major body, structural, rust or cosmetic damage' },
   { icon: CheckCircle2, label: 'Standards', value: 'Smoke-free · pet-free · 4/32" minimum tread' },
 ] as const;
 
 const RISKS = [
-  { scenario: 'Renter damages the vehicle', detail: 'Roamly commercial fleet insurance covers the vehicle during all non-trip periods in CatoDrive custody. Your deductible is capped at $1,000 per incident (Addendum No. 1) — CatoDrive absorbs any unrecovered deductible above that cap.', owner: 'CatoDrive' as const },
+  { scenario: 'Renter damages the vehicle', detail: 'Roamly commercial fleet insurance covers the vehicle during all non-trip periods in CatoDrive custody. Your deductible is capped at $1,000 per incident (Addendum No. 1) - CatoDrive absorbs any unrecovered deductible above that cap.', owner: 'CatoDrive' as const },
   { scenario: 'The car sits empty', detail: 'We manage pricing, listing optimization and the booking pipeline 24/7. Your exposure is zero.', owner: 'CatoDrive' as const },
   { scenario: 'Guest no-show or late return', detail: 'Our operations team handles all guest issues, rescheduling and late-fee recovery.', owner: 'CatoDrive' as const },
   { scenario: 'Routine maintenance', detail: 'Routine maintenance under $500 is handled without interrupting you. Anything above $500 requires your approval first.', owner: 'Shared' as const },
@@ -79,7 +79,7 @@ const RISKS = [
  * The four things every prospective partner asks, answered in CatoDrive's own
  * voice.
  *
- * This section used to be four testimonials — quotes attributed to a
+ * This section used to be four testimonials - quotes attributed to a
  * "Portfolio Owner", a "DFW Investor" and a "Co-host Owner" who are not real
  * people, making specific financial claims ("$1,400 my first month",
  * "breakeven in 14 months", "insurance covered everything, I paid nothing").
@@ -91,7 +91,7 @@ const RISKS = [
  * rather than as something a customer said. Each figure here is also published
  * elsewhere on this page (ECONOMICS, RISKS, FAQ), so there is one story.
  *
- * When real, attributable partner quotes exist, they belong here — with a real
+ * When real, attributable partner quotes exist, they belong here - with a real
  * name and consent, replacing this block.
  */
 const PARTNER_ANSWERS = [
@@ -114,14 +114,14 @@ const PARTNER_ANSWERS = [
 ] as const;
 
 const FAQ = [
-  { q: 'What vehicles do you accept?', a: 'A 2018-or-newer model with a clean title, under 130,000 miles, no major body, structural or cosmetic damage, and it must be smoke-free, pet-free, with at least 4/32" of tread. AWD SUVs and crossovers with 5–7 seats, leather and Apple CarPlay are strongly preferred — that’s what performs best in the airport market. CatoDrive reserves the right to decline any vehicle that doesn’t meet these standards, which is what keeps quality consistent across every partner’s car.' },
-  { q: 'How much will I actually earn?', a: 'Based on the active fleet, partners net $1,029–$1,841 per vehicle per month after the management fee, insurance and detailing are deducted — roughly $65–$120/day at 70–80% utilization. Where a specific car lands in that range depends mostly on the model: conservative performers like a Kia Sportage sit around $1,029/mo, mid-range vehicles like a VW Tiguan around $1,400/mo, and top performers like a VW Atlas or Nissan Pathfinder around $1,841/mo. These are illustrative examples from the real fleet, not a guarantee.' },
-  { q: 'What does CatoDrive charge?', a: 'A 20% management fee on gross booking revenue — that covers listing, dynamic pricing, guest screening, valet delivery, cleaning coordination and 24/7 operations. Fleet insurance (Roamly) and professional detailing are itemized separately in your monthly statement.' },
-  { q: 'What about insurance?', a: 'Every vehicle is covered by Roamly commercial fleet insurance for the entire time it’s in CatoDrive’s custody — not just during trips. If a renter causes damage, your out-of-pocket exposure is capped at $1,000 per incident; CatoDrive absorbs anything above that cap.' },
-  { q: 'Do I need to buy a car to join?', a: 'No. The program is built for vehicles you already own. There’s no purchase or financing requirement to become an asset partner — your only ongoing responsibility is financing you may already carry on the car itself.' },
+  { q: 'What vehicles do you accept?', a: 'A 2018-or-newer model with a clean title, under 130,000 miles, no major body, structural or cosmetic damage, and it must be smoke-free, pet-free, with at least 4/32" of tread. AWD SUVs and crossovers with 5–7 seats, leather and Apple CarPlay are strongly preferred - that’s what performs best in the airport market. CatoDrive reserves the right to decline any vehicle that doesn’t meet these standards, which is what keeps quality consistent across every partner’s car.' },
+  { q: 'How much will I actually earn?', a: 'Based on the active fleet, partners net $1,029–$1,841 per vehicle per month after the management fee, insurance and detailing are deducted - roughly $65–$120/day at 70–80% utilization. Where a specific car lands in that range depends mostly on the model: conservative performers like a Kia Sportage sit around $1,029/mo, mid-range vehicles like a VW Tiguan around $1,400/mo, and top performers like a VW Atlas or Nissan Pathfinder around $1,841/mo. These are illustrative examples from the real fleet, not a guarantee.' },
+  { q: 'What does CatoDrive charge?', a: 'A 20% management fee on gross booking revenue - that covers listing, dynamic pricing, guest screening, valet delivery, cleaning coordination and 24/7 operations. Fleet insurance (Roamly) and professional detailing are itemized separately in your monthly statement.' },
+  { q: 'What about insurance?', a: 'Every vehicle is covered by Roamly commercial fleet insurance for the entire time it’s in CatoDrive’s custody - not just during trips. If a renter causes damage, your out-of-pocket exposure is capped at $1,000 per incident; CatoDrive absorbs anything above that cap.' },
+  { q: 'Do I need to buy a car to join?', a: 'No. The program is built for vehicles you already own. There’s no purchase or financing requirement to become an asset partner - your only ongoing responsibility is financing you may already carry on the car itself.' },
   { q: 'What are the program terms?', a: 'CatoDrive handles listing, pricing, guest screening, delivery, cleaning and maintenance coordination under the management fee described above. Maintenance decisions above $500 always come to you for approval first. Full terms are covered in your partner agreement at signup.' },
-  { q: 'Can I still use my car?', a: 'Yes — CatoDrive works around blackout dates you set, so you can block off the days you need the car and it simply won’t be booked during those windows.' },
-  { q: 'How fast do I get my first payout?', a: 'Payouts run monthly — on the 5th, by check or Zelle — covering trips completed the prior month. Most partners see their first payout within 30–45 days of their car going live, depending on when it starts booking.' },
+  { q: 'Can I still use my car?', a: 'Yes - CatoDrive works around blackout dates you set, so you can block off the days you need the car and it simply won’t be booked during those windows.' },
+  { q: 'How fast do I get my first payout?', a: 'Payouts run monthly - on the 5th, by check or Zelle - covering trips completed the prior month. Most partners see their first payout within 30–45 days of their car going live, depending on when it starts booking.' },
 ] as const;
 
 export default function AssetPartnersPage() {
@@ -129,40 +129,38 @@ export default function AssetPartnersPage() {
     <div className="-mt-6">
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
-        <div className="mx-auto max-w-6xl px-5 pb-14 pt-16 sm:pb-20 sm:pt-20">
+        <div className="mx-auto max-w-6xl px-4 pb-20 pt-14 sm:px-6 sm:pb-28 sm:pt-20">
           <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-soft backdrop-blur">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur">
               <Sparkles className="h-3.5 w-3.5" /> Become an Asset Partner
             </span>
           </Reveal>
           <Reveal delay={80}>
-            <h1 className="display mt-7 max-w-3xl text-[2.5rem] leading-[0.98] text-white sm:text-[3.6rem] lg:text-[4.4rem]">
+            <h1 className="display mt-6 max-w-3xl text-[2.4rem] leading-[0.98] text-white sm:mt-7 sm:text-[3.6rem] lg:text-[4.4rem]">
               Put your car to work. We run it. You collect every month.
             </h1>
           </Reveal>
           <Reveal delay={160}>
-            <p className="mt-7 max-w-2xl text-lg leading-relaxed text-white/70 sm:text-xl">
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70 sm:mt-7 sm:text-xl">
               {BRAND} asset partners net <span className="font-semibold text-white">$1,029–$1,841/month</span> per
-              vehicle. We handle 100% of operations — listing, pricing, valet delivery, cleaning, maintenance and
+              vehicle. We handle 100% of operations - listing, pricing, valet delivery, cleaning, maintenance and
               insurance. Your only job is cashing the check.
             </p>
           </Reveal>
           <Reveal delay={240}>
-            <div className="mt-10 flex flex-wrap gap-3">
-              <Link href="/asset-partners/apply" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
+            <div className="mt-8 flex flex-wrap gap-4 sm:mt-10">
+              <Link href="/asset-partners/apply" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
                 Apply Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
-              <a href="#numbers" className="inline-flex h-14 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-7 py-3.5 text-base font-bold text-white backdrop-blur transition-colors hover:bg-white/10">
+              <a href="#numbers" className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10 sm:h-14 sm:px-7 sm:text-base">
                 See the Numbers <ArrowDown className="h-4 w-4" />
               </a>
             </div>
           </Reveal>
-          {/* Returning partners land on this page too — give them the way back
-              to their own application and earnings rather than only a pitch. */}
           <Reveal delay={300}>
             <Link
               href="/asset-partners/dashboard"
-              className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary-soft hover:underline"
+              className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-white/60 hover:text-white hover:underline"
             >
               Already applied? Track your application <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -170,19 +168,19 @@ export default function AssetPartnersPage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl space-y-16 px-5 pb-16 pt-10 sm:pt-12">
+      <div className="mx-auto max-w-6xl space-y-14 px-4 pb-16 pt-8 sm:space-y-16 sm:px-6 sm:pt-12">
         {/* ── VERIFIED PERFORMANCE ───────────────────────────────────── */}
         <section id="numbers" className="scroll-mt-24">
           <Reveal className="mx-auto max-w-2xl text-center">
             <SectionEyebrow>Verified performance</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">The numbers, unedited.</h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Real numbers from a real fleet — 4 years operating, All-Star Host, $0 outside capital.
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">The numbers, unedited.</h2>
+            <p className="mt-4 text-base text-muted-foreground sm:text-lg">
+              Real numbers from a real fleet - 4 years operating, All-Star Host, $0 outside capital.
             </p>
           </Reveal>
-          <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {STATS.map((s, i) => (
-              <Reveal key={s.label} delay={i * 90}>
+              <Reveal key={s.label} delay={i * 90} className="h-full">
                 <StatCard {...s} />
               </Reveal>
             ))}
@@ -193,8 +191,8 @@ export default function AssetPartnersPage() {
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>How it works</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Five steps. Zero headaches. Income in 30 days.</h2>
-            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Five steps. Zero headaches. Income in 30 days.</h2>
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:mt-5 sm:text-lg">
               Owner responsibility: vehicle financing only. {BRAND} handles 100% of operations from list to payout.
             </p>
           </Reveal>
@@ -211,7 +209,7 @@ export default function AssetPartnersPage() {
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Step 01 · Owner economics</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Here’s exactly what stays in your pocket.</h2>
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Here’s exactly what stays in your pocket.</h2>
           </Reveal>
 
           <div className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_1fr]">
@@ -231,7 +229,7 @@ export default function AssetPartnersPage() {
                 </div>
               </div>
               <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                Verified from the active fleet — earnings examples are illustrative only; no income guarantees.
+                Verified from the active fleet - earnings examples are illustrative only; no income guarantees.
               </p>
             </Reveal>
 
@@ -252,7 +250,7 @@ export default function AssetPartnersPage() {
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Step 02 · Top performers (2025)</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Real revenue from real vehicles.</h2>
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Real revenue from real vehicles.</h2>
           </Reveal>
 
           <div className="mt-12 grid gap-4 lg:grid-cols-2">
@@ -261,21 +259,21 @@ export default function AssetPartnersPage() {
                 <ul className="space-y-3 text-sm text-foreground">
                   <li className="flex items-start gap-2.5">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-success" />
-                    <span><span className="font-semibold">VW Atlas / Nissan Pathfinder</span> — top performers, ~$1,841/mo net</span>
+                    <span><span className="font-semibold">VW Atlas / Nissan Pathfinder</span> - top performers, ~$1,841/mo net</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                    <span><span className="font-semibold">VW Tiguan / Jeep Grand Cherokee</span> — mid-range, ~$1,400/mo net</span>
+                    <span><span className="font-semibold">VW Tiguan / Jeep Grand Cherokee</span> - mid-range, ~$1,400/mo net</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground" />
-                    <span><span className="font-semibold">Kia Sportage / Buick Envista</span> — conservative, ~$1,029/mo net</span>
+                    <span><span className="font-semibold">Kia Sportage / Buick Envista</span> - conservative, ~$1,029/mo net</span>
                   </li>
                 </ul>
                 <div className="mt-6 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/15">
                   <p className="text-xs font-bold uppercase tracking-wider text-primary">Sweet spot vehicles</p>
                   <p className="mt-1.5 text-sm text-muted-foreground">
-                    AWD SUVs and crossovers, 5–7 seats, leather interiors, Apple CarPlay — 2018 or newer, under
+                    AWD SUVs and crossovers, 5–7 seats, leather interiors, Apple CarPlay - 2018 or newer, under
                     130,000 miles, clean title only.
                   </p>
                 </div>
@@ -310,7 +308,7 @@ export default function AssetPartnersPage() {
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Step 03 · Vehicle requirements</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Does your car qualify?</h2>
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Does your car qualify?</h2>
           </Reveal>
 
           <div className="mt-12 grid gap-4 sm:grid-cols-2">
@@ -353,7 +351,7 @@ export default function AssetPartnersPage() {
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Risk &amp; responsibility</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Every risk has an owner. Most of them are us.</h2>
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Every risk has an owner. Most of them are us.</h2>
           </Reveal>
           <div className="mt-12 overflow-hidden rounded-3xl border border-border">
             {RISKS.map((r, i) => (
@@ -368,7 +366,7 @@ export default function AssetPartnersPage() {
         <section>
           <Reveal className="mx-auto max-w-2xl text-center">
             <SectionEyebrow>Straight answers</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">The four questions everyone asks.</h2>
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">The four questions everyone asks.</h2>
           </Reveal>
           <div className="mt-12 grid gap-4 sm:grid-cols-2">
             {PARTNER_ANSWERS.map((t, i) => (
@@ -383,7 +381,7 @@ export default function AssetPartnersPage() {
         <section>
           <Reveal className="mx-auto max-w-2xl text-center">
             <SectionEyebrow>Asset Partner FAQ</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Common questions from prospective partners.</h2>
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Common questions from prospective partners.</h2>
           </Reveal>
           <div className="mx-auto mt-12 max-w-3xl divide-y divide-border overflow-hidden rounded-3xl border border-border">
             {FAQ.map((f, i) => (
@@ -396,7 +394,7 @@ export default function AssetPartnersPage() {
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Questions?</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">Talk to the partnerships team.</h2>
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Talk to the partnerships team.</h2>
           </Reveal>
           <Reveal delay={80}>
             <div className="mt-10 grid gap-px overflow-hidden rounded-3xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
@@ -415,7 +413,7 @@ export default function AssetPartnersPage() {
 
         {/* ── CLOSING CTA ────────────────────────────────────────────── */}
         <Reveal>
-          <section className="relative isolate overflow-hidden rounded-[2rem] px-6 py-20 text-center sm:px-12 sm:py-24">
+          <section className="relative isolate overflow-hidden rounded-[2rem] px-5 py-16 text-center sm:px-12 sm:py-24">
             <Image
               src="/newsections/become_asset_partner.webp"
               alt=""
@@ -425,15 +423,15 @@ export default function AssetPartnersPage() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/80 to-ink/70" />
             <div className="relative">
-              <Sparkles className="mx-auto h-8 w-8 text-primary-soft" />
-              <h2 className="display mx-auto mt-5 max-w-2xl text-4xl text-white sm:text-5xl">
+              <Sparkles className="mx-auto h-8 w-8 text-primary" />
+              <h2 className="display mx-auto mt-5 max-w-2xl text-3xl text-white sm:text-4xl lg:text-5xl">
                 Your car could be earning next month.
               </h2>
-              <p className="mx-auto mt-4 max-w-xl text-lg text-white/75">
-                List the vehicle you already own — {BRAND} does the rest.
+              <p className="mx-auto mt-4 max-w-xl text-base text-white/75 sm:text-lg">
+                List the vehicle you already own - {BRAND} does the rest.
               </p>
-              <div className="mt-9 flex flex-wrap justify-center gap-3">
-                <Link href="/asset-partners/apply" className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
+              <div className="mt-8 flex flex-wrap justify-center gap-4">
+                <Link href="/asset-partners/apply" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
                   Apply Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
@@ -451,12 +449,12 @@ function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label,
   prefix?: string; value: number; suffix?: string; decimals?: number; comma?: boolean; label: string; raw?: boolean;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10">
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10 sm:p-6">
       <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/10 blur-2xl transition-opacity duration-500 group-hover:opacity-80" />
-      <p className="numeric text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+      <p className="numeric text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
         {raw ? prefix : <>{prefix}<CountUp value={value} decimals={decimals} comma={comma} />{suffix}</>}
       </p>
-      <p className="mt-3 text-sm font-medium text-foreground">{label}</p>
+      <p className="mt-2 text-sm font-medium text-foreground sm:mt-3">{label}</p>
     </div>
   );
 }
@@ -535,7 +533,7 @@ function RiskRow({ scenario, detail, owner, first }: {
  *
  * The card is quieter than the one it replaces: no hover lift, no coloured
  * shadow, no gradient-filled avatar disc. This is reference material someone
- * reads before committing their car — it should hold still while they read it.
+ * reads before committing their car - it should hold still while they read it.
  */
 function AnswerCard({ q, a }: { q: string; a: string }) {
   return (

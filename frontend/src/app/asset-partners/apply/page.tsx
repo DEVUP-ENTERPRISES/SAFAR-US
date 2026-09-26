@@ -19,15 +19,15 @@ import { ApiError } from '@/lib/api/types';
 import { BRAND } from '@/features/marketing/sections';
 
 /**
- * The Asset Partner Vehicle Intake — a 6-step qualification form.
+ * The Asset Partner Vehicle Intake - a 6-step qualification form.
  *
  * Built entirely in CatoDrive's own design system (hero-mesh, primary teal,
  * Archivo display type, the app's real Field/Input/Select/Chip/Button
- * primitives, Reveal motion) — not a skin ported from the reference mockup.
+ * primitives, Reveal motion) - not a skin ported from the reference mockup.
  * Same brand as every other page on the site, because this is CatoDrive's own
  * intake, not a separate product.
  *
- * No login required — it's a lead, not an account. Real submission hits
+ * No login required - it's a lead, not an account. Real submission hits
  * POST /asset-partner-applications; the server generates the reference shown
  * on confirmation. Photos are optional; a signed-in visitor's photo uploads
  * for real, otherwise it's simply marked chosen and left for the follow-up
@@ -67,12 +67,12 @@ const EMPTY: FormState = {
 const PHOTO_SLOTS = ['Front', 'Rear', 'Sides', 'Interior', 'Odometer', 'Damage'] as const;
 
 const STEP_TITLES = [
-  { eyebrow: '01 — About you', title: 'Partner information', desc: 'Who we’ll be working with. If you’re applying on behalf of a business or a small fleet, use the business fields.' },
-  { eyebrow: '02 — The vehicle', title: 'Vehicle details', desc: 'Applying with more than one vehicle? Submit this form for your primary vehicle and list the rest in the notes field at the end.' },
-  { eyebrow: '03 — Ownership', title: 'Ownership & title', desc: 'This confirms you’re able to enter into an Asset Partner agreement for this vehicle.' },
-  { eyebrow: '04 — Condition', title: 'Vehicle condition', desc: 'Answer honestly — every vehicle is physically inspected before approval regardless of these answers.' },
-  { eyebrow: '05 — Insurance', title: 'Current insurance', desc: `${BRAND} maintains commercial coverage while your vehicle is active on the platform. We still need your personal policy on file.` },
-  { eyebrow: '06 — Preferences & agreement', title: 'Availability & final details', desc: 'Last step. Tell us your availability, then confirm the details below.' },
+  { eyebrow: '01 - About you', title: 'Partner information', desc: 'Who we’ll be working with. If you’re applying on behalf of a business or a small fleet, use the business fields.' },
+  { eyebrow: '02 - The vehicle', title: 'Vehicle details', desc: 'Applying with more than one vehicle? Submit this form for your primary vehicle and list the rest in the notes field at the end.' },
+  { eyebrow: '03 - Ownership', title: 'Ownership & title', desc: 'This confirms you’re able to enter into an Asset Partner agreement for this vehicle.' },
+  { eyebrow: '04 - Condition', title: 'Vehicle condition', desc: 'Answer honestly - every vehicle is physically inspected before approval regardless of these answers.' },
+  { eyebrow: '05 - Insurance', title: 'Current insurance', desc: `${BRAND} maintains commercial coverage while your vehicle is active on the platform. We still need your personal policy on file.` },
+  { eyebrow: '06 - Preferences & agreement', title: 'Availability & final details', desc: 'Last step. Tell us your availability, then confirm the details below.' },
 ] as const;
 
 export default function AssetPartnerApplyPage() {
@@ -192,7 +192,7 @@ export default function AssetPartnerApplyPage() {
           </span>
           <h1 className="display mt-6 text-3xl">Application received</h1>
           <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-            Thanks — a member of the {BRAND} partnerships team will review your submission and reach out within 2–3
+            Thanks - a member of the {BRAND} partnerships team will review your submission and reach out within 2–3
             business days to schedule your vehicle assessment.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -330,7 +330,7 @@ export default function AssetPartnerApplyPage() {
                     </CardContent>
                   </Card>
                 )}
-                <Field label="Estimated current market value (optional)" hint="A starting point only — CatoDrive uses an independent valuation guide during assessment.">
+                <Field label="Estimated current market value (optional)" hint="A starting point only - CatoDrive uses an independent valuation guide during assessment.">
                   <Input value={f.marketValue} onChange={(e) => set('marketValue')(e.target.value)} placeholder="$38,000" />
                 </Field>
               </>
@@ -355,7 +355,7 @@ export default function AssetPartnerApplyPage() {
                 <ChoiceField label="Recent maintenance records available?" value={f.maintRecords} onChange={(v) => set('maintRecords')(v as YN)} options={[['yes', 'Yes'], ['no', 'No']]} />
 
                 <div>
-                  <label className="text-sm font-medium text-foreground">Vehicle photos <span className="font-normal text-muted-foreground">(optional — you can also email these later)</span></label>
+                  <label className="text-sm font-medium text-foreground">Vehicle photos <span className="font-normal text-muted-foreground">(optional - you can also email these later)</span></label>
                   <div className="mt-3 grid grid-cols-3 gap-3">
                     {PHOTO_SLOTS.map((slot) => {
                       const p = photos[slot];

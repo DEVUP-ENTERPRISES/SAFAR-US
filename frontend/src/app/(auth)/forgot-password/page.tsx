@@ -12,12 +12,12 @@ import { authApi } from '@/features/auth/api';
 import { ApiError } from '@/lib/api/types';
 
 /**
- * Forgot password — request a code, then set a new password with it.
+ * Forgot password - request a code, then set a new password with it.
  *
  * Deliberately never confirms whether an email has an account (the request step
  * always reports "sent"), so this page can't be used to discover who's
  * registered. When email delivery isn't configured yet, the backend returns the
- * code in non-production so the flow is fully usable now — shown here as a hint.
+ * code in non-production so the flow is fully usable now - shown here as a hint.
  */
 export default function ForgotPasswordPage() {
   const router = useRouter();

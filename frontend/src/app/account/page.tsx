@@ -229,7 +229,7 @@ function Account() {
                 <Input className="h-12 rounded-xl text-lg tracking-widest" value={mfaToken} onChange={(e) => setMfaToken(e.target.value)} placeholder="000000" maxLength={6} />
                 <Button size="lg" className="rounded-xl font-bold" disabled={mfaToken.length !== 6} loading={enableMfa.isPending} onClick={() => enableMfa.mutate()}>Confirm &amp; enable</Button>
               </div>
-              {enableMfa.isError && <p className="text-sm font-bold text-destructive">Invalid code — try again.</p>}
+              {enableMfa.isError && <p className="text-sm font-bold text-destructive">Invalid code - try again.</p>}
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -249,7 +249,7 @@ function Account() {
             <Button size="lg" variant="outline" className="rounded-full font-bold w-full sm:w-auto" loading={enablingPush} onClick={onEnablePush}>Enable on this device</Button>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 border-t border-border/40 pt-6">
-            <p className="text-base font-medium text-muted-foreground">Choose channels and topics — push, email, SMS, quiet hours.</p>
+            <p className="text-base font-medium text-muted-foreground">Choose channels and topics - push, email, SMS, quiet hours.</p>
             <Button size="lg" variant="outline" className="rounded-full font-bold w-full sm:w-auto" onClick={() => router.push('/account/notifications')}>Manage preferences</Button>
           </div>
         </div>
@@ -293,7 +293,7 @@ function Account() {
                 <p className="text-base font-bold flex flex-wrap items-center gap-x-2 gap-y-1">
                   {shortUa(s.userAgent)} {s.current && <Badge tone="success" className="ms-3 text-[10px] uppercase tracking-widest"><Star className="me-1 h-3 w-3 inline" /> This device</Badge>}
                 </p>
-                {/* No raw IP address — it overflows on mobile and is data we
+                {/* No raw IP address - it overflows on mobile and is data we
                     don't need to put on screen. Just when the session started. */}
                 <p className="mt-1 text-sm font-medium text-muted-foreground">Active since {formatDate(s.createdAt)}</p>
               </div>

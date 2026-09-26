@@ -16,7 +16,7 @@ import { useQuery } from '@tanstack/react-query';
  *
  * The rule this enforces is that a map never appears without a sentence
  * explaining it. Both parties see the same state and the same reason, so
- * neither is guessing whether the other can see them — which is the actual
+ * neither is guessing whether the other can see them - which is the actual
  * anxiety, more than the tracking itself.
  *
  * The quiet middle is rendered deliberately rather than left blank: a host who
@@ -48,7 +48,7 @@ export function TrackingPanel({
   const canSee = t.trackingEnabled && t.viewers.includes(role);
   const opensAt = t.opensAt ? new Date(t.opensAt) : null;
 
-  // Off entirely — before the window opens, or after the trip closed.
+  // Off entirely - before the window opens, or after the trip closed.
   if (!t.trackingEnabled) {
     return (
       <Card>
@@ -103,7 +103,7 @@ export function TrackingPanel({
           </Badge>
         </div>
 
-        {/* Who has set off and who has arrived, above the map — the answer to
+        {/* Who has set off and who has arrived, above the map - the answer to
             the question, before the map is even read. Exceptions are not a
             handover, so the strip stays out of the way there. */}
         {!exception && (t.phase === 'approach' || t.phase === 'return') && (

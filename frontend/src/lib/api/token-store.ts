@@ -1,7 +1,7 @@
 /**
  * Token persistence. Access token is kept in memory + localStorage for
  * reloads; refresh token in localStorage. (For hardened prod, move refresh
- * to an httpOnly cookie via a Next route handler — the client API here is
+ * to an httpOnly cookie via a Next route handler - the client API here is
  * designed so only this file changes.)
  */
 const ACCESS_KEY = 'cato.access';

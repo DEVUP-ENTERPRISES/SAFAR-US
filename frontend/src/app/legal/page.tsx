@@ -13,7 +13,7 @@ import { kbApi } from '@/features/kb/api';
  * Legal documents, served out of the knowledge base.
  *
  * Terms and privacy policies get amended by people who are not engineers, on
- * timelines that have nothing to do with deploys — so they live in the KB where
+ * timelines that have nothing to do with deploys - so they live in the KB where
  * an admin can publish a new version, and this page lists whatever is currently
  * in the `legal` category. Hardcoding the text here would mean a lawyer's edit
  * requires a release.
@@ -25,7 +25,7 @@ export default function LegalPage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 py-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6">
       <PageHeader
         title="Legal"
         description="Terms, policies, and the agreements that apply when you book or host."

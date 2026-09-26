@@ -26,11 +26,11 @@ function HostShell({ children }: { children: ReactNode }) {
 
   const notAHost = isNotAHost(hostQuery.error);
   // A Captain has no fleet of their own, but does have the run of a trip's
-  // handover screens on the cars assigned to them — that page is theirs too,
+  // handover screens on the cars assigned to them - that page is theirs too,
   // not just their own /captain queue.
   const isTripRoute = pathname?.startsWith('/host/trips') ?? false;
 
-  // Only asked once we know they have no fleet of their own — a real host is
+  // Only asked once we know they have no fleet of their own - a real host is
   // never a Captain, so this would be a wasted round trip for everyone else.
   const captainQuery = useQuery({
     queryKey: ['captain-queue'],
@@ -44,9 +44,9 @@ function HostShell({ children }: { children: ReactNode }) {
   }, [notAHost, captainQuery.data, isTripRoute, router]);
 
   /*
-   * An Asset Partner always has a Host record underneath — it is the
+   * An Asset Partner always has a Host record underneath - it is the
    * marketplace-seller plumbing a Vehicle hangs off (see AssetPartnerModel's
-   * doc comment) — so hostQuery succeeds for them exactly like it does for a
+   * doc comment) - so hostQuery succeeds for them exactly like it does for a
    * genuine self-serve host, and without this check they land in the full
    * self-serve shell below: Listings, Fleet, Operations, Captains.
    *
@@ -54,7 +54,7 @@ function HostShell({ children }: { children: ReactNode }) {
    * "Add a car" here creates a Vehicle with no assetPartnerId, which bills as
    * an ordinary host booking instead of running through the partner's actual
    * management fee, insurance and detailing terms. Redirect before any of
-   * that renders, rather than only hiding the nav links to this route — a
+   * that renders, rather than only hiding the nav links to this route - a
    * partner who already knows the URL (or bookmarked it) must still be routed
    * away.
    */
@@ -67,7 +67,7 @@ function HostShell({ children }: { children: ReactNode }) {
   }
 
   // Still deciding. `isPending` covers the first load; `isFetching` covers a
-  // revalidation after a cached error — without it, React Query reports the old
+  // revalidation after a cached error - without it, React Query reports the old
   // error instantly and an existing host sees the signup screen flash.
   if (hostQuery.isPending || (hostQuery.isError && hostQuery.isFetching)) {
     return <Skeleton className="h-64 w-full" />;
@@ -85,7 +85,7 @@ function HostShell({ children }: { children: ReactNode }) {
   }
 
   // A Captain has no Host record of their own, so they land here looking like
-  // a brand new signup. They are not — a trip route is theirs to view bare
+  // a brand new signup. They are not - a trip route is theirs to view bare
   // (no host sidebar, since most of it doesn't apply to them); anywhere else
   // they're mid-redirect to their own queue.
   if (notAHost && captainQuery.data && isTripRoute) return <>{children}</>;
@@ -113,7 +113,7 @@ function HostShell({ children }: { children: ReactNode }) {
           </p>
           <ul className="space-y-4 pt-4">
             {[
-              'You set the price — or let Smart Price do it for you',
+              'You set the price - or let Smart Price do it for you',
               'Cash out instantly, or on the standard payout schedule',
               'Every guest is verified before they can book',
             ].map((b) => (
@@ -155,7 +155,7 @@ function HostShell({ children }: { children: ReactNode }) {
   return (
     /*
      * No pb-24 here. It used to reserve clearance for PanelSidebar's own
-     * mobile bar, back when HostSidebar rendered one — now that it's
+     * mobile bar, back when HostSidebar rendered one - now that it's
      * suppressed (showMobileNav={false} on HostSidebar, since
      * HostMobileTabBar already covers this route), the only bottom bar left
      * is HostMobileTabBar, which reserves its own clearance via its own
@@ -172,7 +172,7 @@ function HostShell({ children }: { children: ReactNode }) {
 export default function HostLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   // Login is public; /host/bridge and /host/accept-invite must render bare too
-  // — they're the pages that STORE the session, so guarding them would bounce
+  // - they're the pages that STORE the session, so guarding them would bounce
   // them before they can run.
   if (pathname === '/host/login' || pathname === '/host/bridge' || pathname === '/host/accept-invite') {
     return <>{children}</>;

@@ -12,7 +12,7 @@ export interface Review {
 }
 
 export const reviewsApi = {
-  /** Both directions of review on a booking — to know who has reviewed. */
+  /** Both directions of review on a booking - to know who has reviewed. */
   forBooking: (bookingId: string) =>
     api.get<Review[]>(`/reviews/booking/${bookingId}`),
   create: (bookingId: string, rating: number, comment: string) =>

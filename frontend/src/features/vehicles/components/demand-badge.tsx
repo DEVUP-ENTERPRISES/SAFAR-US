@@ -5,7 +5,7 @@ import { Flame } from 'lucide-react';
 import { vehicleApi } from '@/features/vehicles/api';
 
 /**
- * A real interest signal, sourced from actual pageview analytics — never a
+ * A real interest signal, sourced from actual pageview analytics - never a
  * fabricated countdown or a made-up "3 people are looking at this" line.
  * Renders nothing below the threshold: a quiet listing showing "1 view" is
  * worse than showing nothing, and it's honest to stay silent rather than

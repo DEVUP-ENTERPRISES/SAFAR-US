@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils/cn';
  * The CatoDrive emblem.
  *
  * A full-colour mark (road, plane, car, tyre) on a transparent background, so
- * it sits on any surface — the light navbar, the dark auth panel, an email —
+ * it sits on any surface - the light navbar, the dark auth panel, an email -
  * without a coloured tile behind it. It carries its own identity; wrapping it
  * in a gradient chip, as the old placeholder mark needed, would fight it.
  *

@@ -23,7 +23,7 @@ const ALL: CaptainAbility[] = ['trip:view', 'trip:handover', 'trip:message', 'ca
 const DEFAULTS: CaptainAbility[] = ['trip:view', 'trip:handover', 'trip:message'];
 
 /**
- * Captains — the people who work a host's fleet.
+ * Captains - the people who work a host's fleet.
  *
  * Past one or two cars a host stops doing handovers personally: a partner, a
  * cleaner, a valet, a fleet manager. Today they hand over their password, which
@@ -31,7 +31,7 @@ const DEFAULTS: CaptainAbility[] = ['trip:view', 'trip:handover', 'trip:message'
  * every guest's phone number.
  *
  * A Captain gets their own access, scoped to named cars and named abilities.
- * The page states in plain words what each one can do — a host should never
+ * The page states in plain words what each one can do - a host should never
  * have to decode a permission string to know who can touch their money.
  * Nothing on this list moves money, and the page says so outright.
  */
@@ -78,7 +78,7 @@ export default function TeamPage() {
     <div className="space-y-6">
       <PageHeader
         title="Captains"
-        description="The people who run your cars day to day — with their own access, not your password."
+        description="The people who run your cars day to day - with their own access, not your password."
         actions={
           <Button onClick={() => setAdding((v) => !v)}>
             <UserPlus className="h-4 w-4" /> {adding ? 'Cancel' : 'Add a Captain'}

@@ -8,9 +8,9 @@ interface RequestOptions {
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined>;
   /**
-   * true (default) — send the token; a 401 means the session is over.
-   * false          — never send it; this endpoint is public.
-   * 'optional'     — send it if we have one, but the endpoint works without.
+   * true (default) - send the token; a 401 means the session is over.
+   * false          - never send it; this endpoint is public.
+   * 'optional'     - send it if we have one, but the endpoint works without.
    *                  A 401 here is a real error, not an expired session, so it
    *                  must not sign the user out.
    */
@@ -27,13 +27,13 @@ let refreshInFlight: Promise<RefreshOutcome> | null = null;
 /*
  * Cross-tab mutex around the refresh call.
  *
- * `refreshInFlight` only dedupes concurrent 401s WITHIN one tab — it is a
+ * `refreshInFlight` only dedupes concurrent 401s WITHIN one tab - it is a
  * module-level variable, and every tab/window runs its own copy of this
  * module. Two tabs whose access tokens expire around the same moment (the
  * access TTL is 15 minutes, so this is routine, not rare) each read the SAME
  * refresh token from localStorage and each call /auth/token/refresh with it.
  * The backend rotates the refresh token on every use and treats a second use
- * of an already-rotated token as theft — it revokes the WHOLE session, not
+ * of an already-rotated token as theft - it revokes the WHOLE session, not
  * just that request. So two ordinary tabs refreshing a moment apart could log
  * the person out everywhere, which is indistinguishable from a real security
  * event but isn't one.
@@ -44,7 +44,7 @@ let refreshInFlight: Promise<RefreshOutcome> | null = null;
  * name; every other requester queues until it releases. Support is broad
  * enough for this app's targets (Chrome/Edge/Firefox, Safari 15.4+); where
  * it's missing, this degrades to the single-tab-only guard that existed
- * before — no worse than the prior behaviour, not a regression.
+ * before - no worse than the prior behaviour, not a regression.
  */
 async function withCrossTabLock<T>(
   name: string,
@@ -73,7 +73,7 @@ async function attemptRefresh(): Promise<RefreshOutcome> {
   if (!refreshInFlight) {
     refreshInFlight = withCrossTabLock("cato-token-refresh", async () => {
       try {
-        // Re-read after acquiring the lock — while this tab was queued,
+        // Re-read after acquiring the lock - while this tab was queued,
         // another tab may have already refreshed and written new tokens to
         // localStorage. Using THIS closure's now-stale `refreshToken` would
         // be exactly the reuse the lock exists to prevent.
@@ -148,7 +148,7 @@ async function raw<T>(
     if (refreshed === "unavailable") {
       throw new ApiError(
         "SERVER_UNAVAILABLE",
-        "We can’t reach the server right now. You’re still signed in — try again in a moment.",
+        "We can’t reach the server right now. You’re still signed in - try again in a moment.",
         503,
       );
     }
@@ -167,11 +167,11 @@ async function raw<T>(
 
     // "Missing bearer token" is a fact about HTTP, not something a person did
     // wrong, and it has been rendering verbatim next to booking buttons. Any
-    // 401 on an authenticated call means the same thing to a user — sign in —
+    // 401 on an authenticated call means the same thing to a user - sign in -
     // so it is normalised here rather than in every component that shows an
     // error string.
     if (res.status === 401 && opts.auth !== false) {
-      // Same normalisation either way — the user's action is to sign in.
+      // Same normalisation either way - the user's action is to sign in.
       throw new ApiError(
         "AUTH_REQUIRED",
         "Please sign in to continue",

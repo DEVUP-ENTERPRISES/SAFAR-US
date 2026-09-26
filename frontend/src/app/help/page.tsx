@@ -23,8 +23,8 @@ export default function HelpCentre() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 py-6">
-      <PageHeader title="Help centre" description="Answers to the most common questions — search or browse by topic." />
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6">
+      <PageHeader title="Help centre" description="Answers to the most common questions - search or browse by topic." />
 
       <div className="relative">
         <Search className="pointer-events-none absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />

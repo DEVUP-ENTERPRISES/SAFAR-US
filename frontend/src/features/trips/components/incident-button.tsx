@@ -16,7 +16,7 @@ type IncidentType = 'accident' | 'breakdown' | 'medical' | 'theft' | 'unsafe';
 /**
  * Reporting that something has gone wrong during a trip.
  *
- * The endpoint for this existed and nothing on any screen called it — a guest
+ * The endpoint for this existed and nothing on any screen called it - a guest
  * in an accident had no button. That is the gap least acceptable to ship with,
  * because the whole point of a platform standing between two strangers is that
  * someone answers when it goes badly.
@@ -54,7 +54,7 @@ export function IncidentButton({ tripId }: { tripId: string }) {
     onSuccess: () => {
       toast({
         tone: 'success',
-        title: 'Reported — we are on it',
+        title: 'Reported - we are on it',
         description: 'Your host and our support team have been alerted. This trip is paused.',
       });
       setOpen(false);
@@ -120,7 +120,7 @@ export function IncidentButton({ tripId }: { tripId: string }) {
             rows={3}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Anything that helps — where you are, what you need. Optional."
+            placeholder="Anything that helps - where you are, what you need. Optional."
           />
         )}
 

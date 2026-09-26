@@ -13,7 +13,7 @@ import { vehicleApi } from '@/features/vehicles/api';
  *
  * This used to hotlink three hardcoded Unsplash photos. Two problems with that,
  * and both bit: they were stock cars we do not have on the platform, and one of
- * the three was deleted upstream and started returning 404 — so a third of the
+ * the three was deleted upstream and started returning 404 - so a third of the
  * time the login page rendered a broken-image icon.
  *
  * Now it shows real cars from the marketplace, and the panel is designed to
@@ -74,7 +74,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen w-full bg-background">
       {/* LEFT: the brand panel. Holds up with or without photography. */}
       <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-ink lg:flex">
-        {/* Designed backdrop — no network, always present. */}
+        {/* Designed backdrop - no network, always present. */}
         <div aria-hidden className="absolute inset-0">
           <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_15%_10%,hsl(var(--primary)/0.30),transparent_60%)]" />
           <div className="absolute inset-0 bg-[radial-gradient(90%_70%_at_90%_95%,hsl(var(--primary)/0.16),transparent_65%)]" />
@@ -110,10 +110,10 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-white/90 backdrop-blur-md">
             <ShieldCheck className="h-4 w-4" /> Booking protected
           </span>
-          <h1 className="display mt-6 text-5xl leading-[1.05] text-white xl:text-6xl">
+          <h1 className="display mt-6 text-[2.8rem] leading-[1.05] text-white xl:text-5xl 2xl:text-6xl">
             Drive away<br />certain.
           </h1>
-          <p className="mt-6 max-w-md text-lg font-medium leading-relaxed text-white/70">
+          <p className="mt-5 max-w-md text-base font-medium leading-relaxed text-white/70 xl:text-lg">
             If your host cancels, we find you another car and cover the difference. Your trip is not their
             change of mind.
           </p>
@@ -147,7 +147,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           </Link>
         </div>
 
-        <div className="flex flex-1 items-center justify-center p-6 sm:p-12 lg:p-16">
+        <div className="flex flex-1 items-center justify-center px-5 py-8 sm:p-12 lg:p-16">
           <div className="w-full max-w-md animate-slide-in-right">{children}</div>
         </div>
       </div>

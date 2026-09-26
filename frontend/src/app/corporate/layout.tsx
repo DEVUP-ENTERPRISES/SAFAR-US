@@ -20,7 +20,7 @@ function CorporateShell({ children }: { children: ReactNode }) {
     queryKey: ['corp-me'],
     queryFn: () => corporateApi.me(),
     // The API answers "no org" with an explicit null, so any *error* is a
-    // transport/auth problem, not an answer — retry rather than conclude.
+    // transport/auth problem, not an answer - retry rather than conclude.
     retry: 2,
     staleTime: 0,
     refetchOnMount: 'always',

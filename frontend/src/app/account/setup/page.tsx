@@ -125,7 +125,7 @@ export default function AccountSetupPage() {
         </div>
         <h1 className="mt-4 text-3xl font-bold tracking-tight">Finish setting up your account</h1>
         <p className="mt-2 text-muted-foreground">
-          We need a few details before you can book — this is what a rental (and its insurer) requires.
+          We need a few details before you can book - this is what a rental (and its insurer) requires.
           You must be at least {minAge}.
         </p>
         <p className="mt-2 text-sm">
@@ -149,7 +149,7 @@ export default function AccountSetupPage() {
       >
         {/*
           Photo. AvatarUpload already renders its own "Profile photo" label
-          and hint next to the picker — this used to wrap it in a second
+          and hint next to the picker - this used to wrap it in a second
           "Profile photo" label with a slightly different sentence, so both
           rendered side by side: the same heading and two near-identical
           descriptions of the same thing, right next to each other.

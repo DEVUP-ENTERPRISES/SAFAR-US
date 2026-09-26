@@ -42,7 +42,7 @@ function Wallet() {
           <div>
             <p className="flex items-center gap-1 text-sm text-white/80"><WalletIcon className="h-4 w-4" /> Available balance</p>
             <p className="mt-1 text-4xl font-black">{formatMoney({ amount: balance, currency: balanceQ.data.currency })}</p>
-            <p className="text-sm text-white/80">Pay instantly at checkout — no card needed.</p>
+            <p className="text-sm text-white/80">Pay instantly at checkout - no card needed.</p>
           </div>
           <WalletIcon className="h-12 w-12 text-white/60" />
         </div>

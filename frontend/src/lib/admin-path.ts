@@ -1,5 +1,5 @@
 /**
- * The console's public base path. Must match backend `ADMIN_SLUG` — the
+ * The console's public base path. Must match backend `ADMIN_SLUG` - the
  * middleware rewrites `/{slug}/*` onto the real `app/admin/*` routes.
  */
 export const ADMIN_SLUG = process.env.NEXT_PUBLIC_ADMIN_SLUG || 'admin';

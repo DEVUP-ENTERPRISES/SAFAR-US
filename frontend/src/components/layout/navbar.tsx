@@ -28,7 +28,7 @@ export function Navbar() {
   const isSearch = pathname === '/search';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // The header is fixed so it never leaves the viewport — on a content-heavy
+  // The header is fixed so it never leaves the viewport - on a content-heavy
   // screen (chat, a long form) that means it permanently sits over whatever
   // scrolls underneath it. Hiding it on scroll-down and bringing it back on
   // scroll-up (or near the top) gives the content the full screen without
@@ -83,14 +83,14 @@ export function Navbar() {
           <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2.5 transition-transform hover:scale-105">
             <Logo className="h-9 w-9 shrink-0" />
             {/* `xs:` isn't a breakpoint this project defines, so this was
-                permanently hidden regardless of screen size — `sm:` matches
+                permanently hidden regardless of screen size - `sm:` matches
                 the hamburger toggle's own breakpoint just above. */}
             <span className="display truncate text-xl tracking-tight hidden sm:block">{config.appName}</span>
           </Link>
         </div>
 
         {/* On the search page the full Where / From / Until bar lives inline in
-            the navbar (desktop) — one integrated top bar, no separate box. */}
+            the navbar (desktop) - one integrated top bar, no separate box. */}
         {isSearch && (
           <div className="hidden min-w-0 flex-1 lg:block">
             <SearchBarFields variant="nav" />
@@ -125,7 +125,7 @@ export function Navbar() {
               >
                 How it works
               </Link>
-              {/* Primary acquisition path — own the car, CatoDrive runs it. Leads
+              {/* Primary acquisition path - own the car, CatoDrive runs it. Leads
                   over the self-managed host flow. Once actually enrolled,
                   this goes straight to the partner's own dashboard rather
                   than the public pitch they no longer need. */}
@@ -137,7 +137,7 @@ export function Navbar() {
               </Link>
               {/*
                 Asset-Partners-only launch: don't invite a NEW self-serve
-                host. An EXISTING host still reaches their own dashboard —
+                host. An EXISTING host still reaches their own dashboard -
                 that isn't an invitation, it's their own listing.
 
                 `!isAssetPartner` is load-bearing, not decoration: every Asset
@@ -145,7 +145,7 @@ export function Navbar() {
                 the marketplace-seller plumbing a Vehicle hangs off), so
                 isHost reads true for partners too. Without this, every
                 partner saw "Host dashboard" here and could reach the
-                self-serve tools — including Add a car, which lists a vehicle
+                self-serve tools - including Add a car, which lists a vehicle
                 with no assetPartnerId and bills it as an ordinary host
                 booking instead of running it through their actual terms.
               */}
@@ -157,7 +157,7 @@ export function Navbar() {
                   {isHost ? 'Host dashboard' : 'Become a host'}
                 </Link>
               ) : null}
-              {/* Lower-frequency destination — only at wider widths so it
+              {/* Lower-frequency destination - only at wider widths so it
                   doesn't crowd the primary consumer/partner links. */}
               <Link
                 href="/investors"
@@ -180,7 +180,7 @@ export function Navbar() {
             </div>
           ) : (
             <div className="hidden sm:flex items-center ms-2">
-              {/* One entry point, not two — /login itself offers "New to CatoDrive?
+              {/* One entry point, not two - /login itself offers "New to CatoDrive?
                   Sign up" for anyone who isn't a returning user yet. */}
               <Link href="/login">
                 <Button size="sm" className="rounded-full px-5 font-semibold shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5">Log in</Button>
@@ -278,4 +278,4 @@ export function Navbar() {
   );
 }
 
-/** Minimal road/motion mark — reads as a brand, not a stock car icon. */
+/** Minimal road/motion mark - reads as a brand, not a stock car icon. */

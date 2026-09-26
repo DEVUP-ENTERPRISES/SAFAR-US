@@ -2,7 +2,7 @@
  * A one-way signal from the API layer to the app: this session is over.
  *
  * The API client cannot import the auth store (the store imports the client, so
- * that would be a cycle), and it must not navigate on its own — that decision
+ * that would be a cycle), and it must not navigate on its own - that decision
  * belongs to the app shell, which knows whether the user is in the customer,
  * host, or admin portal. So the client announces, and the shell reacts.
  */

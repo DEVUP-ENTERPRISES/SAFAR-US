@@ -21,13 +21,13 @@ import { ApiError } from '@/lib/api/types';
 /**
  * The partner's own paperwork: insurance, registration, title.
  *
- * Insurance is the one that matters operationally — a lapsed policy on a car
+ * Insurance is the one that matters operationally - a lapsed policy on a car
  * CatoDrive is renting out is a real exposure, and the application captured an
  * expiry date that nothing ever surfaced again. An expiring policy is flagged
  * here rather than discovered at claim time.
  */
 
-/** The two document types this page collects — a narrower union than the full
+/** The two document types this page collects - a narrower union than the full
  *  DocumentCategory / UploadCategory lists, which also cover KYC and claims. */
 type PartnerDocCategory = 'insurance' | 'registration';
 
@@ -125,7 +125,7 @@ export default function PartnerDocumentsPage() {
                 {expiring.length} document{expiring.length === 1 ? '' : 's'} expiring soon
               </p>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                Upload the renewal before it lapses — a car can’t stay on the road with expired
+                Upload the renewal before it lapses - a car can’t stay on the road with expired
                 cover.
               </p>
             </div>
@@ -150,7 +150,7 @@ export default function PartnerDocumentsPage() {
                 ))}
               </Select>
             </Field>
-            <Field label="Expires on" hint="Optional — we’ll remind you before it lapses.">
+            <Field label="Expires on" hint="Optional - we’ll remind you before it lapses.">
               <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
             </Field>
           </div>

@@ -18,8 +18,8 @@ const KEY = 'cato.compare';
  * localStorage access that cannot take the app down with it.
  *
  * The read ran unguarded at module scope, inside the store initialiser. Three
- * ways that throws — corrupt JSON, a browser with storage disabled, Safari in
- * private mode — and because AppChrome mounts the compare tray on every
+ * ways that throws - corrupt JSON, a browser with storage disabled, Safari in
+ * private mode - and because AppChrome mounts the compare tray on every
  * consumer page, any of them white-screened the entire marketplace rather than
  * losing a three-item tray. recently-viewed.ts already guards its own access
  * this way; this brings the two in line.
@@ -43,11 +43,11 @@ function write(ids: string[]): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(ids));
   } catch {
-    /* storage full or unavailable — the tray still works for this session */
+    /* storage full or unavailable - the tray still works for this session */
   }
 }
 
-/** Compare tray — up to 3 vehicles, persisted to localStorage. */
+/** Compare tray - up to 3 vehicles, persisted to localStorage. */
 export const useCompareStore = create<CompareState>((set, get) => ({
   ids: read(),
   toggle: (id) => {

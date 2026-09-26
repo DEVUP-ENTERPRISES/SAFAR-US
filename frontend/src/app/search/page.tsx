@@ -42,7 +42,7 @@ const SEAT_OPTIONS = [2, 4, 5, 7];
  *
  * The panel is rendered through a portal, positioned to the button, rather than
  * absolutely inside it. The filter bar scrolls horizontally, and a scroll
- * container clips on BOTH axes — an absolutely-positioned panel inside it was
+ * container clips on BOTH axes - an absolutely-positioned panel inside it was
  * being cut off entirely, so clicking a filter appeared to do nothing. A
  * portalled, fixed-position panel escapes the clip and follows the button.
  */
@@ -74,7 +74,7 @@ function FilterDropdown({
       if (!btnRef.current?.contains(t) && !panelRef.current?.contains(t)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    // `true` — catch the bar's own horizontal scroll, which does not bubble.
+    // `true` - catch the bar's own horizontal scroll, which does not bubble.
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('keydown', onKey);
     window.addEventListener('scroll', place, true);
@@ -121,7 +121,7 @@ function FilterDropdown({
 /**
  * A filter option, with how many cars it would return.
  *
- * An option that leads nowhere is disabled rather than offered — discovering an
+ * An option that leads nowhere is disabled rather than offered - discovering an
  * empty result by clicking is the single most tedious part of car search. A
  * count of `undefined` means we have no data yet, so the option stays live
  * rather than being wrongly greyed out while the counts load.
@@ -155,7 +155,7 @@ function Opt({
     >
       {children}
       {/* `count` still drives the disabled state above (a dead-end option is
-          greyed out), but the number is not shown — a bare "1" beside a filter
+          greyed out), but the number is not shown - a bare "1" beside a filter
           reads as an empty marketplace. */}
     </button>
   );
@@ -189,7 +189,7 @@ function SearchInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filters — seeded from the URL, so a shared or bookmarked search opens with
+  // Filters - seeded from the URL, so a shared or bookmarked search opens with
   // the same results the sender saw, and Back after opening a car restores the
   // filters instead of dumping the guest into an unfiltered list.
   const [category, setCategory] = useState(qp.get('category') ?? '');
@@ -266,7 +266,7 @@ function SearchInner() {
    * replaceState rather than router.replace: this fires on every keystroke in
    * the price boxes, and pushing through the router would re-render the tree
    * and stack up history entries the Back button then has to chew through.
-   * Only the URL string needs to change — React already holds the truth.
+   * Only the URL string needs to change - React already holds the truth.
    */
   useEffect(() => {
     const q = new URLSearchParams();
@@ -300,7 +300,7 @@ function SearchInner() {
 
   return (
     <div className="space-y-5">
-      {/* Search bar — desktop shows it inline in the navbar; mobile shows the
+      {/* Search bar - desktop shows it inline in the navbar; mobile shows the
           full box here. Same shared store drives both. */}
       <div className="relative z-40 lg:hidden">
         <SearchBarFields variant="bar" />

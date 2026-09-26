@@ -46,11 +46,11 @@ function RegisterInner() {
     <div className="w-full">
       <ReturnContext next={bookingReturn ? returnTo : null} />
 
-      <div className="mb-8 text-center lg:text-start">
-        <h2 className="display text-4xl text-foreground sm:text-5xl">
+      <div className="mb-7 text-center lg:text-start">
+        <h2 className="display text-3xl text-foreground sm:text-4xl">
           {bookingReturn ? 'Almost yours' : 'Create your account'}
         </h2>
-        <p className="mt-3 text-[17px] text-muted-foreground">
+        <p className="mt-2.5 text-base text-muted-foreground">
           {bookingReturn
             ? 'Create an account to confirm this trip. Your dates and options are waiting.'
             : 'One account for booking, hosting and everything in between.'}
@@ -59,11 +59,11 @@ function RegisterInner() {
 
       {referralCode && (
         <div className="mb-6 flex items-center gap-3 rounded-xl bg-primary/10 p-4 text-base font-medium text-primary">
-          <Gift className="h-5 w-5" /> Referral <b className="text-lg">{referralCode}</b> applied — you&apos;ll get welcome credit!
+          <Gift className="h-5 w-5" /> Referral <b className="text-lg">{referralCode}</b> applied - you&apos;ll get welcome credit!
         </div>
       )}
 
-      <form onSubmit={handleSubmit((v) => registerMutation.mutate(v))} className="space-y-6">
+      <form onSubmit={handleSubmit((v) => registerMutation.mutate(v))} className="space-y-4">
         <Field label="First name" htmlFor="firstName" error={formState.errors.firstName?.message}>
           <Input id="firstName" autoComplete="given-name" {...register('firstName')} />
         </Field>
@@ -88,7 +88,7 @@ function RegisterInner() {
             </Button>
           </form>
 
-          <div className="mt-8">
+          <div className="mt-6">
             <SocialSignIn
               onSuccess={(result) => {
                 onAuthSuccess(result);
@@ -97,7 +97,7 @@ function RegisterInner() {
             />
           </div>
 
-          <p className="mt-8 text-center text-base font-medium text-muted-foreground">
+          <p className="mt-6 text-center text-base font-medium text-muted-foreground">
             Already have an account?{' '}
             <Link href={`/login?next=${encodeURIComponent(returnTo)}`} className="font-bold text-primary hover:underline">Log in</Link>
           </p>

@@ -90,7 +90,7 @@ export default function ManageListingPage() {
     (availability.data ?? []).filter((d) => d.state === 'blocked').map((d) => d.dayKey).sort(),
   );
 
-  // Generic field editor — every listing attribute goes through PUT /vehicles/:id.
+  // Generic field editor - every listing attribute goes through PUT /vehicles/:id.
   const update = useMutation({
     mutationFn: (patch: Record<string, unknown>) => vehicleApi.update(id, patch),
     onSuccess: () => { invalidate(); notify({ tone: 'success', title: 'Listing updated' }); },
@@ -178,7 +178,7 @@ export default function ManageListingPage() {
     const { ok } = await confirm({
       title: 'Delete this photo?',
       description: isCover
-        ? 'This is the cover photo — the next photo becomes the cover. This cannot be undone.'
+        ? 'This is the cover photo - the next photo becomes the cover. This cannot be undone.'
         : 'This cannot be undone. You can upload it again later.',
       confirmLabel: 'Delete photo',
       tone: 'destructive',
@@ -190,7 +190,7 @@ export default function ManageListingPage() {
     const { ok } = await confirm({
       title: `Remove ${v.make} ${v.model} from CatoDrive?`,
       description:
-        'The car stops appearing in search and can no longer be booked. Trips already booked are not cancelled — handle those first.',
+        'The car stops appearing in search and can no longer be booked. Trips already booked are not cancelled - handle those first.',
       confirmLabel: 'Remove listing',
       tone: 'destructive',
       requireText: 'REMOVE',
@@ -360,7 +360,7 @@ export default function ManageListingPage() {
             title="Photos"
             subtitle={
               photos.length === 0
-                ? `None yet — ${minPhotos} required`
+                ? `None yet - ${minPhotos} required`
                 : `${photos.length} uploaded${photosNeeded > 0 ? ` · ${photosNeeded} more required` : ''}`
             }
             onClick={() => toggle('photos')}
@@ -459,7 +459,7 @@ export default function ManageListingPage() {
           <Row
             icon={<ShieldCheck className="h-5 w-5" />}
             title="Safety & inspections"
-            subtitle={v.recallHold ? 'On recall hold — repair receipt needed' : 'Registration and insurance documents'}
+            subtitle={v.recallHold ? 'On recall hold - repair receipt needed' : 'Registration and insurance documents'}
             value={v.recallHold ? 'Recall hold' : undefined}
             onClick={() => toggle('safety')}
           />
@@ -468,7 +468,7 @@ export default function ManageListingPage() {
               {v.recallHold && (
                 <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
                   This car was paused after its last trip over an open safety recall. Upload a repair
-                  receipt below — it stays paused until ops verifies it.
+                  receipt below - it stays paused until ops verifies it.
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
@@ -525,7 +525,7 @@ export default function ManageListingPage() {
                 </Button>
               </div>
 
-              {/* What's currently blocked, next 90 days — tap ✕ to reopen a window. */}
+              {/* What's currently blocked, next 90 days - tap ✕ to reopen a window. */}
               <div className="border-t border-border pt-3">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Currently blocked</p>
                 {availability.isLoading ? (
@@ -554,7 +554,7 @@ export default function ManageListingPage() {
         </RowGroup>
       </div>
 
-      {/* Pickup details — dormant until now: the fields existed on the model
+      {/* Pickup details - dormant until now: the fields existed on the model
           and had no editor, so the guest-facing panel never had anything to
           show. */}
       <SectionLabel>Safety & history</SectionLabel>
@@ -597,7 +597,7 @@ export default function ManageListingPage() {
       </RowGroup>
 
       <p className="px-1 pt-4 font-mono text-xs text-muted-foreground">
-        VIN #{v.vin ?? '—'}
+        VIN #{v.vin ?? '-'}
       </p>
     </div>
   );
@@ -606,7 +606,7 @@ export default function ManageListingPage() {
 /**
  * A presigned PUT that reports failure. `fetch` resolves for 4xx/5xx, so the
  * previous version treated a rejected upload as success and attached a URL to
- * an object that was never stored — the photo then rendered broken.
+ * an object that was never stored - the photo then rendered broken.
  */
 /** Collapse a sorted list of YYYY-MM-DD day keys into contiguous ranges. */
 function groupRanges(days: string[]): { from: string; to: string }[] {
@@ -745,9 +745,9 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
           value={policy}
           onChange={(e) => setPolicy(e.target.value as typeof policy)}
         >
-          <option value="flexible">Flexible — free cancellation up to 24h before</option>
-          <option value="moderate">Moderate — free up to 3 days before</option>
-          <option value="strict">Strict — free up to 7 days before</option>
+          <option value="flexible">Flexible - free cancellation up to 24h before</option>
+          <option value="moderate">Moderate - free up to 3 days before</option>
+          <option value="strict">Strict - free up to 7 days before</option>
         </Select>
       </Field>
 
@@ -824,7 +824,7 @@ function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: S
             listing: { title: title.trim(), description },
             features,
             registrationNumber: plate.trim() || undefined,
-            // Omit rather than set undefined — the merge spreads this object
+            // Omit rather than set undefined - the merge spreads this object
             // over the stored specs, and an explicit undefined key would
             // overwrite an existing value instead of leaving it alone.
             specs: {

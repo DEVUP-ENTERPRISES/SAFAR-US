@@ -21,7 +21,7 @@ interface ConnectStatus {
 /**
  * Connecting a bank account.
  *
- * Until this existed, payouts moved on our ledger and nowhere else — a host
+ * Until this existed, payouts moved on our ledger and nowhere else - a host
  * could see "paid" and never receive anything. There was no way for a host to
  * tell us where their money should go.
  *
@@ -75,7 +75,7 @@ export function PayoutConnect() {
 
   const s = status.data;
 
-  // Fully set up — small and quiet, because there is nothing to do.
+  // Fully set up - small and quiet, because there is nothing to do.
   if (s.connected && s.payoutsEnabled && !s.needsOnboarding) {
     return (
       <Card className="border-success/30 bg-success/5">
@@ -111,7 +111,7 @@ export function PayoutConnect() {
             <p className="mt-1 text-sm text-muted-foreground">
               {started
                 ? 'Stripe still needs a few details before money can reach your bank.'
-                : 'Your earnings are being tracked, but nothing can reach your bank until you connect an account. Stripe handles this — your bank details never pass through us.'}
+                : 'Your earnings are being tracked, but nothing can reach your bank until you connect an account. Stripe handles this - your bank details never pass through us.'}
             </p>
 
             {/* Stripe's own words, translated. Naming what is missing is the

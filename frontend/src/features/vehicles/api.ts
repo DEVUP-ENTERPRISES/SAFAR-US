@@ -108,7 +108,7 @@ export interface VehicleInsights {
 }
 
 export const vehicleApi = {
-  /** Real cities/categories/trust numbers — nothing about supply is hardcoded. */
+  /** Real cities/categories/trust numbers - nothing about supply is hardcoded. */
   facets: (city?: string) =>
     api.get<MarketplaceFacets>('/search/facets', city ? { city } : undefined, false),
   search: (params: SearchParams) =>
@@ -123,7 +123,7 @@ export const vehicleApi = {
   /** Real view counts for this listing, from actual visitor analytics. */
   interest: (id: string) =>
     api.get<{ viewersLast24h: number; viewersLast7d: number }>(`/vehicles/${id}/interest`, undefined, false),
-  /** Everything about one car — earnings, utilisation, reviews, claims, docs. */
+  /** Everything about one car - earnings, utilisation, reviews, claims, docs. */
   insights: (id: string) => api.get<VehicleInsights>(`/vehicles/${id}/insights`),
   /** Real take-home earnings per trip length, from the actual quote engine. */
   pricingPreview: (id: string) => api.get<{ tiers: PricingTier[] }>(`/vehicles/${id}/pricing-preview`),

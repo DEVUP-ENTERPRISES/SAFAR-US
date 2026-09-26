@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 
 /**
- * Registers the service worker — production only, so the dev server's hot reload
+ * Registers the service worker - production only, so the dev server's hot reload
  * is never served from a cache. Mounted once in the consumer app chrome (not the
  * admin console). Failure is silent: the SW is an enhancement, never a
  * dependency of the app working.

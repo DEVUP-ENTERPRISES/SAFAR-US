@@ -10,14 +10,14 @@ export interface PanelNavItem {
   label: string;
   path: string;
   group: string;
-  /** Optional count badge — e.g. pending items in a queue. */
+  /** Optional count badge - e.g. pending items in a queue. */
   count?: number;
   /** Whether to show this item in the mobile bottom nav. Defaults to true. */
   mobile?: boolean;
   /**
    * Shorter label for the mobile bottom bar, where five items share one row
    * and a two-or-three-word label ("Payout & profile") wraps onto a second
-   * line while its neighbours stay on one — the row's icons and labels then
+   * line while its neighbours stay on one - the row's icons and labels then
    * sit at different heights instead of a shared baseline. Falls back to
    * `label`, so this only needs setting where the full label is too long.
    */
@@ -26,7 +26,7 @@ export interface PanelNavItem {
 
 /**
  * One sidebar for every panel (admin / host / corporate). Panels differ only in
- * their brand header and nav items — the chrome, grouping, active state and
+ * their brand header and nav items - the chrome, grouping, active state and
  * responsive behaviour are shared, so the three panels can't drift apart.
  */
 export function PanelSidebar({
@@ -55,18 +55,18 @@ export function PanelSidebar({
    * Pin to the viewport rather than sticking within page flow.
    *
    * A pinned sidebar cannot be dislodged by an ancestor that happens to
-   * establish a scroll container — the failure mode `sticky` has, where the
+   * establish a scroll container - the failure mode `sticky` has, where the
    * nav silently scrolls away with a long page. The caller MUST reserve the
    * w-60 gutter itself, since a fixed element takes up no layout space.
    */
   pinned?: boolean;
-  /** Where the sidebar starts — the height of this panel's topbar. */
+  /** Where the sidebar starts - the height of this panel's topbar. */
   top?: string;
   /** How tall it is. Defaults leave a little breathing room at the bottom. */
   height?: string;
   /**
    * False when the caller already has its own dedicated mobile bottom bar
-   * elsewhere in the tree — HostSidebar is the one caller that does
+   * elsewhere in the tree - HostSidebar is the one caller that does
    * (HostMobileTabBar, rendered by AppChrome for every /host/* route). Both
    * are `fixed inset-x-0 bottom-0`, so without this every host dashboard
    * page mounted two bottom navs stacked on top of each other on mobile: the
@@ -92,7 +92,7 @@ export function PanelSidebar({
     // Offsets are per-panel, not hardcoded: the consumer navbar floats at top-4
     // and is h-14 (so it occupies 16-72px), while the admin and host topbars sit
     // flush at top-0 with their own heights. One set of numbers cannot be right
-    // for all three — a sidebar tuned for the consumer chrome left a gap under
+    // for all three - a sidebar tuned for the consumer chrome left a gap under
     // the admin topbar and ran past the bottom of the viewport.
     <aside
       style={{ top, height }}
@@ -101,7 +101,7 @@ export function PanelSidebar({
         pinned ? 'fixed start-0 z-30' : 'sticky',
       )}
     >
-      {/* Panel brand header — makes it unmistakable which panel you're in. */}
+      {/* Panel brand header - makes it unmistakable which panel you're in. */}
       <div className="mb-5 flex items-center gap-3 px-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20">
           <Icon className="h-5 w-5" />
@@ -157,7 +157,7 @@ export function PanelSidebar({
 
   /*
    * 6, matching the guest tab bar's own convention (see mobile-tab-bar.tsx),
-   * not 5 — this was an arbitrary lower cap with no route behind it, and it
+   * not 5 - this was an arbitrary lower cap with no route behind it, and it
    * silently dropped a real page (Documents) off the partner nav even though
    * nothing about the layout required stopping at 5.
    */
@@ -166,7 +166,7 @@ export function PanelSidebar({
   const mobileNav = (
     /*
      * items-stretch + flex-1 per item (not items-center + justify-around +
-     * min-w-[64px]) — the same pattern mobile-tab-bar.tsx already uses for
+     * min-w-[64px]) - the same pattern mobile-tab-bar.tsx already uses for
      * the guest nav. min-w+justify-around gives every item its OWN width and
      * lets the row distribute the leftover space as gaps, so the columns
      * don't line up between this bar and any other bottom bar on the site,
@@ -176,13 +176,13 @@ export function PanelSidebar({
      */
     /*
      * Matched to the guest tab bar's actual treatment (mobile-tab-bar.tsx),
-     * not just visually similar to it — this bar and that one sit on
+     * not just visually similar to it - this bar and that one sit on
      * different routes of the same product, and someone switching between a
      * partner's own pages and the rest of the site was getting two visibly
      * different bottom bars: this one plain bg-card/95 with a full-opacity
      * border, that one the richer `.glass` treatment (saturated blur) with a
      * softer border/60. One of them read as the "real" nav and the other as
-     * a cheaper stand-in, for no product reason — they're the same kind of
+     * a cheaper stand-in, for no product reason - they're the same kind of
      * chrome.
      */
     <nav className="glass fixed inset-x-0 bottom-0 z-50 flex h-16 items-stretch border-t border-border/60 pb-safe md:hidden">
@@ -203,7 +203,7 @@ export function PanelSidebar({
               // its own content's natural width. Without it, a label like
               // "Statements" or "Maintenance" refuses to respect its 1/6
               // share of the row and pushes into the next column instead of
-              // truncating — flex-1 was setting the INTENDED width, but the
+              // truncating - flex-1 was setting the INTENDED width, but the
               // browser was overriding it back to "however wide the text
               // wants to be," which is exactly why the labels ran together.
               'relative flex flex-1 min-w-0 flex-col items-center justify-center gap-1 px-0.5 transition-colors',
@@ -211,7 +211,7 @@ export function PanelSidebar({
             )}
           >
             <div className="relative">
-              {/* [1.4rem], matching the guest bar's icon size exactly — this
+              {/* [1.4rem], matching the guest bar's icon size exactly - this
                   was h-6 w-6 (24px), a hair bigger than the guest bar's
                   22.4px, which is small enough to not obviously clash on its
                   own but adds up with everything else that didn't match. */}
@@ -225,13 +225,13 @@ export function PanelSidebar({
             {/*
               truncate (not wrap): five items share one row on a ~360-400px
               screen, so anything longer than one short word has to be given
-              a mobileLabel override rather than allowed to wrap — a wrapped
+              a mobileLabel override rather than allowed to wrap - a wrapped
               label is taller than its one-line neighbours, and the row's
               icons stop sharing a baseline. This is the safety net for
               whatever the next caller forgets to shorten.
 
               w-full, not max-w-[70px]: a flat 70px cap only clips a label
-              once it EXCEEDS 70px — on a narrow phone with 6 columns, a
+              once it EXCEEDS 70px - on a narrow phone with 6 columns, a
               column can be genuinely narrower than that (390px / 6 columns
               is ~65px before padding), so a "70px-or-less" label was never
               being clipped at all and visually spilled past its own column.
@@ -239,14 +239,14 @@ export function PanelSidebar({
               screen size, whatever that number happens to be.
 
               font-semibold (was font-bold): matches the guest bar's label
-              weight — bold read heavier/denser next to it for no reason tied
+              weight - bold read heavier/denser next to it for no reason tied
               to this bar being any more important.
             */}
             <span className="w-full truncate text-center text-[10px] font-semibold tracking-tight">
               {n.mobileLabel ?? n.label}
             </span>
             {/* Active-tab indicator, the same top underline the guest bar
-                uses — this bar showed activeness only via icon/label colour,
+                uses - this bar showed activeness only via icon/label colour,
                 so the two bars disagreed on how "you are here" is signalled
                 even though they're the same UI pattern. */}
             {active && <span className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-primary" />}

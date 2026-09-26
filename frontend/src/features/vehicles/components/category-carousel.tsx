@@ -10,7 +10,7 @@ import { useFacets } from '@/features/vehicles/hooks';
 import { formatMoney } from '@/lib/utils/format';
 
 /**
- * Browse by style — a horizontal carousel of compact style tiles.
+ * Browse by style - a horizontal carousel of compact style tiles.
  *
  * A fixed, curated set of styles so the row is always a complete shape rather
  * than one lonely card in white space. A style with live supply is vibrant,
@@ -144,13 +144,13 @@ export function CategoryCarousel({ city }: { city: string }) {
               {inner}
             </Link>
           ) : (
-            <div key={t.key} style={style} className={cn(shell, 'cursor-default')} aria-label={`${t.label} — coming soon`}>
+            <div key={t.key} style={style} className={cn(shell, 'cursor-default')} aria-label={`${t.label} - coming soon`}>
               {inner}
             </div>
           );
         })}
 
-        {/* Nudge card closes the row — points at Asset Partners while the
+        {/* Nudge card closes the row - points at Asset Partners while the
             self-serve host flow is switched off; see config.assetPartnersOnly. */}
         <Link
           href={config.assetPartnersOnly ? '/asset-partners' : '/host'}

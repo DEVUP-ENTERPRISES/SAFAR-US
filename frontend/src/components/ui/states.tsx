@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils/cn';
  *
  * An empty screen is the first thing a new host or guest sees on most of these
  * forty pages, so it is a first impression rather than an edge case. The dashed
- * box read as a missing component; this reads as a considered resting state —
+ * box read as a missing component; this reads as a considered resting state -
  * the icon sits in a soft well, the title carries the display face, and the
  * action is given room instead of being tacked underneath.
  */

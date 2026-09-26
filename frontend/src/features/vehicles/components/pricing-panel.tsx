@@ -9,7 +9,7 @@ import type { Vehicle } from '@/features/vehicles/types';
 
 type SaveFn = (patch: Record<string, unknown>) => void;
 
-/** The editable form behind "Pricing & discounts" — shared by the accordion and the dedicated page. */
+/** The editable form behind "Pricing & discounts" - shared by the accordion and the dedicated page. */
 export function PricingPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: SaveFn; saving: boolean }) {
   const p = vehicle.pricing;
   const cur = p.currency;
@@ -90,7 +90,7 @@ export function PricingPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; on
           <button onClick={addRule} className="text-sm font-semibold text-primary hover:underline">+ Add rule</button>
         </div>
         <p className="text-xs text-muted-foreground">
-          A multiplier for a date range — 150% charges half again as much (peak), 80% takes a fifth off (low season).
+          A multiplier for a date range - 150% charges half again as much (peak), 80% takes a fifth off (low season).
         </p>
         {rules.length === 0 && <p className="text-xs text-muted-foreground">No seasonal rules yet.</p>}
         {rules.map((r, i) => (

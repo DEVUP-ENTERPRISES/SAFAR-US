@@ -24,7 +24,7 @@ export interface Message {
 /** The reserved sender id the backend uses for automated notes. */
 export const SYSTEM_SENDER = 'system';
 
-/** One inbox row — a booking's conversation, summarised. */
+/** One inbox row - a booking's conversation, summarised. */
 export interface Conversation {
   bookingId: string;
   code: string;
@@ -35,7 +35,7 @@ export interface Conversation {
   unread: number;
 }
 
-/** The user's inbox — every conversation across their trips, newest first. */
+/** The user's inbox - every conversation across their trips, newest first. */
 export function useConversations(enabled = true) {
   return useQuery({
     queryKey: ['conversations'],
@@ -47,7 +47,7 @@ export function useConversations(enabled = true) {
 }
 
 /**
- * Total unread messages across all the user's trips — for the nav badge.
+ * Total unread messages across all the user's trips - for the nav badge.
  * Runs on every page (it's in the navbar), so it polls at the same rate as
  * the notification bell rather than twice as often.
  */
@@ -68,7 +68,7 @@ export function useMessages(bookingId: string, myUserId?: string) {
     enabled: !!bookingId,
   });
   const [live, setLive] = useState<Message[]>([]);
-  // When the counterpart last read the conversation — drives the "Seen" mark.
+  // When the counterpart last read the conversation - drives the "Seen" mark.
   const [counterpartReadAt, setCounterpartReadAt] = useState<string | null>(null);
 
   // Subscribe to realtime chat + read receipts for this booking room.

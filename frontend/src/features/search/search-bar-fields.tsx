@@ -12,18 +12,18 @@ import { useSearchBar } from './search-store';
  * The search bar.
  *
  * Rebuilt off native controls entirely. It previously used <input type="date">,
- * <input type="time"> and a <select>, all of which the OS draws — so the bar
+ * <input type="time"> and a <select>, all of which the OS draws - so the bar
  * showed "dd-mm-yyyy" placeholders and a blue system dropdown that belonged to
  * no design system at all. The old code's own comment said it was "customizing
  * native inputs to look premium", which is not possible: the picker is chrome,
  * not content.
  *
- * It also had TWO location inputs stacked — a free-text search and a city
- * select — so the same city appeared twice and it was unclear which one the
+ * It also had TWO location inputs stacked - a free-text search and a city
+ * select - so the same city appeared twice and it was unclear which one the
  * search actually used.
  *
  * Now: one location field and one range calendar, each in its own popover, all
- * styled by us. There is deliberately no driver-age field — it steered guests
+ * styled by us. There is deliberately no driver-age field - it steered guests
  * toward young-driver surcharges before they had chosen anything, and it fed
  * nothing: the value was never sent to search.
  */
@@ -40,7 +40,7 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
   const [open, setOpen] = useState<'where' | 'when' | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
 
-  // Close on an outside click or Escape — a popover that traps you feels broken.
+  // Close on an outside click or Escape - a popover that traps you feels broken.
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
@@ -93,13 +93,14 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
           value={cityLabel}
           nav={isNav}
           grow
+          className={!isNav ? 'border-b border-border/50 lg:border-b-0' : undefined}
         />
         <Field
           open={open === 'when'}
           onOpen={() => setOpen(open === 'when' ? null : 'when')}
           icon={<CalendarDays className="h-4 w-4" />}
           label="When"
-          value={s.fromDate && s.untilDate ? `${fmt(s.fromDate)} — ${fmt(s.untilDate)}` : 'Add dates'}
+          value={s.fromDate && s.untilDate ? `${fmt(s.fromDate)} - ${fmt(s.untilDate)}` : 'Add dates'}
           nav={isNav}
           grow
         />
@@ -110,7 +111,7 @@ export function SearchBarFields({ variant = 'bar' }: { variant?: 'bar' | 'nav' }
             className={cn(
               'flex items-center justify-center gap-2 rounded-full bg-primary font-bold text-primary-foreground',
               'transition-all hover:brightness-110 active:scale-95',
-              isNav ? 'h-9 px-5 text-sm' : 'h-13 w-full py-3.5 text-base lg:h-14 lg:w-14 lg:p-0',
+              isNav ? 'h-9 px-5 text-sm' : 'h-12 w-full py-3 text-base lg:h-14 lg:w-14 lg:p-0',
             )}
             aria-label="Search"
           >
@@ -192,9 +193,7 @@ function Field({
       className={cn(
         'flex min-w-0 items-center gap-2.5 text-start transition-colors',
         grow && 'flex-1',
-        nav ? 'h-full px-4' : 'px-5 py-3 lg:py-0',
-        // The open segment lifts out of the bar so it is obvious which popover
-        // belongs to which field.
+        nav ? 'h-full px-4' : 'px-5 py-4 lg:py-0',
         open ? 'rounded-full bg-muted' : 'hover:bg-muted/60 rounded-full',
         className,
       )}

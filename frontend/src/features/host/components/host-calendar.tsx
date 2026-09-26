@@ -21,7 +21,7 @@ const key = (d: Date) => d.toISOString().slice(0, 10);
 /**
  * Fleet calendar: vehicles down, days across. Each cell shows what that car
  * actually earns that day (its real daily rate, weekend multiplier applied) and
- * a bar spans the days it is already booked — so a host can see, in one glance,
+ * a bar spans the days it is already booked - so a host can see, in one glance,
  * which cars are sitting idle and what they'd earn if they weren't.
  */
 export function HostCalendar() {
@@ -123,7 +123,7 @@ export function HostCalendar() {
                     <div className="min-w-0">
                       <p className="truncate text-xs font-semibold">{v.make} {v.model}</p>
                       <p className="truncate font-mono text-[10px] text-muted-foreground">
-                        {v.registrationNumber ?? '—'}
+                        {v.registrationNumber ?? '-'}
                       </p>
                     </div>
                   </div>

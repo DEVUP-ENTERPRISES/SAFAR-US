@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils/cn';
  * careless. A fixed set stores one canonical value per colour.
  *
  * The palette is the set that actually shows up on rental fleets, in rough
- * order of how common they are — white, black, grey and silver are most of the
+ * order of how common they are - white, black, grey and silver are most of the
  * road, so they come first rather than sitting alphabetically in the middle.
  */
 const COLORS: { value: string; label: string; hex: string; ring?: boolean }[] = [

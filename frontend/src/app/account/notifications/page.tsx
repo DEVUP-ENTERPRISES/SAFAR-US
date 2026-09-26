@@ -68,7 +68,7 @@ function NotificationSettings() {
               <Toggle checked={on(draft[c.key])} onChange={(v) => setChannel(c.key, v)} label={c.label} />
             </Row>
           ))}
-          {/* SMS is billed per message — let cost-conscious users cap it to the essentials. */}
+          {/* SMS is billed per message - let cost-conscious users cap it to the essentials. */}
           {on(draft.sms) && (
             <Row icon={<MessageSquare className="h-5 w-5 text-muted-foreground" />} label="Only critical SMS" detail="Skip routine texts; still get urgent ones like security codes.">
               <Toggle checked={draft.smsCriticalOnly === true} onChange={(v) => setChannel('smsCriticalOnly', v)} label="Only critical SMS" />
@@ -99,7 +99,7 @@ function NotificationSettings() {
           <Row
             icon={<ShieldCheck className="h-5 w-5 text-success" />}
             label="Security & account"
-            detail="Login alerts, verification, and safety notices — always on."
+            detail="Login alerts, verification, and safety notices - always on."
           >
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Always on</span>
           </Row>

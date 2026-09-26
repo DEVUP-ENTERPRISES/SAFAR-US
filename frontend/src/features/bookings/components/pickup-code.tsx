@@ -38,7 +38,7 @@ export function PickupCode({ bookingId }: { bookingId: string }) {
 
         {code ? (
           <>
-            {/* Large, spaced, monospace — this is read aloud or across a car
+            {/* Large, spaced, monospace - this is read aloud or across a car
                 park, not tapped. Ambiguity between 0 and O costs a retry. */}
             <p className="numeric mt-3 text-center font-mono text-5xl font-bold tracking-[0.25em] text-primary">
               {code}
@@ -81,7 +81,7 @@ export function PickupCode({ bookingId }: { bookingId: string }) {
  * The host's side of the same moment.
  *
  * Deliberately not a scanner. A host is outdoors, possibly in the dark, holding
- * keys — six digits typed is more reliable than a camera trying to focus on
+ * keys - six digits typed is more reliable than a camera trying to focus on
  * another phone's screen in sunlight.
  */
 export function VerifyPickup({
@@ -119,7 +119,7 @@ export function VerifyPickup({
       <Card className="border-success/40 bg-success/5">
         <CardContent className="flex items-center gap-3 py-4">
           <ShieldCheck className="h-5 w-5 shrink-0 text-success" />
-          <p className="text-sm font-medium">Guest verified — you can hand over the keys.</p>
+          <p className="text-sm font-medium">Guest verified - you can hand over the keys.</p>
         </CardContent>
       </Card>
     );
@@ -178,7 +178,7 @@ export function VerifyPickup({
         {verify.isError && (
           <p className="mt-2 text-sm text-destructive">
             {/* Wrong code is the common case and is not an error state to
-                panic about — a guest reads a digit wrong constantly. */}
+                panic about - a guest reads a digit wrong constantly. */}
             {verify.error instanceof ApiError ? verify.error.message : 'That code did not match. Ask them to read it again.'}
           </p>
         )}

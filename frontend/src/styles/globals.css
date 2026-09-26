@@ -11,13 +11,13 @@
       Blue-black would make a marketplace read like a bank.
 
    2. The ACCENT is a guest, not the host. Deep teal is the least
-      culturally-loaded hue at 50-market scale — saffron is political in India,
+      culturally-loaded hue at 50-market scale - saffron is political in India,
       red pulls three ways, purple is mourning in Brazil and Thailand and is
       already Turo's. Teal is also rare on car bodywork, so it never fights the
       photography, and it leaves green free to mean exactly one thing: cleared.
    ───────────────────────────────────────────────────────────────────── */
 :root {
-  --background: 40 30% 96%;        /* paper — warm, never grey-blue */
+  --background: 40 30% 96%;        /* paper - warm, never grey-blue */
   --foreground: 38 21% 7%;         /* ink */
   --subtle: 40 24% 93%;
   /* Cards stay PURE WHITE on purpose: a warm ground behind a silver or white
@@ -36,7 +36,7 @@
   --accent-foreground: 38 21% 7%;
   --destructive: 4 64% 48%;
   --destructive-foreground: 0 0% 100%;
-  --success: 159 76% 30%;          /* cleared — semantic only, never brand */
+  --success: 159 76% 30%;          /* cleared - semantic only, never brand */
   --success-foreground: 0 0% 100%;
   /* Amber, kept clear of the teal brand so "needs attention" never reads as
      "on brand". Dark enough to pass on the warm paper ground. */
@@ -47,14 +47,14 @@
   --ring: 180 82% 31%;
   --radius: 0.85rem;
 
-  /* Ink scale — high-contrast marketing surfaces (asphalt) */
+  /* Ink scale - high-contrast marketing surfaces (asphalt) */
   --ink: 30 18% 7%;
   --ink-foreground: 38 31% 93%;
 }
 
 /* ── Design tokens (dark) ─────────────────────────────────────────────
    Not an inversion. The ground warms rather than cooling, and the accent
-   lightens so it clears contrast on a dark surface — a 31%-lightness teal is
+   lightens so it clears contrast on a dark surface - a 31%-lightness teal is
    unreadable on asphalt.
    ───────────────────────────────────────────────────────────────────── */
 .dark {
@@ -100,7 +100,7 @@ html {
 
      `clip`, not `hidden`, for the same reason <body> uses clip (see
      layout.tsx): overflow-x:hidden forces the computed overflow-y to auto,
-     turning the element into a scroll container — and `position: sticky`
+     turning the element into a scroll container - and `position: sticky`
      resolves against its nearest scrolling ancestor. `clip` does the same
      horizontal clipping without creating one. */
   overflow-x: clip;
@@ -111,7 +111,7 @@ html {
 
 body {
   /* Belt-and-braces with the className guard: nothing may exceed the screen.
-     `clip` for the sticky-positioning reason documented on html above — this
+     `clip` for the sticky-positioning reason documented on html above - this
      rule was still `hidden` and would have fought the overflow-x-clip utility
      the body element carries. */
   max-width: 100%;
@@ -124,7 +124,7 @@ body {
 }
 
 /* Display headings: tight, confident, marketing-grade.
-   Now actually uses the display FACE — until the font pairing landed this
+   Now actually uses the display FACE - until the font pairing landed this
    class only changed weight and tracking on the body font, which is why
    headings never had a voice of their own. */
 .display {
@@ -134,7 +134,7 @@ body {
   font-weight: 800;
 }
 
-/* Money, dates, plates, references — data, not prose.
+/* Money, dates, plates, references - data, not prose.
    Tabular figures keep columns aligned and stop a total from dancing
    sideways as its digits change. */
 .numeric {
@@ -144,8 +144,8 @@ body {
 }
 
 /* The scrim every photo gets.
-   Host-uploaded photography is uncontrollable — a white car at noon and a
-   black car at dusk arrive in the same grid — so chrome NEVER sits directly
+   Host-uploaded photography is uncontrollable - a white car at noon and a
+   black car at dusk arrive in the same grid - so chrome NEVER sits directly
    on an image. This guarantees a legible field for it regardless. */
 .photo-scrim::after {
   content: '';
@@ -187,7 +187,7 @@ body {
       radial-gradient(ellipse 80% 60% at 15% 0%, hsl(180 70% 38% / 0.30), transparent 62%),
       radial-gradient(ellipse 70% 60% at 85% 15%, hsl(196 68% 42% / 0.22), transparent 60%),
       /* A warm ember low in the frame keeps the ground from reading as cold
-         teal-black — the warmth is the brand, the teal is the guest. */
+         teal-black - the warmth is the brand, the teal is the guest. */
       radial-gradient(ellipse 90% 70% at 50% 112%, hsl(28 45% 26% / 0.34), transparent 66%);
   }
 
@@ -248,7 +248,7 @@ textarea {
 .reveal {
   opacity: 0;
   transform: translateY(14px);
-  /* Decelerating curve — arrives fast, settles slowly. Linear entrances read
+  /* Decelerating curve - arrives fast, settles slowly. Linear entrances read
      as mechanical. */
   transition:
     opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
@@ -264,7 +264,7 @@ textarea {
 
 /* Motion is a preference, and on a page someone books a car through it is also
    an accessibility requirement. Nothing below animates when it is switched off
-   — including anything that opted in via a utility class. */
+   - including anything that opted in via a utility class. */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

@@ -20,7 +20,7 @@ const TONE: Record<BookingStatus, 'default' | 'success' | 'warning' | 'destructi
 
 /**
  * Plain-English labels. "cancelled_host" is not a thing a guest should have to
- * decode, and it matters to them WHO cancelled — a host cancelling is the case
+ * decode, and it matters to them WHO cancelled - a host cancelling is the case
  * where they are owed a replacement car.
  */
 const LABEL: Record<BookingStatus, string> = {

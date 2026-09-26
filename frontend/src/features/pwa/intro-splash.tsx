@@ -6,8 +6,8 @@ import { Logo } from '@/components/layout/logo';
 /**
  * The launch intro.
  *
- * Shows on a COLD START only — the first open, and every time the app is
- * reopened after being killed from the background — never on in-app navigation.
+ * Shows on a COLD START only - the first open, and every time the app is
+ * reopened after being killed from the background - never on in-app navigation.
  * That's exactly what a per-session flag gives us: sessionStorage survives
  * client-side navigation within one app session but is cleared when the tab/PWA
  * is closed, so a fresh launch re-shows it and moving between sections does not.
@@ -28,7 +28,7 @@ export function IntroSplash() {
     try {
       seen = sessionStorage.getItem(SEEN_KEY) === '1';
     } catch {
-      /* private mode — treat as not seen, it just shows once and won't persist */
+      /* private mode - treat as not seen, it just shows once and won't persist */
     }
     if (reduced || seen) {
       setPhase(null);
@@ -63,7 +63,7 @@ export function IntroSplash() {
         phase === 'leaving' ? 'pointer-events-none opacity-0' : 'opacity-100'
       }`}
     >
-      {/* Logo — scales and fades in with a soft glow behind it. */}
+      {/* Logo - scales and fades in with a soft glow behind it. */}
       <div className="relative">
         <div
           className={`pointer-events-none absolute inset-0 -z-10 rounded-full bg-primary/25 blur-3xl transition-all duration-700 ${

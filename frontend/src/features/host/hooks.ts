@@ -28,7 +28,7 @@ export function useHostMe() {
     enabled: status === 'authenticated',
     retry: (count, error) => !isNotAHost(error) && count < 2,
     // Host status changes only at onboarding, and useOnboardHost seeds this
-    // cache directly on success — refetching per mount cost a blocking
+    // cache directly on success - refetching per mount cost a blocking
     // request on every navigation, since the chrome reads this on every page.
     staleTime: 5 * 60 * 1000,
   });
@@ -43,7 +43,7 @@ export function useIsHost(): boolean | undefined {
   const { data, isError, error } = useHostMe();
   if (data) return true;
   if (isError && isNotAHost(error)) return false;
-  return undefined; // still loading, or a transient error — don't guess
+  return undefined; // still loading, or a transient error - don't guess
 }
 
 export function useOnboardHost() {

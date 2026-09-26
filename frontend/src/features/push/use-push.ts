@@ -13,7 +13,7 @@ const REGISTERED_KEY = 'cato_push_token';
  *
  * Deliberately quiet and idempotent: it only acts when push is configured, the
  * user is authenticated, and permission is already granted (it never nags on
- * load — a prompt is a deliberate action elsewhere). The token is registered
+ * load - a prompt is a deliberate action elsewhere). The token is registered
  * with the backend and cached so the same token isn't re-sent every mount. A
  * foreground message, which the service worker doesn't handle, surfaces as a
  * toast.
@@ -52,7 +52,7 @@ export function usePushRegistration() {
 }
 
 /**
- * Explicit opt-in — call from a button. Prompts for permission, registers the
+ * Explicit opt-in - call from a button. Prompts for permission, registers the
  * token, and reports the outcome. This is where the permission ask belongs, not
  * on page load.
  */

@@ -58,7 +58,7 @@ function Insights({ id }: { id: string }) {
             <div>
               <p className="font-semibold">Paperwork expiring</p>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                {expiring.map((x) => `${x.category}${x.expiresAt ? ` (${formatDate(x.expiresAt)})` : ''}`).join(', ')} —
+                {expiring.map((x) => `${x.category}${x.expiresAt ? ` (${formatDate(x.expiresAt)})` : ''}`).join(', ')} -
                 {' '}this car is unlisted automatically when it lapses.
               </p>
             </div>
@@ -216,7 +216,7 @@ function MonthlyBars({ data }: { data: VehicleInsights['earnings']['byMonth'] })
           <div
             className="w-full rounded-t bg-primary/80 transition-colors group-hover:bg-primary"
             style={{ height: `${Math.max(4, (m.amount / max) * 100)}%` }}
-            title={`${monthLabel(m.month)} — ${money(m.amount)} across ${m.trips} trip${m.trips === 1 ? '' : 's'}`}
+            title={`${monthLabel(m.month)} - ${money(m.amount)} across ${m.trips} trip${m.trips === 1 ? '' : 's'}`}
           />
           <span className="text-[10px] text-muted-foreground">{monthLabel(m.month)}</span>
         </div>

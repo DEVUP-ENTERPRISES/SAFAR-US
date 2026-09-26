@@ -66,7 +66,7 @@ export default function EarningsPage() {
             disabled={data.pendingPayout <= 0}
             loading={instant.isPending}
             onClick={async () => {
-              // Show the exact fee/net before they commit — same maths as the server.
+              // Show the exact fee/net before they commit - same maths as the server.
               const fee = Math.max(50, Math.round((data.pendingPayout * 150) / 10000));
               const net = data.pendingPayout - fee;
               const { ok } = await confirm({
@@ -74,7 +74,7 @@ export default function EarningsPage() {
                 description: (
                   <>
                     You&apos;ll receive <strong>{money(net)}</strong> now instead of{' '}
-                    <strong>{money(data.pendingPayout)}</strong> after the hold window — a{' '}
+                    <strong>{money(data.pendingPayout)}</strong> after the hold window - a{' '}
                     <strong>{money(fee)}</strong> instant-payout fee. This cannot be undone.
                   </>
                 ),
@@ -99,7 +99,7 @@ export default function EarningsPage() {
       </Card>
 
       <Card className="rounded-2xl shadow-soft">
-        <CardHeader><CardTitle>Revenue — last {data.monthly.length} months</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Revenue - last {data.monthly.length} months</CardTitle></CardHeader>
         <CardContent>
           <BarChart
             data={data.monthly.map((mo) => ({ label: mo.month.slice(5), value: mo.amount }))}
@@ -137,7 +137,7 @@ export default function EarningsPage() {
       </Card>
 
 
-      {/* Rates rather than totals — the part a host can act on. */}
+      {/* Rates rather than totals - the part a host can act on. */}
       <EarningsInsights />
     </div>
   );

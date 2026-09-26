@@ -118,7 +118,7 @@ const withCoords = (vs: Vehicle[]) => vs.filter((v) => v.location?.coordinates?.
      *
      * A photo chip is the right marker for a handful of cars and the wrong one
      * for fifty: at that density the map becomes a collage and the streets
-     * underneath — the thing that tells you WHERE a car is — disappear. Above
+     * underneath - the thing that tells you WHERE a car is - disappear. Above
      * the threshold every marker falls back to a bare price pill, which is what
      * a dense map can actually carry.
      *
@@ -202,7 +202,7 @@ const withCoords = (vs: Vehicle[]) => vs.filter((v) => v.location?.coordinates?.
            * Mapbox only generates tiles for a source that some layer actually
            * uses. With `addSource` and no `addLayer`, nothing is ever tiled, so
            * `querySourceFeatures` returns an empty array forever and not one
-           * marker is created — a silent failure with no error anywhere.
+           * marker is created - a silent failure with no error anywhere.
            *
            * The markers themselves are custom HTML (so the price pills keep
            * their look and we own the click behaviour), so this layer exists
@@ -314,7 +314,7 @@ function VehicleSheet({ vehicle: v, onClose }: { vehicle: Vehicle; onClose: () =
  *
  * A price alone says what it costs and nothing about what it is. On a
  * marketplace where the product is a photograph of a specific car, showing the
- * car is the point — someone scanning a map chooses by sight long before they
+ * car is the point - someone scanning a map chooses by sight long before they
  * read a number.
  *
  * Hover LIFTS rather than grows. Resizing a marker on hover moves it relative
@@ -322,7 +322,7 @@ function VehicleSheet({ vehicle: v, onClose }: { vehicle: Vehicle; onClose: () =
  * marking and every neighbouring pin shifts under the cursor. A small scale, a
  * ring and a raised z-index read as "this one" without disturbing the map.
  *
- * In `compact` mode the photo is dropped entirely — see PHOTO_LIMIT.
+ * In `compact` mode the photo is dropped entirely - see PHOTO_LIMIT.
  */
 function pinEl(
   p: { price?: number; instant?: boolean; photo?: string; name?: string; rating?: string },
@@ -331,17 +331,17 @@ function pinEl(
 ): HTMLButtonElement {
   const el = document.createElement('button');
   el.type = 'button';
-  el.setAttribute('aria-label', `${p.name ?? 'Car'} — $${p.price} per day`);
+  el.setAttribute('aria-label', `${p.name ?? 'Car'} - $${p.price} per day`);
   // Raising only the hovered marker keeps it above its neighbours without
   // needing to reorder anything.
   el.className = 'group relative block cursor-pointer transition-transform duration-150 hover:z-10 hover:scale-[1.06]';
-  el.title = `${p.name ?? ''}${p.rating ? ` · ${p.rating}★` : ''} — $${p.price}/day`;
+  el.title = `${p.name ?? ''}${p.rating ? ` · ${p.rating}★` : ''} - $${p.price}/day`;
 
   const bolt = p.instant
     ? '<span class="absolute -end-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-[#0e918c] text-[9px] text-white ring-2 ring-white">\u26A1</span>'
     : '';
 
-  // A photo is dropped when the map is busy, and when the car has none — an
+  // A photo is dropped when the map is busy, and when the car has none - an
   // imported draft is a real case, and a broken image is worse than a pill.
   const showPhoto = !compact && !!p.photo;
 

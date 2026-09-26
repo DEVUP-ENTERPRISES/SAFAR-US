@@ -77,7 +77,7 @@ export default function FleetPage() {
 
       {selected && dashboard.data && (
         <Card>
-          <CardHeader><CardTitle>{dashboard.data.name} — analytics</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{dashboard.data.name} - analytics</CardTitle></CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
             <Metric label="Vehicles" value={String(dashboard.data.totalVehicles)} />
             <Metric label="Listed" value={String(dashboard.data.listedVehicles)} />
@@ -150,7 +150,7 @@ const DELIVERY_MODES = [
 
 /**
  * Fleet-wide defaults, set once and pushed to every vehicle on demand.
- * Saving the policy never touches a vehicle by itself — "Apply to all
+ * Saving the policy never touches a vehicle by itself - "Apply to all
  * vehicles" is a separate, explicit action, so a host tuning the policy
  * mid-edit never silently overwrites listings that already look right.
  */

@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils/cn';
  *
  * A comma-separated field produced "gps", "GPS", "Gps navigation" for the same
  * feature, which makes the amenity filter useless. Grouped to match how a
- * guest actually scans a listing — safety first, then what's in the cabin.
+ * guest actually scans a listing - safety first, then what's in the cabin.
  */
 const GROUPS: { label: string; items: { value: string; label: string }[] }[] = [
   {
@@ -34,7 +34,7 @@ const GROUPS: { label: string; items: { value: string; label: string }[] }[] = [
       { value: 'apple_carplay', label: 'Apple CarPlay' },
     ],
   },
-  // No pet option — pets are not permitted on any CatoDrive trip.
+  // No pet option - pets are not permitted on any CatoDrive trip.
   {
     label: 'Family',
     items: [{ value: 'child_seat', label: 'Child seat' }],

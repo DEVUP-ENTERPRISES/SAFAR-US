@@ -17,7 +17,7 @@ import { assetPartnerApi } from '@/features/asset-partners/api';
  * One car: what it earns, what it has been doing, and what has been done to it.
  *
  * A partner with several vehicles needs to compare them, and "why did this one
- * earn less" is answerable only per-car — the statement rolls everything up.
+ * earn less" is answerable only per-car - the statement rolls everything up.
  */
 export default function PartnerVehicleDetailPage({
   params,

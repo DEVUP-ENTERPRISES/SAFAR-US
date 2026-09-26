@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils/cn';
  * The post-trip review prompt, for whichever party is looking at it.
  *
  * Reviews existed on the backend and were displayed on profiles, but nobody
- * could write one — there was no form anywhere. Both sides review each other
+ * could write one - there was no form anywhere. Both sides review each other
  * after a completed trip; this shows the prompt to the party who hasn't yet,
  * and confirmation once they have. Double-blind by nature: the backend keeps
  * the two directions separate, so seeing this does not reveal the other side's
@@ -26,7 +26,7 @@ export function ReviewPrompt({
   subjectName,
 }: {
   bookingId: string;
-  /** Which side the viewer is — decides the copy and which direction to check. */
+  /** Which side the viewer is - decides the copy and which direction to check. */
   role: 'guest' | 'host';
   subjectName?: string;
 }) {
@@ -62,7 +62,7 @@ export function ReviewPrompt({
           </span>
           <div>
             <p className="text-sm font-semibold">You rated {who} {mine.rating}★</p>
-            <p className="text-xs text-muted-foreground">Thanks — your review helps the community.</p>
+            <p className="text-xs text-muted-foreground">Thanks - your review helps the community.</p>
           </div>
         </CardContent>
       </Card>
@@ -109,7 +109,7 @@ export function ReviewPrompt({
           <Button disabled={rating === 0} loading={submit.isPending} onClick={() => submit.mutate()}>
             Submit review
           </Button>
-          {submit.isError && <span className="text-sm text-destructive">Couldn’t submit — try again.</span>}
+          {submit.isError && <span className="text-sm text-destructive">Couldn’t submit - try again.</span>}
         </div>
       </CardContent>
     </Card>

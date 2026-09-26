@@ -82,7 +82,7 @@ export interface PartnerVehicleSummary {
   trips: number;
   /** Gross booking revenue this car produced this month, in minor units. */
   gross: number;
-  /** Partner net for this car this month — gross less fee, insurance, detailing. */
+  /** Partner net for this car this month - gross less fee, insurance, detailing. */
   net: number;
 }
 
@@ -113,12 +113,12 @@ export interface StatementLine {
 }
 
 /**
- * One month on partner terms. NOT host earnings — the management fee is only
+ * One month on partner terms. NOT host earnings - the management fee is only
  * one of three deductions, and the other two are recurring monthly costs per
  * vehicle.
  */
 export interface PartnerStatement {
-  /** 'YYYY-MM' — the month trips completed in. */
+  /** 'YYYY-MM' - the month trips completed in. */
   period: string;
   currency: string;
   terms: ResolvedPartnerTerms;
@@ -133,7 +133,7 @@ export interface PartnerStatement {
   };
   payoutDate: string;
   payoutMethod: string;
-  /** False while the month is still running — figures can still move. */
+  /** False while the month is still running - figures can still move. */
   final: boolean;
 }
 
@@ -197,7 +197,7 @@ export interface PayoutDetails {
   zelleHandle?: string;
 }
 
-/** The partner's own full membership record — payoutDetails included. */
+/** The partner's own full membership record - payoutDetails included. */
 export interface PartnerMe {
   partner: {
     _id: string;
@@ -213,19 +213,19 @@ export const assetPartnerApi = {
   apply: (input: CreateAssetPartnerApplicationInput) =>
     api.post<{ reference: string; status: string }>('/asset-partner-applications', input),
   dashboard: () => api.get<PartnerDashboard>('/asset-partners/dashboard'),
-  /** Null when the caller isn't enrolled — see the profile page's guard. */
+  /** Null when the caller isn't enrolled - see the profile page's guard. */
   me: () => api.get<PartnerMe | null>('/asset-partners/me'),
 
-  // The portal — vehicles, one car's own history, the statement archive.
+  // The portal - vehicles, one car's own history, the statement archive.
   vehicles: () => api.get<PartnerVehicleSummary[]>('/asset-partners/vehicles'),
   vehicle: (id: string) => api.get<PartnerVehicleDetail>(`/asset-partners/vehicles/${id}`),
   statements: (months = 12) => api.get<PartnerStatement[]>('/asset-partners/statements', { months }),
 
-  // Self-service payout recipient details. NOT terms — see the backend route.
+  // Self-service payout recipient details. NOT terms - see the backend route.
   setPayoutDetails: (details: PayoutDetails) =>
     api.patch<{ payoutDetails: PayoutDetails }>('/asset-partners/payout-details', details),
 
-  // Maintenance approvals — the partner's yes/no on anything ops scheduled
+  // Maintenance approvals - the partner's yes/no on anything ops scheduled
   // above their agreed threshold.
   maintenance: (approval?: MaintenanceApproval) =>
     api.get<MaintenanceRequest[]>('/asset-partners/maintenance', approval ? { approval } : {}),

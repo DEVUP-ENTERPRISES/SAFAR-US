@@ -109,7 +109,7 @@ export function MyCitations() {
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   <span className="numeric text-lg font-bold">{money(v.amount, v.currency)}</span>
-                  {/* The notice itself — an assertion becomes evidence. */}
+                  {/* The notice itself - an assertion becomes evidence. */}
                   {v.evidenceUrl && (
                     <a
                       href={v.evidenceUrl}

@@ -10,7 +10,7 @@ import { vehicleApi } from '@/features/vehicles/api';
 import type { Vehicle } from '@/features/vehicles/types';
 
 /**
- * "Similar cars for your dates" — the nearby substitutes a guest weighs against
+ * "Similar cars for your dates" - the nearby substitutes a guest weighs against
  * this one, exactly like the strip on the reference marketplace. Real listings
  * from the API (same metro, same category first); when trip dates are set, the
  * server only returns cars actually free for them and each price shows the base

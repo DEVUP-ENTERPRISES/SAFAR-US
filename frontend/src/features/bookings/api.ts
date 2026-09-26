@@ -58,7 +58,7 @@ export interface ShortenPreview {
 export const bookingApi = {
   /**
    * Prices a trip. The token is sent when there is one (membership pricing and
-   * a price lock need it) but is not required — a visitor must be able to see a
+   * a price lock need it) but is not required - a visitor must be able to see a
    * price before deciding to sign up.
    */
   quote: (input: QuoteInput) => api.post<PriceBreakdown>('/bookings/quote', input, { auth: 'optional' }),

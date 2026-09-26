@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * Client-side route guard. Redirects unauthenticated users to the given
- * login page (defaults to the customer login) — so each portal (customer,
+ * login page (defaults to the customer login) - so each portal (customer,
  * host, admin) can send visitors to its own entry point.
  */
 export function AuthGuard({

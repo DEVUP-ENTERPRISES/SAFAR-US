@@ -48,7 +48,7 @@ const LABEL: Record<MaintenanceApproval, string> = {
   pending: 'Needs your approval',
   approved: 'You approved',
   declined: 'You declined',
-  not_required: 'Routine — no approval needed',
+  not_required: 'Routine - no approval needed',
 };
 
 export default function PartnerMaintenancePage() {
@@ -72,7 +72,7 @@ export default function PartnerMaintenancePage() {
     mutationFn: (id: string) => assetPartnerApi.approveMaintenance(id),
     onSuccess: () => {
       invalidate();
-      toast({ tone: 'success', title: 'Approved — we’ll get it booked in' });
+      toast({ tone: 'success', title: 'Approved - we’ll get it booked in' });
     },
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not approve' }),
   });
@@ -82,7 +82,7 @@ export default function PartnerMaintenancePage() {
       assetPartnerApi.declineMaintenance(id, reason),
     onSuccess: () => {
       invalidate();
-      toast({ tone: 'success', title: 'Declined — the work won’t go ahead' });
+      toast({ tone: 'success', title: 'Declined - the work won’t go ahead' });
     },
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not decline' }),
   });
@@ -198,7 +198,7 @@ export default function PartnerMaintenancePage() {
 
                 {m.notes && <p className="text-sm leading-relaxed text-muted-foreground">{m.notes}</p>}
 
-                {/* Why this one needed asking — the threshold is snapshotted at
+                {/* Why this one needed asking - the threshold is snapshotted at
                     creation, so it stays true even if the terms change later. */}
                 {m.approval === 'pending' && typeof m.approvalThresholdCents === 'number' && (
                   <p className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">

@@ -4,7 +4,7 @@ import { getStripePublishableKey, loadStripeForKey } from '@/features/payments/s
 /**
  * Finishing a 3-D Secure challenge.
  *
- * A card charged off-session can come back needing the cardholder — the bank
+ * A card charged off-session can come back needing the cardholder - the bank
  * wants a challenge before it approves. That is not a failure and must not be
  * treated as one: it is routine on European cards and increasingly common on
  * US ones, so declining at that point would refuse perfectly good payments.
@@ -22,7 +22,7 @@ const getStripe = async (): Promise<Stripe | null> => {
 export async function confirmCardPayment(clientSecret: string): Promise<boolean> {
   const stripe = await getStripe();
   // No key configured means no challenge can be shown. Reporting failure is
-  // the honest answer — the payment genuinely has not cleared.
+  // the honest answer - the payment genuinely has not cleared.
   if (!stripe) return false;
 
   const { error, paymentIntent } = await stripe.handleNextAction({ clientSecret });

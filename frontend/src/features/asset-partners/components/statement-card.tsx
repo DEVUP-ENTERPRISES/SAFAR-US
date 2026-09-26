@@ -11,7 +11,7 @@ import type { PartnerStatement } from '@/features/asset-partners/api';
  * One month's statement, itemised.
  *
  * Shared by the dashboard (this month) and the statements archive (every
- * month) — the deduction lines are the partner agreement in UI form, and two
+ * month) - the deduction lines are the partner agreement in UI form, and two
  * copies of them would be two chances to disagree about what someone is owed.
  *
  * The management fee alone is not what a partner pays: fleet insurance and
@@ -21,7 +21,7 @@ import type { PartnerStatement } from '@/features/asset-partners/api';
  */
 export function StatementCard({
   statement,
-  /** Hides the per-vehicle breakdown — the dashboard has a vehicles section
+  /** Hides the per-vehicle breakdown - the dashboard has a vehicles section
    *  of its own, and repeating it there was pure noise. */
   compact = false,
   className,

@@ -12,7 +12,7 @@ import { api } from '@/lib/api/client';
  * Adding a real card.
  *
  * There was no card entry anywhere in this app. Account settings collected a
- * brand and a last4 as plain text fields — a note about a card, not a card —
+ * brand and a last4 as plain text fields - a note about a card, not a card -
  * so nothing was ever tokenised and no booking could actually be charged. The
  * backend was building PaymentIntents that nothing on the client confirmed.
  *
@@ -21,7 +21,7 @@ import { api } from '@/lib/api/client';
  * the small self-assessment rather than a full audit.
  *
  * Collected through a SetupIntent rather than a payment, so the card is saved
- * against the customer and can be charged later without the guest present —
+ * against the customer and can be charged later without the guest present -
  * which is what makes one-tap booking possible at all.
  */
 
@@ -40,7 +40,7 @@ export function AddCard({ onSaved }: { onSaved?: () => void }) {
         <CardContent className="flex items-start gap-3 py-5 text-sm text-muted-foreground">
           <CreditCard className="mt-0.5 h-5 w-5 shrink-0" />
           {/* Never surface internal config (env var names, provider setup) to a
-              guest — that is reconnaissance for an attacker. Just say it's not
+              guest - that is reconnaissance for an attacker. Just say it's not
               available yet. */}
           <p className="break-words">Saving a card isn’t available right now. Please try again in a little while.</p>
         </CardContent>

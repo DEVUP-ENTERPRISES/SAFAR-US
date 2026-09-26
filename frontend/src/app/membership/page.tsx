@@ -21,7 +21,7 @@ const money = (c: number) => `$${(c / 100).toFixed(c % 100 === 0 ? 0 : 2)}`;
 /**
  * Membership.
  *
- * Every benefit here is already enforced by the backend — pricing.service reads
+ * Every benefit here is already enforced by the backend - pricing.service reads
  * the member's benefits when it quotes, so the discount, the surge waiver and
  * the included protection apply automatically the moment someone subscribes.
  * The plans were purchasable by API and had no screen, so the whole revenue
@@ -82,7 +82,7 @@ function Membership() {
     <div className="mx-auto max-w-4xl space-y-6 py-6">
       <PageHeader
         title="Membership"
-        description="Pay monthly, drive cheaper. Benefits apply automatically at checkout — there is no code to remember."
+        description="Pay monthly, drive cheaper. Benefits apply automatically at checkout - there is no code to remember."
       />
 
       {/* Current membership first: someone who already pays is here to manage
@@ -124,7 +124,7 @@ function Membership() {
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
             <p>
               Your membership is cancelled but stays active until{' '}
-              {new Date(mine.data.renewsAt).toLocaleDateString('en-US', { dateStyle: 'medium' })} — you already paid
+              {new Date(mine.data.renewsAt).toLocaleDateString('en-US', { dateStyle: 'medium' })} - you already paid
               for it.
             </p>
           </CardContent>
@@ -153,7 +153,7 @@ function Membership() {
       {/* Said plainly rather than discovered at checkout. */}
       <p className="flex items-start gap-2 text-sm text-muted-foreground">
         <CreditCard className="mt-0.5 h-4 w-4 shrink-0" />
-        Charged monthly to your saved card. Cancel any time — you keep your benefits until the period you have paid
+        Charged monthly to your saved card. Cancel any time - you keep your benefits until the period you have paid
         for ends, and nothing is charged after that.
       </p>
     </div>

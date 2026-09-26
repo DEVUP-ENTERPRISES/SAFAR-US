@@ -88,7 +88,7 @@ function humanHours(h: number): string {
 
 /**
  * The guest-facing cancellation description, generated from the live config so
- * the copy always matches what a cancellation actually settles against — no
+ * the copy always matches what a cancellation actually settles against - no
  * hardcoded "24 hours / 50%" text that can drift from the admin's real rules.
  */
 export function describeCancellation(

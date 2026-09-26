@@ -11,7 +11,7 @@ import type { AuthResult } from './types';
 export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 export const APPLE_CLIENT_ID = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID ?? '';
 
-/** The actual Apple mark — lucide's "Apple" is the fruit, not the brand glyph. */
+/** The actual Apple mark - lucide's "Apple" is the fruit, not the brand glyph. */
 function AppleLogo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 384 512" fill="currentColor" className={className} aria-hidden="true">
@@ -25,7 +25,7 @@ function AppleLogo({ className }: { className?: string }) {
  *
  * Both paths already existed on the API and were simply unreachable: the app
  * only ever offered a password. Phone especially matters for a US car
- * marketplace — a phone number is the thing a host actually needs to reach a
+ * marketplace - a phone number is the thing a host actually needs to reach a
  * guest at pickup, so signing up with one is the shortest honest path.
  */
 export function SocialSignIn({ onSuccess }: { onSuccess: (r: AuthResult) => void }) {
@@ -69,7 +69,7 @@ export function SocialSignIn({ onSuccess }: { onSuccess: (r: AuthResult) => void
           }
         },
       });
-      id.renderButton(googleRef.current, { theme: 'outline', size: 'large', width: 320, text: 'continue_with' });
+      id.renderButton(googleRef.current, { theme: 'outline', size: 'large', width: googleRef.current.offsetWidth || 320, text: 'continue_with' });
     };
 
     if (w.google?.accounts?.id) return render();
@@ -80,7 +80,7 @@ export function SocialSignIn({ onSuccess }: { onSuccess: (r: AuthResult) => void
     document.head.appendChild(script);
   }, [onSuccess, toast]);
 
-  // Sign in with Apple JS — popup flow, no redirect route needed. Apple hands
+  // Sign in with Apple JS - popup flow, no redirect route needed. Apple hands
   // back an identity token we verify server-side the same way as Google's.
   const [appleReady, setAppleReady] = useState(false);
   useEffect(() => {
@@ -118,7 +118,7 @@ export function SocialSignIn({ onSuccess }: { onSuccess: (r: AuthResult) => void
       const res = await w.AppleID.auth.signIn();
       onSuccess(await authApi.apple(res.authorization.id_token));
     } catch (err) {
-      // A cancelled popup rejects too — don't toast that as an error.
+      // A cancelled popup rejects too - don't toast that as an error.
       const msg = err instanceof Error ? err.message : '';
       if (msg && msg !== 'popup_closed_by_user') {
         toast({ tone: 'error', title: 'Apple sign-in failed' });

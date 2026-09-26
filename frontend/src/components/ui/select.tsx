@@ -9,7 +9,7 @@ interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'siz
   size?: ControlSize;
   /**
    * Classes for the positioning wrapper. Needed because `className` lands on
-   * the <select>, which cannot reach the wrapper — so a caller wanting an
+   * the <select>, which cannot reach the wrapper - so a caller wanting an
    * inline pill instead of a full-width field had no way to say so, and every
    * filter bar rendered as stacked full-width rows.
    */
@@ -17,8 +17,8 @@ interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'siz
 }
 
 /**
- * Eighteen selects were hand-styled across six different looks — h-10 and h-9,
- * rounded-md and rounded-lg and rounded-full, border-input and border-border —
+ * Eighteen selects were hand-styled across six different looks - h-10 and h-9,
+ * rounded-md and rounded-lg and rounded-full, border-input and border-border -
  * and none of them matched the Input beside them.
  *
  * The native arrow is suppressed and redrawn, because the OS-supplied one is a

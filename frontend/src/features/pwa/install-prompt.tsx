@@ -7,7 +7,7 @@ import { Logo } from '@/components/layout/logo';
 import './install-store'; // starts listening for the install event from the first page load
 
 /**
- * The "install this app" prompt — trustworthy, platform-aware, and shown at most
+ * The "install this app" prompt - trustworthy, platform-aware, and shown at most
  * once until it's earned a dismissal cooldown or the app is installed.
  *
  * The bug this is built to avoid: nagging someone who already installed, or on
@@ -26,7 +26,7 @@ import './install-store'; // starts listening for the install event from the fir
 
 const DISMISS_KEY = 'cato-pwa-dismissed';
 const INSTALLED_KEY = 'cato-pwa-installed';
-// It's an app we want on every home screen — so a dismissal only rests it for a
+// It's an app we want on every home screen - so a dismissal only rests it for a
 // day, then we offer again. (Once installed it never shows: see suppressed().)
 const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -83,7 +83,7 @@ export function InstallPrompt() {
       try {
         localStorage.setItem(INSTALLED_KEY, '1');
       } catch {
-        /* private mode — fine, standalone detection still hides it next time */
+        /* private mode - fine, standalone detection still hides it next time */
       }
       setMode('hidden');
     };
@@ -91,7 +91,7 @@ export function InstallPrompt() {
     window.addEventListener('beforeinstallprompt', onBIP);
     window.addEventListener('appinstalled', onInstalled);
 
-    // iOS Safari has no beforeinstallprompt — offer manual instructions there.
+    // iOS Safari has no beforeinstallprompt - offer manual instructions there.
     const ua = window.navigator.userAgent;
     const isIOS =
       /iP(hone|od|ad)/.test(ua) ||
@@ -133,7 +133,7 @@ export function InstallPrompt() {
 
   // Render only on the home page. The component is mounted app-wide (persistent
   // chrome), so without this a bar shown on home stayed visible after a
-  // client-side navigation to /account etc. — which is the "showing on other
+  // client-side navigation to /account etc. - which is the "showing on other
   // tabs" bug. Gating the render keeps it strictly a home-page prompt.
   if (mode === 'hidden' || pathname !== '/') return null;
 
@@ -151,7 +151,7 @@ export function InstallPrompt() {
           <div className="min-w-0 flex-1">
             <p className="text-[15px] font-bold leading-tight">Install CatoDrive</p>
             <p className="mt-0.5 text-[12.5px] leading-snug text-white/55">
-              Book premium cars delivered curbside — right from your home screen. No app store, no clutter.
+              Book premium cars delivered curbside - right from your home screen. No app store, no clutter.
             </p>
           </div>
           <button

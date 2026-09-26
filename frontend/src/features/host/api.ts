@@ -21,7 +21,7 @@ export interface HostProfile {
   totalTrips: number;
 }
 
-/** The public view of a host — every figure computed from real activity. */
+/** The public view of a host - every figure computed from real activity. */
 export interface HostPublicProfile {
   _id: string;
   displayName: string;
@@ -168,7 +168,7 @@ export interface HostPerformance {
   cancelledByHost: number;
 }
 
-/** Rates rather than totals — see earnings-insights.service on the backend. */
+/** Rates rather than totals - see earnings-insights.service on the backend. */
 export interface VehicleEconomics {
   vehicleId: string;
   label: string;
@@ -192,7 +192,7 @@ export interface EarningsInsights {
   headline: string | null;
 }
 
-/** Fleet import — see fleet-import.service on the backend. */
+/** Fleet import - see fleet-import.service on the backend. */
 export interface RowPreview {
   vin: string;
   ok: boolean;
@@ -233,7 +233,7 @@ export const hostApi = {
   me: () => api.get<HostProfile>('/hosts/me'),
   onboard: (displayName: string, bio?: string) => api.post<HostProfile>('/hosts/onboard', { displayName, bio }),
   updateProfile: (patch: Partial<HostProfile>) => api.patch<HostProfile>('/hosts/me', patch),
-  /** Public profile of any host — no auth, shoppers browse before signing up. */
+  /** Public profile of any host - no auth, shoppers browse before signing up. */
   publicProfile: (hostId: string) =>
     api.get<HostPublicProfile>(`/hosts/${hostId}/public`, undefined, false),
 

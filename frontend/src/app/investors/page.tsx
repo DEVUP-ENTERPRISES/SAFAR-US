@@ -24,19 +24,19 @@ import { Reveal } from "@/components/ui/reveal";
 import { SectionEyebrow, CountUp, BRAND } from "@/features/marketing/sections";
 
 /**
- * Investor Relations — built entirely in CatoDrive's own design system (hero-mesh,
+ * Investor Relations - built entirely in CatoDrive's own design system (hero-mesh,
  * primary teal, Archivo display type, Reveal motion, the same numbered-frame
- * and stat-card language as /asset-partners and /about) — not a skin ported
+ * and stat-card language as /asset-partners and /about) - not a skin ported
  * from the supplied copy. Same brand as the rest of the site: this is
  * CatoDrive's fundraising page, not a separate product.
  *
  * The centerpiece is a revenue figure that visibly climbs while an investor
- * watches — labeled honestly as an illustrative YTD-pace calculation (see
+ * watches - labeled honestly as an illustrative YTD-pace calculation (see
  * LiveTicker), because a page asking for $21K+ checks can't afford to imply a
  * live-data capability that doesn't exist.
  *
  * All figures are business-supplied. "Request the Full Deck" is a mailto:
- * to CatoDrive's Investor Relations contact for now — swap to the
+ * to CatoDrive's Investor Relations contact for now - swap to the
  * Investment Inquiry application once that's built. The Reg D Notice and
  * IR contact are business-supplied verbatim.
  */
@@ -62,7 +62,7 @@ const TRACTION = [
 ] as const;
 
 // Short labels on purpose: at 4 columns on a ~390px phone, each bar has
-// roughly 60px to work with once page/card padding and gaps are subtracted —
+// roughly 60px to work with once page/card padding and gaps are subtracted -
 // "2026 target" doesn't fit there, "Target" does. The surrounding heading and
 // copy already establish "2026", so nothing is lost.
 const GROWTH = [
@@ -81,7 +81,7 @@ const VISION = [
   {
     icon: Wrench,
     title: "Auto Repair Shops",
-    body: "Loaner-vehicle partnerships. Flat daily rates — zero-CAC recurring revenue.",
+    body: "Loaner-vehicle partnerships. Flat daily rates - zero-CAC recurring revenue.",
   },
   {
     icon: Plane,
@@ -91,7 +91,7 @@ const VISION = [
   {
     icon: Globe2,
     title: "National Expansion",
-    body: "Beta live at ORD Chicago O’Hare with 3 vehicles — the same DFW playbook.",
+    body: "Beta live at ORD Chicago O’Hare with 3 vehicles - the same DFW playbook.",
   },
 ] as const;
 
@@ -166,7 +166,7 @@ const RIGHTS = [
   {
     icon: Scale,
     title: "MFN Clause",
-    body: "Most-favored-nation terms — you get the best terms offered in this round.",
+    body: "Most-favored-nation terms - you get the best terms offered in this round.",
   },
 ] as const;
 
@@ -178,11 +178,11 @@ const RIGHTS = [
 const FAQ_ITEMS = [
   {
     q: "What exactly am I investing in?",
-    a: "A SAFE (Simple Agreement for Future Equity) — Late Seed stage, converting at a $16.8M pre-money valuation cap at the next priced round. CatoDrive is targeting a Series A in Q4 2026.",
+    a: "A SAFE (Simple Agreement for Future Equity) - Late Seed stage, converting at a $16.8M pre-money valuation cap at the next priced round. CatoDrive is targeting a Series A in Q4 2026.",
   },
   {
     q: "Do I have to be an accredited investor?",
-    a: "Certain investments are restricted to accredited investors. This page is an expression of interest only — not an offer or sale of securities. Eligibility is confirmed as part of the formal subscription process; request the full deck and speak with CatoDrive’s Investor Relations team to confirm your status before committing.",
+    a: "Certain investments are restricted to accredited investors. This page is an expression of interest only - not an offer or sale of securities. Eligibility is confirmed as part of the formal subscription process; request the full deck and speak with CatoDrive’s Investor Relations team to confirm your status before committing.",
   },
   {
     q: "What’s the minimum investment and what equity does it represent?",
@@ -209,26 +209,27 @@ export default function InvestorsPage() {
   return (
     <div className="-mt-6">
       {/* Compliance strip */}
-      <div className="border-b border-border bg-muted/40 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
-        Expression of interest only — not an offer of securities
+      <div className="full-bleed flex items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.15em] text-amber-600 dark:text-amber-400">
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+        Expression of interest only - not an offer of securities
       </div>
 
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
-        <div className="mx-auto max-w-5xl px-5 py-14 sm:py-20">
+        <div className="mx-auto max-w-5xl px-4 pb-20 pt-14 sm:px-6 sm:pb-28 sm:pt-20">
           <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-soft backdrop-blur">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur">
               <TrendingUp className="h-3.5 w-3.5" /> Investor Relations
             </span>
           </Reveal>
           <Reveal delay={80}>
-            <h1 className="display mt-7 max-w-3xl text-[2.5rem] leading-[0.98] text-white sm:text-[3.8rem] lg:text-[4.6rem]">
+            <h1 className="display mt-6 max-w-3xl text-[2.4rem] leading-[0.98] text-white sm:text-[3.8rem] lg:text-[4.6rem]">
               Invest in a proven, profitable DFW fleet.
             </h1>
           </Reveal>
           <Reveal delay={160}>
-            <p className="mt-7 max-w-2xl text-lg leading-relaxed text-white/70 sm:text-xl">
-              {BRAND} is bootstrapped, profitable, and operating — 100+ vehicles
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70 sm:mt-7 sm:text-xl">
+              {BRAND} is bootstrapped, profitable, and operating - 100+ vehicles
               at DFW International and Love Field, $716K+ earned in 2026 with $0
               outside capital. We’re raising a{" "}
               <span className="font-semibold text-white">$504,000 SAFE</span>{" "}
@@ -240,21 +241,21 @@ export default function InvestorsPage() {
             </p>
           </Reveal>
           <Reveal delay={240}>
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-4 sm:mt-10">
               {/* Routes through the trackable contact form (pre-selected to
                   "Investing") rather than a bare mailto:, so every deck
-                  request is a durable, admin-visible lead — not just an
+                  request is a durable, admin-visible lead - not just an
                   email that only ever lives in an inbox. */}
               <Link
                 href="/contact?interest=investor"
-                className="group inline-flex h-14 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95"
+                className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base"
               >
                 Request the Full Deck{" "}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <a
                 href="#traction"
-                className="inline-flex h-14 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-7 py-3.5 text-base font-bold text-white backdrop-blur transition-colors hover:bg-white/10"
+                className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10 sm:h-14 sm:px-7 sm:text-base"
               >
                 See the Numbers <ArrowDown className="h-4 w-4" />
               </a>
@@ -267,12 +268,12 @@ export default function InvestorsPage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl space-y-16 px-5 pb-16 pt-10 sm:pt-12">
+      <div className="mx-auto max-w-6xl space-y-14 px-4 pb-16 pt-8 sm:space-y-16 sm:px-6 sm:pt-12">
         {/* ── THE ROUND ────────────────────────────────────────────────── */}
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>The Round</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">
               SAFE · Late Seed · converts at cap.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
@@ -282,9 +283,9 @@ export default function InvestorsPage() {
           <div className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {ROUND_TERMS.map((t, i) => (
               <Reveal key={t.label} delay={i * 80}>
-                <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10">
+                <div className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10 sm:p-6">
                   <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/10 blur-2xl transition-opacity duration-500 group-hover:opacity-80" />
-                  <p className="numeric text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+                  <p className="numeric text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
                     {t.value}
                   </p>
                   <p className="mt-3 text-sm font-medium text-muted-foreground">
@@ -300,7 +301,7 @@ export default function InvestorsPage() {
         <section id="traction" className="scroll-mt-24">
           <Reveal className="mx-auto max-w-2xl text-center">
             <SectionEyebrow>Traction</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">
               100% bootstrapped, profitable, operating.
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
@@ -310,9 +311,9 @@ export default function InvestorsPage() {
           <div className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {TRACTION.map((s, i) => (
               <Reveal key={s.label} delay={i * 90}>
-                <div className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10">
+                <div className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10 sm:p-6">
                   <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/10 blur-2xl transition-opacity duration-500 group-hover:opacity-80" />
-                  <p className="numeric text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
+                  <p className="numeric text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
                     {s.prefix}
                     <CountUp
                       value={s.value}
@@ -333,12 +334,12 @@ export default function InvestorsPage() {
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Step 01 · Company overview</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">
-              195× revenue growth — zero outside capital.
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">
+              195× revenue growth - zero outside capital.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
               {BRAND} is a bootstrapped, profitable fleet-management company
-              operating 100 vehicles at DFW International and Love Field —
+              operating 100 vehicles at DFW International and Love Field -
               $716,755 earned in 2026 with zero outside capital. Four years of
               operations. Institutional-grade fleet management, All-Star Host
               status, 3,626 trips completed.
@@ -360,7 +361,7 @@ export default function InvestorsPage() {
           <Reveal delay={160}>
             <p className="mt-6 text-lg text-muted-foreground">
               That’s <span className="font-bold text-primary">195× growth</span>{" "}
-              — built entirely on operating cash flow.
+              - built entirely on operating cash flow.
             </p>
           </Reveal>
         </section>
@@ -369,12 +370,12 @@ export default function InvestorsPage() {
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Step 02 · Platform vision</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">
               From fleet operator to platform company.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
               Building a direct Turo competitor. This investment accelerates the{" "}
-              {BRAND} consumer marketplace — a fully independent P2P rental
+              {BRAND} consumer marketplace - a fully independent P2P rental
               platform that captures full booking margin and owns every customer
               relationship. The same platform, licensed to independent fleet
               operators nationwide, transforms {BRAND} into a platform company
@@ -382,7 +383,7 @@ export default function InvestorsPage() {
             </p>
             <p className="mt-3 text-lg text-muted-foreground">
               Revenue target (goal):{" "}
-              <span className="font-bold text-primary">$10.08M</span> — 700
+              <span className="font-bold text-primary">$10.08M</span> - 700
               vehicles × $1,200/mo × 12.
             </p>
           </Reveal>
@@ -407,12 +408,12 @@ export default function InvestorsPage() {
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Step 03 · Financial performance</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">
               $716K earned in 2026 · $1.2M full-year target.
             </h2>
           </Reveal>
 
-          {/* Four figures, each its own labeled line — not a paragraph of
+          {/* Four figures, each its own labeled line - not a paragraph of
               run-on numbers a phone has to parse word by word. */}
           <div className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {FIN_STATS.map((s, i) => (
@@ -433,7 +434,7 @@ export default function InvestorsPage() {
           </div>
 
           {/* The trajectory, as a flow of milestones with a real arrow between
-              them — reads top-to-bottom on a phone, left-to-right on desktop,
+              them - reads top-to-bottom on a phone, left-to-right on desktop,
               instead of an arrow-separated run-on sentence. */}
           <Reveal delay={280}>
             <div className="mt-6 flex flex-col items-stretch gap-2 rounded-2xl border border-border bg-card p-5 shadow-card sm:flex-row sm:items-center sm:gap-3">
@@ -494,7 +495,7 @@ export default function InvestorsPage() {
                       <span className="font-semibold text-foreground">
                         {f.pct}%
                       </span>{" "}
-                      — {f.label}
+                      - {f.label}
                     </span>
                   </div>
                 ))}
@@ -564,7 +565,7 @@ export default function InvestorsPage() {
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Investor Relations</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">
               Talk to the team behind the round.
             </h2>
           </Reveal>
@@ -620,7 +621,7 @@ export default function InvestorsPage() {
         <section>
           <Reveal className="mx-auto max-w-2xl text-center">
             <SectionEyebrow>Investor FAQ</SectionEyebrow>
-            <h2 className="display mt-4 text-4xl sm:text-5xl">
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">
               Common questions from prospective investors.
             </h2>
           </Reveal>
@@ -652,10 +653,10 @@ export default function InvestorsPage() {
 /* ── Pieces ─────────────────────────────────────────────────────────── */
 
 /**
- * A revenue figure that visibly climbs — computed as the stated $716,755 2026
+ * A revenue figure that visibly climbs - computed as the stated $716,755 2026
  * YTD figure plus a rate derived from elapsed time since Jan 1, 2026, i.e. an
  * ILLUSTRATIVE run-rate, not a live feed of real bookings. The caption is not
- * decorative — a fundraising page cannot imply a capability it doesn't have.
+ * decorative - a fundraising page cannot imply a capability it doesn't have.
  */
 function LiveTicker() {
   const [value, setValue] = useState(YTD_ANCHOR);
@@ -703,7 +704,7 @@ function LiveTicker() {
         {formatted}
       </p>
       <p className="mt-3 text-xs leading-relaxed text-white/50">
-        Illustrative — calculated from {BRAND}’s verified 2026 year-to-date
+        Illustrative - calculated from {BRAND}’s verified 2026 year-to-date
         revenue ($716,755), extrapolated at a constant run-rate since January 1,
         2026.
       </p>
@@ -746,7 +747,7 @@ function GrowthBar({
   );
 }
 
-/** CatoDrive's own Reg D Notice, verbatim — not paraphrased. */
+/** CatoDrive's own Reg D Notice, verbatim - not paraphrased. */
 function RegDNotice() {
   return (
     <div className="flex h-full flex-col rounded-3xl border border-amber-500/25 bg-amber-500/[0.05] p-7">
@@ -758,7 +759,7 @@ function RegDNotice() {
       </p>
       <p className="mt-2 text-[15px] leading-relaxed text-foreground">
         Certain investments are restricted to accredited investors. Expression
-        of interest only — not an offer or sale of securities.
+        of interest only - not an offer or sale of securities.
       </p>
     </div>
   );

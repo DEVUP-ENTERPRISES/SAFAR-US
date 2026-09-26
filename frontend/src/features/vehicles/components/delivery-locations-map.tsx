@@ -7,7 +7,7 @@ import { loadMapbox } from '@/features/maps/mapbox-loader';
 import type { DeliveryLocation } from '@/features/vehicles/types';
 
 /* Mapbox GL types aren't installed (CDN load), so only the shapes used here
-   are declared — same approach as MapboxPanel. */
+   are declared - same approach as MapboxPanel. */
 type LngLat = [number, number];
 interface MbMap {
   remove(): void;
@@ -54,7 +54,7 @@ function makePin(kind: DeliveryLocation['kind'] | 'home', highlight: boolean): H
  * they offer, so the coverage they've built is legible at a glance instead of
  * being inferable only by reading a list of addresses.
  *
- * Degrades to nothing when Mapbox isn't configured — a missing map must never
+ * Degrades to nothing when Mapbox isn't configured - a missing map must never
  * be what stops a host editing their delivery setup.
  */
 export function DeliveryLocationsMap({

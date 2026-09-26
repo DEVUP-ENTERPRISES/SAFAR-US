@@ -22,7 +22,7 @@ export default function ApprovalsPage() {
   const [status, setStatus] = useState('pending');
   const requests = useQuery({ queryKey: ['corp-requests', status], queryFn: () => corporateApi.requests(status || undefined) });
   const invalidate = () => qc.invalidateQueries({ queryKey: ['corp-requests'] });
-  // The backend accepts a decision note — now we actually send the manager's.
+  // The backend accepts a decision note - now we actually send the manager's.
   const decide = useMutation({
     mutationFn: ({ id, d, note }: { id: string; d: 'approved' | 'rejected'; note?: string }) =>
       corporateApi.decide(id, d, note),
@@ -52,7 +52,7 @@ export default function ApprovalsPage() {
       tone: approving && !flagged ? 'default' : 'destructive',
       reason: {
         label: 'Note to the employee',
-        placeholder: approving ? 'e.g. Approved — keep receipts' : 'e.g. Over budget for this quarter',
+        placeholder: approving ? 'e.g. Approved - keep receipts' : 'e.g. Over budget for this quarter',
         required: !approving,
       },
     });

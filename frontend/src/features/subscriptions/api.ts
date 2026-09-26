@@ -28,7 +28,7 @@ export interface MySubscription {
   _id: string;
   planCode: string;
   status: 'active' | 'cancelled' | 'expired';
-  /** What they bought, frozen — an admin changing the plan later cannot
+  /** What they bought, frozen - an admin changing the plan later cannot
    *  quietly downgrade an existing member. */
   benefitsSnapshot: PlanBenefits;
   pricePaidCents: number;

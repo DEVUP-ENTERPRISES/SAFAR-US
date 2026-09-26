@@ -4,7 +4,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { trackPageview } from '@/features/analytics/track';
 
-// Entrance animation plays once per mount (no pathname key — that was forcing
+// Entrance animation plays once per mount (no pathname key - that was forcing
 // a full remount on every nav). Scroll-to-top is forced explicitly since the
 // fixed navbar/sticky panels were leaving routes rendering mid-scroll. Every
 // route funnels through here, so it's also the one place a pageview beacon

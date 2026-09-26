@@ -34,7 +34,7 @@ const LABEL: Record<string, string> = {
  * Post-trip charges, and the way to argue with one.
  *
  * These bill a card the guest already handed over, and until now they could see
- * a notification about it and nothing else — no itemisation, no evidence, and
+ * a notification about it and nothing else - no itemisation, no evidence, and
  * no way to contest it. A charge nobody can dispute is not a charge, it is a
  * taking, and the only recourse left to the guest was a chargeback, which costs
  * the platform far more than a refund would have.
@@ -141,7 +141,7 @@ export function IncidentalCharges({
                     rows={3}
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder="What is wrong with this charge? Be specific — it goes straight to the person reviewing it."
+                    placeholder="What is wrong with this charge? Be specific - it goes straight to the person reviewing it."
                   />
                   <div className="flex flex-wrap items-center gap-2">
                     <Button

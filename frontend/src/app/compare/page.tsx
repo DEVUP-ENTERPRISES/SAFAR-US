@@ -29,15 +29,15 @@ function CompareInner() {
   const rows: { label: string; get: (v: Vehicle) => React.ReactNode }[] = [
     { label: 'Price / day', get: (v) => <span className="font-bold">{formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency })}</span> },
     { label: 'Rating', get: (v) => (v.ratingCount ? `${v.ratingAvg} (${v.ratingCount})` : 'New') },
-    { label: 'Superhost', get: (v) => (v.hostIsSuperhost ? <Check className="h-4 w-4 text-primary mx-auto" /> : '—') },
+    { label: 'Superhost', get: (v) => (v.hostIsSuperhost ? <Check className="h-4 w-4 text-primary mx-auto" /> : '-') },
     { label: 'Category', get: (v) => <span className="capitalize">{v.category}</span> },
     { label: 'Seats', get: (v) => v.seats },
     { label: 'Transmission', get: (v) => <span className="capitalize">{v.transmission}</span> },
     { label: 'Fuel', get: (v) => <span>{FUEL_LABEL[v.fuelType]}</span> },
-    { label: 'Instant book', get: (v) => (v.listing.instantBook ? <Check className="h-4 w-4 text-primary mx-auto" /> : '—') },
-    { label: 'Delivery', get: (v) => (v.listing.delivery && (v.listing.delivery.airport || v.listing.delivery.home || v.listing.delivery.hotel || v.listing.delivery.business) ? <Check className="h-4 w-4 text-primary mx-auto" /> : '—') },
-    { label: 'City', get: (v) => v.location.city || '—' },
-    { label: 'Features', get: (v) => <span className="text-xs">{v.features.slice(0, 6).join(', ') || '—'}</span> },
+    { label: 'Instant book', get: (v) => (v.listing.instantBook ? <Check className="h-4 w-4 text-primary mx-auto" /> : '-') },
+    { label: 'Delivery', get: (v) => (v.listing.delivery && (v.listing.delivery.airport || v.listing.delivery.home || v.listing.delivery.hotel || v.listing.delivery.business) ? <Check className="h-4 w-4 text-primary mx-auto" /> : '-') },
+    { label: 'City', get: (v) => v.location.city || '-' },
+    { label: 'Features', get: (v) => <span className="text-xs">{v.features.slice(0, 6).join(', ') || '-'}</span> },
   ];
 
   return (

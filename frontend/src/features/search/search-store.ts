@@ -11,7 +11,7 @@ export interface SearchCenter {
 /**
  * The Where / From / Until of the search bar, shared so the bar can live
  * in the navbar (desktop) while the results page reads the same values to build
- * its query. Filters (price, seats, …) stay local to the results page — only
+ * its query. Filters (price, seats, …) stay local to the results page - only
  * the top-bar fields are shared.
  */
 export interface SearchBarState {

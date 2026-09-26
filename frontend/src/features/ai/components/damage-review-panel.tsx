@@ -14,7 +14,7 @@ import { aiApi, type DamageFinding } from '@/features/ai/api';
 /**
  * The damage verdict, shown identically to the host and the guest.
  *
- * Both sides seeing the same words is the entire point — a verdict that reads
+ * Both sides seeing the same words is the entire point - a verdict that reads
  * differently depending on who opened it is just another thing to argue about.
  * Only the host gets the button to run it; the guest reads the result.
  *
@@ -105,7 +105,7 @@ export function DamageReviewPanel({
             {/* What this is and is not. Stated on the card, not buried. */}
             <p className="border-t border-border pt-3 text-xs text-muted-foreground">
               Compared {d.photosCompared.pre} check-in and {d.photosCompared.post} checkout photos. This is a
-              comparison of photographs, not a charge and not a decision — any claim is opened and settled by a
+              comparison of photographs, not a charge and not a decision - any claim is opened and settled by a
               person. Repair costs are never estimated here.
             </p>
           </div>
@@ -170,7 +170,7 @@ function Finding({ f }: { f: DamageFinding }) {
     <li className={cn('rounded-lg border p-3', strong ? 'border-border' : 'border-dashed border-border/70')}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-medium">
-          <span className="capitalize">{f.type.replace(/_/g, ' ')}</span> — {f.area}
+          <span className="capitalize">{f.type.replace(/_/g, ' ')}</span> - {f.area}
         </p>
         <span
           className={cn(
@@ -184,11 +184,11 @@ function Finding({ f }: { f: DamageFinding }) {
       <p className="mt-1 text-sm text-muted-foreground">{f.description}</p>
       {f.note && <p className="mt-1 text-xs italic text-muted-foreground">{f.note}</p>}
       <p className="mt-1.5 text-xs text-muted-foreground">
-        Check-in photo{f.checkinPhotoIndexes.length === 1 ? '' : 's'} {f.checkinPhotoIndexes.join(', ') || '—'}
-        {' · '}checkout photo{f.checkoutPhotoIndexes.length === 1 ? '' : 's'} {f.checkoutPhotoIndexes.join(', ') || '—'}
+        Check-in photo{f.checkinPhotoIndexes.length === 1 ? '' : 's'} {f.checkinPhotoIndexes.join(', ') || '-'}
+        {' · '}checkout photo{f.checkoutPhotoIndexes.length === 1 ? '' : 's'} {f.checkoutPhotoIndexes.join(', ') || '-'}
       </p>
       {!strong && (
-        <p className="mt-1 text-xs text-warning">Low confidence — treated as advisory only.</p>
+        <p className="mt-1 text-xs text-warning">Low confidence - treated as advisory only.</p>
       )}
     </li>
   );

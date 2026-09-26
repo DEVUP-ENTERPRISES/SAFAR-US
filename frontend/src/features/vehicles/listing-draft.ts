@@ -14,7 +14,7 @@ export function saveListingDraft<T>(draft: T, step: number): void {
   try {
     localStorage.setItem(KEY, JSON.stringify({ draft, step, at: Date.now() }));
   } catch {
-    // Private mode / quota — the wizard still works, it just won't survive.
+    // Private mode / quota - the wizard still works, it just won't survive.
   }
 }
 

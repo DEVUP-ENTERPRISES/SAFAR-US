@@ -9,8 +9,8 @@ import { formatMoney } from '@/lib/utils/format';
  *
  * "Welcome back / Enter your details" is the same page on every product ever
  * built, and it is especially wrong here: most people reaching this screen were
- * halfway through booking a specific car and got stopped. Showing that car —
- * the photo they already chose, the price they already accepted — turns a
+ * halfway through booking a specific car and got stopped. Showing that car -
+ * the photo they already chose, the price they already accepted - turns a
  * checkpoint into the last step of something they started, and it tells them
  * their work was not thrown away, which is the actual anxiety.
  *

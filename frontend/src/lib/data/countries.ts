@@ -18,7 +18,7 @@ export interface Country {
   dial: string;
 }
 
-/** 🇮🇳 from "IN" — each letter maps to its regional indicator symbol. */
+/** 🇮🇳 from "IN" - each letter maps to its regional indicator symbol. */
 export function flagOf(code: string): string {
   return String.fromCodePoint(
     ...[...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65),
@@ -262,7 +262,7 @@ export const PICKER_ORDER: Country[] = (() => {
  * Build the E.164 string Twilio requires: '+' then digits only.
  *
  * Callers pass whatever the guest typed, which is routinely '(214) 814-0402',
- * '0 7700 900123' or '+91 98765 43210'. A leading trunk '0' is dropped — it is
+ * '0 7700 900123' or '+91 98765 43210'. A leading trunk '0' is dropped - it is
  * a domestic-dialling prefix that is never part of the international form, and
  * leaving it on is the single most common way a UK or Indian number fails.
  */
@@ -271,7 +271,7 @@ export function toE164(dial: string, national: string): string {
   return `+${dial}${digits}`;
 }
 
-/** Loose sanity check — real validation is the OTP actually arriving. */
+/** Loose sanity check - real validation is the OTP actually arriving. */
 export function isPlausiblePhone(dial: string, national: string): boolean {
   const digits = national.replace(/\D/g, '').replace(/^0+/, '');
   return digits.length >= 6 && `${dial}${digits}`.length <= 15;

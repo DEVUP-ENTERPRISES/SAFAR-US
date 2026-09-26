@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils/cn';
 import { formatDate } from '@/lib/utils/format';
 import { notificationsApi, notificationLink, type Notification } from '@/features/notifications/api';
 
-/** Relative time, coarse — matches how inbox timestamps read in the apps. */
+/** Relative time, coarse - matches how inbox timestamps read in the apps. */
 function ago(iso: string): string {
   const s = Math.floor((Date.now() - +new Date(iso)) / 1000);
   if (s < 60) return 'just now';
@@ -77,11 +77,11 @@ export function NotificationBell() {
       {open && (
         /*
          * Two different positioning strategies, not one width formula doing
-         * both jobs — the previous fix (w-[calc(100vw-2rem)]) only capped the
+         * both jobs - the previous fix (w-[calc(100vw-2rem)]) only capped the
          * WIDTH and kept `absolute end-0`, which anchors the panel's right
          * edge to the BELL BUTTON's right edge, not the screen's. The bell
-         * isn't flush against the viewport edge — the avatar button sits to
-         * its right — so a width capped at "the viewport minus a gutter,"
+         * isn't flush against the viewport edge - the avatar button sits to
+         * its right - so a width capped at "the viewport minus a gutter,"
          * anchored to a point already inset from the edge, still pushed the
          * panel's left side past x:0. Capping the width never fixes an
          * anchor that was wrong to begin with.

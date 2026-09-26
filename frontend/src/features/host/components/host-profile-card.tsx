@@ -16,12 +16,12 @@ export function useHostPublicProfile(hostId?: string) {
   });
 }
 
-/** "Joined May 2026" — month precision; the exact day is nobody's business. */
+/** "Joined May 2026" - month precision; the exact day is nobody's business. */
 export function joinedLabel(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
-/** "12 min" / "about 3 hours" / "about 2 days" — a human sense of the wait. */
+/** "12 min" / "about 3 hours" / "about 2 days" - a human sense of the wait. */
 export function responseTimeLabel(minutes: number): string {
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.round(minutes / 60);
@@ -49,7 +49,7 @@ export function HostAvatar({
           </span>
         )}
       </div>
-      {/* Only badge a rating that exists — a blank host is not a 5.0 host. */}
+      {/* Only badge a rating that exists - a blank host is not a 5.0 host. */}
       {profile.ratingAvg !== null && (
         <span className="absolute -bottom-1 start-1/2 w-max -translate-x-1/2 rounded-full bg-background px-1.5 py-0.5 text-[11px] font-bold shadow-sm">
           {profile.ratingAvg.toFixed(1)} <span className="text-primary">★</span>
@@ -60,7 +60,7 @@ export function HostAvatar({
 }
 
 /**
- * The "Hosted by" block on a listing. Replaces a hardcoded host — the same
+ * The "Hosted by" block on a listing. Replaces a hardcoded host - the same
  * name, trip count and rating rendered on every car regardless of who owned it.
  */
 export function HostProfileCard({ hostId }: { hostId: string }) {
@@ -97,7 +97,7 @@ export function HostProfileCard({ hostId }: { hostId: string }) {
   );
 }
 
-/** Responsiveness and verification — the things a guest actually weighs. */
+/** Responsiveness and verification - the things a guest actually weighs. */
 export function HostTrustSignals({ profile: h }: { profile: HostPublicProfile }) {
   const verified = [
     h.verifications.identity && 'ID',
@@ -116,7 +116,7 @@ export function HostTrustSignals({ profile: h }: { profile: HostPublicProfile })
     },
     /*
      * The question a guest is actually asking is "will I be left without a
-     * car". Nobody in this market answers it, so we do — but only in the
+     * car". Nobody in this market answers it, so we do - but only in the
      * direction that helps them decide: a host who reliably shows up gets the
      * credit, and a host who cancels is stated plainly rather than buried.
      */

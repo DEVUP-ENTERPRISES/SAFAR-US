@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { config } from '@/lib/config';
 
 /**
- * Host self-serve and Corporate are commented conditionally in, not deleted —
+ * Host self-serve and Corporate are commented conditionally in, not deleted -
  * see config.assetPartnersOnly. Investor Relations stays under Business
  * either way; it isn't a self-serve product invitation.
  */
@@ -100,11 +100,10 @@ export function Footer() {
 
         <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-border pt-8 sm:flex-row sm:items-center">
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} CatoDrive Inc. All rights reserved. Made with{' '}
-            <span aria-hidden="true" className="text-primary">♥</span> by DEVUP ECOSYSTEM.
+            © {new Date().getFullYear()} CatoDrive Inc. All rights reserved.
           </p>
           {/*
-            These were <span>s — dead text. A marketplace taking card payments
+            These were <span>s - dead text. A marketplace taking card payments
             has to put its terms and privacy policy one click from every page,
             and /legal was reachable only from the mobile nav drawer, so on
             desktop there was no route to them at all.
