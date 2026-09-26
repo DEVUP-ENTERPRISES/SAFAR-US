@@ -11,6 +11,8 @@ export interface Address {
   id: string;
   label: string; // Home, Work, Airport…
   line1: string;
+  /** Apartment, suite or unit; optional. */
+  line2?: string;
   city: string;
   state: string;
   zip: string;
@@ -97,7 +99,7 @@ const userSchema = new Schema<UserDoc>(
     addresses: {
       type: [
         {
-          id: String, label: String, line1: String, city: String,
+          id: String, label: String, line1: String, line2: String, city: String,
           state: String, zip: String, country: String, isDefault: Boolean,
         },
       ],

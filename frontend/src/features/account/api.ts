@@ -35,7 +35,7 @@ export interface OnboardingInput {
   dateOfBirth: string;
   phone: string;
   avatarUrl?: string;
-  address: { label?: string; line1: string; city: string; state: string; zip: string; country: string };
+  address: { label?: string; line1: string; line2?: string; city: string; state: string; zip: string; country: string };
   emergencyContact: { name: string; phone: string; relation?: string };
 }
 
@@ -49,7 +49,7 @@ export const accountApi = {
   completeOnboarding: (dto: OnboardingInput) =>
     api.post<{ user: Me; profile: ProfileStatus }>('/users/me/onboarding', dto),
 
-  addAddress: (a: Omit<Address, 'id' | 'isDefault'> & { isDefault?: boolean }) =>
+  addAddress: (a: Omit<Address, 'id' | 'isDefault' | 'label'> & { label?: string; isDefault?: boolean }) =>
     api.post<Me>('/users/me/addresses', a),
   removeAddress: (id: string) => api.delete<Me>(`/users/me/addresses/${id}`),
   setDefaultAddress: (id: string) => api.post<Me>(`/users/me/addresses/${id}/default`),

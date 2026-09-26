@@ -36,7 +36,8 @@ function VerifyIdentity() {
   const qc = useQueryClient();
   const router = useRouter();
   const toast = useToast();
-  const me = useQuery({ queryKey: ['me'], queryFn: () => accountApi.me() });
+  // Always fresh: this screen shows what the person just changed on their account, so a cached copy from a minute ago must never be shown.
+  const me = useQuery({ queryKey: ['me'], queryFn: () => accountApi.me(), refetchOnMount: 'always', staleTime: 0 });
 
   const status = useQuery({
     queryKey: ['kyc-status'],
@@ -188,10 +189,13 @@ function VerifyIdentity() {
                 <Detail label="Date of birth" value={profile?.dateOfBirth ? formatDate(profile.dateOfBirth) : '—'} />
                 <Detail
                   label="Address"
-                  value={primaryAddress ? `${primaryAddress.line1}, ${primaryAddress.city}, ${primaryAddress.state} ${primaryAddress.zip}` : '—'}
+                  value={primaryAddress ? [primaryAddress.line1, primaryAddress.line2, primaryAddress.city, [primaryAddress.state, primaryAddress.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '—'}
                   full
                 />
               </dl>
+              <p className="text-xs text-muted-foreground">
+                Something wrong? <Link href="/account" className="font-medium text-primary underline">Change it on your account</Link>, then come back. Your default saved address is the one shown here.
+              </p>
               {(!nameKnown || !profile?.dateOfBirth) && (
                 <p className="text-sm text-warning">
                   Add your legal name and date of birth on your{' '}

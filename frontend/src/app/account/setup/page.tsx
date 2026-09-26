@@ -17,13 +17,13 @@ import { ApiError } from '@/lib/api/types';
 
 type Form = {
   firstName: string; lastName: string; dateOfBirth: string; phone: string;
-  line1: string; city: string; state: string; zip: string; country: string;
+  line1: string; line2: string; city: string; state: string; zip: string; country: string;
   ecName: string; ecPhone: string; ecRelation: string;
 };
 
 const EMPTY: Form = {
   firstName: '', lastName: '', dateOfBirth: '', phone: '',
-  line1: '', city: '', state: '', zip: '', country: 'US',
+  line1: '', line2: '', city: '', state: '', zip: '', country: 'US',
   ecName: '', ecPhone: '', ecRelation: '',
 };
 
@@ -71,7 +71,7 @@ export default function AccountSetupPage() {
         phone: form.phone.trim(),
         avatarUrl: avatar?.url,
         address: {
-          line1: form.line1.trim(), city: form.city.trim(), state: form.state.trim(),
+          line1: form.line1.trim(), line2: form.line2.trim() || undefined, city: form.city.trim(), state: form.state.trim(),
           zip: form.zip.trim(), country: form.country.trim(),
         },
         emergencyContact: {
@@ -186,6 +186,9 @@ export default function AccountSetupPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Home address</h2>
           <Field label="Street address" htmlFor="line1" required invalid={bad('line1')}>
             <Input id="line1" value={form.line1} onChange={set('line1')} autoComplete="address-line1" required />
+          </Field>
+          <Field label="Apt, suite, unit (optional)" htmlFor="line2">
+            <Input id="line2" value={form.line2} onChange={set('line2')} autoComplete="address-line2" placeholder="Apt 4B" />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="City" htmlFor="city" required invalid={bad('city')}>

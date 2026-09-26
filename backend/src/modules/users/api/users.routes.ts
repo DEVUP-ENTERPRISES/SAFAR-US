@@ -53,6 +53,7 @@ const onboardingSchema = z.object({
   address: z.object({
     label: z.string().max(40).optional(),
     line1: z.string().trim().min(2).max(200),
+    line2: z.string().trim().max(60).optional(),
     city: z.string().trim().min(1).max(120),
     state: z.string().trim().min(1).max(120),
     zip: z.string().trim().min(2).max(20),
@@ -107,12 +108,13 @@ router.patch(
 
 // ── Saved addresses ─────────────────────────────────────────────────────
 const addressSchema = z.object({
-  label: z.string().min(1).max(40),
-  line1: z.string().min(1).max(120),
+  label: z.string().trim().max(40).optional(),
+  line1: z.string().trim().min(1).max(120),
+  line2: z.string().trim().max(60).optional(),
   city: z.string().min(1).max(60),
   state: z.string().max(60).default(''),
   zip: z.string().max(12).default(''),
-  country: z.string().max(60).default('USA'),
+  country: z.string().max(60).default('US'),
   isDefault: z.boolean().optional(),
 });
 

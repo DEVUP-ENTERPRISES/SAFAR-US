@@ -15,7 +15,7 @@ export interface OnboardingDto {
   dateOfBirth: string;
   phone: string;
   avatarUrl?: string;
-  address: { label?: string; line1: string; city: string; state: string; zip: string; country: string };
+  address: { label?: string; line1: string; line2?: string; city: string; state: string; zip: string; country: string };
   emergencyContact: { name: string; phone: string; relation?: string };
 }
 
@@ -79,6 +79,7 @@ export class UserService {
       id: randomId(),
       label: dto.address.label || 'Home',
       line1: dto.address.line1,
+      line2: dto.address.line2?.trim() || undefined,
       city: dto.address.city,
       state: dto.address.state,
       zip: dto.address.zip,
@@ -143,11 +144,11 @@ export class UserService {
   }
 
   // ── Addresses ────────────────────────────────────────────────────────
-  async addAddress(userId: string, addr: Omit<Address, 'id' | 'isDefault'> & { isDefault?: boolean }): Promise<UserDoc> {
+  async addAddress(userId: string, addr: Omit<Address, 'id' | 'isDefault' | 'label'> & { label?: string; isDefault?: boolean }): Promise<UserDoc> {
     const user = await this.get(userId);
     const makeDefault = addr.isDefault || user.addresses.length === 0;
     if (makeDefault) user.addresses.forEach((a) => (a.isDefault = false));
-    const entry: Address = { ...addr, id: randomId(), isDefault: makeDefault };
+    const entry: Address = { ...addr, label: addr.label?.trim() || (user.addresses.length === 0 ? 'Home' : 'Address'), line2: addr.line2?.trim() || undefined, id: randomId(), isDefault: makeDefault };
     await UserModel.updateOne(
       { _id: userId },
       { $set: { addresses: [...user.addresses, entry] } },

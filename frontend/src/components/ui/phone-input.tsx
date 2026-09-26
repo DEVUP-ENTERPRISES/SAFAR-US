@@ -5,14 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { COUNTRIES, PICKER_ORDER, countryByCode, flagOf, toE164 } from '@/lib/data/countries';
 
-/** Split a stored +E.164 number into country + national digits, longest dial code first. */
+/** Split a stored +E.164 number into country + national digits, longest dial code first; countries sharing a code (US/CA are both +1) resolve to the field's default, then the US. */
 function parse(value: string, fallback: string): { code: string; national: string } {
   if (!value.startsWith('+')) return { code: fallback, national: value };
   const digits = value.slice(1);
-  const match = [...COUNTRIES]
-    .sort((a, b) => b.dial.length - a.dial.length)
-    .find((c) => digits.startsWith(c.dial));
-  return match ? { code: match.code, national: digits.slice(match.dial.length) } : { code: fallback, national: digits };
+  const matches = COUNTRIES.filter((c) => digits.startsWith(c.dial));
+  if (matches.length === 0) return { code: fallback, national: digits };
+  const longest = Math.max(...matches.map((c) => c.dial.length));
+  const best = matches.filter((c) => c.dial.length === longest);
+  const match = best.find((c) => c.code === fallback) ?? best.find((c) => c.code === 'US') ?? best[0];
+  return { code: match.code, national: digits.slice(match.dial.length) };
 }
 
 /**

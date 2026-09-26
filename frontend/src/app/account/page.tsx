@@ -46,10 +46,10 @@ function Account() {
     onSuccess: refreshMe,
   });
 
-  const [addr, setAddr] = useState({ label: '', line1: '', city: '', state: '', zip: '' });
+  const [addr, setAddr] = useState({ line1: '', line2: '', city: '', state: '', zip: '' });
   const addAddress = useMutation({
-    mutationFn: () => accountApi.addAddress({ ...addr, country: 'USA' }),
-    onSuccess: () => { setAddr({ label: '', line1: '', city: '', state: '', zip: '' }); refreshMe(); },
+    mutationFn: () => accountApi.addAddress({ ...addr, line1: addr.line1.trim(), line2: addr.line2.trim() || undefined, country: 'US' }),
+    onSuccess: () => { setAddr({ line1: '', line2: '', city: '', state: '', zip: '' }); refreshMe(); },
   });
   const removeAddress = useMutation({ mutationFn: (id: string) => accountApi.removeAddress(id), onSuccess: refreshMe });
   const defaultAddress = useMutation({ mutationFn: (id: string) => accountApi.setDefaultAddress(id), onSuccess: refreshMe });
@@ -143,23 +143,33 @@ function Account() {
           {me.data.addresses.map((a) => (
             <div key={a.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl bg-background p-5 gap-4 border border-border/40 shadow-sm">
               <div className="min-w-0">
-                <p className="text-base font-bold flex flex-wrap items-center gap-x-2 gap-y-1">{a.label} {a.isDefault && <Badge tone="success" className="ms-3 text-[10px] uppercase tracking-widest">Default</Badge>}</p>
-                <p className="mt-1.5 text-sm font-medium text-muted-foreground">{a.line1}, {a.city} {a.state} {a.zip}</p>
+                <p className="text-base font-bold flex flex-wrap items-center gap-x-2 gap-y-1">{a.line1}{a.line2 ? `, ${a.line2}` : ''} {a.isDefault && <Badge tone="success" className="ms-3 text-[10px] uppercase tracking-widest">Default</Badge>}</p>
+                <p className="mt-1.5 text-sm font-medium text-muted-foreground">{[a.city, [a.state, a.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')}</p>
               </div>
               <div className="flex items-center gap-2">
                 {!a.isDefault && <Button size="sm" variant="outline" className="rounded-full font-semibold" onClick={() => defaultAddress.mutate(a.id)}>Set default</Button>}
-                <Button size="icon" variant="ghost" className="text-destructive rounded-full hover:bg-destructive/10" onClick={async () => { const { ok } = await confirm({ title: `Remove "${a.label}"?`, description: 'This saved address will be deleted.', confirmLabel: 'Remove address', tone: 'destructive' }); if (ok) removeAddress.mutate(a.id); }}><Trash2 className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" className="text-destructive rounded-full hover:bg-destructive/10" onClick={async () => { const { ok } = await confirm({ title: `Remove "${a.line1}"?`, description: 'This saved address will be deleted.', confirmLabel: 'Remove address', tone: 'destructive' }); if (ok) removeAddress.mutate(a.id); }}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           ))}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 mt-4">
-            <Input className="h-12 rounded-xl" placeholder="Label" value={addr.label} onChange={(e) => setAddr({ ...addr, label: e.target.value })} />
-            <Input className="h-12 rounded-xl" placeholder="Street" value={addr.line1} onChange={(e) => setAddr({ ...addr, line1: e.target.value })} />
-            <Input className="h-12 rounded-xl" placeholder="City" value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} />
-            <Input className="h-12 rounded-xl" placeholder="State" value={addr.state} onChange={(e) => setAddr({ ...addr, state: e.target.value })} />
-            <Input className="h-12 rounded-xl" placeholder="ZIP" value={addr.zip} onChange={(e) => setAddr({ ...addr, zip: e.target.value })} />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mt-4">
+            <Field label="Address" required className="col-span-2">
+              <Input className="h-12 rounded-xl" placeholder="Street address" autoComplete="address-line1" value={addr.line1} onChange={(e) => setAddr({ ...addr, line1: e.target.value })} />
+            </Field>
+            <Field label="Apt, suite, unit (optional)" className="col-span-2">
+              <Input className="h-12 rounded-xl" placeholder="Apt 4B" autoComplete="address-line2" value={addr.line2} onChange={(e) => setAddr({ ...addr, line2: e.target.value })} />
+            </Field>
+            <Field label="City" required>
+              <Input className="h-12 rounded-xl" autoComplete="address-level2" value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} />
+            </Field>
+            <Field label="State" required>
+              <Input className="h-12 rounded-xl" autoComplete="address-level1" value={addr.state} onChange={(e) => setAddr({ ...addr, state: e.target.value })} />
+            </Field>
+            <Field label="ZIP" required className="col-span-2 sm:col-span-1">
+              <Input className="h-12 rounded-xl" autoComplete="postal-code" value={addr.zip} onChange={(e) => setAddr({ ...addr, zip: e.target.value })} />
+            </Field>
           </div>
-          <Button size="lg" className="rounded-xl w-full sm:w-auto font-bold mt-2" disabled={!addr.label || !addr.line1 || !addr.city} loading={addAddress.isPending} onClick={() => addAddress.mutate()}>Add address</Button>
+          <Button size="lg" className="rounded-xl w-full sm:w-auto font-bold mt-2" disabled={!addr.line1.trim() || !addr.city.trim() || !addr.state.trim() || !addr.zip.trim()} loading={addAddress.isPending} onClick={() => addAddress.mutate()}>Add address</Button>
         </div>
       </section>
 
