@@ -691,8 +691,8 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
   const l = vehicle.listing;
   const [instantBook, setInstantBook] = useState(!!l?.instantBook);
   const [policy, setPolicy] = useState(l?.cancellationPolicy ?? 'moderate');
-  // Hours are stored; hosts think in days for trip length, hours for notice.
-  const [minDays, setMinDays] = useState(String(Math.max(1, Math.round((l?.minTripHours ?? 24) / 24))));
+  const [minHours, setMinHours] = useState(String(l?.minTripHours ?? 24));
+  // Max trip length is in days; hosts do not need hour precision for how long a trip can run.
   const [maxDays, setMaxDays] = useState(String(Math.max(1, Math.round((l?.maxTripHours ?? 720) / 24))));
   const [turnaround, setTurnaround] = useState(String(l?.turnaroundDays ?? 0));
   const [notice, setNotice] = useState(String(l?.advanceNoticeHours ?? 0));
@@ -720,8 +720,8 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
       </label>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Minimum trip (days)">
-          <Input type="number" min={1} value={minDays} onChange={(e) => setMinDays(e.target.value)} />
+        <Field label="Minimum trip (hours)" hint="As low as 1 hour for quick, local trips.">
+          <Input type="number" min={1} max={720} value={minHours} onChange={(e) => setMinHours(e.target.value)} />
         </Field>
         <Field label="Maximum trip (days)">
           <Input type="number" min={1} value={maxDays} onChange={(e) => setMaxDays(e.target.value)} />
@@ -759,7 +759,7 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
             listing: {
               instantBook,
               cancellationPolicy: policy,
-              minTripHours: Math.max(1, Number(minDays) || 1) * 24,
+              minTripHours: Math.min(720, Math.max(1, Number(minHours) || 1)),
               maxTripHours: Math.max(1, Number(maxDays) || 1) * 24,
               turnaroundDays: Math.min(7, Math.max(0, Number(turnaround) || 0)),
               advanceNoticeHours: Math.min(720, Math.max(0, Number(notice) || 0)),

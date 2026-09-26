@@ -1,10 +1,10 @@
-import { config } from '@/lib/config';
-import { tokenStore } from './token-store';
-import { ApiError, type ApiSuccess } from './types';
-import { onSessionExpired } from './session-events';
+import { config } from "@/lib/config";
+import { tokenStore } from "./token-store";
+import { ApiError, type ApiSuccess } from "./types";
+import { onSessionExpired } from "./session-events";
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+  method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined>;
   /**
@@ -14,14 +14,14 @@ interface RequestOptions {
    *                  A 401 here is a real error, not an expired session, so it
    *                  must not sign the user out.
    */
-  auth?: boolean | 'optional';
+  auth?: boolean | "optional";
   idempotencyKey?: string;
   signal?: AbortSignal;
   headers?: Record<string, string>;
 }
 
 /** 'denied' = the server says the session is over; 'unavailable' = we could not reach it (restart, network) and must not sign the user out. */
-type RefreshOutcome = 'ok' | 'denied' | 'unavailable';
+type RefreshOutcome = "ok" | "denied" | "unavailable";
 let refreshInFlight: Promise<RefreshOutcome> | null = null;
 
 /*
@@ -46,14 +46,17 @@ let refreshInFlight: Promise<RefreshOutcome> | null = null;
  * it's missing, this degrades to the single-tab-only guard that existed
  * before — no worse than the prior behaviour, not a regression.
  */
-async function withCrossTabLock<T>(name: string, fn: () => Promise<T>): Promise<T> {
-  if (typeof navigator !== 'undefined' && navigator.locks) {
+async function withCrossTabLock<T>(
+  name: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  if (typeof navigator !== "undefined" && navigator.locks) {
     return navigator.locks.request(name, fn);
   }
   return fn();
 }
 
-function buildUrl(path: string, query?: RequestOptions['query']): string {
+function buildUrl(path: string, query?: RequestOptions["query"]): string {
   const url = new URL(config.apiUrl + path);
   if (query) {
     for (const [k, v] of Object.entries(query)) {
@@ -65,31 +68,35 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
 
 async function attemptRefresh(): Promise<RefreshOutcome> {
   const refreshToken = tokenStore.getRefresh();
-  if (!refreshToken) return 'denied';
+  if (!refreshToken) return "denied";
   // Single-flight within this tab: concurrent 401s here share one call.
   if (!refreshInFlight) {
-    refreshInFlight = withCrossTabLock('cato-token-refresh', async () => {
+    refreshInFlight = withCrossTabLock("cato-token-refresh", async () => {
       try {
         // Re-read after acquiring the lock — while this tab was queued,
         // another tab may have already refreshed and written new tokens to
         // localStorage. Using THIS closure's now-stale `refreshToken` would
         // be exactly the reuse the lock exists to prevent.
         const current = tokenStore.getRefresh();
-        if (current !== refreshToken) return 'ok'; // another tab already did it
+        if (current !== refreshToken) return "ok"; // another tab already did it
 
-        const res = await fetch(buildUrl('/auth/token/refresh'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch(buildUrl("/auth/token/refresh"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refreshToken: current }),
         });
         // Only an explicit refusal ends the session; a 5xx from a restarting server or a dropped connection does not.
-        if (res.status === 401 || res.status === 403 || res.status === 400) return 'denied';
-        if (!res.ok) return 'unavailable';
-        const json = (await res.json()) as ApiSuccess<{ accessToken: string; refreshToken: string }>;
+        if (res.status === 401 || res.status === 403 || res.status === 400)
+          return "denied";
+        if (!res.ok) return "unavailable";
+        const json = (await res.json()) as ApiSuccess<{
+          accessToken: string;
+          refreshToken: string;
+        }>;
         tokenStore.set(json.data.accessToken, json.data.refreshToken);
-        return 'ok';
+        return "ok";
       } catch {
-        return 'unavailable';
+        return "unavailable";
       } finally {
         setTimeout(() => (refreshInFlight = null), 0);
       }
@@ -98,19 +105,25 @@ async function attemptRefresh(): Promise<RefreshOutcome> {
   return refreshInFlight;
 }
 
-async function raw<T>(path: string, opts: RequestOptions, retry = true): Promise<ApiSuccess<T>> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+async function raw<T>(
+  path: string,
+  opts: RequestOptions,
+  retry = true,
+): Promise<ApiSuccess<T>> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
   if (opts.auth !== false) {
     const token = tokenStore.getAccess();
     if (token) headers.Authorization = `Bearer ${token}`;
   }
-  if (opts.idempotencyKey) headers['Idempotency-Key'] = opts.idempotencyKey;
+  if (opts.idempotencyKey) headers["Idempotency-Key"] = opts.idempotencyKey;
   if (opts.headers) Object.assign(headers, opts.headers);
 
   let res: Response;
   try {
     res = await fetch(buildUrl(path, opts.query), {
-      method: opts.method ?? 'GET',
+      method: opts.method ?? "GET",
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
       signal: opts.signal,
@@ -118,17 +131,26 @@ async function raw<T>(path: string, opts: RequestOptions, retry = true): Promise
   } catch {
     // fetch throws on network failure / server unreachable / CORS block.
     throw new ApiError(
-      'NETWORK_ERROR',
-      'Cannot reach the CatoDrive server. Make sure the backend is running on port 8080.',
+      "NETWORK_ERROR",
+      "We couldn't complete your booking right now. Please try again later.",
       0,
     );
   }
 
-  if (res.status === 401 && retry && opts.auth !== false && opts.auth !== 'optional') {
+  if (
+    res.status === 401 &&
+    retry &&
+    opts.auth !== false &&
+    opts.auth !== "optional"
+  ) {
     const refreshed = await attemptRefresh();
-    if (refreshed === 'ok') return raw<T>(path, opts, false);
-    if (refreshed === 'unavailable') {
-      throw new ApiError('SERVER_UNAVAILABLE', 'We can’t reach the server right now. You’re still signed in — try again in a moment.', 503);
+    if (refreshed === "ok") return raw<T>(path, opts, false);
+    if (refreshed === "unavailable") {
+      throw new ApiError(
+        "SERVER_UNAVAILABLE",
+        "We can’t reach the server right now. You’re still signed in — try again in a moment.",
+        503,
+      );
     }
     // The session is genuinely gone. Clearing the tokens is not enough: the
     // auth store still reads "authenticated", so no guard fires and the caller
@@ -150,11 +172,16 @@ async function raw<T>(path: string, opts: RequestOptions, retry = true): Promise
     // error string.
     if (res.status === 401 && opts.auth !== false) {
       // Same normalisation either way — the user's action is to sign in.
-      throw new ApiError('AUTH_REQUIRED', 'Please sign in to continue', 401, err?.details);
+      throw new ApiError(
+        "AUTH_REQUIRED",
+        "Please sign in to continue",
+        401,
+        err?.details,
+      );
     }
 
     throw new ApiError(
-      err?.code ?? 'UNKNOWN',
+      err?.code ?? "UNKNOWN",
       err?.message ?? `Request failed (${res.status})`,
       res.status,
       err?.details,
@@ -166,16 +193,24 @@ async function raw<T>(path: string, opts: RequestOptions, retry = true): Promise
 /** Type-safe API surface. Returns unwrapped `data`; use `raw` for meta. */
 export const api = {
   raw,
-  async get<T>(path: string, query?: RequestOptions['query'], auth: boolean | 'optional' = true): Promise<T> {
-    return (await raw<T>(path, { method: 'GET', query, auth })).data;
+  async get<T>(
+    path: string,
+    query?: RequestOptions["query"],
+    auth: boolean | "optional" = true,
+  ): Promise<T> {
+    return (await raw<T>(path, { method: "GET", query, auth })).data;
   },
-  async post<T>(path: string, body?: unknown, opts?: Partial<RequestOptions>): Promise<T> {
-    return (await raw<T>(path, { method: 'POST', body, ...opts })).data;
+  async post<T>(
+    path: string,
+    body?: unknown,
+    opts?: Partial<RequestOptions>,
+  ): Promise<T> {
+    return (await raw<T>(path, { method: "POST", body, ...opts })).data;
   },
   async patch<T>(path: string, body?: unknown): Promise<T> {
-    return (await raw<T>(path, { method: 'PATCH', body })).data;
+    return (await raw<T>(path, { method: "PATCH", body })).data;
   },
   async delete<T>(path: string): Promise<T> {
-    return (await raw<T>(path, { method: 'DELETE' })).data;
+    return (await raw<T>(path, { method: "DELETE" })).data;
   },
 };
