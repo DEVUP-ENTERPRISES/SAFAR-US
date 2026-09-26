@@ -28,3 +28,8 @@ export class ApiError extends Error {
     this.name = 'ApiError';
   }
 }
+
+/** A failure that says nothing about whether the person is signed in: the server is unreachable, restarting or erroring. */
+export function isTransientError(err: unknown): boolean {
+  return err instanceof ApiError ? err.status === 0 || err.status >= 500 : true;
+}

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { tokenStore } from '@/lib/api/token-store';
 import { disconnectSocket } from '@/lib/realtime/socket';
-import { ApiError } from '@/lib/api/types';
+import { ApiError, isTransientError } from '@/lib/api/types';
 import { authApi } from './api';
 import { useAuthStore } from './store';
 import type { AuthResult, LoginInput, RegisterInput } from './types';
@@ -39,7 +39,9 @@ export function useSessionBootstrap() {
       return me;
     },
     enabled: typeof window !== 'undefined' && !!tokenStore.getAccess(),
-    retry: false,
+    // A restarting server must not look like a sign-out: keep trying for about a minute before giving up, and never treat that as a rejection.
+    retry: (count, err) => count < 8 && isTransientError(err),
+    retryDelay: (count) => Math.min(1000 * 2 ** count, 8000),
     staleTime: 5 * 60 * 1000,
   });
 }

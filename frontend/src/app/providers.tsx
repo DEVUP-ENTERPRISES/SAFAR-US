@@ -6,7 +6,7 @@ import { ThemeProvider } from 'next-themes';
 import { tokenStore } from '@/lib/api/token-store';
 import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { ToastProvider, useToast } from '@/components/ui/toast';
-import { ApiError } from '@/lib/api/types';
+import { ApiError, isTransientError } from '@/lib/api/types';
 import { useSessionBootstrap } from '@/features/auth/hooks';
 import { usePushRegistration } from '@/features/push/use-push';
 import { useAuthStore } from '@/features/auth/store';
@@ -19,19 +19,20 @@ function AuthBootstrap({ children }: { children: ReactNode }) {
   usePushRegistration();
   useLiveUpdates();
   const setStatus = useAuthStore((s) => s.setStatus);
-  const { isError, isSuccess } = useSessionBootstrap();
+  const { isError, isSuccess, error } = useSessionBootstrap();
 
   useEffect(() => {
     if (!tokenStore.getAccess()) setStatus('unauthenticated');
   }, [setStatus]);
 
   useEffect(() => {
-    if (isError) {
+    // Only a real rejection ends the session; an unreachable server leaves the tokens alone.
+    if (isError && !isTransientError(error)) {
       tokenStore.clear();
       setStatus('unauthenticated');
     }
     if (isSuccess) setStatus('authenticated');
-  }, [isError, isSuccess, setStatus]);
+  }, [isError, isSuccess, error, setStatus]);
 
   return (
     <>
