@@ -34,6 +34,12 @@ describe('evaluateProfile', () => {
     expect(s.underage).toBe(false);
   });
 
+  it('does not need a profile photo', () => {
+    const s = evaluateProfile({ ...complete, avatarUrl: undefined }, opts);
+    expect(s.complete).toBe(true);
+    expect(s.missing).not.toContain('avatar');
+  });
+
   it('flags every required field when nothing is set', () => {
     const s = evaluateProfile({ addresses: [], emergencyContacts: [] }, opts);
     expect(s.complete).toBe(false);

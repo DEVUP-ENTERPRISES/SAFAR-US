@@ -22,6 +22,7 @@ export function AvatarUpload({
   disabled,
   hint,
   required,
+  optional,
   invalid,
 }: {
   url?: string | null;
@@ -38,6 +39,8 @@ export function AvatarUpload({
   hint?: string;
   /** Shows a Required tag next to the label. */
   required?: boolean;
+  /** Shows an Optional tag next to the label. */
+  optional?: boolean;
   /** Rings the picker in red: a required photo is still missing. */
   invalid?: boolean;
 }) {
@@ -119,6 +122,7 @@ export function AvatarUpload({
         <p className="flex items-center gap-2 text-sm font-medium">
           Profile photo
           {required && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive">Required</span>}
+          {optional && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Optional</span>}
         </p>
         <p className="text-xs text-muted-foreground">
           {hint ?? 'A clear photo of your face helps guests trust you. JPG, PNG or WebP, up to 8 MB.'}

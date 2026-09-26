@@ -69,7 +69,7 @@ export default function AccountSetupPage() {
         lastName: form.lastName.trim(),
         dateOfBirth: form.dateOfBirth,
         phone: form.phone.trim(),
-        avatarUrl: avatar!.url,
+        avatarUrl: avatar?.url,
         address: {
           line1: form.line1.trim(), city: form.city.trim(), state: form.state.trim(),
           zip: form.zip.trim(), country: form.country.trim(),
@@ -93,7 +93,6 @@ export default function AccountSetupPage() {
 
   // Everything the account needs before it can book, in the order it appears on the page.
   const required: { key: string; label: string; id: string; ok: boolean }[] = [
-    { key: 'photo', label: 'Profile photo', id: 'photo', ok: !!avatar?.url },
     { key: 'firstName', label: 'Legal first name', id: 'firstName', ok: !!form.firstName.trim() },
     { key: 'lastName', label: 'Legal last name', id: 'lastName', ok: !!form.lastName.trim() },
     { key: 'dateOfBirth', label: 'Date of birth', id: 'dob', ok: !!form.dateOfBirth },
@@ -130,7 +129,7 @@ export default function AccountSetupPage() {
           You must be at least {minAge}.
         </p>
         <p className="mt-2 text-sm">
-          Everything marked <span className="font-bold text-destructive">*</span> is required, including your <span className="font-semibold">profile photo</span>.
+          Everything marked <span className="font-bold text-destructive">*</span> is required. Your profile photo is optional.
         </p>
         <div className="mt-4">
           <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-muted-foreground">
@@ -155,17 +154,13 @@ export default function AccountSetupPage() {
           rendered side by side: the same heading and two near-identical
           descriptions of the same thing, right next to each other.
         */}
-        <div id="photo" className={bad('photo') ? 'rounded-2xl bg-destructive/5 p-3 ring-1 ring-destructive/40' : undefined}>
-          <AvatarUpload
-            url={avatar?.url}
-            name={form.firstName}
-            onChange={setAvatar}
-            required
-            invalid={bad('photo')}
-            hint="A clear photo of your face is required. Hosts use it to recognise you at handover."
-          />
-          {bad('photo') && <p role="alert" className="mt-2 text-xs font-medium text-destructive">Please add a profile photo to continue.</p>}
-        </div>
+        <AvatarUpload
+          url={avatar?.url}
+          name={form.firstName}
+          onChange={setAvatar}
+          optional
+          hint="Optional, but a clear photo of your face helps hosts recognise you at handover."
+        />
 
         {/* Legal identity */}
         <section className="space-y-4">

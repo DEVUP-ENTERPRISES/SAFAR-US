@@ -49,7 +49,7 @@ const onboardingSchema = z.object({
   lastName: z.string().trim().min(1).max(60),
   dateOfBirth: z.string().min(4), // service validates it parses and clears min age
   phone: z.string().trim().min(6).max(20),
-  avatarUrl: z.string().url(),
+  avatarUrl: z.string().url().optional(),
   address: z.object({
     label: z.string().max(40).optional(),
     line1: z.string().trim().min(2).max(200),

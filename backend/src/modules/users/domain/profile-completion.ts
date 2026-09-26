@@ -6,8 +6,8 @@ import type { UserDoc } from '../infrastructure/user.model';
  * A guest can sign up with just an email, but they cannot be handed a car until
  * we hold the identity a rental — and its insurer — actually requires: a legal
  * name that matches a licence, a date of birth that clears the minimum rental
- * age, a reachable phone, a billing/home address, a face on the profile, and an
- * emergency contact. This module is the single source of truth for "is that
+ * age, a reachable phone, a billing/home address, and an emergency contact (a
+ * profile photo is welcome but optional). This module is the single source of truth for "is that
  * set", so the API gate, the onboarding submit and the UI never drift.
  *
  * It is deliberately data-only and side-effect free: it reads a user and the
@@ -24,7 +24,7 @@ export type ProfileField =
   | 'emergencyContact';
 
 export const REQUIRED_PROFILE_FIELDS: readonly ProfileField[] = [
-  'firstName', 'lastName', 'dateOfBirth', 'phone', 'address', 'avatar', 'emergencyContact',
+  'firstName', 'lastName', 'dateOfBirth', 'phone', 'address', 'emergencyContact',
 ] as const;
 
 /** Human copy per field — one place, so API and UI never diverge. */
@@ -81,7 +81,6 @@ export function evaluateProfile(
 
   if (!user.phone?.trim()) missing.push('phone');
   if (!hasUsableAddress(user)) missing.push('address');
-  if (!user.avatarUrl?.trim()) missing.push('avatar');
   if (!(user.emergencyContacts ?? []).some((c) => c && c.name && c.phone)) {
     missing.push('emergencyContact');
   }

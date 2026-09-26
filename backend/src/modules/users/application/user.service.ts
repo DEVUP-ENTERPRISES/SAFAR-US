@@ -14,7 +14,7 @@ export interface OnboardingDto {
   lastName: string;
   dateOfBirth: string;
   phone: string;
-  avatarUrl: string;
+  avatarUrl?: string;
   address: { label?: string; line1: string; city: string; state: string; zip: string; country: string };
   emergencyContact: { name: string; phone: string; relation?: string };
 }
@@ -101,7 +101,7 @@ export class UserService {
             lastName: dto.lastName,
             dateOfBirth: dto.dateOfBirth,
             phone: dto.phone,
-            avatarUrl: dto.avatarUrl,
+            ...(dto.avatarUrl ? { avatarUrl: dto.avatarUrl } : {}),
             // Setup writes the primary/home address and the emergency contact.
             // Replacing keeps re-submits from stacking duplicate rows.
             addresses: [address],

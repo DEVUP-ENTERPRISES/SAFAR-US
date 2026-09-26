@@ -34,7 +34,7 @@ export interface OnboardingInput {
   lastName: string;
   dateOfBirth: string;
   phone: string;
-  avatarUrl: string;
+  avatarUrl?: string;
   address: { label?: string; line1: string; city: string; state: string; zip: string; country: string };
   emergencyContact: { name: string; phone: string; relation?: string };
 }
