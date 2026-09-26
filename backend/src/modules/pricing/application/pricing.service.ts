@@ -54,40 +54,43 @@ export class PricingService implements IPricingContract {
     // Surge is date-scoped (a holiday weekend, a sold-out city), so it must be
     // resolved per day — not once for the whole trip.
     let baseAmount = 0;
-    let days = 0;
     let surgeDays = 0;
     let surgeSource = 'none';
-    const d = new Date(
+    const first = new Date(
       Date.UTC(input.start.getUTCFullYear(), input.start.getUTCMonth(), input.start.getUTCDate()),
     );
     const last = new Date(
       Date.UTC(input.end.getUTCFullYear(), input.end.getUTCMonth(), input.end.getUTCDate()),
     );
-    while (d <= last) {
-      const dow = d.getUTCDay();
+    const tripDays: Date[] = [];
+    for (const d = new Date(first); d <= last; d.setUTCDate(d.getUTCDate() + 1)) tripDays.push(new Date(d));
+
+    // One surge lookup per calendar day, run in parallel — resolved one at a time this made
+    // a two-week trip's quote wait on fourteen sequential round trips (each with its own
+    // occupancy read), which is what made booking, not just pricing, feel like it had hung.
+    const surges = await Promise.all(
+      tripDays.map((day) => surgeService.resolve({ city: v.location?.city, category: v.category, day })),
+    );
+    const days = tripDays.length;
+
+    tripDays.forEach((day, i) => {
+      const dow = day.getUTCDay();
       const isWeekend = dow === 0 || dow === 6;
       const weekendMult = isWeekend ? v.pricing.weekendMultiplierBps : 10000;
-      const seasonalBps = seasonalMultiplierFor(d, v.pricing.seasonalRules);
+      const seasonalBps = seasonalMultiplierFor(day, v.pricing.seasonalRules);
       const seasonalMult = seasonalBps > 0 ? seasonalBps : 10000;
 
-      const surge = await surgeService.resolve({
-        city: v.location?.city,
-        category: v.category,
-        day: new Date(d),
-      });
       // CatoDrive Plus members never pay surge.
-      const surgeMult = member.waiveSurge ? 10000 : surge.multiplierBps;
+      const surgeMult = member.waiveSurge ? 10000 : surges[i].multiplierBps;
       if (surgeMult > 10000) {
         surgeDays++;
-        surgeSource = surge.source;
+        surgeSource = surges[i].source;
       }
 
       baseAmount += Math.round(
         (daily * weekendMult * seasonalMult * surgeMult) / 10000 / 10000 / 10000,
       );
-      days++;
-      d.setUTCDate(d.getUTCDate() + 1);
-    }
+    });
     const base = money(baseAmount, currency);
 
     // ── Length-of-trip discount: monthly beats weekly.
