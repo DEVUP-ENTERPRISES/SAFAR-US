@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Share, Plus, X } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
+import './install-store'; // starts listening for the install event from the first page load
 
 /**
  * The "install this app" prompt — trustworthy, platform-aware, and shown at most

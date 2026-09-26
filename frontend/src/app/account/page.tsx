@@ -16,6 +16,7 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Field } from '@/components/ui/field';
+import { InstallAppCard } from '@/features/pwa/install-app-card';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { enablePush } from '@/features/push/use-push';
@@ -253,6 +254,8 @@ function Account() {
           </div>
         </div>
       </section>
+
+      <InstallAppCard />
 
       {/* Payment methods */}
       <section className="bg-muted/30 rounded-3xl p-6 sm:p-8 border border-border/40">
