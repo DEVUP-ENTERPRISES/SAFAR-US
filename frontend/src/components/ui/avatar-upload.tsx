@@ -21,6 +21,8 @@ export function AvatarUpload({
   size = 96,
   disabled,
   hint,
+  required,
+  invalid,
 }: {
   url?: string | null;
   /** Used for the fallback initial when there's no photo. */
@@ -34,6 +36,10 @@ export function AvatarUpload({
    * the generic file-requirements copy so most callers need nothing here.
    */
   hint?: string;
+  /** Shows a Required tag next to the label. */
+  required?: boolean;
+  /** Rings the picker in red: a required photo is still missing. */
+  invalid?: boolean;
 }) {
   const notify = useToast();
   const [busy, setBusy] = useState(false);
@@ -81,6 +87,7 @@ export function AvatarUpload({
       <label
         className={cn(
           'group relative shrink-0 cursor-pointer overflow-hidden rounded-full border border-border',
+          invalid && 'border-destructive ring-2 ring-destructive/50',
           disabled && 'pointer-events-none opacity-60',
         )}
         style={{ width: size, height: size }}
@@ -109,7 +116,10 @@ export function AvatarUpload({
       </label>
 
       <div className="min-w-0">
-        <p className="text-sm font-medium">Profile photo</p>
+        <p className="flex items-center gap-2 text-sm font-medium">
+          Profile photo
+          {required && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive">Required</span>}
+        </p>
         <p className="text-xs text-muted-foreground">
           {hint ?? 'A clear photo of your face helps guests trust you. JPG, PNG or WebP, up to 8 MB.'}
         </p>
