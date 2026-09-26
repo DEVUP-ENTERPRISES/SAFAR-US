@@ -302,6 +302,9 @@ router.put(
           instantFeeMinCents: cents.optional(),
         })
         .optional(),
+      content: z
+        .object({ bookingQuotes: z.array(z.string().trim().min(3).max(160)).max(12).optional() })
+        .optional(),
       booking: z
         .object({
           hostApprovalHours: z.number().min(1).max(168).optional(),

@@ -426,6 +426,10 @@ export interface PlatformConfigDoc {
     /** The most the platform absorbs when the replacement car costs more (minor units). */
     swapMaxAbsorbCents: number;
   };
+  /** Lines that rotate above the booking calendar; edited in admin, never hardcoded in the app. */
+  content: {
+    bookingQuotes: string[];
+  };
   booking: {
     hostApprovalHours: number;
     verificationGraceHours: number;
@@ -738,6 +742,9 @@ const schema = new Schema<PlatformConfigDoc>(
       swapPolicy: { type: String, enum: ['auto', 'off'], default: 'auto' },
       swapPriceToleranceBps: { type: Number, default: 1500 },
       swapMaxAbsorbCents: { type: Number, default: 5000 },
+    },
+    content: {
+      bookingQuotes: { type: [String], default: undefined },
     },
     booking: {
       hostApprovalHours: { type: Number, default: 24 },

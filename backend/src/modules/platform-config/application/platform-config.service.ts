@@ -17,6 +17,8 @@ import { logger } from '../../../infrastructure/logging/logger';
  * the config layer stays the single source of truth for platform economics —
  * rewards reads whatever is configured, and this is only the starting point.
  */
+import { DEFAULT_BOOKING_QUOTES } from './booking-quotes';
+
 export const DEFAULT_REWARD_TIERS = [
   { key: 'bronze', label: 'Bronze', min: 0, earnMultiplierBps: 10000 },
   { key: 'silver', label: 'Silver', min: 500, earnMultiplierBps: 11000 },
@@ -238,6 +240,7 @@ export class PlatformConfigService {
         // only a non-empty override replaces the default.
         tiers: doc.rewards?.tiers?.length ? doc.rewards.tiers : DEFAULT_REWARD_TIERS,
       },
+      content: { bookingQuotes: doc.content?.bookingQuotes?.length ? doc.content.bookingQuotes : DEFAULT_BOOKING_QUOTES },
       booking: {
         hostApprovalHours: 24,
         verificationGraceHours: 72,

@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils/cn';
 import type { Vehicle } from '@/features/vehicles/types';
 import { usePlatformConfig, leadMinutes } from '@/features/platform/config';
+import { TripQuotes } from './trip-quotes';
 
 /**
  * The availability calendar.
@@ -102,7 +103,7 @@ export function AvailabilityCalendar({
     return cents;
   };
 
-  const { days, monthLabel, cheapest, longestRun, longestFrom, baseline, varies, peak } = useMemo(() => {
+  const { days, monthLabel, cheapest, longestRun, longestFrom } = useMemo(() => {
     const now = new Date();
     const cursor = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
     const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
@@ -227,32 +228,7 @@ export function AvailabilityCalendar({
           </button>
         </div>
 
-        {/*
-          A price on every cell is only information when the prices differ.
-          This platform prices most cars flat, so the grid was repeating the
-          same number thirty times — thirty pieces of chrome carrying one fact,
-          which also forced every cell tall enough to stack two lines and made
-          the whole calendar unusable on a phone.
-
-          The rule is now: say the rate once, above the grid, and mark only the
-          nights that depart from it. Variation becomes visible instead of being
-          buried in uniformity, and a flat month reads as a clean grid of days.
-        */}
-        <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          <span>
-            <span className="numeric font-semibold text-foreground">{money(baseline)}</span> a night
-          </span>
-          {varies && peak > baseline && (
-            <>
-              <span aria-hidden>·</span>
-              <span className="inline-flex items-center gap-1.5">
-                <span aria-hidden className="h-1 w-1 rounded-full bg-warning" />
-                up to <span className="numeric font-semibold text-warning">{money(peak)}</span> on
-                busier nights
-              </span>
-            </>
-          )}
-        </p>
+        <TripQuotes />
 
         <div className="mt-3 grid grid-cols-7 gap-1 sm:gap-1.5">
           {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
@@ -278,7 +254,7 @@ export function AvailabilityCalendar({
                     : d.state === 'notice' ? 'Too soon — this trip needs more notice'
                       : d.state === 'short' ? `Only ${d.runLength} night${d.runLength === 1 ? '' : 's'} free here; minimum is ${minNights}`
                         : d.state === 'past' ? 'In the past'
-                          : `${money(d.priceCents)} a night`
+                          : undefined
                 }
                 className={cn(
                   'flex h-11 flex-col items-center justify-center rounded-lg border text-sm transition-all sm:h-12 sm:rounded-xl',
@@ -306,10 +282,6 @@ export function AvailabilityCalendar({
                 <span className={cn('numeric text-sm font-semibold leading-none', marked && 'text-primary-foreground')}>
                   {d.dom}
                 </span>
-                {/* A premium night is worth a mark — but a dot, not a number. */}
-                {open && varies && d.priceCents > baseline && !marked && (
-                  <span aria-hidden className="mt-1 h-1 w-1 rounded-full bg-warning" />
-                )}
               </button>
             );
           })}

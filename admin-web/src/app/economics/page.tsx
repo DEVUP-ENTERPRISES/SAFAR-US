@@ -94,6 +94,7 @@ export default function AdminEconomicsPage() {
         extension: draft.extension,
         handover: draft.handover,
         security: draft.security,
+        content: { bookingQuotes: (draft.content?.bookingQuotes ?? []).map((l) => l.trim()).filter(Boolean).slice(0, 12) },
       });
     }
   };
@@ -197,6 +198,20 @@ export default function AdminEconomicsPage() {
               onChange={(e) => set((d) => { d.serviceFee.maxCents = Math.round(Number(e.target.value) * 100); })}
             />
           </Field>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-2xl shadow-soft">
+        <CardHeader>
+          <CardTitle>Booking calendar messages</CardTitle>
+          <p className="text-sm text-muted-foreground">One per line. They rotate above the calendar guests pick dates on. Leave empty to use the built-in lines.</p>
+        </CardHeader>
+        <CardContent>
+          <textarea
+            className="min-h-[140px] w-full rounded-lg border border-border bg-background p-3 text-sm"
+            value={(draft.content?.bookingQuotes ?? []).join('\n')}
+            onChange={(e) => set((d) => { d.content = { bookingQuotes: e.target.value.split('\n') }; })}
+          />
         </CardContent>
       </Card>
 

@@ -39,6 +39,7 @@ router.get(
       inspection: cfg.inspection,
       handover: cfg.handover,
       booking: { minLeadMinutes: cfg.booking.minLeadMinutes },
+      content: { bookingQuotes: cfg.content.bookingQuotes },
       // Public by design; a pk_ key identifies the account to Stripe.js and can charge nothing.
       stripe: { publishableKey: config.stripe.publishableKey ?? null },
       protection: cfg.protection,
