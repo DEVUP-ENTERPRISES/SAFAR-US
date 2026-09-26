@@ -29,6 +29,8 @@ import { accountApi } from './api';
  */
 const OPEN_PREFIXES = ['/account/setup', '/login', '/register', '/forgot-password', '/legal', '/privacy', '/terms', '/logout', '/verify-email', '/verify'];
 
+const IN_ADMIN_APP = process.env.NEXT_PUBLIC_APP_SURFACE === 'admin';
+
 export function ProfileGate() {
   const status = useAuthStore((s) => s.status);
   const user = useAuthStore((s) => s.user);
@@ -42,12 +44,12 @@ export function ProfileGate() {
   const { data } = useQuery({
     queryKey: ['profile-status'],
     queryFn: () => accountApi.profileStatus(),
-    enabled: status === 'authenticated' && !isStaff,
+    enabled: status === 'authenticated' && !isStaff && !IN_ADMIN_APP,
     staleTime: 60_000,
   });
 
   useEffect(() => {
-    if (status === 'authenticated' && !isStaff && data && !data.complete && !onOpenPath) {
+    if (!IN_ADMIN_APP && status === 'authenticated' && !isStaff && data && !data.complete && !onOpenPath) {
       router.replace('/account/setup');
     }
   }, [status, isStaff, data, onOpenPath, router]);

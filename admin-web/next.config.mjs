@@ -20,6 +20,8 @@ const nextConfig = {
   // Don't send the X-Powered-By: Next.js header — no need to announce the stack.
   poweredByHeader: false,
   output: 'standalone',
+  // Lets shared code know it is running in the console, which has no guest account-setup page to send anyone to.
+  env: { NEXT_PUBLIC_APP_SURFACE: 'admin' },
   experimental: { externalDir: true },
   images: {
     remotePatterns: [
