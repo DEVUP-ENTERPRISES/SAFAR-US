@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, Sparkles, CreditCard, AlertTriangle } from 'lucide-react';
+import { Check, CreditCard, AlertTriangle } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils/cn';
 import { ApiError } from '@/lib/api/types';
 import { subscriptionApi, describeBenefits, type Plan } from '@/features/subscriptions/api';
+import { ProBadge } from '@/features/subscriptions/member-ui';
 
 const money = (c: number) => `$${(c / 100).toFixed(c % 100 === 0 ? 0 : 2)}`;
 
@@ -74,6 +75,7 @@ function Membership() {
   };
 
   const active = mine.data && mine.data.status === 'active' ? mine.data : null;
+  const savings = useQuery({ queryKey: ['my-savings'], queryFn: () => subscriptionApi.savings(), enabled: !!active, retry: false });
   const list = (plans.data ?? []).filter((p) => p.active).sort((a, b) => a.priceCents - b.priceCents);
 
   return (
@@ -86,12 +88,16 @@ function Membership() {
       {/* Current membership first: someone who already pays is here to manage
           it, not to be sold to again. */}
       {active && (
-        <Card className="border-primary/40 bg-primary/5">
-          <CardContent className="flex flex-wrap items-start justify-between gap-4 py-5">
+        <Card className="overflow-hidden border-amber-400/50 bg-gradient-to-br from-amber-400/20 via-amber-300/5 to-transparent">
+          <CardContent className="flex flex-wrap items-start justify-between gap-4 py-6">
             <div>
-              <p className="flex items-center gap-2 font-semibold">
-                <Sparkles className="h-5 w-5 text-primary" />
-                You are on {list.find((p) => p.code === active.planCode)?.name ?? active.planCode}
+              <p className="flex flex-wrap items-center gap-2 text-lg font-bold">
+                <ProBadge /> {list.find((p) => p.code === active.planCode)?.name ?? active.planCode}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {savings.data && savings.data.totalCents > 0
+                  ? <>You have saved <span className="font-bold text-amber-500">{money(savings.data.totalCents)}</span> across {savings.data.trips} {savings.data.trips === 1 ? 'trip' : 'trips'}.</>
+                  : 'Your perks apply to every car you book, automatically.'}
               </p>
               <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
                 {describeBenefits(active.benefitsSnapshot).map((b) => (

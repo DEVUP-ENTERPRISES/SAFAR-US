@@ -139,6 +139,16 @@ export class SubscriptionService {
     return sub.toObject();
   }
 
+  /** What membership has actually saved this member on trips that went ahead. */
+  async savingsFor(userId: string): Promise<{ totalCents: number; trips: number }> {
+    const { BookingModel } = await import('../../bookings/infrastructure/booking.model');
+    const [row] = await BookingModel.aggregate<{ total: number; trips: number }>([
+      { $match: { guestId: userId, status: { $in: ['paid', 'confirmed', 'in_progress', 'completed'] }, 'priceBreakdown.memberSavings.amount': { $gt: 0 } } },
+      { $group: { _id: null, total: { $sum: '$priceBreakdown.memberSavings.amount' }, trips: { $sum: 1 } } },
+    ]);
+    return { totalCents: row?.total ?? 0, trips: row?.trips ?? 0 };
+  }
+
   async cancel(userId: string): Promise<void> {
     const sub = await this.activeFor(userId);
     if (!sub) throw new NotFoundError('Active membership');

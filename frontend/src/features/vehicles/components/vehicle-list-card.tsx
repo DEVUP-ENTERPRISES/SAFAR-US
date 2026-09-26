@@ -7,6 +7,8 @@ import { formatMoney } from '@/lib/utils/format';
 import { WishlistButton } from '@/features/favorites/wishlist-button';
 import type { Vehicle } from '../types';
 import { VehicleRating, FleetBadge } from './vehicle-rating';
+import { DailyPrice, ProBadge } from '@/features/subscriptions/member-ui';
+import { useMembership } from '@/features/subscriptions/hooks';
 
 /**
  * Horizontal result card — photo left, details right, price bottom-right —
@@ -27,7 +29,9 @@ export function VehicleListCard({
 }) {
   const cover = vehicle.photos?.find((p) => p.isCover)?.url ?? vehicle.photos?.[0]?.url;
   const unlimited = !vehicle.mileageLimit?.perDayKm;
-  const total = days ? vehicle.pricing.dailyPrice * days + (vehicle.pricing.cleaningFee ?? 0) : null;
+  const { benefits } = useMembership();
+  const off = benefits?.bookingDiscountBps ?? 0;
+  const total = days ? Math.round((vehicle.pricing.dailyPrice * days * (10_000 - off)) / 10_000) + (vehicle.pricing.cleaningFee ?? 0) : null;
 
   return (
     <Link
@@ -105,12 +109,13 @@ export function VehicleListCard({
               <>
                 <p className="font-bold">
                   {formatMoney({ amount: total, currency: vehicle.pricing.currency })} <span className="font-semibold">total</span>
+                  {off > 0 && <ProBadge className="ms-1.5 align-middle" label={`−${(off / 100).toFixed(0)}%`} />}
                 </p>
                 <p className="text-xs text-muted-foreground">Before taxes</p>
               </>
             ) : (
               <p className="font-bold">
-                {formatMoney({ amount: vehicle.pricing.dailyPrice, currency: vehicle.pricing.currency })}
+                <DailyPrice amount={vehicle.pricing.dailyPrice} currency={vehicle.pricing.currency} />
                 <span className="font-medium text-muted-foreground"> / day</span>
               </p>
             )}

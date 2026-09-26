@@ -16,6 +16,8 @@ import { formatMoney, kmToMiles, perKmToPerMile, FUEL_LABEL } from '@/lib/utils/
 import { HostProfileCard, useHostPublicProfile } from '@/features/host/components/host-profile-card';
 import { AskHostPanel } from '@/features/vehicles/components/ask-host-panel';
 import { DemandBadge } from '@/features/vehicles/components/demand-badge';
+import { DailyPrice, MemberBanner, ProBadge } from '@/features/subscriptions/member-ui';
+import { useMembership } from '@/features/subscriptions/hooks';
 import { VehicleRating, VehicleBadges } from '@/features/vehicles/components/vehicle-rating';
 import { cn } from '@/lib/utils/cn';
 import { api } from '@/lib/api/client';
@@ -95,6 +97,7 @@ export default function VehicleDetailPage() {
   // guest has to scroll past the reviews to reach.
   const [sheetOpen, setSheetOpen] = useState(false);
   const quote = useQuote();
+  const membership = useMembership();
   // While the sheet is up it owns the screen: the page behind it must not
   // scroll (otherwise flicking the sheet scrolls the reviews underneath), and
   // Escape has to close it like any other dialog.
@@ -783,9 +786,7 @@ export default function VehicleDetailPage() {
           <div className="space-y-6">
             <div className="flex items-baseline justify-between gap-2">
               <span className="flex items-baseline gap-1">
-                <span className="text-2xl font-extrabold tracking-tight">
-                  {formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency })}
-                </span>
+                <DailyPrice amount={v.pricing.dailyPrice} currency={v.pricing.currency} className="text-2xl font-extrabold tracking-tight" />
                 <span className="text-[15px] text-muted-foreground font-medium">/ day</span>
               </span>
             </div>
@@ -1039,6 +1040,8 @@ export default function VehicleDetailPage() {
               </div>
             </div>
 
+            <MemberBanner />
+
             <Button variant="outline" className="w-full" disabled={!canQuote} loading={quote.isPending} onClick={runQuote}>
               Get price
             </Button>
@@ -1054,10 +1057,16 @@ export default function VehicleDetailPage() {
                 {quote.data.selectedAddOns?.map((a) => <Row key={a.code} label={a.label} value={formatMoney(a.amount)} />)}
                 {quote.data.protection.amount > 0 && <Row label="Protection" value={formatMoney(quote.data.protection)} />}
                 {quote.data.serviceFee?.amount > 0 && <Row label="Service fee" value={formatMoney(quote.data.serviceFee)} />}
+                {quote.data.serviceFee?.amount === 0 && membership.benefits?.waiveServiceFee && <Row label="Service fee" value="Waived · PRO" />}
                 {quote.data.discount.amount > 0 && <Row label="Discount" value={`−${formatMoney(quote.data.discount)}`} />}
                 <div className="mt-2 flex justify-between border-t border-border pt-2 font-semibold">
                   <span>Total</span><span>{formatMoney(quote.data.total)}</span>
                 </div>
+                {quote.data.memberSavings && quote.data.memberSavings.amount > 0 && (
+                  <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-400/15 px-2.5 py-1.5 text-[13px] font-semibold text-amber-600 dark:text-amber-400">
+                    <ProBadge /> You save {formatMoney(quote.data.memberSavings)} on this trip
+                  </p>
+                )}
 
                 {/* The real saving on this real trip. A pricing page asks
                     someone to do this arithmetic themselves; the server has
@@ -1169,7 +1178,7 @@ export default function VehicleDetailPage() {
           ) : (
             <>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-bold">{formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency })}</span>
+                <DailyPrice amount={v.pricing.dailyPrice} currency={v.pricing.currency} className="text-xl font-bold" />
                 <span className="text-[15px] font-medium text-muted-foreground">/ day</span>
               </div>
               <p className="mt-0.5 text-[13px] font-medium text-muted-foreground">Add dates for a total</p>

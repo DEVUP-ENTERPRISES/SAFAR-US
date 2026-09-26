@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
+import { ProBadge } from '@/features/subscriptions/member-ui';
+import { useMembership } from '@/features/subscriptions/hooks';
 import { NotificationBell } from './notification-bell';
 import { SearchBarFields } from '@/features/search/search-bar-fields';
 
@@ -20,6 +22,7 @@ export function Navbar() {
   const { status } = useAuthStore();
   const pathname = usePathname();
   const authed = status === 'authenticated';
+  const { isMember } = useMembership();
   const isHost = useIsHost();
   const isAssetPartner = useIsAssetPartner();
   const isSearch = pathname === '/search';
@@ -172,6 +175,7 @@ export function Navbar() {
           {authed ? (
             <div className="ms-1 flex items-center gap-1">
               <NotificationBell />
+              {isMember && <ProBadge className="hidden sm:inline-flex" />}
               <UserMenu />
             </div>
           ) : (

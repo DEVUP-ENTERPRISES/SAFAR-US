@@ -39,6 +39,7 @@ export interface MySubscription {
 export const subscriptionApi = {
   plans: () => api.get<Plan[]>('/subscriptions/plans', undefined, false),
   mine: () => api.get<MySubscription | null>('/subscriptions/me'),
+  savings: () => api.get<{ totalCents: number; trips: number }>('/subscriptions/me/savings'),
   subscribe: (planCode: string) => api.post<MySubscription>('/subscriptions/subscribe', { planCode }),
   cancel: () => api.post<{ cancelled: boolean }>('/subscriptions/cancel', {}),
 };

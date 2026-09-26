@@ -3,6 +3,7 @@ jest.mock('../../payments/infrastructure/gateway.provider', () => ({ paymentGate
 import { subscriptionService } from './subscription.service';
 import { rewardsService } from '../../rewards/application/rewards.service';
 import { RewardEntryModel } from '../../rewards/infrastructure/reward.model';
+import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { UserSubscriptionModel } from '../infrastructure/subscription.model';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
 
@@ -38,5 +39,19 @@ describe('membership benefits', () => {
     const p1 = (await RewardEntryModel.findOne({ userId: 'u1' }).lean())!.points;
     const p2 = (await RewardEntryModel.findOne({ userId: 'u2' }).lean())!.points;
     expect(p1).toBe(p2 * 2);
+  });
+});
+
+describe('member savings so far', () => {
+  it('adds up what membership saved on trips that went ahead, and ignores cancelled ones', async () => {
+    const mk = (id: string, status: string, saved: number) => BookingModel.create({
+      _id: id, code: id, guestId: 'u1', hostId: 'h', vehicleId: 'v', status, cancellationPolicy: 'flexible',
+      period: { start: new Date(), end: new Date(Date.now() + DAY) },
+      priceBreakdown: { days: 1, currency: 'USD', total: { amount: 10_000, currency: 'USD' }, memberSavings: { amount: saved, currency: 'USD' } },
+    });
+    await mk('b1', 'completed', 1_500);
+    await mk('b2', 'paid', 500);
+    await mk('b3', 'cancelled_guest', 900);
+    expect(await subscriptionService.savingsFor('u1')).toEqual({ totalCents: 2_000, trips: 2 });
   });
 });

@@ -25,6 +25,14 @@ router.get(
   }),
 );
 
+router.get(
+  '/me/savings',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await subscriptionService.savingsFor(req.principal!.userId));
+  }),
+);
+
 router.post(
   '/subscribe',
   authenticate,

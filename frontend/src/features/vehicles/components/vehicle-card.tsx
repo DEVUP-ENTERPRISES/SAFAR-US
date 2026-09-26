@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { Users, Settings2, Zap, Award } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { formatMoney } from '@/lib/utils/format';
 import { WishlistButton } from '@/features/favorites/wishlist-button';
 import { CompareButton } from './compare-button';
 import type { Vehicle } from '../types';
 import { VehicleRating, FleetBadge } from './vehicle-rating';
+import { DailyPrice } from '@/features/subscriptions/member-ui';
 
 export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; className?: string }) {
   const cover = vehicle.photos?.find((p) => p.isCover)?.url ?? vehicle.photos?.[0]?.url;
@@ -106,9 +106,7 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
             <div className="flex items-end gap-1.5 border-t border-border/50 pt-3">
               {/* Price is data. Tabular figures keep it from shuffling
                   sideways as digits change across a grid of cards. */}
-              <span className="numeric text-2xl font-semibold text-foreground">
-                {formatMoney({ amount: vehicle.pricing.dailyPrice, currency: vehicle.pricing.currency })}
-              </span>
+              <DailyPrice amount={vehicle.pricing.dailyPrice} currency={vehicle.pricing.currency} className="numeric text-2xl font-semibold text-foreground" />
               <span className="text-sm font-medium text-muted-foreground pb-1">/ day</span>
             </div>
           </div>
