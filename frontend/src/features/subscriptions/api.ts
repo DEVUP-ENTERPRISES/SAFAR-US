@@ -5,6 +5,8 @@ export interface PlanBenefits {
   bookingDiscountBps: number;
   /** Surge pricing never applies to this member. */
   waiveSurge: boolean;
+  /** The platform service fee is never charged. */
+  waiveServiceFee?: boolean;
   /** Protection tier included at no charge. */
   freeProtectionCode?: string;
   /** 20000 = 2x reward points. */
@@ -46,6 +48,7 @@ export function describeBenefits(b: PlanBenefits): string[] {
   const out: string[] = [];
   if (b.bookingDiscountBps > 0) out.push(`${(b.bookingDiscountBps / 100).toFixed(0)}% off every trip`);
   if (b.waiveSurge) out.push('Never pay surge pricing');
+  if (b.waiveServiceFee) out.push('No service fee');
   if (b.freeProtectionCode) out.push(`${b.freeProtectionCode} protection included free`);
   if (b.rewardsMultiplierBps > 10_000) {
     out.push(`${(b.rewardsMultiplierBps / 10_000).toFixed(b.rewardsMultiplierBps % 10_000 === 0 ? 0 : 1)}x reward points`);

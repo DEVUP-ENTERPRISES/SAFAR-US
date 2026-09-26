@@ -47,7 +47,7 @@ export class PricingService implements IPricingContract {
     // Membership (CatoDrive Plus) benefits — resolved once, applied throughout.
     const member = input.guestId
       ? await subscriptionService.benefitsFor(input.guestId)
-      : { bookingDiscountBps: 0, waiveSurge: false, rewardsMultiplierBps: 10000 };
+      : { bookingDiscountBps: 0, waiveSurge: false, waiveServiceFee: false, rewardsMultiplierBps: 10000 };
     const memberSub = input.guestId ? await subscriptionService.activeFor(input.guestId) : null;
 
     // ── Per-day base: weekend + seasonal + SURGE, applied per calendar day.
@@ -236,7 +236,7 @@ export class PricingService implements IPricingContract {
      * and deliberately NOT part of the taxable subtotal: it is our fee, not
      * part of the rental the state levies on.
      */
-    const serviceFee = computeServiceFee(subtotal, cfg.serviceFee, !input.skipOneTimeFees);
+    const serviceFee = member.waiveServiceFee ? zeroMoney(currency) : computeServiceFee(subtotal, cfg.serviceFee, !input.skipOneTimeFees);
 
     // Guest pays host-side + protection + service fee + rental tax.
     const total = addMoney(addMoney(addMoney(subtotal, protection), serviceFee), taxTotal);

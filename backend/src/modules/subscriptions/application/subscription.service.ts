@@ -16,6 +16,7 @@ import { logger } from '../../../infrastructure/logging/logger';
 const NO_BENEFITS: SubscriptionPlanDoc['benefits'] = {
   bookingDiscountBps: 0,
   waiveSurge: false,
+  waiveServiceFee: false,
   rewardsMultiplierBps: 10000,
 };
 
@@ -50,7 +51,8 @@ export class SubscriptionService {
   }
 
   async activeFor(userId: string): Promise<UserSubscriptionDoc | null> {
-    const sub = await UserSubscriptionModel.findOne({ userId, status: 'active' }).lean<UserSubscriptionDoc>();
+    // A cancelled membership keeps its benefits until the period already paid for ends.
+    const sub = await UserSubscriptionModel.findOne({ userId, status: { $in: ['active', 'cancelled'] }, renewsAt: { $gt: new Date() } }).sort({ renewsAt: -1 }).lean<UserSubscriptionDoc>();
     if (!sub) return null;
     // Lazily expire — no cron needed for correctness.
     if (+new Date(sub.renewsAt) < Date.now()) {
@@ -63,7 +65,12 @@ export class SubscriptionService {
   /** Buy a membership. Charges the card and books it through the ledger. */
   async subscribe(userId: string, planCode: string): Promise<UserSubscriptionDoc> {
     const existing = await this.activeFor(userId);
-    if (existing) throw new ConflictError('You already have an active membership', 'ALREADY_SUBSCRIBED');
+    if (existing) {
+      throw new ConflictError(
+        existing.status === 'cancelled' ? 'Your membership is cancelled but still running until the end of the period you paid for.' : 'You already have an active membership',
+        'ALREADY_SUBSCRIBED',
+      );
+    }
 
     const plan = await SubscriptionPlanModel.findOne({ code: planCode, active: true }).lean<SubscriptionPlanDoc>();
     if (!plan) throw new NotFoundError('Subscription plan');

@@ -19,6 +19,8 @@ export interface SubscriptionPlanDoc {
     bookingDiscountBps: number;
     /** Guest is never charged surge (price caps at 1.0x). */
     waiveSurge: boolean;
+    /** Guest never pays the platform service fee. */
+    waiveServiceFee?: boolean;
     /** This protection tier is included free (e.g. 'standard'). */
     freeProtectionCode?: string;
     /** Multiplier on reward points earned. 20000 = 2x points. */
@@ -39,6 +41,7 @@ const planSchema = new Schema<SubscriptionPlanDoc>(
     benefits: {
       bookingDiscountBps: { type: Number, default: 0 },
       waiveSurge: { type: Boolean, default: false },
+      waiveServiceFee: { type: Boolean, default: false },
       freeProtectionCode: String,
       rewardsMultiplierBps: { type: Number, default: 10000 },
     },
@@ -74,6 +77,7 @@ const subSchema = new Schema<UserSubscriptionDoc>(
     benefitsSnapshot: {
       bookingDiscountBps: Number,
       waiveSurge: Boolean,
+      waiveServiceFee: Boolean,
       freeProtectionCode: String,
       rewardsMultiplierBps: Number,
     },

@@ -4,6 +4,7 @@ import { Account } from '../../payments/domain/ledger.accounts';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { ConflictError, ValidationError } from '../../../core/errors/app-error';
 import { kv } from '../../../infrastructure/cache/kv-store';
+import { subscriptionService } from '../../subscriptions/application/subscription.service';
 
 export interface Tier {
   key: string;
@@ -72,7 +73,9 @@ export class RewardsService {
     }
     const lifetime = await this.lifetime(userId);
     const tier = await this.tierFor(lifetime);
-    const points = Math.round((basePoints * tier.earnMultiplierBps) / 10000);
+    // Trip points scale with the membership too (2x for CATO Plus); bonuses and referral points do not.
+    const memberBps = type === 'earn' ? (await subscriptionService.benefitsFor(userId)).rewardsMultiplierBps : 10000;
+    const points = Math.round((basePoints * tier.earnMultiplierBps * memberBps) / 10000 / 10000);
     await RewardEntryModel.create({ userId, points, type, refType, refId, description });
   }
 

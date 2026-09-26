@@ -183,7 +183,7 @@ export interface Occupancy {
 }
 export interface SubscriptionPlan {
   _id: string; code: string; name: string; description: string; priceCents: number; active: boolean;
-  benefits: { bookingDiscountBps: number; waiveSurge: boolean; freeProtectionCode?: string; rewardsMultiplierBps: number };
+  benefits: { bookingDiscountBps: number; waiveSurge: boolean; waiveServiceFee?: boolean; freeProtectionCode?: string; rewardsMultiplierBps: number };
 }
 export interface SubscriptionStat { planCode: string; members: number; mrrCents: number }
 export interface SlaStats {

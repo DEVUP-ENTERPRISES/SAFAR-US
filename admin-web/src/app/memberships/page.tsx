@@ -171,6 +171,12 @@ export default function AdminMembershipsPage() {
                   Never pay surge pricing
                 </label>
                 <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!d.benefits.waiveServiceFee}
+                    onChange={(e) => edit(p, (x) => { x.benefits.waiveServiceFee = e.target.checked; })}
+                    className="accent-[hsl(var(--primary))]" />
+                  No service fee
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
                   <input type="checkbox" checked={d.active}
                     onChange={(e) => edit(p, (x) => { x.active = e.target.checked; })}
                     className="accent-[hsl(var(--primary))]" />

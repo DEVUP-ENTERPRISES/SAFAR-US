@@ -95,6 +95,7 @@ router.put(
         .object({
           bookingDiscountBps: z.number().int().min(0).max(5000).optional(),
           waiveSurge: z.boolean().optional(),
+          waiveServiceFee: z.boolean().optional(),
           freeProtectionCode: z.string().optional(),
           rewardsMultiplierBps: z.number().int().min(10000).max(50000).optional(),
         })
