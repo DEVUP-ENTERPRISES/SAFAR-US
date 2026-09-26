@@ -127,6 +127,15 @@ router.post(
   }),
 );
 
+router.patch(
+  '/me/addresses/:id',
+  authenticate,
+  validate({ body: addressSchema.partial() }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await userService.updateAddress(req.principal!.userId, req.params.id, req.body));
+  }),
+);
+
 router.delete(
   '/me/addresses/:id',
   authenticate,

@@ -156,6 +156,22 @@ export class UserService {
     return this.get(userId);
   }
 
+  /** Change a saved address in place (street, unit, city, state, ZIP); optionally make it the main one. */
+  async updateAddress(
+    userId: string,
+    addressId: string,
+    patch: Partial<Pick<Address, 'line1' | 'line2' | 'city' | 'state' | 'zip' | 'country' | 'label'>> & { isDefault?: boolean },
+  ): Promise<UserDoc> {
+    const user = await this.get(userId);
+    const target = user.addresses.find((a) => a.id === addressId);
+    if (!target) throw new NotFoundError('Address');
+    const { isDefault, line2, label, ...rest } = patch;
+    Object.assign(target, rest, { line2: line2?.trim() || undefined }, label?.trim() ? { label: label.trim() } : {});
+    if (isDefault) user.addresses.forEach((a) => (a.isDefault = a.id === addressId));
+    await UserModel.updateOne({ _id: userId }, { $set: { addresses: user.addresses } });
+    return this.get(userId);
+  }
+
   async removeAddress(userId: string, addressId: string): Promise<UserDoc> {
     const user = await this.get(userId);
     const remaining = user.addresses.filter((a) => a.id !== addressId);

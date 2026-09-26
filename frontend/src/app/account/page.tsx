@@ -47,9 +47,15 @@ function Account() {
   });
 
   const [addr, setAddr] = useState({ line1: '', line2: '', city: '', state: '', zip: '' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [makeMain, setMakeMain] = useState(true);
+  const resetAddr = () => { setAddr({ line1: '', line2: '', city: '', state: '', zip: '' }); setEditingId(null); setMakeMain(true); };
   const addAddress = useMutation({
-    mutationFn: () => accountApi.addAddress({ ...addr, line1: addr.line1.trim(), line2: addr.line2.trim() || undefined, country: 'US' }),
-    onSuccess: () => { setAddr({ line1: '', line2: '', city: '', state: '', zip: '' }); refreshMe(); },
+    mutationFn: () => {
+      const body = { line1: addr.line1.trim(), line2: addr.line2.trim() || undefined, city: addr.city.trim(), state: addr.state.trim(), zip: addr.zip.trim(), country: 'US', isDefault: makeMain };
+      return editingId ? accountApi.updateAddress(editingId, body) : accountApi.addAddress(body);
+    },
+    onSuccess: () => { resetAddr(); refreshMe(); qc.invalidateQueries({ queryKey: ['profile-status'] }); },
   });
   const removeAddress = useMutation({ mutationFn: (id: string) => accountApi.removeAddress(id), onSuccess: refreshMe });
   const defaultAddress = useMutation({ mutationFn: (id: string) => accountApi.setDefaultAddress(id), onSuccess: refreshMe });
@@ -147,12 +153,14 @@ function Account() {
                 <p className="mt-1.5 text-sm font-medium text-muted-foreground">{[a.city, [a.state, a.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')}</p>
               </div>
               <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="rounded-full font-semibold" onClick={() => { setAddr({ line1: a.line1, line2: a.line2 ?? '', city: a.city, state: a.state, zip: a.zip }); setEditingId(a.id); setMakeMain(a.isDefault); document.getElementById('address-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>Edit</Button>
                 {!a.isDefault && <Button size="sm" variant="outline" className="rounded-full font-semibold" onClick={() => defaultAddress.mutate(a.id)}>Set default</Button>}
                 <Button size="icon" variant="ghost" className="text-destructive rounded-full hover:bg-destructive/10" onClick={async () => { const { ok } = await confirm({ title: `Remove "${a.line1}"?`, description: 'This saved address will be deleted.', confirmLabel: 'Remove address', tone: 'destructive' }); if (ok) removeAddress.mutate(a.id); }}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           ))}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mt-4">
+          <p id="address-form" className="mt-4 text-sm font-semibold">{editingId ? 'Edit address' : 'Add a new address'}</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Field label="Address" required className="col-span-2">
               <Input className="h-12 rounded-xl" placeholder="Street address" autoComplete="address-line1" value={addr.line1} onChange={(e) => setAddr({ ...addr, line1: e.target.value })} />
             </Field>
@@ -169,7 +177,14 @@ function Account() {
               <Input className="h-12 rounded-xl" autoComplete="postal-code" value={addr.zip} onChange={(e) => setAddr({ ...addr, zip: e.target.value })} />
             </Field>
           </div>
-          <Button size="lg" className="rounded-xl w-full sm:w-auto font-bold mt-2" disabled={!addr.line1.trim() || !addr.city.trim() || !addr.state.trim() || !addr.zip.trim()} loading={addAddress.isPending} onClick={() => addAddress.mutate()}>Add address</Button>
+          <label className="mt-1 flex cursor-pointer items-center gap-2 text-sm">
+            <input type="checkbox" checked={makeMain} onChange={(e) => setMakeMain(e.target.checked)} className="accent-[hsl(var(--primary))]" />
+            Use this as my main address (shown when verifying your identity)
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <Button size="lg" className="rounded-xl w-full sm:w-auto font-bold mt-2" disabled={!addr.line1.trim() || !addr.city.trim() || !addr.state.trim() || !addr.zip.trim()} loading={addAddress.isPending} onClick={() => addAddress.mutate()}>{editingId ? 'Save changes' : 'Add address'}</Button>
+            {editingId && <Button size="lg" variant="outline" className="rounded-xl mt-2" onClick={resetAddr}>Cancel</Button>}
+          </div>
         </div>
       </section>
 

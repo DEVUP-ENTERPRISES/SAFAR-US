@@ -51,6 +51,8 @@ export const accountApi = {
 
   addAddress: (a: Omit<Address, 'id' | 'isDefault' | 'label'> & { label?: string; isDefault?: boolean }) =>
     api.post<Me>('/users/me/addresses', a),
+  updateAddress: (id: string, a: Partial<Pick<Address, 'line1' | 'line2' | 'city' | 'state' | 'zip' | 'country'>> & { isDefault?: boolean }) =>
+    api.patch<Me>(`/users/me/addresses/${id}`, a),
   removeAddress: (id: string) => api.delete<Me>(`/users/me/addresses/${id}`),
   setDefaultAddress: (id: string) => api.post<Me>(`/users/me/addresses/${id}/default`),
 
