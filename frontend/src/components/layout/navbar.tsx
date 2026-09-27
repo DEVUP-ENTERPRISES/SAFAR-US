@@ -85,7 +85,7 @@ export function Navbar() {
             {/* `xs:` isn't a breakpoint this project defines, so this was
                 permanently hidden regardless of screen size - `sm:` matches
                 the hamburger toggle's own breakpoint just above. */}
-            <span className="display truncate text-xl tracking-tight hidden sm:block">{config.appName}</span>
+            <span className="display truncate text-xl tracking-tight">{config.appName}</span>
           </Link>
         </div>
 
@@ -168,7 +168,7 @@ export function Navbar() {
             </>
           )}
 
-          <div className="hidden sm:flex items-center justify-center h-8 w-8 rounded-full hover:bg-accent transition-colors ms-1">
+          <div className="flex items-center justify-center h-8 w-8 rounded-full hover:bg-accent transition-colors ms-1">
             <ThemeToggle />
           </div>
 

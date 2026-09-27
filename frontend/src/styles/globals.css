@@ -107,6 +107,26 @@ html {
   /* No rubber-band / drift: the page can only scroll straight up and down,
      it can't be dragged around or bounce at the edges. */
   overscroll-behavior: none;
+  
+  /* Custom Scrollbar - Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.5) transparent;
+}
+
+/* Custom Scrollbar - WebKit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.5);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary));
 }
 
 body {

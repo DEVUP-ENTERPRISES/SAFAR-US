@@ -129,56 +129,61 @@ export function SearchBarFields({
 
       {/* ── Popovers ── */}
       {open === 'where' && (
-        <Panel flow={calendarPlacement === 'flow'}>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Cities with cars</p>
-          {cities.length === 0 ? (
-            <p className="py-2 text-sm text-muted-foreground">
-              {facets.isPending ? 'Loading…' : 'No cars listed yet.'}
-            </p>
-          ) : (
-            <ul className="-mx-2">
-              {cities.map((c) => {
-                const on = (s.center?.label ?? activeCity?.city) === c.city;
-                return (
-                  <li key={c.city}>
-                    <button
-                      onClick={() => { s.patch({ city: c.city, center: null }); setOpen('when'); }}
-                      className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-start transition-colors hover:bg-muted"
-                    >
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-medium">{c.city}</span>
-                        {/* The price is what someone picks a city on. A raw
-                            count answers a question nobody asked, and a "1"
-                            beside a city reads as an empty marketplace. */}
-                        <span className="block text-xs text-muted-foreground">
-                          From <span className="numeric font-medium text-foreground">${Math.round(c.fromPrice / 100)}</span> a day
+        <>
+          {/* Mobile backdrop */}
+          <div className="fixed inset-0 z-40 bg-black/40 sm:hidden" onClick={() => setOpen(null)} />
+          <Panel flow={calendarPlacement === 'flow'}>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Cities with cars</p>
+            {cities.length === 0 ? (
+              <p className="py-2 text-sm text-muted-foreground">
+                {facets.isPending ? 'Loading…' : 'No cars listed yet.'}
+              </p>
+            ) : (
+              <ul className="-mx-2">
+                {cities.map((c) => {
+                  const on = (s.center?.label ?? activeCity?.city) === c.city;
+                  return (
+                    <li key={c.city}>
+                      <button
+                        onClick={() => { s.patch({ city: c.city, center: null }); setOpen('when'); }}
+                        className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-start transition-colors hover:bg-muted"
+                      >
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
                         </span>
-                      </span>
-                      {on && <Check className="h-4 w-4 shrink-0 text-primary" />}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Panel>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-medium">{c.city}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            From <span className="numeric font-medium text-foreground">${Math.round(c.fromPrice / 100)}</span> a day
+                          </span>
+                        </span>
+                        {on && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Panel>
+        </>
       )}
 
       {open === 'when' && (
-        <Panel flow={calendarPlacement === 'flow'}>
-          <DateRangePicker
-            from={s.fromDate}
-            to={s.untilDate}
-            onChange={(f, t) => s.patch({ fromDate: f, untilDate: t })}
-          />
-          <div className="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-3">
-            <TimeField label="Pick-up" value={s.fromTime} onChange={(v) => s.patch({ fromTime: v })} />
-            <TimeField label="Return" value={s.untilTime} onChange={(v) => s.patch({ untilTime: v })} />
-          </div>
-        </Panel>
+        <>
+          {/* Mobile backdrop */}
+          <div className="fixed inset-0 z-40 bg-black/40 sm:hidden" onClick={() => setOpen(null)} />
+          <Panel flow={calendarPlacement === 'flow'}>
+            <DateRangePicker
+              from={s.fromDate}
+              to={s.untilDate}
+              onChange={(f, t) => s.patch({ fromDate: f, untilDate: t })}
+            />
+            <div className="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-3">
+              <TimeField label="Pick-up" value={s.fromTime} onChange={(v) => s.patch({ fromTime: v })} />
+              <TimeField label="Return" value={s.untilTime} onChange={(v) => s.patch({ untilTime: v })} />
+            </div>
+          </Panel>
+        </>
       )}
 
     </div>
@@ -216,13 +221,29 @@ function Field({
 }
 
 function Panel({ children, flow = false }: { children: React.ReactNode; flow?: boolean }) {
+  if (flow) {
+    return (
+      <div className="relative z-50 mt-3 max-h-[min(38rem,calc(100vh-7rem))] overflow-auto rounded-2xl border border-border bg-card p-4 shadow-2xl ring-1 ring-black/5">
+        {children}
+      </div>
+    );
+  }
+
   return (
-    <div className={cn(
-      'z-50 mt-3 max-h-[min(38rem,calc(100vh-7rem))] overflow-auto rounded-2xl border border-border bg-card p-4 shadow-2xl ring-1 ring-black/5 sm:w-auto sm:min-w-[24rem]',
-      flow ? 'relative' : 'absolute inset-x-0 top-full sm:inset-x-auto sm:start-0',
-    )}>
-      {children}
-    </div>
+    <>
+      {/* Mobile: fixed bottom sheet so it never hides behind the tab bar */}
+      <div className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl border-t border-border bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl sm:hidden"
+        style={{ maxHeight: 'calc(100dvh - 5rem)' }}
+      >
+        {/* Drag handle */}
+        <div className="mx-auto mb-4 h-1 w-10 shrink-0 rounded-full bg-border" />
+        <div className="overflow-auto">{children}</div>
+      </div>
+      {/* Desktop: absolute popover below the bar */}
+      <div className="absolute inset-x-0 top-full z-50 mt-3 hidden max-h-[min(38rem,calc(100vh-7rem))] w-fit overflow-auto rounded-2xl border border-border bg-card p-4 shadow-2xl ring-1 ring-black/5 sm:block sm:inset-x-auto sm:start-0">
+        {children}
+      </div>
+    </>
   );
 }
 

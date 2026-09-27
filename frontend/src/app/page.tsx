@@ -46,39 +46,7 @@ const RESERVATION_TRUST = [
   { icon: ClipboardList, label: 'Everything on the reservation' },
 ] as const;
 
-/**
- * The connector between two cards in a three-step row, carrying the eye
- * 1 → 2 → 3. Points right between columns on desktop, down between stacked
- * cards on mobile. Lives outside the (clipped) card, inside a relative cell.
- *
- * Deliberately still: it previously ran a permanent `nudge-x` on the icon and
- * a permanent `ping` halo behind it. Two looping animations per connector,
- * two connectors on screen, is four things moving forever on the section a
- * visitor is trying to read - motion that communicates nothing, which is
- * exactly what makes a page feel generated rather than designed. The arrow
- * already states the direction; it does not need to twitch to prove it.
- */
-function StepConnector() {
-  // Two nested layers, each owning ONE transform: rotation and the
-  // gap-centering offset would otherwise clobber each other.
-  //
-  // Vertical placement: on desktop it sits low, over the CONTENT band rather
-  // than on the photo (the image is the top ~two-thirds of the card, so a
-  // mid-card arrow landed on the picture). On mobile it drops into the gap
-  // between the stacked cards and points down.
-  return (
-    <div
-      aria-hidden
-      className="absolute z-20 bottom-0 start-1/2 -translate-x-1/2 translate-y-1/2
-                 md:bottom-[16%] md:start-auto md:end-0 md:top-auto md:translate-x-1/2 md:translate-y-1/2"
-    >
-      {/* Rotate the whole badge: down between stacked cards, right between columns. */}
-      <span className="grid h-9 w-9 rotate-90 place-items-center rounded-full bg-primary text-primary-foreground shadow-soft ring-4 ring-background md:rotate-0">
-        <ArrowRight className="h-4 w-4" />
-      </span>
-    </div>
-  );
-}
+// Step connector removed for a cleaner layout
 
 export default function HomePage() {
   // Cities, categories and the trust numbers all come from live supply.
@@ -97,54 +65,71 @@ export default function HomePage() {
     <div className="-mt-24">
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-visible hero-mesh">
-        <div className="mx-auto max-w-7xl px-4 pb-12 pt-16 sm:px-6 sm:pb-16 sm:pt-20 lg:pt-24">
-          <div className="max-w-3xl">
-            {/*
-              Was a Sparkles icon reading "The Mobility Operating System".
-              A sparkle is the stock "AI / premium / magic" glyph and says
-              nothing about cars, and "operating system" is platform language
-              for what a visitor experiences as renting a car. The badge above
-              a headline should tell someone what this actually is.
-            */}
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-bold tracking-widest uppercase text-white/95 shadow-soft">
-              <KeyRound className="h-4 w-4" /> Self-drive car sharing
-            </span>
+        <div className="mx-auto max-w-7xl px-4 pb-12 pt-[5.5rem] sm:px-6 sm:pb-16 sm:pt-20 lg:pt-24">
+          <div className="grid lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-14 items-center">
+            <div>
+              <div className="max-w-3xl">
+                {/*
+                  Was a Sparkles icon reading "The Mobility Operating System".
+                  A sparkle is the stock "AI / premium / magic" glyph and says
+                  nothing about cars, and "operating system" is platform language
+                  for what a visitor experiences as renting a car. The badge above
+                  a headline should tell someone what this actually is.
+                */}
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-bold tracking-widest uppercase text-white/95 shadow-soft">
+                  <KeyRound className="h-4 w-4" /> Self-drive car sharing
+                </span>
 
-            {/* The display face, and no gradient-to-transparent: that trick
-                is everywhere, and it throws away contrast on the one line the
-                whole page is built around. */}
-            <h1 className="display mt-6 text-[2.6rem] leading-[0.95] text-white sm:mt-8 sm:text-[4.6rem] lg:text-[5.6rem]">
-              Drive away
-              <br />
-              certain.
-            </h1>
+                {/* The display face, and no gradient-to-transparent: that trick
+                    is everywhere, and it throws away contrast on the one line the
+                    whole page is built around. */}
+                <h1 className="display mt-6 text-[2.6rem] leading-[0.95] text-white sm:mt-8 sm:text-[4.6rem] lg:text-[5.2rem]">
+                  Drive away
+                  <br />
+                  certain.
+                </h1>
 
-            <p className="mt-5 max-w-xl text-base font-medium leading-relaxed text-white/75 sm:mt-7 sm:text-xl">
-              Real cars from local hosts, delivered where you need them - with three promises no
-              other rental makes.
-            </p>
-          </div>
+                <p className="mt-5 max-w-xl text-base font-medium leading-relaxed text-white/75 sm:mt-7 sm:text-xl">
+                  Real cars from local hosts, delivered where you need them - with three promises no
+                  other rental makes.
+                </p>
+              </div>
 
-          {/*
-            One search bar, not two.
+              {/*
+                One search bar, not two.
 
-            The hero ran its own widget - a native <select> listing cities with
-            a "(1)" vehicle count after each, and two native date inputs
-            rendering dd-mm-yyyy in an OS-drawn picker. The navbar and the
-            search page had already moved to SearchBarFields, so the product
-            had two search implementations that looked and behaved differently
-            depending on which one you happened to hit first.
+                The hero ran its own widget - a native <select> listing cities with
+                a "(1)" vehicle count after each, and two native date inputs
+                rendering dd-mm-yyyy in an OS-drawn picker. The navbar and the
+                search page had already moved to SearchBarFields, so the product
+                had two search implementations that looked and behaved differently
+                depending on which one you happened to hit first.
 
-            The counts went with it. A city offering one car reads as an empty
-            marketplace, and the number is not what anyone is choosing on.
-          */}
-          <div className="mt-8 max-w-4xl animate-slide-up sm:mt-10">
-            <SearchBarFields calendarPlacement="flow" />
+                The counts went with it. A city offering one car reads as an empty
+                marketplace, and the number is not what anyone is choosing on.
+              */}
+              <div className="mt-8 max-w-2xl animate-slide-up sm:mt-10 relative z-10">
+                <SearchBarFields calendarPlacement="flow" />
+              </div>
+            </div>
+
+            <div className="relative hidden lg:block w-full">
+              <div className="absolute -inset-4 -z-10 rounded-[2rem] bg-primary/20 blur-3xl" />
+              <Image
+                src="/newsections/cato-hero-people.webp"
+                alt="Car sharing hero"
+                width={800}
+                height={800}
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                className="w-full h-auto aspect-[4/3] rounded-3xl object-cover shadow-2xl ring-1 ring-white/15"
+                priority
+              />
+            </div>
           </div>
 
           {/* The three promises, stated on the first screen. Each one is a
               shipped mechanic, not a marketing line. */}
-          <div className="mt-8 grid max-w-4xl gap-px overflow-hidden rounded-xl border border-white/15 bg-white/10 sm:mt-11 sm:grid-cols-3">
+          <div className="mt-12 grid max-w-5xl gap-px overflow-hidden rounded-xl border border-white/15 bg-white/10 sm:mt-16 sm:grid-cols-3">
             {[
               {
                 t: 'Your host cancels, you still drive',
@@ -282,43 +267,38 @@ export default function HomePage() {
         </section>
 
         {/* ── How it works ───────────────────────────────────────────── */}
-        <Reveal as="section" className="space-y-8 sm:space-y-10">
+        <Reveal as="section" className="space-y-8 sm:space-y-12">
           <div className="max-w-xl sm:text-start">
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-primary">How it works</p>
             <h2 className="display text-3xl text-foreground sm:text-4xl lg:text-5xl">No counter. No queue. No paperwork.</h2>
             <p className="mt-3 text-base text-muted-foreground sm:mt-4 sm:text-lg">Three steps from search to keys in hand.</p>
           </div>
-          <div className="grid gap-5 sm:gap-y-5 md:grid-cols-3 md:gap-x-8">
+          <div className="grid gap-12 md:grid-cols-3 md:gap-8">
             {STEPS.map((s, i) => (
-              <div key={s.title} className="relative">
-                <Reveal
-                  delay={i * 120}
-                  className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10"
-                >
-                  {/* The real photo leads. A slow zoom on hover keeps it alive. */}
-                  <div className="relative aspect-[16/10] w-full overflow-hidden">
-                    <Image
-                      src={s.image}
-                      alt={s.title}
-                      fill
-                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
-                    />
-                    {/* Nothing sits on the photo - the image stays clean. */}
+              <Reveal
+                key={s.title}
+                delay={i * 120}
+                className="group flex h-full flex-col"
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl mb-6 shadow-md border border-border/40">
+                  <Image
+                    src={s.image}
+                    alt={s.title}
+                    fill
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <s.icon className="h-5 w-5" />
+                    </span>
+                    <h3 className="display text-xl text-foreground">{s.title}</h3>
                   </div>
-                  <div className="flex flex-col p-5">
-                    {/* Icon + title live in the content, off the image. */}
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
-                        <s.icon className="h-5 w-5" />
-                      </span>
-                      <h3 className="display text-xl text-foreground">{s.title}</h3>
-                    </div>
-                    <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{s.body}</p>
-                  </div>
-                </Reveal>
-                {i < STEPS.length - 1 && <StepConnector />}
-              </div>
+                  <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">{s.body}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </Reveal>
@@ -331,19 +311,19 @@ export default function HomePage() {
             which made the page look like repeating slides. As a horizontal
             strip they read as supporting evidence that sits between content,
             not another "section" demanding equal visual attention. */}
-        <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <section className="grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-12 py-8 border-y border-border/40">
           {[
             { icon: ShieldCheck, stat: 'Verified', label: 'Every host and car is checked before listing.' },
             { icon: BadgeCheck, stat: 'Protected', label: 'Choose a plan at checkout - up to $0 deductible.' },
             { icon: Zap, stat: 'Instant Book', label: 'Confirmed the moment you pay. No waiting.' },
           ].map((t) => (
-            <div key={t.stat} className="flex items-start gap-4 bg-card p-5 sm:p-6">
-              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <t.icon className="h-4.5 w-4.5" />
+            <div key={t.stat} className="flex items-start gap-4">
+              <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <t.icon className="h-5 w-5" />
               </span>
               <div>
-                <p className="font-semibold text-foreground">{t.stat}</p>
-                <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{t.label}</p>
+                <p className="text-lg font-semibold text-foreground">{t.stat}</p>
+                <p className="mt-1.5 text-[14.5px] leading-relaxed text-muted-foreground">{t.label}</p>
               </div>
             </div>
           ))}
@@ -420,6 +400,7 @@ function ReservationFlowSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState(0);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const onScroll = () => {
@@ -429,10 +410,12 @@ function ReservationFlowSection() {
 
       const start = section.offsetTop;
       const travel = Math.max(1, section.offsetHeight - window.innerHeight);
-      const progress = Math.min(1, Math.max(0, (window.scrollY - start) / travel));
-      const eased = progress < 0.5
-        ? 2 * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const rawP = Math.min(1, Math.max(0, (window.scrollY - start) / travel));
+      const eased = rawP < 0.5
+        ? 2 * rawP * rawP
+        : 1 - Math.pow(-2 * rawP + 2, 2) / 2;
+      
+      setProgress(eased);
       const maxOffset = Math.max(0, track.scrollWidth - track.parentElement!.clientWidth);
       setOffset(maxOffset * eased);
     };
@@ -447,16 +430,16 @@ function ReservationFlowSection() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="relative isolate overflow-hidden rounded-2xl hero-mesh px-6 py-10 min-h-[calc(100vh+16rem)] sm:px-10 sm:py-12 lg:px-14">
+    <section ref={sectionRef} className="relative isolate overflow-clip rounded-3xl hero-mesh px-6 py-8 min-h-[calc(100vh+40rem)] sm:px-10 sm:py-10 lg:px-14">
       <div className="sticky top-20 flex min-h-[calc(100vh-6rem)] flex-col justify-center sm:top-24 sm:min-h-[calc(100vh-8rem)]">
         <div className="max-w-2xl">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur">
             One reservation, end to end
           </span>
-          <h2 className="display mt-6 text-[2.4rem] leading-[1.02] text-white sm:text-5xl">
+          <h2 className="display mt-4 text-[2.4rem] leading-[1.02] text-white sm:text-5xl">
             Pick the exact car. Get it at the curb.
           </h2>
-          <p className="mt-5 text-lg leading-relaxed text-white/70">
+          <p className="mt-3 text-lg leading-relaxed text-white/70">
             Not a request form that somebody calls you back about. A real reservation, on a real
             vehicle, held the moment you book it.
           </p>
@@ -465,40 +448,56 @@ function ReservationFlowSection() {
         <div className="mt-8 overflow-hidden sm:mt-10">
           <div
             ref={trackRef}
-            className="flex w-max gap-4 transition-transform duration-700 ease-out motion-reduce:translate-x-0 motion-reduce:transition-none"
+            className="flex w-max gap-6 transition-transform duration-300 ease-out motion-reduce:translate-x-0 motion-reduce:transition-none py-2"
             style={{ transform: `translate3d(-${offset}px, 0, 0)` }}
           >
-            {RESERVATION_FLOW.map((step, i) => (
-              <article key={step.label} className="w-[min(78vw,19rem)] shrink-0 rounded-2xl border border-white/10 bg-black/20 p-5 shadow-xl backdrop-blur-sm sm:w-[17rem] sm:p-6">
-                <div className="flex items-center justify-between">
-                  <span className="numeric flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/15">
-                    <step.icon className="h-5 w-5" />
-                  </span>
-                  <span className="numeric text-xs text-white/40">0{i + 1}</span>
-                </div>
-                <p className="mt-8 text-xs font-bold uppercase tracking-widest text-primary">{step.label}</p>
-                <p className="mt-2 min-h-24 text-sm leading-relaxed text-white/70">{step.body}</p>
-              </article>
-            ))}
+            {RESERVATION_FLOW.map((step, i) => {
+              const centerI = progress * 5;
+              const diff = Math.abs(centerI - i);
+              const scale = Math.max(0.9, 1 - diff * 0.05);
+              const opacity = Math.max(0.3, 1 - diff * 0.4);
+
+              return (
+                <article 
+                  key={step.label} 
+                  className="w-[min(80vw,20rem)] shrink-0 rounded-2xl border border-white/10 bg-black/20 p-5 shadow-xl backdrop-blur-sm sm:w-[22rem] transition-all duration-300"
+                  style={{ transform: `scale(${scale})`, opacity }}
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/15 transition-colors duration-300" style={{ backgroundColor: diff < 0.5 ? 'rgba(255,255,255,0.2)' : '' }}>
+                      <step.icon className="h-5 w-5" />
+                    </span>
+                    <h3 className="text-base font-bold uppercase tracking-widest text-primary">{step.label}</h3>
+                  </div>
+                  <p className="mt-3 text-sm leading-relaxed text-white/70">{step.body}</p>
+                </article>
+              );
+            })}
+            
+            <div 
+              className="w-[min(80vw,20rem)] shrink-0 flex flex-col justify-center rounded-2xl border border-primary/40 bg-primary/10 p-5 shadow-xl backdrop-blur-sm sm:w-[22rem] transition-all duration-300"
+              style={{
+                transform: `scale(${Math.max(0.9, 1 - Math.abs(progress * 5 - 5) * 0.05)})`,
+                opacity: Math.max(0.3, 1 - Math.abs(progress * 5 - 5) * 0.4)
+              }}
+            >
+              <Lock className="mb-3 h-7 w-7 text-primary" />
+              <p className="text-sm font-bold uppercase tracking-wider text-primary">
+                The money never moved until it had to.
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 inline-flex w-fit items-center gap-3 rounded-2xl border border-primary/40 bg-primary/15 px-5 py-3.5">
-          <Lock className="h-4 w-4 shrink-0 text-primary" />
-          <p className="text-sm font-bold uppercase tracking-wider text-primary">
-            The money never moved until it had to.
-          </p>
-        </div>
-
-        <div className="mt-6 flex flex-col gap-4 border-t border-white/10 pt-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-5">
+        <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-6 lg:flex-row lg:items-center lg:justify-between opacity-90">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-4">
             {RESERVATION_TRUST.map((trust) => (
-              <span key={trust.label} className="flex items-center gap-2 text-sm font-medium text-white/75">
+              <span key={trust.label} className="flex items-center gap-2 text-xs sm:text-sm font-medium text-white/75">
                 <trust.icon className="h-4 w-4 shrink-0 text-primary" /> {trust.label}
               </span>
             ))}
           </div>
-          <Link href="/search" className="group inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-base font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
+          <Link href="/search" className="group inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95">
             Book Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>

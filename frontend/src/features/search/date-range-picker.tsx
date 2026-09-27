@@ -65,7 +65,7 @@ export function DateRangePicker({
   };
 
   return (
-    <div className={cn('w-full select-none', compact ? 'max-w-full' : 'sm:w-[36rem]')}>
+    <div className={cn('w-full select-none', compact ? 'max-w-full' : 'sm:w-auto')}>
 
       {/* ── Month navigation header ── */}
       <div className="mb-4 flex items-center justify-between gap-2">
@@ -80,7 +80,7 @@ export function DateRangePicker({
         </button>
 
         {/* Month labels sit between the two arrows - one per visible month */}
-        <div className={cn('flex flex-1 items-center', !compact && 'sm:gap-0')}>
+        <div className={cn('flex flex-1 items-center', !compact && '')}>
           {months.map((mo, mi) => (
             <p
               key={mi}
@@ -105,21 +105,21 @@ export function DateRangePicker({
       </div>
 
       {/* ── Calendar grid(s) ── */}
-      <div className={cn('grid gap-6', !compact && 'sm:grid-cols-2')}>
+      <div className={cn('grid', !compact && 'sm:grid-cols-2 sm:gap-5')}>
         {months.map((mo, mi) => (
           <div key={mi} className={cn(mi === 1 && (compact ? 'hidden' : 'hidden sm:block'))}>
 
             {/* Day-of-week headers */}
-            <div className="mb-1 grid grid-cols-7">
+            <div className="mb-1 grid grid-cols-[repeat(7,2.25rem)]">
               {DOW.map((d, i) => (
-                <div key={i} className="py-1 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <div key={i} className="flex h-9 w-9 items-center justify-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {d}
                 </div>
               ))}
             </div>
 
             {/* Day cells */}
-            <div className="grid grid-cols-7 gap-y-0.5">
+            <div className="grid grid-cols-[repeat(7,2.25rem)] gap-y-0.5">
               {Array.from({ length: mo.pad }).map((_, i) => <div key={`p${i}`} />)}
               {Array.from({ length: mo.days }).map((_, i) => {
                 const date = new Date(mo.y, mo.m, i + 1);
