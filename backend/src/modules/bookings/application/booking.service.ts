@@ -30,6 +30,7 @@ import { Account, type LedgerLeg } from '../../payments/domain/ledger.accounts';
 import { notificationService } from '../../notifications/application/notification.service';
 import { logger } from '../../../infrastructure/logging/logger';
 import { kv } from '../../../infrastructure/cache/kv-store';
+import { userService } from '../../users/application/user.service';
 import { NotFoundError, ConflictError, ForbiddenError, ValidationError } from '../../../core/errors/app-error';
 import { uuid, randomId } from '../../../shared/utils/uuid';
 import { emit } from '../../../shared/events/event-bus';
@@ -274,6 +275,12 @@ export class BookingService {
     // rather than after it — but nothing is captured and no key changes hands
     // until it clears. See eligibility.service for why this is an insurance
     // requirement, not just a fraud control.
+    // Renter details are asked for when someone books, not as a gate after sign-up; the server holds the line so no client can skip it.
+    const profile = await userService.profileStatus(guestId);
+    if (!profile.complete) {
+      throw new ConflictError('Add a few details before your first trip.', 'PROFILE_INCOMPLETE');
+    }
+
     const eligibility = await eligibilityService.evaluate(guestId, end);
     if (!eligibility.canRequest) {
       throw new ForbiddenError('This account cannot book. Contact support.');

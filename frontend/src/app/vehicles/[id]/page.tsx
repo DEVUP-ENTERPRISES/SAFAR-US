@@ -253,7 +253,18 @@ export default function VehicleDetailPage() {
   const runQuote = () => canQuote && quote.mutate(selection());
   // The actual booking, run only after the guest has accepted the Terms.
   const proceed = async () => {
-    const b = await createBooking.mutateAsync(selection());
+    let b;
+    try {
+      b = await createBooking.mutateAsync(selection());
+    } catch (err) {
+      // First trip: collect the renter details now, then come straight back to this car with the same selection.
+      if (err instanceof ApiError && err.code === 'PROFILE_INCOMPLETE') {
+        saveDraft({ vehicleId: id, start, end, addOnCodes, protectionPlan, payWithWallet, deliveryMode, deliveryAddress, flightNumber, terminal, arrivesAt, couponCode });
+        createBooking.reset();
+        router.push(`/account/setup?next=${encodeURIComponent(`/vehicles/${id}`)}`);
+      }
+      return;
+    }
 
     // The bank wants the cardholder. Finish the challenge here rather than
     // sending them to a bookings list that would show the trip as unpaid with
@@ -1120,7 +1131,7 @@ export default function VehicleDetailPage() {
               createBooking.error instanceof ApiError && createBooking.error.code === 'PAYMENT_METHOD_REQUIRED' ? (
                 <div className="space-y-3 rounded-xl border border-border p-3">
                   <p className="text-sm font-medium">{createBooking.error.message}</p>
-                  <AddCard onSaved={() => createBooking.reset()} />
+                  <AddCard onSaved={() => { createBooking.reset(); void book(); }} />
                 </div>
               ) : (
                 <p className="text-sm text-destructive">{createBooking.error instanceof ApiError ? createBooking.error.message : 'Booking failed'}</p>

@@ -2,6 +2,7 @@ import { UserModel } from '../../users/infrastructure/user.model';
 import { KycModel } from '../../kyc/infrastructure/kyc.model';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { config } from '../../../config';
+import { channelDegraded } from '../../users/application/contact-verification.service';
 import { verificationPolicyService } from '../../kyc/application/verification-policy.service';
 
 export type EligibilityBlocker =
@@ -76,8 +77,8 @@ export class EligibilityService {
     // Admin decides which contacts must be confirmed; one that cannot be confirmed because its channel is not set up is never required, or no guest could ever book.
     const cfg = await platformConfigService.get();
     const n = config.notifications;
-    if (user && !user.emailVerified && cfg.contactVerification.requireEmail && (n.smtpEnabled || n.emailApiEnabled)) blockers.push('email_unverified');
-    if (user && !user.phoneVerified && cfg.contactVerification.requirePhone && n.smsEnabled) blockers.push('phone_unverified');
+    if (user && !user.emailVerified && cfg.contactVerification.requireEmail && (n.smtpEnabled || n.emailApiEnabled) && !(await channelDegraded('email'))) blockers.push('email_unverified');
+    if (user && !user.phoneVerified && cfg.contactVerification.requirePhone && n.smsEnabled && !(await channelDegraded('phone'))) blockers.push('phone_unverified');
 
     if (!kyc || kyc.status === 'not_started') blockers.push('identity_not_submitted');
     else if (kyc.status === 'pending') blockers.push('identity_pending');

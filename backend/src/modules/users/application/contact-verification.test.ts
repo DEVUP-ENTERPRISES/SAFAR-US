@@ -1,6 +1,6 @@
 const sent: { title: string; body: string }[] = [];
 jest.mock('../../notifications/infrastructure/channel.providers', () => ({
-  channelProviders: { email: { send: async (m: { title: string; body: string }) => void sent.push(m) }, sms: { send: async (m: { title: string; body: string }) => void sent.push(m) } },
+  channelProviders: { email: { send: async (m: { title: string; body: string }) => (sent.push(m), { ok: true }) }, sms: { send: async (m: { title: string; body: string }) => (sent.push(m), { ok: true }) } },
 }));
 
 import { contactVerificationService } from './contact-verification.service';
@@ -34,5 +34,20 @@ describe('confirming the email and mobile number on an account', () => {
   it('refuses when already confirmed', async () => {
     const u = await UserModel.create({ email: 'i@x.com', emailVerified: true, roles: ['guest'] });
     await expect(contactVerificationService.send(u._id, 'email')).rejects.toMatchObject({ code: 'ALREADY_VERIFIED' });
+  });
+});
+
+describe('when a delivery provider fails', () => {
+  it('sends the code by the other channel and stops requiring the failed one', async () => {
+    const { channelProviders } = await import('../../notifications/infrastructure/channel.providers');
+    const smsSend = jest.spyOn(channelProviders.sms, 'send').mockResolvedValueOnce({ ok: false, error: 'twilio down', retryable: true } as never);
+    const { channelDegraded } = await import('./contact-verification.service');
+    const u = await UserModel.create({ email: 'j@x.com', phone: '+12145550100', roles: ['guest'] });
+    const r = await contactVerificationService.send(u._id, 'phone');
+    expect(r).toMatchObject({ sent: true, via: 'email' });
+    expect(await channelDegraded('phone')).toBe(true);
+    await contactVerificationService.confirm(u._id, 'phone', codeFrom());
+    expect((await UserModel.findById(u._id).lean())!.phoneVerified).toBe(true);
+    smsSend.mockRestore();
   });
 });

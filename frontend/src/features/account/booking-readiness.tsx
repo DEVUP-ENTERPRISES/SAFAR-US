@@ -15,7 +15,7 @@ interface Eligibility { eligible: boolean; canRequest: boolean; blockers: string
 
 const eligibilityApi = {
   get: () => api.get<Eligibility>('/bookings/eligibility'),
-  send: (channel: 'email' | 'phone') => api.post<{ sent: boolean; to: string; devCode?: string }>('/users/me/verify-contact/send', { channel }),
+  send: (channel: 'email' | 'phone') => api.post<{ sent: boolean; to: string; via: string; devCode?: string; message?: string }>('/users/me/verify-contact/send', { channel }),
   confirm: (channel: 'email' | 'phone', code: string) => api.post<{ verified: boolean }>('/users/me/verify-contact/confirm', { channel, code }),
 };
 
@@ -25,7 +25,16 @@ function ContactStep({ channel, onDone }: { channel: 'email' | 'phone'; onDone: 
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const fail = (e: unknown) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'That did not work' });
-  const send = useMutation({ mutationFn: () => eligibilityApi.send(channel), onSuccess: (r) => { setSentTo(r.to); if (r.devCode) setCode(r.devCode); }, onError: fail });
+  const send = useMutation({
+    mutationFn: () => eligibilityApi.send(channel),
+    onSuccess: (r) => {
+      if (r.message) toast({ tone: r.sent ? 'info' : 'success', title: r.message });
+      if (!r.sent) return onDone();
+      setSentTo(r.to);
+      if (r.devCode) setCode(r.devCode);
+    },
+    onError: fail,
+  });
   const confirm = useMutation({
     mutationFn: () => eligibilityApi.confirm(channel, code),
     onSuccess: () => { toast({ tone: 'success', title: channel === 'email' ? 'Email confirmed' : 'Mobile number confirmed' }); onDone(); },

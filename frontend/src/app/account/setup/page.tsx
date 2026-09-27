@@ -84,7 +84,8 @@ export default function AccountSetupPage() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['profile-status'] });
       notify({ tone: 'success', title: 'You’re all set', description: 'Your account is ready.' });
-      router.replace('/');
+      const next = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('next') : null;
+      router.replace(next && next.startsWith('/') && !next.startsWith('//') ? next : '/');
     },
     onError: (err) => {
       notify({ tone: 'error', title: 'Couldn’t save', description: err instanceof ApiError ? err.message : 'Please check your details and try again.' });
