@@ -45,6 +45,8 @@ export class StripeGateway implements PaymentGateway {
           amount: input.amount.amount,
           currency: input.amount.currency.toLowerCase(),
           capture_method: input.capture ? 'automatic' : 'manual',
+          // Cards only. Left unset, Stripe also offers the dashboard's redirect methods (Klarna, Cash App, Amazon Pay), which cannot be confirmed off-session without a return URL, so every saved-card charge failed at confirmation.
+          payment_method_types: ['card'],
           metadata: { userId: input.userId, ...input.metadata },
           ...(offSession
             ? {
