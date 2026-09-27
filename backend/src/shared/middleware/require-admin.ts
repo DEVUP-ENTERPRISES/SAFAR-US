@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { ForbiddenError, UnauthorizedError } from '../../core/errors/app-error';
+import { ForbiddenError, NotFoundError, UnauthorizedError } from '../../core/errors/app-error';
 import { userRepository } from '../../modules/users/infrastructure/user.repository';
 import { permissionsForRoles, ROLES } from '../constants/rbac';
 import { config } from '../../config';
@@ -65,7 +65,7 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction): 
         // A customer reaching an admin route is worth recording — it is either
         // a probe or a bug, and neither should pass silently.
         logger.warn({ userId: user._id, roles: liveRoles }, 'admin access denied — no staff role in database');
-        throw new ForbiddenError('Admin access required');
+        throw new NotFoundError('Resource');
       }
 
       /*
@@ -87,7 +87,7 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction): 
           'SECURITY: non-env account holds super_admin — refusing and stripping',
         );
         await userRepository.pullRoles(user._id, [ROLES.SUPER_ADMIN]);
-        throw new ForbiddenError('Admin access required');
+        throw new NotFoundError('Resource');
       }
 
       // Decide the rest of the request on database truth, not the stale claim.

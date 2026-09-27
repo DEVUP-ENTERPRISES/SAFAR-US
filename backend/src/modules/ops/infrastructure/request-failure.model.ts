@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
 import { uuid } from '../../../shared/utils/uuid';
 
-export type FailureArea = 'booking' | 'payment' | 'identity' | 'auth' | 'other';
+export type FailureArea = 'booking' | 'payment' | 'identity' | 'auth' | 'security' | 'other';
 
 /** One request that failed in a way ops should see: every server error, and every refusal on the money and booking paths. */
 export interface RequestFailureDoc {

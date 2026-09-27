@@ -1,21 +1,4 @@
-// Report-only for now (launch day): violations are logged in the browser, nothing is blocked. Tighten and enforce once the reports are clean.
-const apiOrigin = (() => {
-  try {
-    return new URL(process.env.NEXT_PUBLIC_API_URL ?? '').origin;
-  } catch {
-    return '';
-  }
-})();
-const cspReportOnly = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com https://www.gstatic.com https://www.googleapis.com https://apis.google.com`,
-  `connect-src 'self' ${apiOrigin} https://api.stripe.com https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss:`,
-  'frame-src https://js.stripe.com https://hooks.stripe.com https://verify.stripe.com https://*.firebaseapp.com https://accounts.google.com',
-  "img-src 'self' data: blob: https:",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' data: https://fonts.gstatic.com",
-  "frame-ancestors 'none'",
-].join('; ');
+import { securityHeaders } from './security-headers.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -40,18 +23,7 @@ const nextConfig = {
     return [
       {
         source: '/:path*',
-        headers: [
-          { key: 'X-Frame-Options', value: 'DENY' },
-          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
-          { key: 'Content-Security-Policy-Report-Only', value: cspReportOnly },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          // Camera is needed by our own condition-photo capture and by Stripe Identity's document/selfie step, which runs in a Stripe iframe; blocking it there breaks live verification.
-          { key: 'Permissions-Policy', value: 'camera=(self "https://js.stripe.com" "https://verify.stripe.com"), microphone=(self "https://js.stripe.com" "https://verify.stripe.com"), geolocation=(self), payment=(self "https://js.stripe.com"), usb=(), interest-cohort=()' },
-          // HSTS: once on HTTPS, never silently downgrade to HTTP. Safe because
-          // production is TLS-only behind Cloudflare/Nginx.
-          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-        ],
+        headers: securityHeaders({ apiUrl: process.env.NEXT_PUBLIC_API_URL, dev: process.env.NODE_ENV !== 'production' }),
       },
     ];
   },

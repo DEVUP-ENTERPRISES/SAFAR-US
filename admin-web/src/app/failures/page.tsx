@@ -15,6 +15,7 @@ const AREAS = [
   { v: 'booking', l: 'Booking' },
   { v: 'payment', l: 'Payment' },
   { v: 'identity', l: 'Identity' },
+  { v: 'security', l: 'Security' },
   { v: 'other', l: 'Other' },
 ];
 

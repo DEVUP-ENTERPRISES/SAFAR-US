@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { systemRoutes } from './modules/system/system.routes';
+import { securityRoutes } from './modules/ops/api/security.routes';
 import { platformConfigPublicRoutes } from './modules/platform-config/api/platform-config.public.routes';
 import { authRoutes } from './modules/auth/api/auth.routes';
 import { usersRoutes } from './modules/users/api/users.routes';
@@ -41,6 +42,7 @@ import { referralRoutes } from './modules/referral/api/referral.routes';
 import { assetPartnerApplicationRoutes } from './modules/asset-partners/api/asset-partner-application.routes';
 import { contactInquiryRoutes } from './modules/contact/api/contact-inquiry.routes';
 import { visitorTrackingRoutes } from './modules/analytics/api/visitor-tracking.routes';
+import { notFound } from './shared/middleware/not-found';
 
 /**
  * Mounts every module's router under the versioned API prefix.
@@ -50,6 +52,7 @@ export function buildApiRouter(): Router {
   const api = Router();
 
   api.use('/system', systemRoutes);
+  api.use('/security', securityRoutes);
   api.use('/platform', platformConfigPublicRoutes);
   api.use('/auth', authRoutes);
   api.use('/users', usersRoutes);
@@ -91,7 +94,8 @@ export function buildApiRouter(): Router {
   api.use('/corporate', corporateRoutes);
   api.use('/rewards', rewardsRoutes);
   api.use('/referral', referralRoutes);
-  api.use('/admin', buildAdminRouter());
+  // Without a signed-in session the admin API does not exist as far as a scanner can tell: same 404 as any unknown path.
+  api.use('/admin', (req, res, next) => (req.header('authorization')?.startsWith('Bearer ') ? next() : notFound(req, res)), buildAdminRouter());
 
   return api;
 }
