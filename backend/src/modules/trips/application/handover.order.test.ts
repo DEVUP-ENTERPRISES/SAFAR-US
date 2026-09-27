@@ -128,6 +128,26 @@ describe('start gate order', () => {
     await expect(tripService.start(guestP, 'bk-1', { odometerStart: 10 })).resolves.toMatchObject({ status: 'active' });
   });
 
+  it('will not hand over the keys without the security deposit, and tells the guest how to place it', async () => {
+    await seed();
+    const real = await platformConfigService.get();
+    jest.spyOn(platformConfigService, 'get').mockResolvedValue({
+      ...real,
+      handover: { ...real.handover, hostInspectionRequired: false, pickupCodeRequired: false, hostOnlyStart: false },
+      deposit: { ...real.deposit, enabled: true, requiredAtHandover: true },
+    });
+    jest.spyOn(depositService, 'isEnabled').mockResolvedValue(true);
+    jest.spyOn(depositService, 'authorize').mockResolvedValue({ placed: false, amount: { amount: 25_000, currency: 'USD' } });
+    const reminders: unknown[] = [];
+    eventBus.subscribe(EVENTS.DEPOSIT_MISSING, (e) => void reminders.push(e.payload));
+
+    await expect(tripService.start(guestP, 'bk-1', { odometerStart: 10 })).rejects.toMatchObject({ code: 'DEPOSIT_REQUIRED' });
+    expect(reminders).toHaveLength(1);
+
+    jest.spyOn(depositService, 'forBooking').mockResolvedValue({ status: 'authorized' } as never);
+    await expect(tripService.start(guestP, 'bk-1', { odometerStart: 10 })).resolves.toMatchObject({ status: 'active' });
+  });
+
   it('turning hostOnlyStart off lets a guest start once the other gates pass', async () => {
     await seed();
     await setConfig({ hostOnlyStart: false, hostInspectionRequired: false, pickupCodeRequired: false });

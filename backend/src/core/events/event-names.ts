@@ -11,6 +11,7 @@ export const EVENTS = {
   KYC_SUBMITTED: 'kyc.submitted',
   KYC_APPROVED: 'kyc.approved',
   CONTACT_VERIFIED: 'user.contact_verified',
+  DEPOSIT_MISSING: 'deposit.missing',
   KYC_REJECTED: 'kyc.rejected',
 
   USER_LOGGED_IN: 'user.logged_in',

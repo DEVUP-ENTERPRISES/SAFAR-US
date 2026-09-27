@@ -116,6 +116,7 @@ export interface PlatformConfig {
   };
   contactVerification?: { requireEmail: boolean; requirePhone: boolean };
   checkout?: { otherMethodsEnabled: boolean };
+  deposit?: { enabled: boolean; minCents: number; maxCents: number; multiplierBps: number; autoReleaseHours: number; requiredAtHandover: boolean; selfServeWindowHours: number };
   verification: {
     identity: VerificationPolicy;
     mvr: VerificationPolicy;

@@ -64,6 +64,8 @@ router.put(
           maxCents: cents.optional(),
           multiplierBps: z.number().int().min(0).max(100000).optional(),
           autoReleaseHours: z.number().int().min(0).max(720).optional(),
+          requiredAtHandover: z.boolean().optional(),
+          selfServeWindowHours: z.number().int().min(1).max(160).optional(),
         })
         .optional(),
       commission: z.object({ defaultBps: bps.optional(), minBps: bps.optional(), maxBps: bps.optional() }).optional(),

@@ -15,7 +15,9 @@ import { quoteSchema, createBookingSchema, cancelSchema, extendSchema } from '..
 import { listProtectionPlans } from '../../pricing/domain/protection-plans';
 import { approachService } from '../../trips/application/approach.service';
 import { trackingNoticeService } from '../../trips/application/tracking-notice.service';
-import { ForbiddenError } from '../../../core/errors/app-error';
+import { ForbiddenError, ConflictError } from '../../../core/errors/app-error';
+import { depositService } from '../../payments/application/deposit.service';
+import { vehicleService } from '../../vehicles/application/vehicle.service';
 
 const router = Router();
 
@@ -212,6 +214,23 @@ router.post(
   validate({ body: z.object({ party: z.enum(['guest', 'host']) }) }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await bookingService.noShow(req.principal!, req.params.id, req.body.party));
+  }),
+);
+
+/** The guest places (or checks) the security deposit hold themselves, with a card, Apple Pay or Google Pay. */
+router.post(
+  '/:id/deposit-session',
+  authenticate,
+  cardLimiter,
+  asyncHandler(async (req, res) => {
+    const booking = await bookingService.getDoc(req.params.id);
+    if (booking.guestId !== req.principal!.userId) throw new ForbiddenError('Only the guest places the deposit');
+    if (!['paid', 'confirmed'].includes(booking.status)) throw new ConflictError('The deposit is placed once the trip is confirmed and before it starts', 'INVALID_STATE');
+    const vehicle = await vehicleService.getForBooking(booking.vehicleId);
+    sendSuccess(res, await depositService.selfServe({
+      bookingId: booking._id, userId: booking.guestId, tripStart: new Date(booking.period.start),
+      dailyPrice: vehicle.dailyPrice, currency: booking.priceBreakdown.total.currency,
+    }));
   }),
 );
 

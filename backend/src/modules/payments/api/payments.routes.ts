@@ -14,6 +14,8 @@ import { sendSuccess, sendCreated } from '../../../shared/http/api-response';
 import { logger } from '../../../infrastructure/logging/logger';
 import { WebhookEventModel } from '../infrastructure/webhook-event.model';
 import { runStripeEvent } from '../application/stripe-event.handler';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { vehicleService } from '../../vehicles/application/vehicle.service';
 
 const router = Router();
 
@@ -86,8 +88,18 @@ router.get(
     }
 
     const deposit = await depositService.forBooking(req.params.bookingId);
-    if (!deposit) {
-      sendSuccess(res, { held: false });
+    const cfg = (await platformConfigService.get()).deposit;
+    // Before it is placed, say how much, when it can be placed and when it comes back, so nothing about it is a surprise.
+    const plan = {
+      enabled: cfg.enabled,
+      releaseHours: cfg.autoReleaseHours,
+      opensAt: new Date(new Date(booking.period.start).getTime() - cfg.selfServeWindowHours * 3_600_000),
+      requiredAtHandover: cfg.requiredAtHandover,
+    };
+    if (!deposit || deposit.status === 'pending') {
+      const vehicle = await vehicleService.getForBooking(booking.vehicleId);
+      const estimate = await depositService.amountFor(vehicle.dailyPrice, booking.priceBreakdown.total.currency, booking.guestId);
+      sendSuccess(res, { held: false, status: deposit?.status ?? 'none', amount: estimate, ...plan });
       return;
     }
     sendSuccess(res, {
@@ -97,6 +109,7 @@ router.get(
       status: deposit.status,
       reason: deposit.releasedReason ?? null,
       settledAt: deposit.releasedAt ?? null,
+      ...plan,
     });
   }),
 );

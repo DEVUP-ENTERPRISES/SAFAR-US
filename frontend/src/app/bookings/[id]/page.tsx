@@ -36,6 +36,7 @@ import { pushConfigured } from '@/features/push/firebase';
 import { enablePush } from '@/features/push/use-push';
 import { BookingReadiness } from '@/features/account/booking-readiness';
 import { PayNow } from '@/features/payments/pay-now';
+import { DepositCard } from '@/features/payments/deposit-card';
 
 /** How each state reads to the guest, and what it means for them. */
 const STATE: Record<string, { tone: 'success' | 'warning' | 'destructive' | 'muted' | 'default'; label: string; detail: string }> = {
@@ -239,6 +240,7 @@ function BookingDetail({ id }: { id: string }) {
             </div>
 
             {b.status === 'pending_verification' && <BookingReadiness className="mt-4" />}
+            {['paid', 'confirmed', 'in_progress', 'completed'].includes(b.status) && <div className="mt-4"><DepositCard bookingId={id} isGuest /></div>}
             {b.status === 'pending_payment' && completePayment.data?.outcome === 'checkout' && completePayment.data.clientSecret && (
               <div className="mt-4 space-y-2 rounded-xl border border-primary/30 p-3">
                 <p className="text-sm font-semibold">Pay to confirm your trip</p>

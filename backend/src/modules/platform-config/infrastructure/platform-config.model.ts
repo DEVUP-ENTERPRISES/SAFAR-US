@@ -46,6 +46,10 @@ export interface PlatformConfigDoc {
     multiplierBps: number;
     /** Hours after trip end before an unclaimed deposit is auto-released. */
     autoReleaseHours: number;
+    /** The trip cannot start until the deposit is held. */
+    requiredAtHandover: boolean;
+    /** How early before pickup a guest can place the hold themselves (card holds expire after about 7 days). */
+    selfServeWindowHours: number;
   };
   commission: {
     /** Fallback take rate when no CommissionRule matches. Basis points. */
@@ -575,6 +579,8 @@ const schema = new Schema<PlatformConfigDoc>(
       maxCents: { type: Number, default: 100000 },  // $1,000 ceiling
       multiplierBps: { type: Number, default: 20000 }, // 2x the daily rate
       autoReleaseHours: { type: Number, default: 120 },
+      requiredAtHandover: { type: Boolean, default: true },
+      selfServeWindowHours: { type: Number, default: 144 },
     },
     commission: {
       defaultBps: { type: Number, default: 2000 }, // 20%
