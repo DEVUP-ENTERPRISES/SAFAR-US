@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { CheckCircle2, AlertTriangle, X, Info } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 type Tone = 'success' | 'error' | 'info';
 
@@ -31,7 +32,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const push = useCallback((t: Omit<Toast, 'id'>) => {
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev.slice(-2), { ...t, id }]); // cap at 3 on screen
+    // Last line of defence: an error toast never shows a technical message, whichever screen raised it.
+    const clean = t.tone === 'error' ? { ...t, title: safeMessage(t.title, 'That didn’t go through'), description: t.description ? safeMessage(t.description) : undefined } : t;
+    setToasts((prev) => [...prev.slice(-2), { ...clean, id }]); // cap at 3 on screen
   }, []);
 
   const dismiss = useCallback((id: number) => {

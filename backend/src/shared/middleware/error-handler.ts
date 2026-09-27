@@ -25,7 +25,8 @@ export function errorHandler(
     requestFailureService.record(req, err.httpStatus, err.code, err.message);
     res.status(err.httpStatus).json({
       success: false,
-      error: { code: err.code, message: err.message, details: err.details, requestId },
+      // Server-side failures (Stripe, SMS, email…) keep their real reason in the logs and Failed Attempts; guests get a plain sentence.
+      error: { code: err.code, message: err.httpStatus >= 500 ? 'Something went wrong on our side. Please try again in a moment.' : err.message, details: err.details, requestId },
     });
     return;
   }
