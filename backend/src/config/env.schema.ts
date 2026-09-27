@@ -42,7 +42,7 @@ export const envSchema = z.object({
   APP_NAME: z.string().default('CatoDrive'),
 
   /**
-   * Secret base path for the admin console, e.g. `ctrl-0986-cato-admin`.
+   * Secret base path for the admin console, e.g. `your-secret-admin-path`.
    * Keeping the console off the guessable /admin removes it from the bulk
    * credential-stuffing and scanner traffic that hits every /admin on the
    * internet. It is obscurity, NOT access control — RBAC still guards every

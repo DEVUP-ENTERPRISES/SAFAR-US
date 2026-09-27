@@ -73,15 +73,22 @@ export class TripService {
     // authorisation only lives about a week, so one taken when a trip was
     // booked 40 days out would have expired by the day it mattered.
     if (await depositService.isEnabled()) {
-      const held = await depositService.forBooking(bookingId);
-      if (!held) {
-        const vehicle = await vehicleService.getForBooking(booking.vehicleId);
-        await depositService.authorize({
-          bookingId,
-          userId: booking.guestId,
-          dailyPrice: vehicle.dailyPrice,
-          currency: booking.priceBreakdown.total.currency,
-        });
+      const vehicle = await vehicleService.getForBooking(booking.vehicleId);
+      const result = await depositService.authorize({
+        bookingId,
+        userId: booking.guestId,
+        dailyPrice: vehicle.dailyPrice,
+        currency: booking.priceBreakdown.total.currency,
+      });
+      // Keys only change hands with the deposit in place (admin can turn this off). A waived deposit (trusted guest) needs nothing.
+      const held = (await depositService.forBooking(bookingId))?.status === 'authorized';
+      const needed = !!result && result.amount.amount > 0;
+      if (needed && !held && (await platformConfigService.get()).deposit.requiredAtHandover) {
+        emit(EVENTS.DEPOSIT_MISSING, bookingId, { bookingId, guestId: booking.guestId, hostId: booking.hostId, amount: result!.amount });
+        throw new ConflictError(
+          `The ${(result!.amount.amount / 100).toFixed(0)} dollar security deposit is not held yet. Ask the guest to place it from their booking page (card, Apple Pay or Google Pay), then start the trip.`,
+          'DEPOSIT_REQUIRED',
+        );
       }
     }
 

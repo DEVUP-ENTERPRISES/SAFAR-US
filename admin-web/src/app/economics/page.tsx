@@ -88,6 +88,9 @@ export default function AdminEconomicsPage() {
         protection: draft.protection,
         legal: draft.legal,
         verification: draft.verification,
+        contactVerification: draft.contactVerification,
+        checkout: draft.checkout,
+        deposit: draft.deposit,
         booking: draft.booking,
         tracking: draft.tracking,
         inspection: draft.inspection,
@@ -236,6 +239,31 @@ export default function AdminEconomicsPage() {
         </CardContent>
       </Card>
 
+      {/* Security deposit — the hold taken before pickup and released after the trip */}
+      {draft.deposit && (
+        <Card className="rounded-2xl shadow-soft">
+          <CardHeader>
+            <CardTitle>Security deposit</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">A hold on the guest’s card, not a charge. Placed at pickup (or by the guest from their booking), taken only for evidenced damage, released automatically after the trip.</p>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <label className="flex cursor-pointer items-center gap-2 text-sm sm:col-span-2">
+              <input type="checkbox" checked={draft.deposit.enabled} className="accent-[hsl(var(--primary))]" onChange={(e) => set((d) => { d.deposit!.enabled = e.target.checked; })} />
+              Take a security deposit
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm sm:col-span-2">
+              <input type="checkbox" checked={draft.deposit.requiredAtHandover} className="accent-[hsl(var(--primary))]" onChange={(e) => set((d) => { d.deposit!.requiredAtHandover = e.target.checked; })} />
+              The trip cannot start until the deposit is held
+            </label>
+            <Field label="Minimum ($)"><Input type="number" min={0} value={draft.deposit.minCents / 100} onChange={(e) => set((d) => { d.deposit!.minCents = Math.round(Number(e.target.value) * 100); })} /></Field>
+            <Field label="Maximum ($)"><Input type="number" min={0} value={draft.deposit.maxCents / 100} onChange={(e) => set((d) => { d.deposit!.maxCents = Math.round(Number(e.target.value) * 100); })} /></Field>
+            <Field label="Times the daily price" hint="2 = two days’ rent, kept between the minimum and maximum"><Input type="number" min={0} step="0.5" value={draft.deposit.multiplierBps / 10000} onChange={(e) => set((d) => { d.deposit!.multiplierBps = Math.round(Number(e.target.value) * 10000); })} /></Field>
+            <Field label="Release after the trip (hours)" hint="120 = 5 days"><Input type="number" min={0} max={720} value={draft.deposit.autoReleaseHours} onChange={(e) => set((d) => { d.deposit!.autoReleaseHours = Number(e.target.value); })} /></Field>
+            <Field label="Guest can place it this many hours before pickup" hint="Card holds last about 7 days, so keep it under 160"><Input type="number" min={1} max={160} value={draft.deposit.selfServeWindowHours} onChange={(e) => set((d) => { d.deposit!.selfServeWindowHours = Number(e.target.value); })} /></Field>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Verification services — when each check runs, who runs it, how often */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -247,6 +275,23 @@ export default function AdminEconomicsPage() {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-6 rounded-xl border border-border p-3 text-sm">
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" checked={draft.contactVerification?.requireEmail ?? true} className="accent-[hsl(var(--primary))]"
+                onChange={(e) => set((d) => { d.contactVerification = { requireEmail: e.target.checked, requirePhone: d.contactVerification?.requirePhone ?? true }; })} />
+              Guests must confirm their email
+            </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" checked={draft.contactVerification?.requirePhone ?? false} className="accent-[hsl(var(--primary))]"
+                onChange={(e) => set((d) => { d.contactVerification = { requireEmail: d.contactVerification?.requireEmail ?? true, requirePhone: e.target.checked }; })} />
+              Guests must confirm their mobile number (by SMS, costs per text)
+            </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" checked={draft.checkout?.otherMethodsEnabled ?? true} className="accent-[hsl(var(--primary))]"
+                onChange={(e) => set((d) => { d.checkout = { otherMethodsEnabled: e.target.checked }; })} />
+              Offer Apple Pay, Google Pay, Klarna, Cash App and other Stripe methods at checkout
+            </label>
+          </div>
           {(['identity', 'mvr', 'background', 'insurance'] as const).map((k) => {
             const meta = VERIFICATION_META[k];
             const pol = draft.verification[k];
@@ -432,6 +477,10 @@ export default function AdminEconomicsPage() {
           <Field label="Seconds a used sign-in token can be retried" hint="Keeps people signed in when a restart drops a reply. 0 = strict.">
             <Input type="number" min={0} max={600} value={draft.security.refreshRetryLeewaySeconds ?? 60}
               onChange={(e) => set((d) => { d.security.refreshRetryLeewaySeconds = Number(e.target.value); })} />
+          </Field>
+          <Field label="Countries we text (calling codes)" hint="Comma separated, e.g. +1. Texts to anywhere else are refused, which stops SMS fraud.">
+            <Input defaultValue={(draft.security.smsAllowedPrefixes ?? ['+1']).join(', ')}
+              onBlur={(e) => set((d) => { d.security.smsAllowedPrefixes = e.target.value.split(',').map((x) => x.trim()).filter((x) => /^\+\d{1,4}$/.test(x)); })} />
           </Field>
           <Field label="Largest upload (MB)">
             <Input type="number" min={1} max={50} value={draft.security.maxUploadMb}

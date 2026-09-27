@@ -47,6 +47,8 @@ router.put(
       contact: z.object({ notifyEmail: z.string().email().optional() }).optional(),
       // Verification frequency/validity policy — e.g. MVR at most once per 60
       // days. Admin-editable so CatoDrive retunes it without a code change.
+      contactVerification: z.object({ requireEmail: z.boolean().optional(), requirePhone: z.boolean().optional() }).optional(),
+      checkout: z.object({ otherMethodsEnabled: z.boolean().optional() }).optional(),
       verification: z
         .object({
           identity: verificationPolicy,
@@ -62,6 +64,8 @@ router.put(
           maxCents: cents.optional(),
           multiplierBps: z.number().int().min(0).max(100000).optional(),
           autoReleaseHours: z.number().int().min(0).max(720).optional(),
+          requiredAtHandover: z.boolean().optional(),
+          selfServeWindowHours: z.number().int().min(1).max(160).optional(),
         })
         .optional(),
       commission: z.object({ defaultBps: bps.optional(), minBps: bps.optional(), maxBps: bps.optional() }).optional(),
@@ -123,6 +127,7 @@ router.put(
           maxUploadMb: z.number().int().min(1).max(50).optional(),
           uploadUrlsPerHour: z.number().int().min(5).max(1000).optional(),
           refreshRetryLeewaySeconds: z.number().int().min(0).max(600).optional(),
+          smsAllowedPrefixes: z.array(z.string().regex(/^\+\d{1,4}$/)).min(1).max(20).optional(),
         })
         .optional(),
       handover: z

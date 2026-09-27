@@ -77,6 +77,31 @@ export function registerEventSubscribers(): void {
     }
   };
 
+  // The host is at the car and the deposit is missing: tell the guest exactly how to fix it, right now.
+  eventBus.subscribe(EVENTS.DEPOSIT_MISSING, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string; amount: { amount: number } };
+    await notificationService.send({
+      userId: p.guestId,
+      priority: 'critical',
+      deepLink: `/bookings/${p.bookingId}`,
+      templateKey: 'deposit.missing',
+      title: 'Place your security deposit to start the trip',
+      body: `Your host is ready. Open your booking and place the $${(p.amount.amount / 100).toFixed(0)} deposit hold with a card, Apple Pay or Google Pay. It is released after your trip.`,
+      data: { bookingId: p.bookingId },
+    }).catch((err) => logger.warn({ err, bookingId: p.bookingId }, 'deposit reminder failed'));
+  });
+
+  eventBus.subscribe(EVENTS.OPS_REQUEST_FAILED, async (e) => {
+    const p = e.payload as { code?: string; message?: string; path?: string; method?: string; area?: string; status?: number };
+    await notifyStaff(
+      'ops.request_failed',
+      `Server error on ${p.area ?? 'the site'}: ${p.code}`,
+      `${p.method} ${p.path} returned ${p.status}: ${p.message ?? ''}`.slice(0, 300),
+      { code: p.code, path: p.path, area: p.area, link: '/failures' },
+      'critical',
+    );
+  });
+
   eventBus.subscribe(EVENTS.BOOKING_CREATED, async (e) => {
     const p = e.payload as {
       bookingId: string;
@@ -703,6 +728,7 @@ export function registerEventSubscribers(): void {
   };
   eventBus.subscribe(EVENTS.KYC_APPROVED, releaseHeldBookings);
   eventBus.subscribe(EVENTS.VERIFICATION_CHECK_PASSED, releaseHeldBookings);
+  eventBus.subscribe(EVENTS.CONTACT_VERIFIED, releaseHeldBookings);
 
   /** Identity rejected → the held requests cannot proceed. Release the money. */
   eventBus.subscribe(EVENTS.KYC_REJECTED, async (e) => {

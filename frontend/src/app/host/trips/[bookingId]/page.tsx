@@ -32,6 +32,7 @@ import { InspectionPhotos } from '@/features/trips/components/inspection-photos'
 import { HandoverTimeline } from '@/features/host/components/handover-timeline';
 import { HandoverStep, type StepStatus } from '@/features/host/components/handover-step';
 import { usePlatformConfig } from '@/features/platform/config';
+import { DepositCard } from '@/features/payments/deposit-card';
 
 type Tab = 'details' | 'messages' | 'help';
 
@@ -265,6 +266,7 @@ export default function HostTripDetailPage() {
               <HandoverTimeline timeline={t.timeline} />
             </div>
           )}
+          <div className="mt-4"><DepositCard bookingId={bookingId} isGuest={false} /></div>
           {/* Dates */}
           <div className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-card p-5">
             <div>

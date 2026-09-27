@@ -12,6 +12,8 @@ export interface ChargeBookingInput {
   tax: Money;
   walletApplied?: number; // minor units funded from wallet → card charges the remainder
   idempotencyKey: string;
+  /** Guest pays now on the page with any method Stripe offers (wallets, pay-later, Cash App…) instead of the saved card. */
+  anyMethod?: boolean;
 }
 
 export interface ChargeResult {

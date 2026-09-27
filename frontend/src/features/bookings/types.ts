@@ -86,6 +86,8 @@ export interface Booking {
   /** Set when the card needs the cardholder - a 3-D Secure challenge. The trip
    *  is held, not confirmed, until the client finishes it. */
   requiresAction?: boolean;
+  /** The guest chose to pay on the page; show checkout with this secret. */
+  requiresPayment?: boolean;
   clientSecret?: string;
   delivery?: { mode: string; address: string };
   additionalDrivers?: { name: string; licenseNumber?: string; addedAt: string }[];
@@ -119,6 +121,7 @@ export interface QuoteInput {
   addOnCodes?: string[];
   protectionPlan?: string;
   useWallet?: boolean;
+  payWith?: 'saved_card' | 'other';
   delivery?: DeliveryRequest;
   /** The Terms & Conditions version the guest accepted. Required by the booking
    *  create endpoint (a booking is a contract); ignored by the quote endpoint. */

@@ -7,9 +7,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'main-checkpoint-*']
   pull_request:
-    branches: [main]
+    branches: [main, 'main-checkpoint-*']
 
 # A newer push to the same branch cancels the older in-flight run.
 concurrency:

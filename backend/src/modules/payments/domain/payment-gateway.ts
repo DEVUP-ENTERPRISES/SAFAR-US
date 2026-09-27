@@ -15,6 +15,10 @@ export interface CreateIntentInput {
    *  guest is not asked for a card they already gave us. */
   customerId?: string;
   paymentMethodId?: string;
+  /** On-page checkout: every payment method enabled in the Stripe dashboard, confirmed by the guest in the browser. */
+  anyMethod?: boolean;
+  /** Keep the card the guest enters for later off-session charges (deposit captures, tolls, damage). */
+  saveCard?: boolean;
 }
 
 export interface IntentResult {
@@ -24,6 +28,8 @@ export interface IntentResult {
    *  and the client must finish it. Treating that as a failure would decline
    *  perfectly good European and increasingly US cards. */
   status: 'requires_confirmation' | 'requires_payment_method' | 'requires_action' | 'succeeded' | 'requires_capture' | 'canceled';
+  /** The payment method used, once there is one. */
+  paymentMethodId?: string;
 }
 
 export interface IntentRisk {

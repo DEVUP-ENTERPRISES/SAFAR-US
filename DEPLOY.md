@@ -28,7 +28,7 @@ credentials.
 ```bash
 git clone https://github.com/FaizanMohammed07/kiedo.git && cd kiedo/backend
 npm ci
-cp .env.example .env      # then fill it in — see 1.3
+# create .env from the private template the owner shares (never committed) — see 1.3
 npm run build             # → dist/
 pm2 start dist/main.js --name cato-api
 pm2 save && pm2 startup   # survive reboots

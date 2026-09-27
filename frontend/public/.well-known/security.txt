@@ -1,0 +1,6 @@
+# Found a security issue at CatoDrive? Tell us privately; please do not test against other people's accounts or data.
+Contact: https://www.catodrive.com/contact
+Expires: 2027-09-27T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://www.catodrive.com/.well-known/security.txt
+Policy: https://www.catodrive.com/terms

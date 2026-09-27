@@ -3,12 +3,14 @@ import { isMongoHealthy } from '../../infrastructure/database/mongoose.client';
 import { isRedisHealthy } from '../../infrastructure/cache/redis.client';
 import { sendSuccess } from '../../shared/http/api-response';
 import { config } from '../../config';
+import { logger } from '../../infrastructure/logging/logger';
 
 const router = Router();
 
 /** Liveness: process is up. */
 router.get('/health', (_req, res) => {
-  sendSuccess(res, { status: 'ok', uptime: process.uptime() });
+  // Public, so it says nothing an attacker could use (no uptime: that dates the last restart and deploy).
+  sendSuccess(res, { status: 'ok' });
 });
 
 /**
@@ -25,19 +27,9 @@ router.get('/ready', (_req, res) => {
   const storage = config.aws.enabled ? 'live' : 'mock';
 
   const ready = mongo;
-  res.status(ready ? 200 : 503).json({
-    success: ready,
-    data: {
-      mongo,
-      redis,
-      storage,
-      degraded: !redis,
-      release: config.observability.release,
-      env: config.env,
-      uptime: Math.round(process.uptime()),
-    },
-    meta: { requestId: res.locals.requestId },
-  });
+  // The status code is what a load balancer needs; which dependency is down, the release and the environment stay in the logs.
+  if (!ready || !redis) logger.warn({ mongo, redis, storage, release: config.observability.release }, 'readiness degraded');
+  res.status(ready ? 200 : 503).json({ success: ready, data: { ready }, meta: { requestId: res.locals.requestId } });
 });
 
 export const systemRoutes = router;

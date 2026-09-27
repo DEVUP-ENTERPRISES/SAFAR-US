@@ -2,6 +2,7 @@ import { config } from "@/lib/config";
 import { tokenStore } from "./token-store";
 import { ApiError, type ApiSuccess } from "./types";
 import { onSessionExpired } from "./session-events";
+import { safeMessage, GENERIC_ERROR } from "@/lib/utils/safe-message";
 
 interface RequestOptions {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
@@ -105,6 +106,12 @@ async function attemptRefresh(): Promise<RefreshOutcome> {
   return refreshInFlight;
 }
 
+/** What a person sees for a failed request: our own plain sentences for real outcomes, a generic one for anything technical. */
+function friendlyMessage(status: number, code?: string, message?: string): string {
+  if (status >= 500 || status === 404 || code === "ROUTE_NOT_FOUND" || code === "INTERNAL_ERROR") return GENERIC_ERROR;
+  return safeMessage(message);
+}
+
 async function raw<T>(
   path: string,
   opts: RequestOptions,
@@ -182,7 +189,7 @@ async function raw<T>(
 
     throw new ApiError(
       err?.code ?? "UNKNOWN",
-      err?.message ?? `Request failed (${res.status})`,
+      friendlyMessage(res.status, err?.code, err?.message),
       res.status,
       err?.details,
     );

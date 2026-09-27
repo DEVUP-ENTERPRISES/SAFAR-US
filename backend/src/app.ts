@@ -52,7 +52,17 @@ export function createApp(): Express {
 
   // 2. security headers
   app.use(deviceContext);
-  app.use(helmet());
+  app.use(
+    helmet({
+      // The API only ever serves JSON: nothing may frame it, load it as a page resource, or run anything from it.
+      contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"], baseUri: ["'none'"], formAction: ["'none'"] } },
+      frameguard: { action: 'deny' },
+      strictTransportSecurity: { maxAge: 63_072_000, includeSubDomains: true, preload: true },
+      referrerPolicy: { policy: 'no-referrer' },
+    }),
+  );
+  // Browsers post content security policy violations here (the web apps point report-uri at it).
+  app.use(`${config.app.apiPrefix}/security/csp-report`, express.json({ limit: '16kb', type: ['application/csp-report', 'application/reports+json', 'application/json'] }));
 
   // 3. cors — reflect allowed origins (or any origin when '*' configured).
   const allowAllOrigins = config.cors.origins.some((o) => o === '*' || o.includes('*'));

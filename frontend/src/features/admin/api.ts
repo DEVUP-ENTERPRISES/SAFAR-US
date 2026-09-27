@@ -66,7 +66,7 @@ export interface PlatformConfig {
     requireLocation: boolean;
     maxDistanceMeters: number;
   };
-  security: { cardAttemptsPerHour: number; loginAttemptsPerAccount: number; loginLockoutMinutes: number; maxUploadMb: number; uploadUrlsPerHour: number; refreshRetryLeewaySeconds: number };
+  security: { cardAttemptsPerHour: number; loginAttemptsPerAccount: number; loginLockoutMinutes: number; maxUploadMb: number; uploadUrlsPerHour: number; refreshRetryLeewaySeconds: number; smsAllowedPrefixes?: string[] };
   handover: {
     hostInspectionRequired: boolean;
     pickupCodeRequired: boolean;
@@ -114,6 +114,9 @@ export interface PlatformConfig {
     privacyUrl: string;
     minAgeYears: number;
   };
+  contactVerification?: { requireEmail: boolean; requirePhone: boolean };
+  checkout?: { otherMethodsEnabled: boolean };
+  deposit?: { enabled: boolean; minCents: number; maxCents: number; multiplierBps: number; autoReleaseHours: number; requiredAtHandover: boolean; selfServeWindowHours: number };
   verification: {
     identity: VerificationPolicy;
     mvr: VerificationPolicy;
@@ -502,6 +505,8 @@ export const adminApi = {
     api.raw<FeatureFlag>(`/admin/feature-flags/${key}`, { method: 'PUT', body }).then((r) => r.data),
 
   auditLogs: (q: Q = {}) => api.get<any[]>('/admin/audit-logs', q),
+  failures: (q: { area?: string; days?: number } = {}) =>
+    api.get<{ items: any[]; summary: { code: string; area: string; count: number; lastAt: string; status: number; message: string }[] }>('/admin/failures', q),
 
   staff: () => api.get<any[]>('/admin/staff'),
   createStaff: (body: { name: string; role: string; email?: string }) =>

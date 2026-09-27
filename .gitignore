@@ -5,10 +5,8 @@ node_modules/
 # Env / secrets — NEVER commit
 .env
 .env.*
-!.env.example
 **/.env
 **/.env.*
-!**/.env.example
 
 # Build output
 dist/

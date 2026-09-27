@@ -125,6 +125,8 @@ export class PlatformConfigService {
         notifyEmail: 'shoaib@catodrive.com',
         ...(doc.contact ?? {}),
       },
+      contactVerification: { requireEmail: true, requirePhone: false, ...(doc.contactVerification ?? {}) },
+      checkout: { otherMethodsEnabled: true, ...(doc.checkout ?? {}) },
       verification: {
         identity: { required: true, trigger: 'on_signup', provider: 'stripe_identity', maxPerPeriod: 5, periodDays: 30, validityDays: 730, ...(doc.verification?.identity ?? {}) },
         mvr: { required: false, trigger: 'on_first_booking', provider: 'checkr', maxPerPeriod: 1, periodDays: 60, validityDays: 365, ...(doc.verification?.mvr ?? {}) },
@@ -137,6 +139,8 @@ export class PlatformConfigService {
         maxCents: 100000,
         multiplierBps: 20000,
         autoReleaseHours: 120, // 5 days, matching Turo
+        requiredAtHandover: true,
+        selfServeWindowHours: 144,
         ...(doc.deposit ?? {}),
       },
       commission: { defaultBps: 2000, minBps: 0, maxBps: 4000, ...(doc.commission ?? {}) },
@@ -165,7 +169,7 @@ export class PlatformConfigService {
         maxPhotosPerPhase: 30, requireLocation: true, maxDistanceMeters: 0,
         ...(doc.inspection ?? {}),
       },
-      security: { cardAttemptsPerHour: 12, loginAttemptsPerAccount: 8, loginLockoutMinutes: 15, maxUploadMb: 12, uploadUrlsPerHour: 60, refreshRetryLeewaySeconds: 60, ...(doc.security ?? {}) },
+      security: { cardAttemptsPerHour: 12, loginAttemptsPerAccount: 8, loginLockoutMinutes: 15, maxUploadMb: 12, uploadUrlsPerHour: 60, refreshRetryLeewaySeconds: 60, ...(doc.security ?? {}), smsAllowedPrefixes: doc.security?.smsAllowedPrefixes?.length ? doc.security.smsAllowedPrefixes : ['+1'] },
       handover: {
         hostInspectionRequired: true, pickupCodeRequired: true, maxCodeAttempts: 5, hostOnlyStart: true, baselineRequiredForCharges: true, returnConfirmHours: 12,
         ...(doc.handover ?? {}),

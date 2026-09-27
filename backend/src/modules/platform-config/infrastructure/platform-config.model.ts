@@ -46,6 +46,10 @@ export interface PlatformConfigDoc {
     multiplierBps: number;
     /** Hours after trip end before an unclaimed deposit is auto-released. */
     autoReleaseHours: number;
+    /** The trip cannot start until the deposit is held. */
+    requiredAtHandover: boolean;
+    /** How early before pickup a guest can place the hold themselves (card holds expire after about 7 days). */
+    selfServeWindowHours: number;
   };
   commission: {
     /** Fallback take rate when no CommissionRule matches. Basis points. */
@@ -270,6 +274,16 @@ export interface PlatformConfigDoc {
    * { maxPerPeriod: 1, periodDays: 60 }. A still-valid result is REUSED rather
    * than re-run, so a new booking does not trigger a new paid check.
    */
+  /** Whether a guest must confirm their email / mobile number before a trip can be paid and handed over. */
+  contactVerification: {
+    requireEmail: boolean;
+    requirePhone: boolean;
+  };
+  /** Checkout options beyond the saved card. */
+  checkout: {
+    /** Offer every payment method enabled in Stripe (Apple/Google Pay, Link, Klarna, Affirm, Afterpay, Cash App, Amazon Pay…) on Instant Book trips for verified guests. */
+    otherMethodsEnabled: boolean;
+  };
   verification: {
     identity: VerificationPolicy;
     mvr: VerificationPolicy;
@@ -398,6 +412,8 @@ export interface PlatformConfigDoc {
     uploadUrlsPerHour: number;
     /** Seconds an already-used refresh token is still accepted, so a refresh whose reply was lost can be retried without signing the member out. */
     refreshRetryLeewaySeconds: number;
+    /** Text messages only go to numbers starting with one of these (SMS pumping fraud sends codes to premium foreign numbers at our cost). */
+    smsAllowedPrefixes: string[];
   };
   /** What must happen before the keys change hands, and who may start the trip. */
   handover: {
@@ -517,6 +533,14 @@ const schema = new Schema<PlatformConfigDoc>(
     contact: {
       notifyEmail: { type: String, default: 'shoaib@catodrive.com' },
     },
+    contactVerification: {
+      requireEmail: { type: Boolean, default: true },
+      // SMS costs money per code; phone is confirmed when someone signs in by text, so booking asks for email only unless an admin turns this on.
+      requirePhone: { type: Boolean, default: false },
+    },
+    checkout: {
+      otherMethodsEnabled: { type: Boolean, default: true },
+    },
     verification: {
       identity: {
         required: { type: Boolean, default: true },
@@ -557,6 +581,8 @@ const schema = new Schema<PlatformConfigDoc>(
       maxCents: { type: Number, default: 100000 },  // $1,000 ceiling
       multiplierBps: { type: Number, default: 20000 }, // 2x the daily rate
       autoReleaseHours: { type: Number, default: 120 },
+      requiredAtHandover: { type: Boolean, default: true },
+      selfServeWindowHours: { type: Number, default: 144 },
     },
     commission: {
       defaultBps: { type: Number, default: 2000 }, // 20%
@@ -727,6 +753,7 @@ const schema = new Schema<PlatformConfigDoc>(
       maxUploadMb: { type: Number, default: 12 },
       uploadUrlsPerHour: { type: Number, default: 60 },
       refreshRetryLeewaySeconds: { type: Number, default: 60 },
+      smsAllowedPrefixes: { type: [String], default: undefined },
     },
     handover: {
       hostInspectionRequired: { type: Boolean, default: true },

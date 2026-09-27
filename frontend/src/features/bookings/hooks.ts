@@ -70,7 +70,7 @@ export function useCompletePayment() {
   return useMutation({
     mutationFn: async (id: string) => {
       const s = await bookingApi.paymentSession(id);
-      if (s.status === 'requires_payment_method') return { id, outcome: 'needs_card' as const };
+      if (s.status === 'requires_payment_method') return { id, outcome: s.clientSecret ? ('checkout' as const) : ('needs_card' as const), clientSecret: s.clientSecret };
       if (s.status === 'requires_action') {
         const ok = s.clientSecret ? await confirmCardPayment(s.clientSecret) : false;
         return { id, outcome: ok ? ('paid' as const) : ('failed' as const) };
@@ -81,6 +81,7 @@ export function useCompletePayment() {
       qc.invalidateQueries({ queryKey: ['booking', id] });
       qc.invalidateQueries({ queryKey: ['bookings'] });
       if (outcome === 'paid') toast({ tone: 'success', title: 'Payment complete' });
+      else if (outcome === 'checkout') return;
       else if (outcome === 'failed') toast({ tone: 'error', title: 'The payment didn’t go through', description: 'Please try again.' });
       else {
         toast({ tone: 'info', title: 'Add a card to pay', description: 'Save a card in your account, then come back and tap Complete payment again.' });

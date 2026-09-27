@@ -13,7 +13,7 @@ Architecture blueprint lives in [`../docs/architecture`](../docs/architecture).
 ## Getting started
 ```bash
 cd backend
-cp .env.example .env         # adjust if needed
+# create .env from the private template the owner shares (env files are never committed)
 npm install
 # start MongoDB + Redis locally (or Docker), then:
 npm run dev                  # http://localhost:4000

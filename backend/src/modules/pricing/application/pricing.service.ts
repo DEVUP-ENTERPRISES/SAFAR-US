@@ -56,14 +56,13 @@ export class PricingService implements IPricingContract {
     let baseAmount = 0;
     let surgeDays = 0;
     let surgeSource = 'none';
-    const first = new Date(
-      Date.UTC(input.start.getUTCFullYear(), input.start.getUTCMonth(), input.start.getUTCDate()),
-    );
-    const last = new Date(
-      Date.UTC(input.end.getUTCFullYear(), input.end.getUTCMonth(), input.end.getUTCDate()),
-    );
-    const tripDays: Date[] = [];
-    for (const d = new Date(first); d <= last; d.setUTCDate(d.getUTCDate() + 1)) tripDays.push(new Date(d));
+    // A day is 24 hours from pickup (any part of a day counts as one), each priced by the calendar date it starts on.
+    // Counting calendar dates instead charged a 24-hour trip as 2 days and a 48-hour trip as 3.
+    const periods = Math.max(1, Math.ceil((input.end.getTime() - input.start.getTime()) / 86_400_000 - 1e-9));
+    const tripDays: Date[] = Array.from({ length: periods }, (_, i) => {
+      const t = new Date(input.start.getTime() + i * 86_400_000);
+      return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()));
+    });
 
     // One surge lookup per calendar day, run in parallel — resolved one at a time this made
     // a two-week trip's quote wait on fourteen sequential round trips (each with its own

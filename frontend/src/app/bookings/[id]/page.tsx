@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Calendar, CalendarPlus, MapPin, Shuffle, MessageSquare, Receipt, Car, ShieldCheck, XCircle, Lock, BadgeCheck, Bell,
+  ArrowLeft, Calendar, CalendarPlus, MapPin, Shuffle, MessageSquare, Receipt, Car, ShieldCheck, XCircle, Lock, Bell,
 } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +34,9 @@ import { TripProgress } from '@/features/bookings/components/trip-progress';
 import { ApiError } from '@/lib/api/types';
 import { pushConfigured } from '@/features/push/firebase';
 import { enablePush } from '@/features/push/use-push';
+import { BookingReadiness } from '@/features/account/booking-readiness';
+import { PayNow } from '@/features/payments/pay-now';
+import { DepositCard } from '@/features/payments/deposit-card';
 
 /** How each state reads to the guest, and what it means for them. */
 const STATE: Record<string, { tone: 'success' | 'warning' | 'destructive' | 'muted' | 'default'; label: string; detail: string }> = {
@@ -91,6 +94,14 @@ function BookingDetail({ id }: { id: string }) {
   });
 
   const completePayment = useCompletePayment();
+  // Back from a pay-later or bank page: ask the server to check Stripe now rather than waiting for the webhook.
+  const bookingStatus = booking.data?.status;
+  useEffect(() => {
+    if (bookingStatus === 'pending_payment' && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('paid') === '1') {
+      completePayment.mutate(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingStatus, id]);
   const noShow = useMutation({
     mutationFn: () => bookingApi.noShow(id, 'host'),
     onSuccess: () => {
@@ -228,12 +239,15 @@ function BookingDetail({ id }: { id: string }) {
               <DateBlock label="Return" value={formatDateTime(b.period.end)} />
             </div>
 
+            {b.status === 'pending_verification' && <BookingReadiness className="mt-4" />}
+            {['paid', 'confirmed', 'in_progress', 'completed'].includes(b.status) && <div className="mt-4"><DepositCard bookingId={id} isGuest /></div>}
+            {b.status === 'pending_payment' && completePayment.data?.outcome === 'checkout' && completePayment.data.clientSecret && (
+              <div className="mt-4 space-y-2 rounded-xl border border-primary/30 p-3">
+                <p className="text-sm font-semibold">Pay to confirm your trip</p>
+                <PayNow clientSecret={completePayment.data.clientSecret} returnPath={`/bookings/${id}?paid=1`} onPaid={() => { completePayment.reset(); window.location.reload(); }} />
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap gap-2">
-              {b.status === 'pending_verification' && (
-                <Button size="sm" onClick={() => router.push('/account/verify-identity')}>
-                  <BadgeCheck className="h-4 w-4" /> Verify identity
-                </Button>
-              )}
               <Link href={`/vehicles/${b.vehicleId}`}>
                 <Button variant="outline" size="sm">View listing</Button>
               </Link>

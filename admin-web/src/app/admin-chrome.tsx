@@ -19,7 +19,8 @@ function AdminShell({ children }: { children: ReactNode }) {
   // Only 401/403 is an answer about access — anything else is a transport
   // failure and must not masquerade as "you're not allowed in".
   const isDenied = (e: unknown) =>
-    e instanceof ApiError && (e.status === 401 || e.status === 403);
+    // The API answers 404 to anyone who is not staff, so the admin surface does not show up in scans.
+    e instanceof ApiError && (e.status === 401 || e.status === 403 || e.status === 404);
 
   const gate = useQuery({
     queryKey: ['admin-gate'],

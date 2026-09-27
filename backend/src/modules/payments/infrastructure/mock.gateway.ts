@@ -16,7 +16,7 @@ export class MockGateway implements PaymentGateway {
 
   async createIntent(input: CreateIntentInput): Promise<IntentResult> {
     const intentId = `pi_mock_${randomId()}`;
-    const status = input.capture ? 'succeeded' : 'requires_capture';
+    const status = input.anyMethod ? 'requires_payment_method' : input.capture ? 'succeeded' : 'requires_capture';
     this.intents.set(intentId, { status, captured: input.capture });
     return { intentId, clientSecret: `${intentId}_secret`, status: status as IntentResult['status'] };
   }

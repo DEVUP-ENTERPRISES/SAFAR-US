@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { securityHeaders } from '../frontend/security-headers.mjs';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const sharedSrc = path.resolve(dir, '../frontend/src');
@@ -39,6 +40,7 @@ const nextConfig = {
       {
         source: '/:path*',
         headers: [
+          ...securityHeaders({ apiUrl: process.env.NEXT_PUBLIC_API_URL, dev: process.env.NODE_ENV !== 'production' }).filter((h) => h.key !== 'Referrer-Policy'),
           { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive, nosnippet' },
           { key: 'Referrer-Policy', value: 'no-referrer' },
         ],

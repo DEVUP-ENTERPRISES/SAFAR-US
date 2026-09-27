@@ -10,6 +10,8 @@ export const EVENTS = {
 
   KYC_SUBMITTED: 'kyc.submitted',
   KYC_APPROVED: 'kyc.approved',
+  CONTACT_VERIFIED: 'user.contact_verified',
+  DEPOSIT_MISSING: 'deposit.missing',
   KYC_REJECTED: 'kyc.rejected',
 
   USER_LOGGED_IN: 'user.logged_in',
@@ -30,6 +32,7 @@ export const EVENTS = {
   BOOKING_DECLINED: 'booking.declined',
   BOOKING_CANCELLED: 'booking.cancelled',
   BOOKING_EXPIRED: 'booking.expired',
+  OPS_REQUEST_FAILED: 'ops.request_failed',
   BOOKING_COMPLETED: 'booking.completed',
   BOOKING_REMINDER: 'booking.reminder',
   BOOKING_EXTENDED: 'booking.extended',

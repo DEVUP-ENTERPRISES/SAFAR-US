@@ -22,7 +22,8 @@ function toIntentResult(intent: Stripe.PaymentIntent): IntentResult {
         : intent.status === 'canceled'
           ? 'canceled'
           : 'requires_confirmation';
-  return { intentId: intent.id, clientSecret: intent.client_secret ?? '', status };
+  const pm = typeof intent.payment_method === 'string' ? intent.payment_method : intent.payment_method?.id;
+  return { intentId: intent.id, clientSecret: intent.client_secret ?? '', status, ...(pm ? { paymentMethodId: pm } : {}) };
 }
 
 export class StripeGateway implements PaymentGateway {
@@ -38,13 +39,18 @@ export class StripeGateway implements PaymentGateway {
       // With a saved card we confirm immediately and off-session: the guest
       // gave us the card when they saved it, and being asked to re-enter it at
       // booking is the single biggest drop-off in a checkout.
-      const offSession = !!(input.customerId && input.paymentMethodId);
+      const offSession = !input.anyMethod && !!(input.customerId && input.paymentMethodId);
 
       const intent = await this.stripe.paymentIntents.create(
         {
           amount: input.amount.amount,
           currency: input.amount.currency.toLowerCase(),
           capture_method: input.capture ? 'automatic' : 'manual',
+          // A saved-card charge is cards only: redirect methods (Klarna, Cash App, Amazon Pay) cannot be confirmed off-session. On-page checkout offers everything enabled in the dashboard.
+          ...(input.anyMethod
+            ? { automatic_payment_methods: { enabled: true }, ...(input.customerId ? { customer: input.customerId } : {}) }
+            : { payment_method_types: ['card'] }),
+          ...(input.saveCard ? { setup_future_usage: 'off_session' as const, ...(input.customerId ? { customer: input.customerId } : {}) } : {}),
           metadata: { userId: input.userId, ...input.metadata },
           ...(offSession
             ? {

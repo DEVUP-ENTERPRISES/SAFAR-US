@@ -1,6 +1,7 @@
 import { WebhookEventModel } from '../infrastructure/webhook-event.model';
 import { paymentGateway } from '../infrastructure/gateway.provider';
 import { paymentService } from './payment.service';
+import { depositService } from './deposit.service';
 import { PaymentModel } from '../infrastructure/payment.model';
 import { riskService } from '../../risk/application/risk.service';
 import { dashboardRefundService } from './dashboard-refund.service';
@@ -46,6 +47,12 @@ export async function runStripeEvent(event: {
             .catch((err) => logger.warn({ err, intentId: obj.id }, 'card risk lookup failed'));
         }
         break;
+      // A deposit hold the guest placed on their booking page has been authorised (backup to the page's own check).
+      case 'payment_intent.amount_capturable_updated': {
+        const meta = (event.data.object as { metadata?: { kind?: string } }).metadata;
+        if (meta?.kind === 'security_deposit') await depositService.syncOnPage(obj.id);
+        break;
+      }
       case 'charge.refunded': {
         // Book any refund we did not make ourselves (e.g. from the Stripe dashboard).
         const charge = event.data.object as { payment_intent?: string; amount_refunded?: number };

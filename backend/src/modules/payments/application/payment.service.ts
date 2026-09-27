@@ -46,8 +46,9 @@ export class PaymentService implements IPaymentContract {
     // again. Absent one, the intent comes back needing confirmation and the
     // client collects a card there and then.
     const [card, customerId] = await Promise.all([
-      PaymentMethodModel.findOne({ userId: input.guestId, isDefault: true })
-        .lean<{ stripePaymentMethodId?: string }>(),
+      input.anyMethod
+        ? Promise.resolve(null)
+        : PaymentMethodModel.findOne({ userId: input.guestId, isDefault: true }).lean<{ stripePaymentMethodId?: string }>(),
       paymentMethodService.customerFor(input.guestId).catch(() => null),
     ]);
 
@@ -62,6 +63,7 @@ export class PaymentService implements IPaymentContract {
             metadata: { bookingId: input.bookingId, hostId: input.hostId },
             customerId: customerId ?? undefined,
             paymentMethodId: card?.stripePaymentMethodId,
+            anyMethod: input.anyMethod,
           })
         : { intentId: `wallet_${input.idempotencyKey}`, clientSecret: '', status: 'succeeded' as const };
 
@@ -95,6 +97,7 @@ export class PaymentService implements IPaymentContract {
       walletApplied: input.walletApplied ?? 0,
       status,
       idempotencyKey: input.idempotencyKey,
+      ...(input.anyMethod ? { onPage: true } : {}),
     });
 
     // The ledger only moves when money actually did.
@@ -266,7 +269,7 @@ export class PaymentService implements IPaymentContract {
     if (payment.status === 'succeeded' || payment.status === 'authorized') return { status: 'succeeded' };
 
     let intent = await paymentGateway.retrieveIntent(payment.intentId);
-    if (intent.status === 'requires_payment_method' || intent.status === 'requires_confirmation') {
+    if (!payment.onPage && (intent.status === 'requires_payment_method' || intent.status === 'requires_confirmation')) {
       const [card, customerId] = await Promise.all([
         PaymentMethodModel.findOne({ userId: payment.userId, isDefault: true }).lean<{ stripePaymentMethodId?: string }>(),
         paymentMethodService.customerFor(payment.userId).catch(() => null),
@@ -282,7 +285,8 @@ export class PaymentService implements IPaymentContract {
       return { status: 'succeeded' };
     }
     if (intent.status === 'requires_action') return { status: 'requires_action', clientSecret: intent.clientSecret };
-    return { status: 'requires_payment_method' };
+    // Lets the page reopen checkout so the guest can pay with any method.
+    return { status: 'requires_payment_method', clientSecret: intent.clientSecret };
   }
 
   /**

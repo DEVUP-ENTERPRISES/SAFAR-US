@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/features/auth/store';
@@ -48,11 +47,9 @@ export function ProfileGate() {
     staleTime: 60_000,
   });
 
-  useEffect(() => {
-    if (!IN_ADMIN_APP && status === 'authenticated' && !isStaff && data && !data.complete && !onOpenPath) {
-      router.replace('/account/setup');
-    }
-  }, [status, isStaff, data, onOpenPath, router]);
+  // No longer a gate after sign-up: renter details are asked for at the moment someone books (the booking API refuses with PROFILE_INCOMPLETE and the car page sends them to setup and back).
+  // Kept for the profile-status query other screens read.
+  void onOpenPath; void router; void data;
 
   return null;
 }

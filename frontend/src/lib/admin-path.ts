@@ -8,9 +8,9 @@ export const ADMIN_SLUG = process.env.NEXT_PUBLIC_ADMIN_SLUG || 'admin';
  * Build a console URL. Always use this instead of writing `/admin/...`, or the
  * link will 404 once the secret slug is set.
  *
- *   adminPath()            -> /ctrl-0986-cato-admin
- *   adminPath('users')     -> /ctrl-0986-cato-admin/users
- *   adminPath('/hosts?x=1')-> /ctrl-0986-cato-admin/hosts?x=1
+ *   adminPath()            -> /your-secret-admin-path
+ *   adminPath('users')     -> /your-secret-admin-path/users
+ *   adminPath('/hosts?x=1')-> /your-secret-admin-path/hosts?x=1
  */
 export function adminPath(sub = ''): string {
   const clean = sub.replace(/^\/+/, '');

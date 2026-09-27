@@ -76,9 +76,14 @@ export class DepositService {
     if (!(await this.isEnabled())) return null;
 
     const existing = await this.forBooking(input.bookingId);
-    if (existing) {
+    // A hold the guest started on their booking page counts once Stripe has it; an abandoned one gives way to the saved card.
+    if (existing && existing.status === 'pending' && existing.onPage) {
+      if (await this.syncOnPage(existing.intentId)) return { placed: true, amount: { amount: existing.amount, currency: existing.currency } };
+      await paymentGateway.cancel(existing.intentId).catch(() => undefined);
+      await PaymentModel.updateOne({ _id: existing._id }, { status: 'cancelled', deletedAt: new Date(), releasedReason: 'Replaced by the saved card at handover' });
+    } else if (existing) {
       return {
-        placed: false,
+        placed: existing.status === 'authorized',
         amount: { amount: existing.amount, currency: existing.currency },
       };
     }
@@ -144,9 +149,72 @@ export class DepositService {
    * majority of trips. Idempotent, because the auto-release job and a host
    * clearing an inspection can both reach it.
    */
+  /**
+   * The guest places the hold themselves from their booking page, with any card or Apple / Google Pay.
+   * For guests who paid another way (Klarna, Cash App…) or have no saved card. The card is kept for later
+   * charges, and the hold is released on the normal schedule. Only close to pickup, because a card hold lasts about a week.
+   */
+  async selfServe(input: { bookingId: string; userId: string; tripStart: Date; dailyPrice: number; currency: string }): Promise<
+    { status: 'held' | 'not_needed'; amount: Money } | { status: 'needs_payment'; clientSecret: string; amount: Money } | { status: 'too_early'; amount: Money; opensAt: Date }
+  > {
+    const cfg = await platformConfigService.get();
+    const existing = await this.forBooking(input.bookingId);
+    if (existing?.status === 'authorized') return { status: 'held', amount: { amount: existing.amount, currency: existing.currency } };
+    if (existing?.status === 'pending' && existing.onPage) {
+      if (await this.syncOnPage(existing.intentId)) return { status: 'held', amount: { amount: existing.amount, currency: existing.currency } };
+      const intent = await paymentGateway.retrieveIntent(existing.intentId);
+      return { status: 'needs_payment', clientSecret: intent.clientSecret, amount: { amount: existing.amount, currency: existing.currency } };
+    }
+
+    const amount = await this.amountFor(input.dailyPrice, input.currency, input.userId);
+    if (!cfg.deposit.enabled || amount.amount <= 0) return { status: 'not_needed', amount };
+    const opensAt = new Date(input.tripStart.getTime() - cfg.deposit.selfServeWindowHours * 3_600_000);
+    if (Date.now() < opensAt.getTime()) return { status: 'too_early', amount, opensAt };
+
+    const customerId = await paymentMethodService.customerFor(input.userId).catch(() => null);
+    const intent = await paymentGateway.createIntent({
+      userId: input.userId,
+      amount,
+      capture: false,
+      idempotencyKey: `deposit_page_${input.bookingId}`,
+      metadata: { bookingId: input.bookingId, kind: 'security_deposit' },
+      customerId: customerId ?? undefined,
+      saveCard: true,
+    });
+    await PaymentModel.create({
+      _id: uuid(), bookingId: input.bookingId, userId: input.userId, type: 'deposit', intentId: intent.intentId,
+      amount: amount.amount, currency: amount.currency, hostEarnings: 0, commission: 0, tax: 0, capturedAmount: 0, refundedAmount: 0,
+      status: 'pending', onPage: true, idempotencyKey: `deposit_page_${input.bookingId}`,
+    });
+    return { status: 'needs_payment', clientSecret: intent.clientSecret, amount };
+  }
+
+  /** Marks an on-page hold as held once Stripe has it, and keeps the card it was placed on. True when held. */
+  async syncOnPage(intentId: string): Promise<boolean> {
+    const intent = await paymentGateway.retrieveIntent(intentId).catch(() => null);
+    if (intent?.status !== 'requires_capture') return false;
+    const doc = await PaymentModel.findOneAndUpdate({ intentId, type: 'deposit', status: 'pending' }, { status: 'authorized' }, { new: true }).lean();
+    if (doc && intent.paymentMethodId) {
+      const hasCard = await PaymentMethodModel.exists({ userId: doc.userId, stripePaymentMethodId: intent.paymentMethodId });
+      if (!hasCard) {
+        await paymentMethodService
+          .save(doc.userId, { brand: 'card', last4: '0000', expMonth: 1, expYear: 2100, stripePaymentMethodId: intent.paymentMethodId })
+          .catch((err) => logger.warn({ err: (err as Error).message, intentId }, 'deposit card could not be kept'));
+      }
+    }
+    if (doc) logger.info({ bookingId: doc.bookingId, amount: doc.amount }, 'deposit held (placed by the guest)');
+    return true;
+  }
+
   async release(bookingId: string, reason = 'Trip completed with no claim'): Promise<boolean> {
     const deposit = await this.forBooking(bookingId);
     if (!deposit) return false;
+    // A hold the guest started but never finished is simply withdrawn.
+    if (deposit.status === 'pending' && deposit.onPage) {
+      await paymentGateway.cancel(deposit.intentId).catch(() => undefined);
+      await PaymentModel.updateOne({ _id: deposit._id }, { status: 'cancelled', releasedReason: reason, releasedAt: new Date() });
+      return true;
+    }
     if (deposit.status !== 'authorized') return false; // already settled
 
     await paymentGateway.cancel(deposit.intentId);
