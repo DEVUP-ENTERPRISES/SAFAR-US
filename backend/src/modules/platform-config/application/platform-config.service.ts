@@ -125,7 +125,8 @@ export class PlatformConfigService {
         notifyEmail: 'shoaib@catodrive.com',
         ...(doc.contact ?? {}),
       },
-      contactVerification: { requireEmail: true, requirePhone: true, ...(doc.contactVerification ?? {}) },
+      contactVerification: { requireEmail: true, requirePhone: false, ...(doc.contactVerification ?? {}) },
+      checkout: { otherMethodsEnabled: true, ...(doc.checkout ?? {}) },
       verification: {
         identity: { required: true, trigger: 'on_signup', provider: 'stripe_identity', maxPerPeriod: 5, periodDays: 30, validityDays: 730, ...(doc.verification?.identity ?? {}) },
         mvr: { required: false, trigger: 'on_first_booking', provider: 'checkr', maxPerPeriod: 1, periodDays: 60, validityDays: 365, ...(doc.verification?.mvr ?? {}) },

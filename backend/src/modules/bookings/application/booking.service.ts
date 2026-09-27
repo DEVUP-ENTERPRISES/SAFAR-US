@@ -376,8 +376,14 @@ export class BookingService {
         walletApplied = await walletService.spendUpTo(guestId, breakdown.total.amount, 'booking', bookingId, `wallet_spend_${bookingId}`);
       }
 
+      // Paying on the page with another method (wallets, pay later, Cash App…) is for trips that confirm on payment: an Instant Book trip for a verified guest.
+      const payOnPage = dto.payWith === 'other';
+      if (payOnPage && !((await platformConfigService.get()).checkout.otherMethodsEnabled && effectiveInstant && eligibility.eligible)) {
+        throw new ConflictError('Other payment options are available on Instant Book trips once you are verified. Please pay with a card for this one.', 'PAY_WITH_CARD');
+      }
+
       // Without a card nothing is authorised, so "your card is held" would be untrue and a later capture would fail.
-      if (breakdown.total.amount - walletApplied > 0 && !(await paymentMethodService.hasChargeableCard(guestId))) {
+      if (!payOnPage && breakdown.total.amount - walletApplied > 0 && !(await paymentMethodService.hasChargeableCard(guestId))) {
         throw new ConflictError('Add a payment card to book this trip. It isn’t charged until the trip is confirmed.', 'PAYMENT_METHOD_REQUIRED');
       }
 
@@ -393,6 +399,7 @@ export class BookingService {
         ...this.paymentSplit(breakdown),
         walletApplied,
         idempotencyKey: scopedKey ?? bookingId,
+        anyMethod: payOnPage,
       });
 
       charged = { paymentId: charge.paymentId, intentId: charge.intentId, status: charge.status };
@@ -491,6 +498,8 @@ export class BookingService {
         ...(charge.requiresAction
           ? { requiresAction: true, clientSecret: charge.clientSecret }
           : {}),
+        // The guest now pays on the page; the booking confirms when Stripe reports the money (webhook, return page or the reconcile job).
+        ...(payOnPage && status === 'pending_payment' ? { requiresPayment: true, clientSecret: charge.clientSecret } : {}),
       };
     } catch (err) {
       await availabilityService.releaseHold(holdId);

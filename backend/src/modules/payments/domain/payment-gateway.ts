@@ -15,6 +15,8 @@ export interface CreateIntentInput {
    *  guest is not asked for a card they already gave us. */
   customerId?: string;
   paymentMethodId?: string;
+  /** On-page checkout: every payment method enabled in the Stripe dashboard, confirmed by the guest in the browser. */
+  anyMethod?: boolean;
 }
 
 export interface IntentResult {

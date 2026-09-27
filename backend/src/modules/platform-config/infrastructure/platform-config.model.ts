@@ -275,6 +275,11 @@ export interface PlatformConfigDoc {
     requireEmail: boolean;
     requirePhone: boolean;
   };
+  /** Checkout options beyond the saved card. */
+  checkout: {
+    /** Offer every payment method enabled in Stripe (Apple/Google Pay, Link, Klarna, Affirm, Afterpay, Cash App, Amazon Pay…) on Instant Book trips for verified guests. */
+    otherMethodsEnabled: boolean;
+  };
   verification: {
     identity: VerificationPolicy;
     mvr: VerificationPolicy;
@@ -524,7 +529,11 @@ const schema = new Schema<PlatformConfigDoc>(
     },
     contactVerification: {
       requireEmail: { type: Boolean, default: true },
-      requirePhone: { type: Boolean, default: true },
+      // SMS costs money per code; phone is confirmed when someone signs in by text, so booking asks for email only unless an admin turns this on.
+      requirePhone: { type: Boolean, default: false },
+    },
+    checkout: {
+      otherMethodsEnabled: { type: Boolean, default: true },
     },
     verification: {
       identity: {

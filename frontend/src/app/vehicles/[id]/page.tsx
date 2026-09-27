@@ -42,6 +42,7 @@ import { saveDraft, takeDraft } from '@/features/bookings/booking-draft';
 import { PhotoLightbox } from '@/features/vehicles/components/photo-lightbox';
 import { confirmCardPayment } from '@/features/payments/confirm-payment';
 import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
+import { PayNow } from '@/features/payments/pay-now';
 
 interface Review {
   _id: string;
@@ -80,6 +81,8 @@ export default function VehicleDetailPage() {
   const [addOnCodes, setAddOnCodes] = useState<string[]>([]);
   const [protectionPlan, setProtectionPlan] = useState('basic');
   const [payWithWallet, setPayWithWallet] = useState(false);
+  const [payOther, setPayOther] = useState(false);
+  const [checkout, setCheckout] = useState<{ bookingId: string; clientSecret: string } | null>(null);
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState<'airport' | 'home' | 'hotel' | 'business' | ''>('');
@@ -221,6 +224,7 @@ export default function VehicleDetailPage() {
     addOnCodes,
     protectionPlan,
     useWallet: payWithWallet && !!v?.listing.instantBook,
+    payWith: payOther ? ('other' as const) : undefined,
     // The Terms version the guest is accepting on this booking. The quote
     // endpoint ignores it; the create endpoint requires it.
     acceptedTermsVersion: platformCfg.data?.legal?.termsVersion,
@@ -263,6 +267,12 @@ export default function VehicleDetailPage() {
         createBooking.reset();
         router.push(`/account/setup?next=${encodeURIComponent(`/vehicles/${id}`)}`);
       }
+      return;
+    }
+
+    // Paying with Apple Pay, Klarna, Cash App or another method: open checkout here; the trip confirms once Stripe has the money.
+    if (b.requiresPayment && b.clientSecret) {
+      setCheckout({ bookingId: b._id, clientSecret: b.clientSecret });
       return;
     }
 
@@ -1127,6 +1137,30 @@ export default function VehicleDetailPage() {
                 </label>
               );
             })()}
+            {platformCfg.data?.checkout?.otherMethodsEnabled && v.listing.instantBook && status === 'authenticated' && (
+              <div className="grid grid-cols-2 gap-2 text-sm" role="radiogroup" aria-label="How to pay">
+                {[
+                  { other: false, title: 'Saved card', sub: 'One tap' },
+                  { other: true, title: 'Other ways', sub: 'Apple Pay, Google Pay, Klarna, Cash App…' },
+                ].map((o) => (
+                  <button key={o.title} type="button" role="radio" aria-checked={payOther === o.other} onClick={() => setPayOther(o.other)}
+                    className={`rounded-xl border p-3 text-start transition-colors ${payOther === o.other ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}`}>
+                    <span className="block font-semibold">{o.title}</span>
+                    <span className="block text-xs text-muted-foreground">{o.sub}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {checkout && (
+              <div className="space-y-2 rounded-xl border border-primary/30 p-3">
+                <p className="text-sm font-semibold">Pay to confirm your trip</p>
+                <PayNow
+                  clientSecret={checkout.clientSecret}
+                  returnPath={`/bookings/${checkout.bookingId}?paid=1`}
+                  onPaid={() => router.push(`/bookings?highlight=${checkout.bookingId}`)}
+                />
+              </div>
+            )}
             {createBooking.isError && (
               createBooking.error instanceof ApiError && createBooking.error.code === 'PAYMENT_METHOD_REQUIRED' ? (
                 <div className="space-y-3 rounded-xl border border-border p-3">

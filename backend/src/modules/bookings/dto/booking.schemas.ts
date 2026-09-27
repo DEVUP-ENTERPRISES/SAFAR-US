@@ -49,6 +49,8 @@ export const priceLockSchema = z.object({
 
 export const createBookingSchema = quoteSchema.extend({
   useWallet: z.boolean().optional(),
+  /** 'other' = pay on the page with any method Stripe offers instead of the saved card. */
+  payWith: z.enum(['saved_card', 'other']).optional(),
   /** Optional so existing clients keep working; when present it is enforced. */
   priceLock: priceLockSchema.optional(),
   /**

@@ -115,6 +115,7 @@ export interface PlatformConfig {
     minAgeYears: number;
   };
   contactVerification?: { requireEmail: boolean; requirePhone: boolean };
+  checkout?: { otherMethodsEnabled: boolean };
   verification: {
     identity: VerificationPolicy;
     mvr: VerificationPolicy;

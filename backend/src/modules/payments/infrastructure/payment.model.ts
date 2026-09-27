@@ -25,6 +25,8 @@ export interface PaymentDoc {
   tax: number;
   /** Card money captured; the wallet-funded part of `amount` is `walletApplied`. */
   capturedAmount: number;
+  /** The guest chose to pay on the page with any method; never fall back to charging their saved card silently. */
+  onPage?: boolean;
   walletApplied: number;
   refundedAmount: number;
   status: PaymentStatus;
@@ -52,6 +54,7 @@ const schema = new Schema<PaymentDoc>(
     commission: { type: Number, default: 0 },
     tax: { type: Number, default: 0 },
     capturedAmount: { type: Number, default: 0 },
+    onPage: Boolean,
     walletApplied: { type: Number, default: 0 },
     refundedAmount: { type: Number, default: 0 },
     status: { type: String, required: true },

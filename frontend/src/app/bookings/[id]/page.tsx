@@ -35,6 +35,7 @@ import { ApiError } from '@/lib/api/types';
 import { pushConfigured } from '@/features/push/firebase';
 import { enablePush } from '@/features/push/use-push';
 import { BookingReadiness } from '@/features/account/booking-readiness';
+import { PayNow } from '@/features/payments/pay-now';
 
 /** How each state reads to the guest, and what it means for them. */
 const STATE: Record<string, { tone: 'success' | 'warning' | 'destructive' | 'muted' | 'default'; label: string; detail: string }> = {
@@ -92,6 +93,14 @@ function BookingDetail({ id }: { id: string }) {
   });
 
   const completePayment = useCompletePayment();
+  // Back from a pay-later or bank page: ask the server to check Stripe now rather than waiting for the webhook.
+  const bookingStatus = booking.data?.status;
+  useEffect(() => {
+    if (bookingStatus === 'pending_payment' && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('paid') === '1') {
+      completePayment.mutate(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingStatus, id]);
   const noShow = useMutation({
     mutationFn: () => bookingApi.noShow(id, 'host'),
     onSuccess: () => {
@@ -230,6 +239,12 @@ function BookingDetail({ id }: { id: string }) {
             </div>
 
             {b.status === 'pending_verification' && <BookingReadiness className="mt-4" />}
+            {b.status === 'pending_payment' && completePayment.data?.outcome === 'checkout' && completePayment.data.clientSecret && (
+              <div className="mt-4 space-y-2 rounded-xl border border-primary/30 p-3">
+                <p className="text-sm font-semibold">Pay to confirm your trip</p>
+                <PayNow clientSecret={completePayment.data.clientSecret} returnPath={`/bookings/${id}?paid=1`} onPaid={() => { completePayment.reset(); window.location.reload(); }} />
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap gap-2">
               <Link href={`/vehicles/${b.vehicleId}`}>
                 <Button variant="outline" size="sm">View listing</Button>

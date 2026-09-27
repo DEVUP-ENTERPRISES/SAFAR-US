@@ -89,6 +89,7 @@ export default function AdminEconomicsPage() {
         legal: draft.legal,
         verification: draft.verification,
         contactVerification: draft.contactVerification,
+        checkout: draft.checkout,
         booking: draft.booking,
         tracking: draft.tracking,
         inspection: draft.inspection,
@@ -255,9 +256,14 @@ export default function AdminEconomicsPage() {
               Guests must confirm their email
             </label>
             <label className="flex cursor-pointer items-center gap-2">
-              <input type="checkbox" checked={draft.contactVerification?.requirePhone ?? true} className="accent-[hsl(var(--primary))]"
+              <input type="checkbox" checked={draft.contactVerification?.requirePhone ?? false} className="accent-[hsl(var(--primary))]"
                 onChange={(e) => set((d) => { d.contactVerification = { requireEmail: d.contactVerification?.requireEmail ?? true, requirePhone: e.target.checked }; })} />
-              Guests must confirm their mobile number (by SMS)
+              Guests must confirm their mobile number (by SMS, costs per text)
+            </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" checked={draft.checkout?.otherMethodsEnabled ?? true} className="accent-[hsl(var(--primary))]"
+                onChange={(e) => set((d) => { d.checkout = { otherMethodsEnabled: e.target.checked }; })} />
+              Offer Apple Pay, Google Pay, Klarna, Cash App and other Stripe methods at checkout
             </label>
           </div>
           {(['identity', 'mvr', 'background', 'insurance'] as const).map((k) => {
