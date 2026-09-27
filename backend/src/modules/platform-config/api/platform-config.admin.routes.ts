@@ -47,6 +47,7 @@ router.put(
       contact: z.object({ notifyEmail: z.string().email().optional() }).optional(),
       // Verification frequency/validity policy — e.g. MVR at most once per 60
       // days. Admin-editable so CatoDrive retunes it without a code change.
+      contactVerification: z.object({ requireEmail: z.boolean().optional(), requirePhone: z.boolean().optional() }).optional(),
       verification: z
         .object({
           identity: verificationPolicy,

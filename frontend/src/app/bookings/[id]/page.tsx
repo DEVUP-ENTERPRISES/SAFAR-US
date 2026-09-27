@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Calendar, CalendarPlus, MapPin, Shuffle, MessageSquare, Receipt, Car, ShieldCheck, XCircle, Lock, BadgeCheck, Bell,
+  ArrowLeft, Calendar, CalendarPlus, MapPin, Shuffle, MessageSquare, Receipt, Car, ShieldCheck, XCircle, Lock, Bell,
 } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +34,7 @@ import { TripProgress } from '@/features/bookings/components/trip-progress';
 import { ApiError } from '@/lib/api/types';
 import { pushConfigured } from '@/features/push/firebase';
 import { enablePush } from '@/features/push/use-push';
+import { BookingReadiness } from '@/features/account/booking-readiness';
 
 /** How each state reads to the guest, and what it means for them. */
 const STATE: Record<string, { tone: 'success' | 'warning' | 'destructive' | 'muted' | 'default'; label: string; detail: string }> = {
@@ -228,12 +229,8 @@ function BookingDetail({ id }: { id: string }) {
               <DateBlock label="Return" value={formatDateTime(b.period.end)} />
             </div>
 
+            {b.status === 'pending_verification' && <BookingReadiness className="mt-4" />}
             <div className="mt-4 flex flex-wrap gap-2">
-              {b.status === 'pending_verification' && (
-                <Button size="sm" onClick={() => router.push('/account/verify-identity')}>
-                  <BadgeCheck className="h-4 w-4" /> Verify identity
-                </Button>
-              )}
               <Link href={`/vehicles/${b.vehicleId}`}>
                 <Button variant="outline" size="sm">View listing</Button>
               </Link>

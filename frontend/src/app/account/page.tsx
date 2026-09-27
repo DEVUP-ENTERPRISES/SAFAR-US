@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Field } from '@/components/ui/field';
 import { InstallAppCard } from '@/features/pwa/install-app-card';
+import { BookingReadiness } from '@/features/account/booking-readiness';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { enablePush } from '@/features/push/use-push';
@@ -254,6 +255,8 @@ function Account() {
           </div>
         </div>
       </section>
+
+      <BookingReadiness />
 
       <InstallAppCard />
 

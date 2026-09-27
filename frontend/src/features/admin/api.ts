@@ -114,6 +114,7 @@ export interface PlatformConfig {
     privacyUrl: string;
     minAgeYears: number;
   };
+  contactVerification?: { requireEmail: boolean; requirePhone: boolean };
   verification: {
     identity: VerificationPolicy;
     mvr: VerificationPolicy;
@@ -502,6 +503,8 @@ export const adminApi = {
     api.raw<FeatureFlag>(`/admin/feature-flags/${key}`, { method: 'PUT', body }).then((r) => r.data),
 
   auditLogs: (q: Q = {}) => api.get<any[]>('/admin/audit-logs', q),
+  failures: (q: { area?: string; days?: number } = {}) =>
+    api.get<{ items: any[]; summary: { code: string; area: string; count: number; lastAt: string; status: number; message: string }[] }>('/admin/failures', q),
 
   staff: () => api.get<any[]>('/admin/staff'),
   createStaff: (body: { name: string; role: string; email?: string }) =>

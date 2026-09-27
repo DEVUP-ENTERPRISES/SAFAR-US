@@ -40,6 +40,8 @@ export class UserService {
     (['firstName', 'lastName', 'phone', 'avatarUrl', 'dateOfBirth'] as const).forEach((k) => {
       if (patch[k] !== undefined) set[k] = patch[k];
     });
+    // A new number has not been proven; the old confirmation does not carry over.
+    if (patch.phone !== undefined && patch.phone !== (await this.get(userId)).phone) set.phoneVerified = false;
     await UserModel.updateOne({ _id: userId }, set);
     return this.get(userId);
   }
@@ -102,6 +104,7 @@ export class UserService {
             lastName: dto.lastName,
             dateOfBirth: dto.dateOfBirth,
             phone: dto.phone,
+            ...(dto.phone !== (await this.get(userId)).phone ? { phoneVerified: false } : {}),
             ...(dto.avatarUrl ? { avatarUrl: dto.avatarUrl } : {}),
             // Setup writes the primary/home address and the emergency contact.
             // Replacing keeps re-submits from stacking duplicate rows.

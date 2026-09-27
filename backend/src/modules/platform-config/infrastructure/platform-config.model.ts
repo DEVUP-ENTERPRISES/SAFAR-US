@@ -270,6 +270,11 @@ export interface PlatformConfigDoc {
    * { maxPerPeriod: 1, periodDays: 60 }. A still-valid result is REUSED rather
    * than re-run, so a new booking does not trigger a new paid check.
    */
+  /** Whether a guest must confirm their email / mobile number before a trip can be paid and handed over. */
+  contactVerification: {
+    requireEmail: boolean;
+    requirePhone: boolean;
+  };
   verification: {
     identity: VerificationPolicy;
     mvr: VerificationPolicy;
@@ -516,6 +521,10 @@ const schema = new Schema<PlatformConfigDoc>(
     },
     contact: {
       notifyEmail: { type: String, default: 'shoaib@catodrive.com' },
+    },
+    contactVerification: {
+      requireEmail: { type: Boolean, default: true },
+      requirePhone: { type: Boolean, default: true },
     },
     verification: {
       identity: {

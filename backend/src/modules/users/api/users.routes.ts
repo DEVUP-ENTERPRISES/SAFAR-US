@@ -2,12 +2,30 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { usersController } from './users.controller';
 import { userService } from '../application/user.service';
+import { contactVerificationService } from '../application/contact-verification.service';
+import { authLimiter } from '../../../shared/middleware/auth-rate-limit';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess, sendCreated } from '../../../shared/http/api-response';
 
 const router = Router();
+
+/** Confirm the email or mobile number on the account with a one-time code. */
+router.post(
+  '/me/verify-contact/send',
+  authenticate,
+  authLimiter,
+  validate({ body: z.object({ channel: z.enum(['email', 'phone']) }) }),
+  asyncHandler(async (req, res) => sendSuccess(res, await contactVerificationService.send(req.principal!.userId, req.body.channel))),
+);
+router.post(
+  '/me/verify-contact/confirm',
+  authenticate,
+  authLimiter,
+  validate({ body: z.object({ channel: z.enum(['email', 'phone']), code: z.string().trim().regex(/^\d{6}$/) }) }),
+  asyncHandler(async (req, res) => sendSuccess(res, await contactVerificationService.confirm(req.principal!.userId, req.body.channel, req.body.code))),
+);
 
 router.get(
   '/me',

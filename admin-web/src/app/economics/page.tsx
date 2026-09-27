@@ -88,6 +88,7 @@ export default function AdminEconomicsPage() {
         protection: draft.protection,
         legal: draft.legal,
         verification: draft.verification,
+        contactVerification: draft.contactVerification,
         booking: draft.booking,
         tracking: draft.tracking,
         inspection: draft.inspection,
@@ -247,6 +248,18 @@ export default function AdminEconomicsPage() {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-6 rounded-xl border border-border p-3 text-sm">
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" checked={draft.contactVerification?.requireEmail ?? true} className="accent-[hsl(var(--primary))]"
+                onChange={(e) => set((d) => { d.contactVerification = { requireEmail: e.target.checked, requirePhone: d.contactVerification?.requirePhone ?? true }; })} />
+              Guests must confirm their email
+            </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" checked={draft.contactVerification?.requirePhone ?? true} className="accent-[hsl(var(--primary))]"
+                onChange={(e) => set((d) => { d.contactVerification = { requireEmail: d.contactVerification?.requireEmail ?? true, requirePhone: e.target.checked }; })} />
+              Guests must confirm their mobile number (by SMS)
+            </label>
+          </div>
           {(['identity', 'mvr', 'background', 'insurance'] as const).map((k) => {
             const meta = VERIFICATION_META[k];
             const pol = draft.verification[k];

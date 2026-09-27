@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import mongoose from 'mongoose';
 import { AppError } from '../../core/errors/app-error';
 import { reportError } from '../../infrastructure/observability/error-reporter';
+import { requestFailureService } from '../../modules/ops/application/request-failure.service';
 
 /**
  * The single place errors become HTTP responses. Recognizes domain errors,
@@ -19,6 +20,9 @@ export function errorHandler(
   const requestId = res.locals.requestId as string | undefined;
 
   if (err instanceof AppError) {
+    // A handled error can still be a failure worth seeing: an upstream service (Stripe) failing is logged with its real reason.
+    if (err.httpStatus >= 500) reportError(err, { requestId, path: req.path, method: req.method, userId: req.principal?.userId });
+    requestFailureService.record(req, err.httpStatus, err.code, err.message);
     res.status(err.httpStatus).json({
       success: false,
       error: { code: err.code, message: err.message, details: err.details, requestId },
@@ -27,6 +31,7 @@ export function errorHandler(
   }
 
   if (err instanceof ZodError) {
+    requestFailureService.record(req, 422, 'VALIDATION_ERROR', err.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '));
     res.status(422).json({
       success: false,
       error: {
@@ -51,6 +56,7 @@ export function errorHandler(
   // Unknown / unexpected → report and log full detail, return a generic 500.
   // Only genuinely unexpected errors are reported: AppError and ZodError are
   // handled outcomes above, and paging on them would bury the real failures.
+  requestFailureService.record(req, 500, 'INTERNAL_ERROR', err instanceof Error ? err.message : String(err));
   reportError(err, {
     requestId,
     path: req.path,

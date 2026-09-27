@@ -62,6 +62,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   // Keep every group's entries contiguous: the sidebar builds groups in
   // first-appearance order, so a split group renders as two sections.
   { slug: 'bookings', path: A('bookings'), apiPath: '/admin/bookings', label: 'Booking Management', group: 'Operations', permission: 'admin:read' },
+  { slug: 'failures', path: A('failures'), apiPath: '/admin/failures', label: 'Failed Attempts', group: 'Operations', permission: 'admin:read' },
   { slug: 'claims', path: A('claims'), apiPath: '/admin/claims', label: 'Claims Management', group: 'Operations', permission: 'claim:manage' },
   { slug: 'support', path: A('support'), apiPath: '/admin/tickets', label: 'Support', group: 'Operations', permission: 'ticket:manage' },
   { slug: 'kb', path: A('kb'), apiPath: '/admin/kb/articles', label: 'Knowledge Base', group: 'Operations', permission: 'ticket:manage' },
