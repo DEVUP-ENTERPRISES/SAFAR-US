@@ -3,6 +3,7 @@ import { Archivo, Instrument_Sans, IBM_Plex_Mono } from 'next/font/google';
 import '@/styles/globals.css';
 import { Providers } from './providers';
 import { AppChrome } from '@/components/layout/app-chrome';
+import { LenisProvider } from '@/components/providers/lenis-provider';
 
 /*
  * Three voices, not one.
@@ -114,8 +115,6 @@ export const viewport: Viewport = {
     { media: '(prefers-color-scheme: dark)', color: '#151210' }, // --background asphalt
   ],
 };
-
-import { LenisProvider } from '@/components/providers/lenis-provider';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
