@@ -478,6 +478,10 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={0} max={600} value={draft.security.refreshRetryLeewaySeconds ?? 60}
               onChange={(e) => set((d) => { d.security.refreshRetryLeewaySeconds = Number(e.target.value); })} />
           </Field>
+          <Field label="Countries we text (calling codes)" hint="Comma separated, e.g. +1. Texts to anywhere else are refused, which stops SMS fraud.">
+            <Input defaultValue={(draft.security.smsAllowedPrefixes ?? ['+1']).join(', ')}
+              onBlur={(e) => set((d) => { d.security.smsAllowedPrefixes = e.target.value.split(',').map((x) => x.trim()).filter((x) => /^\+\d{1,4}$/.test(x)); })} />
+          </Field>
           <Field label="Largest upload (MB)">
             <Input type="number" min={1} max={50} value={draft.security.maxUploadMb}
               onChange={(e) => set((d) => { d.security.maxUploadMb = Number(e.target.value); })} />

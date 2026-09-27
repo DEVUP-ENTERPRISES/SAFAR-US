@@ -412,6 +412,8 @@ export interface PlatformConfigDoc {
     uploadUrlsPerHour: number;
     /** Seconds an already-used refresh token is still accepted, so a refresh whose reply was lost can be retried without signing the member out. */
     refreshRetryLeewaySeconds: number;
+    /** Text messages only go to numbers starting with one of these (SMS pumping fraud sends codes to premium foreign numbers at our cost). */
+    smsAllowedPrefixes: string[];
   };
   /** What must happen before the keys change hands, and who may start the trip. */
   handover: {
@@ -751,6 +753,7 @@ const schema = new Schema<PlatformConfigDoc>(
       maxUploadMb: { type: Number, default: 12 },
       uploadUrlsPerHour: { type: Number, default: 60 },
       refreshRetryLeewaySeconds: { type: Number, default: 60 },
+      smsAllowedPrefixes: { type: [String], default: undefined },
     },
     handover: {
       hostInspectionRequired: { type: Boolean, default: true },

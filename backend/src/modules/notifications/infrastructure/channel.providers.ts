@@ -178,6 +178,12 @@ class SmsProvider implements ChannelProvider {
     if (!req.target.phone) {
       return { ok: false, error: 'no_phone_on_account', retryable: false };
     }
+    // Only to countries we serve: refusing everything else stops SMS pumping (fraudsters triggering codes to premium numbers we pay for).
+    const { platformConfigService } = await import('../../platform-config/application/platform-config.service');
+    const allowed = (await platformConfigService.get()).security.smsAllowedPrefixes;
+    if (!allowed.some((p) => req.target.phone!.startsWith(p))) {
+      return { ok: false, error: 'destination_not_allowed', retryable: false };
+    }
     try {
       // Basic auth with an API key (SK…) + secret when configured, else the
       // legacy Auth Token — resolved in config. The Account SID always stays in
