@@ -43,6 +43,7 @@ import { PhotoLightbox } from '@/features/vehicles/components/photo-lightbox';
 import { confirmCardPayment } from '@/features/payments/confirm-payment';
 import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import { PayNow } from '@/features/payments/pay-now';
+import { useSearchBar } from '@/features/search/search-store';
 
 interface Review {
   _id: string;
@@ -96,6 +97,9 @@ export default function VehicleDetailPage() {
   const [terminal, setTerminal] = useState('');
   const [arrivesAt, setArrivesAt] = useState('');
   const [couponCode, setCouponCode] = useState('');
+  // What the price uses: a typed code only counts once Apply is pressed, so pricing does not re-run on every keystroke.
+  const [appliedCoupon, setAppliedCoupon] = useState('');
+  const [couponError, setCouponError] = useState<string | null>(null);
   // Mobile only: the booking panel is a bottom sheet rather than a block the
   // guest has to scroll past the reviews to reach.
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -205,11 +209,21 @@ export default function VehicleDetailPage() {
     setTerminal(draft.terminal ?? '');
     setArrivesAt(draft.arrivesAt ?? '');
     setCouponCode(draft.couponCode ?? '');
+    setAppliedCoupon(draft.couponCode ?? '');
     toast({
       tone: 'success',
       title: 'Picked up where you left off',
       description: 'Your dates and options are still here - check them and book.',
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Dates chosen in search carry over, so the price is ready the moment the car opens.
+  const searched = useSearchBar();
+  useEffect(() => {
+    if (start || end || !searched.fromDate || !searched.untilDate) return;
+    setStart(`${searched.fromDate}T${searched.fromTime || '10:00'}`);
+    setEnd(`${searched.untilDate}T${searched.untilTime || '10:00'}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -220,7 +234,7 @@ export default function VehicleDetailPage() {
     // Trimmed, and omitted when blank - an empty string is not "no coupon" to
     // the validator. The server is the one that decides if it's valid; a bad
     // code surfaces as a quote error, not a silent no-op.
-    couponCode: couponCode.trim() || undefined,
+    couponCode: appliedCoupon.trim() || undefined,
     addOnCodes,
     protectionPlan,
     useWallet: payWithWallet && !!v?.listing.instantBook,
@@ -253,8 +267,27 @@ export default function VehicleDetailPage() {
     !deliveryMode ||
     (deliveryAddress.trim().length > 2 &&
       (deliveryMode !== 'airport' || flightNumber.trim().length >= 3));
-  const canQuote = start && end && deliveryReady;
-  const runQuote = () => canQuote && quote.mutate(selection());
+  const canQuote = !!(start && end && deliveryReady);
+
+  // The price recalculates by itself whenever anything that changes it changes (debounced), so there is no Get price step.
+  const quoteKey = JSON.stringify([start, end, appliedCoupon, addOnCodes, protectionPlan, deliveryMode, deliveryLocationId, deliveryAddress.trim(), flightNumber.trim(), terminal, arrivesAt]);
+  useEffect(() => {
+    if (!canQuote) return;
+    const t = setTimeout(() => {
+      quote.mutate(selection(), {
+        onError: (err) => {
+          // A promo that cannot be used must not hide the price: drop it, say why, and price without it.
+          if (appliedCoupon && err instanceof ApiError && err.details?.some((d) => d.field === 'couponCode')) {
+            setCouponError(err.message);
+            setAppliedCoupon('');
+          }
+        },
+      });
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quoteKey, canQuote]);
+  const applyCoupon = () => { setCouponError(null); setAppliedCoupon(couponCode.trim()); };
   // The actual booking, run only after the guest has accepted the Terms.
   const proceed = async () => {
     let b;
@@ -309,7 +342,7 @@ export default function VehicleDetailPage() {
         flightNumber,
         terminal,
         arrivesAt,
-        couponCode,
+        couponCode: appliedCoupon,
       });
       return router.push(`/login?next=${encodeURIComponent(`/vehicles/${v?._id ?? ''}`)}`);
     }
@@ -1052,26 +1085,34 @@ export default function VehicleDetailPage() {
                   variant="outline"
                   className="shrink-0"
                   type="button"
-                  disabled={!canQuote || !couponCode.trim()}
-                  loading={quote.isPending}
-                  onClick={runQuote}
+                  disabled={!couponCode.trim() || couponCode.trim() === appliedCoupon}
+                  loading={quote.isPending && !!appliedCoupon}
+                  onClick={applyCoupon}
                 >
-                  Apply
+                  {appliedCoupon && couponCode.trim() === appliedCoupon ? 'Applied' : 'Apply'}
                 </Button>
               </div>
+              {couponError && <p className="text-xs text-destructive">{couponError}</p>}
             </div>
 
             <MemberBanner />
 
-            <Button variant="outline" className="w-full" disabled={!canQuote} loading={quote.isPending} onClick={runQuote}>
-              Get price
-            </Button>
+            {!canQuote && (
+              <p className="rounded-lg border border-dashed border-border p-3 text-center text-sm text-muted-foreground">
+                {start && end ? 'Add the delivery details to see your total.' : 'Pick your dates to see the total.'}
+              </p>
+            )}
+            {canQuote && quote.isPending && !quote.data && (
+              <div className="space-y-2 rounded-lg border border-border p-3" aria-busy="true">
+                {[0, 1, 2].map((i) => <div key={i} className="h-4 animate-pulse rounded bg-muted" />)}
+              </div>
+            )}
 
-            {quote.isError && (
+            {quote.isError && !couponError && (
               <p className="text-sm text-destructive">{quote.error instanceof ApiError ? quote.error.message : 'Could not price this trip'}</p>
             )}
-            {quote.data && (
-              <div className="space-y-1.5 rounded-lg border border-border p-3 text-sm">
+            {quote.data && canQuote && (
+              <div className={`space-y-1.5 rounded-lg border border-border p-3 text-sm transition-opacity ${quote.isPending ? 'opacity-60' : ''}`} aria-live="polite">
                 <Row label={`${quote.data.days} days`} value={formatMoney(quote.data.base)} />
                 {quote.data.cleaningFee.amount > 0 && <Row label="Cleaning fee" value={formatMoney(quote.data.cleaningFee)} />}
                 {quote.data.delivery?.amount > 0 && <Row label="Delivery" value={formatMoney(quote.data.delivery)} />}
@@ -1171,7 +1212,7 @@ export default function VehicleDetailPage() {
                 <p className="text-sm text-destructive">{createBooking.error instanceof ApiError ? createBooking.error.message : 'Booking failed'}</p>
               )
             )}
-            <Button className="w-full rounded-xl py-6 text-base font-bold transition-transform hover:scale-[1.02] active:scale-[0.98]" size="lg" disabled={!quote.data} loading={createBooking.isPending} onClick={book}>
+            <Button className="w-full rounded-xl py-6 text-base font-bold transition-transform hover:scale-[1.02] active:scale-[0.98]" size="lg" disabled={!quote.data || !canQuote || quote.isPending} loading={createBooking.isPending} onClick={book}>
               {status !== 'authenticated'
                 ? 'Sign in to book'
                 : v.listing.instantBook
