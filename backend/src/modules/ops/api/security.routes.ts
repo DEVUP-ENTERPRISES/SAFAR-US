@@ -18,7 +18,9 @@ router.post('/csp-report', lookupLimiter, (req, res) => {
     const blocked = pick('blocked-uri', 'blockedURL');
     const directive = pick('violated-directive', 'effectiveDirective');
     const page = pick('document-uri', 'documentURL').replace(/\?.*$/, '');
-    if (directive) {
+    // Reports from a developer's machine are not attacks; keep them out of the admin page.
+    const local = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(page);
+    if (directive && !local) {
       void RequestFailureModel.create({
         area: 'security', method: 'CSP', path: page, status: 0, code: 'CSP_VIOLATION',
         message: `${directive} blocked ${blocked || 'inline'}`, userAgent: req.header('user-agent')?.slice(0, 200), country: req.header('cf-ipcountry') ?? undefined,

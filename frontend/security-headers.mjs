@@ -27,7 +27,7 @@ export function securityHeaders({ apiUrl, dev = false } = {}) {
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${stripe} ${google} ${apple} ${mapbox} ${cloudflare}`,
-    `connect-src 'self' ${apiOrigin} ${apiWs} ${stripe} ${google} ${apple} ${mapbox} ${cloudflare} https://*.firebaseio.com https://*.firebaseapp.com https://*.amazonaws.com${dev ? ' ws: http://localhost:* http://127.0.0.1:*' : ''}`,
+    `connect-src 'self' ${apiOrigin} ${apiWs} ${stripe} ${google} ${apple} ${mapbox} ${cloudflare} https://*.firebaseio.com https://*.firebaseapp.com https://*.amazonaws.com${dev ? ' https: ws: http://localhost:* http://127.0.0.1:*' : ''}`,
     `frame-src ${stripe} https://accounts.google.com https://appleid.apple.com https://*.firebaseapp.com`,
     // Local development serves photos from the API over plain http (localhost:8080).
     `img-src 'self' data: blob: https:${dev ? ' http://localhost:* http://127.0.0.1:*' : ''}`,
