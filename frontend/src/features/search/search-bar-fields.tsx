@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import { Search, MapPin, CalendarDays, Check } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useFacets } from '@/features/vehicles/hooks';
 import { DateRangePicker } from './date-range-picker';
+import { Select } from '@/components/ui/select';
 import { useSearchBar } from './search-store';
 
 /**
@@ -50,7 +52,9 @@ export function SearchBarFields({
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(null);
+      // The phone sheet lives outside this element (at page level), so taps inside a [role=dialog] never count as outside.
+      const t = e.target as HTMLElement;
+      if (wrap.current && !wrap.current.contains(t) && !t.closest?.('[role="dialog"]')) setOpen(null);
     };
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null);
     document.addEventListener('mousedown', onDown);
@@ -130,9 +134,7 @@ export function SearchBarFields({
       {/* ── Popovers ── */}
       {open === 'where' && (
         <>
-          {/* Mobile backdrop */}
-          <div className="fixed inset-0 z-40 bg-black/40 sm:hidden" onClick={() => setOpen(null)} />
-          <Panel flow={calendarPlacement === 'flow'}>
+          <Panel flow={calendarPlacement === 'flow'} onClose={() => setOpen(null)}>
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Cities with cars</p>
             {cities.length === 0 ? (
               <p className="py-2 text-sm text-muted-foreground">
@@ -170,9 +172,7 @@ export function SearchBarFields({
 
       {open === 'when' && (
         <>
-          {/* Mobile backdrop */}
-          <div className="fixed inset-0 z-40 bg-black/40 sm:hidden" onClick={() => setOpen(null)} />
-          <Panel flow={calendarPlacement === 'flow'}>
+          <Panel flow={calendarPlacement === 'flow'} onClose={() => setOpen(null)}>
             <DateRangePicker
               from={s.fromDate}
               to={s.untilDate}
@@ -182,6 +182,9 @@ export function SearchBarFields({
               <TimeField label="Pick-up" value={s.fromTime} onChange={(v) => s.patch({ fromTime: v })} />
               <TimeField label="Return" value={s.untilTime} onChange={(v) => s.patch({ untilTime: v })} />
             </div>
+            <button type="button" onClick={() => setOpen(null)} className="mt-4 h-12 w-full rounded-full bg-primary text-base font-bold text-primary-foreground sm:hidden">
+              Done
+            </button>
           </Panel>
         </>
       )}
@@ -220,51 +223,72 @@ function Field({
   );
 }
 
-function Panel({ children, flow = false }: { children: React.ReactNode; flow?: boolean }) {
-  if (flow) {
-    return (
-      <div className="relative z-50 mt-3 max-h-[min(38rem,calc(100vh-7rem))] overflow-auto rounded-2xl border border-border bg-card p-4 shadow-2xl ring-1 ring-black/5">
-        {children}
-      </div>
+function Panel({ children, flow = false, onClose }: { children: React.ReactNode; flow?: boolean; onClose: () => void }) {
+  const phone = useIsPhone();
+  // Phones: a bottom sheet rendered at the top of the page, so no header, hero or tab bar can sit over it.
+  if (phone) {
+    return createPortal(
+      <>
+        <div className="fixed inset-0 z-[90] bg-black/50" onClick={onClose} aria-hidden />
+        <div
+          data-lenis-prevent
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-x-0 bottom-0 z-[91] max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-border bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl"
+        >
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" aria-hidden />
+          {children}
+        </div>
+      </>,
+      document.body,
     );
   }
-
+  // Larger screens: inline under the hero search (flow) or a popover under the bar. data-lenis-prevent lets it scroll on its own.
   return (
-    <>
-      {/* Mobile: fixed bottom sheet so it never hides behind the tab bar */}
-      <div className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl border-t border-border bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl sm:hidden"
-        style={{ maxHeight: 'calc(100dvh - 5rem)' }}
-      >
-        {/* Drag handle */}
-        <div className="mx-auto mb-4 h-1 w-10 shrink-0 rounded-full bg-border" />
-        <div className="overflow-auto">{children}</div>
-      </div>
-      {/* Desktop: absolute popover below the bar */}
-      <div className="absolute inset-x-0 top-full z-50 mt-3 hidden max-h-[min(38rem,calc(100vh-7rem))] w-fit overflow-auto rounded-2xl border border-border bg-card p-4 shadow-2xl ring-1 ring-black/5 sm:block sm:inset-x-auto sm:start-0">
-        {children}
-      </div>
-    </>
+    <div
+      data-lenis-prevent
+      role="dialog"
+      className={cn(
+        'z-50 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-4 shadow-2xl ring-1 ring-black/5',
+        flow
+          ? 'relative mt-3 max-h-[min(38rem,calc(100dvh-7rem))]'
+          : 'absolute start-0 top-full mt-3 max-h-[min(38rem,calc(100dvh-8rem))] w-[min(24rem,calc(100vw-2rem))]',
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
+/** True below the sm breakpoint (640px), kept in sync as the window resizes. */
+function useIsPhone(): boolean {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    const sync = () => setPhone(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+  return phone;
+}
+
 function TimeField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const id = `time-${label.toLowerCase().replace(/\W+/g, '-')}`;
   return (
-    <div>
-      <p className="mb-1.5 text-xs font-medium text-muted-foreground">{label}</p>
-      <div className="flex flex-wrap gap-1.5">
+    <label htmlFor={id} className="block min-w-0">
+      <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>
+      <Select id={id} size="md" value={value} onChange={(e) => onChange(e.target.value)} className="w-full">
         {TIMES.map((t) => (
-          <button
-            key={t}
-            onClick={() => onChange(t)}
-            className={cn(
-              'rounded-lg px-2 py-1 text-xs font-medium transition-colors',
-              value === t ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/70',
-            )}
-          >
-            {t}
-          </button>
+          <option key={t} value={t}>{formatTime(t)}</option>
         ))}
-      </div>
-    </div>
+      </Select>
+    </label>
   );
+}
+
+/** 14:00 -> 2:00 PM, how US guests read times. */
+function formatTime(t: string): string {
+  const [h, m] = t.split(':').map(Number);
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }

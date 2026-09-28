@@ -110,16 +110,16 @@ export function DateRangePicker({
           <div key={mi} className={cn(mi === 1 && (compact ? 'hidden' : 'hidden sm:block'))}>
 
             {/* Day-of-week headers */}
-            <div className="mb-1 grid grid-cols-[repeat(7,2.25rem)]">
+            <div className="mb-1 grid grid-cols-7">
               {DOW.map((d, i) => (
-                <div key={i} className="flex h-9 w-9 items-center justify-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <div key={i} className="flex h-9 items-center justify-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {d}
                 </div>
               ))}
             </div>
 
             {/* Day cells */}
-            <div className="grid grid-cols-[repeat(7,2.25rem)] gap-y-0.5">
+            <div className="grid grid-cols-7 gap-y-0.5">
               {Array.from({ length: mo.pad }).map((_, i) => <div key={`p${i}`} />)}
               {Array.from({ length: mo.days }).map((_, i) => {
                 const date = new Date(mo.y, mo.m, i + 1);
