@@ -4,12 +4,12 @@ import { cn } from '@/lib/utils/cn';
 
 type RatingFields = Pick<Vehicle, 'ratingAvg' | 'ratingCount'> & { externalRating?: { source: string; rating: number; trips: number } };
 
-/** CatoDrive's own rating once a car has real reviews here; otherwise a rating earned elsewhere with its source named; otherwise "New". */
+/** CatoDrive's own rating once a car has real reviews here; otherwise a rating earned elsewhere with its source named; otherwise a short "New" tag. */
 export function VehicleRating({ vehicle, className }: { vehicle: RatingFields; className?: string }) {
   const own = vehicle.ratingCount > 0;
   const ext = !own ? vehicle.externalRating : undefined;
   if (!own && !ext) {
-    return <span className={cn('inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[12px] font-semibold text-primary', className)}>New on CatoDrive</span>;
+    return <span className={cn('inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[12px] font-semibold text-primary', className)}>New</span>;
   }
   const avg = own ? vehicle.ratingAvg : ext!.rating;
   return (
