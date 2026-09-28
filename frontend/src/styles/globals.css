@@ -108,25 +108,16 @@ html {
      it can't be dragged around or bounce at the edges. */
   overscroll-behavior: none;
   
-  /* Custom Scrollbar - Firefox */
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--primary) / 0.5) transparent;
 }
 
-/* Custom Scrollbar - WebKit (Chrome, Edge, Safari) */
+/* No visible scrollbars anywhere: pages, popups and panels still scroll by wheel, touch and keyboard. */
+* {
+  scrollbar-width: none;
+}
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--primary) / 0.5);
-  border-radius: 5px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary));
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 body {
