@@ -27,14 +27,15 @@ export function securityHeaders({ apiUrl, dev = false } = {}) {
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${stripe} ${google} ${apple} ${mapbox} ${cloudflare}`,
-    `connect-src 'self' ${apiOrigin} ${apiWs} ${stripe} ${google} ${apple} ${mapbox} ${cloudflare} https://*.firebaseio.com https://*.firebaseapp.com https://*.amazonaws.com${dev ? ' ws: http://localhost:*' : ''}`,
+    `connect-src 'self' ${apiOrigin} ${apiWs} ${stripe} ${google} ${apple} ${mapbox} ${cloudflare} https://*.firebaseio.com https://*.firebaseapp.com https://*.amazonaws.com${dev ? ' ws: http://localhost:* http://127.0.0.1:*' : ''}`,
     `frame-src ${stripe} https://accounts.google.com https://appleid.apple.com https://*.firebaseapp.com`,
-    "img-src 'self' data: blob: https:",
+    // Local development serves photos from the API over plain http (localhost:8080).
+    `img-src 'self' data: blob: https:${dev ? ' http://localhost:* http://127.0.0.1:*' : ''}`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com ${mapbox}`,
     "font-src 'self' data: https://fonts.gstatic.com",
     "worker-src 'self' blob:",
     "child-src 'self' blob:",
-    "media-src 'self' blob: https:",
+    `media-src 'self' blob: https:${dev ? ' http://localhost:* http://127.0.0.1:*' : ''}`,
     "manifest-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
