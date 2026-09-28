@@ -77,7 +77,7 @@ export default function HomePage() {
                   a headline should tell someone what this actually is.
                 */}
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-bold tracking-widest uppercase text-white/95 shadow-soft">
-                  <KeyRound className="h-4 w-4" /> Self-drive car sharing
+                  <KeyRound className="h-4 w-4" /> Peer-to-peer car sharing
                 </span>
 
                 {/* The display face, and no gradient-to-transparent: that trick
