@@ -102,6 +102,8 @@ export interface Booking {
   instantBook: boolean;
   tripId?: string;
   createdAt: string;
+  /** `charged` is what the guest paid and did not get back; older cancellations only carry the refund. */
+  cancellation?: { role?: 'guest' | 'host' | 'admin' | 'system'; at: string; reason?: string; refund: Money; charged?: Money };
 }
 
 export type DeliveryMode = 'airport' | 'home' | 'hotel' | 'business';

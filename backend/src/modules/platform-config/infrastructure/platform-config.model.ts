@@ -251,6 +251,8 @@ export interface PlatformConfigDoc {
     termsUrl: string;
     privacyVersion: string;
     privacyUrl: string;
+    /** Linked from the cancellation note and cancellation emails. */
+    cancellationUrl: string;
     minAgeYears: number;
   };
   /** Where public-site lead forms (Contact, Asset Partner, Investor deck
@@ -530,6 +532,7 @@ const schema = new Schema<PlatformConfigDoc>(
       termsUrl: { type: String, default: '/legal' },
       privacyVersion: { type: String, default: '2026-09-01' },
       privacyUrl: { type: String, default: '/legal' },
+      cancellationUrl: { type: String, default: '/legal' },
       minAgeYears: { type: Number, default: 18 },
     },
     contact: {

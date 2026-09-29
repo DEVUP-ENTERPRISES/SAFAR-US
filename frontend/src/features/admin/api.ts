@@ -130,6 +130,7 @@ export interface PlatformConfig {
     termsUrl: string;
     privacyVersion: string;
     privacyUrl: string;
+    cancellationUrl?: string;
     minAgeYears: number;
   };
   contactVerification?: { requireEmail: boolean; requirePhone: boolean };

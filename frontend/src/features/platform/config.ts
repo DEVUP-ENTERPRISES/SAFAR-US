@@ -33,6 +33,7 @@ export interface PlatformPublicConfig {
     termsUrl: string;
     privacyVersion: string;
     privacyUrl: string;
+    cancellationUrl?: string;
     minAgeYears: number;
   };
   /** Stripe publishable key served at runtime; null when the platform has none. */

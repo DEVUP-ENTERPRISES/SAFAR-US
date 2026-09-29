@@ -37,6 +37,7 @@ import { enablePush } from '@/features/push/use-push';
 import { BookingReadiness } from '@/features/account/booking-readiness';
 import { PayNow } from '@/features/payments/pay-now';
 import { DepositCard } from '@/features/payments/deposit-card';
+import { usePlatformConfig } from '@/features/platform/config';
 
 /** How each state reads to the guest, and what it means for them. */
 const STATE: Record<string, { tone: 'success' | 'warning' | 'destructive' | 'muted' | 'default'; label: string; detail: string }> = {
@@ -71,6 +72,16 @@ function BookingDetail({ id }: { id: string }) {
     queryKey: ['vehicle', booking.data?.vehicleId],
     queryFn: () => vehicleApi.getById(booking.data!.vehicleId),
     enabled: !!booking.data?.vehicleId,
+  });
+
+  const platformCfg = usePlatformConfig();
+  const cancellationUrl = platformCfg.data?.legal?.cancellationUrl || '/legal';
+  // What cancelling now would cost, shown under the Cancel button before anyone presses it.
+  const cancelPreview = useQuery({
+    queryKey: ['cancellation-preview', id],
+    queryFn: () => bookingApi.cancellationPreview(id),
+    enabled: !!booking.data && CANCELLABLE.includes(booking.data.status),
+    retry: false,
   });
 
   // After a trip ends there is a window in which damage can still be claimed.
@@ -162,7 +173,7 @@ function BookingDetail({ id }: { id: string }) {
     const { ok, reason } = await confirm({
       title: 'Cancel this trip?',
       description: preview
-        ? `You’d be refunded ${formatMoney(preview.refund)} of ${formatMoney(preview.total)}.${preview.isFullRefund ? '' : ' Cancelling later refunds less.'}`
+        ? `You’d be refunded ${formatMoney(preview.refund)} of ${formatMoney(preview.total)}.${preview.nonRefundable.amount > 0 ? ` We will charge you ${formatMoney(preview.nonRefundable)} for this cancellation.` : ''} This cannot be undone.`
         : 'This cannot be undone.',
       confirmLabel: 'Cancel trip',
       tone: 'destructive',
@@ -431,6 +442,30 @@ function BookingDetail({ id }: { id: string }) {
                 >
                   <XCircle className="h-4 w-4" /> Cancel trip
                 </Button>
+              )}
+              {canCancel && cancelPreview.data && (
+                <p className="text-xs text-muted-foreground">
+                  {cancelPreview.data.nonRefundable.amount > 0
+                    ? `If you cancel now, we will charge you ${formatMoney(cancelPreview.data.nonRefundable)} for this cancellation.`
+                    : 'If you cancel now, you get a full refund.'}{' '}
+                  Please refer{' '}
+                  <a href={cancellationUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">
+                    our cancellation policy
+                  </a>{' '}
+                  for additional information.
+                </p>
+              )}
+              {/* Older records lack `charged`; a zero refund there may just mean nothing was ever taken, so stay silent. */}
+              {b.cancellation && (b.cancellation.charged || b.cancellation.refund.amount > 0) && (
+                <p className="text-xs text-muted-foreground">
+                  We have charged you{' '}
+                  {formatMoney(b.cancellation.charged ?? { amount: Math.max(0, b.priceBreakdown.total.amount - b.cancellation.refund.amount), currency: b.priceBreakdown.total.currency })}{' '}
+                  for this cancellation. Please refer{' '}
+                  <a href={cancellationUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">
+                    our cancellation policy
+                  </a>{' '}
+                  for additional information.
+                </p>
               )}
             </CardContent>
           </Card>

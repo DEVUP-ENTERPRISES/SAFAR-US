@@ -18,6 +18,7 @@ import { userRepository } from '../modules/users/infrastructure/user.repository'
 import { platformConfigService } from '../modules/platform-config/application/platform-config.service';
 import { ROLES } from '../shared/constants/rbac';
 import { timezoneForState } from '../shared/utils/us-timezone';
+import { config } from '../config';
 
 /** Best-effort system note into a booking conversation; never breaks the flow. */
 async function postSystemNote(bookingId: string, body: string): Promise<void> {
@@ -64,6 +65,36 @@ async function tripFacts(bookingId: string, side: 'guest' | 'host'): Promise<Fac
     ];
   } catch (err) {
     logger.warn({ err, bookingId }, 'trip details for email failed');
+    return undefined;
+  }
+}
+
+/** A site path as a full link, for message text read outside the app. */
+const webLink = (path: string) => (path.startsWith('http') ? path : `${config.notifications.webUrl || config.app.publicUrl}${path.startsWith('/') ? '' : '/'}${path}`);
+
+const hoursText = (h: number) => (h > 0 && h % 24 === 0 ? `${h / 24} day${h === 24 ? '' : 's'}` : `${h} hours`);
+
+/** The rental terms that apply to one booking, from live settings, for the email's "Important terms" box. */
+async function bookingTerms(bookingId: string): Promise<string[] | undefined> {
+  try {
+    const [b, cfg] = await Promise.all([bookingService.getDoc(bookingId), platformConfigService.get()]);
+    const rule = cfg.cancellation[b.cancellationPolicy];
+    const partial = rule.partialBps > 0 ? `${Math.round(rule.partialBps / 100)}% is refunded after that` : 'it is non-refundable after that';
+    const terms = [
+      'By booking you agreed to the privacy policy and all other terms and conditions of CatoDrive Inc., and to receive communication via email, phone, etc. as and when required during the rental period or until any billing/incident issues are resolved.',
+      `Cancellation (${b.cancellationPolicy}): full refund if you cancel at least ${hoursText(rule.fullBeforeHours)} before pickup; ${partial}.`,
+    ];
+    if (cfg.deposit.enabled) {
+      terms.push(`A refundable security deposit hold is placed on your card before pickup${cfg.deposit.requiredAtHandover ? ' and is required to start the trip' : ''}. It is released after the trip once the car is checked.`);
+    }
+    terms.push(
+      'Only the verified driver on this booking may drive. Bring the driver’s licence you verified.',
+      'The vehicle is tracked for safety and recovery, as set out in the terms and conditions.',
+      'Return the car on time and in the condition you received it. Late returns, tolls, tickets, fuel and damage are charged as set out in the terms and conditions.',
+    );
+    return terms;
+  } catch (err) {
+    logger.warn({ err, bookingId }, 'booking terms for email failed');
     return undefined;
   }
 }
@@ -179,6 +210,7 @@ export function registerEventSubscribers(): void {
         title: message.title,
         body: message.body,
         data: { bookingId: p.bookingId },
+        terms: await bookingTerms(p.bookingId),
       });
     }
     if (!p.instantBook) {
@@ -231,6 +263,7 @@ export function registerEventSubscribers(): void {
       actionLabel: 'View booking',
       data: { bookingId: p.bookingId },
       facts: await tripFacts(p.bookingId, 'guest'),
+      terms: await bookingTerms(p.bookingId),
     });
     // Live push to any connected devices of the guest.
     realtimeEmitter.toUser(p.guestId, RT.BOOKING_UPDATE, { bookingId: p.bookingId, status: 'paid' });
@@ -366,6 +399,7 @@ export function registerEventSubscribers(): void {
       actionLabel: 'View booking',
       data: { bookingId: p.bookingId },
       facts: await tripFacts(p.bookingId, 'guest'),
+      terms: await bookingTerms(p.bookingId),
     });
     // The host has to have the car ready, so they get the same heads-up.
     try {
@@ -593,8 +627,21 @@ export function registerEventSubscribers(): void {
     const p = e.payload as {
       bookingId: string; guestId: string; hostId: string; cancelledBy?: string;
       refund: { amount: number; currency?: string };
+      charged?: { amount: number; currency?: string };
     };
     const refunded = p.refund?.amount ?? 0;
+    const charged = p.charged?.amount;
+    const cur = p.refund?.currency ?? p.charged?.currency;
+    const policyUrl = webLink((await platformConfigService.get()).legal.cancellationUrl);
+    const refundLine = refunded > 0 ? ` We're refunding ${formatAmount(refunded, cur)}; it usually reaches your card in 5–10 business days.` : '';
+    const guestBody =
+      charged && charged > 0
+        ? `Your booking was cancelled.${refundLine} We have charged you ${formatAmount(charged, cur)} for this cancellation. Please refer ${policyUrl} for additional information.`
+        : refunded > 0
+          ? `Your booking was cancelled.${refundLine}`
+          : charged === 0 || p.cancelledBy === 'system'
+            ? 'Your booking was cancelled. You haven’t been charged, and any hold on your card has been released.'
+            : 'Your booking was cancelled.';
     // A late guest cancel keeps part of the money; the host's share of it is theirs.
     if (p.cancelledBy === 'guest') {
       await payoutService.scheduleRetainedShare(p.bookingId).catch((err) => logger.error({ err, bookingId: p.bookingId }, 'retained share payout failed'));
@@ -607,14 +654,12 @@ export function registerEventSubscribers(): void {
       deepLink: `/bookings/${p.bookingId}`,
       templateKey: 'booking.cancelled',
       title: 'Booking cancelled',
-      // Money is in minor units: dividing by 100 alone rendered "Refund: 28.4"
-      // (and occasionally a float artefact) with no currency at all.
-      body: refunded > 0
-        ? `Your booking was cancelled. We're refunding ${formatAmount(refunded, p.refund?.currency)}.`
-        : p.cancelledBy === 'system'
-          ? 'Your booking was cancelled by CatoDrive. You haven’t been charged.'
-          : 'Your booking was cancelled. No refund was due under the cancellation policy.',
+      // Money is in minor units, formatted with its currency.
+      body: guestBody,
       data: { bookingId: p.bookingId },
+      facts: charged !== undefined
+        ? [{ label: 'Refunded', value: formatAmount(refunded, cur) }, { label: 'Cancellation charge', value: formatAmount(charged, cur) }]
+        : undefined,
     });
     await notifyHost(
       p.hostId,

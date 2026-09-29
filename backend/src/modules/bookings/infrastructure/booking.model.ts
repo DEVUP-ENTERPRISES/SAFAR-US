@@ -156,7 +156,8 @@ export interface BookingDoc {
   costCenterId?: string;
   instantBook: boolean;
   approvalDeadline?: Date;
-  cancellation?: { by: string; role?: 'guest' | 'host' | 'admin' | 'system'; at: Date; reason: string; refund: MoneyField };
+  /** `charged` is what the guest paid and did not get back (absent on cancellations recorded before it existed). */
+  cancellation?: { by: string; role?: 'guest' | 'host' | 'admin' | 'system'; at: Date; reason: string; refund: MoneyField; charged?: MoneyField };
   /**
    * Set when this booking replaces one the host cancelled. `coveredDifference`
    * is what the rebooking guarantee paid so the guest kept their original
@@ -330,6 +331,7 @@ const schema = new Schema<BookingDoc>(
       at: Date,
       reason: String,
       refund: moneySchema,
+      charged: moneySchema,
     },
     tripId: String,
     extensions: {

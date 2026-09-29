@@ -86,7 +86,7 @@ export default function AdminEconomicsPage() {
         rewards: draft.rewards,
         referral: draft.referral,
         protection: draft.protection,
-        legal: draft.legal,
+        legal: { ...draft.legal, cancellationUrl: draft.legal.cancellationUrl?.trim() || undefined },
         verification: draft.verification,
         contactVerification: draft.contactVerification,
         checkout: draft.checkout,
@@ -235,6 +235,14 @@ export default function AdminEconomicsPage() {
           <Field label="Terms URL" hint="Where the guest reads the agreement.">
             <Input value={draft.legal.termsUrl}
               onChange={(e) => set((d) => { d.legal.termsUrl = e.target.value; })} />
+          </Field>
+          <Field label="Privacy policy URL" hint="Linked from the booking agreement and every email.">
+            <Input value={draft.legal.privacyUrl}
+              onChange={(e) => set((d) => { d.legal.privacyUrl = e.target.value; })} />
+          </Field>
+          <Field label="Cancellation policy URL" hint="Linked from the cancellation note and cancellation emails.">
+            <Input value={draft.legal.cancellationUrl ?? ''} placeholder="/legal"
+              onChange={(e) => set((d) => { d.legal.cancellationUrl = e.target.value; })} />
           </Field>
           <Field label="Minimum age" hint="Gates account setup and booking.">
             <Input type="number" min={16} max={99} value={draft.legal.minAgeYears}

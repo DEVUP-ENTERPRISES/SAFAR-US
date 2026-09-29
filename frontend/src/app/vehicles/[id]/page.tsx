@@ -30,7 +30,6 @@ import { useRecentlyViewed } from '@/features/vehicles/recently-viewed';
 import { useQuote, useCreateBooking } from '@/features/bookings/hooks';
 import { bookingApi } from '@/features/bookings/api';
 import { TripLoader } from '@/features/loading/trip-loader';
-import { TermsModal } from '@/features/bookings/components/terms-modal';
 import { useAuthStore } from '@/features/auth/store';
 import { walletApi } from '@/features/wallet/api';
 import { AddCard } from '@/features/payments/add-card';
@@ -85,7 +84,6 @@ export default function VehicleDetailPage() {
   const [payOther, setPayOther] = useState(false);
   const [checkout, setCheckout] = useState<{ bookingId: string; clientSecret: string } | null>(null);
   const [agreedTerms, setAgreedTerms] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState<'airport' | 'home' | 'hotel' | 'business' | ''>('');
   // Which of the host's configured delivery locations was picked. Empty
   // string is "pick up myself" - the same sentinel `deliveryMode` already used.
@@ -353,12 +351,8 @@ export default function VehicleDetailPage() {
       });
       return router.push(`/login?next=${encodeURIComponent(`/vehicles/${v?._id ?? ''}`)}`);
     }
-    // A booking is a contract: pop the Terms and require explicit acceptance
-    // before anything is charged. Acceptance is recorded on the booking.
-    if (!agreedTerms) {
-      setShowTerms(true);
-      return;
-    }
+    // A booking is a contract: the agreement box must be ticked; the accepted Terms version is recorded on the booking.
+    if (!agreedTerms) return;
     await proceed();
   };
   const toggleAddOn = (code: string) =>
@@ -396,17 +390,6 @@ export default function VehicleDetailPage() {
     // pb clears the fixed mobile price bar; from lg there is no bar.
     <div className="space-y-6 pb-32 sm:space-y-10 lg:pb-20">
       {createBooking.isPending && <TripLoader overlay label="Confirming your booking…" />}
-      <TermsModal
-        open={showTerms}
-        version={platformCfg.data?.legal?.termsVersion}
-        termsUrl={platformCfg.data?.legal?.termsUrl}
-        onClose={() => setShowTerms(false)}
-        onAccept={() => {
-          setAgreedTerms(true);
-          setShowTerms(false);
-          void proceed();
-        }}
-      />
       {lightbox !== null && (
         <PhotoLightbox
           photos={photos}
@@ -1219,30 +1202,37 @@ export default function VehicleDetailPage() {
                 <p className="text-sm text-destructive">{createBooking.error instanceof ApiError ? createBooking.error.message : 'Booking failed'}</p>
               )
             )}
-            <Button className="w-full rounded-xl py-6 text-base font-bold transition-transform hover:scale-[1.02] active:scale-[0.98]" size="lg" disabled={!quote.data || !canQuote || quote.isPending} loading={createBooking.isPending} onClick={book}>
+            {status === 'authenticated' && (
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={agreedTerms}
+                  onChange={(e) => setAgreedTerms(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[hsl(var(--primary))]"
+                />
+                <span>
+                  I have read, understood and agree with the{' '}
+                  <a href={platformCfg.data?.legal?.privacyUrl || '/privacy'} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">privacy policy</a>{' '}
+                  and all other{' '}
+                  <a href={platformCfg.data?.legal?.termsUrl || '/terms'} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">terms and conditions</a>{' '}
+                  of CatoDrive Inc. I also agree to receive communication via email, phone, etc. as and when required during the rental period or till any billing/incident issues are resolved.
+                </span>
+              </label>
+            )}
+            <Button className="w-full rounded-xl py-6 text-base font-bold transition-transform hover:scale-[1.02] active:scale-[0.98]" size="lg" disabled={!quote.data || !canQuote || quote.isPending || (status === 'authenticated' && !agreedTerms)} loading={createBooking.isPending} onClick={book}>
               {status !== 'authenticated'
                 ? 'Sign in to book'
                 : v.listing.instantBook
                   ? 'Continue'
                   : 'Request to book'}
             </Button>
-            {/* A booking is a contract - tapping the button opens the Terms
-                popup, and the version accepted is recorded on the booking. */}
-            {status === 'authenticated' && !agreedTerms && (
-              <p className="text-center text-xs text-muted-foreground">
-                By continuing you’ll review and accept the{' '}
-                <a href={platformCfg.data?.legal?.termsUrl || '/terms'} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2">
-                  Terms &amp; Conditions
-                </a>
-                .
-              </p>
+            {!v.listing.instantBook && (
+              <p className="text-center text-sm font-medium text-muted-foreground">You won&apos;t be charged until the host accepts</p>
             )}
-            
-            <p className="text-center text-sm font-medium text-muted-foreground">You won&apos;t be charged yet</p>
-            
+
             <div className="mt-4 border-t border-border pt-4">
-               <p className="text-sm font-medium">Free cancellation</p>
-               <p className="text-[13px] text-muted-foreground mt-0.5">Full refund before trip starts.</p>
+              <p className="text-sm font-medium">{cancelTerms.title} cancellation</p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">{cancelTerms.detail || 'Refunds follow the host’s cancellation policy.'}</p>
             </div>
           </div>
         </div>

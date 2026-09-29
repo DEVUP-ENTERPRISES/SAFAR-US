@@ -54,6 +54,7 @@ router.get(
         termsUrl: cfg.legal.termsUrl,
         privacyVersion: cfg.legal.privacyVersion,
         privacyUrl: cfg.legal.privacyUrl,
+        cancellationUrl: cfg.legal.cancellationUrl,
         minAgeYears: cfg.legal.minAgeYears,
       },
     });

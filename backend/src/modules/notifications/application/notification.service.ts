@@ -38,6 +38,8 @@ export class NotificationService {
     data?: Record<string, unknown>;
     /** Detail rows for the email copy (car, dates, pickup place); other channels ignore them. */
     facts?: { label: string; value: string }[];
+    /** Rental terms for the email's "Important terms" box. */
+    terms?: string[];
   }): Promise<NotificationDoc> {
     const priority = input.priority ?? 'normal';
     const category = categoryFor(input.templateKey);
@@ -56,6 +58,7 @@ export class NotificationService {
       deepLink: input.deepLink,
       actionLabel: input.actionLabel,
       facts: input.facts,
+      terms: input.terms,
       status: 'sent',
     });
 
@@ -69,6 +72,7 @@ export class NotificationService {
       actionLabel: input.actionLabel,
       data: input.data,
       facts: input.facts,
+      terms: input.terms,
       only: input.channel && input.channel !== 'inapp' ? input.channel : undefined,
     });
 
@@ -89,6 +93,7 @@ export class NotificationService {
       actionLabel?: string;
       data?: Record<string, unknown>;
       facts?: { label: string; value: string }[];
+      terms?: string[];
       only?: Exclude<Channel, 'inapp'>;
     },
   ): Promise<void> {
@@ -125,7 +130,7 @@ export class NotificationService {
     notificationId: string,
     user: { _id: string; email?: string; phone?: string; pushTokens?: string[]; locale?: string; timezone?: string },
     channel: Exclude<Channel, 'inapp'>,
-    msg: { templateKey: string; title: string; body: string; deepLink?: string; actionLabel?: string; data?: Record<string, unknown>; facts?: { label: string; value: string }[] },
+    msg: { templateKey: string; title: string; body: string; deepLink?: string; actionLabel?: string; data?: Record<string, unknown>; facts?: { label: string; value: string }[]; terms?: string[] },
   ): Promise<void> {
     const result = await channelProviders[channel].send({
       target: {
@@ -143,6 +148,7 @@ export class NotificationService {
       actionLabel: msg.actionLabel,
       data: msg.data,
       facts: msg.facts,
+      terms: msg.terms,
     });
 
     await NotificationModel.updateOne(

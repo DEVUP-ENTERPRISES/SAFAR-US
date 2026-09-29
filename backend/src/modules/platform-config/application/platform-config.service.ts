@@ -118,6 +118,7 @@ export class PlatformConfigService {
         termsUrl: '/legal',
         privacyVersion: '2026-09-01',
         privacyUrl: '/legal',
+        cancellationUrl: '/legal',
         minAgeYears: 18,
         ...(doc.legal ?? {}),
       },

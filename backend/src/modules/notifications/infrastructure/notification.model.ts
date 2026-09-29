@@ -16,6 +16,7 @@ export interface NotificationDoc {
   actionLabel?: string;
   /** Email detail rows, kept so a retried email reads the same as the first try. */
   facts?: { label: string; value: string }[];
+  terms?: string[];
   /** One row per channel attempt: the delivery log an operator reads. */
   attempts?: {
     channel: string;
@@ -47,6 +48,7 @@ const schema = new Schema<NotificationDoc>(
     deepLink: String,
     actionLabel: String,
     facts: { type: [{ _id: false, label: String, value: String }], default: undefined },
+    terms: { type: [String], default: undefined },
     attempts: {
       type: [{ channel: String, at: Date, ok: Boolean, providerId: String, error: String, retryable: Boolean }],
       default: [],

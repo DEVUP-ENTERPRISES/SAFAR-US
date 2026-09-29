@@ -813,6 +813,8 @@ export class BookingService {
 
     const total = booking.priceBreakdown.total;
     let refund = { amount: 0, currency: total.currency };
+    // Only money actually taken can be kept; a held-but-uncaptured card is released in full.
+    const captured = booking.status === 'paid' || booking.status === 'confirmed';
 
     // Claim the cancellation first (version-checked): a parallel cancel loses here, before any money moves.
     await this.transition(booking, actor, principal.userId, reason);
@@ -847,6 +849,7 @@ export class BookingService {
           at: new Date(),
           reason,
           refund,
+          charged: { amount: captured ? Math.max(0, total.amount - refund.amount) : 0, currency: total.currency },
         },
       },
     );
@@ -856,6 +859,7 @@ export class BookingService {
       hostId: booking.hostId,
       cancelledBy: isHost ? 'host' : isGuest ? 'guest' : 'system',
       refund,
+      charged: { amount: captured ? Math.max(0, total.amount - refund.amount) : 0, currency: total.currency },
     });
     // A host cancel strands the guest — offer rebooking on a similar free car,
     // and make the cancellation cost the host something.

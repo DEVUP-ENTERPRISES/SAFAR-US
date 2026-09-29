@@ -86,6 +86,8 @@ export interface DeliveryRequest {
   data?: Record<string, unknown>;
   /** Label/value rows shown under an email body, e.g. the car, dates and pickup place. */
   facts?: { label: string; value: string }[];
+  /** Rental terms that apply, shown in an email's "Important terms" box. */
+  terms?: string[];
 }
 
 export interface DeliveryResult {

@@ -12,6 +12,8 @@ const bps = z.number().int().min(0).max(10000);
 const cents = z.number().int().min(0);
 const pct = z.number().int().min(0).max(100);
 const tier = z.enum(['new', 'bronze', 'silver', 'gold']);
+// Rendered as links on every page and email, so only a site path or an https address.
+const pageLink = z.string().trim().max(300).refine((v) => /^\/(?!\/)/.test(v) || /^https:\/\/[^\s]+$/.test(v), 'Use a path like /legal or an https:// link');
 // A verification check's frequency + validity policy (MVR/identity/background).
 const verificationPolicy = z
   .object({
@@ -49,6 +51,16 @@ router.put(
       // days. Admin-editable so CatoDrive retunes it without a code change.
       contactVerification: z.object({ requireEmail: z.boolean().optional(), requirePhone: z.boolean().optional() }).optional(),
       checkout: z.object({ otherMethodsEnabled: z.boolean().optional() }).optional(),
+      legal: z
+        .object({
+          termsVersion: z.string().trim().min(1).max(40).optional(),
+          termsUrl: pageLink.optional(),
+          privacyVersion: z.string().trim().min(1).max(40).optional(),
+          privacyUrl: pageLink.optional(),
+          cancellationUrl: pageLink.optional(),
+          minAgeYears: z.number().int().min(16).max(99).optional(),
+        })
+        .optional(),
       verification: z
         .object({
           identity: verificationPolicy,

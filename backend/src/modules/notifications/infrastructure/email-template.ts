@@ -43,6 +43,10 @@ export interface EmailContent {
   preheader?: string;
   /** Extra lines under the body — an itemised charge, a set of dates. */
   facts?: { label: string; value: string }[];
+  /** "Important terms" box: the rental terms that apply to this booking. */
+  terms?: string[];
+  /** Absolute links to the legal pages, shown in the footer of every email. */
+  legalLinks?: { label: string; url: string }[];
 }
 
 export function renderEmail(c: EmailContent): string {
@@ -165,6 +169,24 @@ export function renderEmail(c: EmailContent): string {
               : ''
           }
 
+          ${
+            c.terms?.length
+              ? `<tr>
+            <td style="padding:24px 28px 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                     style="background:${PAPER};border:1px solid ${BORDER};border-radius:12px;
+                            font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <tr><td style="padding:14px 16px 4px;font-size:13px;font-weight:700;color:${INK};">Important terms</td></tr>
+                ${c.terms
+                  .map((t) => `<tr><td style="padding:4px 16px;font-size:12.5px;line-height:1.55;color:${MUTED};">&bull;&nbsp; ${esc(t)}</td></tr>`)
+                  .join('')}
+                <tr><td style="height:10px;line-height:10px;font-size:0;">&nbsp;</td></tr>
+              </table>
+            </td>
+          </tr>`
+              : ''
+          }
+
           <!-- Bottom padding under the last content row, since the banner
                photo below is OUTSIDE this card (its own block on the page). -->
           <tr><td style="height:12px;line-height:12px;font-size:0;">&nbsp;</td></tr>
@@ -205,6 +227,13 @@ export function renderEmail(c: EmailContent): string {
                     </p>`
                   : ''
               }
+              ${
+                c.legalLinks?.length
+                  ? `<p style="margin:0 0 6px;">${c.legalLinks
+                      .map((l) => `<a href="${esc(l.url)}" style="color:${BRAND};text-decoration:underline;">${esc(l.label)}</a>`)
+                      .join(' &middot; ')}</p>`
+                  : ''
+              }
               <p style="margin:0 0 6px;">
                 Questions? <a href="mailto:${esc(support)}" style="color:${BRAND};text-decoration:underline;">${esc(support)}</a>
               </p>
@@ -228,8 +257,14 @@ export function renderText(c: EmailContent): string {
     for (const f of c.facts) lines.push(`${f.label}: ${f.value}`);
   }
   if (c.actionUrl) lines.push('', `${c.actionLabel ?? 'View details'}: ${c.actionUrl}`);
+  if (c.terms?.length) {
+    lines.push('', 'Important terms');
+    for (const t of c.terms) lines.push(`- ${t}`);
+  }
   const support = config.notifications.supportEmail;
-  lines.push('', '—', `Questions? ${support}`);
+  lines.push('', '—');
+  for (const l of c.legalLinks ?? []) lines.push(`${l.label}: ${l.url}`);
+  lines.push(`Questions? ${support}`);
   if (config.notifications.companyAddress) lines.push(config.notifications.companyAddress);
   return lines.join('\n');
 }

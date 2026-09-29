@@ -114,6 +114,7 @@ class SmtpEmailProvider implements ChannelProvider {
       return { ok: false, error: 'no_email_on_account', retryable: false };
     }
     try {
+      const content = await toContent(req);
       const info = await this.mailer.sendMail({
         from: config.notifications.emailFrom,
         to: req.target.email,
@@ -123,8 +124,8 @@ class SmtpEmailProvider implements ChannelProvider {
         subject: req.title,
         // Both parts, always: HTML-only mail scores worse with spam filters and
         // is unreadable in text-only clients.
-        text: renderText(toContent(req)),
-        html: renderEmail(toContent(req)),
+        text: renderText(content),
+        html: renderEmail(content),
       });
       return { ok: true, providerId: info.messageId };
     } catch (err) {
@@ -148,14 +149,31 @@ class SmtpEmailProvider implements ChannelProvider {
  * CSS, and a booking notification's job is to be read and acted on, not admired.
  */
 /** Delivery request -> email content. Links point at the web app, not the API. */
-function toContent(req: DeliveryRequest): EmailContent {
+async function toContent(req: DeliveryRequest): Promise<EmailContent> {
   return {
     title: req.title,
     body: req.body,
     actionUrl: req.deepLink ? webAbsolute(req.deepLink) : undefined,
     actionLabel: req.actionLabel,
     facts: req.facts,
+    terms: req.terms,
+    legalLinks: await legalLinks(),
   };
+}
+
+/** Terms, privacy and cancellation pages as set in admin; an email still sends if config can't be read. */
+async function legalLinks(): Promise<{ label: string; url: string }[] | undefined> {
+  try {
+    const { platformConfigService } = await import('../../platform-config/application/platform-config.service');
+    const { legal } = await platformConfigService.get();
+    return [
+      { label: 'Terms & Conditions', url: webAbsolute(legal.termsUrl) },
+      { label: 'Privacy Policy', url: webAbsolute(legal.privacyUrl) },
+      { label: 'Cancellation Policy', url: webAbsolute(legal.cancellationUrl) },
+    ];
+  } catch {
+    return undefined;
+  }
 }
 
 /**
