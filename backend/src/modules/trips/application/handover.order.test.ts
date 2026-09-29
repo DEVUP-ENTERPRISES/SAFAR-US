@@ -89,8 +89,8 @@ describe('start gate order', () => {
     await expect(tripService.start(hostP, 'bk-1', body)).rejects.toMatchObject({ code: 'HOST_INSPECTION_REQUIRED' });
 
     await takePhotos(HOST);
-    await expect(tripService.start(hostP, 'bk-1', body)).rejects.toMatchObject({ code: 'LICENCE_CONFIRMATION_REQUIRED' });
-    await expect(tripService.start(hostP, 'bk-1', { ...body, licenceConfirmed: true })).rejects.toMatchObject({ code: 'GUEST_NOT_VERIFIED' });
+    // No in-person tick: the licence is checked from the verified ID automatically.
+    await expect(tripService.start(hostP, 'bk-1', body)).rejects.toMatchObject({ code: 'GUEST_NOT_VERIFIED' });
 
     await approveGuest(new Date(Date.now() + 2 * HOUR));
     await expect(tripService.start(hostP, 'bk-1', { ...body, licenceConfirmed: true })).rejects.toMatchObject({ code: 'LICENCE_EXPIRES_DURING_TRIP' });
@@ -110,8 +110,7 @@ describe('start gate order', () => {
   it('an admin may start for the host and skips the inspection gate, but not the rest', async () => {
     await seed();
     await approveGuest();
-    await expect(tripService.start(adminP, 'bk-1', { odometerStart: 5 })).rejects.toMatchObject({ code: 'LICENCE_CONFIRMATION_REQUIRED' });
-    await expect(tripService.start(adminP, 'bk-1', { odometerStart: 5, licenceConfirmed: true })).rejects.toMatchObject({ code: 'PICKUP_CODE_REQUIRED' });
+    await expect(tripService.start(adminP, 'bk-1', { odometerStart: 5 })).rejects.toMatchObject({ code: 'PICKUP_CODE_REQUIRED' });
     await verifyCode();
     await expect(tripService.start(adminP, 'bk-1', { odometerStart: 5, licenceConfirmed: true })).resolves.toMatchObject({ status: 'active' });
   });
@@ -169,7 +168,7 @@ describe('host inspection counts host-side photos only', () => {
     await seed(10);
     await expect(tripService.start(hostP, 'bk-1', { odometerStart: 1 })).rejects.toMatchObject({ code: 'HOST_INSPECTION_REQUIRED' });
     await BookingModel.updateOne({ _id: 'bk-1' }, { period: { start: new Date(Date.now() - 60 * HOUR), end: new Date(Date.now() - 12 * HOUR) } });
-    await expect(tripService.start(hostP, 'bk-1', { odometerStart: 1 })).rejects.toMatchObject({ code: 'LICENCE_CONFIRMATION_REQUIRED' });
+    await expect(tripService.start(hostP, 'bk-1', { odometerStart: 1 })).rejects.toMatchObject({ code: 'GUEST_NOT_VERIFIED' });
   });
 });
 
@@ -272,7 +271,7 @@ describe('host trip timeline', () => {
     expect(s.pre.taken).toBe(2);
     jest.spyOn(hostTripsService as unknown as { scopeFor: () => Promise<{ hostId: string }> }, 'scopeFor').mockResolvedValue({ hostId: 'host-1' });
     const trip = (await hostTripsService.one(HOST, 'bk-1'))!;
-    expect(trip.timeline.map((t) => t.key)).toEqual(['inspect', 'verify_guest', 'pickup_code', 'start', 'on_trip', 'return_photos', 'return', 'payout']);
+    expect(trip.timeline.map((t) => t.key)).toEqual(['inspect', 'pickup_code', 'start', 'on_trip', 'return_photos', 'return', 'payout']);
     expect(trip.timeline[0]).toMatchObject({ state: 'current', detail: '2 of 4 photos' });
     expect(trip.timeline[1].state).toBe('locked');
     expect(trip.handover).toMatchObject({ inspection: { taken: 2, required: 4, open: true }, pickupVerified: false, codeLocked: false });
@@ -280,7 +279,7 @@ describe('host trip timeline', () => {
     await setConfig({ pickupCodeRequired: false, hostInspectionRequired: false });
     const off = (await hostTripsService.one(HOST, 'bk-1'))!;
     expect(off.timeline[0]).toMatchObject({ state: 'done', detail: 'Not required' });
-    expect(off.timeline[2]).toMatchObject({ state: 'done', detail: 'Not required' });
-    expect(off.timeline[1].state).toBe('current');
+    expect(off.timeline[1]).toMatchObject({ key: 'pickup_code', state: 'done', detail: 'Not required' });
+    expect(off.timeline[2]).toMatchObject({ key: 'start', state: 'current' });
   });
 });

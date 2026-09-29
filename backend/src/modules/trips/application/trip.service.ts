@@ -55,12 +55,13 @@ export class TripService {
       }
     }
 
-    // Only the handing-over side vouches for a licence; a guest's own tick would prove nothing.
+    // The licence is checked from the verified ID at handover, not by the host in person; an admin may start without one.
     let licence: Partial<TripDoc> = {};
-    if (licenceConfirmed && (hostSide || isAdmin)) {
-      licence = await this.licenceCheck(booking.guestId, booking.period.end, userId);
-    } else if (cfg.hostOnlyStart) {
-      throw new ConflictError('Confirm the guest’s licence matches before starting the trip.', 'LICENCE_CONFIRMATION_REQUIRED');
+    if (hostSide || isAdmin) {
+      licence = await this.licenceCheck(booking.guestId, booking.period.end, userId).catch((err) => {
+        if (isAdmin && !licenceConfirmed) return {};
+        throw err;
+      });
     }
     if (cfg.pickupCodeRequired && !booking.pickupVerifiedAt) {
       throw new ConflictError('Enter the guest’s pickup code before starting the trip.', 'PICKUP_CODE_REQUIRED');

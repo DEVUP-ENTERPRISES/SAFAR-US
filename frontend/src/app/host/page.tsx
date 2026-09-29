@@ -14,6 +14,7 @@ import { formatMoney } from '@/lib/utils/format';
 import { hostApi } from '@/features/host/api';
 import { useHostMe, useEarnings } from '@/features/host/hooks';
 import { useMyVehicles } from '@/features/vehicles/hooks';
+import { PushPrompt } from '@/features/push/push-prompt';
 import type { Vehicle } from '@/features/vehicles/types';
 
 /**
@@ -79,6 +80,11 @@ export default function HostDashboardPage() {
           <Button size="lg"><Plus className="h-4 w-4" /> Add a car</Button>
         </Link>
       </div>
+
+      <PushPrompt
+        title="Get booking alerts on this device"
+        detail="New bookings, requests to accept and guest messages arrive instantly, even when CatoDrive isn’t open."
+      />
 
       {/* 1 - Waiting on you. Rendered only when something actually is. */}
       {(actions.length > 0 || blockers.length > 0) && (

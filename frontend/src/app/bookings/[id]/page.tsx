@@ -300,7 +300,6 @@ function BookingDetail({ id }: { id: string }) {
       <TripProgress
         status={String(b.status)}
         pickupAt={b.period.start}
-        sharingOpensAt={tracking.data?.opensAt}
         onVerify={() => router.push('/account/verify-identity')}
       />
 

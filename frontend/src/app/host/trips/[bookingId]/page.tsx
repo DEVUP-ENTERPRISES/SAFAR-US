@@ -23,7 +23,6 @@ import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/types';
 import { bookingApi } from '@/features/bookings/api';
 import { formatMoney, formatDate, kmToMiles, perKmToPerMile } from '@/lib/utils/format';
-import { GuestVerification } from '@/features/host/components/guest-verification';
 import { hostTripsApi } from '@/features/host/trips.api';
 import { TripMessages } from '@/features/host/components/trip-messages';
 import { IncidentalsForm } from '@/features/host/components/incidentals-form';
@@ -42,9 +41,8 @@ const miles = (v: number) => `${kmToMiles(v).toLocaleString()} miles`;
 const START_ERRORS: Record<string, { text: string; step?: string }> = {
   HOST_ONLY_START: { text: 'Only the host can start this trip, at pickup. Refresh the page and try again.' },
   HOST_INSPECTION_REQUIRED: { text: 'Take the pickup photos of the car before starting the trip.', step: 'handover-inspect' },
-  LICENCE_CONFIRMATION_REQUIRED: { text: 'Check the guest’s licence and confirm it before starting the trip.', step: 'handover-verify' },
-  GUEST_NOT_VERIFIED: { text: 'This guest has not finished identity verification. Ask them to complete it in their app, or contact support.', step: 'handover-verify' },
-  LICENCE_EXPIRES_DURING_TRIP: { text: 'The guest’s licence expires before the trip ends, so they cannot drive it. Contact support.', step: 'handover-verify' },
+  GUEST_NOT_VERIFIED: { text: 'This guest has not finished identity verification. Ask them to complete it in their app, or contact support.' },
+  LICENCE_EXPIRES_DURING_TRIP: { text: 'The guest’s licence expires before the trip ends, so they cannot drive it. Contact support.' },
   PICKUP_CODE_REQUIRED: { text: 'Enter the guest’s pickup code before starting the trip.', step: 'handover-code' },
   ODOMETER_REQUIRED: { text: 'Enter the starting odometer reading.', step: 'handover-odo' },
 };
@@ -64,7 +62,6 @@ export default function HostTripDetailPage() {
   const [fuelStart, setFuelStart] = useState('');
   const [fuelEnd, setFuelEnd] = useState('');
   // Licence check ticked at the handover; sent with the start request.
-  const [licenseChecked, setLicenseChecked] = useState(false);
   const cfg = usePlatformConfig().data;
 
   const { data: t, isLoading, isError } = useQuery({
@@ -72,7 +69,6 @@ export default function HostTripDetailPage() {
     queryFn: () => hostTripsApi.one(bookingId),
   });
 
-  const licenceOk = !!(t?.licenseConfirmed || t?.handover?.licenceConfirmed || licenseChecked);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['host-trip', bookingId] });
@@ -95,17 +91,13 @@ export default function HostTripDetailPage() {
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not decline this request' }),
   });
 
-  const confirmLicense = useMutation({
-    mutationFn: () => hostTripsApi.confirmLicense(t!.tripId!),
-    onSuccess: invalidate,
-  });
   const handover = useMutation({
     // This call creates the trip and records the licence check with it.
     mutationFn: () =>
       hostTripsApi.start(bookingId, {
         odometerStart: Number(odoStart),
         ...(fuelStart ? { fuelStart: Number(fuelStart) } : {}),
-        licenceConfirmed: licenceOk,
+        licenceConfirmed: true,
       }),
     onSuccess: invalidate,
     onError: (e) => goToStep(e instanceof ApiError ? START_ERRORS[e.code]?.step : undefined),
@@ -205,14 +197,13 @@ export default function HostTripDetailPage() {
   const inspectDone = !inspectRequired || (insp ? insp.taken >= insp.required : (t.photoCount ?? 0) > 0);
   const guestVerified = hv ? hv.guestVerified : (t.guest.verification?.verified ?? true);
   const licenceExpired = (hv?.licenceValidThroughTrip ?? t.guest.verification?.licenceValidThroughTrip) === false;
-  const verifyDone = guestVerified && !licenceExpired && licenceOk;
+  const verifyDone = guestVerified && !licenceExpired;
   const codeDone = !codeRequired || !!t.pickupVerified || !!hv?.pickupVerified;
   const odoDone = odoStart !== '' && Number(odoStart) >= 0;
   const canStart = inspectDone && verifyDone && codeDone && odoDone;
   const stepStatus = (done: boolean, prevDone: boolean, na = false): StepStatus =>
     na ? 'na' : done ? 'done' : prevDone ? 'active' : 'locked';
   const sInspect = stepStatus(inspectDone, true, !inspectRequired);
-  const sVerify = stepStatus(verifyDone, inspectDone);
   const sCode = stepStatus(codeDone, inspectDone && verifyDone, !codeRequired);
   const sOdo = stepStatus(odoDone, inspectDone && verifyDone && codeDone);
 
@@ -375,19 +366,8 @@ export default function HostTripDetailPage() {
           <RowGroup>
             <Row
               icon={<IdCard className="h-5 w-5" />}
-              title="Confirm driver's licence"
-              subtitle={
-                t.licenseConfirmed
-                  ? '✓ Licence confirmed'
-                  : t.tripId
-                    ? 'Awaiting licence'
-                    : 'Confirm it in the check-in below'
-              }
-              action={
-                t.licenseConfirmed || finished || !t.tripId
-                  ? undefined
-                  : { label: 'Confirm', onClick: () => confirmLicense.mutate() }
-              }
+              title="Driver's licence"
+              subtitle={t.licenseConfirmed ? '✓ Checked against the guest’s verified ID' : 'Checked automatically from the guest’s verified ID when the trip starts'}
               value={t.licenseConfirmed ? '✓' : undefined}
             />
             <Row
@@ -582,26 +562,11 @@ export default function HostTripDetailPage() {
               </HandoverStep>
 
               <HandoverStep
-                id="handover-verify"
-                n={2}
-                title="Verify the guest"
-                status={sVerify}
-                lockedReason="Take the pickup photos first."
-              >
-                <GuestVerification
-                  guest={t.guest}
-                  confirmed={!!(t.licenseConfirmed || hv?.licenceConfirmed)}
-                  checked={licenseChecked}
-                  onToggle={() => setLicenseChecked((v) => !v)}
-                />
-              </HandoverStep>
-
-              <HandoverStep
                 id="handover-code"
-                n={3}
+                n={2}
                 title="Guest’s pickup code"
                 status={sCode}
-                lockedReason="Verify the guest first."
+                lockedReason={inspectDone ? 'The guest hasn’t finished ID verification yet.' : 'Take the pickup photos first.'}
               >
                 {codeDone ? (
                   <p className="text-sm font-medium text-success">Guest verified - you can hand over the keys.</p>
@@ -617,7 +582,7 @@ export default function HostTripDetailPage() {
 
               <HandoverStep
                 id="handover-odo"
-                n={4}
+                n={3}
                 title="Odometer and fuel"
                 status={sOdo}
                 lockedReason="Finish the steps above first."
@@ -654,7 +619,7 @@ export default function HostTripDetailPage() {
                   {!inspectDone
                     ? 'Take the pickup photos to continue.'
                     : !verifyDone
-                      ? 'Verify the guest and confirm their licence to continue.'
+                      ? (licenceExpired ? 'The guest’s licence expires before the trip ends. Contact support.' : 'The guest hasn’t finished ID verification yet. Ask them to complete it in the app.')
                       : !codeDone
                         ? 'Enter the guest’s pickup code to continue.'
                         : 'Enter the starting odometer to start the trip.'}

@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
 import { cn } from '@/lib/utils/cn';
 import { useMyVehicles } from '@/features/vehicles/hooks';
-import { hostTripsApi } from '@/features/host/trips.api';
+import { hostTripsApi, type HostTrip } from '@/features/host/trips.api';
 
 const DAYS = 14; // a fortnight fits on screen and covers the booking horizon
 
@@ -37,16 +38,16 @@ export function HostCalendar() {
     return <EmptyState title="No vehicles" description="List a car to see its calendar." />;
   }
 
-  // Which days is each vehicle booked?
-  const spans = new Map<string, { from: string; to: string }[]>();
+  // Which booking covers each vehicle's day, so a cell can name it and open it.
+  const spans = new Map<string, { from: string; to: string; trip: HostTrip }[]>();
   for (const t of booked.data ?? []) {
     const list = spans.get(t.vehicle._id) ?? [];
-    list.push({ from: key(new Date(t.period.start)), to: key(new Date(t.period.end)) });
+    list.push({ from: key(new Date(t.period.start)), to: key(new Date(t.period.end)), trip: t });
     spans.set(t.vehicle._id, list);
   }
-  const isBooked = (vid: string, d: Date) => {
+  const bookingOn = (vid: string, d: Date) => {
     const k = key(d);
-    return (spans.get(vid) ?? []).some((s) => k >= s.from && k <= s.to);
+    return (spans.get(vid) ?? []).find((s) => k >= s.from && k <= s.to);
   };
 
   return (
@@ -131,7 +132,9 @@ export function HostCalendar() {
 
                 {days.map((d) => {
                   const weekend = d.getDay() === 0 || d.getDay() === 6;
-                  const bookedDay = isBooked(v._id, d);
+                  const span = bookingOn(v._id, d);
+                  const request = span?.trip.status === 'pending_approval';
+                  const first = !!span && (span.from === key(d) || key(d) === key(days[0]));
                   // The real rate the guest would pay that day, weekend multiplier included.
                   const rate = Math.round(
                     (v.pricing.dailyPrice * (weekend ? v.pricing.weekendMultiplierBps ?? 10000 : 10000)) / 10000,
@@ -142,11 +145,22 @@ export function HostCalendar() {
                       className={cn(
                         'relative h-14 border-s border-border text-center align-middle',
                         weekend && 'bg-muted/40',
-                        bookedDay && 'bg-primary/10',
+                        span && (request ? 'bg-warning/15' : 'bg-primary/10'),
                       )}
                     >
-                      {bookedDay ? (
-                        <span className="mx-auto block h-1.5 w-full rounded-full bg-primary" />
+                      {span ? (
+                        <Link
+                          href={`/host/trips/${span.trip.bookingId}`}
+                          title={`${request ? 'Request' : 'Booked'} · ${span.trip.guest.name} · ${span.trip.code}`}
+                          className="absolute inset-0 flex flex-col justify-center gap-1 px-1 hover:bg-foreground/5"
+                        >
+                          <span className={cn('block h-1.5 w-full rounded-full', request ? 'bg-warning' : 'bg-primary')} />
+                          {first && (
+                            <span className="truncate text-[10px] font-semibold">
+                              {request ? 'Request' : span.trip.guest.name.split(' ')[0]}
+                            </span>
+                          )}
+                        </Link>
                       ) : (
                         <span className="text-xs font-semibold tabular-nums">
                           ${(rate / 100).toFixed(0)}
@@ -162,7 +176,8 @@ export function HostCalendar() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        <span className="me-1 inline-block h-1.5 w-4 rounded-full bg-primary align-middle" /> booked ·
+        <span className="me-1 inline-block h-1.5 w-4 rounded-full bg-primary align-middle" /> booked ·{' '}
+        <span className="me-1 inline-block h-1.5 w-4 rounded-full bg-warning align-middle" /> request waiting for you · tap a booked day to open it ·
         prices shown are what a guest pays that day (weekend rates included).
       </p>
     </div>

@@ -48,6 +48,9 @@ export function TrackingPanel({
   const canSee = t.trackingEnabled && t.viewers.includes(role);
   const opensAt = t.opensAt ? new Date(t.opensAt) : null;
 
+  // Vehicle tracking is covered in the Terms; guests are not shown sharing details.
+  if (!t.trackingEnabled && role === 'guest') return null;
+
   // Off entirely - before the window opens, or after the trip closed.
   if (!t.trackingEnabled) {
     return (

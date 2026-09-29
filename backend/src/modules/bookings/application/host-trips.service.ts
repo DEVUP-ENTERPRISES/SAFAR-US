@@ -240,10 +240,6 @@ export class HostTripsService {
     const drafts: { key: string; label: string; done: boolean; detail?: string; post?: boolean }[] = [
       { key: 'inspect', label: 'Inspect the car', done: !inspectRequired || started || pre.taken >= pre.required, detail: inspectRequired ? `${pre.taken} of ${pre.required} photos` : notRequired },
       {
-        key: 'verify_guest', label: 'Verify the guest', done: !req.hostOnlyStart || started || licenceConfirmed,
-        detail: !req.hostOnlyStart ? notRequired : !verification.verified ? 'Guest identity not verified' : verification.licenceValidThroughTrip === false ? 'Licence expires during the trip' : started || licenceConfirmed ? 'Licence confirmed' : 'Check the licence in person',
-      },
-      {
         key: 'pickup_code', label: 'Guest’s pickup code', done: !req.pickupCodeRequired || pickupVerified || started,
         detail: !req.pickupCodeRequired ? notRequired : codeLocked ? 'Locked — guest must generate a new code' : pickupVerified || started ? 'Verified' : 'Ask the guest for their code',
       },

@@ -16,33 +16,25 @@ const STAGE: Record<string, number> = {
   completed: 7,
 };
 
-const time = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
 export function TripProgress({
   status,
   pickupAt,
-  sharingOpensAt,
   onVerify,
 }: {
   status: string;
   pickupAt: string;
-  sharingOpensAt?: string | null;
   onVerify: () => void;
 }) {
   const stage = STAGE[status];
   if (stage === undefined) return null;
 
-  const opens = sharingOpensAt ? new Date(sharingOpensAt) : null;
   const steps = [
     { title: 'Trip requested', detail: 'Your dates are held and your card is authorised.' },
     { title: 'Verify your identity', detail: 'Photograph your licence and take a selfie. Nothing is charged until this passes, and it must be done a few hours before pickup or the booking is released.' },
     { title: 'Host approval', detail: 'The host reviews and accepts your request.' },
     { title: 'Payment confirmed', detail: 'Your card is charged and the trip is locked in.' },
-    {
-      title: 'Pickup day',
-      detail: `We remind you before pickup. ${opens ? `Live location sharing opens around ${time(opens)}. ` : ''}At the car, open “Your pickup code” below and show it to your host.`,
-    },
-    { title: 'On the road', detail: 'Enjoy the drive. Location sharing is off while you’re out.' },
+    { title: 'Pickup day', detail: 'We will communicate with you all the required information close to your pickup time.' },
+    { title: 'On the road', detail: 'Enjoy the drive.' },
     { title: 'Return & close out', detail: 'Return on time with photos; your deposit is released after the host’s inspection window.' },
   ];
   const current = stage >= steps.length ? -1 : stage;
