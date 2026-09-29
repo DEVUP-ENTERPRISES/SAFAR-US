@@ -35,9 +35,7 @@ interface History {
 /**
  * Safety recalls and title history for a car.
  *
- * Shown to guests as well as hosts. An open recall is exactly the thing someone
- * should be able to see before they get into a stranger's car, and a platform
- * that knows and does not say is making a choice it could not defend.
+ * An internal check shown to CatoDrive staff only (admin car review); guests and hosts never see it.
  *
  * Two honesty rules are load-bearing here:
  *
@@ -54,7 +52,7 @@ export function VehicleHistory({ vehicleId, audience }: { vehicleId: string; aud
 
   const q = useQuery({
     queryKey: ['vehicle-history', vehicleId],
-    queryFn: () => api.get<History>(`/vehicles/${vehicleId}/history`, undefined, false),
+    queryFn: () => api.get<History>(`/vehicles/${vehicleId}/history`),
     staleTime: 60 * 60 * 1000, // Recalls change on the order of months.
     retry: false,
   });

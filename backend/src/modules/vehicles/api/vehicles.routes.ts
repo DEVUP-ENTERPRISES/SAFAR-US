@@ -136,15 +136,11 @@ router.patch(
   }),
 );
 
-/**
- * Recalls and history for one car.
- *
- * Public: an open safety recall is exactly the thing a guest should be able to
- * see before booking, and hiding it would be the wrong call for a platform that
- * puts strangers in each other's vehicles.
- */
+/** Recalls and title history for one car: an internal check, for CatoDrive staff only (and a paid lookup). */
 router.get(
   '/:id/history',
+  authenticate,
+  authorize('admin:read'),
   asyncHandler(async (req, res) => {
     const v = await vehicleService.getById(req.params.id);
     const history = await vehicleHistoryService.full({
