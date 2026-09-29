@@ -113,13 +113,21 @@ export class PlatformConfigService {
     return {
       ...doc,
       configVersion: doc.configVersion ?? 0,
+      // Defaults follow the Wheelbase cover CatoDrive is on: dealer 4879882, approved cars only, its age minimums.
+      insurance: {
+        wheelbaseDealerId: '4879882',
+        requireApproved: true,
+        enforceMinAge: true,
+        ...(doc.insurance ?? {}),
+      },
       legal: {
         termsVersion: '2026-09-01',
         termsUrl: '/legal',
         privacyVersion: '2026-09-01',
         privacyUrl: '/legal',
         cancellationUrl: '/legal',
-        minAgeYears: 18,
+        // 21: no Wheelbase-insured car covers a younger driver.
+        minAgeYears: 21,
         ...(doc.legal ?? {}),
       },
       contact: {

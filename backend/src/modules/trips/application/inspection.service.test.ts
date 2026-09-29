@@ -44,6 +44,8 @@ async function seed(startInHours: number, lengthHours = 48) {
     seats: 5, fuelType: 'petrol', transmission: 'automatic', bodyType: 'suv', registrationNumber: 'ABC123',
     listing: { title: 'VW Atlas' }, pricing: { dailyPrice: 9500, currency: 'USD' },
     location: { city: 'Irving', state: 'TX', type: 'Point', coordinates: [-97, 32.8] },
+    // Insured, as every bookable car must be.
+    wheelbase: { rentalId: 1, name: 'VW Atlas', linkedBy: 'admin', insuranceState: 'approved', minRenterAge: 21, found: true, syncedAt: new Date() },
   });
   const start = new Date(Date.now() + startInHours * HOUR);
   return BookingModel.create({

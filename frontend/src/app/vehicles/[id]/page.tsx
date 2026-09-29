@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList, Sparkles, LifeBuoy, Headphones, CalendarCheck, Grid2x2 } from 'lucide-react';
+import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList, Sparkles, LifeBuoy, Headphones, CalendarCheck, Grid2x2, Umbrella } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -641,7 +641,14 @@ export default function VehicleDetailPage() {
             <h2 className="mb-4 text-2xl font-bold tracking-tight">Peace of mind</h2>
             <div className="space-y-4">
               <PeaceItem icon={<Sparkles className="h-6 w-6 stroke-[1.5]" />} title="No car wash necessary" detail="Just keep the car tidy and return it as you found it." />
-              <PeaceItem icon={<CalendarCheck className="h-6 w-6 stroke-[1.5]" />} title="Free cancellation" detail={cancelTerms.detail || 'Cancel per the host’s policy for a refund.'} />
+              {v.insurance?.approved && (
+                <PeaceItem
+                  icon={<Umbrella className="h-6 w-6 stroke-[1.5]" />}
+                  title="Insured trip"
+                  detail={`Covered under ${v.insurance.planLabel || 'the car’s insurance plan'}.${v.insurance.minRenterAge ? ` Drivers must be ${v.insurance.minRenterAge} or older.` : ''}`}
+                />
+              )}
+              <PeaceItem icon={<CalendarCheck className="h-6 w-6 stroke-[1.5]" />} title={`${cancelTerms.title} cancellation`} detail={cancelTerms.detail || 'Cancel per the host’s policy for a refund.'} />
               <PeaceItem icon={<LifeBuoy className="h-6 w-6 stroke-[1.5]" />} title="Support when you need it" detail="Message your host in-app, and reach our team from your trip screen." />
               <PeaceItem icon={<Headphones className="h-6 w-6 stroke-[1.5]" />} title="Two-way reviews" detail="Verified guests and hosts rate each trip, so you always know who you’re booking with." />
             </div>
@@ -1224,6 +1231,9 @@ export default function VehicleDetailPage() {
             {!v.listing.instantBook && (
               <p className="text-center text-sm font-medium text-muted-foreground">You won&apos;t be charged until the host accepts</p>
             )}
+            {v.insurance?.minRenterAge ? (
+              <p className="text-center text-xs text-muted-foreground">Drivers must be {v.insurance.minRenterAge} or older to be insured on this car.</p>
+            ) : null}
 
             <div className="mt-4 border-t border-border pt-4">
               <p className="text-sm font-medium">{cancelTerms.title} cancellation</p>

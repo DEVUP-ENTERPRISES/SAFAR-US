@@ -86,6 +86,8 @@ export interface BookingDoc {
    * what was agreed; a booking is not created without it.
    */
   terms?: { version: string; acceptedAt: Date; ip?: string };
+  /** The car's insurance as it stood when this was booked (Wheelbase state, plan, minimum renter age). */
+  insurance?: { provider: string; rentalId?: number; insuranceState?: string; coverage?: string; planLabel?: string; minRenterAge?: number; checkedAt?: Date };
   /** Where the host delivers the car, when the guest requested delivery. */
   delivery?: {
     mode: 'airport' | 'home' | 'hotel' | 'business';
@@ -253,6 +255,15 @@ const schema = new Schema<BookingDoc>(
       version: String,
       acceptedAt: Date,
       ip: String,
+    },
+    insurance: {
+      provider: String,
+      rentalId: Number,
+      insuranceState: String,
+      coverage: String,
+      planLabel: String,
+      minRenterAge: Number,
+      checkedAt: Date,
     },
     delivery: {
       type: {

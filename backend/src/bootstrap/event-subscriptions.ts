@@ -19,6 +19,7 @@ import { platformConfigService } from '../modules/platform-config/application/pl
 import { ROLES } from '../shared/constants/rbac';
 import { timezoneForState } from '../shared/utils/us-timezone';
 import { config } from '../config';
+import { wheelbaseInsuranceService } from '../modules/insurance/application/wheelbase-insurance.service';
 
 /** Best-effort system note into a booking conversation; never breaks the flow. */
 async function postSystemNote(bookingId: string, body: string): Promise<void> {
@@ -549,6 +550,19 @@ export function registerEventSubscribers(): void {
     } catch (err) {
       logger.warn({ err, bookingId: p.bookingId }, 'sos notification failed');
     }
+  });
+
+  // A car that lost its Wheelbase insurance approval must be looked at before it is booked again.
+  eventBus.subscribe(EVENTS.INSURANCE_STATUS_CHANGED, async (e) => {
+    const p = e.payload as { vehicleId: string; from?: string; to: string; name: string };
+    await notifyStaff('insurance.status_changed', 'Car insurance no longer approved', `${p.name} (vehicle ${p.vehicleId}): Wheelbase insurance changed from ${p.from ?? 'unknown'} to ${p.to}. Check it in Admin → Insurance.`, { vehicleId: p.vehicleId }, 'critical');
+  });
+
+  // A new Wheelbase dealer ID is read straight away, not at the next scheduled check.
+  eventBus.subscribe(EVENTS.PLATFORM_CONFIG_UPDATED, async (e) => {
+    const p = e.payload as { keys?: string[] };
+    if (!p.keys?.includes('insurance')) return;
+    await wheelbaseInsuranceService.sync().catch((err) => logger.warn({ err: (err as Error).message }, 'wheelbase sync after settings change failed'));
   });
 
   // An admin changed the daily mileage (or restored a version): every car follows at once.

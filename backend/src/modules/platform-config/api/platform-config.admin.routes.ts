@@ -51,6 +51,13 @@ router.put(
       // days. Admin-editable so CatoDrive retunes it without a code change.
       contactVerification: z.object({ requireEmail: z.boolean().optional(), requirePhone: z.boolean().optional() }).optional(),
       checkout: z.object({ otherMethodsEnabled: z.boolean().optional() }).optional(),
+      insurance: z
+        .object({
+          wheelbaseDealerId: z.string().trim().regex(/^\d{0,20}$/, 'Digits only').optional(),
+          requireApproved: z.boolean().optional(),
+          enforceMinAge: z.boolean().optional(),
+        })
+        .optional(),
       legal: z
         .object({
           termsVersion: z.string().trim().min(1).max(40).optional(),

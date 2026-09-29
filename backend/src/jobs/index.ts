@@ -14,6 +14,7 @@ import { reviewService } from '../modules/reviews/application/review.service';
 import { platformConfigService } from '../modules/platform-config/application/platform-config.service';
 import { acquireJobLease } from './job-lease.model';
 import { notificationService } from '../modules/notifications/application/notification.service';
+import { wheelbaseInsuranceService } from '../modules/insurance/application/wheelbase-insurance.service';
 
 const QUEUE = 'cato-maintenance';
 const MIN = 60_000;
@@ -38,6 +39,7 @@ interface JobDef {
  *   - reconcile        every 5 min  → ask Stripe about payments and identity checks whose webhook never landed
  *   - retry-webhooks   every 5 min  → replay payment events whose handler failed
  *   - retry-notifications every 5 min → re-send emails/pushes that failed for a passing reason
+ *   - wheelbase-insurance every 6 h  → refresh each car's insurance from Wheelbase
  *
  * Two runners share this table. BullMQ (Redis) is the normal one; if Redis is
  * unavailable at boot or the queue cannot start, an in-process timer runs the
@@ -130,6 +132,12 @@ const JOBS: JobDef[] = [
     name: 'retry-webhooks',
     everyMs: 5 * MIN,
     run: () => webhookRetryService.retryFailed(),
+  },
+  {
+    // Keep each car's insurance as Wheelbase reports it; an outage leaves the last reading in place.
+    name: 'wheelbase-insurance',
+    everyMs: 6 * 60 * MIN,
+    run: async () => wheelbaseInsuranceService.sync().catch((err) => ({ error: (err as Error).message })),
   },
   {
     // An email or push that failed for a passing reason (mail server busy, network) is sent again.
