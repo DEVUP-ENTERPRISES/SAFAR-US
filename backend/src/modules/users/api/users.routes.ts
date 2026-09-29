@@ -8,6 +8,7 @@ import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess, sendCreated } from '../../../shared/http/api-response';
+import { isValidTimezone } from '../../../shared/utils/us-timezone';
 
 const router = Router();
 
@@ -39,6 +40,8 @@ const profileSchema = z.object({
   phone: z.string().min(6).max(20).optional(),
   avatarUrl: z.string().url().optional(),
   dateOfBirth: z.string().optional(),
+  // The browser's zone, so quiet hours and reminders follow the guest's clock.
+  timezone: z.string().max(64).refine(isValidTimezone, 'Unknown time zone').optional(),
 });
 
 router.patch(

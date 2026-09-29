@@ -6,6 +6,7 @@ import {
   resolveChannels,
   isQuietTime,
   respectsQuietHours,
+  RETRY_SCHEDULE,
   type Channel,
   type Priority,
 } from '../domain/notification-channel';
@@ -35,6 +36,8 @@ export class NotificationService {
     /** Label for the email CTA button. Falls back to "View details". */
     actionLabel?: string;
     data?: Record<string, unknown>;
+    /** Detail rows for the email copy (car, dates, pickup place); other channels ignore them. */
+    facts?: { label: string; value: string }[];
   }): Promise<NotificationDoc> {
     const priority = input.priority ?? 'normal';
     const category = categoryFor(input.templateKey);
@@ -51,6 +54,8 @@ export class NotificationService {
       body: input.body,
       data: input.data ?? {},
       deepLink: input.deepLink,
+      actionLabel: input.actionLabel,
+      facts: input.facts,
       status: 'sent',
     });
 
@@ -63,6 +68,7 @@ export class NotificationService {
       deepLink: input.deepLink,
       actionLabel: input.actionLabel,
       data: input.data,
+      facts: input.facts,
       only: input.channel && input.channel !== 'inapp' ? input.channel : undefined,
     });
 
@@ -82,6 +88,7 @@ export class NotificationService {
       deepLink?: string;
       actionLabel?: string;
       data?: Record<string, unknown>;
+      facts?: { label: string; value: string }[];
       only?: Exclude<Channel, 'inapp'>;
     },
   ): Promise<void> {
@@ -107,55 +114,88 @@ export class NotificationService {
             (c): c is Exclude<Channel, 'inapp'> => c !== 'inapp',
           );
 
-      const target = {
-        userId,
+      for (const channel of channels) await this.deliver(notificationId, user, channel, msg);
+    } catch (err) {
+      logger.error({ err, userId, notificationId }, 'notification fan-out failed');
+    }
+  }
+
+  /** One channel, one attempt, logged on the notification. */
+  private async deliver(
+    notificationId: string,
+    user: { _id: string; email?: string; phone?: string; pushTokens?: string[]; locale?: string; timezone?: string },
+    channel: Exclude<Channel, 'inapp'>,
+    msg: { templateKey: string; title: string; body: string; deepLink?: string; actionLabel?: string; data?: Record<string, unknown>; facts?: { label: string; value: string }[] },
+  ): Promise<void> {
+    const result = await channelProviders[channel].send({
+      target: {
+        userId: user._id,
         email: user.email,
         phone: user.phone,
         pushTokens: user.pushTokens ?? [],
         locale: user.locale,
         timezone: user.timezone,
-      };
+      },
+      templateKey: msg.templateKey,
+      title: msg.title,
+      body: msg.body,
+      deepLink: msg.deepLink,
+      actionLabel: msg.actionLabel,
+      data: msg.data,
+      facts: msg.facts,
+    });
 
-      for (const channel of channels) {
-        const provider = channelProviders[channel];
-        const result = await provider.send({
-          target,
-          templateKey: msg.templateKey,
-          title: msg.title,
-          body: msg.body,
-          deepLink: msg.deepLink,
-          actionLabel: msg.actionLabel,
-          data: msg.data,
-        });
-
-        await NotificationModel.updateOne(
-          { _id: notificationId },
-          {
-            $push: {
-              attempts: {
-                channel,
-                at: new Date(),
-                ok: result.ok,
-                providerId: result.providerId,
-                error: result.error,
-                // Record whether a retry worker should ever re-attempt this — a
-                // missing provider or unregistered device is permanent.
-                retryable: result.ok ? undefined : result.retryable ?? true,
-              },
-            },
+    await NotificationModel.updateOne(
+      { _id: notificationId },
+      {
+        $push: {
+          attempts: {
+            channel,
+            at: new Date(),
+            ok: result.ok,
+            providerId: result.providerId,
+            error: result.error,
+            // A missing provider or unregistered device is permanent; the retry job skips those.
+            retryable: result.ok ? undefined : result.retryable ?? true,
           },
-        );
+        },
+      },
+    );
 
-        if (!result.ok && result.retryable) {
-          logger.warn(
-            { channel, userId, template: msg.templateKey, error: result.error },
-            'notification delivery failed, will retry',
-          );
-        }
-      }
-    } catch (err) {
-      logger.error({ err, userId, notificationId }, 'notification fan-out failed');
+    if (!result.ok && result.retryable) {
+      logger.warn({ channel, userId: user._id, template: msg.templateKey, error: result.error }, 'notification delivery failed, will retry');
     }
+  }
+
+  /** Job: re-send channels that failed for a passing reason, on the priority's back-off schedule. */
+  async retryFailed(now = new Date()): Promise<number> {
+    const since = new Date(now.getTime() - 24 * 3_600_000);
+    const pending = await NotificationModel.find({
+      createdAt: { $gte: since },
+      attempts: { $elemMatch: { ok: false, retryable: true } },
+    })
+      .sort({ createdAt: 1 })
+      .limit(200)
+      .lean<NotificationDoc[]>();
+
+    let retried = 0;
+    for (const n of pending) {
+      const schedule = RETRY_SCHEDULE[n.priority ?? 'normal'];
+      const byChannel = new Map<string, NonNullable<NotificationDoc['attempts']>>();
+      for (const a of n.attempts ?? []) byChannel.set(a.channel, [...(byChannel.get(a.channel) ?? []), a]);
+
+      for (const [channel, tries] of byChannel) {
+        const last = tries[tries.length - 1];
+        if (tries.some((t) => t.ok) || !last.retryable) continue;
+        const wait = schedule[tries.length - 1];
+        if (wait === undefined || now.getTime() - new Date(last.at).getTime() < wait) continue;
+        const user = await UserModel.findOne({ _id: n.userId }).lean();
+        if (!user) break;
+        await this.deliver(n._id, user, channel as Exclude<Channel, 'inapp'>, n);
+        retried++;
+      }
+    }
+    return retried;
   }
 
   /** Everything we tried to send for one notification — the delivery log. */

@@ -154,6 +154,7 @@ function toContent(req: DeliveryRequest): EmailContent {
     body: req.body,
     actionUrl: req.deepLink ? webAbsolute(req.deepLink) : undefined,
     actionLabel: req.actionLabel,
+    facts: req.facts,
   };
 }
 

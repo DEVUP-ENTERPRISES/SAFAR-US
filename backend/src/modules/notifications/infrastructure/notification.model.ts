@@ -13,6 +13,9 @@ export interface NotificationDoc {
   priority?: 'critical' | 'high' | 'normal' | 'low';
   /** Where tapping this lands — never the app home. */
   deepLink?: string;
+  actionLabel?: string;
+  /** Email detail rows, kept so a retried email reads the same as the first try. */
+  facts?: { label: string; value: string }[];
   /** One row per channel attempt: the delivery log an operator reads. */
   attempts?: {
     channel: string;
@@ -42,6 +45,8 @@ const schema = new Schema<NotificationDoc>(
     data: { type: Schema.Types.Mixed, default: {} },
     priority: { type: String, default: 'normal', enum: ['critical', 'high', 'normal', 'low'] },
     deepLink: String,
+    actionLabel: String,
+    facts: { type: [{ _id: false, label: String, value: String }], default: undefined },
     attempts: {
       type: [{ channel: String, at: Date, ok: Boolean, providerId: String, error: String, retryable: Boolean }],
       default: [],
@@ -55,5 +60,6 @@ const schema = new Schema<NotificationDoc>(
 
 schema.index({ userId: 1, createdAt: -1 });
 schema.index({ status: 1 });
+schema.index({ 'attempts.retryable': 1, createdAt: -1 });
 
 export const NotificationModel = model<NotificationDoc>('Notification', schema);

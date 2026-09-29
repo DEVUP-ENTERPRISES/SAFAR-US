@@ -84,6 +84,8 @@ export interface DeliveryRequest {
   /** Label for the email CTA button. Falls back to "View details". */
   actionLabel?: string;
   data?: Record<string, unknown>;
+  /** Label/value rows shown under an email body, e.g. the car, dates and pickup place. */
+  facts?: { label: string; value: string }[];
 }
 
 export interface DeliveryResult {

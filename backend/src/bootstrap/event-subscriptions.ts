@@ -17,6 +17,7 @@ import { logger } from '../infrastructure/logging/logger';
 import { userRepository } from '../modules/users/infrastructure/user.repository';
 import { platformConfigService } from '../modules/platform-config/application/platform-config.service';
 import { ROLES } from '../shared/constants/rbac';
+import { timezoneForState } from '../shared/utils/us-timezone';
 
 /** Best-effort system note into a booking conversation; never breaks the flow. */
 async function postSystemNote(bookingId: string, body: string): Promise<void> {
@@ -34,6 +35,31 @@ const fmtDay = (d: Date | string) =>
 const formatAmount = (minorUnits: number, currency = 'USD'): string =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(minorUnits / 100);
 
+type Fact = { label: string; value: string };
+
+/** The trip at a glance for an email: car, times in the car's local zone, place and money. */
+async function tripFacts(bookingId: string, side: 'guest' | 'host'): Promise<Fact[] | undefined> {
+  try {
+    const b = await bookingService.getDoc(bookingId);
+    const v = await vehicleService.getById(b.vehicleId);
+    const timeZone = timezoneForState(v.location?.state) ?? 'UTC';
+    const when = (d: Date) =>
+      new Date(d).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone, timeZoneName: 'short' });
+    const money = side === 'guest' ? b.priceBreakdown.total : b.priceBreakdown.hostEarnings;
+    return [
+      { label: 'Booking', value: b.code },
+      { label: 'Car', value: `${v.make} ${v.model} ${v.year}` },
+      { label: 'Pickup', value: when(b.period.start) },
+      { label: 'Return', value: when(b.period.end) },
+      { label: b.delivery ? 'Delivery to' : 'Pickup at', value: b.delivery?.address || v.location?.address || 'Shown on your booking' },
+      { label: side === 'guest' ? 'Total' : 'You earn', value: formatAmount(money.amount, money.currency ?? b.priceBreakdown.currency) },
+    ];
+  } catch (err) {
+    logger.warn({ err, bookingId }, 'trip details for email failed');
+    return undefined;
+  }
+}
+
 /**
  * Cross-module reactions wired in one place (each module's "manifest" of
  * subscriptions). Publishers never know who listens; this is the seam that
@@ -48,10 +74,11 @@ export function registerEventSubscribers(): void {
     data: Record<string, unknown>,
     priority: 'critical' | 'high' | 'normal' | 'low' = 'normal',
     deepLink?: string,
+    facts?: Fact[],
   ) => {
     try {
       const host = await hostService.getById(hostId);
-      await notificationService.send({ userId: host.userId, templateKey, title, body, data, priority, deepLink });
+      await notificationService.send({ userId: host.userId, templateKey, title, body, data, priority, deepLink, facts });
     } catch (err) {
       logger.warn({ err, hostId }, 'notify host failed');
     }
@@ -157,6 +184,7 @@ export function registerEventSubscribers(): void {
         { bookingId: p.bookingId },
         'critical',
         `/host/trips?booking=${p.bookingId}`,
+        await tripFacts(p.bookingId, 'host'),
       );
     }
   });
@@ -182,7 +210,7 @@ export function registerEventSubscribers(): void {
     const p = e.payload as { bookingId: string; guestId: string; hostId: string; instant?: boolean };
     // A host who approved a request already knows; an Instant Book arrives unannounced.
     if (p.instant) {
-      await notifyHost(p.hostId, 'booking.confirmed', 'New booking', 'A guest booked your car instantly. It’s confirmed and on your calendar.', { bookingId: p.bookingId }, 'high', `/host/trips?booking=${p.bookingId}`);
+      await notifyHost(p.hostId, 'booking.confirmed', 'New booking', 'A guest booked your car instantly. It’s confirmed and on your calendar.', { bookingId: p.bookingId }, 'high', `/host/trips?booking=${p.bookingId}`, await tripFacts(p.bookingId, 'host'));
       realtimeEmitter.toBooking(p.bookingId, RT.BOOKING_UPDATE, { bookingId: p.bookingId, status: 'paid' });
     }
     await notificationService.send({
@@ -191,8 +219,10 @@ export function registerEventSubscribers(): void {
       deepLink: `/bookings/${p.bookingId}`,
       templateKey: 'booking.confirmed',
       title: 'Booking confirmed',
-      body: 'Your trip is booked. Have a great ride!',
+      body: 'Your trip is booked. Your trip details are below, and your booking page has everything for pickup.',
+      actionLabel: 'View booking',
       data: { bookingId: p.bookingId },
+      facts: await tripFacts(p.bookingId, 'guest'),
     });
     // Live push to any connected devices of the guest.
     realtimeEmitter.toUser(p.guestId, RT.BOOKING_UPDATE, { bookingId: p.bookingId, status: 'paid' });
@@ -324,9 +354,18 @@ export function registerEventSubscribers(): void {
       deepLink: `/bookings/${p.bookingId}`,
       templateKey: 'booking.reminder',
       title: 'Your trip is coming up',
-      body: 'Your CatoDrive trip starts soon. Tap to view details.',
+      body: 'Your CatoDrive trip starts within 24 hours. Bring your driver’s licence, and place your security deposit from your booking page before pickup if you haven’t yet.',
+      actionLabel: 'View booking',
       data: { bookingId: p.bookingId },
+      facts: await tripFacts(p.bookingId, 'guest'),
     });
+    // The host has to have the car ready, so they get the same heads-up.
+    try {
+      const booking = await bookingService.getDoc(p.bookingId);
+      await notifyHost(booking.hostId, 'booking.reminder', 'Trip coming up', 'A guest picks up your car within 24 hours. Make sure it’s clean, fuelled and ready.', { bookingId: p.bookingId }, 'high', `/host/trips?booking=${p.bookingId}`, await tripFacts(p.bookingId, 'host'));
+    } catch (err) {
+      logger.warn({ err, bookingId: p.bookingId }, 'host trip reminder failed');
+    }
   });
 
   // A card that authorized fine at booking time can still fail minutes later

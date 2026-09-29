@@ -25,6 +25,7 @@ export interface ProfilePatch {
   phone?: string;
   avatarUrl?: string;
   dateOfBirth?: string;
+  timezone?: string;
 }
 
 /** Customer self-service profile: identity, saved addresses, emergency contacts. */
@@ -37,7 +38,7 @@ export class UserService {
 
   async updateProfile(userId: string, patch: ProfilePatch): Promise<UserDoc> {
     const set: Record<string, unknown> = {};
-    (['firstName', 'lastName', 'phone', 'avatarUrl', 'dateOfBirth'] as const).forEach((k) => {
+    (['firstName', 'lastName', 'phone', 'avatarUrl', 'dateOfBirth', 'timezone'] as const).forEach((k) => {
       if (patch[k] !== undefined) set[k] = patch[k];
     });
     // A new number has not been proven; the old confirmation does not carry over.

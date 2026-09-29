@@ -13,6 +13,7 @@ import { maintenanceService } from '../modules/maintenance/application/maintenan
 import { reviewService } from '../modules/reviews/application/review.service';
 import { platformConfigService } from '../modules/platform-config/application/platform-config.service';
 import { acquireJobLease } from './job-lease.model';
+import { notificationService } from '../modules/notifications/application/notification.service';
 
 const QUEUE = 'cato-maintenance';
 const MIN = 60_000;
@@ -36,6 +37,7 @@ interface JobDef {
  *   - lifecycle-sweep  every 15 min → flag overdue returns and pickups nobody did
  *   - reconcile        every 5 min  → ask Stripe about payments and identity checks whose webhook never landed
  *   - retry-webhooks   every 5 min  → replay payment events whose handler failed
+ *   - retry-notifications every 5 min → re-send emails/pushes that failed for a passing reason
  *
  * Two runners share this table. BullMQ (Redis) is the normal one; if Redis is
  * unavailable at boot or the queue cannot start, an in-process timer runs the
@@ -128,6 +130,12 @@ const JOBS: JobDef[] = [
     name: 'retry-webhooks',
     everyMs: 5 * MIN,
     run: () => webhookRetryService.retryFailed(),
+  },
+  {
+    // An email or push that failed for a passing reason (mail server busy, network) is sent again.
+    name: 'retry-notifications',
+    everyMs: 5 * MIN,
+    run: async () => ({ retried: await notificationService.retryFailed() }),
   },
   {
     // Promote any config change staged for a time that has now passed, through the normal versioned publish path.
