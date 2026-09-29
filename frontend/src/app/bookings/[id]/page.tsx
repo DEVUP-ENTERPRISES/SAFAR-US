@@ -40,7 +40,7 @@ import { DepositCard } from '@/features/payments/deposit-card';
 
 /** How each state reads to the guest, and what it means for them. */
 const STATE: Record<string, { tone: 'success' | 'warning' | 'destructive' | 'muted' | 'default'; label: string; detail: string }> = {
-  pending_approval: { tone: 'warning', label: 'Waiting on the host', detail: 'The host is reviewing your request. You haven’t been charged yet.' },
+  pending_approval: { tone: 'warning', label: 'Waiting on the host', detail: 'The host has up to 24 hours to accept. Your card is only held, not charged; if they decline or don’t answer, the hold is released.' },
   pending_verification: { tone: 'warning', label: 'Verifying your identity', detail: 'We’re confirming your licence. Your card is authorised but not charged.' },
   pending_payment: { tone: 'warning', label: 'Payment incomplete', detail: 'Your dates are held but the payment didn’t finish. This trip isn’t confirmed until it does.' },
   paid: { tone: 'success', label: 'Confirmed', detail: 'You’re booked. The host will meet you at pickup.' },

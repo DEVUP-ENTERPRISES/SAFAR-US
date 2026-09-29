@@ -92,6 +92,7 @@ export default function AdminEconomicsPage() {
         checkout: draft.checkout,
         deposit: draft.deposit,
         booking: draft.booking,
+        ...(draft.trust ? { trust: { perks: draft.trust.perks } } : {}),
         tracking: draft.tracking,
         inspection: draft.inspection,
         extension: draft.extension,
@@ -395,6 +396,17 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={1} max={720} value={draft.booking.documentExpiryReleaseHours}
               onChange={(e) => set((d) => { d.booking.documentExpiryReleaseHours = Number(e.target.value); })} />
           </Field>
+          {draft.trust && (
+            <Field label="Who can Instant Book" hint="Everyone else sends a request the host must accept within 24 hours. An unverified guest's card is only held until their ID clears either way.">
+              <Select value={draft.trust.perks.instantBookMinTier}
+                onChange={(e) => set((d) => { d.trust!.perks.instantBookMinTier = e.target.value as 'new' | 'bronze' | 'silver' | 'gold'; })}>
+                <option value="new">Any guest (recommended)</option>
+                <option value="bronze">Bronze and up (needs email, phone and ID verified)</option>
+                <option value="silver">Silver and up (verified plus completed trips)</option>
+                <option value="gold">Gold only</option>
+              </Select>
+            </Field>
+          )}
           <label className="flex cursor-pointer items-start gap-2 text-sm sm:col-span-2">
             <input type="checkbox" checked={draft.booking.recallAutoHold ?? false} className="mt-0.5 accent-[hsl(var(--primary))]" onChange={(e) => set((d) => { d.booking.recallAutoHold = e.target.checked; })} />
             <span>

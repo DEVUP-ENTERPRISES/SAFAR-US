@@ -79,6 +79,22 @@ export default function HostTripDetailPage() {
     qc.invalidateQueries({ queryKey: ['host-trips'] });
   };
 
+  const refreshRequest = () => {
+    invalidate();
+    qc.invalidateQueries({ queryKey: ['host-bookings'] });
+    qc.invalidateQueries({ queryKey: ['host-inbox'] });
+  };
+  const acceptRequest = useMutation({
+    mutationFn: () => bookingApi.confirm(bookingId),
+    onSuccess: () => { refreshRequest(); toast({ tone: 'success', title: 'Booking accepted', description: 'The guest has been told and the trip is on your calendar.' }); },
+    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not accept this request' }),
+  });
+  const declineRequest = useMutation({
+    mutationFn: () => bookingApi.decline(bookingId),
+    onSuccess: () => { refreshRequest(); toast({ tone: 'success', title: 'Request declined' }); },
+    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not decline this request' }),
+  });
+
   const confirmLicense = useMutation({
     mutationFn: () => hostTripsApi.confirmLicense(t!.tripId!),
     onSuccess: invalidate,
@@ -166,6 +182,16 @@ export default function HostTripDetailPage() {
   if (isLoading) return <Skeleton className="h-[70vh] w-full rounded-2xl" />;
   if (isError || !t) return <ErrorState message="Trip not found." />;
 
+  const doDecline = async () => {
+    const { ok } = await confirm({
+      title: 'Decline this request?',
+      description: 'The guest’s card hold is released and they’re shown other cars for these dates. Declining often lowers your ranking in search.',
+      confirmLabel: 'Decline',
+      tone: 'destructive',
+    });
+    if (ok) declineRequest.mutate();
+  };
+
   const cur = t.currency;
   const unlimited = t.mileage.includedKm === 0;
   const started = t.status === 'in_progress';
@@ -242,11 +268,30 @@ export default function HostTripDetailPage() {
         </div>
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold leading-tight">
-            {finished ? 'Past trip' : started ? 'Trip in progress' : 'Booked trip'}
+            {t.status === 'pending_approval' ? 'Booking request' : finished ? 'Past trip' : started ? 'Trip in progress' : 'Booked trip'}
           </h1>
           <p className="truncate text-sm uppercase tracking-wide text-muted-foreground">{t.guest.name}</p>
         </div>
       </div>
+
+      {t.status === 'pending_approval' && (
+        <div className="mb-5 rounded-2xl border border-warning/40 bg-warning/10 p-4">
+          <p className="font-semibold">{t.guest.name} wants to book your {t.vehicle.make} {t.vehicle.model}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {formatDate(t.period.start)} – {formatDate(t.period.end)} · You earn{' '}
+            <span className="font-semibold text-foreground">{formatMoney({ amount: t.earnings, currency: t.currency })}</span>.
+            The guest’s card is already held; accepting charges it and confirms the trip.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Button className="flex-1" loading={acceptRequest.isPending} disabled={declineRequest.isPending} onClick={() => acceptRequest.mutate()}>
+              Accept
+            </Button>
+            <Button variant="outline" className="flex-1" loading={declineRequest.isPending} disabled={acceptRequest.isPending} onClick={doDecline}>
+              Decline
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Tabs<Tab>
         value={tab}

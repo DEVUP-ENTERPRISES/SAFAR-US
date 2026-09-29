@@ -676,7 +676,7 @@ const schema = new Schema<PlatformConfigDoc>(
           silver: { type: Number, default: 50 },
           gold: { type: Number, default: 100 },
         },
-        instantBookMinTier: { type: String, default: 'bronze' },
+        instantBookMinTier: { type: String, default: 'new' },
         prioritySupportMinTier: { type: String, default: 'silver' },
       },
     },

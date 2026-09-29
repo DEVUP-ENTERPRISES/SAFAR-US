@@ -82,6 +82,13 @@ export interface PlatformConfig {
     swapPriceToleranceBps: number;
     swapMaxAbsorbCents: number;
   };
+  trust?: {
+    perks: {
+      depositDiscountPctByTier: Record<'new' | 'bronze' | 'silver' | 'gold', number>;
+      instantBookMinTier: 'new' | 'bronze' | 'silver' | 'gold';
+      prioritySupportMinTier: 'new' | 'bronze' | 'silver' | 'gold';
+    };
+  };
   /** How long each stage of a booking may wait before the system releases it. */
   booking: {
     hostApprovalHours: number;

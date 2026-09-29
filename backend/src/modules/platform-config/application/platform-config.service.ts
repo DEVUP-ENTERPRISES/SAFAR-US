@@ -208,7 +208,7 @@ export class PlatformConfigService {
             new: 0, bronze: 0, silver: 50, gold: 100,
             ...(doc.trust?.perks?.depositDiscountPctByTier ?? {}),
           },
-          instantBookMinTier: doc.trust?.perks?.instantBookMinTier ?? 'bronze',
+          instantBookMinTier: doc.trust?.perks?.instantBookMinTier ?? 'new',
           prioritySupportMinTier: doc.trust?.perks?.prioritySupportMinTier ?? 'silver',
         },
       },

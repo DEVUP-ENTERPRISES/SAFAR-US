@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, Car } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,6 +38,12 @@ function dayLabel(d: Date): string {
 
 export default function HostTripsPage() {
   const [tab, setTab] = useState<Tab>('booked');
+  const router = useRouter();
+  // Emails and alerts link here with ?booking=; open that booking, where Accept and Decline live.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('booking');
+    if (id && /^[\w-]{6,64}$/.test(id)) router.replace(`/host/trips/${id}`);
+  }, [router]);
 
   const booked = useQuery({
     queryKey: ['host-trips', 'booked'],
