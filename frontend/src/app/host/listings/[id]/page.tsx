@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
-import { usePlatformConfig, leadMinutes, describeLead } from '@/features/platform/config';
+import { usePlatformConfig, leadMinutes, describeLead, describeCancellation } from '@/features/platform/config';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { SectionLabel, RowGroup, Row } from '@/components/ui/rows';
@@ -745,10 +745,16 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
           value={policy}
           onChange={(e) => setPolicy(e.target.value as typeof policy)}
         >
-          <option value="flexible">Flexible - free cancellation up to 24h before</option>
-          <option value="moderate">Moderate - free up to 3 days before</option>
-          <option value="strict">Strict - free up to 7 days before</option>
+          {(['flexible', 'moderate', 'strict'] as const).map((p) => {
+            const terms = describeCancellation(p, platformCfg.data);
+            return (
+              <option key={p} value={p}>
+                {terms.title}
+              </option>
+            );
+          })}
         </Select>
+        <p className="mt-1.5 text-xs text-muted-foreground">{describeCancellation(policy, platformCfg.data).detail}</p>
       </Field>
 
       <Button

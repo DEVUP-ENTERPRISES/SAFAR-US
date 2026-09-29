@@ -82,6 +82,16 @@ export interface PlatformConfig {
     swapPriceToleranceBps: number;
     swapMaxAbsorbCents: number;
   };
+  /** Guest-cancel refunds per listing policy: full refund at least `fullBeforeHours` before pickup, else `partialBps`. */
+  cancellation?: Record<'flexible' | 'moderate' | 'strict', { fullBeforeHours: number; partialBps: number }>;
+  noShow?: { graceHours: number; guestForfeitBps: number };
+  rebookingProtection?: {
+    enabled: boolean;
+    coverageBps: number;
+    maxCoverageCents: number;
+    windowHours: number;
+    hostPenalty: { enabled: boolean; flatCents: number; pctOfBookingBps: number; graceCancellations: number; graceWindowDays: number };
+  };
   trust?: {
     perks: {
       depositDiscountPctByTier: Record<'new' | 'bronze' | 'silver' | 'gold', number>;

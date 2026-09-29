@@ -93,6 +93,9 @@ export default function AdminEconomicsPage() {
         deposit: draft.deposit,
         booking: draft.booking,
         ...(draft.trust ? { trust: { perks: draft.trust.perks } } : {}),
+        ...(draft.cancellation ? { cancellation: draft.cancellation } : {}),
+        ...(draft.noShow ? { noShow: draft.noShow } : {}),
+        ...(draft.rebookingProtection ? { rebookingProtection: draft.rebookingProtection } : {}),
         tracking: draft.tracking,
         inspection: draft.inspection,
         extension: draft.extension,
@@ -341,6 +344,103 @@ export default function AdminEconomicsPage() {
           })}
         </CardContent>
       </Card>
+
+      {/* Cancellations & no-shows — what a guest gets back, and what a host pays for cancelling */}
+      {draft.cancellation && (
+        <Card className="rounded-2xl shadow-soft">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><RotateCcw className="h-5 w-5 text-primary" /> Cancellations &amp; no-shows</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Each car uses one of three policies, chosen by its host. A guest who cancels early enough gets everything back;
+              later, they get the partial refund. The host earns their share of whatever is kept. A host or CatoDrive
+              cancelling always refunds the guest in full.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {(['flexible', 'moderate', 'strict'] as const).map((p) => {
+              const r = draft.cancellation![p];
+              const hrs = r.fullBeforeHours;
+              const when = hrs % 24 === 0 && hrs > 0 ? `${hrs / 24} day${hrs === 24 ? '' : 's'}` : `${hrs} hours`;
+              return (
+                <div key={p} className="rounded-xl border border-border p-4">
+                  <p className="font-semibold capitalize">{p}</p>
+                  <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                    <Field label="Full refund if cancelled at least (hours before pickup)">
+                      <Input type="number" min={0} max={2160} value={hrs}
+                        onChange={(e) => set((d) => { d.cancellation![p].fullBeforeHours = Math.max(0, Math.round(Number(e.target.value))); })} />
+                    </Field>
+                    <Field label="Otherwise refund %">
+                      <Input type="number" min={0} max={100} step="5" value={toPct(r.partialBps)}
+                        onChange={(e) => set((d) => { d.cancellation![p].partialBps = Math.min(10000, Math.max(0, toBps(e.target.value))); })} />
+                    </Field>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Guests see: full refund if cancelled {when} or more before pickup; after that,{' '}
+                    {r.partialBps > 0 ? `${toPct(r.partialBps)}% back` : 'no refund'}.
+                  </p>
+                </div>
+              );
+            })}
+
+            {draft.noShow && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Guest no-show: wait (hours)" hint="How long after pickup time before the host can report the guest didn’t come.">
+                  <Input type="number" min={0} max={72} value={draft.noShow.graceHours}
+                    onChange={(e) => set((d) => { d.noShow!.graceHours = Math.max(0, Math.round(Number(e.target.value))); })} />
+                </Field>
+                <Field label="Guest no-show: kept %" hint="Share of the trip price kept; the host earns their part of it, the rest is refunded.">
+                  <Input type="number" min={0} max={100} step="5" value={toPct(draft.noShow.guestForfeitBps)}
+                    onChange={(e) => set((d) => { d.noShow!.guestForfeitBps = Math.min(10000, Math.max(0, toBps(e.target.value))); })} />
+                </Field>
+              </div>
+            )}
+
+            {draft.rebookingProtection && (
+              <div className="space-y-4 rounded-xl border border-border p-4">
+                <p className="font-semibold">When a host cancels</p>
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input type="checkbox" checked={draft.rebookingProtection.hostPenalty.enabled} className="accent-[hsl(var(--primary))]"
+                    onChange={(e) => set((d) => { d.rebookingProtection!.hostPenalty.enabled = e.target.checked; })} />
+                  Charge the host a cancellation fee
+                </label>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Fee ($)">
+                    <Input type="number" min={0} step="1" value={toDollars(draft.rebookingProtection.hostPenalty.flatCents)}
+                      onChange={(e) => set((d) => { d.rebookingProtection!.hostPenalty.flatCents = Math.max(0, Math.round(Number(e.target.value) * 100)); })} />
+                  </Field>
+                  <Field label="Plus % of the booking">
+                    <Input type="number" min={0} max={100} step="1" value={toPct(draft.rebookingProtection.hostPenalty.pctOfBookingBps)}
+                      onChange={(e) => set((d) => { d.rebookingProtection!.hostPenalty.pctOfBookingBps = Math.min(10000, Math.max(0, toBps(e.target.value))); })} />
+                  </Field>
+                  <Field label="Free cancellations" hint="Cancellations a host can make without a fee…">
+                    <Input type="number" min={0} max={50} value={draft.rebookingProtection.hostPenalty.graceCancellations}
+                      onChange={(e) => set((d) => { d.rebookingProtection!.hostPenalty.graceCancellations = Math.max(0, Math.round(Number(e.target.value))); })} />
+                  </Field>
+                  <Field label="…within this many days">
+                    <Input type="number" min={1} max={3650} value={draft.rebookingProtection.hostPenalty.graceWindowDays}
+                      onChange={(e) => set((d) => { d.rebookingProtection!.hostPenalty.graceWindowDays = Math.max(1, Math.round(Number(e.target.value))); })} />
+                  </Field>
+                </div>
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input type="checkbox" checked={draft.rebookingProtection.enabled} className="accent-[hsl(var(--primary))]"
+                    onChange={(e) => set((d) => { d.rebookingProtection!.enabled = e.target.checked; })} />
+                  Cover the price difference when the stranded guest rebooks a similar car
+                </label>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Cover up to ($ per booking)">
+                    <Input type="number" min={0} step="5" value={toDollars(draft.rebookingProtection.maxCoverageCents)}
+                      onChange={(e) => set((d) => { d.rebookingProtection!.maxCoverageCents = Math.max(0, Math.round(Number(e.target.value) * 100)); })} />
+                  </Field>
+                  <Field label="Rebook within (hours)">
+                    <Input type="number" min={0} max={720} value={draft.rebookingProtection.windowHours}
+                      onChange={(e) => set((d) => { d.rebookingProtection!.windowHours = Math.max(0, Math.round(Number(e.target.value))); })} />
+                  </Field>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Booking timing — how long each stage may wait before it is released */}
       <Card className="rounded-2xl shadow-soft">
