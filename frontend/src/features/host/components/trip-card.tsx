@@ -13,13 +13,32 @@ const time = (d: string) =>
  * The timing line is the point of this card: a host scanning their day needs to
  * know *what happens next with this car*, not the booking status enum.
  */
-function timing(t: HostTrip): { tone: 'start' | 'end' | 'done' | 'live'; label: string } {
+// How a finished booking ended, in the host's words.
+const ENDED: Record<string, string> = {
+  expired: 'Expired',
+  declined: 'Declined',
+  cancelled: 'Cancelled',
+  cancelled_system: 'Cancelled',
+  cancelled_guest: 'Cancelled by guest',
+  cancelled_host: 'Cancelled by you',
+};
+
+// Only these still have a handover ahead of them.
+const ACTIVE = ['confirmed', 'paid', 'in_progress'];
+
+function timing(t: HostTrip): { tone: 'start' | 'end' | 'done' | 'live' | 'complete' | 'off' | 'warn'; label: string } {
   const now = Date.now();
   const start = +new Date(t.period.start);
   const end = +new Date(t.period.end);
+  const day = (d: string) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
-  if (t.status === 'completed') return { tone: 'done', label: `Ended at ${time(t.period.end)}` };
-  if (t.status === 'cancelled') return { tone: 'done', label: 'Cancelled' };
+  if (t.status === 'completed') return { tone: 'complete', label: `Completed · ${day(t.period.end)}` };
+  if (ENDED[t.status]) return { tone: 'off', label: ENDED[t.status] };
+  if (t.status === 'disputed') return { tone: 'end', label: 'Disputed' };
+  if (t.status === 'pending_approval') return { tone: 'warn', label: 'Request · accept or decline' };
+  if (t.status === 'pending_verification') return { tone: 'warn', label: 'Waiting for guest ID' };
+  if (t.status === 'pending_payment') return { tone: 'warn', label: 'Waiting for payment' };
+  if (t.status !== 'in_progress' && start <= now) return { tone: 'end', label: 'Pickup time passed' };
   if (t.status === 'in_progress') {
     return end - now < 24 * 3600_000
       ? { tone: 'end', label: `Ending at ${time(t.period.end)}` }
@@ -62,7 +81,7 @@ export function TripCard({ trip }: { trip: HostTrip }) {
             </p>
           )}
 
-          {trip.status !== 'completed' && trip.status !== 'cancelled' && <NextHandoverStep timeline={trip.timeline} />}
+          {ACTIVE.includes(trip.status) && <NextHandoverStep timeline={trip.timeline} />}
 
           <div className="mt-3 flex items-center gap-2">
             {trip.guest.avatarUrl ? (

@@ -187,7 +187,7 @@ export default function HostTripDetailPage() {
   const cur = t.currency;
   const unlimited = t.mileage.includedKm === 0;
   const started = t.status === 'in_progress';
-  const finished = t.status === 'completed' || t.status === 'cancelled';
+  const finished = ['completed', 'cancelled', 'cancelled_guest', 'cancelled_host', 'cancelled_system', 'declined', 'expired'].includes(t.status);
 
   // Handover gates: the per-trip payload wins, then the public config; unknown means the server decides.
   const hv = t.handover;
@@ -259,7 +259,19 @@ export default function HostTripDetailPage() {
         </div>
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold leading-tight">
-            {t.status === 'pending_approval' ? 'Booking request' : finished ? 'Past trip' : started ? 'Trip in progress' : 'Booked trip'}
+            {t.status === 'pending_approval'
+              ? 'Booking request'
+              : t.status === 'completed'
+                ? 'Completed trip'
+                : t.status === 'expired'
+                  ? 'Expired booking'
+                  : t.status === 'declined'
+                    ? 'Declined request'
+                    : finished
+                      ? 'Cancelled booking'
+                      : started
+                        ? 'Trip in progress'
+                        : 'Booked trip'}
           </h1>
           <p className="truncate text-sm uppercase tracking-wide text-muted-foreground">{t.guest.name}</p>
         </div>

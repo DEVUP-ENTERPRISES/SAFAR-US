@@ -158,12 +158,15 @@ export function ActionSheet({
 }
 
 /** Trip timing pill: green = starting, red = ending, muted = ended. */
-export function StatusPill({ tone, children }: { tone: 'start' | 'end' | 'done' | 'live'; children: ReactNode }) {
+export function StatusPill({ tone, children }: { tone: 'start' | 'end' | 'done' | 'live' | 'complete' | 'off' | 'warn'; children: ReactNode }) {
   const tones: Record<string, string> = {
     start: 'bg-success/15 text-success dark:bg-success/20 dark:text-emerald-400',
     end: 'bg-destructive/15 text-destructive dark:bg-[#451a1a] dark:text-[#ff6b6b]',
     live: 'bg-primary/15 text-primary',
     done: 'text-muted-foreground',
+    complete: 'bg-success/15 text-success dark:bg-success/20 dark:text-emerald-400',
+    off: 'bg-muted text-muted-foreground',
+    warn: 'bg-warning/15 text-warning-foreground dark:text-amber-300',
   };
   return (
     <span className={cn('inline-flex rounded-[6px] px-2.5 py-1 text-[13px] font-bold tracking-wide', tones[tone])}>
