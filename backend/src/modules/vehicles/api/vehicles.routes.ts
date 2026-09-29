@@ -136,12 +136,15 @@ router.patch(
   }),
 );
 
-/** Recalls and title history for one car: an internal check, for CatoDrive staff only (and a paid lookup). */
+/** Recalls and title history for one car: for its own host and CatoDrive staff, never guests (and a paid lookup). */
 router.get(
   '/:id/history',
   authenticate,
-  authorize('admin:read'),
   asyncHandler(async (req, res) => {
+    const perms = req.principal!.permissions;
+    if (!perms.includes('*') && !perms.includes('admin:read')) {
+      await vehicleService.assertOwnerById(req.principal!.userId, req.params.id);
+    }
     const v = await vehicleService.getById(req.params.id);
     const history = await vehicleHistoryService.full({
       vin: v.vin,

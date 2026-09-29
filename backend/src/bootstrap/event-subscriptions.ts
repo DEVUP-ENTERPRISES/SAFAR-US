@@ -560,10 +560,11 @@ export function registerEventSubscribers(): void {
   });
 
   // A model-year recall is a warning: the host checks the car, the team can pause it if it applies.
-  // Internal check: only staff hear about it, and they decide whether to contact the host.
+  // A model-year recall: the host checks their car, staff can pause it; guests are never told.
   eventBus.subscribe(EVENTS.VEHICLE_RECALL_FOUND, async (e) => {
     const p = e.payload as { vehicleId: string; hostId: string; count: number; components: string[] };
     const what = p.components.map((c) => c.toLowerCase()).join(', ');
+    await notifyHost(p.hostId, 'vehicle.recall_found', 'Check a safety recall on your car', `NHTSA lists ${p.count} recall${p.count === 1 ? '' : 's'} for this model year (${what}). Check with a dealer whether it applies to your VIN, and upload the repair receipt from your listing if work was done.`, { vehicleId: p.vehicleId }, 'high', `/host/listings/${p.vehicleId}`);
     await notifyStaff('vehicle.recall_found', 'Recall listed for a car', `Vehicle ${p.vehicleId}: ${p.count} model-year recall(s) (${what}). It stays bookable; pause it from admin if the recall applies.`, { vehicleId: p.vehicleId });
   });
 

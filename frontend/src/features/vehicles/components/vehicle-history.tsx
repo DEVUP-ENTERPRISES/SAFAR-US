@@ -35,7 +35,7 @@ interface History {
 /**
  * Safety recalls and title history for a car.
  *
- * An internal check shown to CatoDrive staff only (admin car review); guests and hosts never see it.
+ * Shown to the car's host and to CatoDrive staff (admin car review); never to guests.
  *
  * Two honesty rules are load-bearing here:
  *

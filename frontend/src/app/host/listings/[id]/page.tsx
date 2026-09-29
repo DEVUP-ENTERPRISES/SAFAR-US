@@ -32,6 +32,7 @@ import { PickupEditor } from '@/features/vehicles/components/pickup-editor';
 import { FeaturePicker } from '@/features/vehicles/components/feature-picker';
 import { ColorPicker } from '@/features/vehicles/components/color-picker';
 import { DeliveryLocationsEditor } from '@/features/vehicles/components/delivery-locations-editor';
+import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import type { DeliveryLocation } from '@/features/vehicles/types';
 
 type Panel = null | 'pricing' | 'photos' | 'availability' | 'details' | 'safety' | 'location' | 'trip';
@@ -552,6 +553,9 @@ export default function ManageListingPage() {
           )}
         </RowGroup>
       </div>
+
+      <SectionLabel>Safety & history</SectionLabel>
+      <VehicleHistory vehicleId={id} audience="host" />
 
       {/* Pickup details - dormant until now: the fields existed on the model
           and had no editor, so the guest-facing panel never had anything to
