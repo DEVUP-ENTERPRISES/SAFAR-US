@@ -41,6 +41,8 @@ router.get(
       booking: { minLeadMinutes: cfg.booking.minLeadMinutes },
       content: { bookingQuotes: cfg.content.bookingQuotes },
       checkout: { otherMethodsEnabled: cfg.checkout.otherMethodsEnabled },
+      // Sign-in by text code is only offered when a text provider is actually configured.
+      auth: { phoneSignIn: config.notifications.smsEnabled },
       // Public by design; a pk_ key identifies the account to Stripe.js and can charge nothing.
       stripe: { publishableKey: config.stripe.publishableKey ?? null },
       protection: cfg.protection,

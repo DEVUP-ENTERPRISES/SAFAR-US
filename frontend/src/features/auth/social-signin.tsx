@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { authApi } from './api';
+import { usePlatformConfig } from '@/features/platform/config';
 import type { AuthResult } from './types';
 
 export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
@@ -29,6 +30,7 @@ function AppleLogo({ className }: { className?: string }) {
  * guest at pickup, so signing up with one is the shortest honest path.
  */
 export function SocialSignIn({ onSuccess }: { onSuccess: (r: AuthResult) => void }) {
+  const platformCfg = usePlatformConfig();
   const toast = useToast();
   const [phoneMode, setPhoneMode] = useState(false);
   const [phone, setPhone] = useState('');
@@ -171,7 +173,7 @@ export function SocialSignIn({ onSuccess }: { onSuccess: (r: AuthResult) => void
         </Button>
       )}
 
-      {!phoneMode ? (
+      {!platformCfg.data?.auth?.phoneSignIn ? null : !phoneMode ? (
         <Button variant="outline" className="w-full" onClick={() => setPhoneMode(true)}>
           <Phone className="h-4 w-4" /> Continue with phone
         </Button>

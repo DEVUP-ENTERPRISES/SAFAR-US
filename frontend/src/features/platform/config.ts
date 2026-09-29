@@ -20,6 +20,7 @@ export interface PlatformPublicConfig {
   /** Lines rotating above the booking calendar. */
   content?: { bookingQuotes: string[] };
   checkout?: { otherMethodsEnabled: boolean };
+  auth?: { phoneSignIn: boolean };
   /** Protection tiers a guest can buy at checkout; priced per day in cents. */
   protection: { code: string; label: string; description: string; pricePerDay: number }[];
   /** The platform's default take rate. An individual host's rate can be lower
