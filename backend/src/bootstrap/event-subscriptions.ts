@@ -37,14 +37,22 @@ const formatAmount = (minorUnits: number, currency = 'USD'): string =>
 
 type Fact = { label: string; value: string };
 
+const fmtWhen = (d: Date, timeZone: string) =>
+  new Date(d).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone, timeZoneName: 'short' });
+
+/** The car's local zone, which is where pickup happens. */
+async function tripTimeZone(vehicleId: string): Promise<string> {
+  const v = await vehicleService.getById(vehicleId).catch(() => null);
+  return timezoneForState(v?.location?.state) ?? 'UTC';
+}
+
 /** The trip at a glance for an email: car, times in the car's local zone, place and money. */
 async function tripFacts(bookingId: string, side: 'guest' | 'host'): Promise<Fact[] | undefined> {
   try {
     const b = await bookingService.getDoc(bookingId);
     const v = await vehicleService.getById(b.vehicleId);
     const timeZone = timezoneForState(v.location?.state) ?? 'UTC';
-    const when = (d: Date) =>
-      new Date(d).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone, timeZoneName: 'short' });
+    const when = (d: Date) => fmtWhen(d, timeZone);
     const money = side === 'guest' ? b.priceBreakdown.total : b.priceBreakdown.hostEarnings;
     return [
       { label: 'Booking', value: b.code },
@@ -769,7 +777,36 @@ export function registerEventSubscribers(): void {
   eventBus.subscribe(EVENTS.VERIFICATION_CHECK_PASSED, releaseHeldBookings);
   eventBus.subscribe(EVENTS.CONTACT_VERIFIED, releaseHeldBookings);
 
-  /** Identity rejected → the held requests cannot proceed. Release the money. */
+  // An unfinished or failed ID attempt: the booking stays held, so tell the guest how long they have.
+  eventBus.subscribe(EVENTS.KYC_ATTEMPT_FAILED, async (e) => {
+    const p = e.payload as { userId: string; incomplete: boolean };
+    try {
+      const held = await bookingService.listHeldForVerification(p.userId);
+      if (!held.length) return;
+      const { booking: cfg } = await platformConfigService.get();
+      const deadline = new Date(Math.min(...held.map((b) => Math.min(
+        new Date(b.createdAt).getTime() + cfg.verificationGraceHours * 3_600_000,
+        new Date(b.period.start).getTime() - cfg.verificationCutoffHours * 3_600_000,
+      ))));
+      const facts = await tripFacts(held[0]._id, 'guest');
+      const by = fmtWhen(deadline, await tripTimeZone(held[0].vehicleId));
+      await notificationService.send({
+        userId: p.userId,
+        priority: 'critical',
+        deepLink: '/account/verify-identity',
+        actionLabel: p.incomplete ? 'Finish verification' : 'Try again',
+        templateKey: 'booking.verification_reminder',
+        title: p.incomplete ? 'Your booking is held — finish your ID check' : 'Your ID check didn’t go through — try again',
+        body: `${p.incomplete ? 'You left identity verification before it finished.' : 'We couldn’t confirm your ID from that attempt. A clear photo of your licence in good light usually fixes it.'} Your booking is still held and nothing is cancelled. Finish verifying by ${by}, or the booking will be released.`,
+        data: { bookingId: held[0]._id },
+        facts,
+      });
+    } catch (err) {
+      logger.warn({ err, userId: p.userId }, 'verification attempt notice failed');
+    }
+  });
+
+  /** Identity rejected by a reviewer → the held requests cannot proceed. Release the money. */
   eventBus.subscribe(EVENTS.KYC_REJECTED, async (e) => {
     const p = e.payload as { userId: string };
     try {

@@ -6,6 +6,9 @@ import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
 
+// Stripe reasons meaning the guest left or declined, not that their ID failed.
+const INCOMPLETE_REASONS = new Set(['abandoned', 'consent_declined', 'device_not_supported', 'email_verification_declined', 'phone_verification_declined', 'verification_canceled']);
+
 export interface SubmitKycInput {
   level?: 'basic' | 'full';
   documents: { type: 'license' | 'passport' | 'national_id' | 'selfie'; url: string }[];
@@ -65,14 +68,25 @@ export class KycService {
     if (result.status === 'pending') return;
 
     const approved = result.status === 'verified';
+    if (!approved) {
+      // A provider failure is an attempt, not a verdict: bookings stay held until the verification deadline.
+      const incomplete = INCOMPLETE_REASONS.has(result.reason ?? '');
+      const r = await KycModel.updateOne(
+        { userId, status: { $ne: 'approved' } },
+        { $set: { status: incomplete ? 'not_started' : 'rejected', decisionAt: new Date(), reviewedBy: 'provider', rejectionReason: result.reason ?? 'verification_failed' } },
+      );
+      if (r.modifiedCount) emit(EVENTS.KYC_ATTEMPT_FAILED, userId, { userId, incomplete });
+      logger.info({ userId, reason: result.reason, incomplete }, 'identity attempt did not pass');
+      return;
+    }
     await KycModel.updateOne(
       { userId },
       {
         $set: {
-          status: approved ? 'approved' : 'rejected',
+          status: 'approved',
           decisionAt: new Date(),
           reviewedBy: 'provider',
-          rejectionReason: approved ? undefined : (result.reason ?? 'verification_failed'),
+          rejectionReason: undefined,
           ...(result.licenceExpiry ? { licenceExpiry: new Date(result.licenceExpiry) } : {}),
           ...(result.licenceNumberHash ? { licenceNumberHash: result.licenceNumberHash } : {}),
           ...(result.firstName ? { verifiedFirstName: result.firstName } : {}),
@@ -82,7 +96,7 @@ export class KycService {
       },
     );
     logger.info({ userId, status: result.status }, 'identity provider decision applied');
-    emit(approved ? EVENTS.KYC_APPROVED : EVENTS.KYC_REJECTED, userId, { userId });
+    emit(EVENTS.KYC_APPROVED, userId, { userId });
   }
 
   /**

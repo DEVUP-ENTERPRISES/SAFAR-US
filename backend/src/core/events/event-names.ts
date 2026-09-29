@@ -13,6 +13,8 @@ export const EVENTS = {
   CONTACT_VERIFIED: 'user.contact_verified',
   DEPOSIT_MISSING: 'deposit.missing',
   KYC_REJECTED: 'kyc.rejected',
+  // An automatic check that did not finish or did not pass; the guest can try again, so nothing is cancelled.
+  KYC_ATTEMPT_FAILED: 'kyc.attempt_failed',
 
   USER_LOGGED_IN: 'user.logged_in',
 
