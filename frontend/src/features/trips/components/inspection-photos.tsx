@@ -148,7 +148,7 @@ export function InspectionPhotos({
                 ) : (
                   <>
                     <Camera className="h-4 w-4 text-muted-foreground" />
-                    <AngleGuide angle={a.id} className="absolute inset-x-4 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+                    <AngleGuide angle={a.id} className="absolute inset-x-3 top-[46%] -translate-y-1/2 text-muted-foreground/70" />
                     <span className="relative text-[11px] font-semibold text-muted-foreground">{a.label}</span>
                   </>
                 )}

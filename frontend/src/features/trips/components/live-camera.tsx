@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, Loader2, MapPinOff, RefreshCw, VideoOff, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AngleGuide, ANGLE_TIPS } from './angle-guide';
+import { AngleGuide, ANGLE_TIPS, FrameCorners } from './angle-guide';
 
 /** What is burned into every photo and shown live in the viewfinder. */
 export interface PhotoStamp {
@@ -273,7 +273,10 @@ export function LiveCamera({
             <video ref={videoRef} playsInline muted className="pointer-events-none absolute h-px w-px opacity-0" />
             {!shot && <canvas ref={canvasRef} className="max-h-full max-w-full object-contain" />}
             {!shot && ready && guide && (
-              <AngleGuide angle={guide} className="absolute w-[80%] max-w-xl text-white/45 drop-shadow" />
+              <div className="pointer-events-none absolute flex w-[86%] max-w-xl items-center justify-center">
+                <FrameCorners className="absolute inset-0 h-full w-full text-white/80" />
+                <AngleGuide angle={guide} className="w-[88%] text-white/50 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]" />
+              </div>
             )}
             {shot && (
               // eslint-disable-next-line @next/next/no-img-element
