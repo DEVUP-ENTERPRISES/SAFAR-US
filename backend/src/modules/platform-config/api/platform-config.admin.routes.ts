@@ -334,6 +334,7 @@ router.put(
           overdueEscalationHours: z.number().min(1).max(336).optional(),
           documentExpiryReleaseHours: z.number().min(1).max(720).optional(),
           recallAutoHold: z.boolean().optional(),
+          dailyMileageMiles: z.number().int().min(1).max(2000).optional(),
           checkoutHoldMinutes: z.number().min(1).max(120).optional(),
           paymentPendingMinutes: z.number().min(1).max(1440).optional(),
           priceLockMinutes: z.number().min(1).max(120).optional(),

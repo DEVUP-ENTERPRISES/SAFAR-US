@@ -257,6 +257,7 @@ export class PlatformConfigService {
         overdueEscalationHours: 24,
         documentExpiryReleaseHours: 72,
         recallAutoHold: false,
+        dailyMileageMiles: 200,
         checkoutHoldMinutes: 15,
         paymentPendingMinutes: 30,
         priceLockMinutes: 10,

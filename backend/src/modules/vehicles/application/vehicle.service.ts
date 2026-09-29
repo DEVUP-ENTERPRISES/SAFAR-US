@@ -12,6 +12,24 @@ import type {
 import type { CreateVehicleDto } from '../dto/vehicle.schemas';
 import { vinDecodeService } from './vin-decode.service';
 import { toPublicVehicle } from './vehicle-public';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
+
+const KM_PER_MILE = 1.609344;
+
+/** Every car's daily allowance in stored km, from the admin's miles-per-day setting. */
+export async function platformDailyKm(): Promise<number> {
+  return Math.round((await platformConfigService.get()).booking.dailyMileageMiles * KM_PER_MILE);
+}
+
+/** Puts every car on the platform's daily allowance; idempotent, run at boot and when the setting changes. */
+export async function syncDailyMileage(): Promise<number> {
+  const km = await platformDailyKm();
+  const r = await VehicleModel.updateMany(
+    { deletedAt: null, 'mileageLimit.perDayKm': { $ne: km } },
+    { $set: { 'mileageLimit.perDayKm': km } },
+  );
+  return r.modifiedCount;
+}
 
 /**
  * Minimum photos before a listing can be submitted for verification. Turo
@@ -107,7 +125,8 @@ export class VehicleService implements IVehicleContract {
       photos: dto.photos,
       addOns: dto.addOns ?? [],
       tripRules: dto.tripRules ?? [],
-      mileageLimit: dto.mileageLimit ?? { perDayKm: 0, overageFeePerKm: 0 },
+      // The daily allowance is the platform's; the host sets only the overage fee.
+      mileageLimit: { perDayKm: await platformDailyKm(), overageFeePerKm: dto.mileageLimit?.overageFeePerKm ?? 0 },
       location: {
         type: 'Point',
         coordinates: [dto.location.lng, dto.location.lat],
@@ -183,7 +202,7 @@ export class VehicleService implements IVehicleContract {
     if (patch.features) update.features = patch.features;
     if (patch.tripRules) update.tripRules = patch.tripRules;
     if (patch.mileageLimit) {
-      update.mileageLimit = { ...vehicle.mileageLimit, ...patch.mileageLimit };
+      update.mileageLimit = { ...vehicle.mileageLimit, ...patch.mileageLimit, perDayKm: await platformDailyKm() };
     }
     if (patch.location) {
       // Coordinates arrive as a pair or not at all (enforced by the schema);

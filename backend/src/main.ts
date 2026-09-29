@@ -5,6 +5,7 @@ import { connectMongo, disconnectMongo } from './infrastructure/database/mongoos
 import { redis, connectRedis, disconnectRedis } from './infrastructure/cache/redis.client';
 import { setKvStore, RedisKvStore, InMemoryKvStore } from './infrastructure/cache/kv-store';
 import { registerEventSubscribers } from './bootstrap/event-subscriptions';
+import { syncDailyMileage } from './modules/vehicles/application/vehicle.service';
 import { installCrashHandlers } from './infrastructure/observability/error-reporter';
 import { seedAdmin, enforceSingleSuperAdmin } from './bootstrap/seed-admin';
 import { seedHouseFleet } from './bootstrap/seed-house-fleet';
@@ -80,6 +81,10 @@ async function bootstrap(): Promise<void> {
   await seedLegal();
   await seedBookingQuotes();
   registerEventSubscribers();
+  // Every car carries the platform's daily mileage; catches cars listed before the rule or a missed change.
+  void syncDailyMileage()
+    .then((n) => n && logger.info({ vehicles: n }, 'daily mileage allowance applied'))
+    .catch((err) => logger.warn({ err: (err as Error).message }, 'daily mileage sync failed'));
 
   // Background jobs need Redis (BullMQ). Skip gracefully in dev without Redis.
   if (isRedisHealthy()) {

@@ -504,6 +504,10 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={1} max={720} value={draft.booking.documentExpiryReleaseHours}
               onChange={(e) => set((d) => { d.booking.documentExpiryReleaseHours = Number(e.target.value); })} />
           </Field>
+          <Field label="Daily mileage (miles)" hint="Included per rental day on every car. Saving applies it to all listings at once; hosts set only their per-mile overage fee.">
+            <Input type="number" min={1} max={2000} value={draft.booking.dailyMileageMiles ?? 200}
+              onChange={(e) => set((d) => { d.booking.dailyMileageMiles = Math.max(1, Math.round(Number(e.target.value) || 1)); })} />
+          </Field>
           {draft.trust && (
             <Field label="Who can Instant Book" hint="Everyone else sends a request the host must accept within 24 hours. An unverified guest's card is only held until their ID clears either way.">
               <Select value={draft.trust.perks.instantBookMinTier}

@@ -111,6 +111,7 @@ export interface PlatformConfig {
     overdueEscalationHours: number;
     documentExpiryReleaseHours: number;
     recallAutoHold?: boolean;
+    dailyMileageMiles?: number;
     checkoutHoldMinutes: number;
     paymentPendingMinutes: number;
     priceLockMinutes: number;

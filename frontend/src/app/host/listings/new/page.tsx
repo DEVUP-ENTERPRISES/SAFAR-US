@@ -14,6 +14,7 @@ import { ApiError } from '@/lib/api/types';
 import { vehicleApi, type CreateVehicleInput } from '@/features/vehicles/api';
 import { hostApi, type RowPreview } from '@/features/host/api';
 import { uploadVehiclePhotos } from '@/features/host/upload-photos';
+import { usePlatformConfig } from '@/features/platform/config';
 import { useToast } from '@/components/ui/toast';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -148,8 +149,8 @@ export default function NewListingPage() {
   // The server owns the photo minimum; the wizard must not disagree with it.
   const reqs = useQuery({ queryKey: ['listing-requirements'], queryFn: () => vehicleApi.requirements() });
   const minPhotos = reqs.data?.minPhotos ?? 4;
-  /** Included mileage is capped at 4 miles per dollar of daily rate. */
-  const mileageCap = Math.max(1, Math.round(Number(d.dailyPrice) * 4));
+  // Every car includes the same daily miles, set by CatoDrive; the server applies it.
+  const dailyMiles = usePlatformConfig().data?.booking?.dailyMileageMiles ?? 200;
 
   /**
    * Presign → PUT the bytes → keep the public URL. The previous version only
@@ -281,7 +282,7 @@ export default function NewListingPage() {
         tripRules: d.tripRules.split('\n').map((r) => r.trim()).filter(Boolean),
         // The host types miles; storage stays in km.
         mileageLimit: {
-          perDayKm: milesToKm(Number(d.mileagePerDay)),
+          perDayKm: milesToKm(dailyMiles),
           overageFeePerKm: perMileToPerKm(Math.round(d.mileageOverage * 100)),
         },
         pricing: {
@@ -334,14 +335,8 @@ export default function NewListingPage() {
       if (!Number(d.dailyPrice) || Number(d.dailyPrice) <= 0) e.dailyPrice = 'Set a daily price';
       if (Number(d.cleaningFee) < 0) e.cleaningFee = 'Cannot be negative';
     }
-    if (forStep === 4) {
-      // Unlimited mileage isn't offered, and the included allowance is capped
-      // against the daily rate - 4 miles per dollar per day.
-      if (!Number(d.mileagePerDay) || Number(d.mileagePerDay) < 1) {
-        e.mileagePerDay = 'Set a daily mileage limit - unlimited is not allowed';
-      } else if (Number(d.mileagePerDay) > mileageCap) {
-        e.mileagePerDay = `Max ${mileageCap} miles/day for a $${d.dailyPrice}/day car`;
-      }
+    if (forStep === 4 && Number(d.mileageOverage) < 0) {
+      e.mileageOverage = 'Cannot be negative';
     }
     if (forStep === 5) {
       if (!d.standardsAgreed) e.standardsAgreed = 'You must agree to continue';
@@ -642,20 +637,12 @@ export default function NewListingPage() {
               </div>
 
               <div className="grid gap-4 border-t border-border pt-3 sm:grid-cols-2">
-                <Field
-                  label="Daily mileage limit (miles)"
-                  error={errors.mileagePerDay}
-                  hint={`Unlimited isn't allowed. The cap for a $${d.dailyPrice}/day car is ${mileageCap} miles/day.`}
-                >
-                  <Input
-                    type="number"
-                    min={1}
-                    max={mileageCap}
-                    value={d.mileagePerDay}
-                    onChange={(e) => set('mileagePerDay', Number(e.target.value))}
-                  />
+                <Field label="Daily mileage limit" hint="Set by CatoDrive for every car.">
+                  <Input value={`${dailyMiles} miles/day`} disabled readOnly />
                 </Field>
-                <Field label="Overage fee ($/mile)"><Input type="number" step="0.01" value={d.mileageOverage} onChange={(e) => set('mileageOverage', Number(e.target.value))} /></Field>
+                <Field label="Overage fee ($/mile)" error={errors.mileageOverage} hint="Charged per mile driven over the daily limit.">
+                  <Input type="number" min={0} step="0.01" value={d.mileageOverage} onChange={(e) => set('mileageOverage', Number(e.target.value))} />
+                </Field>
                 <Field label="Trip rules (one per line)" className="sm:col-span-2">
                   <Textarea value={d.tripRules} onChange={(e) => set('tripRules', e.target.value)} rows={3} placeholder="No smoking&#10;No off-road driving" />
                 </Field>

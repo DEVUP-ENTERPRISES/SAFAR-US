@@ -463,6 +463,8 @@ export interface PlatformConfigDoc {
     documentExpiryReleaseHours: number;
     /** Pause a car after a trip when NHTSA lists recalls for its model year (not VIN-specific, so off by default). */
     recallAutoHold: boolean;
+    /** Miles included per rental day on every car; applied to all listings when changed. */
+    dailyMileageMiles: number;
     checkoutHoldMinutes: number;
     paymentPendingMinutes: number;
     priceLockMinutes: number;
@@ -789,6 +791,7 @@ const schema = new Schema<PlatformConfigDoc>(
       overdueEscalationHours: { type: Number, default: 24 },
       documentExpiryReleaseHours: { type: Number, default: 72 },
       recallAutoHold: { type: Boolean, default: false },
+      dailyMileageMiles: { type: Number, default: 200 },
       checkoutHoldMinutes: { type: Number, default: 15 },
       paymentPendingMinutes: { type: Number, default: 30 },
       priceLockMinutes: { type: Number, default: 10 },

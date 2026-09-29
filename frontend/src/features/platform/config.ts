@@ -47,7 +47,7 @@ export interface PlatformPublicConfig {
     baselineRequiredForCharges: boolean;
   };
   /** Absent on a backend that predates the lead-time setting. */
-  booking?: { minLeadMinutes: number };
+  booking?: { minLeadMinutes: number; dailyMileageMiles?: number };
 }
 
 /** Platform default when the config has not loaded or predates the setting. */

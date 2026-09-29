@@ -7,7 +7,7 @@ import { realtimeEmitter, RT } from '../realtime/emitter';
 import { rewardsService } from '../modules/rewards/application/rewards.service';
 import { referralService } from '../modules/referral/application/referral.service';
 import { bookingService } from '../modules/bookings/application/booking.service';
-import { vehicleService } from '../modules/vehicles/application/vehicle.service';
+import { vehicleService, syncDailyMileage } from '../modules/vehicles/application/vehicle.service';
 import { favoritesService } from '../modules/favorites/application/favorites.service';
 import { savedSearchService } from '../modules/saved-search/application/saved-search.service';
 import { messageService } from '../modules/messaging/application/message.service';
@@ -549,6 +549,14 @@ export function registerEventSubscribers(): void {
     } catch (err) {
       logger.warn({ err, bookingId: p.bookingId }, 'sos notification failed');
     }
+  });
+
+  // An admin changed the daily mileage (or restored a version): every car follows at once.
+  eventBus.subscribe(EVENTS.PLATFORM_CONFIG_UPDATED, async (e) => {
+    const p = e.payload as { keys?: string[] };
+    if (p.keys && !p.keys.includes('booking')) return;
+    const n = await syncDailyMileage();
+    if (n) logger.info({ vehicles: n }, 'daily mileage allowance applied');
   });
 
   // A model-year recall is a warning: the host checks the car, the team can pause it if it applies.

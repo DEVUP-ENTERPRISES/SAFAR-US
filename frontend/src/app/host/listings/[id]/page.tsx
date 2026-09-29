@@ -699,7 +699,7 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
   const platformCfg = usePlatformConfig();
   const platformLead = describeLead(leadMinutes(platformCfg.data));
   const m = vehicle.mileageLimit;
-  const [milesPerDay, setMilesPerDay] = useState(String(kmToMiles(m?.perDayKm ?? 0) || ''));
+  const dailyMiles = platformCfg.data?.booking?.dailyMileageMiles ?? 200;
   const [overagePerMile, setOveragePerMile] = useState(String((perKmToPerMile(m?.overageFeePerKm ?? 0) / 100) || ''));
 
   return (
@@ -732,8 +732,8 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
         <Field label="Advance notice (hours)" hint={`Guests can already book up to ${platformLead} before pickup. Set more here to require longer notice; it cannot go lower.`}>
           <Input type="number" min={0} max={720} value={notice} onChange={(e) => setNotice(e.target.value)} />
         </Field>
-        <Field label="Miles included per day" hint="How far a guest can drive each day before an overage charge applies">
-          <Input type="number" min={1} value={milesPerDay} onChange={(e) => setMilesPerDay(e.target.value)} />
+        <Field label="Miles included per day" hint="Set by CatoDrive for every car">
+          <Input value={`${dailyMiles} miles/day`} disabled readOnly />
         </Field>
         <Field label="Overage charge ($ per mile)" hint="Charged per mile driven past the daily limit">
           <Input type="number" min={0} step="0.01" value={overagePerMile} onChange={(e) => setOveragePerMile(e.target.value)} />
@@ -771,7 +771,7 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
               advanceNoticeHours: Math.min(720, Math.max(0, Number(notice) || 0)),
             },
             mileageLimit: {
-              perDayKm: milesToKm(Math.max(1, Number(milesPerDay) || 1)),
+              perDayKm: milesToKm(dailyMiles),
               overageFeePerKm: perMileToPerKm(Math.round(Number(overagePerMile || 0) * 100)),
             },
           })
