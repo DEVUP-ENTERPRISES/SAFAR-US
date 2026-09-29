@@ -6,6 +6,7 @@ import { redis, connectRedis, disconnectRedis } from './infrastructure/cache/red
 import { setKvStore, RedisKvStore, InMemoryKvStore } from './infrastructure/cache/kv-store';
 import { registerEventSubscribers } from './bootstrap/event-subscriptions';
 import { syncDailyMileage } from './modules/vehicles/application/vehicle.service';
+import { wheelbaseInsuranceService } from './modules/insurance/application/wheelbase-insurance.service';
 import { installCrashHandlers } from './infrastructure/observability/error-reporter';
 import { seedAdmin, enforceSingleSuperAdmin } from './bootstrap/seed-admin';
 import { seedHouseFleet } from './bootstrap/seed-house-fleet';
@@ -85,6 +86,8 @@ async function bootstrap(): Promise<void> {
   void syncDailyMileage()
     .then((n) => n && logger.info({ vehicles: n }, 'daily mileage allowance applied'))
     .catch((err) => logger.warn({ err: (err as Error).message }, 'daily mileage sync failed'));
+  // Link and refresh each car's Wheelbase insurance at boot, not six hours after a deploy.
+  void wheelbaseInsuranceService.sync().catch((err) => logger.warn({ err: (err as Error).message }, 'wheelbase insurance sync at boot failed'));
 
   // Background jobs need Redis (BullMQ). Skip gracefully in dev without Redis.
   if (isRedisHealthy()) {

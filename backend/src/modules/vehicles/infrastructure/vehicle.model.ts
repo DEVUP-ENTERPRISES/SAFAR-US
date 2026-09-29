@@ -49,6 +49,21 @@ export interface SeasonalRule {
   multiplierBps: number; // 12000 = 1.2x
 }
 
+export interface WheelbaseLink {
+  rentalId: number;
+  name: string;
+  /** How the link was made: matched on year/make/model, or chosen by an admin. */
+  linkedBy: 'auto' | 'admin';
+  insuranceState?: string;
+  coverage?: string;
+  eligible?: boolean;
+  planLabel?: string;
+  minRenterAge?: number;
+  /** False when the listing is no longer in the dealer's Wheelbase account. */
+  found: boolean;
+  syncedAt: Date;
+}
+
 export interface PhotoMatch {
   status: 'match' | 'partial' | 'mismatch' | 'unchecked';
   checkedAt: Date;
@@ -99,6 +114,8 @@ export interface VehicleDoc {
   registrationNumber?: string;
   /** Latest automatic check of the photos against plate, make, model and colour. */
   photoMatch?: PhotoMatch;
+  /** The Wheelbase listing this car is insured under, and its insurance as last read. */
+  wheelbase?: WheelbaseLink;
   specs: {
     doors?: number;
     color?: string;
@@ -233,6 +250,18 @@ const schema = new Schema<VehicleDoc>(
     vin: { type: String },
     vinVerified: { type: Boolean, default: false },
     registrationNumber: { type: String },
+    wheelbase: {
+      rentalId: Number,
+      name: String,
+      linkedBy: { type: String, enum: ['auto', 'admin'] },
+      insuranceState: String,
+      coverage: String,
+      eligible: Boolean,
+      planLabel: String,
+      minRenterAge: Number,
+      found: Boolean,
+      syncedAt: Date,
+    },
     photoMatch: {
       status: { type: String, enum: ['match', 'partial', 'mismatch', 'unchecked'] },
       checkedAt: Date,
@@ -359,6 +388,7 @@ const schema = new Schema<VehicleDoc>(
 // Plain geo index — used by unfiltered proximity queries (recommendations,
 // similar cars).
 schema.index({ location: '2dsphere' });
+schema.index({ 'wheelbase.rentalId': 1 }, { sparse: true });
 
 /*
  * The search index. Search is by far the hottest query and always filters

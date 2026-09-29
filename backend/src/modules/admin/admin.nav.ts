@@ -57,6 +57,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'hosts', path: A('hosts'), apiPath: '/admin/hosts', label: 'Host Management', group: 'People', permission: 'admin:read' },
 
   { slug: 'vehicles', path: A('vehicles'), apiPath: '/admin/vehicles', label: 'Vehicle Management', group: 'Supply', permission: 'admin:read' },
+  { slug: 'insurance', path: A('insurance'), apiPath: '/admin/insurance/wheelbase', label: 'Insurance', group: 'Supply', permission: 'admin:read' },
   { slug: 'fleets', path: A('fleets'), apiPath: '/admin/fleets', label: 'Fleet Management', group: 'Supply', permission: 'fleet:manage' },
 
   // Keep every group's entries contiguous: the sidebar builds groups in

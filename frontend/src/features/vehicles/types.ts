@@ -91,6 +91,8 @@ export interface Vehicle {
   ratingCount: number;
   fleetOwned?: boolean;
   externalRating?: { source: string; rating: number; trips: number };
+  /** The car's insurance cover as read from Wheelbase: plan name and minimum driver age. */
+  insurance?: { approved: boolean; planLabel?: string; minRenterAge?: number };
   totalTrips: number;
 }
 

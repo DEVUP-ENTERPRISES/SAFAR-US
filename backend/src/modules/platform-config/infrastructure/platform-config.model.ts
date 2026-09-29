@@ -246,6 +246,14 @@ export interface PlatformConfigDoc {
    * bumping it forces every guest to re-accept the next time they book.
    * `minAgeYears` gates account setup and, by extension, booking eligibility.
    */
+  /** Insurance cover read from Wheelbase: which dealer's listings, and which rules apply at booking. */
+  insurance: {
+    wheelbaseDealerId: string;
+    /** Only cars Wheelbase lists as insurance-approved can be booked. */
+    requireApproved: boolean;
+    /** Refuse a renter younger than the car's Wheelbase minimum renter age. */
+    enforceMinAge: boolean;
+  };
   legal: {
     termsVersion: string;
     termsUrl: string;
@@ -529,13 +537,18 @@ export interface PlatformConfigDoc {
 const schema = new Schema<PlatformConfigDoc>(
   {
     _id: { type: String, default: 'platform' },
+    insurance: {
+      wheelbaseDealerId: { type: String, default: '4879882' },
+      requireApproved: { type: Boolean, default: true },
+      enforceMinAge: { type: Boolean, default: true },
+    },
     legal: {
       termsVersion: { type: String, default: '2026-09-01' },
       termsUrl: { type: String, default: '/legal' },
       privacyVersion: { type: String, default: '2026-09-01' },
       privacyUrl: { type: String, default: '/legal' },
       cancellationUrl: { type: String, default: '/legal' },
-      minAgeYears: { type: Number, default: 18 },
+      minAgeYears: { type: Number, default: 21 },
     },
     contact: {
       notifyEmail: { type: String, default: 'shoaib@catodrive.com' },

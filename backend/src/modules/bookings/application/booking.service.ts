@@ -6,6 +6,7 @@ import type { AvailabilityDoc } from '../../availability/infrastructure/availabi
 import { canTransition, type BookingStatus } from '../domain/booking-status';
 import { computeRefund } from '../domain/cancellation-policy';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { wheelbaseInsuranceService } from '../../insurance/application/wheelbase-insurance.service';
 import { documentComplianceService } from '../../documents/application/document-compliance.service';
 import { vehicleLifecycleService } from '../../vehicles/application/vehicle-lifecycle.service';
 import { searchService } from '../../search/application/search.service';
@@ -290,6 +291,8 @@ export class BookingService {
     if (!eligibility.eligible && start.getTime() - verificationCutoffHours * HOUR_MS <= Date.now()) {
       throw new ConflictError('This trip starts soon, so please verify your ID before booking. It takes about two minutes, and we’ll bring you right back.', 'IDENTITY_REQUIRED');
     }
+    // The car's insurance must cover this trip: approved in Wheelbase (when required) and the driver old enough.
+    await wheelbaseInsuranceService.assertInsurable(dto.vehicleId, guestId, start);
 
     // Risk is assessed per attempt, not per account: the same person on a
     // known device at home is a different proposition from that person on a
@@ -437,6 +440,7 @@ export class BookingService {
         priceBreakdown: breakdown,
         cancellationPolicy: vehicle.cancellationPolicy,
         terms: acceptedTerms, // the T&C version this guest accepted to book
+        insurance: await wheelbaseInsuranceService.snapshot(dto.vehicleId),
         delivery: dto.delivery, // where the host brings the car, if requested
         status,
         statusHistory: [{ from: null, to: status, at: now, by: guestId }],
