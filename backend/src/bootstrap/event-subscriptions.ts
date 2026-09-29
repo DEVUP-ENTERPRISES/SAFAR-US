@@ -560,6 +560,7 @@ export function registerEventSubscribers(): void {
   });
 
   // A model-year recall is a warning: the host checks the car, the team can pause it if it applies.
+  // A model-year recall: the host checks their car, staff can pause it; guests are never told.
   eventBus.subscribe(EVENTS.VEHICLE_RECALL_FOUND, async (e) => {
     const p = e.payload as { vehicleId: string; hostId: string; count: number; components: string[] };
     const what = p.components.map((c) => c.toLowerCase()).join(', ');

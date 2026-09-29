@@ -40,7 +40,6 @@ import { TripDatesField } from '@/features/vehicles/components/trip-dates-field'
 import { saveDraft, takeDraft } from '@/features/bookings/booking-draft';
 import { PhotoLightbox } from '@/features/vehicles/components/photo-lightbox';
 import { confirmCardPayment } from '@/features/payments/confirm-payment';
-import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import { PayNow } from '@/features/payments/pay-now';
 import { useSearchBar } from '@/features/search/search-store';
 
@@ -716,10 +715,6 @@ export default function VehicleDetailPage() {
             </Card>
           )}
         </div>
-
-        {/* Safety recalls and title history - a guest should be able to see an
-            open recall before getting into a stranger's car. */}
-        <VehicleHistory vehicleId={id} audience="guest" />
 
         {/* Availability calendar */}
         <div>

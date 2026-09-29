@@ -31,8 +31,8 @@ import { LocationSearch } from '@/features/maps/components/location-search';
 import { PickupEditor } from '@/features/vehicles/components/pickup-editor';
 import { FeaturePicker } from '@/features/vehicles/components/feature-picker';
 import { ColorPicker } from '@/features/vehicles/components/color-picker';
-import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import { DeliveryLocationsEditor } from '@/features/vehicles/components/delivery-locations-editor';
+import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import type { DeliveryLocation } from '@/features/vehicles/types';
 
 type Panel = null | 'pricing' | 'photos' | 'availability' | 'details' | 'safety' | 'location' | 'trip';
@@ -554,12 +554,12 @@ export default function ManageListingPage() {
         </RowGroup>
       </div>
 
-      {/* Pickup details - dormant until now: the fields existed on the model
-          and had no editor, so the guest-facing panel never had anything to
-          show. */}
       <SectionLabel>Safety & history</SectionLabel>
       <VehicleHistory vehicleId={id} audience="host" />
 
+      {/* Pickup details - dormant until now: the fields existed on the model
+          and had no editor, so the guest-facing panel never had anything to
+          show. */}
       <SectionLabel>Pickup</SectionLabel>
       <PickupEditor vehicleId={id} initial={v.pickup} onSaved={invalidate} />
 
