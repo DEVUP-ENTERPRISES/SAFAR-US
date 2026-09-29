@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  ShieldCheck, Zap, Sparkles, ArrowRight, Star, CarFront, KeyRound, Route, BadgeCheck,
+  ShieldCheck, Zap, Sparkles, ArrowRight, CarFront, KeyRound, Route, BadgeCheck,
   Search, UserCheck, FileCheck2, Lock, CreditCard, Ban, ClipboardList,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,17 +13,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
 import { SearchBarFields } from '@/features/search/search-bar-fields';
 import { CategoryCarousel } from '@/features/vehicles/components/category-carousel';
-import { TractionStats, AudienceSection } from '@/features/marketing/sections';
+
 import { useTrending, useRecommendations, useFacets } from '@/features/vehicles/hooks';
 import { useAuthStore } from '@/features/auth/store';
-import { useIsHost } from '@/features/host/hooks';
-import { config } from '@/lib/config';
 
 
 const STEPS = [
-  { icon: CarFront, image: '/sections/find-the-one.webp', title: 'Find the one', body: 'Browse verified cars from local hosts. Filter by price, features, or delivery.' },
-  { icon: KeyRound, image: '/sections/book-in-seconds.webp', title: 'Book in seconds', body: 'Instant Book cars confirm immediately. No back-and-forth, no waiting.' },
-  { icon: Route, image: '/sections/hit-the-road.webp', title: 'Hit the road', body: 'Pick it up, or have it delivered to your door, hotel, or the airport.' },
+  { icon: CarFront, image: '/sections/find-the-one.webp', title: 'Find the one', body: 'Browse our premium managed fleet. Filter by price, features, or delivery.' },
+  { icon: KeyRound, image: '/sections/book-in-seconds.webp', title: 'Book in seconds', body: 'Reserve your vehicle instantly. No back-and-forth, no waiting.' },
+  { icon: Route, image: '/sections/hit-the-road.webp', title: 'Hit the road', body: 'Pick it up, or have our team deliver it directly to your door, hotel, or the airport.' },
 ];
 
 // The reservation, one step deeper than STEPS - what actually happens
@@ -57,9 +55,7 @@ export default function HomePage() {
   const city = active?.city ?? '';
   const trending = useTrending(active?.lng, active?.lat);
   const user = useAuthStore((s) => s.user);
-  const isHost = useIsHost();
   const forYou = useRecommendations(!!user);
-  const stats = facets.data?.stats;
 
   return (
     <div className="-mt-24">
@@ -77,7 +73,7 @@ export default function HomePage() {
                   a headline should tell someone what this actually is.
                 */}
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-bold tracking-widest uppercase text-white/95 shadow-soft">
-                  <KeyRound className="h-4 w-4" /> Peer-to-peer car sharing
+                  <KeyRound className="h-4 w-4" /> Premium Managed Fleet
                 </span>
 
                 {/* The display face, and no gradient-to-transparent: that trick
@@ -90,27 +86,17 @@ export default function HomePage() {
                 </h1>
 
                 <p className="mt-5 max-w-xl text-base font-medium leading-relaxed text-white/75 sm:mt-7 sm:text-xl">
-                  Real cars from local hosts, delivered where you need them - with three promises no
+                  Our own premium vehicles, delivered where you need them - with three promises no
                   other rental makes.
                 </p>
+
+                <div className="mt-8 max-w-2xl animate-slide-up sm:mt-10 relative z-10">
+                  <SearchBarFields calendarPlacement="flow" />
+                </div>
               </div>
 
-              {/*
-                One search bar, not two.
 
-                The hero ran its own widget - a native <select> listing cities with
-                a "(1)" vehicle count after each, and two native date inputs
-                rendering dd-mm-yyyy in an OS-drawn picker. The navbar and the
-                search page had already moved to SearchBarFields, so the product
-                had two search implementations that looked and behaved differently
-                depending on which one you happened to hit first.
 
-                The counts went with it. A city offering one car reads as an empty
-                marketplace, and the number is not what anyone is choosing on.
-              */}
-              <div className="mt-8 max-w-2xl animate-slide-up sm:mt-10 relative z-10">
-                <SearchBarFields calendarPlacement="flow" />
-              </div>
             </div>
 
             <div className="relative hidden lg:block w-full">
@@ -132,47 +118,26 @@ export default function HomePage() {
           <div className="mt-12 grid max-w-5xl gap-px overflow-hidden rounded-xl border border-white/15 bg-white/10 sm:mt-16 sm:grid-cols-3">
             {[
               {
-                t: 'Your host cancels, you still drive',
-                d: 'We put you in a comparable car and cover the price difference.',
+                t: 'Guaranteed vehicle',
+                d: 'The exact car you book is the exact car you get, delivered on time.',
               },
               {
                 t: 'A finished trip stays finished',
                 d: 'Damage must be reported within 72 hours, with photos. After that, nothing.',
               },
               {
-                t: 'Reviews written blind',
-                d: 'Neither side sees the other until both are in. Nobody can retaliate.',
+                t: 'Meticulously maintained',
+                d: 'Every vehicle is owned, serviced, and detailed by our professional team.',
               },
             ].map((p) => (
-              <div key={p.t} className="rounded-xl bg-[hsl(var(--ink))]/70 p-4 backdrop-blur-sm sm:rounded-none sm:p-5">
+              <div key={p.t} className="overflow-hidden rounded-xl bg-[hsl(var(--ink))]/70 p-4 backdrop-blur-sm sm:rounded-none sm:p-5">
                 <p className="text-[15px] font-semibold leading-snug text-white">{p.t}</p>
                 <p className="mt-1.5 text-[13.5px] leading-relaxed text-white/60">{p.d}</p>
               </div>
             ))}
           </div>
 
-          {/* Live marketplace numbers - supporting evidence, not the pitch. */}
-          <div className="mt-6 flex flex-col gap-y-2 text-sm text-white/55 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8 sm:gap-y-3">
-            {stats && stats.ratingAvg !== null && (
-              <span className="flex items-center gap-2">
-                <Star className="h-4 w-4 fill-white/70 text-white/70" />
-                {stats.ratingAvg} average from {stats.ratingCount.toLocaleString()} trip
-                {stats.ratingCount === 1 ? '' : 's'}
-              </span>
-            )}
-            {!!stats?.verifiedHosts && (
-              <span className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4" /> {stats.verifiedHosts.toLocaleString()} verified host
-                {stats.verifiedHosts === 1 ? '' : 's'}
-              </span>
-            )}
-            {!!stats?.instantBook && (
-              <span className="flex items-center gap-2">
-                <Zap className="h-4 w-4" /> {stats.instantBook.toLocaleString()} car
-                {stats.instantBook === 1 ? '' : 's'} on Instant Book
-              </span>
-            )}
-          </div>
+
         </div>
       </section>
 
@@ -253,14 +218,7 @@ export default function HomePage() {
           ) : (
             <div className="rounded-2xl border border-dashed border-border py-20 text-center">
               <p className="text-muted-foreground">
-                No cars listed yet in {city}. Be the first -{' '}
-                <Link
-                  href={config.assetPartnersOnly ? '/asset-partners/apply' : '/host'}
-                  className="font-medium text-primary underline underline-offset-4"
-                >
-                  list your car
-                </Link>
-                .
+                No vehicles available in {city} right now.
               </p>
             </div>
           )}
@@ -313,7 +271,7 @@ export default function HomePage() {
             not another "section" demanding equal visual attention. */}
         <section className="grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-12 py-8 border-y border-border/40">
           {[
-            { icon: ShieldCheck, stat: 'Verified', label: 'Every host and car is checked before listing.' },
+            { icon: ShieldCheck, stat: 'Meticulously Maintained', label: 'Every vehicle is owned, serviced, and detailed by our team.' },
             { icon: BadgeCheck, stat: 'Protected', label: 'Choose a plan at checkout - up to $0 deductible.' },
             { icon: Zap, stat: 'Instant Book', label: 'Confirmed the moment you pay. No waiting.' },
           ].map((t) => (
@@ -329,12 +287,7 @@ export default function HomePage() {
           ))}
         </section>
 
-        {/* ── Traction + who we serve ──────────────────────────────── */}
-        <div className="pt-4 sm:pt-6">
-          <TractionStats heading="Backed by real numbers." excludeLive />
-        </div>
 
-        <AudienceSection heading="Built for two kinds of people." />
 
         {/* ── Host / Asset Partner CTA ─────────────────────────────────── */}
         <Reveal as="section" className="relative isolate grain overflow-hidden rounded-2xl hero-mesh px-8 py-14 sm:px-16 sm:py-16">
@@ -345,33 +298,21 @@ export default function HomePage() {
           <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-14">
           <div className="max-w-xl">
             <h2 className="display text-display text-white">
-              {isHost ? (
-                <>
-                  Your fleet,
-                  <br />
-                  <span className="text-white/60">at a glance.</span>
-                </>
-              ) : (
-                <>
+              <>
                   Your car can pay
                   <br />
                   <span className="text-white/60">for itself.</span>
                 </>
-              )}
             </h2>
             <p className="mt-5 text-lg text-white/70">
-              {isHost
-                ? 'Check today’s trips, cash out your earnings, and keep your calendar up to date.'
-                : config.assetPartnersOnly
-                  ? 'We list it, price it, deliver it and service it. You keep 80% of every booking - no calendar to manage.'
-                  : 'List in minutes, set your own price, and get paid out - instantly, if you want it. You stay in control of your calendar.'}
+              We list it, price it, deliver it and service it. You keep 80% of every booking - no calendar to manage. Partner with our managed fleet program.
             </p>
             <Link
-              href={isHost ? '/host/trips' : config.assetPartnersOnly ? '/asset-partners' : '/host'}
+              href="/asset-partners"
               className="mt-8 inline-block"
             >
               <Button size="lg" variant="secondary" className="rounded-full px-7">
-                {isHost ? 'Go to your dashboard' : config.assetPartnersOnly ? 'Become an Asset Partner' : 'Start hosting'} <ArrowRight className="h-4 w-4" />
+                Become an Asset Partner <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -448,45 +389,74 @@ function ReservationFlowSection() {
         <div className="mt-8 overflow-hidden sm:mt-10">
           <div
             ref={trackRef}
-            className="flex w-max gap-6 transition-transform duration-300 ease-out motion-reduce:translate-x-0 motion-reduce:transition-none py-2"
+            className="flex w-max gap-4 py-3 transition-transform duration-300 ease-out motion-reduce:translate-x-0 motion-reduce:transition-none"
             style={{ transform: `translate3d(-${offset}px, 0, 0)` }}
           >
             {RESERVATION_FLOW.map((step, i) => {
-              const centerI = progress * 5;
+              // Which card is "active" — the one closest to center of the viewport.
+              // centerI floats from 0 → N-1 as the user scrolls.
+              const centerI = progress * (RESERVATION_FLOW.length - 1);
               const diff = Math.abs(centerI - i);
-              const scale = Math.max(0.9, 1 - diff * 0.05);
-              const opacity = Math.max(0.3, 1 - diff * 0.4);
+              const isActive = diff < 0.6;
+
+              // Scale: active = 1.0, adjacent = 0.95, far = 0.88
+              const scale = isActive ? 1 : Math.max(0.88, 1 - diff * 0.06);
+              // Opacity: active = 1, adjacent ≈ 0.55, far = 0.25
+              const opacity = isActive ? 1 : Math.max(0.25, 1 - diff * 0.45);
 
               return (
-                <article 
-                  key={step.label} 
-                  className="w-[min(80vw,20rem)] shrink-0 rounded-2xl border border-white/10 bg-black/20 p-5 shadow-xl backdrop-blur-sm sm:w-[22rem] transition-all duration-300"
-                  style={{ transform: `scale(${scale})`, opacity }}
+                <article
+                  key={step.label}
+                  className="w-[min(80vw,20rem)] shrink-0 overflow-hidden rounded-2xl p-5 shadow-xl backdrop-blur-sm sm:w-[22rem] transition-all duration-400"
+                  style={{
+                    transform: `scale(${scale})`,
+                    opacity,
+                    // Active: bright teal border + subtle teal fill. Inactive: dark glass.
+                    border: isActive
+                      ? '1.5px solid hsl(var(--primary) / 0.7)'
+                      : '1px solid rgba(255,255,255,0.07)',
+                    background: isActive
+                      ? 'linear-gradient(135deg, hsl(var(--primary) / 0.14) 0%, rgba(0,0,0,0.35) 100%)'
+                      : 'rgba(0,0,0,0.25)',
+                    boxShadow: isActive
+                      ? '0 0 0 1px hsl(var(--primary) / 0.2), 0 20px 40px rgba(0,0,0,0.4)'
+                      : '0 8px 20px rgba(0,0,0,0.3)',
+                  }}
                 >
-                  <div className="flex items-center gap-4">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/15 transition-colors duration-300" style={{ backgroundColor: diff < 0.5 ? 'rgba(255,255,255,0.2)' : '' }}>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all duration-300"
+                      style={{
+                        background: isActive ? 'rgba(45,212,191,0.25)' : 'rgba(255,255,255,0.07)',
+                        color: isActive ? 'hsl(var(--primary))' : 'rgba(255,255,255,0.4)',
+                        borderColor: isActive ? 'rgba(45,212,191,0.4)' : 'rgba(255,255,255,0.1)',
+                      }}
+                    >
                       <step.icon className="h-5 w-5" />
                     </span>
-                    <h3 className="text-base font-bold uppercase tracking-widest text-primary">{step.label}</h3>
+                    <h3
+                      className="text-xs font-bold uppercase tracking-[0.18em] transition-colors duration-300"
+                      style={{ color: isActive ? 'hsl(var(--primary))' : 'rgba(255,255,255,0.3)' }}
+                    >
+                      {step.label}
+                    </h3>
                   </div>
-                  <p className="mt-3 text-sm leading-relaxed text-white/70">{step.body}</p>
+                  <p
+                    className="mt-3 text-sm leading-relaxed transition-colors duration-300"
+                    style={{ color: isActive ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.35)' }}
+                  >
+                    {step.body}
+                  </p>
                 </article>
               );
             })}
-            
-            <div 
-              className="w-[min(80vw,20rem)] shrink-0 flex flex-col justify-center rounded-2xl border border-primary/40 bg-primary/10 p-5 shadow-xl backdrop-blur-sm sm:w-[22rem] transition-all duration-300"
-              style={{
-                transform: `scale(${Math.max(0.9, 1 - Math.abs(progress * 5 - 5) * 0.05)})`,
-                opacity: Math.max(0.3, 1 - Math.abs(progress * 5 - 5) * 0.4)
-              }}
-            >
-              <Lock className="mb-3 h-7 w-7 text-primary" />
-              <p className="text-sm font-bold uppercase tracking-wider text-primary">
-                The money never moved until it had to.
-              </p>
-            </div>
           </div>
+        </div>
+
+        {/* Money note — small, static, below the scroll track */}
+        <div className="mt-5 flex items-center gap-2 text-sm text-white/50">
+          <Lock className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+          <span>The money never moved until it had to.</span>
         </div>
 
         <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-6 lg:flex-row lg:items-center lg:justify-between opacity-90">

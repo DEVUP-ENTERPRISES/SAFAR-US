@@ -9,7 +9,7 @@ import {
   Phone, Mail, Clock,
 } from 'lucide-react';
 import { Reveal } from '@/components/ui/reveal';
-import { SectionEyebrow, CountUp, BRAND } from '@/features/marketing/sections';
+import { SectionEyebrow, CountUp, BRAND, TractionStats } from '@/features/marketing/sections';
 
 /**
  * Asset Partners - CatoDrive's primary acquisition page (v1 priority, per the
@@ -169,6 +169,11 @@ export default function AssetPartnersPage() {
       </section>
 
       <div className="mx-auto max-w-6xl space-y-14 px-4 pb-16 pt-8 sm:space-y-16 sm:px-6 sm:pt-12">
+        {/* ── PROVEN TRACTION ────────────────────────────────────────── */}
+        <section className="mb-16 scroll-mt-24">
+          <TractionStats heading="Backed by real numbers." excludeLive />
+        </section>
+
         {/* ── VERIFIED PERFORMANCE ───────────────────────────────────── */}
         <section id="numbers" className="scroll-mt-24">
           <Reveal className="mx-auto max-w-2xl text-center">

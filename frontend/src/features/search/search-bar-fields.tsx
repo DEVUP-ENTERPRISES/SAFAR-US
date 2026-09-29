@@ -92,7 +92,7 @@ export function SearchBarFields({
           'flex items-stretch bg-card transition-shadow',
           isNav
             ? 'h-[52px] w-full divide-x divide-border/50 rounded-full border border-border/50'
-            : 'flex-col rounded-[1.75rem] border border-border/50 shadow-xl lg:h-[72px] lg:flex-row lg:divide-x lg:divide-border/50 lg:rounded-full lg:p-1.5',
+            : 'flex-col rounded-[1.75rem] border border-border/50 ring-4 ring-primary/20 shadow-[0_0_30px_rgba(var(--primary),0.3)] hover:shadow-[0_0_40px_rgba(var(--primary),0.4)] transition-shadow duration-300 lg:h-[72px] lg:flex-row lg:divide-x lg:divide-border/50 lg:rounded-full lg:p-1.5',
         )}
       >
         <Field
