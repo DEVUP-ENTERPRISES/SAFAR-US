@@ -12,6 +12,7 @@ import { uploadFiles } from '@/features/media/upload';
 import { tripApi, type PhotoPhase } from '@/features/trips/api';
 import { useInspection } from '@/features/trips/hooks';
 import { LiveCamera, type CapturedShot } from './live-camera';
+import { AngleGuide } from './angle-guide';
 
 /**
  * Condition photos for one phase, for guest and host alike. Every photo comes
@@ -147,7 +148,8 @@ export function InspectionPhotos({
                 ) : (
                   <>
                     <Camera className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-[11px] font-semibold text-muted-foreground">{a.label}</span>
+                    <AngleGuide angle={a.id} className="absolute inset-x-4 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+                    <span className="relative text-[11px] font-semibold text-muted-foreground">{a.label}</span>
                   </>
                 )}
               </button>
@@ -175,6 +177,7 @@ export function InspectionPhotos({
             phase,
             angleLabel: angle.label,
           }}
+          guide={angle.id}
           requireLocation={state.requireLocation}
           onUse={onUse}
           onClose={() => setAngleId(null)}

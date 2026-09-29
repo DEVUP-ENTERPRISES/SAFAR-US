@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, Loader2, MapPinOff, RefreshCw, VideoOff, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AngleGuide, ANGLE_TIPS } from './angle-guide';
 
 /** What is burned into every photo and shown live in the viewfinder. */
 export interface PhotoStamp {
@@ -95,11 +96,14 @@ export function LiveCamera({
   stamp,
   requireLocation,
   facing = 'environment',
+  guide,
   onUse,
   onClose,
 }: {
   stamp: CameraStamp;
   requireLocation: boolean;
+  /** Inspection angle id: shows its outline over the viewfinder and a framing tip. */
+  guide?: string;
   /** 'user' for a selfie. */
   facing?: 'environment' | 'user';
   /** Uploads the shot; resolve to finish, reject (with a readable message) to stay on the review step. */
@@ -245,9 +249,12 @@ export function LiveCamera({
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Take a photo">
       <div className="flex items-center justify-between p-3 text-white">
-        <p className="text-sm font-semibold">
-          {isGeneric(stamp) ? stamp.detail : `${stamp.phase === 'pre' ? 'Pickup' : 'Return'} photo · ${stamp.angleLabel}`}
-        </p>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">
+            {isGeneric(stamp) ? stamp.detail : `${stamp.phase === 'pre' ? 'Pickup' : 'Return'} photo · ${stamp.angleLabel}`}
+          </p>
+          {guide && ANGLE_TIPS[guide] && <p className="text-xs text-white/70">{ANGLE_TIPS[guide]} Line the car up with the outline.</p>}
+        </div>
         <button onClick={onClose} disabled={busy} className="rounded-full p-2 hover:bg-white/10" aria-label="Close camera">
           <X className="h-5 w-5" />
         </button>
@@ -265,6 +272,9 @@ export function LiveCamera({
           <div className="relative flex min-h-0 flex-1 items-center justify-center">
             <video ref={videoRef} playsInline muted className="pointer-events-none absolute h-px w-px opacity-0" />
             {!shot && <canvas ref={canvasRef} className="max-h-full max-w-full object-contain" />}
+            {!shot && ready && guide && (
+              <AngleGuide angle={guide} className="absolute w-[80%] max-w-xl text-white/45 drop-shadow" />
+            )}
             {shot && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={shot.previewUrl} alt="Photo to review" className="max-h-full max-w-full object-contain" />
