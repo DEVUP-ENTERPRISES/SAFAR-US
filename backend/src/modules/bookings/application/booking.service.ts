@@ -285,6 +285,11 @@ export class BookingService {
     if (!eligibility.canRequest) {
       throw new ForbiddenError('This account cannot book. Contact support.');
     }
+    // Inside the verification cutoff a held booking would lapse (with a fee) minutes after it was made, so verify first.
+    const { verificationCutoffHours } = (await platformConfigService.get()).booking;
+    if (!eligibility.eligible && start.getTime() - verificationCutoffHours * HOUR_MS <= Date.now()) {
+      throw new ConflictError('This trip starts soon, so please verify your ID before booking. It takes about two minutes, and we’ll bring you right back.', 'IDENTITY_REQUIRED');
+    }
 
     // Risk is assessed per attempt, not per account: the same person on a
     // known device at home is a different proposition from that person on a
@@ -2155,10 +2160,12 @@ export class BookingService {
    * booking still waiting on that money — a late or duplicate failure event
    * must never cancel a trip that has since been paid, started or finished.
    */
-  async failForPayment(bookingId: string, reason?: string): Promise<boolean> {
+  async failForPayment(bookingId: string, reason?: string, opts: { retryable?: boolean } = {}): Promise<boolean> {
     const booking = await this.getDoc(bookingId);
     const UNPAID: BookingStatus[] = ['pending_payment', 'pending_verification', 'pending_approval', 'confirmed'];
     if (!UNPAID.includes(booking.status)) return false;
+    // A decline while the guest is still paying can be retried with another card; the payment window releases it if not.
+    if (opts.retryable && booking.status === 'pending_payment') return false;
 
     if (booking.holdId) await availabilityService.releaseHold(booking.holdId);
     await depositService.release(bookingId, 'Booking payment failed').catch(() => undefined);

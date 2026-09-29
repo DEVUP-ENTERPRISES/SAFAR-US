@@ -93,6 +93,7 @@ export interface PlatformConfig {
     verificationReminderHours: number;
     overdueEscalationHours: number;
     documentExpiryReleaseHours: number;
+    recallAutoHold?: boolean;
     checkoutHoldMinutes: number;
     paymentPendingMinutes: number;
     priceLockMinutes: number;

@@ -69,6 +69,8 @@ export async function runStripeEvent(event: {
           emit(EVENTS.PAYMENT_FAILED, bookingId, {
             bookingId,
             reason: obj.last_payment_error?.message,
+            // Stripe fires this on every declined attempt; the same payment can still be retried.
+            retryable: true,
           });
           logger.warn(
             { bookingId, reason: obj.last_payment_error?.message },

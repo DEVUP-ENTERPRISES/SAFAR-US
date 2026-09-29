@@ -255,6 +255,7 @@ export class PlatformConfigService {
         verificationReminderHours: 24,
         overdueEscalationHours: 24,
         documentExpiryReleaseHours: 72,
+        recallAutoHold: false,
         checkoutHoldMinutes: 15,
         paymentPendingMinutes: 30,
         priceLockMinutes: 10,

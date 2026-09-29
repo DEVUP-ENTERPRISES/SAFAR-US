@@ -4,6 +4,7 @@ import { VehicleModel, type VehicleDoc } from '../infrastructure/vehicle.model';
 import { DocumentModel } from '../../documents/infrastructure/document.model';
 import { vehicleHistoryService } from './vehicle-history.service';
 import { logger } from '../../../infrastructure/logging/logger';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
 /**
  * Safety recalls, enforced rather than just displayed.
@@ -40,6 +41,15 @@ export const recallHoldService = {
       const recalls = await vehicleHistoryService.recalls(v.make, v.model, v.year);
       if (recalls.length === 0) return false;
       if (await this.hasVerifiedReceipt(vehicleId)) return false;
+
+      // The lookup is by model year, not VIN, so by default it only warns; pausing is an admin opt-in.
+      if (!(await platformConfigService.get()).booking.recallAutoHold) {
+        if ((v.recallNoticeCount ?? 0) < recalls.length) {
+          await VehicleModel.updateOne({ _id: vehicleId }, { recallNoticeCount: recalls.length });
+          emit(EVENTS.VEHICLE_RECALL_FOUND, vehicleId, { vehicleId, hostId: v.hostId, count: recalls.length, components: recalls.map((r) => r.component).slice(0, 3) });
+        }
+        return false;
+      }
 
       await VehicleModel.updateOne({ _id: vehicleId }, { status: 'paused', recallHold: true });
       emit(EVENTS.VEHICLE_UNAVAILABLE, vehicleId, { vehicleId, reason: 'an open safety recall' });

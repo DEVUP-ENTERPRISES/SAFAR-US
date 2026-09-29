@@ -380,15 +380,17 @@ export function registerEventSubscribers(): void {
   // (bank decline, 3DS abandoned). Unhandled, the guest never learns their
   // trip isn't actually paid for until they're standing at the car.
   eventBus.subscribe(EVENTS.PAYMENT_FAILED, async (e) => {
-    const p = e.payload as { bookingId: string; reason?: string };
+    const p = e.payload as { bookingId: string; reason?: string; retryable?: boolean };
     let released = false;
     try {
-      released = await bookingService.failForPayment(p.bookingId, p.reason);
+      released = await bookingService.failForPayment(p.bookingId, p.reason, { retryable: p.retryable });
     } catch (err) {
       logger.error({ err, bookingId: p.bookingId }, 'payment.failed cleanup failed — booking may still hold dates');
     }
     try {
       const booking = await bookingService.getDoc(p.bookingId);
+      // A decline that arrives after another card already paid (or after a cancel) is old news.
+      if (!released && !['pending_payment', 'pending_verification', 'pending_approval', 'confirmed'].includes(booking.status)) return;
       await notificationService.send({
         userId: booking.guestId,
         priority: 'critical',
@@ -398,8 +400,8 @@ export function registerEventSubscribers(): void {
         body: released
           ? `Your card was declined${p.reason ? ` (${p.reason})` : ''}, so this booking was released. You can book again with another card.`
           : p.reason
-            ? `Your card was declined: ${p.reason}. Update your payment method to keep this trip.`
-            : 'Your card was declined. Update your payment method to keep this trip.',
+            ? `Your card was declined: ${p.reason}. Your booking is still held — open it and pay with another card or method to keep this trip.`
+            : 'Your card was declined. Your booking is still held — open it and pay with another card or method to keep this trip.',
         data: { bookingId: p.bookingId },
       });
       if (released) {
@@ -513,6 +515,14 @@ export function registerEventSubscribers(): void {
     } catch (err) {
       logger.warn({ err, bookingId: p.bookingId }, 'sos notification failed');
     }
+  });
+
+  // A model-year recall is a warning: the host checks the car, the team can pause it if it applies.
+  eventBus.subscribe(EVENTS.VEHICLE_RECALL_FOUND, async (e) => {
+    const p = e.payload as { vehicleId: string; hostId: string; count: number; components: string[] };
+    const what = p.components.map((c) => c.toLowerCase()).join(', ');
+    await notifyHost(p.hostId, 'vehicle.recall_found', 'Check a safety recall on your car', `NHTSA lists ${p.count} recall${p.count === 1 ? '' : 's'} for this model year (${what}). Check with a dealer whether it applies to your VIN, and upload the repair receipt from your listing if work was done.`, { vehicleId: p.vehicleId }, 'high', `/host/listings/${p.vehicleId}`);
+    await notifyStaff('vehicle.recall_found', 'Recall listed for a car', `Vehicle ${p.vehicleId}: ${p.count} model-year recall(s) (${what}). It stays bookable; pause it from admin if the recall applies.`, { vehicleId: p.vehicleId });
   });
 
   // A car pulled off the road takes its future bookings with it.

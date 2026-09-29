@@ -459,6 +459,8 @@ export interface PlatformConfigDoc {
     verificationReminderHours: number;
     overdueEscalationHours: number;
     documentExpiryReleaseHours: number;
+    /** Pause a car after a trip when NHTSA lists recalls for its model year (not VIN-specific, so off by default). */
+    recallAutoHold: boolean;
     checkoutHoldMinutes: number;
     paymentPendingMinutes: number;
     priceLockMinutes: number;
@@ -783,6 +785,7 @@ const schema = new Schema<PlatformConfigDoc>(
       verificationReminderHours: { type: Number, default: 24 },
       overdueEscalationHours: { type: Number, default: 24 },
       documentExpiryReleaseHours: { type: Number, default: 72 },
+      recallAutoHold: { type: Boolean, default: false },
       checkoutHoldMinutes: { type: Number, default: 15 },
       paymentPendingMinutes: { type: Number, default: 30 },
       priceLockMinutes: { type: Number, default: 10 },

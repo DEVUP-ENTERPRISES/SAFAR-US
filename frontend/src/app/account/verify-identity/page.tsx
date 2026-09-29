@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -53,6 +53,16 @@ function VerifyIdentity() {
   const manualAvailable = captureFailed || (keyReady && !stripeKey);
 
   const refreshStatus = () => qc.invalidateQueries({ queryKey: ['kyc-status'] });
+
+  // Sent here mid-booking: once verified, go straight back to the car with the same selection.
+  const [returnTo, setReturnTo] = useState<string | null>(null);
+  useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get('next');
+    if (next && next.startsWith('/') && !next.startsWith('//')) setReturnTo(next);
+  }, []);
+  useEffect(() => {
+    if (returnTo && status.data?.status === 'approved') router.replace(returnTo);
+  }, [returnTo, status.data?.status, router]);
 
   const start = useMutation({
     mutationFn: async () => {
@@ -114,7 +124,11 @@ function VerifyIdentity() {
             <CheckCircle2 className="h-12 w-12 text-success" />
             <h2 className="text-xl font-bold">You’re verified</h2>
             <p className="max-w-sm text-sm text-muted-foreground">Your identity is confirmed. You’re all set to book.</p>
-            <Button onClick={() => router.push('/search')} className="mt-2">Find a car</Button>
+            {returnTo ? (
+              <Button onClick={() => router.push(returnTo)} className="mt-2">Back to your car</Button>
+            ) : (
+              <Button onClick={() => router.push('/search')} className="mt-2">Find a car</Button>
+            )}
           </CardContent>
         </Card>
       )}

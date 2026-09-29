@@ -300,6 +300,13 @@ export default function VehicleDetailPage() {
         createBooking.reset();
         router.push(`/account/setup?next=${encodeURIComponent(`/vehicles/${id}`)}`);
       }
+      // A trip starting soon needs a verified ID first; come back to this car with the same selection.
+      if (err instanceof ApiError && err.code === 'IDENTITY_REQUIRED') {
+        saveDraft({ vehicleId: id, start, end, addOnCodes, protectionPlan, payWithWallet, deliveryMode, deliveryAddress, flightNumber, terminal, arrivesAt, couponCode });
+        createBooking.reset();
+        toast({ tone: 'info', title: 'Verify your ID to book this trip', description: err.message });
+        router.push(`/account/verify-identity?next=${encodeURIComponent(`/vehicles/${id}`)}`);
+      }
       return;
     }
 

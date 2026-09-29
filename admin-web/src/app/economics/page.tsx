@@ -395,6 +395,13 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={1} max={720} value={draft.booking.documentExpiryReleaseHours}
               onChange={(e) => set((d) => { d.booking.documentExpiryReleaseHours = Number(e.target.value); })} />
           </Field>
+          <label className="flex cursor-pointer items-start gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" checked={draft.booking.recallAutoHold ?? false} className="mt-0.5 accent-[hsl(var(--primary))]" onChange={(e) => set((d) => { d.booking.recallAutoHold = e.target.checked; })} />
+            <span>
+              Pause a car after its trip when NHTSA lists a recall for its model year
+              <span className="block text-xs text-muted-foreground">Off: the host and team are told, the car stays bookable. On: the car is paused and its upcoming trips are released until a repair receipt is verified. The lookup is by model year, not VIN, so it also catches recalls that don’t apply or were already fixed.</span>
+            </span>
+          </label>
           <Field label="Checkout hold (minutes)" hint="How long dates are held while paying.">
             <Input type="number" min={1} max={120} value={draft.booking.checkoutHoldMinutes}
               onChange={(e) => set((d) => { d.booking.checkoutHoldMinutes = Number(e.target.value); })} />
