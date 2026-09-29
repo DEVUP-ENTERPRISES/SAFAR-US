@@ -52,6 +52,12 @@ export default function VehicleReviewPage() {
     onError: () => notify({ tone: 'error', title: "Couldn't verify that document" }),
   });
 
+  const photoCheck = useMutation({
+    mutationFn: () => adminApi.vehiclePhotoCheck(id),
+    onSuccess: (fresh) => qc.setQueryData(['admin-vehicle-review', id], fresh),
+    onError: () => notify({ tone: 'error', title: "Couldn't run the photo check" }),
+  });
+
   const run = async (action: 'approve' | 'reject') => {
     const missing = data?.checks.filter((c) => c.state === 'missing') ?? [];
     const { ok } = await confirm({
@@ -127,10 +133,15 @@ export default function VehicleReviewPage() {
             return (
               <div key={c.key} className="flex items-start gap-3 text-sm">
                 <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${className}`} />
-                <span>
+                <span className="min-w-0 flex-1">
                   <span className="font-medium">{c.label}</span>
                   <span className="block text-xs text-muted-foreground">{c.detail}</span>
                 </span>
+                {c.key === 'photo_match' && (
+                  <Button size="sm" variant="outline" loading={photoCheck.isPending} onClick={() => photoCheck.mutate()}>
+                    Check again
+                  </Button>
+                )}
               </div>
             );
           })}

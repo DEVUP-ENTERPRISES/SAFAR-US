@@ -26,6 +26,7 @@ import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
 import { api } from '@/lib/api/client';
 import { hostApi } from '@/features/host/api';
+import { uploadVehiclePhotos } from '@/features/host/upload-photos';
 import { LocationSearch } from '@/features/maps/components/location-search';
 import { PickupEditor } from '@/features/vehicles/components/pickup-editor';
 import { FeaturePicker } from '@/features/vehicles/components/feature-picker';
@@ -130,9 +131,8 @@ export default function ManageListingPage() {
     setUploading(true);
     try {
       const list = Array.from(files);
-      const targets = await hostApi.uploadUrls('vehicle_photo', list, list[0].type || 'image/jpeg');
-      await Promise.all(list.map((f, i) => putToStorage(targets[i].uploadUrl, f)));
-      await vehicleApi.addPhotos(id, targets.map((t) => ({ url: t.publicUrl, key: t.key })));
+      const uploaded = await uploadVehiclePhotos(list);
+      await vehicleApi.addPhotos(id, uploaded.map(({ target: t }) => ({ url: t.publicUrl, key: t.key })));
       invalidate();
       notify({ tone: 'success', title: `${list.length} photo${list.length === 1 ? '' : 's'} added` });
     } catch (err) {
@@ -637,7 +637,7 @@ async function putToStorage(uploadUrl: string, file: File): Promise<void> {
     headers: { 'Content-Type': file.type || 'application/octet-stream' },
   });
   if (!res.ok) {
-    throw new Error(`Storage rejected the upload (${res.status}). Check the bucket CORS rules.`);
+    throw new Error('The file could not be uploaded. Please try again.');
   }
 }
 

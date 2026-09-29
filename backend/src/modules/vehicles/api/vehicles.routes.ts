@@ -15,6 +15,7 @@ import { authenticate, authenticateOptional } from '../../../shared/middleware/a
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
+import { photoMatchService } from '../../ai/application/photo-match.service';
 import {
   createVehicleSchema,
   updateVehicleSchema,
@@ -31,6 +32,7 @@ router.post(
   validate({ body: createVehicleSchema }),
   asyncHandler(async (req, res) => {
     const v = await vehicleService.create(req.principal!.userId, req.body);
+    if (v.photos?.length) photoMatchService.schedule(v._id);
     sendCreated(res, v);
   }),
 );
@@ -260,6 +262,7 @@ router.post(
   validate({ body: photosSchema }),
   asyncHandler(async (req, res) => {
     const v = await vehicleService.addPhotos(req.principal!.userId, req.params.id, req.body.photos);
+    photoMatchService.schedule(req.params.id);
     sendSuccess(res, v);
   }),
 );

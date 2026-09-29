@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils/cn';
 import { ApiError } from '@/lib/api/types';
 import { vehicleApi, type CreateVehicleInput } from '@/features/vehicles/api';
 import { hostApi, type RowPreview } from '@/features/host/api';
+import { uploadVehiclePhotos } from '@/features/host/upload-photos';
 import { useToast } from '@/components/ui/toast';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -189,33 +190,7 @@ export default function NewListingPage() {
         });
       }
       if (!list.length) return;
-      // Presign per content type: signing every file with list[0].type meant
-      // a mixed JPEG/PNG selection uploaded the later files under the wrong
-      // type, which storage can reject outright.
-      const byType = new Map<string, File[]>();
-      for (const f of list) {
-        const t = f.type || 'image/jpeg';
-        byType.set(t, [...(byType.get(t) ?? []), f]);
-      }
-      const groups = await Promise.all(
-        Array.from(byType.entries()).map(async ([type, files]) => ({
-          files,
-          targets: await hostApi.uploadUrls('vehicle_photo', files, type),
-        })),
-      );
-      const pairs = groups.flatMap((g) => g.files.map((f, i) => ({ file: f, target: g.targets[i] })));
-      await Promise.all(
-        pairs.map(async ({ file: f, target }) => {
-          const res = await fetch(target.uploadUrl, {
-            method: 'PUT',
-            body: f,
-            headers: { 'Content-Type': f.type || 'application/octet-stream' },
-          });
-          // fetch resolves on 4xx/5xx - without this a rejected upload would be
-          // recorded as a photo.
-          if (!res.ok) throw new Error(`Storage rejected the upload (${res.status}).`);
-        }),
-      );
+      const pairs = await uploadVehiclePhotos(list);
       setD((prev) => {
         const added = pairs.map(({ file: f, target: t }) => ({
           url: t.publicUrl,

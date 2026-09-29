@@ -49,6 +49,15 @@ export interface SeasonalRule {
   multiplierBps: number; // 12000 = 1.2x
 }
 
+export interface PhotoMatch {
+  status: 'match' | 'partial' | 'mismatch' | 'unchecked';
+  checkedAt: Date;
+  photosChecked: number;
+  fields: { key: 'plate' | 'make' | 'model' | 'color' | 'same_car'; expected?: string; seen?: string; result: 'match' | 'mismatch' | 'not_visible' }[];
+  note?: string;
+  model?: string;
+}
+
 export interface VehicleDoc {
   _id: string;
   hostId: string;
@@ -88,6 +97,8 @@ export interface VehicleDoc {
   vin?: string;
   vinVerified: boolean;
   registrationNumber?: string;
+  /** Latest automatic check of the photos against plate, make, model and colour. */
+  photoMatch?: PhotoMatch;
   specs: {
     doors?: number;
     color?: string;
@@ -220,6 +231,14 @@ const schema = new Schema<VehicleDoc>(
     vin: { type: String },
     vinVerified: { type: Boolean, default: false },
     registrationNumber: { type: String },
+    photoMatch: {
+      status: { type: String, enum: ['match', 'partial', 'mismatch', 'unchecked'] },
+      checkedAt: Date,
+      photosChecked: Number,
+      fields: [{ _id: false, key: String, expected: String, seen: String, result: String }],
+      note: String,
+      model: String,
+    },
     specs: {
       doors: Number,
       color: String,

@@ -9,7 +9,7 @@ import { logger } from '../../../infrastructure/logging/logger';
 
 /** One thing an admin should look at before approving, and whether it passes. */
 export interface ReviewCheck {
-  key: 'photos' | 'registration' | 'insurance' | 'vin' | 'pricing' | 'location';
+  key: 'photos' | 'photo_match' | 'registration' | 'insurance' | 'vin' | 'pricing' | 'location';
   label: string;
   detail: string;
   state: 'ok' | 'missing' | 'attention';
@@ -58,6 +58,27 @@ export const vehicleReviewService = {
       detail: photoCount >= MIN_LISTING_PHOTOS ? 'Meets the minimum' : `Needs at least ${MIN_LISTING_PHOTOS}`,
       state: photoCount >= MIN_LISTING_PHOTOS ? 'ok' : 'missing',
     });
+
+    const pm = vehicle.photoMatch;
+    const FIELD_NAMES = { plate: 'plate', make: 'make', model: 'model', color: 'colour', same_car: 'same car in every photo' } as const;
+    const named = (result: string) => (pm?.fields ?? []).filter((f) => f.result === result).map((f) => FIELD_NAMES[f.key]);
+    if (photoCount > 0) {
+      checks.push({
+        key: 'photo_match',
+        label: 'Photos match the car',
+        detail: !pm
+          ? 'Not checked yet'
+          : pm.status === 'match'
+            ? `Plate, model and colour match (${pm.photosChecked} photos checked)`
+            : pm.status === 'mismatch'
+              ? `Does not match: ${named('mismatch').join(', ')}${pm.note ? `. ${pm.note}` : ''}`
+              : pm.status === 'partial'
+                ? `Couldn't see: ${named('not_visible').join(', ')}. Check by eye.`
+                : pm.note ?? 'Not checked. Compare by eye.',
+        // Advice for the reviewer only: never "missing", so it never blocks approval.
+        state: pm?.status === 'match' ? 'ok' : 'attention',
+      });
+    }
 
     for (const category of ['registration', 'insurance'] as const) {
       const doc = docFor(category);

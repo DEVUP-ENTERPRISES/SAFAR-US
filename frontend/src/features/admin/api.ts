@@ -247,7 +247,7 @@ export interface GeoSummaryEntry {
 }
 
 export interface ReviewCheck {
-  key: 'photos' | 'registration' | 'insurance' | 'vin' | 'pricing' | 'location';
+  key: 'photos' | 'photo_match' | 'registration' | 'insurance' | 'vin' | 'pricing' | 'location';
   label: string;
   detail: string;
   state: 'ok' | 'missing' | 'attention';
@@ -398,6 +398,7 @@ export const adminApi = {
 
   vehicles: (q: Q = {}) => api.get<any[]>('/admin/vehicles', q),
   vehicleReview: (id: string) => api.get<VehicleReview>(`/admin/vehicles/${id}/review`),
+  vehiclePhotoCheck: (id: string) => api.post<VehicleReview>(`/admin/vehicles/${id}/photo-check`),
   setExternalRating: (id: string, body: { rating: number; trips: number; source: string } | { clear: true }) =>
     api.raw(`/admin/vehicles/${id}/external-rating`, { method: 'PUT', body }).then((r) => r.data),
   vehicleAction: (id: string, action: 'approve' | 'suspend' | 'reject') =>

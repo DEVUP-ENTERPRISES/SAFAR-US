@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { vehicleReviewService } from '../../vehicles/application/vehicle-review.service';
+import { photoMatchService } from '../../ai/application/photo-match.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
@@ -29,6 +30,16 @@ router.get(
   '/vehicles/:id/review',
   authorize('admin:read'),
   asyncHandler(async (req, res) => {
+    sendSuccess(res, await vehicleReviewService.detail(req.params.id));
+  }),
+);
+
+/** Re-run the photo check now, e.g. after the host added a clearer plate shot. */
+router.post(
+  '/vehicles/:id/photo-check',
+  authorize('vehicle:verify'),
+  asyncHandler(async (req, res) => {
+    await photoMatchService.check(req.params.id);
     sendSuccess(res, await vehicleReviewService.detail(req.params.id));
   }),
 );

@@ -11,6 +11,7 @@ export function toPublicVehicle<T extends Partial<VehicleDoc>>(v: T): T {
   const out: Partial<VehicleDoc> = { ...rest };
   delete out.vin;
   delete out.registrationNumber;
+  delete out.photoMatch;
   delete out.pickup;
   if (location) {
     const [lng, lat] = location.coordinates ?? [];
