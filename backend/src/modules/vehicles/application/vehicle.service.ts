@@ -22,6 +22,10 @@ export async function platformDailyKm(): Promise<number> {
   return Math.round((await platformConfigService.get()).booking.dailyMileageMiles * KM_PER_MILE);
 }
 
+/** Extras CatoDrive does not provide; never saved on a car, and removed from any that has them. */
+export const UNOFFERED_ADDONS = new Set(['additional_driver']);
+const offeredAddOns = <T extends { code: string }>(list?: T[]) => (list ?? []).filter((a) => !UNOFFERED_ADDONS.has(a.code));
+
 /** The one cancellation policy every car uses; hosts do not choose it. */
 export async function platformCancellationPolicy(): Promise<'flexible' | 'moderate' | 'strict'> {
   return (await platformConfigService.get()).booking.cancellationPolicy;
@@ -30,11 +34,13 @@ export async function platformCancellationPolicy(): Promise<'flexible' | 'modera
 /** Puts every car on the platform's daily allowance and cancellation policy; idempotent, run at boot and on change. */
 export async function syncDailyMileage(): Promise<number> {
   const [km, policy] = await Promise.all([platformDailyKm(), platformCancellationPolicy()]);
-  const [a, b] = await Promise.all([
+  const [a, b, c] = await Promise.all([
     VehicleModel.updateMany({ deletedAt: null, 'mileageLimit.perDayKm': { $ne: km } }, { $set: { 'mileageLimit.perDayKm': km } }),
     VehicleModel.updateMany({ deletedAt: null, 'listing.cancellationPolicy': { $ne: policy } }, { $set: { 'listing.cancellationPolicy': policy } }),
+    // CatoDrive does not offer additional drivers, so the extra is taken off any car still carrying it.
+    VehicleModel.updateMany({ 'addOns.code': { $in: [...UNOFFERED_ADDONS] } }, { $pull: { addOns: { code: { $in: [...UNOFFERED_ADDONS] } } } }),
   ]);
-  return a.modifiedCount + b.modifiedCount;
+  return a.modifiedCount + b.modifiedCount + c.modifiedCount;
 }
 
 /**
@@ -135,7 +141,7 @@ export class VehicleService implements IVehicleContract {
       specs: dto.specs ?? {},
       features: dto.features,
       photos: dto.photos,
-      addOns: dto.addOns ?? [],
+      addOns: offeredAddOns(dto.addOns),
       tripRules: dto.tripRules ?? [],
       // The daily allowance is the platform's; the host sets only the overage fee.
       mileageLimit: { perDayKm: await platformDailyKm(), overageFeePerKm: dto.mileageLimit?.overageFeePerKm ?? 0 },

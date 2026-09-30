@@ -17,7 +17,6 @@ import { HandoverPanel } from '@/features/trips/components/handover-panel';
 import { TrackingPanel } from '@/features/trips/components/tracking-panel';
 import { IncidentButton } from '@/features/trips/components/incident-button';
 import { DamageReviewPanel } from '@/features/ai/components/damage-review-panel';
-import { DriverManager } from '@/features/bookings/components/driver-manager';
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
 import { ReviewPrompt } from '@/features/reviews/components/review-prompt';
 
@@ -216,10 +215,6 @@ function TripDashboard() {
           )}
         </div>
 
-        {/* Drivers */}
-        <section>
-          <DriverManager bookingId={trip.bookingId} />
-        </section>
 
         {/* Damage Reporting */}
         <section className="bg-muted/30 rounded-3xl p-5 sm:p-6 border border-border/40">
