@@ -758,7 +758,7 @@ export function registerEventSubscribers(): void {
     const p = e.payload as { bookingId: string; guestId: string; hostId: string; byUserId: string; type: string };
     const body = `An emergency (${p.type}) was reported on an active trip. Our team has been alerted.`;
     for (const userId of [p.guestId]) {
-      await notificationService.send({ userId, priority: 'critical', deepLink: `/trips`, templateKey: 'trip.incident', title: 'Emergency reported', body, data: { bookingId: p.bookingId, type: p.type } });
+      await notificationService.send({ userId, priority: 'critical', deepLink: `/bookings/${p.bookingId}`, templateKey: 'trip.incident', title: 'Emergency reported', body, data: { bookingId: p.bookingId, type: p.type } });
     }
     await notifyHost(p.hostId, 'trip.incident', 'Emergency reported on your car', body, { bookingId: p.bookingId, type: p.type });
     await notifyStaff('trip.incident', `Incident: ${p.type}`, `An incident (${p.type}) was reported on booking ${p.bookingId}. The trip is paused.`, { bookingId: p.bookingId, type: p.type }, 'critical');

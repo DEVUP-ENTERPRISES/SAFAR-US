@@ -1,7 +1,7 @@
 'use client';
 
 import { IMAGE_ACCEPT, DOC_ACCEPT } from '@/lib/upload-formats';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -35,6 +35,7 @@ import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import type { DeliveryLocation } from '@/features/vehicles/types';
 
 type Panel = null | 'pricing' | 'photos' | 'availability' | 'details' | 'safety' | 'location' | 'trip';
+const PANELS: Panel[] = ['pricing', 'photos', 'availability', 'details', 'safety', 'location', 'trip'];
 
 export default function ManageListingPage() {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +55,15 @@ export default function ManageListingPage() {
 
   const [panel, setPanel] = useState<Panel>(null);
   const toggle = (p: Panel) => setPanel((cur) => (cur === p ? null : p));
+
+  // A link such as ?open=safety (e.g. from a "missing items" reminder) opens that section and brings it into view.
+  useEffect(() => {
+    const open = new URLSearchParams(window.location.search).get('open') as Panel;
+    if (!open || !PANELS.includes(open)) return;
+    setPanel(open);
+    const t = setTimeout(() => document.getElementById(`panel-${open}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+    return () => clearTimeout(t);
+  }, []);
 
   const [editingPlate, setEditingPlate] = useState(false);
   const [plateDraft, setPlateDraft] = useState('');
@@ -320,6 +330,7 @@ export default function ManageListingPage() {
             onClick={() => router.push(`/host/listings/${id}/pricing`)}
           />
 
+          <div id="panel-location" className="scroll-mt-28" />
           <Row
             icon={<MapPin className="h-5 w-5" />}
             title="Location & delivery"
@@ -336,6 +347,7 @@ export default function ManageListingPage() {
             <LocationPanel vehicle={v} onSave={(patch) => update.mutate(patch)} saving={update.isPending} />
           )}
 
+          <div id="panel-trip" className="scroll-mt-28" />
           <Row
             icon={<SlidersHorizontal className="h-5 w-5" />}
             title="Trip preferences"
@@ -354,6 +366,7 @@ export default function ManageListingPage() {
             <TripPanel vehicle={v} onSave={(patch) => update.mutate(patch)} saving={update.isPending} />
           )}
 
+          <div id="panel-photos" className="scroll-mt-28" />
           <Row
             icon={<Camera className="h-5 w-5" />}
             title="Photos"
@@ -428,6 +441,7 @@ export default function ManageListingPage() {
             </div>
           )}
 
+          <div id="panel-details" className="scroll-mt-28" />
           <Row
             icon={<FileText className="h-5 w-5" />}
             title="Details"
@@ -455,6 +469,7 @@ export default function ManageListingPage() {
             </div>
           )}
 
+          <div id="panel-safety" className="scroll-mt-28" />
           <Row
             icon={<ShieldCheck className="h-5 w-5" />}
             title="Safety & inspections"
@@ -494,6 +509,7 @@ export default function ManageListingPage() {
             </div>
           )}
 
+          <div id="panel-availability" className="scroll-mt-28" />
           <Row
             icon={<CalendarX className="h-5 w-5" />}
             title="Block dates"

@@ -101,10 +101,10 @@ export default function AdminVehiclesPage() {
     { header: 'Status', cell: (v) => <Badge tone={v.status === 'listed' ? 'success' : 'muted'}>{v.status}</Badge> },
     { header: 'Actions', className: 'text-end', cell: (v) => (
       <div className="flex justify-end gap-2">
-        {/* Approving belongs behind the review screen, not a blind row button. */}
-        {v.verificationStatus !== 'verified' && (
-          <Button size="sm" onClick={() => router.push(adminPath(`vehicles/${v._id}`))}>Review</Button>
-        )}
+        {/* Approving belongs behind the review screen; a live car can be reviewed again at any time. */}
+        <Button size="sm" variant={v.verificationStatus === 'verified' ? 'outline' : 'primary'} onClick={() => router.push(adminPath(`vehicles/${v._id}`))}>
+          {v.verificationStatus === 'verified' ? 'Review again' : 'Review'}
+        </Button>
         {v.status === 'listed' && (
           <Button size="sm" variant="outline" loading={action.isPending} onClick={() => act(v, 'suspend')}>Suspend</Button>
         )}

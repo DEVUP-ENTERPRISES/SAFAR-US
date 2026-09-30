@@ -32,7 +32,7 @@ describe('reminding a host about missing items', () => {
     expect(send).toHaveBeenCalledWith(expect.objectContaining({
       userId: 'host-user',
       templateKey: 'vehicle.missing_items',
-      deepLink: '/host/listings/car',
+      deepLink: '/host/listings/car?open=safety',
       body: expect.stringContaining('Enter the 17-character VIN'),
     }));
   });

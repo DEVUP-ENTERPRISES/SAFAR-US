@@ -191,13 +191,22 @@ export const vehicleReviewService = {
       templateKey: 'vehicle.missing_items',
       title: `Your ${car} needs a few things before it goes live`,
       body: `To list your ${car}, please add: ${todo.map((c) => HOST_FIXES[c.key]).join('; ')}.${note?.trim() ? ` ${note.trim()}` : ''}`,
-      deepLink: `/host/listings/${vehicleId}`,
+      deepLink: `/host/listings/${vehicleId}${SECTION[todo[0].key] ? `?open=${SECTION[todo[0].key]}` : ''}`,
       actionLabel: 'Complete your listing',
       data: { vehicleId },
       facts: todo.map((c) => ({ label: c.label, value: `${c.detail}. ${HOST_FIXES[c.key]}` })),
     });
     return { sent: 1, items: todo.map((c) => c.label) };
   },
+};
+
+// The section of the host's listing page where each item is fixed.
+const SECTION: Partial<Record<ReviewCheck['key'], string>> = {
+  photos: 'photos',
+  registration: 'safety',
+  insurance: 'safety',
+  vin: 'details',
+  location: 'location',
 };
 
 // What the host has to do for each checklist item they can fix.
