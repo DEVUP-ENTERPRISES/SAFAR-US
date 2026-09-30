@@ -113,13 +113,13 @@ export class PaymentMethodService {
         });
       }
       card = { brand: pm.card.brand, last4: pm.card.last4, expMonth: pm.card.exp_month, expYear: pm.card.exp_year, stripePaymentMethodId: pm.id };
-      if (count === 0) {
-        await this.stripe.customers
-          .update(customer, { invoice_settings: { default_payment_method: card.stripePaymentMethodId } })
-          .catch((err) => logger.warn({ err, userId }, 'saved card could not be made the customer default'));
-      }
+      await this.stripe.customers
+        .update(customer, { invoice_settings: { default_payment_method: card.stripePaymentMethodId } })
+        .catch((err) => logger.warn({ err, userId }, 'saved card could not be made the customer default'));
     }
 
+    // The card just added is the one the guest means to pay with, e.g. re-entered after a ZIP decline.
+    if (count > 0) await PaymentMethodModel.updateMany({ userId }, { isDefault: false });
     const pm = await PaymentMethodModel.create({
       userId,
       provider: card.stripePaymentMethodId ? 'stripe' : 'mock',
@@ -128,7 +128,7 @@ export class PaymentMethodService {
       expMonth: card.expMonth,
       expYear: card.expYear,
       stripePaymentMethodId: card.stripePaymentMethodId,
-      isDefault: count === 0,
+      isDefault: true,
     });
     return pm.toObject();
   }
