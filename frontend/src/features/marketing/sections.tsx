@@ -26,10 +26,10 @@ export function SectionEyebrow({ children }: { children: React.ReactNode }) {
 /* ── Traction / social-proof stats ─────────────────────────────────────── */
 
 const STATS = [
-  { prefix: '$', value: 307, suffix: 'K', decimals: 0, label: '2025 Fleet Revenue' },
+  { prefix: '$', value: 766143, suffix: '+', decimals: 0, label: 'Fleet Revenue', comma: true },
   { prefix: '', value: 4.96, suffix: '★', decimals: 2, label: 'Rating', sub: '2,053 reviews' },
-  { prefix: '', value: 75, suffix: '+', decimals: 0, label: 'Vehicles Managed' },
-  { prefix: '', value: 2607, suffix: '+', decimals: 0, label: 'Trips Completed', comma: true },
+  { prefix: '', value: 100, suffix: '+', decimals: 0, label: 'Vehicles Managed' },
+  { prefix: '', value: 5100, suffix: '+', decimals: 0, label: 'Trips Completed', comma: true },
 ] as const;
 
 /**
