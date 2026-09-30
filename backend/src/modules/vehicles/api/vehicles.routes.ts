@@ -5,6 +5,7 @@ import { vehicleInsightsService } from '../application/vehicle-insights.service'
 import { pricingPreviewService } from '../application/pricing-preview.service';
 import { visitorTrackingService } from '../../analytics/application/visitor-tracking.service';
 import { fleetImportService } from '../application/fleet-import.service';
+import { wheelbaseImportService } from '../../insurance/application/wheelbase-import.service';
 import { vehicleHistoryService } from '../application/vehicle-history.service';
 import { vehicleLifecycleService } from '../application/vehicle-lifecycle.service';
 import { OPERATIONAL_STATES } from '../domain/vehicle-lifecycle';
@@ -117,6 +118,30 @@ router.post(
   }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await fleetImportService.importRows(req.principal!.userId, req.body.rows));
+  }),
+);
+
+const wheelbaseBody = z.object({ dealerId: z.string().trim().regex(/^\d{1,20}$/, 'Digits only') });
+
+/** Wheelbase import, dry run: which cars would be filled in, created, or need a choice. Writes nothing. */
+router.post(
+  '/import/wheelbase/preview',
+  authenticate,
+  authorize('vehicle:create'),
+  validate({ body: wheelbaseBody }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await wheelbaseImportService.preview(req.principal!.userId, req.body.dealerId));
+  }),
+);
+
+/** Wheelbase import: fill and link the cars already here, create drafts for the rest. */
+router.post(
+  '/import/wheelbase',
+  authenticate,
+  authorize('vehicle:create'),
+  validate({ body: wheelbaseBody }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await wheelbaseImportService.run(req.principal!.userId, req.body.dealerId));
   }),
 );
 

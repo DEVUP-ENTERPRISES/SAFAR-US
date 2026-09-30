@@ -5,6 +5,7 @@ import { wheelbaseInsuranceService } from './wheelbase-insurance.service';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { KycModel } from '../../kyc/infrastructure/kyc.model';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
 
 beforeAll(connectTestDb);
@@ -12,6 +13,10 @@ afterAll(disconnectTestDb);
 beforeEach(async () => {
   await clearTestDb();
   listings.mockReset();
+  jest.restoreAllMocks();
+  // The real dealer ID lives only in the server env; tests use a placeholder.
+  const real = await platformConfigService.get();
+  jest.spyOn(platformConfigService, 'get').mockResolvedValue({ ...real, insurance: { ...real.insurance, wheelbaseDealerId: '1' } });
 });
 
 // Shaped like the dealer's real listings: two 2023 Traverses make a plain year/make/model match ambiguous.
@@ -38,8 +43,10 @@ describe('wheelbase insurance sync', () => {
     await wheelbaseInsuranceService.link('traverse', 504501);
     expect((await VehicleModel.findById('traverse').lean())!.wheelbase).toMatchObject({ rentalId: 504501, linkedBy: 'admin', minRenterAge: 25 });
 
-    // One listing can only cover one car.
-    await expect(wheelbaseInsuranceService.link('buick', 504501)).rejects.toMatchObject({ code: 'WHEELBASE_ALREADY_LINKED' });
+    // A Wheelbase listing covers every identical car in its group, so two cars may share it.
+    await car('buick2', 2024, 'Buick', 'Envista');
+    await wheelbaseInsuranceService.sync();
+    expect((await VehicleModel.findById('buick2').lean())!.wheelbase).toMatchObject({ rentalId: 504956, linkedBy: 'auto' });
   });
 
   it('keeps the last reading when a listing disappears, and a Wheelbase outage changes nothing', async () => {

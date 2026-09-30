@@ -12,6 +12,30 @@ export interface WheelbaseListing {
   eligible?: boolean;
   planLabel?: string;
   minRenterAge?: number;
+  /** Listing content, used to fill CatoDrive cars on import. */
+  details: {
+    photoUrls: string[];
+    features: string[];
+    fuelType?: string;
+    transmission?: string;
+    seats?: number;
+    pricePerDayCents?: number;
+    description?: string;
+    bodyClass?: string;
+    location?: { city?: string; state?: string; lat?: number; lng?: number };
+  };
+}
+
+// Wheelbase feature flags that describe policy or trim, not equipment a guest can use.
+const NOT_FEATURES = new Set(['doors', 'fuel_type', 'transmission', 'linens_included', 'pet_friendly', 'smoking_allowed', 'full_self_driving']);
+
+function photoUrlsOf(images: unknown): string[] {
+  if (!Array.isArray(images)) return [];
+  return images
+    .map((i) => i as Record<string, unknown>)
+    .sort((a, b) => Number(b.primary === true) - Number(a.primary === true) || Number(a.position ?? 0) - Number(b.position ?? 0))
+    .map((i) => [i.url, i.best, i.original_url, i.large, i.src].find((u) => typeof u === 'string' && /^https:\/\//.test(u)) as string | undefined)
+    .filter((u): u is string => !!u);
 }
 
 // The same public listing search the Wheelbase widget uses for a dealer's store.
@@ -59,6 +83,22 @@ export async function fetchDealerListings(dealerId: string): Promise<WheelbaseLi
       eligible: typeof a.insurance_eligible === 'boolean' ? a.insurance_eligible : undefined,
       planLabel: plan?.label || undefined,
       minRenterAge: num(a.minimum_renter_age),
+      details: (() => {
+        const feats = (a.features ?? {}) as Record<string, unknown>;
+        const loc = (a.location ?? {}) as Record<string, unknown>;
+        const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
+        return {
+          photoUrls: photoUrlsOf(a.images),
+          features: Object.entries(feats).filter(([k, v]) => v === true && !NOT_FEATURES.has(k)).map(([k]) => k),
+          fuelType: str(feats.fuel_type),
+          transmission: str(feats.transmission),
+          seats: num(a.seatbelts),
+          pricePerDayCents: num(a.price_per_day),
+          description: str(a.description),
+          bodyClass: str(a.vehicle_body_class) ?? str(a.display_vehicle_type) ?? str(a.vehicle_class),
+          location: { city: str(loc.city), state: str(loc.state), lat: num(loc.lat), lng: num(loc.lng) },
+        };
+      })(),
     };
   });
 }

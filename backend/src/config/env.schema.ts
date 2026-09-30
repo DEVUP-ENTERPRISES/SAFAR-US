@@ -133,6 +133,8 @@ export const envSchema = z.object({
   // One key fronts many models, so the model is a config value rather than a
   // vendor commitment. Absent key = every AI feature degrades to off, never errors.
   OPENROUTER_API_KEY: optional(z.string()),
+  // Wheelbase dealer account the fleet's insurance is read from; kept out of the source.
+  WHEELBASE_DEALER_ID: optional(z.string().regex(/^\d{1,20}$/)),
   /** Second key, tried only when the primary fails on auth, rate limit or credit. */
   OPENROUTER_API_KEY_FALLBACK: optional(z.string()),
   /** Default model. Vision-capable, because damage review reads photographs. */

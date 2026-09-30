@@ -7,6 +7,7 @@ import {
   type CommissionScope,
 } from '../infrastructure/commission-rule.model';
 import { kv } from '../../../infrastructure/cache/kv-store';
+import { config } from '../../../config';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { ValidationError } from '../../../core/errors/app-error';
@@ -113,9 +114,9 @@ export class PlatformConfigService {
     return {
       ...doc,
       configVersion: doc.configVersion ?? 0,
-      // Defaults follow the Wheelbase cover CatoDrive is on: dealer 4879882, approved cars only, its age minimums.
+      // Defaults follow the Wheelbase cover: approved cars only and its age minimums; the dealer ID comes from the server env.
       insurance: {
-        wheelbaseDealerId: '4879882',
+        wheelbaseDealerId: config.wheelbase.dealerId,
         requireApproved: true,
         enforceMinAge: true,
         ...(doc.insurance ?? {}),
