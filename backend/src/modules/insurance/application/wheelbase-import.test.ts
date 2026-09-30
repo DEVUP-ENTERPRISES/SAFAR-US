@@ -17,6 +17,7 @@ beforeEach(async () => {
   listings.mockReset();
   const real = await platformConfigService.get();
   jest.spyOn(platformConfigService, 'get').mockResolvedValue({ ...real, insurance: { ...real.insurance, wheelbaseDealerId: '1' } });
+  jest.spyOn(wheelbaseImportService, 'isAvailableTo').mockResolvedValue(true);
   // Photo downloads fail here, so imported photos keep their Wheelbase address.
   global.fetch = jest.fn().mockRejectedValue(new Error('offline')) as never;
 });
@@ -44,10 +45,10 @@ describe('import from Wheelbase', () => {
     await draft('b1', 2024, 'Buick', 'Envista');
     await draft('b2', 2024, 'Buick', 'Envista');
 
-    const preview = await wheelbaseImportService.preview('user-1', '1');
+    const preview = await wheelbaseImportService.preview('user-1');
     expect(preview).toMatchObject({ toUpdate: 2, toCreate: 0 });
 
-    const out = await wheelbaseImportService.run('user-1', '1');
+    const out = await wheelbaseImportService.run('user-1');
     expect(out[0]).toMatchObject({ outcome: 'updated', vehicleIds: ['b1', 'b2'] });
     const b1 = await VehicleModel.findById('b1').lean();
     expect(b1!.photos.map((p) => p.url)).toEqual(['https://img.test/a.jpg', 'https://img.test/b.jpg']);
@@ -56,7 +57,7 @@ describe('import from Wheelbase', () => {
     expect(b1!.wheelbase).toMatchObject({ rentalId: 10, insuranceState: 'approved' });
 
     // Running it again finds the same cars through their link: still two, nothing new.
-    await wheelbaseImportService.run('user-1', '1');
+    await wheelbaseImportService.run('user-1');
     expect(await VehicleModel.countDocuments({ make: 'Buick' })).toBe(2);
   });
 
@@ -66,7 +67,7 @@ describe('import from Wheelbase', () => {
       photos: [{ url: 'https://host.test/mine.jpg', isCover: true }],
       listing: { title: 'Mine', description: 'My own words' },
     });
-    await wheelbaseImportService.run('user-1', '1');
+    await wheelbaseImportService.run('user-1');
     const b1 = await VehicleModel.findById('b1').lean();
     expect(b1!.photos.map((p) => p.url)).toEqual(['https://host.test/mine.jpg']);
     expect(b1!.listing.description).toBe('My own words');
@@ -75,15 +76,21 @@ describe('import from Wheelbase', () => {
   it('leaves a car that fits two listings for an admin to choose', async () => {
     listings.mockResolvedValue([listing(1, 2023, 'Chevrolet', 'Traverse'), listing(2, 2023, 'Chevrolet', 'Traverse')]);
     await draft('t1', 2023, 'Chevrolet', 'Traverse');
-    const preview = await wheelbaseImportService.preview('user-1', '1');
+    const preview = await wheelbaseImportService.preview('user-1');
     expect(preview.rows.every((r) => r.action === 'choose')).toBe(true);
-    const out = await wheelbaseImportService.run('user-1', '1');
+    const out = await wheelbaseImportService.run('user-1');
     expect(out.every((r) => r.outcome === 'skipped')).toBe(true);
     expect((await VehicleModel.findById('t1').lean())!.wheelbase).toBeUndefined();
   });
 
-  it('refuses a Wheelbase account that is not the one CatoDrive is connected to', async () => {
-    listings.mockResolvedValue([]);
-    await expect(wheelbaseImportService.preview('user-1', '999')).rejects.toMatchObject({ httpStatus: 403 });
+  it('is only for the CatoDrive fleet account', async () => {
+    jest.spyOn(wheelbaseImportService, 'isAvailableTo').mockResolvedValue(false);
+    await expect(wheelbaseImportService.preview('user-1')).rejects.toMatchObject({ httpStatus: 403 });
+  });
+
+  it('says so plainly when no Wheelbase account is connected', async () => {
+    const real = await platformConfigService.get();
+    jest.spyOn(platformConfigService, 'get').mockResolvedValue({ ...real, insurance: { ...real.insurance, wheelbaseDealerId: '' } });
+    await expect(wheelbaseImportService.preview('user-1')).rejects.toMatchObject({ httpStatus: 422 });
   });
 });

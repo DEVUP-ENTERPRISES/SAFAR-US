@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ShieldCheck, Route as RouteIcon } from 'lucide-react';
@@ -13,14 +13,21 @@ import { cn } from '@/lib/utils/cn';
 import { formatMoney } from '@/lib/utils/format';
 import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
-import { PricingPanel } from '@/features/vehicles/components/pricing-panel';
+import { PricingPanel, type PricingField } from '@/features/vehicles/components/pricing-panel';
+import { ApiError } from '@/lib/api/types';
 
 export default function PricingDiscountsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
   const notify = useToast();
-  const [editing, setEditing] = useState(false);
+  // Which field the editor opens on; null means closed. Opened from a card, it jumps to that card's lever.
+  const [editing, setEditing] = useState<PricingField | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (editing) editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [editing]);
+  const fieldFor = (days: number): PricingField => (days >= 28 ? 'monthly' : days >= 7 ? 'weekly' : 'daily');
 
   const { data: v, isPending: vPending, isError: vError, refetch: refetchV } = useVehicle(id);
   const { data: preview, isPending: pPending, isError: pError, refetch: refetchP } = useQuery({
@@ -41,13 +48,19 @@ export default function PricingDiscountsPage() {
 
   const updatePricing = useMutation({
     mutationFn: (patch: Record<string, unknown>) => vehicleApi.updatePricing(id, patch),
-    onSuccess: () => {
-      notify({ tone: 'success', title: 'Pricing updated' });
-      qc.invalidateQueries({ queryKey: ['vehicle', id] });
-      qc.invalidateQueries({ queryKey: ['pricing-preview', id] });
-      setEditing(false);
+    onSuccess: async () => {
+      // Refresh before closing, so the cards show the new earnings the moment the editor goes away.
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['vehicle', id] }),
+        qc.invalidateQueries({ queryKey: ['pricing-preview', id] }),
+        qc.invalidateQueries({ queryKey: ['price-suggestion', id] }),
+        qc.invalidateQueries({ queryKey: ['my-vehicles'] }),
+      ]);
+      notify({ tone: 'success', title: 'Pricing updated', description: 'Your trip earnings below are refreshed.' });
+      setEditing(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    onError: () => notify({ tone: 'error', title: 'Could not save that' }),
+    onError: (e) => notify({ tone: 'error', title: 'Could not save pricing', description: e instanceof ApiError ? e.message : 'Please try again.' }),
   });
 
   if (vPending || pPending) return <Skeleton className="h-96 w-full rounded-2xl" />;
@@ -79,9 +92,9 @@ export default function PricingDiscountsPage() {
           {preview.tiers.map((t) => (
             <Card key={t.key}>
               <CardContent className="space-y-3 py-5">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-3">
                   <p className="text-lg font-semibold">{t.label}</p>
-                  <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                  <Button size="sm" variant="outline" onClick={() => setEditing(fieldFor(t.days))}>
                     Edit
                   </Button>
                 </div>
@@ -143,17 +156,34 @@ export default function PricingDiscountsPage() {
         </Card>
       </div>
 
-      {editing ? (
-        <Card>
-          <CardContent className="p-0">
-            <PricingPanel vehicle={v} onSave={(patch) => updatePricing.mutate(patch)} saving={updatePricing.isPending} />
-          </CardContent>
-        </Card>
-      ) : (
-        <Button variant="outline" className="w-full" onClick={() => setEditing(true)}>
-          Edit pricing
-        </Button>
-      )}
+      <div ref={editorRef} className="scroll-mt-24">
+        {editing ? (
+          <Card>
+            <CardContent className="p-0">
+              <p className="px-4 pt-4 text-sm text-muted-foreground">
+                {editing === 'daily'
+                  ? '1- and 3-day earnings follow your daily price.'
+                  : editing === 'weekly'
+                    ? '7-day earnings follow your weekly discount.'
+                    : '28-day earnings follow your monthly discount.'}
+              </p>
+              {/* Keyed by the field so reopening from another card focuses that card's lever. */}
+              <PricingPanel
+                key={editing}
+                vehicle={v}
+                focus={editing}
+                onSave={(patch) => updatePricing.mutate(patch)}
+                onCancel={() => setEditing(null)}
+                saving={updatePricing.isPending}
+              />
+            </CardContent>
+          </Card>
+        ) : (
+          <Button variant="outline" className="w-full" onClick={() => setEditing('daily')}>
+            Edit pricing
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

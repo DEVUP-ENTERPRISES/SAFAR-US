@@ -267,8 +267,9 @@ export const hostApi = {
   earningsInsights: (days = 90) => api.get<EarningsInsights>('/earnings/insights', { days }),
   importPreview: (vins: string[]) => api.post<RowPreview[]>('/vehicles/import/preview', { vins }),
   importFleet: (rows: ImportRow[]) => api.post<ImportResult[]>('/vehicles/import', { rows }),
-  wheelbasePreview: (dealerId: string) => api.post<WheelbasePreview>('/vehicles/import/wheelbase/preview', { dealerId }),
-  wheelbaseImport: (dealerId: string) => api.post<WheelbaseImportResult[]>('/vehicles/import/wheelbase', { dealerId }),
+  wheelbaseAvailable: () => api.get<{ available: boolean }>('/vehicles/import/wheelbase/available'),
+  wheelbasePreview: () => api.post<WheelbasePreview>('/vehicles/import/wheelbase/preview'),
+  wheelbaseImport: () => api.post<WheelbaseImportResult[]>('/vehicles/import/wheelbase'),
   earnings: () => api.get<EarningsDashboard>('/earnings/dashboard'),
 
   payouts: () => api.get<Payout[]>('/payouts/me'),
