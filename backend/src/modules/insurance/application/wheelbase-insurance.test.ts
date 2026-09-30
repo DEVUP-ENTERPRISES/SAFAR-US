@@ -5,6 +5,7 @@ import { wheelbaseInsuranceService } from './wheelbase-insurance.service';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { KycModel } from '../../kyc/infrastructure/kyc.model';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
 
 beforeAll(connectTestDb);
@@ -12,6 +13,10 @@ afterAll(disconnectTestDb);
 beforeEach(async () => {
   await clearTestDb();
   listings.mockReset();
+  jest.restoreAllMocks();
+  // The real dealer ID lives only in the server env; tests use a placeholder.
+  const real = await platformConfigService.get();
+  jest.spyOn(platformConfigService, 'get').mockResolvedValue({ ...real, insurance: { ...real.insurance, wheelbaseDealerId: '1' } });
 });
 
 // Shaped like the dealer's real listings: two 2023 Traverses make a plain year/make/model match ambiguous.

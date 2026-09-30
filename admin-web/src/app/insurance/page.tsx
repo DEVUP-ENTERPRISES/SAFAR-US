@@ -98,7 +98,7 @@ export default function InsurancePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Field label="Wheelbase dealer ID" hint="From your Wheelbase dashboard. Saving reads your listings straight away.">
-            <Input value={dealerId} inputMode="numeric" placeholder="e.g. 4879882" onChange={(e) => setDealerId(e.target.value.replace(/\D/g, ''))} className="max-w-xs" />
+            <Input value={dealerId} inputMode="numeric" placeholder="From your Wheelbase dashboard" onChange={(e) => setDealerId(e.target.value.replace(/\D/g, ''))} className="max-w-xs" />
           </Field>
           <label className="flex cursor-pointer items-start gap-2 text-sm">
             <input type="checkbox" checked={enforceMinAge} onChange={(e) => setEnforceMinAge(e.target.checked)} className="mt-0.5 accent-[hsl(var(--primary))]" />

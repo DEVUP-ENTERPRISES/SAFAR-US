@@ -538,7 +538,7 @@ const schema = new Schema<PlatformConfigDoc>(
   {
     _id: { type: String, default: 'platform' },
     insurance: {
-      wheelbaseDealerId: { type: String, default: '4879882' },
+      wheelbaseDealerId: { type: String },
       requireApproved: { type: Boolean, default: true },
       enforceMinAge: { type: Boolean, default: true },
     },
