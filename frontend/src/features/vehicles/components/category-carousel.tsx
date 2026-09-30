@@ -108,7 +108,7 @@ export function CategoryCarousel({ city }: { city: string }) {
 
               {available ? (
                 <div className="relative z-10 flex translate-y-1 flex-col gap-0.5 p-4 transition-transform duration-500 group-hover:translate-y-0">
-                  <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-primary-soft opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+                  <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-white/80 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
                     <Sparkles className="h-2.5 w-2.5" /> Explore
                   </span>
                   <h3 className="display text-lg leading-tight text-white">{t.label}</h3>
@@ -155,7 +155,7 @@ export function CategoryCarousel({ city }: { city: string }) {
         <Link
           href={config.assetPartnersOnly ? '/asset-partners' : '/host'}
           style={{ animationDelay: `${tiles.length * 70}ms`, animationFillMode: 'backwards' }}
-          className="group animate-slide-up flex h-[204px] w-[150px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card/40 p-4 text-center transition-all duration-500 hover:border-primary/50 hover:bg-card sm:w-[165px]"
+          className="group animate-slide-up flex h-[204px] w-[150px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card p-4 text-center transition-all duration-500 hover:border-primary/50 hover:shadow-lg sm:w-[165px]"
         >
           <span className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-primary transition-transform duration-500 group-hover:scale-110">
             <ArrowRight className="h-4 w-4" />

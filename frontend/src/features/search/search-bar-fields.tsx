@@ -1,36 +1,43 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, MapPin, CalendarDays, Check } from 'lucide-react';
+import { Search, MapPin, Calendar, Clock, Check } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useFacets } from '@/features/vehicles/hooks';
 import { DateRangePicker } from './date-range-picker';
-import { Select } from '@/components/ui/select';
 import { useSearchBar } from './search-store';
 
-/**
- * The search bar.
- *
- * Rebuilt off native controls entirely. It previously used <input type="date">,
- * <input type="time"> and a <select>, all of which the OS draws - so the bar
- * showed "dd-mm-yyyy" placeholders and a blue system dropdown that belonged to
- * no design system at all. The old code's own comment said it was "customizing
- * native inputs to look premium", which is not possible: the picker is chrome,
- * not content.
- *
- * It also had TWO location inputs stacked - a free-text search and a city
- * select - so the same city appeared twice and it was unclear which one the
- * search actually used.
- *
- * Now: one location field and one range calendar, each in its own popover, all
- * styled by us. There is deliberately no driver-age field - it steered guests
- * toward young-driver surcharges before they had chosen anything, and it fed
- * nothing: the value was never sent to search.
- */
+// ─── Time options (30-min slots, 6 AM → 11:30 PM) ───────────────────────────
 
-const TIMES = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
+const TIMES: string[] = [];
+for (let h = 6; h <= 23; h++) {
+  TIMES.push(`${String(h).padStart(2, '0')}:00`);
+  if (h < 23) TIMES.push(`${String(h).padStart(2, '0')}:30`);
+}
+
+function formatTime(t: string): string {
+  const [h, m] = t.split(':').map(Number);
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function fmtDate(d: string): string {
+  return new Date(`${d}T00:00:00`).toLocaleDateString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type FieldId = 'place' | 'from-date' | 'from-time' | 'until-date' | 'until-time';
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function SearchBarFields({
   variant = 'bar',
@@ -44,17 +51,35 @@ export function SearchBarFields({
   const facets = useFacets();
   const cities = facets.data?.cities ?? [];
   const s = useSearchBar();
+  const phone = useIsPhone();
 
-  const [open, setOpen] = useState<'where' | 'when' | null>(null);
+  const [open, setOpen] = useState<FieldId | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
+  // Each field segment registers its button ref here so the overlay can
+  // anchor directly below the clicked field, not the whole bar.
+  const segRefs = useRef<Partial<Record<FieldId, HTMLButtonElement | null>>>({});
 
-  // Close on an outside click or Escape - a popover that traps you feels broken.
+  // Lock body scroll while any panel is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
+  // Close on outside click / Escape
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      // The phone sheet lives outside this element (at page level), so taps inside a [role=dialog] never count as outside.
       const t = e.target as HTMLElement;
-      if (wrap.current && !wrap.current.contains(t) && !t.closest?.('[role="dialog"]')) setOpen(null);
+      if (
+        wrap.current &&
+        !wrap.current.contains(t) &&
+        !t.closest?.('[data-search-panel]')
+      )
+        setOpen(null);
     };
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null);
     document.addEventListener('mousedown', onDown);
@@ -66,7 +91,7 @@ export function SearchBarFields({
   }, [open]);
 
   const activeCity = cities.find((c) => c.city === s.city) ?? cities[0];
-  const cityLabel = s.center?.label ?? activeCity?.city ?? 'Anywhere';
+  const placeLabel = s.center?.label ?? activeCity?.city ?? '';
 
   const onSearch = () => {
     setOpen(null);
@@ -82,177 +107,378 @@ export function SearchBarFields({
   };
 
   const isNav = variant === 'nav';
-  const fmt = (d: string) =>
-    d ? new Date(`${d}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Add dates';
+  const flow = calendarPlacement === 'flow';
+
+  // ── Shared panel renderer ──────────────────────────────────────────────────
+
+  const renderPanel = (id: FieldId) => {
+    if (open !== id) return null;
+    const anchorEl = segRefs.current[id] ?? null;
+
+    // Place picker
+    if (id === 'place') {
+      return (
+        <Panel flow={flow} phone={phone} onClose={() => setOpen(null)} wide={false} anchorEl={anchorEl}>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            Select a city
+          </p>
+          {cities.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              {facets.isPending ? 'Loading…' : 'No cities yet.'}
+            </p>
+          ) : (
+            <ul className="-mx-2">
+              {cities.map((c) => {
+                const on = (s.center?.label ?? s.city) === c.city;
+                return (
+                  <li key={c.city}>
+                    <button
+                      onClick={() => {
+                        s.patch({ city: c.city, center: null });
+                        setOpen('from-date');
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-start transition-colors hover:bg-muted"
+                    >
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold">{c.city}</p>
+                        <p className="text-xs text-muted-foreground">
+                          From{' '}
+                          <span className="numeric font-medium text-foreground">
+                            ${Math.round(c.fromPrice / 100)}
+                          </span>{' '}
+                          / day
+                        </p>
+                      </div>
+                      {on && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
+      );
+    }
+
+    if (id === 'from-date' || id === 'until-date') {
+      return (
+        <Panel flow={flow} phone={phone} onClose={() => setOpen(null)} wide anchorEl={anchorEl}>
+          <DateRangePicker
+            from={s.fromDate}
+            to={s.untilDate}
+            onChange={(f, t) => {
+              s.patch({ fromDate: f, untilDate: t });
+              if (f && t) setOpen('from-time');
+            }}
+          />
+        </Panel>
+      );
+    }
+
+    if (id === 'from-time' || id === 'until-time') {
+      const isFrom = id === 'from-time';
+      const current = isFrom ? s.fromTime : s.untilTime;
+      const onChange = (v: string) =>
+        isFrom ? s.patch({ fromTime: v }) : s.patch({ untilTime: v });
+      const label = isFrom ? 'Pick-up time' : 'Return time';
+      const nextField: FieldId | null = isFrom ? 'until-date' : null;
+
+      return (
+        <Panel flow={flow} phone={phone} onClose={() => setOpen(null)} wide={false} anchorEl={anchorEl}>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            {label}
+          </p>
+          <ul className="max-h-64 overflow-y-auto -mx-1">
+            {TIMES.map((t) => (
+              <li key={t}>
+                <button
+                  onClick={() => {
+                    onChange(t);
+                    if (nextField) setOpen(nextField);
+                    else setOpen(null);
+                  }}
+                  className={cn(
+                    'flex w-full items-center rounded-lg px-3 py-2 text-sm transition-colors',
+                    current === t
+                      ? 'bg-primary/10 font-semibold text-primary'
+                      : 'hover:bg-muted text-foreground',
+                  )}
+                >
+                  {formatTime(t)}
+                  {current === t && <Check className="ms-auto h-4 w-4 text-primary" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      );
+    }
+
+    return null;
+  };
+
+  // ── Nav variant (compact navbar pill) ────────────────────────────────────
+
+  if (isNav) {
+    return (
+      <div ref={wrap} className="relative w-full">
+        <div className="flex h-[52px] w-full items-stretch divide-x divide-border/50 rounded-full border border-border/50 bg-card">
+          <Seg
+            icon={<MapPin className="h-3.5 w-3.5" />}
+            label="Where"
+            value={placeLabel || 'Anywhere'}
+            open={open === 'place'}
+            onOpen={() => setOpen(open === 'place' ? null : 'place')}
+            grow
+          />
+          <Seg
+            icon={<Calendar className="h-3.5 w-3.5" />}
+            label="From"
+            value={s.fromDate ? `${fmtDate(s.fromDate)} ${formatTime(s.fromTime)}` : 'Add dates'}
+            open={open === 'from-date'}
+            onOpen={() => setOpen(open === 'from-date' ? null : 'from-date')}
+          />
+          <Seg
+            icon={<Calendar className="h-3.5 w-3.5" />}
+            label="Until"
+            value={s.untilDate ? `${fmtDate(s.untilDate)} ${formatTime(s.untilTime)}` : 'Add dates'}
+            open={open === 'until-date'}
+            onOpen={() => setOpen(open === 'until-date' ? null : 'until-date')}
+          />
+          <div className="flex items-center pe-1 ps-2">
+            <button
+              onClick={onSearch}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-all hover:brightness-110 active:scale-95"
+              aria-label="Search"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        {renderPanel('place')}
+        {renderPanel('from-date')}
+        {renderPanel('until-date')}
+        {renderPanel('from-time')}
+        {renderPanel('until-time')}
+      </div>
+    );
+  }
+
+  // ── Bar variant (hero + search page) ─────────────────────────────────────
+  // Turo layout: Where | From date | From time | Until date | Until time | 🔍
+  // Single horizontal pill on sm+, stacked on mobile.
 
   return (
-    <div ref={wrap} className="relative w-full">
+    <div ref={wrap} className="w-full" data-search-root>
       <div
         className={cn(
-          'flex items-stretch bg-card transition-shadow',
-          isNav
-            ? 'h-[52px] w-full divide-x divide-border/50 rounded-full border border-border/50'
-            : 'flex-col rounded-[1.75rem] border border-border/50 ring-4 ring-primary/20 shadow-[0_0_30px_rgba(var(--primary),0.3)] hover:shadow-[0_0_40px_rgba(var(--primary),0.4)] transition-shadow duration-300 lg:h-[72px] lg:flex-row lg:divide-x lg:divide-border/50 lg:rounded-full lg:p-1.5',
+          'flex items-stretch bg-card',
+          'flex-col overflow-hidden rounded-2xl border border-border/50 shadow-2xl',
+          'sm:h-[72px] sm:flex-row sm:rounded-full',
         )}
       >
-        <Field
-          open={open === 'where'}
-          onOpen={() => setOpen(open === 'where' ? null : 'where')}
+        {/* Where */}
+        <Seg
+          id="place"
+          segRefs={segRefs}
           icon={<MapPin className="h-4 w-4" />}
-          label="Where"
-          value={cityLabel}
-          nav={isNav}
+          label="Place"
+          value={placeLabel}
+          placeholder="Where are you going?"
+          open={open === 'place'}
+          onOpen={() => setOpen(open === 'place' ? null : 'place')}
           grow
-          className={!isNav ? 'border-b border-border/50 lg:border-b-0' : undefined}
-        />
-        <Field
-          open={open === 'when'}
-          onOpen={() => setOpen(open === 'when' ? null : 'when')}
-          icon={<CalendarDays className="h-4 w-4" />}
-          label="When"
-          value={s.fromDate && s.untilDate ? `${fmt(s.fromDate)} - ${fmt(s.untilDate)}` : 'Add dates'}
-          nav={isNav}
-          grow
+          divider
+          bar
         />
 
-        <div className={cn('flex items-center', isNav ? 'ps-3 pe-1' : 'p-3 lg:p-0 lg:pe-1')}>
+        {/* From date */}
+        <Seg
+          id="from-date"
+          segRefs={segRefs}
+          icon={<Calendar className="h-4 w-4" />}
+          label="Pickup date"
+          value={s.fromDate ? fmtDate(s.fromDate) : ''}
+          placeholder="Add date"
+          open={open === 'from-date'}
+          onOpen={() => setOpen(open === 'from-date' ? null : 'from-date')}
+          divider
+          bar
+        />
+
+        {/* From time */}
+        <Seg
+          id="from-time"
+          segRefs={segRefs}
+          icon={<Clock className="h-4 w-4" />}
+          label="Pickup time"
+          value={s.fromDate ? formatTime(s.fromTime) : ''}
+          placeholder="10:00 AM"
+          open={open === 'from-time'}
+          onOpen={() => setOpen(open === 'from-time' ? null : 'from-time')}
+          divider
+          bar
+        />
+
+        {/* Until date */}
+        <Seg
+          id="until-date"
+          segRefs={segRefs}
+          icon={<Calendar className="h-4 w-4" />}
+          label="Return date"
+          value={s.untilDate ? fmtDate(s.untilDate) : ''}
+          placeholder="Add date"
+          open={open === 'until-date'}
+          onOpen={() => setOpen(open === 'until-date' ? null : 'until-date')}
+          divider
+          bar
+        />
+
+        {/* Until time */}
+        <Seg
+          id="until-time"
+          segRefs={segRefs}
+          icon={<Clock className="h-4 w-4" />}
+          label="Return time"
+          value={s.untilDate ? formatTime(s.untilTime) : ''}
+          placeholder="10:00 AM"
+          open={open === 'until-time'}
+          onOpen={() => setOpen(open === 'until-time' ? null : 'until-time')}
+          bar
+        />
+
+        {/* Search */}
+        <div className="flex items-center p-2.5 sm:pe-2.5">
           <button
             onClick={onSearch}
-            className={cn(
-              'flex items-center justify-center gap-2 rounded-full bg-primary font-bold text-primary-foreground',
-              'transition-all hover:brightness-110 active:scale-95',
-              isNav ? 'h-9 px-5 text-sm' : 'h-12 w-full py-3 text-base lg:h-14 lg:w-14 lg:p-0',
-            )}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary font-bold text-primary-foreground transition-all hover:brightness-110 active:scale-95 sm:h-12 sm:w-12"
             aria-label="Search"
           >
             <Search className="h-5 w-5" />
-            <span className={isNav ? '' : 'lg:hidden'}>Search</span>
+            <span className="sm:hidden">Search</span>
           </button>
         </div>
       </div>
 
-      {/* ── Popovers ── */}
-      {open === 'where' && (
-        <>
-          <Panel flow={calendarPlacement === 'flow'} onClose={() => setOpen(null)}>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Cities with cars</p>
-            {cities.length === 0 ? (
-              <p className="py-2 text-sm text-muted-foreground">
-                {facets.isPending ? 'Loading…' : 'No cars listed yet.'}
-              </p>
-            ) : (
-              <ul className="-mx-2">
-                {cities.map((c) => {
-                  const on = (s.center?.label ?? activeCity?.city) === c.city;
-                  return (
-                    <li key={c.city}>
-                      <button
-                        onClick={() => { s.patch({ city: c.city, center: null }); setOpen('when'); }}
-                        className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-start transition-colors hover:bg-muted"
-                      >
-                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block font-medium">{c.city}</span>
-                          <span className="block text-xs text-muted-foreground">
-                            From <span className="numeric font-medium text-foreground">${Math.round(c.fromPrice / 100)}</span> a day
-                          </span>
-                        </span>
-                        {on && <Check className="h-4 w-4 shrink-0 text-primary" />}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Panel>
-        </>
-      )}
-
-      {open === 'when' && (
-        <>
-          <Panel flow={calendarPlacement === 'flow'} onClose={() => setOpen(null)}>
-            <DateRangePicker
-              from={s.fromDate}
-              to={s.untilDate}
-              onChange={(f, t) => s.patch({ fromDate: f, untilDate: t })}
-            />
-            <div className="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-3">
-              <TimeField label="Pick-up" value={s.fromTime} onChange={(v) => s.patch({ fromTime: v })} />
-              <TimeField label="Return" value={s.untilTime} onChange={(v) => s.patch({ untilTime: v })} />
-            </div>
-            <button type="button" onClick={() => setOpen(null)} className="mt-4 h-12 w-full rounded-full bg-primary text-base font-bold text-primary-foreground sm:hidden">
-              Done
-            </button>
-          </Panel>
-        </>
-      )}
-
+      {/* Panels */}
+      {renderPanel('place')}
+      {renderPanel('from-date')}
+      {renderPanel('from-time')}
+      {renderPanel('until-date')}
+      {renderPanel('until-time')}
     </div>
   );
 }
 
-function Field({
-  open, onOpen, icon, label, value, nav, grow, className,
+// ─── Seg (field segment) ─────────────────────────────────────────────────────
+
+function Seg({
+  id, segRefs, icon, label, value, placeholder, open, onOpen, grow, divider, bar,
 }: {
-  open: boolean; onOpen: () => void; icon: React.ReactNode; label: string;
-  value: string; nav: boolean; grow?: boolean; className?: string;
+  id: FieldId;
+  segRefs?: React.MutableRefObject<Partial<Record<FieldId, HTMLButtonElement | null>>>;
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  placeholder?: string;
+  open: boolean;
+  onOpen: () => void;
+  grow?: boolean;
+  divider?: boolean;
+  bar?: boolean;
 }) {
   return (
     <button
       type="button"
+      ref={segRefs ? (el) => { segRefs.current[id] = el; } : undefined}
       onClick={onOpen}
       aria-expanded={open}
       className={cn(
-        'flex min-w-0 items-center gap-2.5 text-start transition-colors',
-        grow && 'flex-1',
-        nav ? 'h-full px-4' : 'px-5 py-4 lg:py-0',
-        open ? 'rounded-full bg-muted' : 'hover:bg-muted/60 rounded-full',
-        className,
+        'flex min-w-0 items-center gap-2 text-start transition-colors',
+        grow ? 'flex-1' : '',
+        bar
+          ? cn(
+              'px-5 py-4 sm:py-0',
+              divider && 'border-b border-border/50 sm:border-b-0 sm:border-r sm:border-border/40',
+              open ? 'bg-muted/40' : 'hover:bg-muted/20',
+            )
+          : cn('h-full px-3', open ? 'bg-muted/50' : 'hover:bg-muted/30'),
       )}
     >
       <span className="shrink-0 text-muted-foreground">{icon}</span>
       <span className="min-w-0">
-        <span className={cn('block font-bold uppercase tracking-[0.14em] text-muted-foreground', nav ? 'text-[9px]' : 'text-[10px]')}>
+        <span
+          className={cn(
+            'block font-bold uppercase tracking-[0.13em] text-muted-foreground',
+            bar ? 'text-[10px]' : 'text-[8px]',
+          )}
+        >
           {label}
         </span>
-        <span className={cn('block truncate font-semibold', nav ? 'text-sm' : 'text-[15px]')}>{value}</span>
+        <span
+          className={cn(
+            'block truncate font-semibold leading-tight',
+            bar ? 'text-sm' : 'text-xs',
+            value ? 'text-foreground' : 'text-muted-foreground/55',
+          )}
+        >
+          {value || placeholder || '—'}
+        </span>
       </span>
     </button>
   );
 }
 
-function Panel({ children, flow = false, onClose }: { children: React.ReactNode; flow?: boolean; onClose: () => void }) {
-  const phone = useIsPhone();
-  // Phones: a bottom sheet rendered at the top of the page, so no header, hero or tab bar can sit over it.
+// ─── Panel ────────────────────────────────────────────────────────────────────
+
+function Panel({
+  children, flow, phone, onClose, wide, anchorEl,
+}: {
+  children: React.ReactNode;
+  flow: boolean;
+  phone: boolean;
+  onClose: () => void;
+  wide: boolean;
+  anchorEl: HTMLElement | null;
+}) {
   if (phone) {
     return createPortal(
       <>
         <div className="fixed inset-0 z-[90] bg-black/50" onClick={onClose} aria-hidden />
         <div
-          data-lenis-prevent
+          data-search-panel
           role="dialog"
           aria-modal="true"
-          className="fixed inset-x-0 bottom-0 z-[91] max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-border bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl"
+          className="fixed inset-x-0 bottom-0 z-[91] max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-border bg-card p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl"
         >
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" aria-hidden />
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" aria-hidden />
           {children}
         </div>
       </>,
       document.body,
     );
   }
-  // Larger screens: inline under the hero search (flow) or a popover under the bar. data-lenis-prevent lets it scroll on its own.
+
+  if (!flow) {
+    return createPortal(
+      <PortaledOverlay onClose={onClose} wide={wide} anchorEl={anchorEl}>
+        {children}
+      </PortaledOverlay>,
+      document.body,
+    );
+  }
+
   return (
     <div
-      data-lenis-prevent
+      data-search-panel
       role="dialog"
       className={cn(
-        'z-50 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-4 shadow-2xl ring-1 ring-black/5',
-        flow
-          ? 'relative mt-3 max-h-[min(38rem,calc(100dvh-7rem))]'
-          : 'absolute start-0 top-full mt-3 max-h-[min(38rem,calc(100dvh-8rem))] w-[min(24rem,calc(100vw-2rem))]',
+        'z-50 mt-3 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-5 shadow-2xl ring-1 ring-black/5',
+        'max-h-[min(36rem,calc(100dvh-8rem))]',
+        wide ? 'w-fit' : 'min-w-[16rem] w-[min(22rem,calc(100vw-2rem))]',
       )}
     >
       {children}
@@ -260,7 +486,77 @@ function Panel({ children, flow = false, onClose }: { children: React.ReactNode;
   );
 }
 
-/** True below the sm breakpoint (640px), kept in sync as the window resizes. */
+// ─── PortaledOverlay ─────────────────────────────────────────────────────────
+// Rendered into document.body so it never shifts any parent layout.
+// Measures the search bar wrapper and positions the panel centered below it.
+
+function PortaledOverlay({
+  children, onClose, wide, anchorEl,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+  wide: boolean;
+  anchorEl: HTMLElement | null;
+}) {
+  const [style, setStyle] = useState<React.CSSProperties>({ opacity: 0 });
+
+  const reposition = useCallback(() => {
+    const anchor = anchorEl ?? (document.querySelector('[data-search-root]') as HTMLElement | null);
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    const panelW = wide
+      ? Math.min(680, window.innerWidth - 16)
+      : Math.min(320, window.innerWidth - 16);
+    // Centre under the anchor, clamped to viewport
+    const left = Math.max(8, Math.min(
+      rect.left + rect.width / 2 - panelW / 2,
+      window.innerWidth - panelW - 8,
+    ));
+    setStyle({
+      position: 'fixed',
+      top: rect.bottom + 8,
+      left,
+      width: panelW,
+      zIndex: 9999,
+      opacity: 1,
+    });
+  }, [anchorEl, wide]);
+
+  useEffect(() => {
+    reposition();
+    window.addEventListener('scroll', reposition, { passive: true });
+    window.addEventListener('resize', reposition);
+    return () => {
+      window.removeEventListener('scroll', reposition);
+      window.removeEventListener('resize', reposition);
+    };
+  }, [reposition]);
+
+  return createPortal(
+    <>
+      {/* Full-screen backdrop — prevents scroll, closes on click */}
+      <div
+        className="fixed inset-0 z-[9998]"
+        style={{ touchAction: 'none' }}
+        onClick={onClose}
+        aria-hidden
+      />
+      <div
+        data-search-panel
+        role="dialog"
+        aria-modal="true"
+        style={style}
+        className="max-h-[min(42rem,calc(100dvh-8rem))] overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-5 shadow-2xl transition-opacity duration-100"
+      >
+        {children}
+      </div>
+    </>,
+    document.body,
+  );
+}
+
+// ─── useIsPhone ───────────────────────────────────────────────────────────────
+
 function useIsPhone(): boolean {
   const [phone, setPhone] = useState(false);
   useEffect(() => {
@@ -271,24 +567,4 @@ function useIsPhone(): boolean {
     return () => mq.removeEventListener('change', sync);
   }, []);
   return phone;
-}
-
-function TimeField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  const id = `time-${label.toLowerCase().replace(/\W+/g, '-')}`;
-  return (
-    <label htmlFor={id} className="block min-w-0">
-      <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>
-      <Select id={id} size="md" value={value} onChange={(e) => onChange(e.target.value)} className="w-full">
-        {TIMES.map((t) => (
-          <option key={t} value={t}>{formatTime(t)}</option>
-        ))}
-      </Select>
-    </label>
-  );
-}
-
-/** 14:00 -> 2:00 PM, how US guests read times. */
-function formatTime(t: string): string {
-  const [h, m] = t.split(':').map(Number);
-  return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
