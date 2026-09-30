@@ -440,7 +440,7 @@ export class BookingService {
         priceBreakdown: breakdown,
         cancellationPolicy: vehicle.cancellationPolicy,
         terms: acceptedTerms, // the T&C version this guest accepted to book
-        insurance: await wheelbaseInsuranceService.snapshot(dto.vehicleId),
+        insurance: await wheelbaseInsuranceService.snapshot(dto.vehicleId, breakdown.protectionPlan),
         delivery: dto.delivery, // where the host brings the car, if requested
         status,
         statusHistory: [{ from: null, to: status, at: now, by: guestId }],

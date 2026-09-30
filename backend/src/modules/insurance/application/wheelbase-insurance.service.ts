@@ -8,6 +8,9 @@ import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
 import { fetchDealerListings, type WheelbaseListing } from '../infrastructure/wheelbase.client';
+import { BookingModel, type BookingDoc } from '../../bookings/infrastructure/booking.model';
+import { TripModel } from '../../trips/infrastructure/trip.model';
+import { getProtectionPlan } from '../../pricing/domain/protection-plans';
 
 const norm = (s?: string) => (s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -32,6 +35,29 @@ export function linkFrom(l: WheelbaseListing, linkedBy: WheelbaseLink['linkedBy'
     found: true,
     syncedAt: new Date(),
   };
+}
+
+/** One trip in the report owed to Wheelbase. */
+export interface WheelbaseTripRow {
+  bookingId: string;
+  code: string;
+  status: string;
+  start: Date;
+  end: Date;
+  pickedUpAt?: Date;
+  returnedAt?: Date;
+  vehicle: string;
+  vin?: string;
+  plate?: string;
+  wheelbaseListing?: number;
+  plan?: string;
+  protection?: string;
+  deductibleCents?: number;
+  driver: string;
+  driverEmail?: string;
+  odometerStart?: number;
+  odometerEnd?: number;
+  report: { status: 'pending' | 'reported'; dueSince?: Date; reportedAt?: Date; reportedBy?: string; reference?: string };
 }
 
 export interface WheelbaseSyncResult {
@@ -170,11 +196,12 @@ export const wheelbaseInsuranceService = {
     }
   },
 
-  /** What is recorded on a booking: the car's insurance as it stood when it was booked. */
-  async snapshot(vehicleId: string): Promise<Record<string, unknown> | undefined> {
+  /** What is recorded on a booking: the car's insurance as it stood when it was booked, and the protection tier chosen. */
+  async snapshot(vehicleId: string, protectionCode?: string): Promise<Record<string, unknown> | undefined> {
     const car = await VehicleModel.findById(vehicleId).select('wheelbase').lean<Pick<VehicleDoc, 'wheelbase'>>();
     const wb = car?.wheelbase;
     if (!wb) return undefined;
+    const plan = await getProtectionPlan(protectionCode);
     return {
       provider: 'wheelbase',
       rentalId: wb.rentalId,
@@ -183,6 +210,80 @@ export const wheelbaseInsuranceService = {
       planLabel: wb.planLabel,
       minRenterAge: wb.minRenterAge,
       checkedAt: wb.syncedAt,
+      protectionCode: plan.code,
+      protectionLabel: plan.label,
+      ...(plan.wheelbaseTier ? { wheelbaseTier: plan.wheelbaseTier } : {}),
+      ...(plan.deductibleCents != null ? { deductibleCents: plan.deductibleCents } : {}),
     };
+  },
+
+  /** A started trip on a Wheelbase-insured car is owed to Wheelbase; staff are told once. */
+  async markTripReportable(bookingId: string): Promise<void> {
+    const res = await BookingModel.updateOne(
+      { _id: bookingId, 'insurance.provider': 'wheelbase', 'insurance.report.status': { $exists: false } },
+      { $set: { 'insurance.report': { status: 'pending', dueSince: new Date() } } },
+    );
+    if (res.modifiedCount) emit(EVENTS.INSURANCE_TRIP_TO_REPORT, bookingId, { bookingId });
+  },
+
+  /** Trips owed to Wheelbase (pending first) with everything the report needs. */
+  async tripReport(status?: 'pending' | 'reported'): Promise<WheelbaseTripRow[]> {
+    const filter: Record<string, unknown> = { 'insurance.provider': 'wheelbase', 'insurance.report.status': status ?? { $exists: true } };
+    const bookings = await BookingModel.find(filter)
+      .sort({ 'insurance.report.dueSince': -1 })
+      .limit(500)
+      .select('code guestId vehicleId period status insurance')
+      .lean<Pick<BookingDoc, '_id' | 'code' | 'guestId' | 'vehicleId' | 'period' | 'status' | 'insurance'>[]>();
+    const [cars, users, trips] = await Promise.all([
+      VehicleModel.find({ _id: { $in: bookings.map((b) => b.vehicleId) } }).select('year make model vin registrationNumber').lean<VehicleDoc[]>(),
+      UserModel.find({ _id: { $in: bookings.map((b) => b.guestId) } }).select('firstName lastName email').lean<{ _id: string; firstName?: string; lastName?: string; email?: string }[]>(),
+      TripModel.find({ bookingId: { $in: bookings.map((b) => b._id) } }).select('bookingId handover return').lean<{ bookingId: string; handover?: { at?: Date; odometerStart?: number }; return?: { at?: Date; odometerEnd?: number } }[]>(),
+    ]);
+    const car = new Map(cars.map((c) => [c._id, c]));
+    const user = new Map(users.map((u) => [u._id, u]));
+    const trip = new Map(trips.map((t) => [t.bookingId, t]));
+    return bookings.map((b) => {
+      const c = car.get(b.vehicleId);
+      const u = user.get(b.guestId);
+      const t = trip.get(b._id);
+      const ins = b.insurance!;
+      return {
+        bookingId: b._id,
+        code: b.code,
+        status: b.status,
+        start: b.period.start,
+        end: b.period.end,
+        pickedUpAt: t?.handover?.at,
+        returnedAt: t?.return?.at,
+        vehicle: c ? `${c.year} ${c.make} ${c.model}` : '',
+        vin: c?.vin,
+        plate: c?.registrationNumber,
+        wheelbaseListing: ins.rentalId,
+        plan: ins.planLabel,
+        protection: ins.wheelbaseTier ?? ins.protectionLabel,
+        deductibleCents: ins.deductibleCents,
+        driver: u ? [u.firstName, u.lastName].filter(Boolean).join(' ') : '',
+        driverEmail: u?.email,
+        odometerStart: t?.handover?.odometerStart,
+        odometerEnd: t?.return?.odometerEnd,
+        report: ins.report!,
+      };
+    });
+  },
+
+  /** Staff record that a trip was sent to Wheelbase, with Wheelbase's reference when there is one. */
+  async markReported(bookingIds: string[], staffId: string, reference?: string): Promise<number> {
+    const res = await BookingModel.updateMany(
+      { _id: { $in: bookingIds }, 'insurance.report.status': 'pending' },
+      {
+        $set: {
+          'insurance.report.status': 'reported',
+          'insurance.report.reportedAt': new Date(),
+          'insurance.report.reportedBy': staffId,
+          ...(reference ? { 'insurance.report.reference': reference } : {}),
+        },
+      },
+    );
+    return res.modifiedCount;
   },
 };

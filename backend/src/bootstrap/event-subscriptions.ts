@@ -558,6 +558,22 @@ export function registerEventSubscribers(): void {
     await notifyStaff('insurance.status_changed', 'Car insurance no longer approved', `${p.name} (vehicle ${p.vehicleId}): Wheelbase insurance changed from ${p.from ?? 'unknown'} to ${p.to}. Check it in Admin → Insurance.`, { vehicleId: p.vehicleId }, 'critical');
   });
 
+  // Every started trip on a Wheelbase-insured car is owed to Wheelbase.
+  eventBus.subscribe(EVENTS.TRIP_STARTED, async (e) => {
+    const p = e.payload as { bookingId: string };
+    await wheelbaseInsuranceService.markTripReportable(p.bookingId);
+  });
+
+  eventBus.subscribe(EVENTS.INSURANCE_TRIP_TO_REPORT, async (e) => {
+    const p = e.payload as { bookingId: string };
+    await notifyStaff('insurance.trip_to_report', 'Report a trip to Wheelbase', `A trip started on a Wheelbase-insured car (booking ${p.bookingId}). Report it in Admin → Insurance → Trips to report.`, { bookingId: p.bookingId }, 'high');
+  });
+
+  eventBus.subscribe(EVENTS.INSURANCE_CLAIM_TO_FILE, async (e) => {
+    const p = e.payload as { claimId: string; bookingId: string };
+    await notifyStaff('insurance.claim_to_file', 'File a claim with Wheelbase', `A damage claim was opened on a Wheelbase-insured trip (booking ${p.bookingId}). Download the claim pack and file it in Admin → Insurance → Claims.`, { claimId: p.claimId, bookingId: p.bookingId }, 'critical');
+  });
+
   // A new Wheelbase dealer ID is read straight away, not at the next scheduled check.
   eventBus.subscribe(EVENTS.PLATFORM_CONFIG_UPDATED, async (e) => {
     const p = e.payload as { keys?: string[] };

@@ -91,8 +91,12 @@ export class ClaimService {
         .catch((err) => logger.warn({ err, tripId, claimId: claim._id }, 'AI damage review kickoff failed'));
     }
 
+    // An insured trip's claim also goes to Wheelbase; failing to open that record never blocks the claim itself.
+    const { wheelbaseClaimsService } = await import('../../insurance/application/wheelbase-claims.service');
+    await wheelbaseClaimsService.open(claim).catch((err) => logger.warn({ err, claimId: claim._id }, 'Wheelbase claim record not opened'));
+
     this.notify(respondentId, 'claim.opened', 'A claim was filed against you', 'A claim was opened on one of your trips. Review the evidence and respond.', claim._id);
-    return claim.toObject();
+    return (await ClaimModel.findById(claim._id).lean<ClaimDoc>()) ?? claim.toObject();
   }
 
   /** A claim may only be filed by the guest or the host side of the booking, and a trip must belong to that booking. */
@@ -285,7 +289,11 @@ export class ClaimService {
     //    taken is booked as recovered; whatever could not be collected is the
     //    platform's cost, so the claimant is made whole either way.
     if (input.amountApproved > 0) {
-      const collected = claim.collectedCents ?? (await this.collectFromGuest(claim, input.amountApproved));
+      // While Wheelbase covers the loss the guest owes at most their deductible; the rest is recovered from Wheelbase.
+      const { wheelbaseClaimsService } = await import('../../insurance/application/wheelbase-claims.service');
+      const cap = wheelbaseClaimsService.guestCap(claim);
+      const owed = cap == null ? input.amountApproved : Math.min(input.amountApproved, cap);
+      const collected = claim.collectedCents ?? (await this.collectFromGuest(claim, owed));
       if (claim.collectedCents === undefined) await ClaimModel.updateOne({ _id: claimId }, { collectedCents: collected });
       const fromPlatform = input.amountApproved - collected;
       const legs = (debit: string, amount: number) => [

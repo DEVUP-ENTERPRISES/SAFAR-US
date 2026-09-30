@@ -63,6 +63,7 @@ interface ProtectionPlan {
   label: string;
   description: string;
   pricePerDay: number;
+  deductibleCents?: number;
 }
 
 
@@ -969,6 +970,9 @@ export default function VehicleDetailPage() {
             {plans.data && plans.data.length > 0 && (
               <div className="space-y-2">
                 <p className="text-sm font-medium">Protection</p>
+                <p className="text-xs text-muted-foreground">
+                  {v.insurance?.approved ? `Every trip is insured through Wheelbase (${v.insurance.planLabel || 'Wheelbase plan'}).` : 'Every trip is insured.'} Your plan sets the most you pay toward damage.
+                </p>
                 {plans.data.map((p) => (
                   <label
                     key={p.code}
@@ -983,7 +987,12 @@ export default function VehicleDetailPage() {
                         <span>{p.label}</span>
                         <span>{p.pricePerDay === 0 ? 'Free' : `${formatMoney({ amount: p.pricePerDay, currency: v.pricing.currency })}/day`}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">{p.description}</p>
+                      {p.description && <p className="text-xs text-muted-foreground">{p.description}</p>}
+                      {p.deductibleCents != null && (
+                        <p className="text-xs font-medium">
+                          {p.deductibleCents === 0 ? 'No deductible' : `${formatMoney({ amount: p.deductibleCents, currency: v.pricing.currency })} deductible`}
+                        </p>
+                      )}
                     </div>
                   </label>
                 ))}

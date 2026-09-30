@@ -760,23 +760,56 @@ export default function AdminEconomicsPage() {
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Protection plans</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Every trip is insured through Wheelbase; a plan sets how much of a loss the guest carries. Enter Wheelbase’s tier name and deductible for each.
+            A paid plan without a Wheelbase tier is never shown to guests.
+          </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          {draft.protection.map((p, i) => (
-            <div key={p.code} className="grid items-end gap-3 rounded-xl border border-border p-3 sm:grid-cols-4">
-              <Field label="Code"><Input value={p.code} disabled /></Field>
-              <Field label="Label">
-                <Input value={p.label} onChange={(e) => set((d) => { d.protection[i].label = e.target.value; })} />
-              </Field>
-              <Field label="Description">
-                <Input value={p.description} onChange={(e) => set((d) => { d.protection[i].description = e.target.value; })} />
-              </Field>
-              <Field label="Price / day ($)">
-                <Input type="number" step="0.01" value={toDollars(p.pricePerDay)}
-                  onChange={(e) => set((d) => { d.protection[i].pricePerDay = toCents(e.target.value); })} />
-              </Field>
-            </div>
-          ))}
+          {draft.protection.map((p, i) => {
+            const hidden = p.pricePerDay > 0 && !p.wheelbaseTier?.trim();
+            return (
+              <div key={p.code} className="space-y-2 rounded-xl border border-border p-3">
+                <div className="grid items-end gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  <Field label="Code"><Input value={p.code} disabled /></Field>
+                  <Field label="Label">
+                    <Input value={p.label} onChange={(e) => set((d) => { d.protection[i].label = e.target.value; })} />
+                  </Field>
+                  <Field label="Description">
+                    <Input value={p.description} onChange={(e) => set((d) => { d.protection[i].description = e.target.value; })} />
+                  </Field>
+                  <Field label="Wheelbase tier">
+                    <Input value={p.wheelbaseTier ?? ''} placeholder="As Wheelbase names it"
+                      onChange={(e) => set((d) => { d.protection[i].wheelbaseTier = e.target.value; })} />
+                  </Field>
+                  <Field label="Deductible ($)">
+                    <Input type="number" step="1" min={0} value={p.deductibleCents != null ? toDollars(p.deductibleCents) : ''}
+                      onChange={(e) => set((d) => { d.protection[i].deductibleCents = e.target.value === '' ? undefined : toCents(e.target.value); })} />
+                  </Field>
+                  <Field label="Price / day ($)">
+                    <Input type="number" step="0.01" value={toDollars(p.pricePerDay)}
+                      onChange={(e) => set((d) => { d.protection[i].pricePerDay = toCents(e.target.value); })} />
+                  </Field>
+                </div>
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className={hidden ? 'text-amber-600' : 'text-muted-foreground'}>
+                    {hidden ? 'Hidden from guests: add the Wheelbase tier this plan is sold as.' : 'Offered at checkout.'}
+                  </span>
+                  {draft.protection.length > 1 && (
+                    <button type="button" className="text-destructive hover:underline" onClick={() => set((d) => { d.protection.splice(i, 1); })}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          <Button variant="outline" size="sm" onClick={() => set((d) => {
+            const n = d.protection.length + 1;
+            d.protection.push({ code: `plan_${Date.now().toString(36)}`, label: `Plan ${n}`, description: '', pricePerDay: 0 });
+          })}>
+            Add plan
+          </Button>
         </CardContent>
       </Card>
 

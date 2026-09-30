@@ -87,7 +87,13 @@ export interface BookingDoc {
    */
   terms?: { version: string; acceptedAt: Date; ip?: string };
   /** The car's insurance as it stood when this was booked (Wheelbase state, plan, minimum renter age). */
-  insurance?: { provider: string; rentalId?: number; insuranceState?: string; coverage?: string; planLabel?: string; minRenterAge?: number; checkedAt?: Date };
+  insurance?: {
+    provider: string; rentalId?: number; insuranceState?: string; coverage?: string; planLabel?: string; minRenterAge?: number; checkedAt?: Date;
+    /** The protection tier the guest chose, as sold under Wheelbase, and its deductible. */
+    protectionCode?: string; protectionLabel?: string; wheelbaseTier?: string; deductibleCents?: number;
+    /** Whether this trip has been reported to Wheelbase; set pending when the trip starts. */
+    report?: { status: 'pending' | 'reported'; dueSince?: Date; reportedAt?: Date; reportedBy?: string; reference?: string };
+  };
   /** Where the host delivers the car, when the guest requested delivery. */
   delivery?: {
     mode: 'airport' | 'home' | 'hotel' | 'business';
@@ -264,6 +270,17 @@ const schema = new Schema<BookingDoc>(
       planLabel: String,
       minRenterAge: Number,
       checkedAt: Date,
+      protectionCode: String,
+      protectionLabel: String,
+      wheelbaseTier: String,
+      deductibleCents: Number,
+      report: {
+        status: { type: String, enum: ['pending', 'reported'] },
+        dueSince: Date,
+        reportedAt: Date,
+        reportedBy: String,
+        reference: String,
+      },
     },
     delivery: {
       type: {

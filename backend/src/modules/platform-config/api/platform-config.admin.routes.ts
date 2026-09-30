@@ -401,6 +401,8 @@ router.put(
             label: z.string().min(1),
             description: z.string().default(''),
             pricePerDay: cents,
+            wheelbaseTier: z.string().trim().max(80).optional(),
+            deductibleCents: cents.optional(),
           }),
         )
         .optional(),

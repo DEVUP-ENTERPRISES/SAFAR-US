@@ -513,6 +513,10 @@ export interface PlatformConfigDoc {
     label: string;
     description: string;
     pricePerDay: number;
+    /** The Wheelbase protection tier this plan is sold as; a paid plan without one is never offered. */
+    wheelbaseTier?: string;
+    /** What the guest pays toward damage under this plan, in cents. */
+    deductibleCents?: number;
   }[];
   support: {
     /** Hours to first resolution, per priority. Drives SLA breach reporting. */
@@ -839,13 +843,11 @@ const schema = new Schema<PlatformConfigDoc>(
           label: String,
           description: String,
           pricePerDay: Number,
+          wheelbaseTier: String,
+          deductibleCents: Number,
         },
       ],
-      default: [
-        { code: 'basic', label: 'Basic', description: 'Included. Higher deductible, essential coverage.', pricePerDay: 0 },
-        { code: 'standard', label: 'Standard', description: 'Lower deductible, exterior damage protection.', pricePerDay: 1500 },
-        { code: 'premier', label: 'Premier', description: 'Zero deductible, full protection & roadside.', pricePerDay: 3000 },
-      ],
+      default: [{ code: 'basic', label: 'Wheelbase protection', description: 'Included with every trip.', pricePerDay: 0 }],
     },
     support: {
       slaHours: {

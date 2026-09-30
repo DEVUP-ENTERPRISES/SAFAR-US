@@ -119,7 +119,7 @@ export interface PlatformConfig {
   };
   rewards: { pointValueCents: number; pointsPerDollar: number };
   referral: { referrerCreditCents: number; refereeCreditCents: number; minTripSpendCents: number; maxRewardsPerReferrer: number };
-  protection: { code: string; label: string; description: string; pricePerDay: number }[];
+  protection: { code: string; label: string; description: string; pricePerDay: number; wheelbaseTier?: string; deductibleCents?: number }[];
   support: { slaHours: { urgent: number; high: number; normal: number; low: number } };
   surge: {
     enabled: boolean;
@@ -293,6 +293,50 @@ export interface WheelbaseCarLink {
   syncedAt: string;
 }
 
+/** One trip owed to Wheelbase. */
+export interface WheelbaseTripRow {
+  bookingId: string;
+  code: string;
+  status: string;
+  start: string;
+  end: string;
+  pickedUpAt?: string;
+  returnedAt?: string;
+  vehicle: string;
+  vin?: string;
+  plate?: string;
+  wheelbaseListing?: number;
+  plan?: string;
+  protection?: string;
+  deductibleCents?: number;
+  driver: string;
+  driverEmail?: string;
+  odometerStart?: number;
+  odometerEnd?: number;
+  report: { status: 'pending' | 'reported'; dueSince?: string; reportedAt?: string; reference?: string };
+}
+
+export type WheelbaseClaimStatus = 'to_file' | 'filed' | 'accepted' | 'denied' | 'paid';
+
+export interface WheelbaseClaim {
+  _id: string;
+  type: string;
+  bookingId?: string;
+  description: string;
+  status: string;
+  amountClaimed?: number;
+  createdAt: string;
+  insurance: {
+    status: WheelbaseClaimStatus;
+    deductibleCents?: number;
+    reference?: string;
+    payoutCents?: number;
+    filedAt?: string;
+    decidedAt?: string;
+    history: { status: WheelbaseClaimStatus; at: string; note?: string }[];
+  };
+}
+
 export interface WheelbaseOverview {
   dealerId: string;
   error?: string;
@@ -461,6 +505,15 @@ export const adminApi = {
   wheelbaseSync: () => api.post<WheelbaseSyncResult>('/admin/insurance/wheelbase/sync'),
   wheelbaseLink: (vehicleId: string, rentalId: number | null) =>
     api.patch<{ ok: true }>(`/admin/insurance/wheelbase/vehicles/${vehicleId}`, { rentalId }),
+  wheelbaseTrips: (status?: 'pending' | 'reported') =>
+    api.get<WheelbaseTripRow[]>('/admin/insurance/wheelbase/trips', status ? { status } : {}),
+  wheelbaseMarkReported: (bookingIds: string[], reference?: string) =>
+    api.post<{ updated: number }>('/admin/insurance/wheelbase/trips/reported', { bookingIds, ...(reference ? { reference } : {}) }),
+  wheelbaseClaims: (status?: WheelbaseClaimStatus) =>
+    api.get<WheelbaseClaim[]>('/admin/insurance/wheelbase/claims', status ? { status } : {}),
+  wheelbaseClaimPack: (claimId: string) => api.get<Record<string, unknown>>(`/admin/insurance/wheelbase/claims/${claimId}/pack`),
+  wheelbaseClaimUpdate: (claimId: string, body: { status: WheelbaseClaimStatus; reference?: string; payoutCents?: number; note?: string }) =>
+    api.patch<WheelbaseClaim>(`/admin/insurance/wheelbase/claims/${claimId}`, body),
   setExternalRating: (id: string, body: { rating: number; trips: number; source: string } | { clear: true }) =>
     api.raw(`/admin/vehicles/${id}/external-rating`, { method: 'PUT', body }).then((r) => r.data),
   vehicleAction: (id: string, action: 'approve' | 'suspend' | 'reject') =>

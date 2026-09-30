@@ -289,11 +289,7 @@ export class PlatformConfigService {
       referral: { referrerCreditCents: 2000, refereeCreditCents: 1000, referrerPoints: 200, refereePoints: 100, minTripSpendCents: 5000, maxRewardsPerReferrer: 10, ...(doc.referral ?? {}) },
       protection: doc.protection?.length
         ? doc.protection
-        : [
-            { code: 'basic', label: 'Basic', description: 'Included. Higher deductible, essential coverage.', pricePerDay: 0 },
-            { code: 'standard', label: 'Standard', description: 'Lower deductible, exterior damage protection.', pricePerDay: 1500 },
-            { code: 'premier', label: 'Premier', description: 'Zero deductible, full protection & roadside.', pricePerDay: 3000 },
-          ],
+        : [{ code: 'basic', label: 'Wheelbase protection', description: 'Included with every trip.', pricePerDay: 0 }],
       support: {
         slaHours: { urgent: 4, high: 12, normal: 48, low: 72, ...(doc.support?.slaHours ?? {}) },
       },

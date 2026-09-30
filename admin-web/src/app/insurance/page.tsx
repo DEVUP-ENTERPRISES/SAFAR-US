@@ -14,6 +14,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/types';
 import { adminApi, type WheelbaseCarLink } from '@/features/admin/api';
+import { TripsToReport, WheelbaseClaims } from './wheelbase-work';
 
 const ago = (iso?: string) => {
   if (!iso) return 'never';
@@ -187,6 +188,9 @@ export default function InsurancePage() {
           )}
         </CardContent>
       </Card>
+
+      <TripsToReport />
+      <WheelbaseClaims />
     </div>
   );
 }

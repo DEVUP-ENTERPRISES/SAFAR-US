@@ -17,6 +17,10 @@ export const EVENTS = {
   KYC_ATTEMPT_FAILED: 'kyc.attempt_failed',
   VEHICLE_RECALL_FOUND: 'vehicle.recall_found',
   INSURANCE_STATUS_CHANGED: 'insurance.status_changed',
+  // A trip started on a Wheelbase-insured car and must be reported to Wheelbase.
+  INSURANCE_TRIP_TO_REPORT: 'insurance.trip_to_report',
+  // A claim on a Wheelbase-insured trip needs to go to Wheelbase.
+  INSURANCE_CLAIM_TO_FILE: 'insurance.claim_to_file',
 
   USER_LOGGED_IN: 'user.logged_in',
 
