@@ -46,17 +46,19 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
             </div>
           </div>
 
-          {/* Status chips */}
-          <div className="absolute start-3 top-3 flex flex-wrap gap-2 max-w-[70%] z-20">
-            {vehicle.fleetOwned && <FleetBadge className="bg-black/55 border-white/20 text-white backdrop-blur-md" />}
+          {/* Status chips: a fixed gap on the right keeps them clear of the save/compare buttons at any card width. */}
+          <div className="absolute start-2 end-12 top-2 z-20 flex flex-wrap gap-1.5 sm:start-3 sm:end-16 sm:top-3 sm:gap-2">
+            {vehicle.fleetOwned && (
+              <FleetBadge className="whitespace-nowrap border-white/20 bg-black/55 px-2 py-0.5 text-[10px] text-white backdrop-blur-md sm:px-2.5 sm:py-1 sm:text-[11px]" />
+            )}
             {vehicle.hostIsSuperhost && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/40 border border-white/20 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white backdrop-blur-md shadow-sm">
-                <Award className="h-3.5 w-3.5 text-yellow-400" /> Superhost
+              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-black/40 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-sm backdrop-blur-md sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-[11px]">
+                <Award className="h-3 w-3 text-yellow-400 sm:h-3.5 sm:w-3.5" /> Superhost
               </span>
             )}
             {vehicle.listing.instantBook && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/55 border border-white/20 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white backdrop-blur-md shadow-sm">
-                <Zap className="h-3.5 w-3.5 fill-current" /> Instant
+              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-black/55 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-sm backdrop-blur-md sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-[11px]">
+                <Zap className="h-3 w-3 fill-current sm:h-3.5 sm:w-3.5" /> Instant
               </span>
             )}
           </div>
@@ -66,7 +68,7 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
         <div className="relative z-20 flex flex-col flex-1 px-2 py-4 sm:px-4 sm:py-5">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
-              <h3 className="display truncate text-base sm:text-lg font-bold text-foreground transition-colors group-hover:text-primary">
+              <h3 className="display line-clamp-2 break-words text-base font-bold leading-snug text-foreground transition-colors group-hover:text-primary sm:line-clamp-1 sm:text-lg">
                 {vehicle.make} {vehicle.model}
               </h3>
               <p className="mt-1 truncate text-sm font-medium text-muted-foreground/80 flex items-center gap-1.5">
