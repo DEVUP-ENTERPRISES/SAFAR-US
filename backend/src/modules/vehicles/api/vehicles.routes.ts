@@ -121,16 +121,22 @@ router.post(
   }),
 );
 
-const wheelbaseBody = z.object({ dealerId: z.string().trim().regex(/^\d{1,20}$/, 'Digits only') });
+/** Whether this account may import from Wheelbase (the CatoDrive fleet account only). */
+router.get(
+  '/import/wheelbase/available',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, { available: await wheelbaseImportService.isAvailableTo(req.principal!.userId) });
+  }),
+);
 
 /** Wheelbase import, dry run: which cars would be filled in, created, or need a choice. Writes nothing. */
 router.post(
   '/import/wheelbase/preview',
   authenticate,
   authorize('vehicle:create'),
-  validate({ body: wheelbaseBody }),
   asyncHandler(async (req, res) => {
-    sendSuccess(res, await wheelbaseImportService.preview(req.principal!.userId, req.body.dealerId));
+    sendSuccess(res, await wheelbaseImportService.preview(req.principal!.userId));
   }),
 );
 
@@ -139,9 +145,8 @@ router.post(
   '/import/wheelbase',
   authenticate,
   authorize('vehicle:create'),
-  validate({ body: wheelbaseBody }),
   asyncHandler(async (req, res) => {
-    sendSuccess(res, await wheelbaseImportService.run(req.principal!.userId, req.body.dealerId));
+    sendSuccess(res, await wheelbaseImportService.run(req.principal!.userId));
   }),
 );
 

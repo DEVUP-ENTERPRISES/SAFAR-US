@@ -2,13 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DownloadCloud, CheckCircle2, AlertTriangle, SkipForward, PlusCircle, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Field } from '@/components/ui/field';
 import { ApiError } from '@/lib/api/types';
 import { formatMoney } from '@/lib/utils/format';
 import { hostApi, type WheelbasePreview, type WheelbaseImportResult } from '@/features/host/api';
@@ -18,16 +16,16 @@ const FILL_LABEL: Record<string, string> = { photos: 'photos', description: 'des
 /** Brings the host's Wheelbase fleet in: fills and links the cars already here, creates drafts for the rest. */
 export function WheelbaseImport() {
   const qc = useQueryClient();
-  const [dealerId, setDealerId] = useState('');
+  const access = useQuery({ queryKey: ['wheelbase-import-available'], queryFn: () => hostApi.wheelbaseAvailable(), staleTime: 10 * 60_000 });
   const [preview, setPreview] = useState<WheelbasePreview | null>(null);
   const [results, setResults] = useState<WheelbaseImportResult[] | null>(null);
 
   const load = useMutation({
-    mutationFn: () => hostApi.wheelbasePreview(dealerId),
+    mutationFn: () => hostApi.wheelbasePreview(),
     onSuccess: (p) => { setPreview(p); setResults(null); },
   });
   const run = useMutation({
-    mutationFn: () => hostApi.wheelbaseImport(dealerId),
+    mutationFn: () => hostApi.wheelbaseImport(),
     onSuccess: (r) => {
       setResults(r);
       setPreview(null);
@@ -36,6 +34,9 @@ export function WheelbaseImport() {
     },
   });
   const error = load.error ?? run.error;
+
+  // Only the CatoDrive fleet account imports from Wheelbase; everyone else never sees this card.
+  if (!access.data?.available) return null;
 
   return (
     <Card>
@@ -51,14 +52,9 @@ export function WheelbaseImport() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-2">
-          <Field label="Your Wheelbase dealer ID" className="w-56">
-            <Input value={dealerId} inputMode="numeric" autoComplete="off" onChange={(e) => setDealerId(e.target.value.replace(/\D/g, ''))} />
-          </Field>
-          <Button variant="outline" disabled={!dealerId} loading={load.isPending} onClick={() => load.mutate()}>
-            <RefreshCw className="h-4 w-4" /> Preview
-          </Button>
-        </div>
+        <Button variant="outline" loading={load.isPending} onClick={() => load.mutate()}>
+          <RefreshCw className="h-4 w-4" /> Preview what will be imported
+        </Button>
 
         {error && (
           <p className="text-sm text-destructive">{error instanceof ApiError ? error.message : 'Wheelbase could not be reached. Please try again.'}</p>

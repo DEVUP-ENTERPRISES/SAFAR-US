@@ -5,6 +5,8 @@ import { hostService } from '../../hosts/application/host.service';
 import { storageGateway } from '../../../infrastructure/storage/storage.provider';
 import { AppError, ForbiddenError, ValidationError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
+import { config } from '../../../config';
+import { UserModel } from '../../users/infrastructure/user.model';
 import { fetchDealerListings, type WheelbaseListing } from '../infrastructure/wheelbase.client';
 import { wheelbaseInsuranceService, sameCar, linkFrom } from './wheelbase-insurance.service';
 
@@ -87,11 +89,22 @@ async function copyPhotos(urls: string[], ownerId: string): Promise<{ url: strin
  * missing, so a host's own photos, text and prices are never overwritten.
  */
 export const wheelbaseImportService = {
-  /** The host must name the Wheelbase account CatoDrive is connected to; another dealer's fleet is refused. */
-  async load(userId: string, dealerId: string) {
+  /** The CatoDrive house fleet is the only fleet on Wheelbase, so only its account may import. */
+  async isAvailableTo(userId: string): Promise<boolean> {
+    const email = config.houseFleet.email?.toLowerCase();
+    if (!email) return false;
+    const user = await UserModel.findById(userId).select('email').lean<{ email?: string }>();
+    return user?.email?.toLowerCase() === email;
+  },
+
+  /** Reads the connected Wheelbase account (set in Admin → Insurance) and the house fleet's cars. */
+  async load(userId: string) {
+    if (!(await this.isAvailableTo(userId))) {
+      throw new ForbiddenError('Wheelbase import is available to the CatoDrive fleet account only.');
+    }
     const connected = await wheelbaseInsuranceService.dealerId();
-    if (!connected || dealerId.trim() !== connected) {
-      throw new ForbiddenError('This Wheelbase account isn’t connected to CatoDrive. Please contact support.');
+    if (!connected) {
+      throw new ValidationError('Wheelbase isn’t connected yet. Add the dealer ID in Admin → Insurance, then try again.');
     }
     const host = await hostService.requireHostForUser(userId);
     const [listings, cars] = await Promise.all([
@@ -125,8 +138,8 @@ export const wheelbaseImportService = {
     });
   },
 
-  async preview(userId: string, dealerId: string) {
-    const { listings, cars } = await this.load(userId, dealerId);
+  async preview(userId: string) {
+    const { listings, cars } = await this.load(userId);
     const rows = this.plan(listings, cars);
     return {
       listings: listings.length,
@@ -137,8 +150,8 @@ export const wheelbaseImportService = {
     };
   },
 
-  async run(userId: string, dealerId: string): Promise<ImportResult[]> {
-    const { host, listings, cars } = await this.load(userId, dealerId);
+  async run(userId: string): Promise<ImportResult[]> {
+    const { host, listings, cars } = await this.load(userId);
     const rows = this.plan(listings, cars);
     const byId = new Map(listings.map((l) => [l.id, l]));
     const base = cars.find((c) => c.location?.coordinates?.length === 2);
