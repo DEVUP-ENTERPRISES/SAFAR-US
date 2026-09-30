@@ -24,9 +24,18 @@ export const cardLimiter = rateLimit({
   legacyHeaders: false,
   store,
   keyGenerator: (req: Request) => req.principal?.userId ?? req.ip ?? 'unknown',
-  message: {
-    success: false,
-    error: { code: 'TOO_MANY_REQUESTS', message: 'Too many card attempts. Please wait a while and try again.' },
+  // Only failed attempts count: card testing shows up as declines, while a guest adding a card and booking succeeds.
+  skipSuccessfulRequests: true,
+  message: (req: Request) => {
+    const reset = (req as Request & { rateLimit?: { resetTime?: Date } }).rateLimit?.resetTime;
+    const minutes = reset ? Math.max(1, Math.ceil((+reset - Date.now()) / 60_000)) : 60;
+    return {
+      success: false,
+      error: {
+        code: 'TOO_MANY_REQUESTS',
+        message: `For your security, card payments are paused on your account after several declines. Try again in about ${minutes} minute${minutes === 1 ? '' : 's'}, or contact support and we’ll help you book.`,
+      },
+    };
   },
   skip: () => !config.isProd,
 });
