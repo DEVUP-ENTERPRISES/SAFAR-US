@@ -9,8 +9,23 @@ import type { Vehicle } from '@/features/vehicles/types';
 
 type SaveFn = (patch: Record<string, unknown>) => void;
 
+export type PricingField = 'daily' | 'weekly' | 'monthly';
+
 /** The editable form behind "Pricing & discounts" - shared by the accordion and the dedicated page. */
-export function PricingPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: SaveFn; saving: boolean }) {
+export function PricingPanel({
+  vehicle,
+  onSave,
+  saving,
+  focus,
+  onCancel,
+}: {
+  vehicle: Vehicle;
+  onSave: SaveFn;
+  saving: boolean;
+  /** Which field to put the cursor in when opened from a trip-length card. */
+  focus?: PricingField;
+  onCancel?: () => void;
+}) {
   const p = vehicle.pricing;
   const cur = p.currency;
   const pctFromBps = (bps?: number) => String(bps ? Math.round(bps / 100) : 0);
@@ -33,6 +48,8 @@ export function PricingPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; on
   );
 
   const num = (s: string) => Number(s) || 0;
+  // Basis points must be whole numbers: 7.25% is 725, never 724.9999.
+  const bps = (pct: number, max: number) => Math.round(Math.min(max, Math.max(0, pct)) * 100);
   const addRule = () => setRules((rs) => [...rs, { label: '', start: '', end: '', pct: '150' }]);
   const setRule = (i: number, patch: Partial<(typeof rules)[number]>) =>
     setRules((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
@@ -42,26 +59,26 @@ export function PricingPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; on
     onSave({
       dailyPrice: Math.round(num(daily) * 100),
       cleaningFee: Math.round(num(cleaning) * 100),
-      weekendMultiplierBps: 10000 + Math.max(0, num(weekend)) * 100,
-      weeklyDiscountBps: Math.min(90, Math.max(0, num(weekly))) * 100,
-      monthlyDiscountBps: Math.min(90, Math.max(0, num(monthly))) * 100,
-      earlyBirdBps: Math.min(50, Math.max(0, num(earlyBird))) * 100,
-      lastMinuteBps: Math.min(50, Math.max(0, num(lastMinute))) * 100,
+      weekendMultiplierBps: 10000 + bps(num(weekend), 1000),
+      weeklyDiscountBps: bps(num(weekly), 90),
+      monthlyDiscountBps: bps(num(monthly), 90),
+      earlyBirdBps: bps(num(earlyBird), 50),
+      lastMinuteBps: bps(num(lastMinute), 50),
       seasonalRules: rules
         .filter((r) => r.label.trim() && r.start && r.end)
         .map((r) => ({
           label: r.label.trim(),
           start: r.start,
           end: r.end,
-          multiplierBps: Math.min(300, Math.max(10, num(r.pct))) * 100,
+          multiplierBps: Math.round(Math.min(300, Math.max(10, num(r.pct))) * 100),
         })),
     });
 
   return (
     <div className="space-y-4 bg-subtle px-4 py-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label={`Daily price (${cur})`}>
-          <Input type="number" min={1} value={daily} onChange={(e) => setDaily(e.target.value)} />
+          <Input type="number" min={1} inputMode="decimal" autoFocus={focus === 'daily'} value={daily} onChange={(e) => setDaily(e.target.value)} />
         </Field>
         <Field label={`Cleaning fee (${cur})`}>
           <Input type="number" min={0} value={cleaning} onChange={(e) => setCleaning(e.target.value)} />
@@ -70,10 +87,10 @@ export function PricingPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; on
           <Input type="number" min={0} value={weekend} onChange={(e) => setWeekend(e.target.value)} />
         </Field>
         <Field label="Weekly discount (%)" hint="7+ day trips">
-          <Input type="number" min={0} max={90} value={weekly} onChange={(e) => setWeekly(e.target.value)} />
+          <Input type="number" min={0} max={90} inputMode="decimal" autoFocus={focus === 'weekly'} value={weekly} onChange={(e) => setWeekly(e.target.value)} />
         </Field>
         <Field label="Monthly discount (%)" hint="28+ day trips">
-          <Input type="number" min={0} max={90} value={monthly} onChange={(e) => setMonthly(e.target.value)} />
+          <Input type="number" min={0} max={90} inputMode="decimal" autoFocus={focus === 'monthly'} value={monthly} onChange={(e) => setMonthly(e.target.value)} />
         </Field>
         <Field label="Early-bird (%)" hint="Booked well ahead">
           <Input type="number" min={0} max={50} value={earlyBird} onChange={(e) => setEarlyBird(e.target.value)} />
@@ -101,7 +118,7 @@ export function PricingPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; on
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-2 grid grid-cols-3 gap-2">
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
               <Field label="From"><Input type="date" value={r.start} onChange={(e) => setRule(i, { start: e.target.value })} /></Field>
               <Field label="To"><Input type="date" min={r.start || undefined} value={r.end} onChange={(e) => setRule(i, { end: e.target.value })} /></Field>
               <Field label="Rate (%)"><Input type="number" min={10} max={300} value={r.pct} onChange={(e) => setRule(i, { pct: e.target.value })} /></Field>
@@ -110,9 +127,16 @@ export function PricingPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; on
         ))}
       </div>
 
-      <Button size="sm" loading={saving} disabled={!daily} onClick={save}>
-        Save pricing
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" loading={saving} disabled={!daily || num(daily) <= 0} onClick={save}>
+          Save pricing
+        </Button>
+        {onCancel && (
+          <Button size="sm" variant="outline" disabled={saving} onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
