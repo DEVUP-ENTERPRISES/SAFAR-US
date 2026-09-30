@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, Loader2, MapPinOff, RefreshCw, VideoOff, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AngleGuide, ANGLE_TIPS, FrameCorners } from './angle-guide';
+import { AngleGuide, FrameCorners, hasOutline } from './angle-guide';
 
 /** What is burned into every photo and shown live in the viewfinder. */
 export interface PhotoStamp {
@@ -97,13 +97,16 @@ export function LiveCamera({
   requireLocation,
   facing = 'environment',
   guide,
+  tip,
   onUse,
   onClose,
 }: {
   stamp: CameraStamp;
   requireLocation: boolean;
-  /** Inspection angle id: shows its outline over the viewfinder and a framing tip. */
+  /** Inspection angle id: shows its outline over the viewfinder when it has one. */
   guide?: string;
+  /** How to frame the shot, in a few words. */
+  tip?: string;
   /** 'user' for a selfie. */
   facing?: 'environment' | 'user';
   /** Uploads the shot; resolve to finish, reject (with a readable message) to stay on the review step. */
@@ -253,7 +256,7 @@ export function LiveCamera({
           <p className="text-sm font-semibold">
             {isGeneric(stamp) ? stamp.detail : `${stamp.phase === 'pre' ? 'Pickup' : 'Return'} photo · ${stamp.angleLabel}`}
           </p>
-          {guide && ANGLE_TIPS[guide] && <p className="text-xs text-white/70">{ANGLE_TIPS[guide]} Line the car up with the outline.</p>}
+          {tip && <p className="text-xs text-white/70">{tip}{guide && hasOutline(guide) ? ' Line the car up with the outline.' : ''}</p>}
         </div>
         <button onClick={onClose} disabled={busy} className="rounded-full p-2 hover:bg-white/10" aria-label="Close camera">
           <X className="h-5 w-5" />
@@ -272,7 +275,7 @@ export function LiveCamera({
           <div className="relative flex min-h-0 flex-1 items-center justify-center">
             <video ref={videoRef} playsInline muted className="pointer-events-none absolute h-px w-px opacity-0" />
             {!shot && <canvas ref={canvasRef} className="max-h-full max-w-full object-contain" />}
-            {!shot && ready && guide && (
+            {!shot && ready && guide && hasOutline(guide) && (
               <div className="pointer-events-none absolute flex w-[86%] max-w-xl items-center justify-center">
                 <FrameCorners className="absolute inset-0 h-full w-full text-white/80" />
                 <AngleGuide angle={guide} className="w-[88%] text-white/50 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]" />
