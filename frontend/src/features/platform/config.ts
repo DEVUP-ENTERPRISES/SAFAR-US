@@ -47,7 +47,7 @@ export interface PlatformPublicConfig {
     baselineRequiredForCharges: boolean;
   };
   /** Absent on a backend that predates the lead-time setting. */
-  booking?: { minLeadMinutes: number; dailyMileageMiles?: number };
+  booking?: { minLeadMinutes: number; dailyMileageMiles?: number; cancellationPolicy?: 'flexible' | 'moderate' | 'strict' };
 }
 
 /** Platform default when the config has not loaded or predates the setting. */
@@ -92,18 +92,22 @@ function humanHours(h: number): string {
 }
 
 /**
- * The guest-facing cancellation description, generated from the live config so
- * the copy always matches what a cancellation actually settles against - no
- * hardcoded "24 hours / 50%" text that can drift from the admin's real rules.
+ * Cancellation wording from the live config, so it always matches what a cancellation settles against.
+ * `detail` is the guest-facing promise (the free window only); `fullDetail` adds what happens after it,
+ * for the host's page and anywhere the whole rule must be stated.
  */
 export function describeCancellation(
   policy: 'flexible' | 'moderate' | 'strict',
   cfg?: PlatformPublicConfig,
-): { title: string; detail: string } {
+): { title: string; detail: string; fullDetail: string } {
   const title = POLICY_TITLES[policy] ?? policy;
   const rule = cfg?.cancellation?.[policy];
-  if (!rule) return { title, detail: '' };
+  if (!rule) return { title, detail: '', fullDetail: '' };
   const before = humanHours(rule.fullBeforeHours);
   const after = rule.partialBps > 0 ? `${Math.round(rule.partialBps / 100)}% refunded after that` : 'non-refundable after that';
-  return { title, detail: `Full refund if you cancel more than ${before} before the trip starts; ${after}.` };
+  return {
+    title,
+    detail: `Full refund if you cancel at least ${before} before your trip.`,
+    fullDetail: `Full refund if you cancel at least ${before} before the trip starts; ${after}.`,
+  };
 }

@@ -742,7 +742,7 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
 
       <Field label="Cancellation policy" hint="Set by CatoDrive for every car">
         <p className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm">
-          {describeCancellation(platformPolicy, platformCfg.data).detail || 'Free cancellation up to 24 hours before the trip.'}
+          {describeCancellation(platformPolicy, platformCfg.data).fullDetail || 'Free cancellation up to 24 hours before the trip.'}
         </p>
       </Field>
 

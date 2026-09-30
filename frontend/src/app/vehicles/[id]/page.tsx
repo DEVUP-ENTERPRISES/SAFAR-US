@@ -583,8 +583,16 @@ export default function VehicleDetailPage() {
             <div className="flex gap-4">
               <span className="mt-0.5 shrink-0"><Check className="h-6 w-6 stroke-[1.5]" /></span>
               <div>
-                <p className="text-[17px] font-medium capitalize">{cancelTerms.title}</p>
+                <p className="text-[17px] font-medium">{cancelTerms.title} cancellation</p>
                 <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{cancelTerms.detail}</p>
+                <a
+                  href={platformCfg.data?.legal?.cancellationUrl || '/legal'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-block text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                >
+                  Full cancellation policy
+                </a>
               </div>
             </div>
           </div>
@@ -1063,17 +1071,12 @@ export default function VehicleDetailPage() {
                     const rule = platformCfg.data?.cancellation?.[v.listing.cancellationPolicy];
                     if (!rule || !start) return null;
                     const deadline = new Date(new Date(start).getTime() - rule.fullBeforeHours * 3_600_000);
-                    const partial = rule.partialBps > 0 ? `${Math.round(rule.partialBps / 100)}% refund after that` : 'no refund after that';
+                    // The promise only; the exact refund is shown at the moment someone actually cancels.
                     return deadline.getTime() > Date.now() ? (
-                      <p>
-                        Free cancellation until {deadline.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · {partial}
+                      <p className="font-medium text-success">
+                        Free cancellation until {deadline.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                       </p>
-                    ) : (
-                      <p>
-                        Starts within {rule.fullBeforeHours} hours:{' '}
-                        {rule.partialBps > 0 ? `cancelling refunds ${Math.round(rule.partialBps / 100)}%.` : 'cancelling is non-refundable.'}
-                      </p>
-                    );
+                    ) : null;
                   })()}
                 </div>
                 {quote.data.memberSavings && quote.data.memberSavings.amount > 0 && (
