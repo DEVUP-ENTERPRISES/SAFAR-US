@@ -16,6 +16,7 @@ export const EVENTS = {
   // An automatic check that did not finish or did not pass; the guest can try again, so nothing is cancelled.
   KYC_ATTEMPT_FAILED: 'kyc.attempt_failed',
   VEHICLE_RECALL_FOUND: 'vehicle.recall_found',
+  INSURANCE_STATUS_CHANGED: 'insurance.status_changed',
 
   USER_LOGGED_IN: 'user.logged_in',
 

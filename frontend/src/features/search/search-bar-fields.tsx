@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import { Search, MapPin, Calendar, Clock, Check } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { formatClock } from '@/lib/utils/format';
 import { useFacets } from '@/features/vehicles/hooks';
 import { DateRangePicker } from './date-range-picker';
 import { useSearchBar } from './search-store';
@@ -17,13 +18,8 @@ for (let h = 6; h <= 23; h++) {
   if (h < 23) TIMES.push(`${String(h).padStart(2, '0')}:30`);
 }
 
-function formatTime(t: string): string {
-  const [h, m] = t.split(':').map(Number);
-  return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
+/** 14:00 -> 2:00 PM, how US guests read times. */
+const formatTime = formatClock;
 
 function fmtDate(d: string): string {
   return new Date(`${d}T00:00:00`).toLocaleDateString('en-US', {
@@ -227,6 +223,7 @@ export function SearchBarFields({
       <div ref={wrap} className="relative w-full">
         <div className="flex h-[52px] w-full items-stretch divide-x divide-border/50 rounded-full border border-border/50 bg-card">
           <Seg
+            id="place"
             icon={<MapPin className="h-3.5 w-3.5" />}
             label="Where"
             value={placeLabel || 'Anywhere'}
@@ -235,6 +232,7 @@ export function SearchBarFields({
             grow
           />
           <Seg
+            id="from-date"
             icon={<Calendar className="h-3.5 w-3.5" />}
             label="From"
             value={s.fromDate ? `${fmtDate(s.fromDate)} ${formatTime(s.fromTime)}` : 'Add dates'}
@@ -242,6 +240,7 @@ export function SearchBarFields({
             onOpen={() => setOpen(open === 'from-date' ? null : 'from-date')}
           />
           <Seg
+            id="until-date"
             icon={<Calendar className="h-3.5 w-3.5" />}
             label="Until"
             value={s.untilDate ? `${fmtDate(s.untilDate)} ${formatTime(s.untilTime)}` : 'Add dates'}
@@ -450,6 +449,7 @@ function Panel({
         <div className="fixed inset-0 z-[90] bg-black/50" onClick={onClose} aria-hidden />
         <div
           data-search-panel
+          data-lenis-prevent
           role="dialog"
           aria-modal="true"
           className="fixed inset-x-0 bottom-0 z-[91] max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-border bg-card p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl"
@@ -543,6 +543,7 @@ function PortaledOverlay({
       />
       <div
         data-search-panel
+        data-lenis-prevent
         role="dialog"
         aria-modal="true"
         style={style}

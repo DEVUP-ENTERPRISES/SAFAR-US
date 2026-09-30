@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList, Sparkles, LifeBuoy, Headphones, CalendarCheck, Grid2x2 } from 'lucide-react';
+import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList, Sparkles, LifeBuoy, Headphones, CalendarCheck, Grid2x2, Umbrella } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,11 @@ import { Rating } from '@/components/ui/rating';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
-import { formatMoney, kmToMiles, perKmToPerMile, FUEL_LABEL } from '@/lib/utils/format';
+import { formatMoney, kmToMiles, perKmToPerMile, FUEL_LABEL, formatClock } from '@/lib/utils/format';
+import { Select } from '@/components/ui/select';
+
+// Half-hour steps for a flight's landing time on the pickup day.
+const LANDING_TIMES = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
 import { HostProfileCard, useHostPublicProfile } from '@/features/host/components/host-profile-card';
 import { AskHostPanel } from '@/features/vehicles/components/ask-host-panel';
 import { DemandBadge } from '@/features/vehicles/components/demand-badge';
@@ -40,7 +44,6 @@ import { TripDatesField } from '@/features/vehicles/components/trip-dates-field'
 import { saveDraft, takeDraft } from '@/features/bookings/booking-draft';
 import { PhotoLightbox } from '@/features/vehicles/components/photo-lightbox';
 import { confirmCardPayment } from '@/features/payments/confirm-payment';
-import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import { PayNow } from '@/features/payments/pay-now';
 import { useSearchBar } from '@/features/search/search-store';
 
@@ -362,14 +365,9 @@ export default function VehicleDetailPage() {
   if (isError || !v) return <ErrorState message="Vehicle not found." />;
 
   const photos = v.photos?.length ? v.photos : [];
-  const delivery = v.listing.delivery;
+  // Delivery is offered only to the host's named, priced spots; there is no free-typed address or airport.
   const activeDeliveryLocations = (v.listing.deliveryLocations ?? []).filter((l) => l.enabled);
-  const deliveryModes = delivery
-    ? (['airport', 'home', 'hotel', 'business'] as const).filter((k) => delivery[k])
-    : [];
-  const cheapestDeliveryFee = activeDeliveryLocations.length
-    ? Math.min(...activeDeliveryLocations.map((l) => l.fee))
-    : delivery?.fee ?? 0;
+  const cheapestDeliveryFee = activeDeliveryLocations.length ? Math.min(...activeDeliveryLocations.map((l) => l.fee)) : 0;
 
   // Trip length for the similar-cars totals and any length-of-trip messaging.
   const days = start && end
@@ -585,8 +583,16 @@ export default function VehicleDetailPage() {
             <div className="flex gap-4">
               <span className="mt-0.5 shrink-0"><Check className="h-6 w-6 stroke-[1.5]" /></span>
               <div>
-                <p className="text-[17px] font-medium capitalize">{cancelTerms.title}</p>
+                <p className="text-[17px] font-medium">{cancelTerms.title} cancellation</p>
                 <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{cancelTerms.detail}</p>
+                <a
+                  href={platformCfg.data?.legal?.cancellationUrl || '/legal'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-block text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                >
+                  Full cancellation policy
+                </a>
               </div>
             </div>
           </div>
@@ -642,7 +648,14 @@ export default function VehicleDetailPage() {
             <h2 className="mb-4 text-2xl font-bold tracking-tight">Peace of mind</h2>
             <div className="space-y-4">
               <PeaceItem icon={<Sparkles className="h-6 w-6 stroke-[1.5]" />} title="No car wash necessary" detail="Just keep the car tidy and return it as you found it." />
-              <PeaceItem icon={<CalendarCheck className="h-6 w-6 stroke-[1.5]" />} title="Free cancellation" detail={cancelTerms.detail || 'Cancel per the host’s policy for a refund.'} />
+              {v.insurance?.approved && (
+                <PeaceItem
+                  icon={<Umbrella className="h-6 w-6 stroke-[1.5]" />}
+                  title="Insured trip"
+                  detail={`Covered under ${v.insurance.planLabel || 'the car’s insurance plan'}.${v.insurance.minRenterAge ? ` Drivers must be ${v.insurance.minRenterAge} or older.` : ''}`}
+                />
+              )}
+              <PeaceItem icon={<CalendarCheck className="h-6 w-6 stroke-[1.5]" />} title={`${cancelTerms.title} cancellation`} detail={cancelTerms.detail || 'Cancel per the host’s policy for a refund.'} />
               <PeaceItem icon={<LifeBuoy className="h-6 w-6 stroke-[1.5]" />} title="Support when you need it" detail="Message your host in-app, and reach our team from your trip screen." />
               <PeaceItem icon={<Headphones className="h-6 w-6 stroke-[1.5]" />} title="Two-way reviews" detail="Verified guests and hosts rate each trip, so you always know who you’re booking with." />
             </div>
@@ -677,14 +690,12 @@ export default function VehicleDetailPage() {
 
         {/* Cards section (Delivery, Protection, Mileage, Rules) */}
         <div className="grid gap-4 sm:grid-cols-2">
-          {(activeDeliveryLocations.length > 0 || deliveryModes.length > 0) && (
+          {activeDeliveryLocations.length > 0 && (
             <Card>
               <CardContent className="p-6 sm:p-8">
                 <div className="flex items-center gap-2 font-medium"><Truck className="h-5 w-5 text-primary" /> Delivery</div>
-                <p className={cn('mt-1 text-sm text-muted-foreground', !activeDeliveryLocations.length && 'capitalize')}>
-                  {activeDeliveryLocations.length > 0
-                    ? `${activeDeliveryLocations.map((l) => l.name).join(', ')} · from ${formatMoney({ amount: cheapestDeliveryFee, currency: v.pricing.currency })}`
-                    : `${deliveryModes.join(', ')} · ${formatMoney({ amount: delivery!.fee, currency: v.pricing.currency })}`}
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {`${activeDeliveryLocations.map((l) => l.name).join(', ')} · from ${formatMoney({ amount: cheapestDeliveryFee, currency: v.pricing.currency })}`}
                 </p>
               </CardContent>
             </Card>
@@ -716,10 +727,6 @@ export default function VehicleDetailPage() {
             </Card>
           )}
         </div>
-
-        {/* Safety recalls and title history - a guest should be able to see an
-            open recall before getting into a stranger's car. */}
-        <VehicleHistory vehicleId={id} audience="guest" />
 
         {/* Availability calendar */}
         <div>
@@ -930,12 +937,20 @@ export default function VehicleDetailPage() {
                               placeholder="Terminal (opt.)"
                             />
                           </div>
-                          <Input
-                            type="datetime-local"
-                            value={arrivesAt}
-                            onChange={(e) => setArrivesAt(e.target.value)}
-                            aria-label="Scheduled arrival"
-                          />
+                          {/* Lands on the pickup day: only the time is asked, never a raw date-time box. */}
+                          <label className="block text-xs font-medium text-muted-foreground">
+                            Flight lands {start ? `on ${new Date(start).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}` : ''} at
+                            <Select
+                              className="mt-1"
+                              value={arrivesAt ? arrivesAt.slice(11, 16) : ''}
+                              onChange={(e) => setArrivesAt(e.target.value && start ? `${start.slice(0, 10)}T${e.target.value}` : '')}
+                            >
+                              <option value="">Choose landing time</option>
+                              {LANDING_TIMES.map((t) => (
+                                <option key={t} value={t}>{formatClock(t)}</option>
+                              ))}
+                            </Select>
+                          </label>
                           <p className="text-xs text-muted-foreground">
                             Your host meets your flight. If it’s delayed, your pickup window moves with it.
                           </p>
@@ -945,77 +960,7 @@ export default function VehicleDetailPage() {
                   );
                 })()}
               </div>
-            ) : deliveryModes.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Delivery</p>
-                  {delivery!.fee > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      +{formatMoney({ amount: delivery!.fee, currency: v.pricing.currency })}
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setDeliveryMode('')}
-                    className={cn(
-                      'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                      deliveryMode === '' ? 'border-primary bg-primary/10 text-primary' : 'border-border',
-                    )}
-                  >
-                    Pick up myself
-                  </button>
-                  {deliveryModes.map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setDeliveryMode(m)}
-                      className={cn(
-                        'rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors',
-                        deliveryMode === m ? 'border-primary bg-primary/10 text-primary' : 'border-border',
-                      )}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-                {deliveryMode && (
-                  <div className="space-y-2">
-                    <Input
-                      value={deliveryAddress}
-                      onChange={(e) => setDeliveryAddress(e.target.value)}
-                      placeholder={deliveryMode === 'airport' ? 'Airport (e.g. JFK)' : 'Delivery address'}
-                    />
-                    {deliveryMode === 'airport' && (
-                      <>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input
-                            value={flightNumber}
-                            onChange={(e) => setFlightNumber(e.target.value.toUpperCase())}
-                            placeholder="Flight no. (AA123)"
-                          />
-                          <Input
-                            value={terminal}
-                            onChange={(e) => setTerminal(e.target.value)}
-                            placeholder="Terminal (opt.)"
-                          />
-                        </div>
-                        <Input
-                          type="datetime-local"
-                          value={arrivesAt}
-                          onChange={(e) => setArrivesAt(e.target.value)}
-                          aria-label="Scheduled arrival"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Your host meets your flight. If it’s delayed, your pickup window moves with it.
-                        </p>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+            ) : null}
 
             {/* Protection plan */}
             {plans.data && plans.data.length > 0 && (
@@ -1103,7 +1048,7 @@ export default function VehicleDetailPage() {
             )}
             {quote.data && canQuote && (
               <div className={`space-y-1.5 rounded-lg border border-border p-3 text-sm transition-opacity ${quote.isPending ? 'opacity-60' : ''}`} aria-live="polite">
-                <Row label={`${quote.data.days} days`} value={formatMoney(quote.data.base)} />
+                <Row label={`${quote.data.days} ${quote.data.days === 1 ? 'day' : 'days'}`} value={formatMoney(quote.data.base)} />
                 {quote.data.cleaningFee.amount > 0 && <Row label="Cleaning fee" value={formatMoney(quote.data.cleaningFee)} />}
                 {quote.data.delivery?.amount > 0 && <Row label="Delivery" value={formatMoney(quote.data.delivery)} />}
                 {quote.data.selectedAddOns?.map((a) => <Row key={a.code} label={a.label} value={formatMoney(a.amount)} />)}
@@ -1113,6 +1058,26 @@ export default function VehicleDetailPage() {
                 {quote.data.discount.amount > 0 && <Row label="Discount" value={`−${formatMoney(quote.data.discount)}`} />}
                 <div className="mt-2 flex justify-between border-t border-border pt-2 font-semibold">
                   <span>Total</span><span>{formatMoney(quote.data.total)}</span>
+                </div>
+                {/* What the total includes, the way a guest compares it: distance and the exact free-cancellation deadline. */}
+                <div className="space-y-1 pt-1 text-xs text-muted-foreground">
+                  {v.mileageLimit?.perDayKm ? (
+                    <p>
+                      {kmToMiles(v.mileageLimit.perDayKm * quote.data.days).toLocaleString()} miles included
+                      {v.mileageLimit.overageFeePerKm ? ` · ${formatMoney({ amount: perKmToPerMile(v.mileageLimit.overageFeePerKm), currency: v.pricing.currency })}/mile after` : ''}
+                    </p>
+                  ) : null}
+                  {(() => {
+                    const rule = platformCfg.data?.cancellation?.[v.listing.cancellationPolicy];
+                    if (!rule || !start) return null;
+                    const deadline = new Date(new Date(start).getTime() - rule.fullBeforeHours * 3_600_000);
+                    // The promise only; the exact refund is shown at the moment someone actually cancels.
+                    return deadline.getTime() > Date.now() ? (
+                      <p className="font-medium text-success">
+                        Free cancellation until {deadline.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </p>
+                    ) : null;
+                  })()}
                 </div>
                 {quote.data.memberSavings && quote.data.memberSavings.amount > 0 && (
                   <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-400/15 px-2.5 py-1.5 text-[13px] font-semibold text-amber-600 dark:text-amber-400">
@@ -1193,9 +1158,13 @@ export default function VehicleDetailPage() {
               </div>
             )}
             {createBooking.isError && (
-              createBooking.error instanceof ApiError && createBooking.error.code === 'PAYMENT_METHOD_REQUIRED' ? (
+              createBooking.error instanceof ApiError && (createBooking.error.code === 'PAYMENT_METHOD_REQUIRED' || createBooking.error.code === 'CARD_DECLINED') ? (
                 <div className="space-y-3 rounded-xl border border-border p-3">
-                  <p className="text-sm font-medium">{createBooking.error.message}</p>
+                  <p className={cn('text-sm font-medium', createBooking.error.code === 'CARD_DECLINED' && 'text-destructive')}>
+                    {createBooking.error.message}
+                  </p>
+                  {/* A declined card is fixed right here: add another and the booking is retried with it. */}
+                  {createBooking.error.code === 'CARD_DECLINED' && <p className="text-xs text-muted-foreground">Use another card:</p>}
                   <AddCard onSaved={() => { createBooking.reset(); void book(); }} />
                 </div>
               ) : (
@@ -1229,6 +1198,9 @@ export default function VehicleDetailPage() {
             {!v.listing.instantBook && (
               <p className="text-center text-sm font-medium text-muted-foreground">You won&apos;t be charged until the host accepts</p>
             )}
+            {v.insurance?.minRenterAge ? (
+              <p className="text-center text-xs text-muted-foreground">Drivers must be {v.insurance.minRenterAge} or older to be insured on this car.</p>
+            ) : null}
 
             <div className="mt-4 border-t border-border pt-4">
               <p className="text-sm font-medium">{cancelTerms.title} cancellation</p>

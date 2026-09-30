@@ -86,21 +86,20 @@ export default function InsurancePage() {
             {config.isLoading ? (
               <div className="space-y-3 py-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
             ) : (
-              (['flexible', 'moderate', 'strict'] as const).map((p) => {
-                const { title, detail } = describeCancellation(p, config.data);
+              (() => {
+                const { title, detail } = describeCancellation(config.data?.booking?.cancellationPolicy ?? 'flexible', config.data);
                 return (
-                  <div key={p} className="py-3.5">
-                    <p className="font-medium">{title}</p>
-                    <p className="mt-0.5 text-sm text-muted-foreground">{detail || 'Terms are set per listing.'}</p>
+                  <div className="py-3.5">
+                    <p className="font-medium">{title} cancellation</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">{detail || 'Free cancellation up to 24 hours before your trip.'}</p>
                   </div>
                 );
-              })
+              })()
             )}
           </CardContent>
         </Card>
         <p className="text-sm text-muted-foreground">
-          Each host picks one of these for their car. The policy that applies to your trip is shown before you pay
-          and again on your booking.
+          The same on every car. Full terms are in our cancellation policy, and your exact refund is always shown before you cancel.
         </p>
       </section>
 

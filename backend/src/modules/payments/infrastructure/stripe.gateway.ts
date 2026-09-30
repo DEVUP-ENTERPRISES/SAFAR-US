@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { config } from '../../../config';
-import { ExternalServiceError } from '../../../core/errors/app-error';
+import { CardDeclinedError, ExternalServiceError } from '../../../core/errors/app-error';
+import { logger } from '../../../infrastructure/logging/logger';
 import type {
   PaymentGateway,
   CreateIntentInput,
@@ -24,6 +25,33 @@ function toIntentResult(intent: Stripe.PaymentIntent): IntentResult {
           : 'requires_confirmation';
   const pm = typeof intent.payment_method === 'string' ? intent.payment_method : intent.payment_method?.id;
   return { intentId: intent.id, clientSecret: intent.client_secret ?? '', status, ...(pm ? { paymentMethodId: pm } : {}) };
+}
+
+/**
+ * A bank's refusal of the card, turned into what the guest can do about it. The exact decline code and the
+ * card checks go to the log for staff; the guest gets a plain reason, never Stripe's internals.
+ */
+function cardDeclined(err: unknown): CardDeclinedError | null {
+  const e = err as {
+    type?: string;
+    code?: string;
+    decline_code?: string;
+    payment_intent?: { id?: string; last_payment_error?: { payment_method?: { card?: { checks?: Record<string, string | null> } } } };
+  };
+  if (e?.type !== 'StripeCardError') return null;
+  const reason = e.decline_code ?? e.code ?? 'card_declined';
+  const checks = e.payment_intent?.last_payment_error?.payment_method?.card?.checks ?? {};
+  logger.warn({ reason, checks, intentId: e.payment_intent?.id }, 'card declined by the bank');
+
+  if (checks.address_postal_code_check === 'fail' || reason === 'incorrect_zip') {
+    return new CardDeclinedError('Your bank declined this card because the billing ZIP code doesn’t match. Update the card’s ZIP code or use another card.');
+  }
+  if (reason === 'insufficient_funds') return new CardDeclinedError('Your bank declined this card for insufficient funds. Please use another card.');
+  if (reason === 'expired_card') return new CardDeclinedError('This card has expired. Please use another card.');
+  if (reason === 'incorrect_cvc' || checks.cvc_check === 'fail') {
+    return new CardDeclinedError('The card’s security code didn’t match. Check it or use another card.');
+  }
+  return new CardDeclinedError();
 }
 
 export class StripeGateway implements PaymentGateway {
@@ -68,6 +96,8 @@ export class StripeGateway implements PaymentGateway {
       );
       return toIntentResult(intent);
     } catch (err) {
+      const declined = cardDeclined(err);
+      if (declined) throw declined;
       throw new ExternalServiceError(`Stripe createIntent failed: ${(err as Error).message}`);
     }
   }

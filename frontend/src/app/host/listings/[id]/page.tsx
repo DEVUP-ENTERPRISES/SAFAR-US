@@ -18,7 +18,6 @@ import { ErrorState } from '@/components/ui/states';
 import { SectionLabel, RowGroup, Row } from '@/components/ui/rows';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
-import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { formatMoney, FUEL_LABEL, kmToMiles, perKmToPerMile, milesToKm, perMileToPerKm } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
@@ -31,8 +30,8 @@ import { LocationSearch } from '@/features/maps/components/location-search';
 import { PickupEditor } from '@/features/vehicles/components/pickup-editor';
 import { FeaturePicker } from '@/features/vehicles/components/feature-picker';
 import { ColorPicker } from '@/features/vehicles/components/color-picker';
-import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import { DeliveryLocationsEditor } from '@/features/vehicles/components/delivery-locations-editor';
+import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import type { DeliveryLocation } from '@/features/vehicles/types';
 
 type Panel = null | 'pricing' | 'photos' | 'availability' | 'details' | 'safety' | 'location' | 'trip';
@@ -554,12 +553,12 @@ export default function ManageListingPage() {
         </RowGroup>
       </div>
 
-      {/* Pickup details - dormant until now: the fields existed on the model
-          and had no editor, so the guest-facing panel never had anything to
-          show. */}
       <SectionLabel>Safety & history</SectionLabel>
       <VehicleHistory vehicleId={id} audience="host" />
 
+      {/* Pickup details - dormant until now: the fields existed on the model
+          and had no editor, so the guest-facing panel never had anything to
+          show. */}
       <SectionLabel>Pickup</SectionLabel>
       <PickupEditor vehicleId={id} initial={v.pickup} onSaved={invalidate} />
 
@@ -690,7 +689,8 @@ function LocationPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: 
 function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: SaveFn; saving: boolean }) {
   const l = vehicle.listing;
   const [instantBook, setInstantBook] = useState(!!l?.instantBook);
-  const [policy, setPolicy] = useState(l?.cancellationPolicy ?? 'moderate');
+  // The server keeps every car on the platform's one policy; shown here, not chosen.
+  const platformPolicy = l?.cancellationPolicy ?? 'flexible';
   const [minHours, setMinHours] = useState(String(l?.minTripHours ?? 24));
   // Max trip length is in days; hosts do not need hour precision for how long a trip can run.
   const [maxDays, setMaxDays] = useState(String(Math.max(1, Math.round((l?.maxTripHours ?? 720) / 24))));
@@ -740,21 +740,10 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
         </Field>
       </div>
 
-      <Field label="Cancellation policy">
-        <Select
-          value={policy}
-          onChange={(e) => setPolicy(e.target.value as typeof policy)}
-        >
-          {(['flexible', 'moderate', 'strict'] as const).map((p) => {
-            const terms = describeCancellation(p, platformCfg.data);
-            return (
-              <option key={p} value={p}>
-                {terms.title}
-              </option>
-            );
-          })}
-        </Select>
-        <p className="mt-1.5 text-xs text-muted-foreground">{describeCancellation(policy, platformCfg.data).detail}</p>
+      <Field label="Cancellation policy" hint="Set by CatoDrive for every car">
+        <p className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm">
+          {describeCancellation(platformPolicy, platformCfg.data).fullDetail || 'Free cancellation up to 24 hours before the trip.'}
+        </p>
       </Field>
 
       <Button
@@ -764,7 +753,6 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
           onSave({
             listing: {
               instantBook,
-              cancellationPolicy: policy,
               minTripHours: Math.min(720, Math.max(1, Number(minHours) || 1)),
               maxTripHours: Math.max(1, Number(maxDays) || 1) * 24,
               turnaroundDays: Math.min(7, Math.max(0, Number(turnaround) || 0)),

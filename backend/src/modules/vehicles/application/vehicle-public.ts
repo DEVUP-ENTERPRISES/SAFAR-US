@@ -12,13 +12,24 @@ export function toPublicVehicle<T extends Partial<VehicleDoc>>(v: T): T {
   delete out.vin;
   delete out.registrationNumber;
   delete out.photoMatch;
+  // Guests see only whether the car is insured, under which plan, and the minimum driver age.
+  const wb = out.wheelbase;
+  delete out.wheelbase;
+  if (wb) {
+    (out as Record<string, unknown>).insurance = {
+      approved: wb.insuranceState === 'approved',
+      planLabel: wb.planLabel,
+      minRenterAge: wb.minRenterAge,
+    };
+  }
   delete out.pickup;
   if (location) {
     const [lng, lat] = location.coordinates ?? [];
     out.location = {
       type: 'Point',
       coordinates: [approx(lng), approx(lat)],
-      address: [location.city, location.state].filter(Boolean).join(', '),
+      // "Irving, TX": the state from the car, or read off its street address ("…, Irving, TX 75062").
+      address: [location.city, location.state ?? location.address?.match(/,\s*([A-Z]{2})\s*\d{5}/)?.[1]].filter(Boolean).join(', '),
       city: location.city,
       state: location.state,
     };

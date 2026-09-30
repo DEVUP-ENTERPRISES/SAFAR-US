@@ -87,7 +87,6 @@ interface Draft {
 // Preset extras a host can offer (guest selects at checkout).
 const ADDON_PRESETS: Record<string, { label: string; priceType: 'per_trip' | 'per_day'; amount: number; note?: string }> = {
   child_seat: { label: 'Child seat', priceType: 'per_trip', amount: 15 },
-  additional_driver: { label: 'Additional driver', priceType: 'per_day', amount: 10 },
   // $8/gallon on a typical 15-gallon refill, plus a $20 service fee.
   fuel_surcharge: {
     label: 'Fuel surcharge',

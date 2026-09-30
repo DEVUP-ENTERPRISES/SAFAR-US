@@ -23,7 +23,7 @@ const STEPS = [
     icon: CarFront,
     image: '/sections/find-the-one.webp',
     title: 'Find the one',
-    body: 'Browse our premium managed fleet. Filter by price, vehicle type, or delivery - every car is owned and operated by us.',
+    body: 'Browse our premium managed fleet. Filter by price, vehicle type, or delivery - every car is operated by us.',
   },
   {
     icon: KeyRound,
@@ -63,8 +63,8 @@ const WHY_ITEMS = [
   },
   {
     icon: ShieldCheck,
-    title: 'Every car is ours',
-    body: 'Not a marketplace. Every vehicle in our fleet is owned, insured, and maintained by CatoDrive.',
+    title: 'Every car is managed by us',
+    body: 'Not a marketplace. Every vehicle is owned by CatoDrive or our Asset Partners, and insured and maintained by CatoDrive.',
   },
   {
     icon: Zap,
@@ -327,7 +327,7 @@ export default function HomePage() {
                 <span className="text-white/55">for itself.</span>
               </h2>
               <p className="mt-5 text-base leading-relaxed text-white/65 sm:text-lg">
-                We list it, price it, deliver it and service it. You keep 80% of every booking - with no calendar to manage, no guests to coordinate, no hassle.
+                We list it, price it, deliver it and service it - with no calendar to manage, no guests to coordinate, no hassle.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/asset-partners">

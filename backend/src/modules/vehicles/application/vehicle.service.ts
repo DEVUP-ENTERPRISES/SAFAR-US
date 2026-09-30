@@ -13,6 +13,7 @@ import type { CreateVehicleDto } from '../dto/vehicle.schemas';
 import { vinDecodeService } from './vin-decode.service';
 import { toPublicVehicle } from './vehicle-public';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { buildDefaultDeliveryLocations, isDallasArea } from './default-delivery';
 
 const KM_PER_MILE = 1.609344;
 
@@ -21,14 +22,25 @@ export async function platformDailyKm(): Promise<number> {
   return Math.round((await platformConfigService.get()).booking.dailyMileageMiles * KM_PER_MILE);
 }
 
-/** Puts every car on the platform's daily allowance; idempotent, run at boot and when the setting changes. */
+/** Extras CatoDrive does not provide; never saved on a car, and removed from any that has them. */
+export const UNOFFERED_ADDONS = new Set(['additional_driver']);
+const offeredAddOns = <T extends { code: string }>(list?: T[]) => (list ?? []).filter((a) => !UNOFFERED_ADDONS.has(a.code));
+
+/** The one cancellation policy every car uses; hosts do not choose it. */
+export async function platformCancellationPolicy(): Promise<'flexible' | 'moderate' | 'strict'> {
+  return (await platformConfigService.get()).booking.cancellationPolicy;
+}
+
+/** Puts every car on the platform's daily allowance and cancellation policy; idempotent, run at boot and on change. */
 export async function syncDailyMileage(): Promise<number> {
-  const km = await platformDailyKm();
-  const r = await VehicleModel.updateMany(
-    { deletedAt: null, 'mileageLimit.perDayKm': { $ne: km } },
-    { $set: { 'mileageLimit.perDayKm': km } },
-  );
-  return r.modifiedCount;
+  const [km, policy] = await Promise.all([platformDailyKm(), platformCancellationPolicy()]);
+  const [a, b, c] = await Promise.all([
+    VehicleModel.updateMany({ deletedAt: null, 'mileageLimit.perDayKm': { $ne: km } }, { $set: { 'mileageLimit.perDayKm': km } }),
+    VehicleModel.updateMany({ deletedAt: null, 'listing.cancellationPolicy': { $ne: policy } }, { $set: { 'listing.cancellationPolicy': policy } }),
+    // CatoDrive does not offer additional drivers, so the extra is taken off any car still carrying it.
+    VehicleModel.updateMany({ 'addOns.code': { $in: [...UNOFFERED_ADDONS] } }, { $pull: { addOns: { code: { $in: [...UNOFFERED_ADDONS] } } } }),
+  ]);
+  return a.modifiedCount + b.modifiedCount + c.modifiedCount;
 }
 
 /**
@@ -105,9 +117,15 @@ export class VehicleService implements IVehicleContract {
     // "unverified" and ask the host to prove the same thing twice.
     const vinVerified = dto.vin ? await this.vinMatches(dto.vin, dto.make, dto.model, dto.year) : false;
 
+    const fleetOwned = !!(await userRepository.findById(userId))?.roles?.includes('house_fleet');
+    // A Dallas-area car with no delivery spots gets the standard ones, so guests pick a priced spot, never type one in.
+    const deliveryLocations =
+      dto.listing.deliveryLocations ?? (isDallasArea(dto.location.lng, dto.location.lat) ? await buildDefaultDeliveryLocations() : undefined);
+    const listing = { ...dto.listing, cancellationPolicy: await platformCancellationPolicy() };
+
     const vehicle = await VehicleModel.create({
       hostId: host._id,
-      fleetOwned: !!(await userRepository.findById(userId))?.roles?.includes('house_fleet'),
+      fleetOwned,
       make: dto.make,
       model: dto.model,
       year: dto.year,
@@ -123,7 +141,7 @@ export class VehicleService implements IVehicleContract {
       specs: dto.specs ?? {},
       features: dto.features,
       photos: dto.photos,
-      addOns: dto.addOns ?? [],
+      addOns: offeredAddOns(dto.addOns),
       tripRules: dto.tripRules ?? [],
       // The daily allowance is the platform's; the host sets only the overage fee.
       mileageLimit: { perDayKm: await platformDailyKm(), overageFeePerKm: dto.mileageLimit?.overageFeePerKm ?? 0 },
@@ -133,15 +151,36 @@ export class VehicleService implements IVehicleContract {
         address: dto.location.address,
         city: dto.location.city,
       },
-      listing: dto.listing.deliveryLocations
+      listing: deliveryLocations
         ? (() => {
-            const locations = normaliseDeliveryLocations(dto.listing.deliveryLocations!);
-            return { ...dto.listing, deliveryLocations: locations, delivery: legacyDeliveryFrom(locations) };
+            const locations = normaliseDeliveryLocations(deliveryLocations);
+            return { ...listing, deliveryLocations: locations, delivery: legacyDeliveryFrom(locations) };
           })()
-        : dto.listing,
+        : listing,
       pricing: dto.pricing,
     });
     return vehicle.toObject();
+  }
+
+  /** Gives each Dallas-area car that has no delivery spots the standard priced ones; idempotent, run at boot. */
+  async backfillDefaultDelivery(): Promise<number> {
+    const cars = await VehicleModel.find({
+      deletedAt: null,
+      $or: [{ 'listing.deliveryLocations': { $exists: false } }, { 'listing.deliveryLocations': { $size: 0 } }],
+    })
+      .select('location listing.delivery')
+      .lean<Pick<VehicleDoc, '_id' | 'location' | 'listing'>[]>();
+    const due = cars.filter((c) => isDallasArea(c.location?.coordinates?.[0], c.location?.coordinates?.[1]));
+    if (!due.length) return 0;
+    const template = await buildDefaultDeliveryLocations();
+    for (const c of due) {
+      const locations = normaliseDeliveryLocations(template);
+      await VehicleModel.updateOne(
+        { _id: c._id },
+        { $set: { 'listing.deliveryLocations': locations, 'listing.delivery': legacyDeliveryFrom(locations, c.listing?.delivery) } },
+      );
+    }
+    return due.length;
   }
 
   async getById(vehicleId: string): Promise<VehicleDoc> {
@@ -189,6 +228,8 @@ export class VehicleService implements IVehicleContract {
       update.listing = {
         ...vehicle.listing,
         ...listingRest,
+        // Hosts do not choose the cancellation policy: every car carries the platform's one rule.
+        cancellationPolicy: await platformCancellationPolicy(),
         ...(delivery ? { delivery: { ...vehicle.listing?.delivery, ...delivery } } : {}),
         ...(locations
           ? { deliveryLocations: locations, delivery: legacyDeliveryFrom(locations, vehicle.listing?.delivery) }

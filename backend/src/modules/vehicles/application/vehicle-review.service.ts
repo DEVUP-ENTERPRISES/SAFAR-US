@@ -9,7 +9,7 @@ import { logger } from '../../../infrastructure/logging/logger';
 
 /** One thing an admin should look at before approving, and whether it passes. */
 export interface ReviewCheck {
-  key: 'photos' | 'photo_match' | 'registration' | 'insurance' | 'vin' | 'pricing' | 'location';
+  key: 'photos' | 'photo_match' | 'registration' | 'insurance' | 'wheelbase' | 'vin' | 'pricing' | 'location';
   label: string;
   detail: string;
   state: 'ok' | 'missing' | 'attention';
@@ -137,6 +137,18 @@ export const vehicleReviewService = {
       label: 'Daily price',
       detail: vehicle.pricing?.dailyPrice > 0 ? 'Set' : 'Not set',
       state: vehicle.pricing?.dailyPrice > 0 ? 'ok' : 'missing',
+    });
+    const wb = vehicle.wheelbase;
+    const checked = wb?.syncedAt ? ` · checked ${new Date(wb.syncedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : '';
+    checks.push({
+      key: 'wheelbase',
+      label: 'Wheelbase insurance',
+      detail: !wb
+        ? 'Not linked to a Wheelbase listing. Link it in Insurance.'
+        : wb.found === false
+          ? `Listing ${wb.rentalId} is no longer in the Wheelbase account${checked}`
+          : `${wb.insuranceState === 'approved' ? 'Approved' : `Not approved (${wb.insuranceState ?? 'unknown'})`} · ${wb.planLabel ?? wb.coverage ?? 'plan unknown'}${wb.minRenterAge ? ` · drivers ${wb.minRenterAge}+` : ''}${checked}`,
+      state: wb?.insuranceState === 'approved' && wb.found !== false ? 'ok' : 'attention',
     });
     checks.push({
       key: 'location',

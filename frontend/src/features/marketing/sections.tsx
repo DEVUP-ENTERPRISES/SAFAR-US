@@ -95,7 +95,7 @@ function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label,
 const AUDIENCES = [
   // Was pointed at /host - the self-serve flow, not this program. A visitor
   // clicking "Become a partner" landed on the wrong pitch entirely.
-  { icon: TrendingUp, image: '/newsections/asset_partners.webp', title: 'Asset Partners', body: 'List a vehicle you already own. Net $1,066–$1,878/month - you keep 80% of every booking.', href: '/asset-partners', cta: 'Become a partner' },
+  { icon: TrendingUp, image: '/newsections/asset_partners.webp', title: 'Asset Partners', body: 'List a vehicle you already own. Net $1,066–$1,878/month - we run everything, you get paid.', href: '/asset-partners', cta: 'Become a partner' },
   { icon: Briefcase, image: '/newsections/business_travels.webp', title: 'Business Travelers', body: 'Car delivered to your terminal at DFW or Love Field, 5–15% below market rate. Paperless end-to-end. Zero friction.', href: '/search', cta: 'Book a car' },
   { icon: Building2, image: '/newsections/corporate_accounts.webp', title: 'Corporate Accounts', body: 'B2B fleet accounts for enterprises and staffing agencies, auto-repair loaner programs, and white-glove SUV delivery to private terminals.', href: '/corporate', cta: 'Talk to us' },
   { icon: Users, image: '/newsections/enterprise_volume.webp', title: 'Enterprise & Volume', body: 'Volume pricing, dedicated account management, consolidated billing, and priority terminal delivery for regular DFW travel.', href: '/corporate', cta: 'Corporate portal' },

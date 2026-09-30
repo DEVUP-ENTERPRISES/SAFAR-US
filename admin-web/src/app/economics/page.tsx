@@ -365,6 +365,14 @@ export default function AdminEconomicsPage() {
             </p>
           </CardHeader>
           <CardContent className="space-y-5">
+            <Field label="Cancellation policy for every car" hint="Hosts don’t choose; every car follows this rule. Saving applies it to all listings. Past bookings keep the rule they were booked under.">
+              <Select value={draft.booking.cancellationPolicy ?? 'flexible'}
+                onChange={(e) => set((d) => { d.booking.cancellationPolicy = e.target.value as 'flexible' | 'moderate' | 'strict'; })}>
+                <option value="flexible">Flexible (free until {draft.cancellation.flexible.fullBeforeHours}h before, {toPct(draft.cancellation.flexible.partialBps)}% after)</option>
+                <option value="moderate">Moderate (free until {draft.cancellation.moderate.fullBeforeHours}h before, {toPct(draft.cancellation.moderate.partialBps)}% after)</option>
+                <option value="strict">Strict (free until {draft.cancellation.strict.fullBeforeHours}h before, {toPct(draft.cancellation.strict.partialBps)}% after)</option>
+              </Select>
+            </Field>
             {(['flexible', 'moderate', 'strict'] as const).map((p) => {
               const r = draft.cancellation![p];
               const hrs = r.fullBeforeHours;

@@ -16,6 +16,7 @@ import { milesToKm } from '../../../shared/utils/distance';
 import { inspectionService, type InspectionPhase, type InspectionState, type PhotoInput } from './inspection.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { eligibilityService } from '../../bookings/application/eligibility.service';
+import { wheelbaseInsuranceService } from '../../insurance/application/wheelbase-insurance.service';
 import { payoutService } from '../../payouts/application/payout.service';
 import { ClaimModel } from '../../claims/infrastructure/claim.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
@@ -53,6 +54,8 @@ export class TripService {
       if (!eligibility.eligible) {
         throw new ConflictError(eligibilityService.describe(eligibility.blockers)[0] ?? 'This guest is not eligible to drive.', 'GUEST_NOT_ELIGIBLE');
       }
+      // Re-checked at handover: the verified ID's age may differ from the profile's, and cover can lapse after booking.
+      await wheelbaseInsuranceService.assertInsurable(booking.vehicleId, booking.guestId, booking.period.start);
     }
 
     // The licence is checked from the verified ID at handover, not by the host in person; an admin may start without one.

@@ -7,6 +7,7 @@ import {
   type CommissionScope,
 } from '../infrastructure/commission-rule.model';
 import { kv } from '../../../infrastructure/cache/kv-store';
+import { config } from '../../../config';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { ValidationError } from '../../../core/errors/app-error';
@@ -113,13 +114,21 @@ export class PlatformConfigService {
     return {
       ...doc,
       configVersion: doc.configVersion ?? 0,
+      // Defaults follow the Wheelbase cover: approved cars only and its age minimums; the dealer ID comes from the server env.
+      insurance: {
+        wheelbaseDealerId: config.wheelbase.dealerId,
+        requireApproved: true,
+        enforceMinAge: true,
+        ...(doc.insurance ?? {}),
+      },
       legal: {
         termsVersion: '2026-09-01',
         termsUrl: '/legal',
         privacyVersion: '2026-09-01',
         privacyUrl: '/legal',
         cancellationUrl: '/legal',
-        minAgeYears: 18,
+        // 21: no Wheelbase-insured car covers a younger driver.
+        minAgeYears: 21,
         ...(doc.legal ?? {}),
       },
       contact: {
@@ -258,6 +267,8 @@ export class PlatformConfigService {
         documentExpiryReleaseHours: 72,
         recallAutoHold: false,
         dailyMileageMiles: 200,
+        // One rule for every car: free until 24 hours before pickup, 50% after (the flexible rule below).
+        cancellationPolicy: 'flexible' as const,
         checkoutHoldMinutes: 15,
         paymentPendingMinutes: 30,
         priceLockMinutes: 10,

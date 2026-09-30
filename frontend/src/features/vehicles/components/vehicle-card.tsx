@@ -15,8 +15,8 @@ import { DailyPrice } from '@/features/subscriptions/member-ui';
  */
 export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; className?: string }) {
   const cover = vehicle.photos?.find((p) => p.isCover)?.url ?? vehicle.photos?.[0]?.url;
-  const d = vehicle.listing.delivery;
-  const hasDelivery = d && (d.airport || d.home || d.hotel || d.business);
+  // Delivery is offered only to named, priced spots.
+  const hasDelivery = (vehicle.listing.deliveryLocations ?? []).some((l) => l.enabled);
 
   return (
     <Link href={`/vehicles/${vehicle._id}`} className={cn('group block', className)}>
@@ -41,8 +41,8 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
             </div>
           )}
 
-          {/* Top-left chips */}
-          <div className="absolute start-3 top-3 flex flex-wrap gap-1.5">
+          {/* Top-left chips: stop short of the action buttons so they wrap instead of hiding underneath. */}
+          <div className="absolute start-2.5 end-12 top-2.5 flex flex-wrap gap-1.5 sm:start-3 sm:top-3">
             {vehicle.fleetOwned && (
               <FleetBadge className="bg-black/50 border-white/15 text-white text-[10px] backdrop-blur-md" />
             )}
@@ -70,23 +70,23 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
         </div>
 
         {/* ── Details ───────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-3 p-4">
+        <div className="flex flex-col gap-2.5 p-3 sm:gap-3 sm:p-4">
 
-          {/* Make / model + rating */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h3 className="display truncate font-bold text-foreground transition-colors group-hover:text-primary">
+          {/* Make / model + rating: stacked on a narrow card so the name is never cut to "Chevr…". */}
+          <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:justify-between sm:gap-2">
+            <div className="min-w-0 max-w-full">
+              <h3 className="display line-clamp-2 text-sm font-bold leading-snug text-foreground transition-colors group-hover:text-primary sm:text-base">
                 {vehicle.make} {vehicle.model}
               </h3>
-              <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
-                <span>{vehicle.year}</span>
-                <span aria-hidden className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+              <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground sm:text-sm">
+                <span className="shrink-0">{vehicle.year}</span>
+                <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />
                 <span className="truncate">{vehicle.location.city || '-'}</span>
               </p>
             </div>
             <VehicleRating
               vehicle={vehicle}
-              className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[12px] font-semibold leading-none"
+              className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold leading-none sm:text-[12px]"
             />
           </div>
 
@@ -111,11 +111,11 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
           </div>
 
           {/* Price */}
-          <div className="flex items-baseline gap-1 border-t border-border/50 pt-3">
+          <div className="flex items-baseline gap-1 border-t border-border/50 pt-2.5 sm:pt-3">
             <DailyPrice
               amount={vehicle.pricing.dailyPrice}
               currency={vehicle.pricing.currency}
-              className="numeric text-xl font-bold text-foreground"
+              className="numeric text-lg font-bold text-foreground sm:text-xl"
             />
             <span className="text-sm text-muted-foreground">/ day</span>
           </div>

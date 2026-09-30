@@ -19,6 +19,7 @@ import { platformConfigService } from '../modules/platform-config/application/pl
 import { ROLES } from '../shared/constants/rbac';
 import { timezoneForState } from '../shared/utils/us-timezone';
 import { config } from '../config';
+import { wheelbaseInsuranceService } from '../modules/insurance/application/wheelbase-insurance.service';
 
 /** Best-effort system note into a booking conversation; never breaks the flow. */
 async function postSystemNote(bookingId: string, body: string): Promise<void> {
@@ -82,7 +83,7 @@ async function bookingTerms(bookingId: string): Promise<string[] | undefined> {
     const partial = rule.partialBps > 0 ? `${Math.round(rule.partialBps / 100)}% is refunded after that` : 'it is non-refundable after that';
     const terms = [
       'By booking you agreed to the privacy policy and all other terms and conditions of CatoDrive Inc., and to receive communication via email, phone, etc. as and when required during the rental period or until any billing/incident issues are resolved.',
-      `Cancellation (${b.cancellationPolicy}): full refund if you cancel at least ${hoursText(rule.fullBeforeHours)} before pickup; ${partial}.`,
+      `Cancellation: full refund if you cancel at least ${hoursText(rule.fullBeforeHours)} before pickup; ${partial}.`,
     ];
     if (cfg.deposit.enabled) {
       terms.push(`A refundable security deposit hold is placed on your card before pickup${cfg.deposit.requiredAtHandover ? ' and is required to start the trip' : ''}. It is released after the trip once the car is checked.`);
@@ -551,6 +552,19 @@ export function registerEventSubscribers(): void {
     }
   });
 
+  // A car that lost its Wheelbase insurance approval must be looked at before it is booked again.
+  eventBus.subscribe(EVENTS.INSURANCE_STATUS_CHANGED, async (e) => {
+    const p = e.payload as { vehicleId: string; from?: string; to: string; name: string };
+    await notifyStaff('insurance.status_changed', 'Car insurance no longer approved', `${p.name} (vehicle ${p.vehicleId}): Wheelbase insurance changed from ${p.from ?? 'unknown'} to ${p.to}. Check it in Admin → Insurance.`, { vehicleId: p.vehicleId }, 'critical');
+  });
+
+  // A new Wheelbase dealer ID is read straight away, not at the next scheduled check.
+  eventBus.subscribe(EVENTS.PLATFORM_CONFIG_UPDATED, async (e) => {
+    const p = e.payload as { keys?: string[] };
+    if (!p.keys?.includes('insurance')) return;
+    await wheelbaseInsuranceService.sync().catch((err) => logger.warn({ err: (err as Error).message }, 'wheelbase sync after settings change failed'));
+  });
+
   // An admin changed the daily mileage (or restored a version): every car follows at once.
   eventBus.subscribe(EVENTS.PLATFORM_CONFIG_UPDATED, async (e) => {
     const p = e.payload as { keys?: string[] };
@@ -560,6 +574,7 @@ export function registerEventSubscribers(): void {
   });
 
   // A model-year recall is a warning: the host checks the car, the team can pause it if it applies.
+  // A model-year recall: the host checks their car, staff can pause it; guests are never told.
   eventBus.subscribe(EVENTS.VEHICLE_RECALL_FOUND, async (e) => {
     const p = e.payload as { vehicleId: string; hostId: string; count: number; components: string[] };
     const what = p.components.map((c) => c.toLowerCase()).join(', ');

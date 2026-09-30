@@ -25,7 +25,7 @@ import { SectionEyebrow, TractionStats, AudienceSection, BRAND } from '@/feature
 const PILLARS = [
   { n: '01', icon: PlaneTakeoff, title: 'Free Terminal Valet', body: 'Car delivered straight to your terminal at DFW International and Love Field. Returned the same way. No shuttles. No satellite lots. Ever.' },
   { n: '02', icon: Car, title: 'Exact Car, Guaranteed', body: 'Book the precise vehicle you want. Real photos, real car. No bait-and-switch. Every vehicle SOP-maintained, spotless, and road-ready.' },
-  { n: '03', icon: Banknote, title: 'Owners Net $1,066–$1,878/mo', body: '80% of every booking goes to you. After maintenance (~$100–200/mo), the average owner nets over $1,000/month per vehicle. The car pays for itself in 36–40 months.' },
+  { n: '03', icon: Banknote, title: 'Owners Net $1,066–$1,878/mo', body: 'Most of every booking goes to you. After maintenance (~$100–200/mo), the average owner nets over $1,000/month per vehicle. The car pays for itself in 36–40 months.' },
   { n: '04', icon: Settings2, title: 'Full Fleet Management', body: 'Owners do nothing. We list, price, deliver, clean, and service - a 24/7 operations team based in DFW. Your only job is cashing the check.' },
 ] as const;
 
@@ -34,7 +34,7 @@ const STEPS = [
   { n: '02', icon: Camera, title: `${BRAND} Lists It`, body: 'We photograph it, list it, and price it dynamically. You do nothing.', tag: '$0 additional effort from you' },
   { n: '03', icon: ClipboardCheck, title: 'Guest Books Online', body: 'A vetted traveler books online. We screen every trip. You’re never involved.', tag: 'Full vetting on every reservation' },
   { n: '04', icon: Settings2, title: 'We Manage Everything', body: 'Valet pickup, terminal delivery, cleaning, maintenance coordination - full white-glove service.', tag: '100% of operations handled' },
-  { n: '05', icon: Wallet, title: 'You Get Paid', body: '80% of every booking hits your account monthly. No invoices. No chasing.', tag: 'Net $1,066–$1,878 / month' },
+  { n: '05', icon: Wallet, title: 'You Get Paid', body: 'Your share of every booking hits your account monthly. No invoices. No chasing.', tag: 'Net $1,066–$1,878 / month' },
 ] as const;
 
 const RISKS = [

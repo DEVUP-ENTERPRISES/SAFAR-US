@@ -35,7 +35,7 @@ const STEPS = [
   { n: '02', icon: Camera, title: `${BRAND} Lists It`, body: 'We photograph, list, price dynamically, and manage your car. You do nothing. $0 additional effort.' },
   { n: '03', icon: ClipboardCheck, title: 'Guest Books Online', body: 'A vetted traveler books. CatoDrive screens every trip. You’re never involved.' },
   { n: '04', icon: Settings2, title: 'We Manage Everything', body: 'Valet pickup, terminal delivery, cleaning, maintenance coordination. Full white-glove service.' },
-  { n: '05', icon: Wallet, title: 'You Get Paid', body: '80% of every booking hits your account monthly - check on the 5th or Zelle. No invoices. No chasing.', tag: 'Net $1,029–$1,841 / month' },
+  { n: '05', icon: Wallet, title: 'You Get Paid', body: 'Your share of every booking hits your account monthly - check on the 5th or Zelle. No invoices. No chasing.', tag: 'Net $1,029–$1,841 / month' },
 ] as const;
 
 const ECONOMICS: { label: string; value: string; muted?: boolean }[] = [
@@ -101,7 +101,7 @@ const PARTNER_ANSWERS = [
   },
   {
     q: 'What does it actually pay?',
-    a: 'You keep 80% of gross booking revenue. Insurance and detailing are itemised monthly, never bundled into a vague fee, and the full arithmetic is shown above before you apply.',
+    a: 'You keep the large majority of every booking; your exact share is set out in your partner agreement. Insurance and detailing are itemised monthly, never bundled into a vague fee.',
   },
   {
     q: 'What if a renter damages it?',

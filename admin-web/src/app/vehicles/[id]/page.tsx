@@ -11,6 +11,7 @@ import { ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { adminApi, type ReviewCheck } from '@/features/admin/api';
+import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { adminPath } from '@/lib/admin-path';
 
@@ -162,6 +163,9 @@ export default function VehicleReviewPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Recalls and title history: staff-only, never shown to guests or hosts. */}
+      <VehicleHistory vehicleId={v._id} audience="host" />
 
       <Card>
         <CardContent className="py-5">

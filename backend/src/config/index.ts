@@ -182,6 +182,9 @@ export const config = Object.freeze({
     // boot log and the frontend-key hints.
     enabled: !!env.MAPBOX_TOKEN || !!env.GOOGLE_MAPS_API_KEY,
   },
+  wheelbase: {
+    dealerId: env.WHEELBASE_DEALER_ID ?? '',
+  },
   ai: {
     apiKey: env.OPENROUTER_API_KEY,
     fallbackApiKey: env.OPENROUTER_API_KEY_FALLBACK,

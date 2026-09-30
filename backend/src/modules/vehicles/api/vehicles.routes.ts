@@ -5,6 +5,7 @@ import { vehicleInsightsService } from '../application/vehicle-insights.service'
 import { pricingPreviewService } from '../application/pricing-preview.service';
 import { visitorTrackingService } from '../../analytics/application/visitor-tracking.service';
 import { fleetImportService } from '../application/fleet-import.service';
+import { wheelbaseImportService } from '../../insurance/application/wheelbase-import.service';
 import { vehicleHistoryService } from '../application/vehicle-history.service';
 import { vehicleLifecycleService } from '../application/vehicle-lifecycle.service';
 import { OPERATIONAL_STATES } from '../domain/vehicle-lifecycle';
@@ -120,6 +121,35 @@ router.post(
   }),
 );
 
+/** Whether this account may import from Wheelbase (the CatoDrive fleet account only). */
+router.get(
+  '/import/wheelbase/available',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, { available: await wheelbaseImportService.isAvailableTo(req.principal!.userId) });
+  }),
+);
+
+/** Wheelbase import, dry run: which cars would be filled in, created, or need a choice. Writes nothing. */
+router.post(
+  '/import/wheelbase/preview',
+  authenticate,
+  authorize('vehicle:create'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await wheelbaseImportService.preview(req.principal!.userId));
+  }),
+);
+
+/** Wheelbase import: fill and link the cars already here, create drafts for the rest. */
+router.post(
+  '/import/wheelbase',
+  authenticate,
+  authorize('vehicle:create'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await wheelbaseImportService.run(req.principal!.userId));
+  }),
+);
+
 /** Host self-serve pause/relist of an already-verified car, or toggling the informational maintenance-risk flag. */
 router.patch(
   '/:id/status',
@@ -136,16 +166,15 @@ router.patch(
   }),
 );
 
-/**
- * Recalls and history for one car.
- *
- * Public: an open safety recall is exactly the thing a guest should be able to
- * see before booking, and hiding it would be the wrong call for a platform that
- * puts strangers in each other's vehicles.
- */
+/** Recalls and title history for one car: for its own host and CatoDrive staff, never guests (and a paid lookup). */
 router.get(
   '/:id/history',
+  authenticate,
   asyncHandler(async (req, res) => {
+    const perms = req.principal!.permissions;
+    if (!perms.includes('*') && !perms.includes('admin:read')) {
+      await vehicleService.assertOwnerById(req.principal!.userId, req.params.id);
+    }
     const v = await vehicleService.getById(req.params.id);
     const history = await vehicleHistoryService.full({
       vin: v.vin,

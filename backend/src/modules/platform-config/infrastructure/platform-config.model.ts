@@ -246,6 +246,14 @@ export interface PlatformConfigDoc {
    * bumping it forces every guest to re-accept the next time they book.
    * `minAgeYears` gates account setup and, by extension, booking eligibility.
    */
+  /** Insurance cover read from Wheelbase: which dealer's listings, and which rules apply at booking. */
+  insurance: {
+    wheelbaseDealerId: string;
+    /** Only cars Wheelbase lists as insurance-approved can be booked. */
+    requireApproved: boolean;
+    /** Refuse a renter younger than the car's Wheelbase minimum renter age. */
+    enforceMinAge: boolean;
+  };
   legal: {
     termsVersion: string;
     termsUrl: string;
@@ -465,6 +473,8 @@ export interface PlatformConfigDoc {
     recallAutoHold: boolean;
     /** Miles included per rental day on every car; applied to all listings when changed. */
     dailyMileageMiles: number;
+    /** The one cancellation policy every car uses; hosts do not choose. Applied to all listings when changed. */
+    cancellationPolicy: 'flexible' | 'moderate' | 'strict';
     checkoutHoldMinutes: number;
     paymentPendingMinutes: number;
     priceLockMinutes: number;
@@ -529,13 +539,18 @@ export interface PlatformConfigDoc {
 const schema = new Schema<PlatformConfigDoc>(
   {
     _id: { type: String, default: 'platform' },
+    insurance: {
+      wheelbaseDealerId: { type: String },
+      requireApproved: { type: Boolean, default: true },
+      enforceMinAge: { type: Boolean, default: true },
+    },
     legal: {
       termsVersion: { type: String, default: '2026-09-01' },
       termsUrl: { type: String, default: '/legal' },
       privacyVersion: { type: String, default: '2026-09-01' },
       privacyUrl: { type: String, default: '/legal' },
       cancellationUrl: { type: String, default: '/legal' },
-      minAgeYears: { type: Number, default: 18 },
+      minAgeYears: { type: Number, default: 21 },
     },
     contact: {
       notifyEmail: { type: String, default: 'shoaib@catodrive.com' },
@@ -792,6 +807,7 @@ const schema = new Schema<PlatformConfigDoc>(
       documentExpiryReleaseHours: { type: Number, default: 72 },
       recallAutoHold: { type: Boolean, default: false },
       dailyMileageMiles: { type: Number, default: 200 },
+      cancellationPolicy: { type: String, enum: ['flexible', 'moderate', 'strict'], default: 'flexible' },
       checkoutHoldMinutes: { type: Number, default: 15 },
       paymentPendingMinutes: { type: Number, default: 30 },
       priceLockMinutes: { type: Number, default: 10 },
