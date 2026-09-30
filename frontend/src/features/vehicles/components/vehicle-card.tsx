@@ -77,7 +77,7 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
                 {vehicle.location.city || '-'}
               </p>
             </div>
-            <VehicleRating vehicle={vehicle} className="shrink-0 rounded-full bg-foreground/5 px-2.5 py-1 text-[13px] leading-none text-foreground border border-border/50" />
+            <VehicleRating vehicle={vehicle} className="shrink-0 self-start text-[12px] leading-none sm:text-[13px]" />
           </div>
 
           <div className="mt-auto pt-4 space-y-4">
