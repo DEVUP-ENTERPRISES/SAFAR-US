@@ -42,7 +42,7 @@ const fontMono = IBM_Plex_Mono({
  * "CatoDrive", not a generic scaffold. Nothing here advertises the build tool
  * (and poweredByHeader is off in next.config, so no X-Powered-By header ships).
  */
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://catodrive.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.catodrive.com';
 // The company name, not a runtime config value - hardcoded so it can never
 // drift from whatever NEXT_PUBLIC_APP_NAME happens to be set to in a given
 // environment (this is exactly how it once rendered "CATO Drive" in
