@@ -65,7 +65,7 @@ export function DateRangePicker({
   };
 
   return (
-    <div className={cn('w-full select-none', compact ? 'max-w-full' : 'sm:w-auto')}>
+    <div className={cn('w-full select-none')}>
 
       {/* ── Month navigation header ── */}
       <div className="mb-4 flex items-center justify-between gap-2">
