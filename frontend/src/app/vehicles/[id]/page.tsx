@@ -1048,7 +1048,7 @@ export default function VehicleDetailPage() {
             )}
             {quote.data && canQuote && (
               <div className={`space-y-1.5 rounded-lg border border-border p-3 text-sm transition-opacity ${quote.isPending ? 'opacity-60' : ''}`} aria-live="polite">
-                <Row label={`${quote.data.days} days`} value={formatMoney(quote.data.base)} />
+                <Row label={`${quote.data.days} ${quote.data.days === 1 ? 'day' : 'days'}`} value={formatMoney(quote.data.base)} />
                 {quote.data.cleaningFee.amount > 0 && <Row label="Cleaning fee" value={formatMoney(quote.data.cleaningFee)} />}
                 {quote.data.delivery?.amount > 0 && <Row label="Delivery" value={formatMoney(quote.data.delivery)} />}
                 {quote.data.selectedAddOns?.map((a) => <Row key={a.code} label={a.label} value={formatMoney(a.amount)} />)}
@@ -1158,9 +1158,13 @@ export default function VehicleDetailPage() {
               </div>
             )}
             {createBooking.isError && (
-              createBooking.error instanceof ApiError && createBooking.error.code === 'PAYMENT_METHOD_REQUIRED' ? (
+              createBooking.error instanceof ApiError && (createBooking.error.code === 'PAYMENT_METHOD_REQUIRED' || createBooking.error.code === 'CARD_DECLINED') ? (
                 <div className="space-y-3 rounded-xl border border-border p-3">
-                  <p className="text-sm font-medium">{createBooking.error.message}</p>
+                  <p className={cn('text-sm font-medium', createBooking.error.code === 'CARD_DECLINED' && 'text-destructive')}>
+                    {createBooking.error.message}
+                  </p>
+                  {/* A declined card is fixed right here: add another and the booking is retried with it. */}
+                  {createBooking.error.code === 'CARD_DECLINED' && <p className="text-xs text-muted-foreground">Use another card:</p>}
                   <AddCard onSaved={() => { createBooking.reset(); void book(); }} />
                 </div>
               ) : (
