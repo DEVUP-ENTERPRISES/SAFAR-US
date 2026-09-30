@@ -36,20 +36,27 @@ function cardDeclined(err: unknown): CardDeclinedError | null {
     type?: string;
     code?: string;
     decline_code?: string;
-    payment_intent?: { id?: string; last_payment_error?: { payment_method?: { card?: { checks?: Record<string, string | null> } } } };
+    payment_intent?: {
+      id?: string;
+      last_payment_error?: { payment_method?: { card?: { brand?: string; last4?: string; checks?: Record<string, string | null> } } };
+    };
   };
   if (e?.type !== 'StripeCardError') return null;
   const reason = e.decline_code ?? e.code ?? 'card_declined';
-  const checks = e.payment_intent?.last_payment_error?.payment_method?.card?.checks ?? {};
+  const card = e.payment_intent?.last_payment_error?.payment_method?.card;
+  const checks = card?.checks ?? {};
   logger.warn({ reason, checks, intentId: e.payment_intent?.id }, 'card declined by the bank');
 
+  // Name the card, so a guest with several saved cards knows which one the bank refused.
+  const which = card?.last4 ? `your ${card.brand ? card.brand[0].toUpperCase() + card.brand.slice(1) : 'card'} ending ${card.last4}` : 'this card';
+  const Which = which[0].toUpperCase() + which.slice(1);
   if (checks.address_postal_code_check === 'fail' || reason === 'incorrect_zip') {
-    return new CardDeclinedError('Your bank declined this card because the billing ZIP code doesn’t match. Update the card’s ZIP code or use another card.');
+    return new CardDeclinedError(`Your bank declined ${which} because the billing ZIP code doesn’t match. Add the card again with the ZIP code on your bank statement, or use another card.`);
   }
-  if (reason === 'insufficient_funds') return new CardDeclinedError('Your bank declined this card for insufficient funds. Please use another card.');
-  if (reason === 'expired_card') return new CardDeclinedError('This card has expired. Please use another card.');
+  if (reason === 'insufficient_funds') return new CardDeclinedError(`Your bank declined ${which} for insufficient funds. Please use another card.`);
+  if (reason === 'expired_card') return new CardDeclinedError(`${Which} has expired. Please use another card.`);
   if (reason === 'incorrect_cvc' || checks.cvc_check === 'fail') {
-    return new CardDeclinedError('The card’s security code didn’t match. Check it or use another card.');
+    return new CardDeclinedError(`The security code for ${which} didn’t match. Add the card again, or use another card.`);
   }
   return new CardDeclinedError();
 }
