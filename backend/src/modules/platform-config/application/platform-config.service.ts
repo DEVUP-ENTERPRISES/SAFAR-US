@@ -116,7 +116,7 @@ export class PlatformConfigService {
       configVersion: doc.configVersion ?? 0,
       // Defaults follow the Wheelbase cover: approved cars only and its age minimums; the dealer ID comes from the server env.
       insurance: {
-        wheelbaseDealerId: config.wheelbase.dealerId,
+        wheelbaseDealerId: config.wheelbase?.dealerId ?? '',
         requireApproved: true,
         enforceMinAge: true,
         ...(doc.insurance ?? {}),
