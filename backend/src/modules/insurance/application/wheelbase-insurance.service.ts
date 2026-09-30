@@ -12,14 +12,14 @@ import { fetchDealerListings, type WheelbaseListing } from '../infrastructure/wh
 const norm = (s?: string) => (s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 /** Same year and make, and one model name starts with the other ("Traverse" / "Traverse FWD Premier"). */
-function sameCar(v: Pick<VehicleDoc, 'year' | 'make' | 'model'>, l: WheelbaseListing): boolean {
+export function sameCar(v: Pick<VehicleDoc, 'year' | 'make' | 'model'>, l: WheelbaseListing): boolean {
   if (!l.year || l.year !== v.year || norm(l.make) !== norm(v.make)) return false;
   const a = norm(v.model);
   const b = norm(l.model);
   return !!a && !!b && (a.startsWith(b) || b.startsWith(a));
 }
 
-function linkFrom(l: WheelbaseListing, linkedBy: WheelbaseLink['linkedBy']): WheelbaseLink {
+export function linkFrom(l: WheelbaseListing, linkedBy: WheelbaseLink['linkedBy']): WheelbaseLink {
   return {
     rentalId: l.id,
     name: l.name,
@@ -58,7 +58,6 @@ export const wheelbaseInsuranceService = {
     const byId = new Map(listings.map((l) => [l.id, l]));
     const cars = await VehicleModel.find({ deletedAt: null }).lean<VehicleDoc[]>();
 
-    const taken = new Set(cars.map((c) => c.wheelbase?.rentalId).filter((x): x is number => typeof x === 'number'));
     const out: WheelbaseSyncResult = { listings: listings.length, updated: 0, autoLinked: 0, unmatched: 0, missing: 0 };
 
     for (const car of cars) {
@@ -79,10 +78,10 @@ export const wheelbaseInsuranceService = {
         out.updated += 1;
         continue;
       }
-      const candidates = listings.filter((l) => !taken.has(l.id) && sameCar(car, l));
+      // A Wheelbase listing covers every identical car in its group, so several cars may share one.
+      const candidates = listings.filter((l) => sameCar(car, l));
       if (candidates.length === 1) {
         await VehicleModel.updateOne({ _id: car._id }, { $set: { wheelbase: linkFrom(candidates[0], 'auto') } });
-        taken.add(candidates[0].id);
         out.autoLinked += 1;
       } else {
         out.unmatched += 1;
@@ -137,8 +136,6 @@ export const wheelbaseInsuranceService = {
     if (!dealer) throw new ValidationError('Set the Wheelbase dealer ID first.');
     const listing = (await fetchDealerListings(dealer)).find((l) => l.id === rentalId);
     if (!listing) throw new ValidationError('That listing is not in this Wheelbase account.');
-    const other = await VehicleModel.findOne({ _id: { $ne: vehicleId }, deletedAt: null, 'wheelbase.rentalId': rentalId }).lean<VehicleDoc>();
-    if (other) throw new ConflictError(`That listing is already linked to ${other.year} ${other.make} ${other.model}.`, 'WHEELBASE_ALREADY_LINKED');
     await VehicleModel.updateOne({ _id: vehicleId }, { $set: { wheelbase: linkFrom(listing, 'admin') } });
   },
 

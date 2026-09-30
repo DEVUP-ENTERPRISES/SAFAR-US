@@ -43,8 +43,10 @@ describe('wheelbase insurance sync', () => {
     await wheelbaseInsuranceService.link('traverse', 504501);
     expect((await VehicleModel.findById('traverse').lean())!.wheelbase).toMatchObject({ rentalId: 504501, linkedBy: 'admin', minRenterAge: 25 });
 
-    // One listing can only cover one car.
-    await expect(wheelbaseInsuranceService.link('buick', 504501)).rejects.toMatchObject({ code: 'WHEELBASE_ALREADY_LINKED' });
+    // A Wheelbase listing covers every identical car in its group, so two cars may share it.
+    await car('buick2', 2024, 'Buick', 'Envista');
+    await wheelbaseInsuranceService.sync();
+    expect((await VehicleModel.findById('buick2').lean())!.wheelbase).toMatchObject({ rentalId: 504956, linkedBy: 'auto' });
   });
 
   it('keeps the last reading when a listing disappears, and a Wheelbase outage changes nothing', async () => {

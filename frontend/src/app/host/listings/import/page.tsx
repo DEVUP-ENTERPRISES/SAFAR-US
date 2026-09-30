@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils/cn';
 import { ApiError } from '@/lib/api/types';
 import { LocationSearch } from '@/features/maps/components/location-search';
 import { hostApi, type RowPreview, type ImportResult } from '@/features/host/api';
+import { WheelbaseImport } from '@/features/host/components/wheelbase-import';
 
 /**
  * Fleet import & bulk edit - one shared address for the whole batch (set
@@ -114,6 +115,8 @@ export default function ImportPage() {
         title="Import your fleet"
         description="Set your address once, then paste one line per car. We decode the rest from the VIN."
       />
+
+      <WheelbaseImport />
 
       {/* What the VIN saves them typing, said once, up front. */}
       <Card className="border-primary/30 bg-primary/5">

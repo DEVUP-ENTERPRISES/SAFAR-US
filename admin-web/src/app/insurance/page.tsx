@@ -172,8 +172,8 @@ export default function InsurancePage() {
                     <option value="">{wb ? 'Unlink' : c.suggestions.length > 1 ? 'Choose the matching listing…' : 'Not linked'}</option>
                     {wb && !options.some((l) => l.id === wb.rentalId) && <option value={wb.rentalId}>{listingName(wb.rentalId)} (missing)</option>}
                     {options.map((l) => (
-                      <option key={l.id} value={l.id} disabled={linkedElsewhere(l.id, c._id)}>
-                        {c.suggestions.includes(l.id) ? '★ ' : ''}{l.name} · #{l.id}{linkedElsewhere(l.id, c._id) ? ' (linked)' : ''}
+                      <option key={l.id} value={l.id}>
+                        {c.suggestions.includes(l.id) ? '★ ' : ''}{l.name} · #{l.id}{linkedElsewhere(l.id, c._id) ? ' (also covers other cars)' : ''}
                       </option>
                     ))}
                   </Select>
