@@ -66,9 +66,10 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
 
         {/* Body */}
         <div className="relative z-20 flex flex-col flex-1 px-2 py-4 sm:px-4 sm:py-5">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3">
+          {/* Name and tag share a line at every width; the name gives way first. */}
+          <div className="flex items-start justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
-              <h3 className="display line-clamp-2 break-words text-base font-bold leading-snug text-foreground transition-colors group-hover:text-primary sm:line-clamp-1 sm:text-lg">
+              <h3 className="display line-clamp-2 break-words text-base font-bold leading-snug text-foreground transition-colors group-hover:text-primary sm:text-lg">
                 {vehicle.make} {vehicle.model}
               </h3>
               <p className="mt-1 truncate text-sm font-medium text-muted-foreground/80 flex items-center gap-1.5">
