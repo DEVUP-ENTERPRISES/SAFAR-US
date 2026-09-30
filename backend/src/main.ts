@@ -5,7 +5,7 @@ import { connectMongo, disconnectMongo } from './infrastructure/database/mongoos
 import { redis, connectRedis, disconnectRedis } from './infrastructure/cache/redis.client';
 import { setKvStore, RedisKvStore, InMemoryKvStore } from './infrastructure/cache/kv-store';
 import { registerEventSubscribers } from './bootstrap/event-subscriptions';
-import { syncDailyMileage } from './modules/vehicles/application/vehicle.service';
+import { syncDailyMileage, vehicleService } from './modules/vehicles/application/vehicle.service';
 import { wheelbaseInsuranceService } from './modules/insurance/application/wheelbase-insurance.service';
 import { installCrashHandlers } from './infrastructure/observability/error-reporter';
 import { seedAdmin, enforceSingleSuperAdmin } from './bootstrap/seed-admin';
@@ -82,10 +82,14 @@ async function bootstrap(): Promise<void> {
   await seedLegal();
   await seedBookingQuotes();
   registerEventSubscribers();
-  // Every car carries the platform's daily mileage; catches cars listed before the rule or a missed change.
+  // Every car carries the platform's daily mileage and cancellation policy; catches older cars or a missed change.
   void syncDailyMileage()
-    .then((n) => n && logger.info({ vehicles: n }, 'daily mileage allowance applied'))
-    .catch((err) => logger.warn({ err: (err as Error).message }, 'daily mileage sync failed'));
+    .then((n) => n && logger.info({ updates: n }, 'platform mileage and cancellation rules applied to cars'))
+    .catch((err) => logger.warn({ err: (err as Error).message }, 'platform car rules sync failed'));
+  // Dallas-area cars without delivery spots get the standard priced ones, so no guest types in an airport for free.
+  void vehicleService.backfillDefaultDelivery()
+    .then((n) => n && logger.info({ vehicles: n }, 'standard delivery spots added'))
+    .catch((err) => logger.warn({ err: (err as Error).message }, 'default delivery backfill failed'));
   // Link and refresh each car's Wheelbase insurance at boot, not six hours after a deploy.
   void wheelbaseInsuranceService.sync().catch((err) => logger.warn({ err: (err as Error).message }, 'wheelbase insurance sync at boot failed'));
 

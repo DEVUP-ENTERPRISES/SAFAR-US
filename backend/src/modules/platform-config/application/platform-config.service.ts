@@ -267,6 +267,8 @@ export class PlatformConfigService {
         documentExpiryReleaseHours: 72,
         recallAutoHold: false,
         dailyMileageMiles: 200,
+        // One rule for every car: free until 24 hours before pickup, 50% after (the flexible rule below).
+        cancellationPolicy: 'flexible' as const,
         checkoutHoldMinutes: 15,
         paymentPendingMinutes: 30,
         priceLockMinutes: 10,

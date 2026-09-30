@@ -28,7 +28,8 @@ export function toPublicVehicle<T extends Partial<VehicleDoc>>(v: T): T {
     out.location = {
       type: 'Point',
       coordinates: [approx(lng), approx(lat)],
-      address: [location.city, location.state].filter(Boolean).join(', '),
+      // "Irving, TX": the state from the car, or read off its street address ("…, Irving, TX 75062").
+      address: [location.city, location.state ?? location.address?.match(/,\s*([A-Z]{2})\s*\d{5}/)?.[1]].filter(Boolean).join(', '),
       city: location.city,
       state: location.state,
     };

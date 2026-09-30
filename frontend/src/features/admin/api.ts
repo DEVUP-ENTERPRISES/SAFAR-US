@@ -112,6 +112,7 @@ export interface PlatformConfig {
     documentExpiryReleaseHours: number;
     recallAutoHold?: boolean;
     dailyMileageMiles?: number;
+    cancellationPolicy?: 'flexible' | 'moderate' | 'strict';
     checkoutHoldMinutes: number;
     paymentPendingMinutes: number;
     priceLockMinutes: number;

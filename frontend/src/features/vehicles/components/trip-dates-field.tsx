@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { formatClock } from '@/lib/utils/format';
 import { DateRangePicker } from '@/features/search/date-range-picker';
 
 /**
@@ -57,7 +58,7 @@ export function TripDatesField({
 
   const fmt = (v: string) =>
     v
-      ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      ? new Date(v).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
       : 'Add date';
 
   const setDates = (from: string, to: string) =>
@@ -85,7 +86,7 @@ export function TripDatesField({
               <span className="flex items-center gap-1.5 truncate text-sm font-medium">
                 <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 {fmt(v)}
-                {v && <span className="numeric text-muted-foreground">{timeOf(v)}</span>}
+                {v && <span className="text-muted-foreground">· {formatClock(timeOf(v))}</span>}
               </span>
             </button>
           );
@@ -147,11 +148,11 @@ function TimeField({
             disabled={tooSoon?.(t)}
             onClick={() => onChange(t)}
             className={cn(
-              'numeric rounded-lg px-2 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-30',
+              'rounded-lg px-2 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-30',
               value === t ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/70',
             )}
           >
-            {t}
+            {formatClock(t)}
           </button>
         ))}
       </div>

@@ -83,7 +83,7 @@ async function bookingTerms(bookingId: string): Promise<string[] | undefined> {
     const partial = rule.partialBps > 0 ? `${Math.round(rule.partialBps / 100)}% is refunded after that` : 'it is non-refundable after that';
     const terms = [
       'By booking you agreed to the privacy policy and all other terms and conditions of CatoDrive Inc., and to receive communication via email, phone, etc. as and when required during the rental period or until any billing/incident issues are resolved.',
-      `Cancellation (${b.cancellationPolicy}): full refund if you cancel at least ${hoursText(rule.fullBeforeHours)} before pickup; ${partial}.`,
+      `Cancellation: full refund if you cancel at least ${hoursText(rule.fullBeforeHours)} before pickup; ${partial}.`,
     ];
     if (cfg.deposit.enabled) {
       terms.push(`A refundable security deposit hold is placed on your card before pickup${cfg.deposit.requiredAtHandover ? ' and is required to start the trip' : ''}. It is released after the trip once the car is checked.`);

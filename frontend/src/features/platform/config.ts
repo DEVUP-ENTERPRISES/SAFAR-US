@@ -79,10 +79,12 @@ export function usePlatformConfig() {
   });
 }
 
-const POLICY_TITLES: Record<string, string> = { flexible: 'Flexible', moderate: 'Moderate', strict: 'Strict' };
+// Every car uses one policy now; the flexible rule reads to guests as plain "Free cancellation".
+const POLICY_TITLES: Record<string, string> = { flexible: 'Free', moderate: 'Moderate', strict: 'Strict' };
 
 function humanHours(h: number): string {
-  if (h % 24 === 0) {
+  // "24 hours" reads more exactly than "1 day" for a cancellation deadline.
+  if (h >= 72 && h % 24 === 0) {
     const d = h / 24;
     return d === 1 ? '1 day' : `${d} days`;
   }

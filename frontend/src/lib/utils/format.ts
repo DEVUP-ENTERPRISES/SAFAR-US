@@ -16,6 +16,13 @@ export function formatMoney(m: Money | undefined | null): string {
   }
 }
 
+/** A wall-clock "HH:mm" as US guests read it: "10:00 AM". */
+export function formatClock(t: string): string {
+  const [h, m] = t.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return t;
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
 export function formatDate(value: string | Date): string {
   const d = typeof value === 'string' ? new Date(value) : value;
   return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
