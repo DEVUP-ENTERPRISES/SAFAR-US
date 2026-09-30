@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { Camera, Check, Clock, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +10,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils/cn';
 import { formatDateTime } from '@/lib/utils/format';
 import { uploadFiles } from '@/features/media/upload';
-import { tripApi, type PhotoPhase } from '@/features/trips/api';
+import { tripApi, type InspectionAngle, type PhotoPhase } from '@/features/trips/api';
 import { useInspection } from '@/features/trips/hooks';
 import { LiveCamera, type CapturedShot } from './live-camera';
-import { AngleGuide } from './angle-guide';
+import { ShotDiagram, ShotLegend } from './shot-diagram';
+
+const GROUPS = [
+  { id: 'walkaround', title: 'Walk-around' },
+  { id: 'outside', title: 'Outside details' },
+  { id: 'inside', title: 'Inside' },
+  { id: 'id', title: 'ID & existing damage' },
+] as const;
 
 /**
  * Condition photos for one phase, for guest and host alike. Every photo comes
@@ -39,7 +47,9 @@ export function InspectionPhotos({
   const angles = state?.angles ?? [];
   const win = state?.[phase];
   const taken = useMemo(() => (state?.photos ?? []).filter((p) => p.phase === phase), [state?.photos, phase]);
-  const nextAngle = angles.find((a) => !taken.some((p) => p.angle === a.id))?.id ?? angles[0]?.id ?? null;
+  const shotsOf = (id: string) => taken.filter((p) => p.angle === id);
+  const needOf = (a: InspectionAngle) => a.shots ?? 1;
+  const nextAngle = angles.find((a) => needOf(a) > 0 && shotsOf(a.id).length < needOf(a))?.id ?? null;
   const canShoot = !!win?.open && taken.length < win.max;
 
   useEffect(() => {
@@ -52,6 +62,8 @@ export function InspectionPhotos({
   if (isLoading || !state || !win) return <Skeleton className="h-40 w-full rounded-2xl" />;
 
   const angle = angles.find((a) => a.id === angleId);
+  // Photos under an angle this guide no longer lists (from an older app version) stay visible.
+  const others = taken.filter((p) => !angles.some((a) => a.id === p.angle));
   const title = phase === 'pre' ? 'Pickup photos' : 'Return photos';
   const enough = taken.length >= win.required;
 
@@ -105,61 +117,108 @@ export function InspectionPhotos({
             {win.required > 0 ? ` / ${win.required} needed` : ''}
           </span>
         </div>
+        <p className="text-sm text-muted-foreground">
+          {angles.length} shots, about five minutes. Start at the front and walk counterclockwise so nothing gets skipped.
+        </p>
         <p className="text-xs text-muted-foreground">
-          {phase === 'pre'
-            ? 'Photograph the car from every side before you drive off. Photos are taken live with the camera, stamped with the time and place, and cannot be changed afterwards.'
-            : 'Photograph the car as you return it, so its condition at drop-off is on record. Photos are taken live with the camera and cannot be changed afterwards.'}
+          {phase === 'pre' ? 'Take them before you drive off.' : 'Take them as you return the car.'} Photos are taken live, stamped with the time and place, and can’t be changed afterwards.
         </p>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-5">
         {status && (
           <p className="flex items-center gap-2 rounded-lg bg-muted/60 p-2.5 text-xs font-medium text-muted-foreground">
             <Clock className="h-4 w-4 shrink-0" /> {status}
           </p>
         )}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {angles.map((a) => {
-            const photo = taken.find((p) => p.angle === a.id);
-            return (
-              <button
-                key={a.id}
-                type="button"
-                disabled={!canShoot}
-                onClick={() => setAngleId(a.id)}
-                className={cn(
-                  'relative flex aspect-[4/3] flex-col justify-between overflow-hidden rounded-xl border p-2.5 text-left transition-colors',
-                  photo ? 'border-success/50 bg-success/5' : 'border-dashed border-border bg-muted/20',
-                  canShoot ? 'hover:border-primary/50' : 'cursor-default',
-                )}
-              >
-                {photo ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={photo.url} alt={a.label} className="absolute inset-0 h-full w-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent" />
-                    <span className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-success text-white">
-                      <Check className="h-3.5 w-3.5" />
-                    </span>
-                    <span className="relative z-10 truncate text-[11px] font-bold text-white">
-                      {a.label} · {photo.role === 'host' ? 'Host' : 'Guest'}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Camera className="h-4 w-4 text-muted-foreground" />
-                    <AngleGuide angle={a.id} className="absolute inset-x-3 top-[46%] -translate-y-1/2 text-muted-foreground/70" />
-                    <span className="relative text-[11px] font-semibold text-muted-foreground">{a.label}</span>
-                  </>
-                )}
-              </button>
-            );
-          })}
+        <ShotLegend />
+
+        {GROUPS.map((g) => {
+          const cards = angles.filter((a) => (a.group ?? 'walkaround') === g.id);
+          if (!cards.length) return null;
+          return (
+            <section key={g.id} className="space-y-3">
+              <div className="flex items-baseline justify-between gap-3">
+                <h3 className="text-base font-bold">{g.title}</h3>
+                <span className="text-xs text-muted-foreground">
+                  {cards.length} shots{g.id === 'walkaround' ? ', counterclockwise' : ''}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {cards.map((a) => {
+                  const number = angles.indexOf(a) + 1;
+                  const shots = shotsOf(a.id);
+                  const need = needOf(a);
+                  const done = need > 0 && shots.length >= need;
+                  const canAdd = canShoot && (need === 0 || shots.length < need);
+                  const cover = done ? shots[0] : undefined;
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      disabled={!canAdd}
+                      onClick={() => setAngleId(a.id)}
+                      className={cn(
+                        'flex flex-col rounded-2xl border bg-card p-3 text-left transition-colors',
+                        done ? 'border-success/50' : 'border-border',
+                        canAdd ? 'hover:border-primary/50' : 'cursor-default',
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <Camera className="h-4 w-4 text-muted-foreground" />
+                        <span
+                          className={cn(
+                            'flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold',
+                            done ? 'bg-success text-white' : 'bg-muted text-muted-foreground',
+                          )}
+                        >
+                          {done ? <Check className="h-3.5 w-3.5" /> : number}
+                        </span>
+                      </div>
+                      <div className="relative my-2 aspect-[4/3] overflow-hidden rounded-lg">
+                        {cover ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={cover.url} alt={a.label} className="h-full w-full object-cover" />
+                        ) : (
+                          <ShotDiagram angle={a.id} className="h-full w-full text-muted-foreground" />
+                        )}
+                        {(need !== 1 && shots.length > 0) && (
+                          <span className="absolute bottom-1.5 end-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">
+                            {need > 0 ? `${shots.length} of ${need}` : `${shots.length} taken`}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[15px] font-bold leading-snug">{a.label}</span>
+                      {a.hint && <span className="mt-0.5 text-xs leading-snug text-muted-foreground">{a.hint}</span>}
+                      {cover && <span className="mt-1 text-[11px] font-semibold text-success">{cover.role === 'host' ? 'Host' : 'Guest'} photo</span>}
+                      {need === 0 && !shots.length && <span className="mt-1 text-[11px] font-semibold text-muted-foreground">Only if the car has marks</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+
+        {others.length > 0 && (
+          <div className="grid grid-cols-4 gap-2">
+            {others.map((p) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={p.url} src={p.url} alt="Condition photo" className="aspect-square w-full rounded-lg object-cover" />
+            ))}
+          </div>
+        )}
+
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <p>Left and right are as if you were sitting in the driver’s seat. Card numbers match the shooting order.</p>
+          <Link href="/help/photo-guide" target="_blank" className="inline-flex font-semibold text-primary hover:underline">
+            Why each shot matters
+          </Link>
         </div>
 
         {canShoot && nextAngle && (
           <Button className="w-full" onClick={() => setAngleId(nextAngle)}>
-            <Camera className="h-4 w-4" /> Take {phase === 'pre' ? 'pickup' : 'return'} photo
+            <Camera className="h-4 w-4" /> Take photo {angles.findIndex((a) => a.id === nextAngle) + 1}: {angles.find((a) => a.id === nextAngle)?.label}
           </Button>
         )}
         {!win.open && taken.length === 0 && win.reason === 'closed' && (
@@ -178,6 +237,7 @@ export function InspectionPhotos({
             angleLabel: angle.label,
           }}
           guide={angle.id}
+          tip={angle.hint}
           requireLocation={state.requireLocation}
           onUse={onUse}
           onClose={() => setAngleId(null)}

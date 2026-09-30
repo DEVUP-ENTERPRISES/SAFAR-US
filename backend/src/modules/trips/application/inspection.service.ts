@@ -11,19 +11,33 @@ import { EVENTS } from '../../../core/events/event-names';
 
 export type InspectionPhase = 'pre' | 'post';
 
-/** The shots that make a complete condition record; served to clients so the list lives in one place. */
+/**
+ * The 18 shots of a complete condition record, in shooting order (walk counterclockwise from the front);
+ * served to clients so the list lives in one place. `shots` is how many photos a card takes; 0 means as many as needed.
+ */
 export const INSPECTION_ANGLES = [
-  { id: 'front', label: 'Front' },
-  { id: 'front_left', label: 'Front left' },
-  { id: 'driver_side', label: 'Driver side' },
-  { id: 'rear_left', label: 'Rear left' },
-  { id: 'rear', label: 'Rear' },
-  { id: 'passenger_side', label: 'Passenger side' },
-  { id: 'interior', label: 'Interior' },
-  { id: 'dashboard', label: 'Dash & fuel' },
+  { id: 'front', label: 'Front', group: 'walkaround', shots: 1, hint: 'Bumper, grille, plate. Stand 3–4 m (10–13 ft) back.' },
+  { id: 'front_left', label: 'Front left', group: 'walkaround', shots: 1, hint: '45° from the corner: bumper, fender, hood.' },
+  { id: 'driver_side', label: 'Driver side', group: 'walkaround', shots: 1, hint: 'Square-on, bumper to bumper, at door-handle height.' },
+  { id: 'rear_left', label: 'Rear left', group: 'walkaround', shots: 1, hint: '45° from the corner: bumper, rear quarter panel.' },
+  { id: 'rear', label: 'Rear', group: 'walkaround', shots: 1, hint: 'Bumper, both taillights, plate readable.' },
+  { id: 'rear_right', label: 'Rear right', group: 'walkaround', shots: 1, hint: '45° from the corner: bumper, rear quarter panel.' },
+  { id: 'passenger_side', label: 'Passenger side', group: 'walkaround', shots: 1, hint: 'Square-on, bumper to bumper, at door-handle height.' },
+  { id: 'front_right', label: 'Front right', group: 'walkaround', shots: 1, hint: '45° from the corner: bumper, fender, hood.' },
+  { id: 'windshield', label: 'Windshield', group: 'outside', shots: 1, hint: 'Whole glass, then any chip or crack up close.' },
+  { id: 'roof', label: 'Roof', group: 'outside', shots: 1, hint: 'From higher ground. Include hood and trunk lid.' },
+  { id: 'wheels', label: 'Wheels ×4', group: 'outside', shots: 4, hint: 'Face-on: rim edge, sidewall and tread.' },
+  { id: 'low_bumpers', label: 'Low bumpers ×2', group: 'outside', shots: 2, hint: 'Crouch: front lower lip and rear lower edge.' },
+  { id: 'seats_dash', label: 'Seats & dash', group: 'inside', shots: 1, hint: 'From the rear seat: seats, dash, wheel, console.' },
+  { id: 'rear_seats', label: 'Rear seats', group: 'inside', shots: 1, hint: 'Full bench, belts, floor and any stains.' },
+  { id: 'trunk', label: 'Trunk', group: 'inside', shots: 1, hint: 'Lid open: floor, spare tire, jack.' },
+  { id: 'dashboard', label: 'Odometer & fuel', group: 'inside', shots: 1, hint: 'Ignition on: miles, fuel level, warning lights.' },
+  { id: 'vin_plate', label: 'VIN & plate', group: 'id', shots: 1, hint: 'VIN at windshield base or door jamb, plus plate.' },
+  { id: 'damage', label: 'Damage close-up', group: 'id', shots: 0, hint: 'Wide shot, then close-up with a coin for scale.' },
 ] as const;
 
-const ANGLE_IDS: string[] = INSPECTION_ANGLES.map((a) => a.id);
+// 'interior' was an angle before the 18-shot guide; still accepted from older app versions.
+const ANGLE_IDS: string[] = [...INSPECTION_ANGLES.map((a) => a.id), 'interior'];
 const MINUTE_MS = 60_000;
 
 /** What a client may send about a photo; `at`, `byUserId` and `source` are never taken from it. */

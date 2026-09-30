@@ -146,21 +146,19 @@ const ART: Record<string, React.ReactNode> = {
       <Corner rear />
     </g>
   ),
+  rear_right: <Corner rear />,
+  front_right: (
+    <g transform="translate(160 0) scale(-1 1)">
+      <Corner />
+    </g>
+  ),
   interior: Interior,
+  seats_dash: Interior,
   dashboard: Dashboard,
 };
 
-/** How to frame each angle, in a few words. */
-export const ANGLE_TIPS: Record<string, string> = {
-  front: 'Stand back so the whole front and the number plate fit.',
-  front_left: 'From the front-left corner: the front and driver side together.',
-  driver_side: 'Stand level with the car and fit both wheels in the frame.',
-  rear_left: 'From the rear-left corner: the back and side together.',
-  rear: 'The whole rear and the number plate, straight on.',
-  passenger_side: 'Stand level with the car and fit both wheels in the frame.',
-  interior: 'From the open driver door: seats, floor and dashboard.',
-  dashboard: 'Engine on, so the mileage and fuel level are readable.',
-};
+/** Whether the live camera has a car outline to line this angle up with. */
+export const hasOutline = (angle: string) => angle in ART;
 
 /** Illustration of the shot to take, so people know how to frame it before and while shooting. */
 export function AngleGuide({ angle, className }: { angle: string; className?: string }) {

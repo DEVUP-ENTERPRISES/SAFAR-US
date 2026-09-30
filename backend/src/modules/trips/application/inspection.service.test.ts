@@ -4,7 +4,7 @@
  */
 import { tripService } from './trip.service';
 import { eligibilityService } from '../../bookings/application/eligibility.service';
-import { inspectionService, type PhotoInput } from './inspection.service';
+import { inspectionService, INSPECTION_ANGLES, type PhotoInput } from './inspection.service';
 import { TripModel, PrePhotoModel } from '../infrastructure/trip.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
@@ -112,6 +112,14 @@ describe('per-photo rules', () => {
 
   it('needs a trip_photo key', async () => {
     await expect(tripService.addPhotos(GUEST, 'bk-1', 'pre', [photo({ key: `kyc/2026/09/${GUEST}/a.jpg` })])).rejects.toThrow(/does not belong/);
+  });
+
+  it('takes every shot of the 18-shot guide, still takes the old interior shot, and refuses an unknown one', async () => {
+    const guide = INSPECTION_ANGLES.map((a) => photo({ angle: a.id }));
+    const s = await tripService.addPhotos(GUEST, 'bk-1', 'pre', [...guide, photo({ angle: 'interior' })]);
+    expect(s.pre.taken).toBe(INSPECTION_ANGLES.length + 1);
+    expect(INSPECTION_ANGLES).toHaveLength(18);
+    await expect(tripService.addPhotos(GUEST, 'bk-1', 'pre', [photo({ angle: 'sunroof' })])).rejects.toThrow(/Unknown photo angle/);
   });
 
   it('needs a JPEG', async () => {

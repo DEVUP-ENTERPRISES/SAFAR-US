@@ -26,6 +26,15 @@ export interface PhaseState {
   max: number;
 }
 
+/** One card of the 18-shot guide; `shots` 0 means as many photos as needed. */
+export interface InspectionAngle {
+  id: string;
+  label: string;
+  group?: 'walkaround' | 'outside' | 'inside' | 'id';
+  shots?: number;
+  hint?: string;
+}
+
 export interface InspectionState {
   bookingId: string;
   tripId?: string;
@@ -34,7 +43,7 @@ export interface InspectionState {
   plate?: string;
   role: 'guest' | 'host';
   requireLocation: boolean;
-  angles: { id: string; label: string }[];
+  angles: InspectionAngle[];
   pre: PhaseState;
   post: PhaseState;
   photos: TripPhoto[];
