@@ -2,11 +2,7 @@ import { Logo } from '@/components/layout/logo';
 import Link from 'next/link';
 import { config } from '@/lib/config';
 
-/**
- * Host self-serve and Corporate are commented conditionally in, not deleted -
- * see config.assetPartnersOnly. Investor Relations stays under Business
- * either way; it isn't a self-serve product invitation.
- */
+// Host self-serve and Corporate links return when config.assetPartnersOnly is off.
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: 'Explore',
@@ -53,7 +49,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     links: [
       { label: 'Contact us', href: '/contact' },
       { label: 'Help center', href: '/help' },
-      { label: 'Contact support', href: '/support' },
+      { label: 'Support tickets', href: '/support' },
       { label: 'Claims', href: '/claims' },
       { label: 'My trips', href: '/bookings' },
       { label: 'Account', href: '/account' },
@@ -65,9 +61,9 @@ export function Footer() {
   return (
     <footer className="mt-24 border-t border-border bg-subtle">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-        <div className="grid gap-10 lg:grid-cols-5">
-          {/* Brand block */}
-          <div className="lg:col-span-1">
+        {/* Two link columns per row on phones so the footer isn't one long list. */}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-5">
+          <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2.5">
               <Logo className="h-9 w-9 shrink-0" />
               <span className="display text-xl tracking-tight">{config.appName}</span>
@@ -101,12 +97,7 @@ export function Footer() {
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} CatoDrive Inc. All rights reserved.
           </p>
-          {/*
-            These were <span>s - dead text. A marketplace taking card payments
-            has to put its terms and privacy policy one click from every page,
-            and /legal was reachable only from the mobile nav drawer, so on
-            desktop there was no route to them at all.
-          */}
+          {/* Terms and privacy stay one click from every page. */}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
             <Link href="/terms" className="transition-colors hover:text-foreground">
               Terms
