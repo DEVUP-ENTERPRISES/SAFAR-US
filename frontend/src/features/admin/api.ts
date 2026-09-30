@@ -457,6 +457,8 @@ export const adminApi = {
   vehicles: (q: Q = {}) => api.get<any[]>('/admin/vehicles', q),
   vehicleReview: (id: string) => api.get<VehicleReview>(`/admin/vehicles/${id}/review`),
   vehiclePhotoCheck: (id: string) => api.post<VehicleReview>(`/admin/vehicles/${id}/photo-check`),
+  vehicleRemindHost: (id: string, note?: string) =>
+    api.post<{ sent: number; items: string[] }>(`/admin/vehicles/${id}/remind-host`, note ? { note } : {}),
   wheelbaseOverview: () => api.get<WheelbaseOverview>('/admin/insurance/wheelbase'),
   wheelbaseSync: () => api.post<WheelbaseSyncResult>('/admin/insurance/wheelbase/sync'),
   wheelbaseLink: (vehicleId: string, rentalId: number | null) =>

@@ -34,6 +34,16 @@ router.get(
   }),
 );
 
+/** Send the host a list of what they still need to add for the car to go live. */
+router.post(
+  '/vehicles/:id/remind-host',
+  authorize('vehicle:verify'),
+  validate({ body: z.object({ note: z.string().trim().max(300).optional() }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await vehicleReviewService.remindHost(req.params.id, req.body.note));
+  }),
+);
+
 /** Re-run the photo check now, e.g. after the host added a clearer plate shot. */
 router.post(
   '/vehicles/:id/photo-check',

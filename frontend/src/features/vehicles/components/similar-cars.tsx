@@ -75,7 +75,7 @@ export function SimilarCars({
 
 function SimilarCard({ car, days }: { car: Vehicle; days?: number }) {
   const cover = car.photos?.find((p) => p.isCover) ?? car.photos?.[0];
-  const total = days ? car.pricing.dailyPrice * days + (car.pricing.cleaningFee ?? 0) : null;
+  const total = days ? car.pricing.dailyPrice * days : null;
 
   return (
     <Link href={`/vehicles/${car._id}`} className="group w-[280px] shrink-0 snap-start sm:w-[300px]">

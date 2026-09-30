@@ -31,7 +31,7 @@ export function VehicleListCard({
   const unlimited = !vehicle.mileageLimit?.perDayKm;
   const { benefits } = useMembership();
   const off = benefits?.bookingDiscountBps ?? 0;
-  const total = days ? Math.round((vehicle.pricing.dailyPrice * days * (10_000 - off)) / 10_000) + (vehicle.pricing.cleaningFee ?? 0) : null;
+  const total = days ? Math.round((vehicle.pricing.dailyPrice * days * (10_000 - off)) / 10_000) : null;
 
   return (
     <Link

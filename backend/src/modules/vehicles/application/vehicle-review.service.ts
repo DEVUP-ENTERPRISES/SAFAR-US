@@ -4,7 +4,8 @@ import { HostModel } from '../../hosts/infrastructure/host.model';
 import { userRepository } from '../../users/infrastructure/user.repository';
 import { vinDecodeService } from './vin-decode.service';
 import { MIN_LISTING_PHOTOS } from './vehicle.service';
-import { NotFoundError } from '../../../core/errors/app-error';
+import { ConflictError, NotFoundError } from '../../../core/errors/app-error';
+import { notificationService } from '../../notifications/application/notification.service';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /** One thing an admin should look at before approving, and whether it passes. */
@@ -174,4 +175,37 @@ export const vehicleReviewService = {
       readyToApprove: checks.every((c) => c.state !== 'missing'),
     };
   },
+
+  /** Tell the host, by email, push and in-app, exactly what they still need to add for the car to go live. */
+  async remindHost(vehicleId: string, note?: string): Promise<{ sent: number; items: string[] }> {
+    const review = await this.detail(vehicleId);
+    if (!review.host?.userId) throw new ConflictError('This car has no host account to remind.', 'NO_HOST');
+    // Only what the host can fix; the photo match and Wheelbase link are ours to sort out.
+    const todo = review.checks.filter((c) => c.state !== 'ok' && HOST_FIXES[c.key]);
+    if (!todo.length) throw new ConflictError('Nothing is missing that the host needs to add.', 'NOTHING_MISSING');
+    const v = review.vehicle;
+    const car = `${v.year} ${v.make} ${v.model}`.trim();
+    await notificationService.send({
+      userId: review.host.userId,
+      priority: 'high',
+      templateKey: 'vehicle.missing_items',
+      title: `Your ${car} needs a few things before it goes live`,
+      body: `To list your ${car}, please add: ${todo.map((c) => HOST_FIXES[c.key]).join('; ')}.${note?.trim() ? ` ${note.trim()}` : ''}`,
+      deepLink: `/host/listings/${vehicleId}`,
+      actionLabel: 'Complete your listing',
+      data: { vehicleId },
+      facts: todo.map((c) => ({ label: c.label, value: `${c.detail}. ${HOST_FIXES[c.key]}` })),
+    });
+    return { sent: 1, items: todo.map((c) => c.label) };
+  },
+};
+
+// What the host has to do for each checklist item they can fix.
+const HOST_FIXES: Partial<Record<ReviewCheck['key'], string>> = {
+  photos: `Upload at least ${MIN_LISTING_PHOTOS} clear photos of the car`,
+  registration: 'Upload the current registration document',
+  insurance: 'Upload the current insurance document',
+  vin: 'Enter the 17-character VIN (windshield base or door jamb)',
+  pricing: 'Set a daily price',
+  location: 'Set the pickup address',
 };
