@@ -180,7 +180,7 @@ export function SearchBarFields({
       const onChange = (v: string) =>
         isFrom ? s.patch({ fromTime: v }) : s.patch({ untilTime: v });
       const label = isFrom ? 'Pick-up time' : 'Return time';
-      const nextField: FieldId | null = isFrom ? 'until-date' : null;
+      const nextField: FieldId | null = isFrom ? (s.untilDate ? 'until-time' : 'until-date') : null;
 
       return (
         <Panel flow={flow} phone={phone} onClose={() => setOpen(null)} wide={false} anchorEl={anchorEl}>
@@ -194,6 +194,8 @@ export function SearchBarFields({
                   onClick={() => {
                     onChange(t);
                     if (nextField) setOpen(nextField);
+                    // Last step with both dates set: run the search without a separate tap.
+                    else if (s.fromDate && s.untilDate) onSearch();
                     else setOpen(null);
                   }}
                   className={cn(
