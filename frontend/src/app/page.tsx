@@ -196,16 +196,17 @@ export default function HomePage() {
           </div>
 
           {trending.isLoading ? (
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 sm:grid sm:grid-cols-2 sm:gap-6 sm:pb-0 lg:grid-cols-4">
               {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-72 rounded-2xl" />
+                <Skeleton key={i} className="h-80 w-[85vw] shrink-0 snap-center rounded-2xl sm:w-auto" />
               ))}
             </div>
           ) : trending.data && trending.data.length > 0 ? (
             <>
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              {/* Phones: one car at a time, swiped sideways. Tablet and up: a grid. */}
+              <div className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 sm:grid sm:grid-cols-2 sm:gap-6 sm:pb-0 lg:grid-cols-4">
                 {trending.data.slice(0, 4).map((v) => (
-                  <VehicleCard key={v._id} vehicle={v} />
+                  <VehicleCard key={v._id} vehicle={v} className="w-[85vw] shrink-0 snap-center sm:w-auto" />
                 ))}
               </div>
               <div>
