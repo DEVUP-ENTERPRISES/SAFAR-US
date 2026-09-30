@@ -1,4 +1,4 @@
-import { Star, ShieldCheck, Zap, Truck, CalendarCheck, Award } from 'lucide-react';
+import { Star, ShieldCheck, Zap, Truck, CalendarCheck, Award, Sparkles } from 'lucide-react';
 import type { Vehicle } from '../types';
 import { cn } from '@/lib/utils/cn';
 
@@ -9,7 +9,11 @@ export function VehicleRating({ vehicle, className }: { vehicle: RatingFields; c
   const own = vehicle.ratingCount > 0;
   const ext = !own ? vehicle.externalRating : undefined;
   if (!own && !ext) {
-    return <span className={cn('inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[12px] font-semibold text-primary', className)}>New</span>;
+    return (
+      <span className={cn('inline-flex w-fit items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[12px] font-semibold text-primary ring-1 ring-primary/25', className)}>
+        <Sparkles className="h-3 w-3" /> New
+      </span>
+    );
   }
   const avg = own ? vehicle.ratingAvg : ext!.rating;
   return (
