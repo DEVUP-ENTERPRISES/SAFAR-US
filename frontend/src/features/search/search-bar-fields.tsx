@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import { Search, MapPin, CalendarDays, Check } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { formatClock } from '@/lib/utils/format';
 import { useFacets } from '@/features/vehicles/hooks';
 import { DateRangePicker } from './date-range-picker';
 import { Select } from '@/components/ui/select';
@@ -288,7 +289,4 @@ function TimeField({ label, value, onChange }: { label: string; value: string; o
 }
 
 /** 14:00 -> 2:00 PM, how US guests read times. */
-function formatTime(t: string): string {
-  const [h, m] = t.split(':').map(Number);
-  return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
+const formatTime = formatClock;

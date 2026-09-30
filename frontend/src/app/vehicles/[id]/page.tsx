@@ -12,7 +12,11 @@ import { Rating } from '@/components/ui/rating';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
-import { formatMoney, kmToMiles, perKmToPerMile, FUEL_LABEL } from '@/lib/utils/format';
+import { formatMoney, kmToMiles, perKmToPerMile, FUEL_LABEL, formatClock } from '@/lib/utils/format';
+import { Select } from '@/components/ui/select';
+
+// Half-hour steps for a flight's landing time on the pickup day.
+const LANDING_TIMES = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
 import { HostProfileCard, useHostPublicProfile } from '@/features/host/components/host-profile-card';
 import { AskHostPanel } from '@/features/vehicles/components/ask-host-panel';
 import { DemandBadge } from '@/features/vehicles/components/demand-badge';
@@ -361,14 +365,9 @@ export default function VehicleDetailPage() {
   if (isError || !v) return <ErrorState message="Vehicle not found." />;
 
   const photos = v.photos?.length ? v.photos : [];
-  const delivery = v.listing.delivery;
+  // Delivery is offered only to the host's named, priced spots; there is no free-typed address or airport.
   const activeDeliveryLocations = (v.listing.deliveryLocations ?? []).filter((l) => l.enabled);
-  const deliveryModes = delivery
-    ? (['airport', 'home', 'hotel', 'business'] as const).filter((k) => delivery[k])
-    : [];
-  const cheapestDeliveryFee = activeDeliveryLocations.length
-    ? Math.min(...activeDeliveryLocations.map((l) => l.fee))
-    : delivery?.fee ?? 0;
+  const cheapestDeliveryFee = activeDeliveryLocations.length ? Math.min(...activeDeliveryLocations.map((l) => l.fee)) : 0;
 
   // Trip length for the similar-cars totals and any length-of-trip messaging.
   const days = start && end
@@ -584,8 +583,16 @@ export default function VehicleDetailPage() {
             <div className="flex gap-4">
               <span className="mt-0.5 shrink-0"><Check className="h-6 w-6 stroke-[1.5]" /></span>
               <div>
-                <p className="text-[17px] font-medium capitalize">{cancelTerms.title}</p>
+                <p className="text-[17px] font-medium">{cancelTerms.title} cancellation</p>
                 <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{cancelTerms.detail}</p>
+                <a
+                  href={platformCfg.data?.legal?.cancellationUrl || '/legal'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-block text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                >
+                  Full cancellation policy
+                </a>
               </div>
             </div>
           </div>
@@ -683,14 +690,12 @@ export default function VehicleDetailPage() {
 
         {/* Cards section (Delivery, Protection, Mileage, Rules) */}
         <div className="grid gap-4 sm:grid-cols-2">
-          {(activeDeliveryLocations.length > 0 || deliveryModes.length > 0) && (
+          {activeDeliveryLocations.length > 0 && (
             <Card>
               <CardContent className="p-6 sm:p-8">
                 <div className="flex items-center gap-2 font-medium"><Truck className="h-5 w-5 text-primary" /> Delivery</div>
-                <p className={cn('mt-1 text-sm text-muted-foreground', !activeDeliveryLocations.length && 'capitalize')}>
-                  {activeDeliveryLocations.length > 0
-                    ? `${activeDeliveryLocations.map((l) => l.name).join(', ')} · from ${formatMoney({ amount: cheapestDeliveryFee, currency: v.pricing.currency })}`
-                    : `${deliveryModes.join(', ')} · ${formatMoney({ amount: delivery!.fee, currency: v.pricing.currency })}`}
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {`${activeDeliveryLocations.map((l) => l.name).join(', ')} · from ${formatMoney({ amount: cheapestDeliveryFee, currency: v.pricing.currency })}`}
                 </p>
               </CardContent>
             </Card>
@@ -932,12 +937,20 @@ export default function VehicleDetailPage() {
                               placeholder="Terminal (opt.)"
                             />
                           </div>
-                          <Input
-                            type="datetime-local"
-                            value={arrivesAt}
-                            onChange={(e) => setArrivesAt(e.target.value)}
-                            aria-label="Scheduled arrival"
-                          />
+                          {/* Lands on the pickup day: only the time is asked, never a raw date-time box. */}
+                          <label className="block text-xs font-medium text-muted-foreground">
+                            Flight lands {start ? `on ${new Date(start).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}` : ''} at
+                            <Select
+                              className="mt-1"
+                              value={arrivesAt ? arrivesAt.slice(11, 16) : ''}
+                              onChange={(e) => setArrivesAt(e.target.value && start ? `${start.slice(0, 10)}T${e.target.value}` : '')}
+                            >
+                              <option value="">Choose landing time</option>
+                              {LANDING_TIMES.map((t) => (
+                                <option key={t} value={t}>{formatClock(t)}</option>
+                              ))}
+                            </Select>
+                          </label>
                           <p className="text-xs text-muted-foreground">
                             Your host meets your flight. If it’s delayed, your pickup window moves with it.
                           </p>
@@ -947,77 +960,7 @@ export default function VehicleDetailPage() {
                   );
                 })()}
               </div>
-            ) : deliveryModes.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Delivery</p>
-                  {delivery!.fee > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      +{formatMoney({ amount: delivery!.fee, currency: v.pricing.currency })}
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setDeliveryMode('')}
-                    className={cn(
-                      'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                      deliveryMode === '' ? 'border-primary bg-primary/10 text-primary' : 'border-border',
-                    )}
-                  >
-                    Pick up myself
-                  </button>
-                  {deliveryModes.map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setDeliveryMode(m)}
-                      className={cn(
-                        'rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors',
-                        deliveryMode === m ? 'border-primary bg-primary/10 text-primary' : 'border-border',
-                      )}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-                {deliveryMode && (
-                  <div className="space-y-2">
-                    <Input
-                      value={deliveryAddress}
-                      onChange={(e) => setDeliveryAddress(e.target.value)}
-                      placeholder={deliveryMode === 'airport' ? 'Airport (e.g. JFK)' : 'Delivery address'}
-                    />
-                    {deliveryMode === 'airport' && (
-                      <>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input
-                            value={flightNumber}
-                            onChange={(e) => setFlightNumber(e.target.value.toUpperCase())}
-                            placeholder="Flight no. (AA123)"
-                          />
-                          <Input
-                            value={terminal}
-                            onChange={(e) => setTerminal(e.target.value)}
-                            placeholder="Terminal (opt.)"
-                          />
-                        </div>
-                        <Input
-                          type="datetime-local"
-                          value={arrivesAt}
-                          onChange={(e) => setArrivesAt(e.target.value)}
-                          aria-label="Scheduled arrival"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Your host meets your flight. If it’s delayed, your pickup window moves with it.
-                        </p>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+            ) : null}
 
             {/* Protection plan */}
             {plans.data && plans.data.length > 0 && (
@@ -1115,6 +1058,26 @@ export default function VehicleDetailPage() {
                 {quote.data.discount.amount > 0 && <Row label="Discount" value={`−${formatMoney(quote.data.discount)}`} />}
                 <div className="mt-2 flex justify-between border-t border-border pt-2 font-semibold">
                   <span>Total</span><span>{formatMoney(quote.data.total)}</span>
+                </div>
+                {/* What the total includes, the way a guest compares it: distance and the exact free-cancellation deadline. */}
+                <div className="space-y-1 pt-1 text-xs text-muted-foreground">
+                  {v.mileageLimit?.perDayKm ? (
+                    <p>
+                      {kmToMiles(v.mileageLimit.perDayKm * quote.data.days).toLocaleString()} miles included
+                      {v.mileageLimit.overageFeePerKm ? ` · ${formatMoney({ amount: perKmToPerMile(v.mileageLimit.overageFeePerKm), currency: v.pricing.currency })}/mile after` : ''}
+                    </p>
+                  ) : null}
+                  {(() => {
+                    const rule = platformCfg.data?.cancellation?.[v.listing.cancellationPolicy];
+                    if (!rule || !start) return null;
+                    const deadline = new Date(new Date(start).getTime() - rule.fullBeforeHours * 3_600_000);
+                    // The promise only; the exact refund is shown at the moment someone actually cancels.
+                    return deadline.getTime() > Date.now() ? (
+                      <p className="font-medium text-success">
+                        Free cancellation until {deadline.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </p>
+                    ) : null;
+                  })()}
                 </div>
                 {quote.data.memberSavings && quote.data.memberSavings.amount > 0 && (
                   <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-400/15 px-2.5 py-1.5 text-[13px] font-semibold text-amber-600 dark:text-amber-400">

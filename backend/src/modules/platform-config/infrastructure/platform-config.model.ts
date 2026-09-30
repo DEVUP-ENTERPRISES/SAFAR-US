@@ -473,6 +473,8 @@ export interface PlatformConfigDoc {
     recallAutoHold: boolean;
     /** Miles included per rental day on every car; applied to all listings when changed. */
     dailyMileageMiles: number;
+    /** The one cancellation policy every car uses; hosts do not choose. Applied to all listings when changed. */
+    cancellationPolicy: 'flexible' | 'moderate' | 'strict';
     checkoutHoldMinutes: number;
     paymentPendingMinutes: number;
     priceLockMinutes: number;
@@ -805,6 +807,7 @@ const schema = new Schema<PlatformConfigDoc>(
       documentExpiryReleaseHours: { type: Number, default: 72 },
       recallAutoHold: { type: Boolean, default: false },
       dailyMileageMiles: { type: Number, default: 200 },
+      cancellationPolicy: { type: String, enum: ['flexible', 'moderate', 'strict'], default: 'flexible' },
       checkoutHoldMinutes: { type: Number, default: 15 },
       paymentPendingMinutes: { type: Number, default: 30 },
       priceLockMinutes: { type: Number, default: 10 },
