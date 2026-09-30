@@ -24,10 +24,10 @@ import { SectionEyebrow, CountUp, BRAND, TractionStats } from '@/features/market
  */
 
 const STATS = [
-  { prefix: '$', value: 705, suffix: 'K+', decimals: 0, label: '2026 Fleet Revenue' },
+  { prefix: '$', value: 766143, suffix: '+', decimals: 0, label: 'Fleet Revenue', comma: true },
   { prefix: '$1,029–$1,841', value: 0, suffix: '', decimals: 0, label: 'Net Monthly Per Vehicle', raw: true },
-  { prefix: '', value: 80, suffix: '%', decimals: 0, label: 'Owner Share of Every Booking' },
-  { prefix: '', value: 3626, suffix: '', decimals: 0, label: 'Trips Completed · 4.9★ All-Star Host', comma: true },
+  { prefix: '', value: 100, suffix: '+', decimals: 0, label: 'Vehicles Managed' },
+  { prefix: '', value: 5100, suffix: '+', decimals: 0, label: 'Trips Completed · 4.9★ All-Star Host', comma: true },
 ] as const;
 
 const STEPS = [
