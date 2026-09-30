@@ -185,6 +185,9 @@ export const config = Object.freeze({
   wheelbase: {
     dealerId: env.WHEELBASE_DEALER_ID ?? '',
   },
+  tolls: {
+    credentialsKey: env.TOLL_CREDENTIALS_KEY,
+  },
   ai: {
     apiKey: env.OPENROUTER_API_KEY,
     fallbackApiKey: env.OPENROUTER_API_KEY_FALLBACK,

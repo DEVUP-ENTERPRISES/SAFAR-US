@@ -238,6 +238,7 @@ export class PlatformConfigService {
         maxBalanceCentsByTier: { new: 50000, bronze: 200000, silver: 500000, gold: 1000000, ...(doc.wallet?.maxBalanceCentsByTier ?? {}) },
       },
       payoutTrust: { newHostTripThreshold: 3, newHostExtraHoldHours: 48, ...(doc.payoutTrust ?? {}) },
+      tolls: { enabled: true, feeCents: 0, reviewHours: 72, matchBufferMinutes: 60, billingWindowDays: 60, autoCharge: true, ...(doc.tolls ?? {}) },
       incidentals: {
         fuelPerPercentCents: 300, cleaningCents: 7500, smokingCents: 25000, petCents: 10000, lateReturnPerHourCents: 2500,
         maxTollCents: 10_000, maxFineCents: 50_000, maxOtherCents: 15_000,

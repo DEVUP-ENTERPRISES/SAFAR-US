@@ -277,6 +277,16 @@ router.put(
           newHostExtraHoldHours: z.number().int().min(0).max(720).optional(),
         })
         .optional(),
+      tolls: z
+        .object({
+          enabled: z.boolean().optional(),
+          feeCents: z.number().int().min(0).max(5_000).optional(),
+          reviewHours: z.number().int().min(0).max(720).optional(),
+          matchBufferMinutes: z.number().int().min(0).max(720).optional(),
+          billingWindowDays: z.number().int().min(1).max(180).optional(),
+          autoCharge: z.boolean().optional(),
+        })
+        .optional(),
       incidentals: z
         .object({
           fuelPerPercentCents: cents.optional(),
