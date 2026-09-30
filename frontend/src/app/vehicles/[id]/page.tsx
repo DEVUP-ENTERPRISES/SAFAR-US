@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList, Sparkles, LifeBuoy, Headphones, CalendarCheck, Grid2x2, Umbrella } from 'lucide-react';
+import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList, Sparkles, LifeBuoy, Headphones, CalendarCheck, Grid2x2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -636,7 +636,17 @@ export default function VehicleDetailPage() {
             <div className="flex gap-4">
               <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 stroke-[1.5]" />
               <div>
-                <p className="text-[17px] font-medium">Every trip is insured</p>
+                {v.insurance?.approved ? (
+                  <>
+                    <p className="text-[17px] font-medium">Insured through Wheelbase</p>
+                    <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">
+                      Every trip on this car is covered under {v.insurance.planLabel || 'its Wheelbase plan'}.
+                      {v.insurance.minRenterAge ? ` Drivers must be ${v.insurance.minRenterAge} or older.` : ''}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[17px] font-medium">Insurance is confirmed before your trip</p>
+                )}
                 <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">
                   Choose your protection level at checkout. A refundable security deposit is authorised at pickup and released after the trip.
                 </p>
@@ -648,13 +658,6 @@ export default function VehicleDetailPage() {
             <h2 className="mb-4 text-2xl font-bold tracking-tight">Peace of mind</h2>
             <div className="space-y-4">
               <PeaceItem icon={<Sparkles className="h-6 w-6 stroke-[1.5]" />} title="No car wash necessary" detail="Just keep the car tidy and return it as you found it." />
-              {v.insurance?.approved && (
-                <PeaceItem
-                  icon={<Umbrella className="h-6 w-6 stroke-[1.5]" />}
-                  title="Insured trip"
-                  detail={`Covered under ${v.insurance.planLabel || 'the car’s insurance plan'}.${v.insurance.minRenterAge ? ` Drivers must be ${v.insurance.minRenterAge} or older.` : ''}`}
-                />
-              )}
               <PeaceItem icon={<CalendarCheck className="h-6 w-6 stroke-[1.5]" />} title={`${cancelTerms.title} cancellation`} detail={cancelTerms.detail || 'Cancel per the host’s policy for a refund.'} />
               <PeaceItem icon={<LifeBuoy className="h-6 w-6 stroke-[1.5]" />} title="Support when you need it" detail="Message your host in-app, and reach our team from your trip screen." />
               <PeaceItem icon={<Headphones className="h-6 w-6 stroke-[1.5]" />} title="Two-way reviews" detail="Verified guests and hosts rate each trip, so you always know who you’re booking with." />
