@@ -4,6 +4,7 @@ import { platformConfigService } from '../../platform-config/application/platfor
 import type { PlatformConfigDoc } from '../../platform-config/infrastructure/platform-config.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { availabilityService } from '../../availability/application/availability.service';
+import { wheelbaseInsuranceService } from '../../insurance/application/wheelbase-insurance.service';
 
 export type SortKey = 'relevance' | 'price_asc' | 'price_desc' | 'rating' | 'trending' | 'newest';
 
@@ -45,6 +46,7 @@ export class SearchService {
       status: 'listed',
       verificationStatus: 'verified',
       deletedAt: null,
+      ...(await wheelbaseInsuranceService.guestVisibleFilter()),
       location: {
         $near: {
           $geometry: { type: 'Point', coordinates: [q.lng, q.lat] },
@@ -144,6 +146,7 @@ export class SearchService {
     // "inside this radius" without one. Radians, per $centerSphere.
     const EARTH_RADIUS_KM = 6378.1;
     const radiusRadians = (q.radiusKm ?? 25) / EARTH_RADIUS_KM;
+    const insured = await wheelbaseInsuranceService.guestVisibleFilter();
 
     /** The filter for everything EXCEPT the named dimension. */
     const build = (except?: keyof SearchQuery): Record<string, unknown> => {
@@ -151,6 +154,7 @@ export class SearchService {
         status: 'listed',
         verificationStatus: 'verified',
         deletedAt: null,
+        ...insured,
         location: {
           $geoWithin: { $centerSphere: [[q.lng, q.lat], radiusRadians] },
         },
@@ -256,6 +260,7 @@ export class SearchService {
       status: 'listed',
       verificationStatus: 'verified',
       deletedAt: null,
+      ...(await wheelbaseInsuranceService.guestVisibleFilter()),
     };
     const coords = base.location?.coordinates;
     if (coords && coords.length === 2) {
@@ -332,6 +337,7 @@ export class SearchService {
       verificationStatus: 'verified',
       deletedAt: null,
       _id: { $nin: bookedIds },
+      ...(await wheelbaseInsuranceService.guestVisibleFilter()),
     };
     if (anchor) {
       filter.location = {

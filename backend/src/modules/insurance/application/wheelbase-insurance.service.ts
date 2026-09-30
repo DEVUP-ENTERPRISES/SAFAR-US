@@ -139,6 +139,12 @@ export const wheelbaseInsuranceService = {
     await VehicleModel.updateOne({ _id: vehicleId }, { $set: { wheelbase: linkFrom(listing, 'admin') } });
   },
 
+  /** Added to every guest-facing car query so guests only see cars the booking rule below would accept. */
+  async guestVisibleFilter(): Promise<Record<string, unknown>> {
+    const { insurance } = await platformConfigService.get();
+    return insurance.requireApproved ? { 'wheelbase.insuranceState': 'approved' } : {};
+  },
+
   /**
    * The insurance rules at booking and at handover: the car must be approved (when required) and the
    * driver old enough for its cover, by the verified ID's date of birth or else the profile's, at pickup.

@@ -6,6 +6,7 @@ import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { KycModel } from '../../kyc/infrastructure/kyc.model';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { searchService } from '../../search/application/search.service';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
 
 beforeAll(connectTestDb);
@@ -93,6 +94,20 @@ describe('insurance rules at booking', () => {
     await insured(21);
     await guest('1990-01-01');
     await expect(wheelbaseInsuranceService.assertInsurable('car', 'g', pickup)).resolves.toBeUndefined();
+  });
+
+  it('shows guests only the cars they could book', async () => {
+    const state = (id: string, insuranceState?: string) =>
+      VehicleModel.collection.insertOne({
+        _id: id as never, status: 'listed', verificationStatus: 'verified', deletedAt: null,
+        make: 'Buick', model: 'Envista', pricing: { dailyPrice: 50 },
+        ...(insuranceState ? { wheelbase: { rentalId: 1, name: 'Car', linkedBy: 'admin', insuranceState, found: true, syncedAt: new Date() } } : {}),
+      });
+    await state('approved', 'approved');
+    await state('pending', 'pending');
+    await state('unlinked');
+    const seen = await searchService.recommendFor('nobody');
+    expect(seen.map((v) => v._id)).toEqual(['approved']);
   });
 
   it('refuses a car that is not approved, or not linked at all', async () => {
