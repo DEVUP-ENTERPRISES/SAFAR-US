@@ -45,6 +45,8 @@ function bestEffortCoords(): Promise<{ lat: number; lng: number } | undefined> {
 export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({
+    // The booking panel shows the error inline (with "use another card" for a decline); no second toast.
+    meta: { silentError: true },
     // A stable idempotency key per attempt makes retries safe (backend dedupes).
     mutationFn: async (input: QuoteInput) => {
       const coords = await bestEffortCoords();

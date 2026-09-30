@@ -67,6 +67,13 @@ export class TooManyRequestsError extends AppError {
   }
 }
 
+/** The guest's bank refused the card: the guest's to fix (another card, the right ZIP), not a server fault. */
+export class CardDeclinedError extends AppError {
+  constructor(message = 'Your bank declined this card. Please use another card or contact your bank.') {
+    super({ code: 'CARD_DECLINED', message, httpStatus: 402 });
+  }
+}
+
 export class ExternalServiceError extends AppError {
   constructor(message = 'An upstream service failed') {
     super({ code: 'EXTERNAL_SERVICE_ERROR', message, httpStatus: 502 });
