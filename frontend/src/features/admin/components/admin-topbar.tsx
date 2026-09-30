@@ -10,6 +10,7 @@ import { useLogout } from '@/features/auth/hooks';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { adminPath } from '@/lib/admin-path';
+import { adminNotificationLink } from '@/features/notifications/api';
 
 /**
  * The console's own top bar. Deliberately not the consumer navbar: an operator
@@ -51,7 +52,7 @@ export function AdminTopbar() {
             View site <ExternalLink className="h-3.5 w-3.5" />
           </Link>
           <ThemeToggle />
-          <NotificationBell />
+          <NotificationBell linkFor={(n) => adminNotificationLink(n, adminPath)} />
 
           <div className="ms-1 flex items-center gap-2 border-s border-border ps-3">
             <span className="grid h-8 w-8 place-items-center rounded-full bg-muted text-muted-foreground">

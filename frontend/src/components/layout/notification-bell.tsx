@@ -18,7 +18,8 @@ function ago(iso: string): string {
   return formatDate(iso);
 }
 
-export function NotificationBell() {
+/** `linkFor` lets an app (e.g. the admin console) send each notification to its own pages. */
+export function NotificationBell({ linkFor = notificationLink }: { linkFor?: (n: Notification) => string | null } = {}) {
   const router = useRouter();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -54,7 +55,7 @@ export function NotificationBell() {
 
   const openNotification = (n: Notification) => {
     if (!n.readAt) markRead.mutate([n._id]);
-    const link = notificationLink(n);
+    const link = linkFor(n);
     setOpen(false);
     if (link) router.push(link);
   };
