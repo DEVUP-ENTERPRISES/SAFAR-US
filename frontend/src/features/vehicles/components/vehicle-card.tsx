@@ -7,16 +7,23 @@ import type { Vehicle } from '../types';
 import { VehicleRating, FleetBadge } from './vehicle-rating';
 import { DailyPrice } from '@/features/subscriptions/member-ui';
 
+/**
+ * Vehicle card - matches the Turo/reference aesthetic:
+ * photo dominates the top, clean make/model + year + city below,
+ * spec chips inline, price bottom-left. No heavy borders or shadow
+ * clutter - the photo and the price do all the work.
+ */
 export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; className?: string }) {
   const cover = vehicle.photos?.find((p) => p.isCover)?.url ?? vehicle.photos?.[0]?.url;
   const d = vehicle.listing.delivery;
   const hasDelivery = d && (d.airport || d.home || d.hotel || d.business);
 
   return (
-    <Link href={`/vehicles/${vehicle._id}`} className={cn("group block", className)}>
-      <article className="lift relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card p-2 shadow-card hover:border-primary/40 sm:rounded-[2rem] sm:p-2.5">
-        {/* Image Wrapper */}
-        <div className="photo-scrim relative aspect-[4/3] w-full overflow-hidden rounded-xl sm:rounded-[1.5rem] bg-muted">
+    <Link href={`/vehicles/${vehicle._id}`} className={cn('group block', className)}>
+      <article className="relative flex flex-col overflow-hidden rounded-2xl bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10">
+
+        {/* ── Photo ─────────────────────────────────────────────────── */}
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-muted">
           {cover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -24,92 +31,95 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
               alt={`${vehicle.make} ${vehicle.model}`}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/80 via-primary to-primary/40 relative overflow-hidden">
-              <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff1a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff1a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
-              <span className="relative z-10 text-7xl font-black text-white/90 mix-blend-overlay tracking-tighter drop-shadow-md">
-                {vehicle.make.slice(0, 1)}
-                {vehicle.model.slice(0, 1)}
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/70 to-primary/30">
+              <span className="text-6xl font-black text-white/80">
+                {vehicle.make[0]}{vehicle.model[0]}
               </span>
             </div>
           )}
 
-          {/* Actions */}
-          <div className="absolute end-3 top-3 flex flex-col gap-2 scale-90 sm:scale-100 origin-top-right z-20">
-            <div className="rounded-full bg-black/20 backdrop-blur-md shadow-sm border border-white/10 transition-transform hover:scale-110 hover:bg-black/40">
-              <WishlistButton vehicleId={vehicle._id} />
-            </div>
-            <div className="rounded-full bg-black/20 backdrop-blur-md shadow-sm border border-white/10 transition-transform hover:scale-110 hover:bg-black/40">
-              <CompareButton vehicleId={vehicle._id} />
-            </div>
-          </div>
-
-          {/* Status chips */}
-          <div className="absolute start-3 top-3 flex flex-wrap gap-2 max-w-[70%] z-20">
-            {vehicle.fleetOwned && <FleetBadge className="bg-black/55 border-white/20 text-white backdrop-blur-md" />}
+          {/* Top-left chips */}
+          <div className="absolute start-3 top-3 flex flex-wrap gap-1.5">
+            {vehicle.fleetOwned && (
+              <FleetBadge className="bg-black/50 border-white/15 text-white text-[10px] backdrop-blur-md" />
+            )}
             {vehicle.hostIsSuperhost && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/40 border border-white/20 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white backdrop-blur-md shadow-sm">
-                <Award className="h-3.5 w-3.5 text-yellow-400" /> Superhost
+              <span className="inline-flex items-center gap-1 rounded-full bg-black/50 border border-white/15 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md">
+                <Award className="h-3 w-3 text-amber-400" /> Superhost
               </span>
             )}
             {vehicle.listing.instantBook && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/55 border border-white/20 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white backdrop-blur-md shadow-sm">
-                <Zap className="h-3.5 w-3.5 fill-current" /> Instant
+              <span className="inline-flex items-center gap-1 rounded-full bg-black/50 border border-white/15 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md">
+                <Zap className="h-3 w-3 fill-current" /> Instant
               </span>
             )}
           </div>
+
+          {/* Top-right actions */}
+          <div className="absolute end-2.5 top-2.5 flex flex-col gap-1.5">
+            <div className="rounded-full bg-black/30 backdrop-blur-md border border-white/10 hover:bg-black/50 transition-colors">
+              <WishlistButton vehicleId={vehicle._id} />
+            </div>
+            <div className="rounded-full bg-black/30 backdrop-blur-md border border-white/10 hover:bg-black/50 transition-colors">
+              <CompareButton vehicleId={vehicle._id} />
+            </div>
+          </div>
         </div>
 
-        {/* Body */}
-        <div className="relative z-20 flex flex-col flex-1 px-2 py-4 sm:px-4 sm:py-5">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3">
+        {/* ── Details ───────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-3 p-4">
+
+          {/* Make / model + rating */}
+          <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h3 className="display truncate text-base sm:text-lg font-bold text-foreground transition-colors group-hover:text-primary">
+              <h3 className="display truncate font-bold text-foreground transition-colors group-hover:text-primary">
                 {vehicle.make} {vehicle.model}
               </h3>
-              <p className="mt-1 truncate text-sm font-medium text-muted-foreground/80 flex items-center gap-1.5">
-                {vehicle.year} 
-                <span className="h-1 w-1 rounded-full bg-muted-foreground/40"></span> 
-                {vehicle.location.city || '-'}
+              <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                <span>{vehicle.year}</span>
+                <span aria-hidden className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                <span className="truncate">{vehicle.location.city || '-'}</span>
               </p>
             </div>
-            <VehicleRating vehicle={vehicle} className="shrink-0 rounded-full bg-foreground/5 px-2.5 py-1 text-[13px] leading-none text-foreground border border-border/50" />
+            <VehicleRating
+              vehicle={vehicle}
+              className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[12px] font-semibold leading-none"
+            />
           </div>
 
-          <div className="mt-auto pt-4 space-y-4">
-            {/* Spec row */}
-            <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
-              <span className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 border border-border/30">
-                <Users className="h-3.5 w-3.5 text-foreground/60" /> {vehicle.seats}
+          {/* Spec chips */}
+          <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <span className="flex items-center gap-1 rounded-md border border-border/60 bg-muted/60 px-2 py-0.5">
+              <Users className="h-3 w-3" /> {vehicle.seats}
+            </span>
+            <span className="flex items-center gap-1 rounded-md border border-border/60 bg-muted/60 px-2 py-0.5 capitalize">
+              <Settings2 className="h-3 w-3" /> {vehicle.transmission}
+            </span>
+            {vehicle.fuelType === 'ev' && (
+              <span className="flex items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 font-semibold text-primary">
+                <Zap className="h-3 w-3" /> EV
               </span>
-              <span className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 border border-border/30 capitalize">
-                <Settings2 className="h-3.5 w-3.5 text-foreground/60" /> 
-                <span className="truncate max-w-[80px] sm:max-w-none">{vehicle.transmission}</span>
+            )}
+            {hasDelivery && (
+              <span className="flex items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 font-semibold text-primary">
+                Delivery
               </span>
-              {vehicle.fuelType === 'ev' && (
-                <span className="flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 border border-primary/20 text-primary font-semibold">
-                  <Zap className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Electric</span>
-                  <span className="sm:hidden">EV</span>
-                </span>
-              )}
-              {hasDelivery && (
-                <span className="hidden sm:flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 border border-primary/20 text-primary font-semibold">
-                   Delivery
-                </span>
-              )}
-            </div>
-
-            {/* Price */}
-            <div className="flex items-end gap-1.5 border-t border-border/50 pt-3">
-              {/* Price is data. Tabular figures keep it from shuffling
-                  sideways as digits change across a grid of cards. */}
-              <DailyPrice amount={vehicle.pricing.dailyPrice} currency={vehicle.pricing.currency} className="numeric text-2xl font-semibold text-foreground" />
-              <span className="text-sm font-medium text-muted-foreground pb-1">/ day</span>
-            </div>
+            )}
           </div>
+
+          {/* Price */}
+          <div className="flex items-baseline gap-1 border-t border-border/50 pt-3">
+            <DailyPrice
+              amount={vehicle.pricing.dailyPrice}
+              currency={vehicle.pricing.currency}
+              className="numeric text-xl font-bold text-foreground"
+            />
+            <span className="text-sm text-muted-foreground">/ day</span>
+          </div>
+
         </div>
       </article>
     </Link>

@@ -12,8 +12,8 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     title: 'Explore',
     links: [
       { label: 'How it works', href: '/about' },
-      { label: 'Search cars', href: '/search' },
-      { label: 'Compare', href: '/compare' },
+      { label: 'Browse vehicles', href: '/search' },
+      { label: 'Compare cars', href: '/compare' },
       { label: 'Saved cars', href: '/wishlist' },
       { label: 'Rewards', href: '/rewards' },
       { label: 'Refer a friend', href: '/referral' },
@@ -73,8 +73,7 @@ export function Footer() {
               <span className="display text-xl tracking-tight">{config.appName}</span>
             </div>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              Book a car from a trusted local host, or turn the car you already own into monthly
-              income.
+              Premium managed vehicles, delivered curbside at DFW and Love Field. Book in seconds, no rental counter.
             </p>
           </div>
 
