@@ -15,6 +15,9 @@ import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { adminPath } from '@/lib/admin-path';
 
+// Checklist items the host can fix themselves; the photo match and Wheelbase link are for staff.
+const HOST_FIXABLE = new Set<string>(['photos', 'registration', 'insurance', 'vin', 'pricing', 'location']);
+
 const STATE_STYLES: Record<ReviewCheck['state'], { icon: typeof Check; className: string }> = {
   ok: { icon: Check, className: 'text-emerald-600' },
   attention: { icon: AlertTriangle, className: 'text-amber-600' },
@@ -59,6 +62,12 @@ export default function VehicleReviewPage() {
     onError: () => notify({ tone: 'error', title: "Couldn't run the photo check" }),
   });
 
+  const remind = useMutation({
+    mutationFn: () => adminApi.vehicleRemindHost(id),
+    onSuccess: (r) => notify({ tone: 'success', title: 'Host reminded', description: `Sent by email, push and in-app: ${r.items.join(', ')}.` }),
+    onError: (e) => notify({ tone: 'error', title: e instanceof Error ? e.message : "Couldn't send the reminder" }),
+  });
+
   const run = async (action: 'approve' | 'reject') => {
     const missing = data?.checks.filter((c) => c.state === 'missing') ?? [];
     const { ok } = await confirm({
@@ -81,6 +90,7 @@ export default function VehicleReviewPage() {
   if (isError) return <ErrorState message="Couldn't load this vehicle." retry={() => refetch()} />;
 
   const { vehicle: v, documents, host, checks, vinMismatches, readyToApprove } = data;
+  const hostTodo = checks.filter((c) => c.state !== 'ok' && HOST_FIXABLE.has(c.key));
 
   return (
     <div className="space-y-6">
@@ -119,11 +129,20 @@ export default function VehicleReviewPage() {
         </p>
       )}
 
-      {!readyToApprove && (
-        <p className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-          Something required is still missing. You can still approve, but the listing goes live as-is.
-        </p>
+      {(!readyToApprove || hostTodo.length > 0) && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
+          <p className="flex min-w-0 flex-1 items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            {readyToApprove
+              ? `Some details need the host's attention: ${hostTodo.map((c) => c.label).join(', ')}.`
+              : 'Something required is still missing. You can still approve, but the listing goes live as-is.'}
+          </p>
+          {hostTodo.length > 0 && host && (
+            <Button size="sm" loading={remind.isPending} onClick={() => remind.mutate()}>
+              Remind host
+            </Button>
+          )}
+        </div>
       )}
 
       <Card>
@@ -237,10 +256,6 @@ export default function VehicleReviewPage() {
             What the host entered
           </p>
           <Row label="Daily price" value={formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency })} />
-          <Row
-            label="Cleaning fee"
-            value={v.pricing.cleaningFee ? formatMoney({ amount: v.pricing.cleaningFee, currency: v.pricing.currency }) : '—'}
-          />
           <Row label="VIN" value={v.vin ?? '—'} />
           <Row label="Registration number" value={v.registrationNumber ?? '—'} />
           <Row label="Colour" value={v.specs?.color ?? '—'} />

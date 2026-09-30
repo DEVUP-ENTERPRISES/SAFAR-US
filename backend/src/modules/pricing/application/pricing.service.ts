@@ -139,7 +139,8 @@ export class PricingService implements IPricingContract {
     // Never discount below zero.
     if (discount.amount > base.amount) discount = { ...base };
 
-    const cleaningFee = money(input.skipOneTimeFees ? 0 : v.pricing.cleaningFee, currency);
+    // No cleaning fee is charged; the field stays on the quote (always zero) so past receipts keep their shape.
+    const cleaningFee = money(0, currency);
 
     // ── Add-ons (host-defined extras the guest selected).
     const selectedAddOns = (v.addOns ?? [])

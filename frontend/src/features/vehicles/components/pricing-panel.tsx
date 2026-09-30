@@ -32,7 +32,6 @@ export function PricingPanel({
   const upliftFromBps = (bps?: number) => String(bps ? Math.round((bps - 10000) / 100) : 0);
 
   const [daily, setDaily] = useState(String(p.dailyPrice / 100));
-  const [cleaning, setCleaning] = useState(String((p.cleaningFee ?? 0) / 100));
   const [weekend, setWeekend] = useState(upliftFromBps(p.weekendMultiplierBps));
   const [weekly, setWeekly] = useState(pctFromBps(p.weeklyDiscountBps));
   const [monthly, setMonthly] = useState(pctFromBps(p.monthlyDiscountBps));
@@ -58,7 +57,6 @@ export function PricingPanel({
   const save = () =>
     onSave({
       dailyPrice: Math.round(num(daily) * 100),
-      cleaningFee: Math.round(num(cleaning) * 100),
       weekendMultiplierBps: 10000 + bps(num(weekend), 1000),
       weeklyDiscountBps: bps(num(weekly), 90),
       monthlyDiscountBps: bps(num(monthly), 90),
@@ -79,9 +77,6 @@ export function PricingPanel({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label={`Daily price (${cur})`}>
           <Input type="number" min={1} inputMode="decimal" autoFocus={focus === 'daily'} value={daily} onChange={(e) => setDaily(e.target.value)} />
-        </Field>
-        <Field label={`Cleaning fee (${cur})`}>
-          <Input type="number" min={0} value={cleaning} onChange={(e) => setCleaning(e.target.value)} />
         </Field>
         <Field label="Weekend uplift (%)" hint="Added Fri–Sun">
           <Input type="number" min={0} value={weekend} onChange={(e) => setWeekend(e.target.value)} />

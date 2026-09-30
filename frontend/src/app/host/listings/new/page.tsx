@@ -102,7 +102,7 @@ const initial: Draft = {
   city: '', address: '', pickupNotes: '', lng: null, lat: null, color: '', doors: 4, features: [],
   vin: '', licensePlate: '', licensePlateState: '', odometerMiles: '', standardsAgreed: false,
   photos: [], title: '', description: '', instantBook: true, cancellationPolicy: 'moderate',
-  dailyPrice: 65, cleaningFee: 25, weekendPct: 20, weeklyDiscountPct: 10, monthlyDiscountPct: 20,
+  dailyPrice: 65, cleaningFee: 0, weekendPct: 20, weeklyDiscountPct: 10, monthlyDiscountPct: 20,
   earlyBirdPct: 5, lastMinutePct: 0,
   deliveryLocations: [],
   addOnCodes: [], tripRules: '', mileagePerDay: 200, mileageOverage: 0.35,
@@ -332,7 +332,6 @@ export default function NewListingPage() {
     }
     if (forStep === 3) {
       if (!Number(d.dailyPrice) || Number(d.dailyPrice) <= 0) e.dailyPrice = 'Set a daily price';
-      if (Number(d.cleaningFee) < 0) e.cleaningFee = 'Cannot be negative';
     }
     if (forStep === 4 && Number(d.mileageOverage) < 0) {
       e.mileageOverage = 'Cannot be negative';
@@ -591,7 +590,6 @@ export default function NewListingPage() {
                 </div>
               </div>
               <Field label="Daily price ($) *" error={errors.dailyPrice}><Input type="number" value={d.dailyPrice} onChange={(e) => set('dailyPrice', Number(e.target.value))} /></Field>
-              <Field label="Cleaning fee ($)" error={errors.cleaningFee}><Input type="number" value={d.cleaningFee} onChange={(e) => set('cleaningFee', Number(e.target.value))} /></Field>
               <Field label="Weekend premium (%)"><Input type="number" value={d.weekendPct} onChange={(e) => set('weekendPct', Number(e.target.value))} /></Field>
               <Field label="Weekly discount (%)"><Input type="number" value={d.weeklyDiscountPct} onChange={(e) => set('weeklyDiscountPct', Number(e.target.value))} /></Field>
               <Field label="Monthly discount (%)"><Input type="number" value={d.monthlyDiscountPct} onChange={(e) => set('monthlyDiscountPct', Number(e.target.value))} /></Field>
