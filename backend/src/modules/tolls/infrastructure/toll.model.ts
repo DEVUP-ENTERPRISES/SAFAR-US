@@ -23,7 +23,8 @@ export interface TollAccountDoc {
   updatedAt: Date;
 }
 
-export type TollStatus = 'matched' | 'no_trip' | 'unknown_car' | 'billed' | 'waived' | 'too_late';
+/** covered: paid for by the guest's toll pass, within its daily amount. */
+export type TollStatus = 'matched' | 'no_trip' | 'unknown_car' | 'billed' | 'covered' | 'waived' | 'too_late';
 
 /** One toll charge from an agency statement, and where it landed. */
 export interface TollTransactionDoc {
@@ -85,7 +86,7 @@ const transactionSchema = new Schema<TollTransactionDoc>(
     plate: String,
     plateState: String,
     amountCents: { type: Number, required: true },
-    status: { type: String, enum: ['matched', 'no_trip', 'unknown_car', 'billed', 'waived', 'too_late'], required: true },
+    status: { type: String, enum: ['matched', 'no_trip', 'unknown_car', 'billed', 'covered', 'waived', 'too_late'], required: true },
     vehicleId: String,
     bookingId: String,
     incidentalId: String,

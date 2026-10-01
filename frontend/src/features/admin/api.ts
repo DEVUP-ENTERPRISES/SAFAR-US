@@ -55,7 +55,10 @@ export interface PlatformConfig {
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };
   /** Post-trip charges: the combined ceiling per booking (bps of the booking total) and the guest's dispute window. */
   incidentals: { maxTotalBps: number; disputeWindowHours: number; maxFuelPercent: number; maxLateHours: number };
-  tolls: { enabled: boolean; feeCents: number; reviewHours: number; matchBufferMinutes: number; billingWindowDays: number; autoCharge: boolean };
+  tolls: {
+    enabled: boolean; feeCents: number; reviewHours: number; matchBufferMinutes: number; billingWindowDays: number; autoCharge: boolean;
+    passEnabled: boolean; passPriceCents: number; passDailyCapCents: number;
+  };
   /** Handover and return timing: when live location opens, and how long past the return time before a trip counts as overdue. */
   tracking: { approachWindowMinutes: number; overdueGraceMinutes: number };
   inspection: {
@@ -307,7 +310,7 @@ export interface TollAccount {
   vehicleIds: string[];
 }
 
-export type TollStatus = 'matched' | 'no_trip' | 'unknown_car' | 'billed' | 'waived' | 'too_late';
+export type TollStatus = 'matched' | 'no_trip' | 'unknown_car' | 'billed' | 'covered' | 'waived' | 'too_late';
 
 export interface TollTransaction {
   _id: string;

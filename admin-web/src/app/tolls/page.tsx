@@ -33,6 +33,7 @@ const TABS: { id: TollStatus; label: string }[] = [
   { id: 'unknown_car', label: 'Unknown car' },
   { id: 'no_trip', label: 'No trip (fleet’s own)' },
   { id: 'billed', label: 'Billed' },
+  { id: 'covered', label: 'Covered by toll pass' },
   { id: 'waived', label: 'Waived' },
   { id: 'too_late', label: 'Too late to bill' },
 ];
@@ -233,7 +234,7 @@ export default function TollsPage() {
   });
   const onFile = async (f?: File) => { if (f) setText(await f.text()); };
 
-  const [settings, setSettings] = useState<null | { enabled: boolean; feeCents: number; reviewHours: number; matchBufferMinutes: number; billingWindowDays: number; autoCharge: boolean }>(null);
+  const [settings, setSettings] = useState<null | NonNullable<typeof cfg.data>['tolls']>(null);
   useEffect(() => { if (cfg.data?.tolls && !settings) setSettings(cfg.data.tolls); }, [cfg.data, settings]);
   const saveSettings = useMutation({
     mutationFn: () => adminApi.saveConfig({ tolls: settings!, reason: 'Toll settings' }),
@@ -331,7 +332,7 @@ export default function TollsPage() {
                 <Input type="number" min={0} step="0.01" value={(settings.feeCents / 100).toString()}
                   onChange={(e) => setSettings({ ...settings, feeCents: Math.round(Number(e.target.value) * 100) || 0 })} />
               </Field>
-              <Field label="Wait before charging (hours)" hint="After the trip ends, so late tolls arrive first.">
+              <Field label="Wait before charging (hours)" hint="For trips with no deposit held (or tolls after it was released).">
                 <Input type="number" min={0} value={settings.reviewHours} onChange={(e) => setSettings({ ...settings, reviewHours: Number(e.target.value) || 0 })} />
               </Field>
               <Field label="Trip buffer (minutes)" hint="Either side of the trip, for delivery drives.">
@@ -340,6 +341,25 @@ export default function TollsPage() {
               <Field label="Bill within (days)" hint="After the trip ends; later tolls wait for staff.">
                 <Input type="number" min={1} value={settings.billingWindowDays} onChange={(e) => setSettings({ ...settings, billingWindowDays: Number(e.target.value) || 1 })} />
               </Field>
+            </div>
+            <div className="space-y-3 rounded-xl border border-border p-3">
+              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+                <input type="checkbox" className="accent-[hsl(var(--primary))]" checked={settings.passEnabled} onChange={(e) => setSettings({ ...settings, passEnabled: e.target.checked })} />
+                Offer a toll pass at checkout
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Toll pass price per trip ($)" hint="Flat, whatever the trip length.">
+                  <Input type="number" min={0} step="0.01" value={(settings.passPriceCents / 100).toString()}
+                    onChange={(e) => setSettings({ ...settings, passPriceCents: Math.round(Number(e.target.value) * 100) || 0 })} />
+                </Field>
+                <Field label="Tolls covered per day ($)" hint="Each calendar day; tolls above this are billed to the guest.">
+                  <Input type="number" min={0} step="0.01" value={(settings.passDailyCapCents / 100).toString()}
+                    onChange={(e) => setSettings({ ...settings, passDailyCapCents: Math.round(Number(e.target.value) * 100) || 0 })} />
+                </Field>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Guests without the pass pay their actual tolls, taken from their security deposit just before it is released (5 days after the trip). Tolls posted later go to their card.
+              </p>
             </div>
             <label className="flex cursor-pointer items-center gap-2 text-sm">
               <input type="checkbox" className="accent-[hsl(var(--primary))]" checked={settings.autoCharge} onChange={(e) => setSettings({ ...settings, autoCharge: e.target.checked })} />

@@ -327,6 +327,11 @@ export interface PlatformConfigDoc {
     billingWindowDays: number;
     /** Charge automatically once the review time passes; off means staff bill each trip. */
     autoCharge: boolean;
+    /** Toll pass sold at checkout: a flat price per trip that covers tolls up to a daily amount. */
+    passEnabled: boolean;
+    passPriceCents: number;
+    /** Tolls covered by the pass per calendar day (Texas time); anything above is billed. */
+    passDailyCapCents: number;
   };
   /** Post-trip incidental fee schedule (host-compensating), in minor units. */
   incidentals: {
@@ -750,6 +755,9 @@ const schema = new Schema<PlatformConfigDoc>(
       matchBufferMinutes: { type: Number, default: 60 },
       billingWindowDays: { type: Number, default: 60 },
       autoCharge: { type: Boolean, default: true },
+      passEnabled: { type: Boolean, default: true },
+      passPriceCents: { type: Number, default: 1500 },
+      passDailyCapCents: { type: Number, default: 1000 },
     },
     incidentals: {
       fuelPerPercentCents: { type: Number, default: 300 },

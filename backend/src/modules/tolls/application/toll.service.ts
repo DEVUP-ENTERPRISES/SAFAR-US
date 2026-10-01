@@ -8,6 +8,8 @@ import { incidentalsService } from '../../bookings/application/incidentals.servi
 import { notificationService } from '../../notifications/application/notification.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { NotFoundError, ValidationError } from '../../../core/errors/app-error';
+import { PaymentModel } from '../../payments/infrastructure/payment.model';
+import { TOLL_PASS } from '../../vehicles/application/vehicle.service';
 import { logger } from '../../../infrastructure/logging/logger';
 
 const MIN = 60_000;
@@ -182,7 +184,13 @@ export const tollService = {
    * Charge the guest for a trip's matched tolls in one line (plus the flat fee once per trip), through the
    * same post-trip charge path as fuel or late return: card first, then deposit, credited to the host.
    */
-  async bill(bookingId: string): Promise<{ billed: number; totalCents: number; collected: boolean } | null> {
+  /**
+   * Settle a finished trip's matched tolls. With a toll pass, each Texas calendar day is covered up to the
+   * pass's daily amount and only the excess is charged; without one, every toll is charged. Charges go through
+   * the post-trip charge path in one line; preferDeposit takes it from the deposit hold first (it is about
+   * to be released), so the guest's money is already set aside and nothing can decline.
+   */
+  async bill(bookingId: string, opts: { preferDeposit?: boolean } = {}): Promise<{ billed: number; covered: number; totalCents: number; collected: boolean } | null> {
     const cfg = (await platformConfigService.get()).tolls;
     const booking = await BookingModel.findById(bookingId).select('status period guestId code priceBreakdown').lean<BookingDoc>();
     if (!booking || booking.status !== 'completed') return null;
@@ -194,47 +202,95 @@ export const tollService = {
       return null;
     }
 
-    const sum = tolls.reduce((s, t) => s + t.amountCents, 0);
+    const hasPass = (booking.priceBreakdown?.selectedAddOns ?? []).some((a) => a.code === TOLL_PASS);
+    const { covered, billable, excessCents } = hasPass ? await this.applyPass(bookingId, tolls, cfg.passDailyCapCents) : { covered: [], billable: tolls, excessCents: null };
+
+    if (covered.length) {
+      await TollTransactionModel.updateMany({ _id: { $in: covered.map((t) => t._id) } }, { $set: { status: 'covered', note: 'Covered by the toll pass' } });
+    }
+    if (!billable.length) {
+      await this.tellGuest(booking, { covered, billable: [], fee: 0, total: 0, collected: true });
+      return { billed: 0, covered: covered.length, totalCents: 0, collected: true };
+    }
+
+    const sum = excessCents ?? billable.reduce((s, t) => s + t.amountCents, 0);
     const feeAlready = await TollTransactionModel.exists({ bookingId, status: 'billed' });
-    const fee = cfg.feeCents > 0 && !feeAlready ? cfg.feeCents : 0;
-    const items = [
-      { type: 'toll' as const, amount: sum, note: `${tolls.length} toll${tolls.length === 1 ? '' : 's'} (NTTA) during your trip` },
-      ...(fee ? [{ type: 'other' as const, amount: fee, note: 'Toll processing fee' }] : []),
-    ];
-    const result = await incidentalsService.charge(bookingId, items, 'system', { notify: false });
+    // Pass holders already paid for tolls, so no processing fee on top.
+    const fee = !hasPass && cfg.feeCents > 0 && !feeAlready ? cfg.feeCents : 0;
+    const label = hasPass
+      ? `Tolls above your toll pass (${usd(cfg.passDailyCapCents)} a day)`
+      : `${billable.length} toll${billable.length === 1 ? '' : 's'} (NTTA) during your trip`;
+    // One line when taking from the deposit: a hold can be captured only once.
+    const items = opts.preferDeposit || !fee
+      ? [{ type: 'toll' as const, amount: sum + fee, note: fee ? `${label}, incl. ${usd(fee)} processing fee` : label }]
+      : [{ type: 'toll' as const, amount: sum, note: label }, { type: 'other' as const, amount: fee, note: 'Toll processing fee' }];
+    const result = await incidentalsService.charge(bookingId, items, 'system', { notify: false, preferDeposit: opts.preferDeposit });
     const tollLine = result.items.find((i) => i.type === 'toll');
     await TollTransactionModel.updateMany(
-      { _id: { $in: tolls.map((t) => t._id) } },
+      { _id: { $in: billable.map((t) => t._id) } },
       { $set: { status: 'billed', billedAt: new Date(), incidentalId: tollLine?.id } },
     );
     const collected = result.items.every((i) => i.collected);
+    await this.tellGuest(booking, { covered, billable, fee, total: result.total, collected });
+    return { billed: billable.length, covered: covered.length, totalCents: result.total, collected };
+  },
 
+  /** Split a pass holder's tolls into those the pass covers and the days that went over its daily amount. */
+  async applyPass(bookingId: string, tolls: TollTransactionDoc[], capCents: number) {
+    // Days already settled count toward that day's allowance, so a late toll can't reuse it.
+    const earlier = await TollTransactionModel.find({ bookingId, status: { $in: ['covered', 'billed'] } }).select('occurredAt amountCents').lean<TollTransactionDoc[]>();
+    const day = (d: Date) => d.toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
+    const used = new Map<string, number>();
+    for (const t of earlier) used.set(day(t.occurredAt), (used.get(day(t.occurredAt)) ?? 0) + t.amountCents);
+    const covered: TollTransactionDoc[] = [];
+    const billable: TollTransactionDoc[] = [];
+    let excessCents = 0;
+    for (const t of tolls) {
+      const d = day(t.occurredAt);
+      const before = used.get(d) ?? 0;
+      const room = Math.max(0, capCents - before);
+      used.set(d, before + t.amountCents);
+      if (t.amountCents <= room) covered.push(t);
+      else { billable.push(t); excessCents += t.amountCents - room; }
+    }
+    return { covered, billable, excessCents };
+  },
+
+  /** One message listing every toll on the trip: covered, charged, and how. */
+  async tellGuest(
+    booking: Pick<BookingDoc, '_id' | 'guestId'>,
+    r: { covered: TollTransactionDoc[]; billable: TollTransactionDoc[]; fee: number; total: number; collected: boolean },
+  ): Promise<void> {
+    const line = (t: TollTransactionDoc, tail: string) => ({ label: when(t.occurredAt), value: `${t.location.split(' - ').slice(0, 2).join(' · ')} · ${usd(t.amountCents)}${tail}` });
+    const charged = r.total > 0;
     await notificationService
       .send({
         userId: booking.guestId,
-        priority: 'high',
-        templateKey: 'booking.tolls_charged',
-        title: collected ? `Tolls from your trip: ${usd(result.total)}` : 'Tolls from your trip need a card',
-        body:
-          `${tolls.length} toll${tolls.length === 1 ? '' : 's'} were recorded while you had the car` +
-          `${fee ? `, plus a ${usd(fee)} processing fee` : ''}. ` +
-          (collected ? 'They were charged to your card on file.' : 'We could not charge your card; please update your payment method.') +
-          ' If a toll isn’t yours, dispute it from your booking.',
-        deepLink: `/bookings/${bookingId}`,
+        priority: charged ? 'high' : 'normal',
+        templateKey: charged ? 'booking.tolls_charged' : 'booking.tolls_covered',
+        title: !charged ? 'Your toll pass covered your tolls' : r.collected ? `Tolls from your trip: ${usd(r.total)}` : 'Tolls from your trip need a card',
+        body: !charged
+          ? `${r.covered.length} toll${r.covered.length === 1 ? '' : 's'} on your trip ${r.covered.length === 1 ? 'was' : 'were'} covered by your toll pass. Nothing more to pay.`
+          : (r.collected ? `We charged ${usd(r.total)} for tolls on your trip.` : 'We could not take payment for tolls on your trip; please update your card.') +
+            (r.covered.length ? ` Your toll pass covered ${r.covered.length} more.` : '') +
+            ' If a toll isn’t yours, dispute it from your booking.',
+        deepLink: `/bookings/${booking._id}`,
         actionLabel: 'View booking',
-        data: { bookingId },
+        data: { bookingId: booking._id },
         facts: [
-          ...tolls.map((t) => ({ label: when(t.occurredAt), value: `${t.location.split(' - ').slice(0, 2).join(' · ')} · ${usd(t.amountCents)}` })),
-          ...(fee ? [{ label: 'Processing fee', value: usd(fee) }] : []),
-          { label: 'Total', value: usd(result.total) },
+          ...r.covered.map((t) => line(t, ' · covered')),
+          ...r.billable.map((t) => line(t, '')),
+          ...(r.fee ? [{ label: 'Processing fee', value: usd(r.fee) }] : []),
+          ...(charged ? [{ label: 'Charged', value: usd(r.total) }] : []),
         ],
       })
-      .catch((err) => logger.warn({ err, bookingId }, 'toll notice failed'));
-
-    return { billed: tolls.length, totalCents: result.total, collected };
+      .catch((err) => logger.warn({ err, bookingId: booking._id }, 'toll notice failed'));
   },
 
-  /** Bill every finished trip whose tolls have had time to arrive. Run on a schedule. */
+  /**
+   * Bill finished trips whose tolls are due. A trip whose deposit is still held is left for the deposit release,
+   * which takes the tolls from it first; once the deposit is gone, later tolls go to the card.
+   */
   async billDue(): Promise<{ trips: number; tolls: number }> {
     const cfg = (await platformConfigService.get()).tolls;
     if (!cfg.enabled || !cfg.autoCharge) return { trips: 0, tolls: 0 };
@@ -244,8 +300,9 @@ export const tollService = {
     for (const id of bookingIds) {
       const b = await BookingModel.findById(id).select('status period').lean<Pick<BookingDoc, 'status' | 'period'>>();
       if (!b || b.status !== 'completed' || Date.now() < +new Date(b.period.end) + cfg.reviewHours * 3_600_000) continue;
+      if (await PaymentModel.exists({ bookingId: id, type: 'deposit', status: 'authorized', deletedAt: null })) continue;
       const r = await this.bill(id).catch((err) => { logger.warn({ err, bookingId: id }, 'toll billing failed'); return null; });
-      if (r) { trips++; tolls += r.billed; }
+      if (r) { trips++; tolls += r.billed + r.covered; }
     }
     return { trips, tolls };
   },

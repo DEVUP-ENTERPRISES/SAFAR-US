@@ -344,6 +344,11 @@ export class DepositService {
       // A return the host has not confirmed yet keeps its hold.
       if (await TripModel.exists({ bookingId: deposit.bookingId, returnConfirmed: false })) continue;
 
+      // Tolls from the trip are taken from the hold first; release then frees whatever is left (nothing, if it was captured).
+      if (cfg.tolls.enabled && cfg.tolls.autoCharge) {
+        const { tollService } = await import('../../tolls/application/toll.service');
+        await tollService.bill(deposit.bookingId, { preferDeposit: true }).catch((err) => logger.warn({ err, bookingId: deposit.bookingId }, 'tolls not billed at deposit release'));
+      }
       if (await this.release(deposit.bookingId, 'Inspection window closed with no claim')) {
         released += 1;
       }

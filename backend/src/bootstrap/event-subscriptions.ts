@@ -568,7 +568,7 @@ export function registerEventSubscribers(): void {
   // An admin changed the daily mileage (or restored a version): every car follows at once.
   eventBus.subscribe(EVENTS.PLATFORM_CONFIG_UPDATED, async (e) => {
     const p = e.payload as { keys?: string[] };
-    if (p.keys && !p.keys.includes('booking')) return;
+    if (p.keys && !p.keys.includes('booking') && !p.keys.includes('tolls')) return;
     const n = await syncDailyMileage();
     if (n) logger.info({ vehicles: n }, 'daily mileage allowance applied');
   });

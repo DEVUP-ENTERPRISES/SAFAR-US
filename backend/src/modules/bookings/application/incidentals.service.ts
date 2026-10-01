@@ -110,9 +110,21 @@ export class IncidentalsService {
     currency: string,
     key: string,
     label: string,
+    /** Take it from the security deposit first (its hold is about to be released), then the card. */
+    preferDeposit = false,
   ): Promise<'card' | 'deposit' | null> {
     let via: 'card' | 'deposit' | null = null;
     let collected = 0;
+
+    if (preferDeposit) {
+      const taken = await depositService.capture(booking._id, { amount, currency }, label, booking.hostId).catch(() => null);
+      if (taken && taken.amount > 0) {
+        emit(EVENTS.BOOKING_CHARGE_COLLECTED, booking._id, { bookingId: booking._id, hostId: booking.hostId, amount: taken.amount, currency, key });
+        // A deposit smaller than the charge leaves the rest for the card.
+        if (taken.amount >= amount) return 'deposit';
+        return (await this.collect(booking, amount - taken.amount, currency, `${key}_rest`, label)) ?? 'deposit';
+      }
+    }
 
     if (await paymentService.chargeGuest({ bookingId: booking._id, guestId: booking.guestId, amount, currency, idempotencyKey: `charge_${key}` })) {
       via = 'card';
@@ -150,8 +162,8 @@ export class IncidentalsService {
     bookingId: string,
     items: IncidentalItem[],
     byUserId: string,
-    /** notify false: the caller sends its own, more detailed message to the guest. */
-    opts: { notify?: boolean } = {},
+    /** notify false: the caller sends its own, more detailed message. preferDeposit: take it from the deposit first. */
+    opts: { notify?: boolean; preferDeposit?: boolean } = {},
   ): Promise<{ total: number; items: { id: string; type: string; amount: number; note?: string; collected: boolean }[] }> {
     const booking = await BookingModel.findOne({ _id: bookingId }).lean();
     if (!booking) throw new NotFoundError('Booking');
@@ -290,7 +302,7 @@ export class IncidentalsService {
 
     const uncollected: string[] = [];
     for (const p of priced) {
-      const via = await this.collect(booking, p.amount, currency, p._id, `Incidental: ${p.type}`);
+      const via = await this.collect(booking, p.amount, currency, p._id, `Incidental: ${p.type}`, opts.preferDeposit);
       if (via) (p as { collectedVia?: 'card' | 'deposit' }).collectedVia = via;
       else uncollected.push(p.type);
     }

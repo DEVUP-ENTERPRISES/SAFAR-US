@@ -97,7 +97,7 @@ describe('matching and billing tolls', () => {
     });
     const send = jest.spyOn(notificationService, 'send').mockResolvedValue(undefined as never);
 
-    expect(await tollService.bill('bk')).toEqual({ billed: 2, totalCents: 809, collected: true });
+    expect(await tollService.bill('bk')).toEqual({ billed: 2, covered: 0, totalCents: 809, collected: true });
     expect(charge).toHaveBeenCalledWith('bk', [
       { type: 'toll', amount: 309, note: '2 tolls (NTTA) during your trip' },
       { type: 'other', amount: 500, note: 'Toll processing fee' },
@@ -107,12 +107,102 @@ describe('matching and billing tolls', () => {
     expect(await tollService.bill('bk')).toBeNull();
   });
 
+  it('with a toll pass, covers each day up to its amount and charges only what went over, with no fee', async () => {
+    await seed();
+    await BookingModel.updateOne({ _id: 'bk' }, { $set: { 'priceBreakdown.selectedAddOns': [{ code: 'toll_pass', label: 'Toll pass', amount: { amount: 1500, currency: 'USD' } }] } });
+    // Two tolls on 30 Sep ($1.55 + $1.54) against a $2 a day pass: $1.54 covered, $1.55 needs $1.09 more.
+    await tollService.importNtta(STATEMENT, 'staff');
+    const real = await platformConfigService.get();
+    jest.spyOn(platformConfigService, 'get').mockResolvedValue({ ...real, tolls: { ...real.tolls, feeCents: 500, passDailyCapCents: 200 } });
+    const charge = jest.spyOn(incidentalsService, 'charge').mockResolvedValue({ total: 109, items: [{ id: 'inc-1', type: 'toll', amount: 109, collected: true }] });
+    jest.spyOn(notificationService, 'send').mockResolvedValue(undefined as never);
+
+    expect(await tollService.bill('bk')).toEqual({ billed: 1, covered: 1, totalCents: 109, collected: true });
+    expect(charge).toHaveBeenCalledWith('bk', [{ type: 'toll', amount: 109, note: 'Tolls above your toll pass ($2.00 a day)' }], 'system', { notify: false, preferDeposit: undefined });
+    expect(await TollTransactionModel.countDocuments({ status: 'covered' })).toBe(1);
+  });
+
+  it('with a toll pass and tolls within the daily amount, charges nothing and tells the guest it was covered', async () => {
+    await seed();
+    await BookingModel.updateOne({ _id: 'bk' }, { $set: { 'priceBreakdown.selectedAddOns': [{ code: 'toll_pass', label: 'Toll pass', amount: { amount: 1500, currency: 'USD' } }] } });
+    await tollService.importNtta(STATEMENT, 'staff');
+    const charge = jest.spyOn(incidentalsService, 'charge');
+    const send = jest.spyOn(notificationService, 'send').mockResolvedValue(undefined as never);
+    expect(await tollService.bill('bk')).toEqual({ billed: 0, covered: 2, totalCents: 0, collected: true });
+    expect(charge).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ templateKey: 'booking.tolls_covered' }));
+  });
+
+  it('takes the tolls from the deposit in one line when asked, fee included', async () => {
+    await seed();
+    await tollService.importNtta(STATEMENT, 'staff');
+    const real = await platformConfigService.get();
+    jest.spyOn(platformConfigService, 'get').mockResolvedValue({ ...real, tolls: { ...real.tolls, feeCents: 500 } });
+    const charge = jest.spyOn(incidentalsService, 'charge').mockResolvedValue({ total: 809, items: [{ id: 'inc-1', type: 'toll', amount: 809, collected: true }] });
+    jest.spyOn(notificationService, 'send').mockResolvedValue(undefined as never);
+    await tollService.bill('bk', { preferDeposit: true });
+    expect(charge).toHaveBeenCalledWith('bk', [{ type: 'toll', amount: 809, note: '2 tolls (NTTA) during your trip, incl. $5.00 processing fee' }], 'system', { notify: false, preferDeposit: true });
+  });
+
+  it('leaves a trip with a deposit still held to the deposit release', async () => {
+    await seed();
+    await tollService.importNtta(STATEMENT, 'staff');
+    await BookingModel.updateOne({ _id: 'bk' }, { $set: { 'period.end': new Date(Date.now() - 10 * 86_400_000) } });
+    const { PaymentModel } = await import('../../payments/infrastructure/payment.model');
+    await PaymentModel.collection.insertOne({ bookingId: 'bk', type: 'deposit', status: 'authorized', deletedAt: null } as never);
+    const bill = jest.spyOn(tollService, 'bill');
+    await tollService.billDue();
+    expect(bill).not.toHaveBeenCalled();
+  });
+
   it('does not bill a trip that is still running', async () => {
     await seed('in_progress');
     await tollService.importNtta(STATEMENT, 'staff');
     const charge = jest.spyOn(incidentalsService, 'charge');
     expect(await tollService.bill('bk')).toBeNull();
     expect(charge).not.toHaveBeenCalled();
+  });
+});
+
+describe('collecting from the deposit first', () => {
+  it('takes it from the deposit hold without touching the card, and sends any shortfall to the card', async () => {
+    const { depositService } = await import('../../payments/application/deposit.service');
+    const { paymentService } = await import('../../payments/application/payment.service');
+    const { ledgerService } = await import('../../payments/application/ledger.service');
+    jest.spyOn(ledgerService, 'post').mockResolvedValue(undefined as never);
+    const card = jest.spyOn(paymentService, 'chargeGuest').mockResolvedValue(true);
+    const capture = jest.spyOn(depositService, 'capture').mockResolvedValue({ amount: 809, currency: 'USD' });
+    const booking = { _id: 'bk', guestId: 'g', hostId: 'h' };
+
+    expect(await incidentalsService.collect(booking, 809, 'USD', 'k1', 'Tolls', true)).toBe('deposit');
+    expect(capture).toHaveBeenCalledWith('bk', { amount: 809, currency: 'USD' }, 'Tolls', 'h');
+    expect(card).not.toHaveBeenCalled();
+
+    capture.mockResolvedValue({ amount: 500, currency: 'USD' });
+    expect(await incidentalsService.collect(booking, 809, 'USD', 'k2', 'Tolls', true)).toBe('card');
+    expect(card).toHaveBeenCalledWith(expect.objectContaining({ amount: 309, idempotencyKey: 'charge_k2_rest' }));
+  });
+});
+
+describe('toll pass on every car', () => {
+  it('is added to every car at the admin price, repriced when the price changes, and removed when switched off', async () => {
+    const { syncDailyMileage } = await import('../../vehicles/application/vehicle.service');
+    await VehicleModel.collection.insertOne({ _id: 'c1' as never, deletedAt: null, addOns: [{ code: 'child_seat', label: 'Child seat', priceType: 'per_trip', amount: 1000 }], mileageLimit: {}, listing: {} });
+    const real = await platformConfigService.get();
+    const spy = jest.spyOn(platformConfigService, 'get').mockResolvedValue({ ...real, tolls: { ...real.tolls, enabled: true, passEnabled: true, passPriceCents: 1500, passDailyCapCents: 1000 } });
+    await syncDailyMileage();
+    let car = await VehicleModel.findById('c1').lean();
+    expect(car!.addOns).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'child_seat' }), { code: 'toll_pass', label: 'Toll pass: tolls covered up to $10 a day', priceType: 'per_trip', amount: 1500 }]));
+
+    spy.mockResolvedValue({ ...real, tolls: { ...real.tolls, enabled: true, passEnabled: true, passPriceCents: 1200, passDailyCapCents: 1000 } });
+    await syncDailyMileage();
+    car = await VehicleModel.findById('c1').lean();
+    expect(car!.addOns.filter((a) => a.code === 'toll_pass')).toEqual([expect.objectContaining({ amount: 1200 })]);
+
+    spy.mockResolvedValue({ ...real, tolls: { ...real.tolls, passEnabled: false } });
+    await syncDailyMileage();
+    car = await VehicleModel.findById('c1').lean();
+    expect(car!.addOns.map((a) => a.code)).toEqual(['child_seat']);
   });
 });
 

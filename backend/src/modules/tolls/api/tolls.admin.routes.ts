@@ -81,7 +81,7 @@ router.post(
 router.get(
   '/tolls/transactions',
   authorize('admin:read'),
-  validate({ query: z.object({ status: z.enum(['matched', 'no_trip', 'unknown_car', 'billed', 'waived', 'too_late']).optional(), bookingId: z.string().optional() }) }),
+  validate({ query: z.object({ status: z.enum(['matched', 'no_trip', 'unknown_car', 'billed', 'covered', 'waived', 'too_late']).optional(), bookingId: z.string().optional() }) }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await tollService.list(req.query as { status?: string; bookingId?: string }));
   }),
