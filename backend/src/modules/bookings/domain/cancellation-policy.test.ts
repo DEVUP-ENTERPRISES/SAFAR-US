@@ -1,4 +1,4 @@
-import { computeRefund } from './cancellation-policy';
+import { computeRefund, serviceFeeOf } from './cancellation-policy';
 
 /**
  * Refund maths.
@@ -64,5 +64,36 @@ describe('computeRefund', () => {
     const inr = { amount: 50_000, currency: 'INR' };
     expect(computeRefund('flexible', inr, hoursOut(48), rules, now).currency).toBe('INR');
     expect(computeRefund('strict', inr, hoursOut(1), rules, now).currency).toBe('INR');
+  });
+});
+
+describe('late cancellation keeps the service fee', () => {
+  const usd = (n: number) => ({ amount: n, currency: 'USD' });
+  const rules = {
+    flexible: { fullBeforeHours: 24, partialBps: 5000 },
+    moderate: { fullBeforeHours: 48, partialBps: 5000 },
+    strict: { fullBeforeHours: 168, partialBps: 0 },
+  };
+  const now = new Date('2026-09-29T16:42:00Z');
+  const hoursOut = (h: number) => new Date(now.getTime() + h * 3_600_000);
+
+  it('keeps the $2.50 fee and refunds half the $2.00 trip: $1.00 back of $4.50', () => {
+    expect(computeRefund('flexible', usd(450), hoursOut(12), rules, now, 250)).toEqual(usd(100));
+  });
+
+  it('still refunds everything, fee included, when cancelled in time', () => {
+    expect(computeRefund('flexible', usd(450), hoursOut(30), rules, now, 250)).toEqual(usd(450));
+  });
+
+  it('never keeps more than was paid', () => {
+    expect(computeRefund('flexible', usd(200), hoursOut(1), rules, now, 999)).toEqual(usd(0));
+    expect(computeRefund('strict', usd(450), hoursOut(1), rules, now, 250)).toEqual(usd(0));
+  });
+
+  it('finds the fee on older bookings that never stored it as its own line', () => {
+    // TURA-E98B1D: $1 day + $1 cleaning = $2.00 subtotal, $4.50 total.
+    expect(serviceFeeOf({ total: usd(450), subtotal: usd(200), protection: usd(0), taxTotal: usd(0) })).toBe(250);
+    expect(serviceFeeOf({ total: usd(450), serviceFee: usd(250) })).toBe(250);
+    expect(serviceFeeOf({ total: usd(450) })).toBe(0);
   });
 });

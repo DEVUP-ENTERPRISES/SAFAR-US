@@ -392,7 +392,7 @@ export default function AdminEconomicsPage() {
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
                     Guests see: full refund if cancelled {when} or more before pickup; after that,{' '}
-                    {r.partialBps > 0 ? `${toPct(r.partialBps)}% back` : 'no refund'}.
+                    {r.partialBps > 0 ? `${toPct(r.partialBps)}% of the trip back; the service fee is kept` : 'no refund'}.
                   </p>
                 </div>
               );
