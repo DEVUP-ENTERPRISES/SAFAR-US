@@ -314,6 +314,25 @@ export interface PlatformConfigDoc {
     /** Extra hold hours applied to a new host's payouts. */
     newHostExtraHoldHours: number;
   };
+  /** Toll charges read from agency statements and billed to the guest of the trip they fell in. */
+  tolls: {
+    enabled: boolean;
+    /** Flat processing fee added once per trip that has tolls, in cents (0 = none). */
+    feeCents: number;
+    /** Hours after the trip ends before tolls are charged, so late-posting tolls arrive first. */
+    reviewHours: number;
+    /** Minutes either side of the trip still counted as the trip (delivery drives). */
+    matchBufferMinutes: number;
+    /** Days after the trip ends that a toll can still be billed; later ones wait for staff. */
+    billingWindowDays: number;
+    /** Charge automatically once the review time passes; off means staff bill each trip. */
+    autoCharge: boolean;
+    /** Toll pass sold at checkout: a flat price per trip that covers tolls up to a daily amount. */
+    passEnabled: boolean;
+    passPriceCents: number;
+    /** Tolls covered by the pass per calendar day (Texas time); anything above is billed. */
+    passDailyCapCents: number;
+  };
   /** Post-trip incidental fee schedule (host-compensating), in minor units. */
   incidentals: {
     /** Charged per whole % of fuel returned below pickup level. */
@@ -728,6 +747,17 @@ const schema = new Schema<PlatformConfigDoc>(
     payoutTrust: {
       newHostTripThreshold: { type: Number, default: 3 },
       newHostExtraHoldHours: { type: Number, default: 48 },
+    },
+    tolls: {
+      enabled: { type: Boolean, default: true },
+      feeCents: { type: Number, default: 0 },
+      reviewHours: { type: Number, default: 72 },
+      matchBufferMinutes: { type: Number, default: 60 },
+      billingWindowDays: { type: Number, default: 60 },
+      autoCharge: { type: Boolean, default: true },
+      passEnabled: { type: Boolean, default: true },
+      passPriceCents: { type: Number, default: 1500 },
+      passDailyCapCents: { type: Number, default: 1000 },
     },
     incidentals: {
       fuelPerPercentCents: { type: Number, default: 300 },

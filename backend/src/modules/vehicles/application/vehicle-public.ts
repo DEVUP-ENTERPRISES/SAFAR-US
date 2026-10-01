@@ -11,6 +11,7 @@ export function toPublicVehicle<T extends Partial<VehicleDoc>>(v: T): T {
   const out: Partial<VehicleDoc> = { ...rest };
   delete out.vin;
   delete out.registrationNumber;
+  delete out.tollTagId;
   delete out.photoMatch;
   // Guests see only whether the car is insured, under which plan, and the minimum driver age.
   const wb = out.wheelbase;

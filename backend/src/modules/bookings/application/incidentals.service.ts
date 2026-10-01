@@ -110,9 +110,21 @@ export class IncidentalsService {
     currency: string,
     key: string,
     label: string,
+    /** Take it from the security deposit first (its hold is about to be released), then the card. */
+    preferDeposit = false,
   ): Promise<'card' | 'deposit' | null> {
     let via: 'card' | 'deposit' | null = null;
     let collected = 0;
+
+    if (preferDeposit) {
+      const taken = await depositService.capture(booking._id, { amount, currency }, label, booking.hostId).catch(() => null);
+      if (taken && taken.amount > 0) {
+        emit(EVENTS.BOOKING_CHARGE_COLLECTED, booking._id, { bookingId: booking._id, hostId: booking.hostId, amount: taken.amount, currency, key });
+        // A deposit smaller than the charge leaves the rest for the card.
+        if (taken.amount >= amount) return 'deposit';
+        return (await this.collect(booking, amount - taken.amount, currency, `${key}_rest`, label)) ?? 'deposit';
+      }
+    }
 
     if (await paymentService.chargeGuest({ bookingId: booking._id, guestId: booking.guestId, amount, currency, idempotencyKey: `charge_${key}` })) {
       via = 'card';
@@ -150,7 +162,9 @@ export class IncidentalsService {
     bookingId: string,
     items: IncidentalItem[],
     byUserId: string,
-  ): Promise<{ total: number; items: { id: string; type: string; amount: number; note?: string }[] }> {
+    /** notify false: the caller sends its own, more detailed message. preferDeposit: take it from the deposit first. */
+    opts: { notify?: boolean; preferDeposit?: boolean } = {},
+  ): Promise<{ total: number; items: { id: string; type: string; amount: number; note?: string; collected: boolean }[] }> {
     const booking = await BookingModel.findOne({ _id: bookingId }).lean();
     if (!booking) throw new NotFoundError('Booking');
     const cfg = (await platformConfigService.get()).incidentals as IncidentalConfig;
@@ -170,8 +184,9 @@ export class IncidentalsService {
 
     // 1. WINDOW — without one, a host can bill a trip from six months ago, long
     //    after the guest could possibly evidence otherwise.
+    // The system's own charges (tolls posting late, fuel and late return at completion) follow their own windows.
     const tripEnd = booking.period?.end ? new Date(booking.period.end) : null;
-    if (tripEnd) {
+    if (tripEnd && byUserId !== 'system') {
       const closesAt = new Date(tripEnd.getTime() + (cfg.windowDays ?? 7) * 86_400_000);
       if (Date.now() > closesAt.getTime()) {
         throw new ValidationError(
@@ -259,7 +274,7 @@ export class IncidentalsService {
       const dupe = existing.find(
         (e) => e.type === it.type && e.amount === amount && e.status !== 'refunded',
       );
-      if (dupe) {
+      if (dupe && byUserId !== 'system') {
         throw new ConflictError(
           `A ${it.type} charge of ${(amount / 100).toFixed(2)} ${currency} is already on this booking.`,
           'DUPLICATE_INCIDENTAL',
@@ -287,7 +302,7 @@ export class IncidentalsService {
 
     const uncollected: string[] = [];
     for (const p of priced) {
-      const via = await this.collect(booking, p.amount, currency, p._id, `Incidental: ${p.type}`);
+      const via = await this.collect(booking, p.amount, currency, p._id, `Incidental: ${p.type}`, opts.preferDeposit);
       if (via) (p as { collectedVia?: 'card' | 'deposit' }).collectedVia = via;
       else uncollected.push(p.type);
     }
@@ -306,7 +321,7 @@ export class IncidentalsService {
       })
       .catch(() => undefined);
 
-    await notificationService
+    if (opts.notify !== false) await notificationService
       .send({
         userId: booking.guestId,
         priority: 'high',
@@ -324,7 +339,7 @@ export class IncidentalsService {
     logger.info({ bookingId, total, types: priced.map((p) => p.type) }, 'incidentals charged');
     return {
       total,
-      items: priced.map((p) => ({ id: p._id, type: p.type, amount: p.amount, note: p.note })),
+      items: priced.map((p) => ({ id: p._id, type: p.type, amount: p.amount, note: p.note, collected: !uncollected.includes(p.type) })),
     };
   }
 

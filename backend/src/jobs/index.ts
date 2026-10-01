@@ -15,6 +15,7 @@ import { platformConfigService } from '../modules/platform-config/application/pl
 import { acquireJobLease } from './job-lease.model';
 import { notificationService } from '../modules/notifications/application/notification.service';
 import { wheelbaseInsuranceService } from '../modules/insurance/application/wheelbase-insurance.service';
+import { tollService } from '../modules/tolls/application/toll.service';
 
 const QUEUE = 'cato-maintenance';
 const MIN = 60_000;
@@ -132,6 +133,12 @@ const JOBS: JobDef[] = [
     name: 'retry-webhooks',
     everyMs: 5 * MIN,
     run: () => webhookRetryService.retryFailed(),
+  },
+  {
+    // Charge finished trips for their tolls once late-posting tolls have had time to arrive.
+    name: 'toll-billing',
+    everyMs: 60 * MIN,
+    run: () => tollService.billDue(),
   },
   {
     // Keep each car's insurance as Wheelbase reports it; an outage leaves the last reading in place.

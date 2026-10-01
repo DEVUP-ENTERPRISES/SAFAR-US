@@ -24,7 +24,17 @@ export async function platformDailyKm(): Promise<number> {
 
 /** Extras CatoDrive does not provide; never saved on a car, and removed from any that has them. */
 export const UNOFFERED_ADDONS = new Set(['additional_driver']);
-const offeredAddOns = <T extends { code: string }>(list?: T[]) => (list ?? []).filter((a) => !UNOFFERED_ADDONS.has(a.code));
+/** The toll pass is set by the platform on every car; hosts never add, remove or price it. */
+export const TOLL_PASS = 'toll_pass';
+const offeredAddOns = <T extends { code: string }>(list?: T[]) => (list ?? []).filter((a) => !UNOFFERED_ADDONS.has(a.code) && a.code !== TOLL_PASS);
+
+/** The toll pass as a checkout extra, or null while it is switched off. */
+export async function tollPassAddOn(): Promise<{ code: string; label: string; priceType: 'per_trip'; amount: number } | null> {
+  const t = (await platformConfigService.get()).tolls;
+  if (!t.enabled || !t.passEnabled) return null;
+  const cap = `$${(t.passDailyCapCents / 100).toFixed(t.passDailyCapCents % 100 ? 2 : 0)}`;
+  return { code: TOLL_PASS, label: `Toll pass: tolls covered up to ${cap} a day`, priceType: 'per_trip', amount: t.passPriceCents };
+}
 
 /** The one cancellation policy every car uses; hosts do not choose it. */
 export async function platformCancellationPolicy(): Promise<'flexible' | 'moderate' | 'strict'> {
@@ -33,14 +43,24 @@ export async function platformCancellationPolicy(): Promise<'flexible' | 'modera
 
 /** Puts every car on the platform's daily allowance and cancellation policy; idempotent, run at boot and on change. */
 export async function syncDailyMileage(): Promise<number> {
-  const [km, policy] = await Promise.all([platformDailyKm(), platformCancellationPolicy()]);
+  const [km, policy, pass] = await Promise.all([platformDailyKm(), platformCancellationPolicy(), tollPassAddOn()]);
+  // A stale toll pass (switched off, or repriced) comes off first; the current one goes back on every car without it.
+  const stale = await VehicleModel.updateMany(
+    pass
+      ? { addOns: { $elemMatch: { code: TOLL_PASS, $or: [{ amount: { $ne: pass.amount } }, { label: { $ne: pass.label } }] } } }
+      : { 'addOns.code': TOLL_PASS },
+    { $pull: { addOns: { code: TOLL_PASS } } },
+  );
+  const added = pass
+    ? await VehicleModel.updateMany({ deletedAt: null, 'addOns.code': { $ne: TOLL_PASS } }, { $push: { addOns: pass } })
+    : { modifiedCount: 0 };
   const [a, b, c] = await Promise.all([
     VehicleModel.updateMany({ deletedAt: null, 'mileageLimit.perDayKm': { $ne: km } }, { $set: { 'mileageLimit.perDayKm': km } }),
     VehicleModel.updateMany({ deletedAt: null, 'listing.cancellationPolicy': { $ne: policy } }, { $set: { 'listing.cancellationPolicy': policy } }),
     // CatoDrive does not offer additional drivers, so the extra is taken off any car still carrying it.
     VehicleModel.updateMany({ 'addOns.code': { $in: [...UNOFFERED_ADDONS] } }, { $pull: { addOns: { code: { $in: [...UNOFFERED_ADDONS] } } } }),
   ]);
-  return a.modifiedCount + b.modifiedCount + c.modifiedCount;
+  return a.modifiedCount + b.modifiedCount + c.modifiedCount + stale.modifiedCount + added.modifiedCount;
 }
 
 /**
@@ -141,7 +161,10 @@ export class VehicleService implements IVehicleContract {
       specs: dto.specs ?? {},
       features: dto.features,
       photos: dto.photos,
-      addOns: offeredAddOns(dto.addOns),
+      addOns: await (async () => {
+        const pass = await tollPassAddOn();
+        return [...offeredAddOns(dto.addOns), ...(pass ? [pass] : [])];
+      })(),
       tripRules: dto.tripRules ?? [],
       // The daily allowance is the platform's; the host sets only the overage fee.
       mileageLimit: { perDayKm: await platformDailyKm(), overageFeePerKm: dto.mileageLimit?.overageFeePerKm ?? 0 },

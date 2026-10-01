@@ -55,6 +55,10 @@ export interface PlatformConfig {
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };
   /** Post-trip charges: the combined ceiling per booking (bps of the booking total) and the guest's dispute window. */
   incidentals: { maxTotalBps: number; disputeWindowHours: number; maxFuelPercent: number; maxLateHours: number };
+  tolls: {
+    enabled: boolean; feeCents: number; reviewHours: number; matchBufferMinutes: number; billingWindowDays: number; autoCharge: boolean;
+    passEnabled: boolean; passPriceCents: number; passDailyCapCents: number;
+  };
   /** Handover and return timing: when live location opens, and how long past the return time before a trip counts as overdue. */
   tracking: { approachWindowMinutes: number; overdueGraceMinutes: number };
   inspection: {
@@ -293,6 +297,49 @@ export interface WheelbaseCarLink {
   syncedAt: string;
 }
 
+export interface TollAccount {
+  _id: string;
+  agency: 'ntta';
+  nickname: string;
+  status: 'manual' | 'connected' | 'disconnected';
+  hasLogin: boolean;
+  loginSavedAt?: string;
+  lastImportAt?: string;
+  lastFetchAt?: string;
+  lastError?: string;
+  vehicleIds: string[];
+}
+
+export type TollStatus = 'matched' | 'no_trip' | 'unknown_car' | 'billed' | 'covered' | 'waived' | 'too_late';
+
+export interface TollTransaction {
+  _id: string;
+  externalId: string;
+  occurredAt: string;
+  postedAt: string;
+  location: string;
+  tagId?: string;
+  plate?: string;
+  plateState?: string;
+  amountCents: number;
+  status: TollStatus;
+  vehicleId?: string;
+  bookingId?: string;
+  billedAt?: string;
+  note?: string;
+}
+
+export interface TollImportSummary {
+  read: number;
+  added: number;
+  duplicates: number;
+  matched: number;
+  noTrip: number;
+  unknownCar: number;
+  skipped: number;
+  errors: { line: number; reason: string }[];
+}
+
 export interface WheelbaseOverview {
   dealerId: string;
   error?: string;
@@ -463,6 +510,19 @@ export const adminApi = {
   wheelbaseSync: () => api.post<WheelbaseSyncResult>('/admin/insurance/wheelbase/sync'),
   wheelbaseLink: (vehicleId: string, rentalId: number | null) =>
     api.patch<{ ok: true }>(`/admin/insurance/wheelbase/vehicles/${vehicleId}`, { rentalId }),
+  tollAccounts: () => api.get<{ accounts: TollAccount[]; loginStorage: boolean }>('/admin/tolls/accounts'),
+  tollCreateAccount: (nickname: string) => api.post<TollAccount>('/admin/tolls/accounts', { agency: 'ntta', nickname }),
+  tollUpdateAccount: (id: string, patch: { nickname?: string; vehicleIds?: string[] }) => api.patch<TollAccount>(`/admin/tolls/accounts/${id}`, patch),
+  tollSaveLogin: (id: string, username: string, password: string) =>
+    api.raw<TollAccount>(`/admin/tolls/accounts/${id}/login`, { method: 'PUT', body: { username, password } }).then((r) => r.data),
+  tollRemoveLogin: (id: string) => api.delete<TollAccount>(`/admin/tolls/accounts/${id}/login`),
+  tollSetTag: (vehicleId: string, tagId: string | null) =>
+    api.raw<{ ok: true }>(`/admin/tolls/vehicles/${vehicleId}/tag`, { method: 'PUT', body: { tagId } }).then((r) => r.data),
+  tollImport: (text: string, accountId?: string) => api.post<TollImportSummary>('/admin/tolls/import', { text, ...(accountId ? { accountId } : {}) }),
+  tollTransactions: (status?: TollStatus) => api.get<TollTransaction[]>('/admin/tolls/transactions', status ? { status } : {}),
+  tollAssign: (id: string, vehicleId: string) => api.post<TollTransaction>(`/admin/tolls/transactions/${id}/assign`, { vehicleId }),
+  tollWaive: (id: string, note: string) => api.post<TollTransaction>(`/admin/tolls/transactions/${id}/waive`, { note }),
+  tollBill: (bookingId: string) => api.post<{ billed: number; totalCents: number; collected: boolean }>(`/admin/tolls/bill/${bookingId}`),
   setExternalRating: (id: string, body: { rating: number; trips: number; source: string } | { clear: true }) =>
     api.raw(`/admin/vehicles/${id}/external-rating`, { method: 'PUT', body }).then((r) => r.data),
   vehicleAction: (id: string, action: 'approve' | 'suspend' | 'reject') =>

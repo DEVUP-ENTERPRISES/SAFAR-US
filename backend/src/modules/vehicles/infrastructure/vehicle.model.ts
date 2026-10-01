@@ -112,6 +112,8 @@ export interface VehicleDoc {
   vin?: string;
   vinVerified: boolean;
   registrationNumber?: string;
+  /** TollTag (or other transponder) number on the car, for matching toll charges. */
+  tollTagId?: string;
   /** Latest automatic check of the photos against plate, make, model and colour. */
   photoMatch?: PhotoMatch;
   /** The Wheelbase listing this car is insured under, and its insurance as last read. */
@@ -250,6 +252,7 @@ const schema = new Schema<VehicleDoc>(
     vin: { type: String },
     vinVerified: { type: Boolean, default: false },
     registrationNumber: { type: String },
+    tollTagId: { type: String },
     wheelbase: {
       rentalId: Number,
       name: String,

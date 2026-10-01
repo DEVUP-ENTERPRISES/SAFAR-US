@@ -135,6 +135,8 @@ export const envSchema = z.object({
   OPENROUTER_API_KEY: optional(z.string()),
   // Wheelbase dealer account the fleet's insurance is read from; kept out of the source.
   WHEELBASE_DEALER_ID: optional(z.string().regex(/^\d{1,20}$/)),
+  // 32-byte key (base64 or 64 hex chars) that encrypts saved toll-account logins; without it no login can be saved.
+  TOLL_CREDENTIALS_KEY: optional(z.string().min(32)),
   /** Second key, tried only when the primary fails on auth, rate limit or credit. */
   OPENROUTER_API_KEY_FALLBACK: optional(z.string()),
   /** Default model. Vision-capable, because damage review reads photographs. */
