@@ -80,7 +80,9 @@ async function bookingTerms(bookingId: string): Promise<string[] | undefined> {
   try {
     const [b, cfg] = await Promise.all([bookingService.getDoc(bookingId), platformConfigService.get()]);
     const rule = cfg.cancellation[b.cancellationPolicy];
-    const partial = rule.partialBps > 0 ? `${Math.round(rule.partialBps / 100)}% is refunded after that` : 'it is non-refundable after that';
+    const partial = rule.partialBps > 0
+      ? `after that the service fee is non-refundable and ${Math.round(rule.partialBps / 100)}% of the rest is refunded`
+      : 'it is non-refundable after that';
     const terms = [
       'By booking you agreed to the privacy policy and all other terms and conditions of CatoDrive Inc., and to receive communication via email, phone, etc. as and when required during the rental period or until any billing/incident issues are resolved.',
       `Cancellation: full refund if you cancel at least ${hoursText(rule.fullBeforeHours)} before pickup; ${partial}.`,

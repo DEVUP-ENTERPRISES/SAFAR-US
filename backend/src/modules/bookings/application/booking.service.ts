@@ -4,7 +4,7 @@ import { BookingModel, type BookingDoc, type BookingExtension } from '../infrast
 import { PaymentModel, type PaymentDoc } from '../../payments/infrastructure/payment.model';
 import type { AvailabilityDoc } from '../../availability/infrastructure/availability.model';
 import { canTransition, type BookingStatus } from '../domain/booking-status';
-import { computeRefund } from '../domain/cancellation-policy';
+import { computeRefund, serviceFeeOf } from '../domain/cancellation-policy';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { wheelbaseInsuranceService } from '../../insurance/application/wheelbase-insurance.service';
 import { documentComplianceService } from '../../documents/application/document-compliance.service';
@@ -828,7 +828,7 @@ export class BookingService {
         // wrong and is being stranded. Only a guest cancellation is policy-bound.
         const cancelCfg = (await platformConfigService.get()).cancellation;
         refund = isGuest
-          ? computeRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg)
+          ? computeRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg, new Date(), serviceFeeOf(booking.priceBreakdown))
           : { ...total };
         if (refund.amount > 0) {
           await paymentService.refundBooking(bookingId, refund, reason);
@@ -1368,7 +1368,7 @@ export class BookingService {
     const cancelCfg = (await platformConfigService.get()).cancellation;
     const refund =
       isGuest && (booking.status === 'paid' || booking.status === 'confirmed')
-        ? computeRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg)
+        ? computeRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg, new Date(), serviceFeeOf(booking.priceBreakdown))
         : { ...total };
 
     const hoursFull = cancelCfg[booking.cancellationPolicy].fullBeforeHours;

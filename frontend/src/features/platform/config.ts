@@ -104,7 +104,9 @@ export function describeCancellation(
   const rule = cfg?.cancellation?.[policy];
   if (!rule) return { title, detail: '', fullDetail: '' };
   const before = humanHours(rule.fullBeforeHours);
-  const after = rule.partialBps > 0 ? `${Math.round(rule.partialBps / 100)}% refunded after that` : 'non-refundable after that';
+  const after = rule.partialBps > 0
+    ? `after that, ${Math.round(rule.partialBps / 100)}% of the trip refunded (service fee non-refundable)`
+    : 'non-refundable after that';
   return {
     title,
     detail: `Full refund if you cancel at least ${before} before your trip.`,
