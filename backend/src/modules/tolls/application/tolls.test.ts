@@ -1,4 +1,4 @@
-import { parseNttaStatement, centralTime } from '../domain/ntta-statement';
+import { parseNttaStatement, centralTime, normalizePlate } from '../domain/ntta-statement';
 import { tollService } from './toll.service';
 import { TollTransactionModel } from '../infrastructure/toll.model';
 import { credentialVault } from '../infrastructure/credential-vault';
@@ -48,6 +48,14 @@ describe('reading an NTTA statement', () => {
     expect(centralTime('01/15/2026 08:00:00')!.toISOString()).toBe('2026-01-15T14:00:00.000Z');
     const csv = 'Transaction ID,Transaction Entry Date/Time,Plate,Transaction Type,Transaction Amount,Location\n"123","01/15/2026 08:00:00","TX - ABC 123","TOLL","-$2.10","Dallas North Tollway, Main"';
     expect(parseNttaStatement(csv).tolls[0]).toMatchObject({ externalId: '123', plate: 'ABC123', amountCents: 210, location: 'Dallas North Tollway, Main' });
+  });
+
+  it('reads a plate the same way whether the state is in brackets, in front, or missing', () => {
+    expect(normalizePlate('XXY6879 (TX)')).toBe('XXY6879');
+    expect(normalizePlate('TX - XXY6879')).toBe('XXY6879');
+    expect(normalizePlate('xxy 6879')).toBe('XXY6879');
+    // Two letters that are not a state stay part of the plate.
+    expect(normalizePlate('ZZ-1234')).toBe('ZZ1234');
   });
 
   it('explains a paste with no header', () => {

@@ -53,8 +53,14 @@ export function splitPlate(value: string): { plate?: string; plateState?: string
   return { plate: plate || undefined, plateState: m ? m[1].toUpperCase() : undefined };
 }
 
-/** Plates compared without spaces, dashes or case. */
-export const normalizePlate = (p: string) => p.toUpperCase().replace(/[^A-Z0-9]/g, '');
+/** Plates compared without spaces, dashes, case or a state tag: "XXY6879 (TX)", "TX - XXY6879" and "xxy 6879" are one plate. */
+export const normalizePlate = (p: string) => {
+  const up = p.toUpperCase().replace(/\([^)]*\)/g, '');
+  const lead = up.match(/^\s*([A-Z]{2})\s*-\s*(.+)$/);
+  return (lead && US_STATES.has(lead[1]) ? lead[2] : up).replace(/[^A-Z0-9]/g, '');
+};
+
+const US_STATES = new Set('AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' '));
 
 function splitRow(line: string, sep: string): string[] {
   if (sep === '\t') return line.split('\t');
