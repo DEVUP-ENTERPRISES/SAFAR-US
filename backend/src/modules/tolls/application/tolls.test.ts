@@ -206,6 +206,43 @@ describe('toll pass on every car', () => {
   });
 });
 
+describe('a host’s own toll accounts', () => {
+  const withKey = async (fn: () => Promise<void>) => {
+    const before = config.tolls.credentialsKey;
+    (config.tolls as { credentialsKey?: string }).credentialsKey = 'b'.repeat(64);
+    try { await fn(); } finally { (config.tolls as { credentialsKey?: string }).credentialsKey = before; }
+  };
+
+  it('links an account with its login sealed, lets only the host’s own cars be linked, and keeps it from other hosts', () =>
+    withKey(async () => {
+      await VehicleModel.collection.insertMany([
+        { _id: 'mine' as never, hostId: 'fleet', deletedAt: null },
+        { _id: 'theirs' as never, hostId: 'other', deletedAt: null },
+      ]);
+      const a = await tollService.linkForHost('fleet', 'u1', { agency: 'ntta', nickname: 'NTTA-2', username: '12345', password: 'pw' });
+      expect(a).toMatchObject({ nickname: 'NTTA-2', hasLogin: true, status: 'manual' });
+      expect(JSON.stringify(a)).not.toContain('pw');
+
+      expect((await tollService.setHostVehicles('fleet', a._id, ['mine'])).vehicleIds).toEqual(['mine']);
+      await expect(tollService.setHostVehicles('fleet', a._id, ['mine', 'theirs'])).rejects.toThrow(/your own cars/);
+
+      expect(await tollService.accountsForHost('other')).toEqual([]);
+      await expect(tollService.unlinkForHost('other', a._id)).rejects.toThrow();
+      await tollService.unlinkForHost('fleet', a._id);
+      expect(await tollService.accountsForHost('fleet')).toEqual([]);
+    }));
+
+  it('says plainly when linking is not switched on', async () => {
+    const before = config.tolls.credentialsKey;
+    (config.tolls as { credentialsKey?: string }).credentialsKey = undefined;
+    try {
+      await expect(tollService.linkForHost('fleet', 'u1', { agency: 'ntta', nickname: 'x', username: 'a', password: 'b' })).rejects.toThrow(/not switched on/);
+    } finally {
+      (config.tolls as { credentialsKey?: string }).credentialsKey = before;
+    }
+  });
+});
+
 describe('saved toll logins', () => {
   it('seals a login so the stored value never contains it, and opens it again', () => {
     const before = config.tolls.credentialsKey;

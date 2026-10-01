@@ -46,6 +46,38 @@ export const tollService = {
     return (await TollAccountModel.find().sort({ createdAt: 1 }).lean<TollAccountDoc[]>()).map(view);
   },
 
+  // ── A host's own accounts (the house fleet signs into the host portal) ──
+
+  async accountsForHost(hostId: string): Promise<TollAccountView[]> {
+    return (await TollAccountModel.find({ hostId }).sort({ createdAt: 1 }).lean<TollAccountDoc[]>()).map(view);
+  },
+
+  async accountForHost(hostId: string, id: string): Promise<TollAccountDoc> {
+    const a = await TollAccountModel.findOne({ _id: id, hostId }).lean<TollAccountDoc>();
+    if (!a) throw new NotFoundError('Toll account');
+    return a;
+  },
+
+  /** Turo-style link: pick the agency, log in, name it. The login is sealed straight away. */
+  async linkForHost(hostId: string, userId: string, input: { agency: TollAgency; nickname: string; username: string; password: string }): Promise<TollAccountView> {
+    if (!credentialVault.isConfigured()) throw new ValidationError('Linking toll accounts is not switched on yet. Please contact CatoDrive support.');
+    const { _id } = await this.createAccount({ agency: input.agency, nickname: input.nickname, hostId });
+    return this.saveLogin(_id, input.username, input.password, userId);
+  },
+
+  /** Only the host's own cars can be linked to their account. */
+  async setHostVehicles(hostId: string, id: string, vehicleIds: string[]): Promise<TollAccountView> {
+    await this.accountForHost(hostId, id);
+    const own = await VehicleModel.countDocuments({ _id: { $in: vehicleIds }, hostId, deletedAt: null });
+    if (own !== new Set(vehicleIds).size) throw new ValidationError('Only your own cars can be linked to this account');
+    return this.updateAccount(id, { vehicleIds });
+  },
+
+  async unlinkForHost(hostId: string, id: string): Promise<void> {
+    const res = await TollAccountModel.deleteOne({ _id: id, hostId });
+    if (!res.deletedCount) throw new NotFoundError('Toll account');
+  },
+
   async createAccount(input: { agency: TollAgency; nickname: string; hostId?: string }): Promise<TollAccountView> {
     const doc = await TollAccountModel.create({ agency: input.agency, nickname: input.nickname.trim(), hostId: input.hostId });
     return view(doc.toObject());
