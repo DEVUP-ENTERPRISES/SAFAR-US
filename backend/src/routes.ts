@@ -6,6 +6,7 @@ import { authRoutes } from './modules/auth/api/auth.routes';
 import { usersRoutes } from './modules/users/api/users.routes';
 import { hostsRoutes } from './modules/hosts/api/hosts.routes';
 import { hostStaffRoutes } from './modules/hosts/api/host-staff.routes';
+import { tollsHostRoutes } from './modules/tolls/api/tolls.host.routes';
 import { vehiclesRoutes } from './modules/vehicles/api/vehicles.routes';
 import { searchRoutes } from './modules/search/api/search.routes';
 import { bookingsRoutes } from './modules/bookings/api/bookings.routes';
@@ -58,6 +59,7 @@ export function buildApiRouter(): Router {
   api.use('/users', usersRoutes);
   api.use('/hosts', hostStaffRoutes);
   api.use('/hosts', hostsRoutes);
+  api.use('/hosts', tollsHostRoutes);
   api.use('/vehicles', vehiclesRoutes);
   api.use('/search', searchRoutes);
   api.use('/bookings', bookingsRoutes);
