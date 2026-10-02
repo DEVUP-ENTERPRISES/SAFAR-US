@@ -1548,6 +1548,8 @@ export class BookingService {
         { _id: bookingId },
         {
           $set: { 'period.end': newEnd },
+          // A new return time earns its own reminders.
+          $unset: { returnRemindersSent: 1 },
           $inc: {
             'priceBreakdown.total.amount': extra.total.amount,
             'priceBreakdown.hostEarnings.amount': extra.hostEarnings.amount,
