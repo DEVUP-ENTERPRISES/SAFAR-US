@@ -2,6 +2,7 @@ import { BookingModel } from '../infrastructure/booking.model';
 import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { lateFeeCents, dayPriceCents } from '../domain/late-fee';
 import { notificationService } from '../../notifications/application/notification.service';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
@@ -16,6 +17,9 @@ import { parseKey } from '../../../infrastructure/storage/storage.gateway';
 import { inspectionService } from '../../trips/application/inspection.service';
 
 export type IncidentalType = 'fuel' | 'cleaning' | 'smoking' | 'pet' | 'late_return' | 'toll' | 'fine' | 'other';
+
+/** Billed outside the shared post-trip ceiling (each has its own limit). */
+const UNCAPPED_TYPES: IncidentalType[] = ['late_return'];
 
 /** Charges about the car's condition, which need a pickup baseline. */
 const BASELINE_TYPES: IncidentalType[] = ['cleaning', 'smoking', 'pet', 'fuel'];
@@ -48,6 +52,8 @@ interface IncidentalConfig {
   smokingCents: number;
   petCents: number;
   lateReturnPerHourCents: number;
+  lateHourlyMaxHours?: number;
+  lateHalfDayMaxHours?: number;
   maxTollCents?: number;
   maxFineCents?: number;
   maxOtherCents?: number;
@@ -77,13 +83,14 @@ export function assertEvidenceUrl(url: string, ownerId?: string): void {
 }
 
 export class IncidentalsService {
-  private priceFor(type: IncidentalType, cfg: { fuelPerPercentCents: number; cleaningCents: number; smokingCents: number; petCents: number; lateReturnPerHourCents: number }, it: IncidentalItem): number {
+  private priceFor(type: IncidentalType, cfg: IncidentalConfig, it: IncidentalItem, dayCents = 0): number {
     switch (type) {
       case 'cleaning': return cfg.cleaningCents;
       case 'smoking': return cfg.smokingCents;
       case 'pet': return cfg.petCents;
       case 'fuel': return Math.max(0, Math.round((it.qty ?? 0) * cfg.fuelPerPercentCents));
-      case 'late_return': return Math.max(0, Math.round((it.qty ?? 0) * cfg.lateReturnPerHourCents));
+      case 'late_return':
+        return lateFeeCents(it.qty ?? 0, { perHourCents: cfg.lateReturnPerHourCents, hourlyMaxHours: cfg.lateHourlyMaxHours ?? 6, halfDayMaxHours: cfg.lateHalfDayMaxHours ?? 12, dayCents });
       case 'toll':
       case 'fine':
       case 'other': return Math.max(0, Math.round(it.amount ?? 0));
@@ -206,13 +213,15 @@ export class IncidentalsService {
     const live = existing.filter((e) => e.status !== 'refunded');
     const bookingTotal = booking.priceBreakdown.total.amount;
     const totalCap = Math.round((bookingTotal * (cfg.maxTotalBps ?? 3000)) / 10000);
-    let runningTotal = live.reduce((s, e) => s + e.amount, 0);
+    // A late return is billed by the hour up to its own maximum, outside the shared ceiling, so lateness never eats the room left for fuel or cleaning.
+    const capped = (type: string) => !UNCAPPED_TYPES.includes(type as IncidentalType);
+    let runningTotal = live.filter((e) => capped(e.type)).reduce((s, e) => s + e.amount, 0);
     const runningByType = new Map<string, number>();
     for (const e of live) runningByType.set(e.type, (runningByType.get(e.type) ?? 0) + e.amount);
 
     for (const it of items) {
       const cap = this.capFor(it.type, cfg);
-      const amount = this.priceFor(it.type, cfg, it);
+      const amount = this.priceFor(it.type, cfg, it, dayPriceCents(booking.priceBreakdown));
 
       if (byUserId !== 'system') {
         if (it.type === 'fuel' && (it.qty ?? 0) > (cfg.maxFuelPercent ?? 100)) {
@@ -221,7 +230,7 @@ export class IncidentalsService {
         if (it.type === 'late_return' && (it.qty ?? 0) > (cfg.maxLateHours ?? 72)) {
           throw new ValidationError(`Late return can be billed for at most ${cfg.maxLateHours ?? 72} hours.`);
         }
-        if (runningTotal + amount > totalCap) {
+        if (capped(it.type) && runningTotal + amount > totalCap) {
           throw new ConflictError(
             `Post-trip charges on this booking cannot exceed ${(totalCap / 100).toFixed(2)} ${currency} in total. File a damage claim for anything larger.`,
             'INCIDENTAL_CAP',
@@ -234,7 +243,7 @@ export class IncidentalsService {
           );
         }
       }
-      runningTotal += amount;
+      if (capped(it.type)) runningTotal += amount;
       runningByType.set(it.type, (runningByType.get(it.type) ?? 0) + amount);
 
       if (cap !== null) {
@@ -287,7 +296,7 @@ export class IncidentalsService {
       .map((it) => ({
         _id: uuid(),
         type: it.type,
-        amount: this.priceFor(it.type, cfg, it),
+        amount: this.priceFor(it.type, cfg, it, dayPriceCents(booking.priceBreakdown)),
         qty: it.qty,
         note: it.note,
         evidenceUrl: it.evidenceUrl,
@@ -512,9 +521,10 @@ export class IncidentalsService {
   }
 
   /** Auto late-return fee — hours past the return grace window. */
-  async chargeLateReturn(bookingId: string, hoursLate: number): Promise<number> {
+  async chargeLateReturn(bookingId: string, hoursLate: number, note?: string): Promise<number> {
     if (hoursLate <= 0) return 0;
-    const { total } = await this.charge(bookingId, [{ type: 'late_return', qty: hoursLate }], 'system');
+    const maxHours = (await platformConfigService.get()).incidentals.maxLateHours ?? 72;
+    const { total } = await this.charge(bookingId, [{ type: 'late_return', qty: Math.min(hoursLate, maxHours), note }], 'system');
     return total;
   }
 }

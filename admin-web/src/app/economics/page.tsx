@@ -506,6 +506,14 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={0} max={720} value={draft.tracking.overdueGraceMinutes}
               onChange={(e) => set((d) => { d.tracking.overdueGraceMinutes = Number(e.target.value); })} />
           </Field>
+          <Field label="Return reminders (minutes before)" hint="Comma-separated, up to 4. The guest is reminded to return on time or extend, e.g. 60, 15.">
+            <Input value={(draft.tracking.returnReminderMinutes ?? []).join(', ')}
+              onChange={(e) => set((d) => { d.tracking.returnReminderMinutes = e.target.value.split(',').map((v) => Math.round(Number(v.trim()))).filter((n) => n > 0).slice(0, 4); })} />
+          </Field>
+          <Field label="Next booking alert (hours)" hint="A late car whose next booking starts within this many hours alerts the host and staff, and offers that guest a similar car. 0 = off.">
+            <Input type="number" min={0} max={168} value={draft.tracking.nextBookingAlertHours ?? 24}
+              onChange={(e) => set((d) => { d.tracking.nextBookingAlertHours = Number(e.target.value); })} />
+          </Field>
           <Field label="Overdue escalation (hours)" hint="A car this late past its return alerts ops.">
             <Input type="number" min={1} max={336} value={draft.booking.overdueEscalationHours}
               onChange={(e) => set((d) => { d.booking.overdueEscalationHours = Number(e.target.value); })} />
@@ -785,7 +793,19 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={1} value={draft.incidentals.maxLateHours}
               onChange={(e) => set((d) => { d.incidentals.maxLateHours = Number(e.target.value); })} />
           </Field>
-          <Field label="Max total per booking (% of trip)" hint="Ceiling on every host-applied charge combined.">
+          <Field label="Late fee per hour ($)" hint="Each started hour past the grace period, for the first hours below.">
+            <Input type="number" min={0} step="0.5" value={toDollars(draft.incidentals.lateReturnPerHourCents ?? 2500)}
+              onChange={(e) => set((d) => { d.incidentals.lateReturnPerHourCents = toCents(e.target.value); })} />
+          </Field>
+          <Field label="Hourly late fee for (hours)" hint="Past this, the car's half-day price is added on top.">
+            <Input type="number" min={1} max={24} value={draft.incidentals.lateHourlyMaxHours ?? 6}
+              onChange={(e) => set((d) => { d.incidentals.lateHourlyMaxHours = Number(e.target.value); })} />
+          </Field>
+          <Field label="Half day up to (late hours)" hint="Past this, one full day's price is added per started 24 hours instead of the half day.">
+            <Input type="number" min={1} max={48} value={draft.incidentals.lateHalfDayMaxHours ?? 12}
+              onChange={(e) => set((d) => { d.incidentals.lateHalfDayMaxHours = Number(e.target.value); })} />
+          </Field>
+          <Field label="Max total per booking (% of trip)" hint="Ceiling on every host-applied charge combined, except late fees.">
             <Input type="number" step="0.5" value={toPct(draft.incidentals.maxTotalBps)}
               onChange={(e) => set((d) => { d.incidentals.maxTotalBps = toBps(e.target.value); })} />
           </Field>

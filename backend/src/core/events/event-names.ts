@@ -89,6 +89,9 @@ export const EVENTS = {
   TRIP_DOCUMENTS_REQUESTED: 'trip.documents.requested',
   TRIP_DOCUMENTS_READY: 'trip.documents.ready',
   GUEST_IDENTITY_MISMATCH: 'trip.identity.mismatch',
+  TRIP_RETURN_REMINDER: 'trip.return.reminder',
+  NEXT_BOOKING_AT_RISK: 'booking.next_at_risk',
+  NEXT_BOOKING_CLEARED: 'booking.next_cleared',
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

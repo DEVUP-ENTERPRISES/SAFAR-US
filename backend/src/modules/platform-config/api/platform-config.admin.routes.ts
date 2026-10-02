@@ -125,6 +125,8 @@ router.put(
           // values an operator would regret rather than trusting the UI.
           approachWindowMinutes: z.number().int().min(5).max(240).optional(),
           overdueGraceMinutes: z.number().int().min(0).max(720).optional(),
+          returnReminderMinutes: z.array(z.number().int().min(1).max(1440)).max(4).optional(),
+          nextBookingAlertHours: z.number().int().min(0).max(168).optional(),
         })
         .optional(),
       inspection: z
@@ -312,6 +314,8 @@ router.put(
           smokingCents: cents.optional(),
           petCents: cents.optional(),
           lateReturnPerHourCents: cents.optional(),
+          lateHourlyMaxHours: z.number().int().min(1).max(24).optional(),
+          lateHalfDayMaxHours: z.number().int().min(1).max(48).optional(),
           // Capped in the API too: a caps field is only a safeguard if it
           // cannot itself be set to something absurd.
           maxTollCents: z.number().int().min(0).max(100_000).optional(),

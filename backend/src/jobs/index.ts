@@ -16,6 +16,7 @@ import { acquireJobLease } from './job-lease.model';
 import { notificationService } from '../modules/notifications/application/notification.service';
 import { wheelbaseInsuranceService } from '../modules/insurance/application/wheelbase-insurance.service';
 import { tollService } from '../modules/tolls/application/toll.service';
+import { returnWatchService } from '../modules/trips/application/return-watch.service';
 
 const QUEUE = 'cato-maintenance';
 const MIN = 60_000;
@@ -112,7 +113,17 @@ const JOBS: JobDef[] = [
     everyMs: 15 * MIN,
     run: async () => {
       const r = { ...(await bookingService.sweepLifecycle()), returnWindowOpened: await inspectionService.sweepReturnWindow(), returnsAutoConfirmed: await tripService.sweepUnconfirmedReturns() };
-      if (r.late || r.escalated || r.notStarted || r.returnWindowOpened || r.returnsAutoConfirmed) logger.info(r, 'lifecycle sweep');
+      if (r.escalated || r.notStarted || r.returnWindowOpened || r.returnsAutoConfirmed) logger.info(r, 'lifecycle sweep');
+      return r;
+    },
+  },
+  {
+    // Return time is minute-sensitive: reminders before it, the overdue alert the moment grace ends, the next guest protected.
+    name: 'return-watch',
+    everyMs: MIN,
+    run: async () => {
+      const r = await returnWatchService.sweep();
+      if (r.reminders || r.overdue || r.nextAtRisk) logger.info(r, 'return watch');
       return r;
     },
   },
