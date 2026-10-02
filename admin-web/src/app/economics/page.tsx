@@ -97,6 +97,7 @@ export default function AdminEconomicsPage() {
         ...(draft.noShow ? { noShow: draft.noShow } : {}),
         ...(draft.rebookingProtection ? { rebookingProtection: draft.rebookingProtection } : {}),
         tracking: draft.tracking,
+        ...(draft.tripDocuments ? { tripDocuments: draft.tripDocuments } : {}),
         inspection: draft.inspection,
         extension: draft.extension,
         handover: draft.handover,
@@ -508,6 +509,28 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={1} max={336} value={draft.booking.overdueEscalationHours}
               onChange={(e) => set((d) => { d.booking.overdueEscalationHours = Number(e.target.value); })} />
           </Field>
+          {draft.tripDocuments && (
+            <>
+              <Field label="Vehicle documents view (seconds)" hint="How long the registration and insurance stay open for a guest at a traffic stop.">
+                <Input type="number" min={15} max={600} value={draft.tripDocuments.viewSeconds}
+                  onChange={(e) => set((d) => { d.tripDocuments!.viewSeconds = Number(e.target.value); })} />
+              </Field>
+              <Field label="Vehicle documents host alert gap (minutes)" hint="Repeat openings or requests within this gap alert the host only once.">
+                <Input type="number" min={0} max={1440} value={draft.tripDocuments.alertCooldownMinutes}
+                  onChange={(e) => set((d) => { d.tripDocuments!.alertCooldownMinutes = Number(e.target.value); })} />
+              </Field>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.tripDocuments.enabled}
+                  onChange={(e) => set((d) => { d.tripDocuments!.enabled = e.target.checked; })} />
+                Guests can open vehicle documents during a trip
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.tripDocuments.alertHost}
+                  onChange={(e) => set((d) => { d.tripDocuments!.alertHost = e.target.checked; })} />
+                Alert the host when the guest opens them
+              </label>
+            </>
+          )}
           <Field label="Expired-document release (hours)" hint="An expired document releases trips starting within this window.">
             <Input type="number" min={1} max={720} value={draft.booking.documentExpiryReleaseHours}
               onChange={(e) => set((d) => { d.booking.documentExpiryReleaseHours = Number(e.target.value); })} />

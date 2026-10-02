@@ -32,6 +32,7 @@ import { HandoverTimeline } from '@/features/host/components/handover-timeline';
 import { HandoverStep, type StepStatus } from '@/features/host/components/handover-step';
 import { usePlatformConfig } from '@/features/platform/config';
 import { DepositCard } from '@/features/payments/deposit-card';
+import { TripDocumentsHistory } from '@/features/host/components/trip-documents-history';
 
 type Tab = 'details' | 'messages' | 'help';
 
@@ -345,6 +346,7 @@ export default function HostTripDetailPage() {
               matters. The panel hides itself outside the window. */}
           <SectionLabel>Location</SectionLabel>
           <TrackingPanel bookingId={t.bookingId} role="host" />
+          <TripDocumentsHistory bookingId={t.bookingId} />
 
           {/* Guest */}
           <SectionLabel>Your guest</SectionLabel>

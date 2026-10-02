@@ -71,6 +71,10 @@ export interface TripDoc {
   returnConfirmed?: boolean;
   returnConfirmedAt?: Date;
   returnConfirmedBy?: string;
+  /** The guest asked for the car's papers and the host has not uploaded them since. */
+  documentsRequestedAt?: Date;
+  /** Last time the host was told the guest opened the papers, so reopening does not spam them. */
+  documentsAlertedAt?: Date;
   distanceKm: number;
   createdAt: Date;
   updatedAt: Date;
@@ -133,6 +137,8 @@ const schema = new Schema<TripDoc>(
     returnConfirmed: Boolean,
     returnConfirmedAt: Date,
     returnConfirmedBy: String,
+    documentsRequestedAt: Date,
+    documentsAlertedAt: Date,
     distanceKm: { type: Number, default: 0 },
   },
   { timestamps: true, _id: false },

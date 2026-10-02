@@ -18,6 +18,7 @@ import { TrackingPanel } from '@/features/trips/components/tracking-panel';
 import { IncidentButton } from '@/features/trips/components/incident-button';
 import { DamageReviewPanel } from '@/features/ai/components/damage-review-panel';
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
+import { TripDocuments } from '@/features/trips/components/trip-documents';
 import { ReviewPrompt } from '@/features/reviews/components/review-prompt';
 
 function TripDashboard() {
@@ -125,6 +126,7 @@ function TripDashboard() {
           )}
           {isActive && !trip.checkin && <HandoverPanel tripId={trip._id} role="guest" />}
           {isActive && <IncidentButton tripId={trip._id} />}
+          {isActive && <TripDocuments bookingId={trip.bookingId} />}
           <TrackingPanel bookingId={trip.bookingId} role="guest" />
           <DamageReviewPanel tripId={trip._id} canRun={false} />
         </div>

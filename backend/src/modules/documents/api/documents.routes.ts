@@ -10,6 +10,7 @@ import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
 import { NotFoundError } from '../../../core/errors/app-error';
+import { tripDocumentsService } from '../../trips/application/trip-documents.service';
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.post(
     if (req.body.vehicleId) await vehicleService.assertOwnerById(userId, req.body.vehicleId);
     const upload = resolveOwnedUpload(req.body, userId, req.body.category);
     const doc = await DocumentModel.create({ ...req.body, ownerId: userId, ...upload });
+    if (doc.vehicleId) void tripDocumentsService.onUploaded(doc.vehicleId, doc.category).catch(() => undefined);
     sendCreated(res, doc.toObject());
   }),
 );
