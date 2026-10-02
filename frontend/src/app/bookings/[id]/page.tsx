@@ -30,6 +30,7 @@ import { PickupCode } from '@/features/bookings/components/pickup-code';
 import { ExtendTrip } from '@/features/bookings/components/extend-trip';
 import { ExtensionHistory } from '@/features/bookings/components/extension-history';
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
+import { TripDocuments } from '@/features/trips/components/trip-documents';
 import { TripProgress } from '@/features/bookings/components/trip-progress';
 import { ApiError } from '@/lib/api/types';
 import { pushConfigured } from '@/features/push/firebase';
@@ -318,6 +319,7 @@ function BookingDetail({ id }: { id: string }) {
           on in the half hour before pickup. Both hide themselves outside
           their window. */}
       <TrackingPanel bookingId={id} role="guest" />
+      {b.status === 'in_progress' && <TripDocuments bookingId={id} />}
       {['paid', 'confirmed', 'in_progress'].includes(String(b.status)) && <PickupCode bookingId={id} />}
       {b.status === 'paid' && !b.tripId && <InspectionPhotos bookingId={id} phase="pre" />}
 

@@ -333,6 +333,16 @@ export interface PlatformConfigDoc {
     /** Tolls covered by the pass per calendar day (Texas time); anything above is billed. */
     passDailyCapCents: number;
   };
+  /** The car's registration and insurance shown to the guest during a live trip (a police stop). */
+  tripDocuments: {
+    enabled: boolean;
+    /** Seconds the documents stay open before the viewer closes. */
+    viewSeconds: number;
+    /** Alert the host each time the guest opens them. */
+    alertHost: boolean;
+    /** Minutes between repeat host alerts for the same trip. */
+    alertCooldownMinutes: number;
+  };
   /** Post-trip incidental fee schedule (host-compensating), in minor units. */
   incidentals: {
     /** Charged per whole % of fuel returned below pickup level. */
@@ -758,6 +768,12 @@ const schema = new Schema<PlatformConfigDoc>(
       passEnabled: { type: Boolean, default: true },
       passPriceCents: { type: Number, default: 1500 },
       passDailyCapCents: { type: Number, default: 1000 },
+    },
+    tripDocuments: {
+      enabled: { type: Boolean, default: true },
+      viewSeconds: { type: Number, default: 100 },
+      alertHost: { type: Boolean, default: true },
+      alertCooldownMinutes: { type: Number, default: 10 },
     },
     incidentals: {
       fuelPerPercentCents: { type: Number, default: 300 },

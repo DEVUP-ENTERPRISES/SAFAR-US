@@ -290,6 +290,14 @@ router.put(
           passDailyCapCents: z.number().int().min(0).max(20_000).optional(),
         })
         .optional(),
+      tripDocuments: z
+        .object({
+          enabled: z.boolean().optional(),
+          viewSeconds: z.number().int().min(15).max(600).optional(),
+          alertHost: z.boolean().optional(),
+          alertCooldownMinutes: z.number().int().min(0).max(1440).optional(),
+        })
+        .optional(),
       incidentals: z
         .object({
           fuelPerPercentCents: cents.optional(),

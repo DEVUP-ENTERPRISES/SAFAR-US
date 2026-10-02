@@ -554,6 +554,29 @@ export function registerEventSubscribers(): void {
     }
   });
 
+  // The guest opened the car's papers mid-trip, most likely for a traffic stop.
+  eventBus.subscribe(EVENTS.TRIP_DOCUMENTS_OPENED, async (e) => {
+    const p = e.payload as { bookingId: string; hostId: string; code: string };
+    await notifyHost(p.hostId, 'trip.documents.opened', 'Your guest opened the car\'s documents', `Booking ${p.code}: your guest opened the registration and insurance, likely for a traffic stop. Be reachable in case they or an officer call.`, { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
+  });
+
+  // Papers are missing while the guest needs them: reach the host on every channel, and support as a backstop.
+  eventBus.subscribe(EVENTS.TRIP_DOCUMENTS_REQUESTED, async (e) => {
+    const p = e.payload as { bookingId: string; hostId: string; vehicleId: string; code: string; missing: string[] };
+    const what = p.missing.map((m) => (m === 'registration' ? 'registration' : 'insurance')).join(' and ');
+    await notifyHost(p.hostId, 'trip.documents.requested', 'Your guest needs the car\'s documents now', `Booking ${p.code}: your guest needs the ${what}, likely for a traffic stop. Upload them now and we will show them to the guest.`, { bookingId: p.bookingId, vehicleId: p.vehicleId }, 'critical', `/host/listings/${p.vehicleId}?open=safety`);
+    await notifyStaff('trip.documents.requested', 'Guest needs vehicle documents', `Booking ${p.code}: the guest needs the ${what} and the host has not uploaded them. Help the guest if the host does not respond.`, { bookingId: p.bookingId, vehicleId: p.vehicleId }, 'high');
+  });
+
+  eventBus.subscribe(EVENTS.TRIP_DOCUMENTS_READY, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string };
+    try {
+      await notificationService.send({ userId: p.guestId, priority: 'critical', templateKey: 'trip.documents.ready', title: 'The car\'s documents are ready', body: 'Your host uploaded them. Open your trip and tap "Vehicle documents".', deepLink: `/bookings/${p.bookingId}?documents=1`, data: { bookingId: p.bookingId } });
+    } catch (err) {
+      logger.warn({ err, bookingId: p.bookingId }, 'documents ready notice failed');
+    }
+  });
+
   // A car that lost its Wheelbase insurance approval must be looked at before it is booked again.
   eventBus.subscribe(EVENTS.INSURANCE_STATUS_CHANGED, async (e) => {
     const p = e.payload as { vehicleId: string; from?: string; to: string; name: string };

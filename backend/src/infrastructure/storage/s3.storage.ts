@@ -181,4 +181,10 @@ export class S3StorageGateway implements StorageGateway {
       { expiresIn: 120 }, // 2 min
     );
   }
+
+  async readObject(key: string): Promise<{ body: Buffer; contentType?: string }> {
+    const out = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    if (!out.Body) throw new Error(`Empty object: ${key}`);
+    return { body: Buffer.from(await out.Body.transformToByteArray()), contentType: out.ContentType };
+  }
 }

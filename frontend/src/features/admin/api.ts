@@ -59,6 +59,7 @@ export interface PlatformConfig {
     enabled: boolean; feeCents: number; reviewHours: number; matchBufferMinutes: number; billingWindowDays: number; autoCharge: boolean;
     passEnabled: boolean; passPriceCents: number; passDailyCapCents: number;
   };
+  tripDocuments?: { enabled: boolean; viewSeconds: number; alertHost: boolean; alertCooldownMinutes: number };
   /** Handover and return timing: when live location opens, and how long past the return time before a trip counts as overdue. */
   tracking: { approachWindowMinutes: number; overdueGraceMinutes: number };
   inspection: {

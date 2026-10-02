@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { tripService } from '../application/trip.service';
 import { hostTripsService } from '../../bookings/application/host-trips.service';
@@ -12,6 +12,8 @@ import { handoverService } from '../application/handover.service';
 import { trackingPhaseService } from '../application/tracking-phase.service';
 import { ForbiddenError } from '../../../core/errors/app-error';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { tripDocumentsService } from '../application/trip-documents.service';
+import { BookingModel } from '../../bookings/infrastructure/booking.model';
 
 const router = Router();
 
@@ -117,6 +119,64 @@ router.post(
       res,
       await tripService.addPhotos(req.principal!.userId, req.params.bookingId, req.body.phase, req.body.photos),
     );
+  }),
+);
+
+// ── The car's papers during a trip (a traffic stop) ──────────────────
+
+const viewerOf = (req: Request) => ({ userId: req.principal!.userId, roles: req.principal!.roles, ip: req.ip, userAgent: req.get('user-agent') });
+const noStore = (res: Response) => res.set({ 'Cache-Control': 'no-store, private, max-age=0', Pragma: 'no-cache' });
+
+/** Whether the guest can open the papers now, and which are on file. */
+router.get(
+  '/booking/:bookingId/documents',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    noStore(res);
+    sendSuccess(res, await tripDocumentsService.status(req.principal!.userId, req.params.bookingId));
+  }),
+);
+
+/** Start a timed viewing; alerts the host. */
+router.post(
+  '/booking/:bookingId/documents/open',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    noStore(res);
+    sendSuccess(res, await tripDocumentsService.open(viewerOf(req), req.params.bookingId));
+  }),
+);
+
+/** One stamped file from an open viewing. The token travels in the body so it never lands in a URL or log line. */
+router.post(
+  '/booking/:bookingId/documents/:documentId/file',
+  authenticate,
+  validate({ body: z.object({ token: z.string().min(20).max(100) }).strict() }),
+  asyncHandler(async (req, res) => {
+    noStore(res);
+    sendSuccess(res, await tripDocumentsService.file(viewerOf(req), req.params.bookingId, req.params.documentId, req.body.token));
+  }),
+);
+
+/** Papers are missing: alert the host and support. */
+router.post(
+  '/booking/:bookingId/documents/request',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripDocumentsService.request(viewerOf(req), req.params.bookingId));
+  }),
+);
+
+/** When the guest opened or asked for the papers, for the host side and staff. */
+router.get(
+  '/booking/:bookingId/documents/history',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const p = req.principal!;
+    const booking = await BookingModel.findById(req.params.bookingId).select('hostId vehicleId').lean<{ hostId: string; vehicleId: string }>();
+    const staff = p.permissions.includes('*') || p.permissions.includes('admin:read');
+    if (!booking || !(staff || (await tripService.isHostSideOf(p.userId, booking)))) throw new ForbiddenError('Not allowed');
+    sendSuccess(res, await tripDocumentsService.history(req.params.bookingId));
   }),
 );
 
