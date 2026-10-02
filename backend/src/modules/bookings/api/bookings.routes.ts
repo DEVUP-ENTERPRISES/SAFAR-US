@@ -217,6 +217,23 @@ router.post(
   }),
 );
 
+/** The booked car is late back: the guest takes the similar car offered, or keeps their booking. */
+router.post(
+  '/:id/swap-offer/accept',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.acceptSwapOffer(req.principal!.userId, req.params.id));
+  }),
+);
+
+router.post(
+  '/:id/swap-offer/decline',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.declineSwapOffer(req.principal!.userId, req.params.id));
+  }),
+);
+
 /** The guest places (or checks) the security deposit hold themselves, with a card, Apple Pay or Google Pay. */
 router.post(
   '/:id/deposit-session',

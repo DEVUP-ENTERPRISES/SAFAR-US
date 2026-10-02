@@ -83,6 +83,8 @@ export const bookingApi = {
   extensionPreview: (id: string, newEnd: string) =>
     api.get<ExtensionPreview>(`/bookings/${id}/extension-preview`, { newEnd }),
   cancel: (id: string, reason: string) => api.post<Booking>(`/bookings/${id}/cancel`, { reason }),
+  acceptSwapOffer: (id: string) => api.post<Booking>(`/bookings/${id}/swap-offer/accept`),
+  declineSwapOffer: (id: string) => api.post<{ declined: true }>(`/bookings/${id}/swap-offer/decline`),
   extend: (id: string, newEnd: string) => api.post<Booking>(`/bookings/${id}/extend`, { newEnd }),
   shortenPreview: (id: string, newEnd: string) =>
     api.get<ShortenPreview>(`/bookings/${id}/shorten-preview`, { newEnd }),

@@ -55,7 +55,15 @@ export interface TripDoc {
   /** Charged to the guest for driving past the included mileage. */
   mileageOverage?: { km: number; amountCents: number; chargedAt: Date };
   handover: { at: Date; odometerStart?: number; fuelStart?: number; notes?: string };
-  return?: { at: Date; odometerEnd?: number; fuelEnd?: number; notes?: string };
+  return?: {
+    at: Date;
+    odometerEnd?: number;
+    fuelEnd?: number;
+    notes?: string;
+    /** When the car was back, as the late fee counts it, and what proved it. */
+    arrivedAt?: Date;
+    arrivedBasis?: 'guest_photos' | 'guest_ended' | 'host_ended';
+  };
   liveLocation?: { type: 'Point'; coordinates: [number, number]; updatedAt: Date };
   damageReports: { description: string; photos: string[]; byUserId: string; at: Date }[];
   sosEvents: { byUserId: string; at: Date }[];
@@ -128,6 +136,8 @@ const schema = new Schema<TripDoc>(
       odometerEnd: Number,
       fuelEnd: Number,
       notes: String,
+      arrivedAt: Date,
+      arrivedBasis: { type: String, enum: ['guest_photos', 'guest_ended', 'host_ended'] },
     },
     liveLocation: {
       type: { type: String, enum: ['Point'] },

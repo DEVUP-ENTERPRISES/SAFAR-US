@@ -211,6 +211,10 @@ export interface PlatformConfigDoc {
     approachWindowMinutes: number;
     /** Minutes past the return time before an overdue car may be located. */
     overdueGraceMinutes: number;
+    /** Reminders to the guest this many minutes before the return time. */
+    returnReminderMinutes: number[];
+    /** A late car whose next booking starts within this many hours alerts the host and staff and offers the next guest a swap. */
+    nextBookingAlertHours: number;
   };
   /** All-Star Host (superhost) qualification bar — earned, not granted. */
   superhost: {
@@ -359,6 +363,10 @@ export interface PlatformConfigDoc {
     petCents: number;
     /** Extra late-return fee per hour past the grace window. */
     lateReturnPerHourCents: number;
+    /** Late hours billed at the hourly fee; past this the car's half-day price is added. */
+    lateHourlyMaxHours: number;
+    /** Past this many late hours, whole days are added instead of a half day. */
+    lateHalfDayMaxHours: number;
     /**
      * Ceiling on a single free-form incidental (toll, fine, other).
      *
@@ -707,6 +715,8 @@ const schema = new Schema<PlatformConfigDoc>(
     tracking: {
       approachWindowMinutes: { type: Number, default: 60 },
       overdueGraceMinutes: { type: Number, default: 60 },
+      returnReminderMinutes: { type: [Number], default: [60, 15] },
+      nextBookingAlertHours: { type: Number, default: 24 },
     },
     superhost: {
       minTrips: { type: Number, default: 5 },
@@ -793,6 +803,8 @@ const schema = new Schema<PlatformConfigDoc>(
       smokingCents: { type: Number, default: 25000 },
       petCents: { type: Number, default: 10000 },
       lateReturnPerHourCents: { type: Number, default: 2500 },
+      lateHourlyMaxHours: { type: Number, default: 6 },
+      lateHalfDayMaxHours: { type: Number, default: 12 },
       maxTollCents: { type: Number, default: 10_000 }, // $100
       maxFineCents: { type: Number, default: 50_000 }, // $500
       maxOtherCents: { type: Number, default: 15_000 }, // $150 — least bounded

@@ -173,7 +173,7 @@ export class PlatformConfigService {
         strict: { fullBeforeHours: 168, partialBps: 0, ...(doc.cancellation?.strict ?? {}) },
       },
       noShow: { graceHours: 2, guestForfeitBps: 5000, ...(doc.noShow ?? {}) },
-      tracking: { approachWindowMinutes: 60, overdueGraceMinutes: 60, ...(doc.tracking ?? {}) },
+      tracking: { approachWindowMinutes: 60, overdueGraceMinutes: 60, returnReminderMinutes: [60, 15], nextBookingAlertHours: 24, ...(doc.tracking ?? {}) },
       inspection: {
         preWindowMinutes: 60, postWindowMinutes: 30, minPrePhotos: 4, minReturnPhotos: 2,
         maxPhotosPerPhase: 30, requireLocation: true, maxDistanceMeters: 0,
@@ -246,7 +246,7 @@ export class PlatformConfigService {
       identityViewing: { hostMinutesBefore: 60, hostViewSeconds: 100, adminViewSeconds: 300, ...(doc.identityViewing ?? {}) },
       tripDocuments: { enabled: true, viewSeconds: 100, alertHost: true, alertCooldownMinutes: 10, ...(doc.tripDocuments ?? {}) },
       incidentals: {
-        fuelPerPercentCents: 300, cleaningCents: 7500, smokingCents: 25000, petCents: 10000, lateReturnPerHourCents: 2500,
+        fuelPerPercentCents: 300, cleaningCents: 7500, smokingCents: 25000, petCents: 10000, lateReturnPerHourCents: 2500, lateHourlyMaxHours: 6, lateHalfDayMaxHours: 12,
         maxTollCents: 10_000, maxFineCents: 50_000, maxOtherCents: 15_000,
         windowDays: 7, evidenceRequiredAboveCents: 5_000, disputeWindowHours: 72, maxTotalBps: 3000, maxFuelPercent: 100, maxLateHours: 72,
         ...(doc.incidentals ?? {}),

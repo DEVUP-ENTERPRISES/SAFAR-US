@@ -31,6 +31,7 @@ import { ExtendTrip } from '@/features/bookings/components/extend-trip';
 import { ExtensionHistory } from '@/features/bookings/components/extension-history';
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
 import { TripDocuments } from '@/features/trips/components/trip-documents';
+import { SwapOffer } from '@/features/bookings/components/swap-offer';
 import { TripProgress } from '@/features/bookings/components/trip-progress';
 import { ApiError } from '@/lib/api/types';
 import { pushConfigured } from '@/features/push/firebase';
@@ -293,6 +294,8 @@ function BookingDetail({ id }: { id: string }) {
           </CardContent>
         </Card>
       )}
+
+      <SwapOffer booking={b} />
 
       {b.swap && (
         <Card className="border-primary/30 bg-primary/5">

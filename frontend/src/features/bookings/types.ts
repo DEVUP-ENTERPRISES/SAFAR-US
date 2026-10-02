@@ -68,8 +68,16 @@ export interface BookingExtension {
 export interface BookingSwap {
   fromVehicleId: string;
   toVehicleId: string;
-  reason: 'extension';
+  reason: 'extension' | 'late_return';
   at: string;
+}
+
+/** The booked car is late back from its previous trip: a similar car the guest may switch to. */
+export interface BookingSwapOffer {
+  status: 'open' | 'accepted' | 'declined' | 'expired';
+  toVehicleId: string;
+  toName: string;
+  offeredAt: string;
 }
 
 export interface Booking {
@@ -77,6 +85,7 @@ export interface Booking {
   extensions?: BookingExtension[];
   /** Set when the platform moved this trip to a comparable car (same dates, same price). */
   swap?: BookingSwap;
+  swapOffer?: BookingSwapOffer;
   /** Post-trip charges. Each carries an id and status so it can be disputed. */
   incidentals?: {
     _id: string; type: string; amount: number; qty?: number; note?: string;

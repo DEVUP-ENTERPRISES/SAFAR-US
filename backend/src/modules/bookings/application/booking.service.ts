@@ -84,6 +84,13 @@ interface SwapOption {
   absorb: number;
 }
 
+/** Why a booking is being moved to another car, and the booking that caused it. */
+interface SwapContext {
+  reason: 'extension' | 'late_return';
+  causeBookingId: string;
+  extensionEarnings?: Money;
+}
+
 interface SwapPlan {
   blocker: BookingDoc;
   payment: PaymentDoc;
@@ -1441,7 +1448,7 @@ export class BookingService {
     const swap = plan.swap;
     if (!swap) return this.commitExtension(booking, plan, userId);
 
-    return this.moveVehicle(swap, { extenderBookingId: bookingId, extensionEarnings: plan.extra.hostEarnings }, (chosen) =>
+    return this.moveVehicle(swap, { reason: 'extension', causeBookingId: bookingId, extensionEarnings: plan.extra.hostEarnings }, (chosen) =>
       this.commitExtension(booking, plan, userId, { movedBookingId: swap.blocker._id, toVehicleId: chosen.candidate._id }),
     );
   }
@@ -1621,13 +1628,21 @@ export class BookingService {
     if (ids.size !== 1) return null;
 
     const blocker = await BookingModel.findOne({ _id: [...ids][0], deletedAt: null }).lean<BookingDoc>();
+    if (!blocker || blocker.guestId === booking.guestId || blocker.vehicleId !== booking.vehicleId) return null;
+    return this.swapPlanFor(blocker, cfg, true);
+  }
+
+  /** Comparable cars `blocker` could move to at the same price band, or null when it cannot be moved. */
+  private async swapPlanFor(
+    blocker: BookingDoc,
+    cfg: { swapPolicy: 'auto' | 'off'; swapPriceToleranceBps: number; swapMaxAbsorbCents: number },
+    mustBeUpcoming: boolean,
+  ): Promise<SwapPlan | null> {
+    if (cfg.swapPolicy !== 'auto') return null;
     if (
-      !blocker ||
       blocker.status !== 'paid' ||
       blocker.tripId ||
-      blocker.guestId === booking.guestId ||
-      blocker.vehicleId !== booking.vehicleId ||
-      blocker.period.start.getTime() <= Date.now() ||
+      (mustBeUpcoming && blocker.period.start.getTime() <= Date.now()) ||
       blocker.delivery ||
       (blocker.extensions?.length ?? 0) > 0
     ) {
@@ -1687,7 +1702,7 @@ export class BookingService {
   /** Hold the new car, free the old days, run `extend`; if it fails, restore the old days and release the hold. */
   private async moveVehicle<T>(
     plan: SwapPlan,
-    ctx: { extenderBookingId: string; extensionEarnings: Money },
+    ctx: SwapContext,
     extend: (chosen: SwapOption) => Promise<T>,
   ): Promise<T> {
     const { blocker } = plan;
@@ -1702,7 +1717,7 @@ export class BookingService {
         if ((err as { code?: string }).code !== 'NOT_AVAILABLE') throw err;
       }
     }
-    if (!chosen) throw new ConflictError('Vehicle is not available for the extended dates', 'NOT_AVAILABLE');
+    if (!chosen) throw new ConflictError(ctx.reason === 'extension' ? 'Vehicle is not available for the extended dates' : 'No similar car is free for your dates any more.', 'NOT_AVAILABLE');
 
     let detached: AvailabilityDoc[];
     try {
@@ -1722,7 +1737,7 @@ export class BookingService {
         logger.error({ err: restoreErr, bookingId: blocker._id }, 'could not restore the moved guest days after a failed extension');
         emit(EVENTS.BOOKING_SWAP_FAILED, blocker._id, {
           bookingId: blocker._id,
-          extenderBookingId: ctx.extenderBookingId,
+          extenderBookingId: ctx.causeBookingId,
           stage: 'restore_days',
           error: (restoreErr as Error).message,
         });
@@ -1740,7 +1755,7 @@ export class BookingService {
     plan: SwapPlan,
     chosen: SwapOption,
     holdId: string,
-    ctx: { extenderBookingId: string; extensionEarnings: Money },
+    ctx: SwapContext,
   ): Promise<void> {
     const { blocker, payment, paid } = plan;
     const { candidate, quote } = chosen;
@@ -1771,9 +1786,9 @@ export class BookingService {
               fromHostId: blocker.hostId,
               toVehicleId: candidate._id,
               toHostId: candidate.hostId,
-              reason: 'extension',
+              reason: ctx.reason,
               at,
-              extendedByBookingId: ctx.extenderBookingId,
+              ...(ctx.reason === 'extension' ? { extendedByBookingId: ctx.causeBookingId } : { lateBookingId: ctx.causeBookingId }),
             },
           },
           $inc: { version: 1 },
@@ -1783,7 +1798,7 @@ export class BookingService {
               to: blocker.status,
               at,
               by: 'system',
-              reason: 'Moved to a similar car so another guest could extend their trip',
+              reason: ctx.reason === 'extension' ? 'Moved to a similar car so another guest could extend their trip' : 'Guest chose a similar car because the booked car was late back',
             },
           },
         },
@@ -1809,7 +1824,7 @@ export class BookingService {
         refType: 'booking_swap',
         refId: blocker._id,
         currency: payment.currency,
-        description: `Booking ${blocker.code} moved to a similar car for another guest's extension`,
+        description: ctx.reason === 'extension' ? `Booking ${blocker.code} moved to a similar car for another guest's extension` : `Booking ${blocker.code} moved to a similar car because the booked car was late back`,
         legs: legs.filter((l) => l.amount > 0),
       });
 
@@ -1820,7 +1835,8 @@ export class BookingService {
         fromHostId: blocker.hostId,
         toVehicleId: candidate._id,
         toHostId: candidate.hostId,
-        extendedByBookingId: ctx.extenderBookingId,
+        reason: ctx.reason,
+        extendedByBookingId: ctx.reason === 'extension' ? ctx.causeBookingId : undefined,
         extensionEarnings: ctx.extensionEarnings,
         paid,
         absorbed: chosen.absorb,
@@ -1829,7 +1845,7 @@ export class BookingService {
       logger.error({ err, bookingId: blocker._id }, 'booking swap could not be finalised');
       emit(EVENTS.BOOKING_SWAP_FAILED, blocker._id, {
         bookingId: blocker._id,
-        extenderBookingId: ctx.extenderBookingId,
+        extenderBookingId: ctx.causeBookingId,
         toVehicleId: candidate._id,
         stage: 'finalize',
         error: (err as Error).message,
@@ -2305,28 +2321,91 @@ export class BookingService {
    * a return nobody made. Each stage fires once per booking, and the final one
    * reaches ops, because a car that has not come back is theirs to chase.
    */
-  async sweepLifecycle(): Promise<{ late: number; escalated: number; notStarted: number }> {
+  async sweepLifecycle(): Promise<{ escalated: number; notStarted: number }> {
     const now = Date.now();
     const cfg = await platformConfigService.get();
     const graceMs = (cfg.tracking?.overdueGraceMinutes ?? 60) * 60_000;
-    const stage = async (
-      filter: Record<string, unknown>,
-      marker: 'overdueNotifiedAt' | 'overdueEscalatedAt' | 'notStartedNotifiedAt',
-      kind: 'late' | 'escalated' | 'never_started',
-    ) => {
-      const due = await BookingModel.find({ ...filter, [marker]: { $exists: false } }).lean<BookingDoc[]>();
-      for (const b of due) {
-        // Marked first: a crash after this can only skip a nudge, never repeat one.
-        await BookingModel.updateOne({ _id: b._id }, { [marker]: new Date() });
-        emit(EVENTS.BOOKING_OVERDUE, b._id, { bookingId: b._id, guestId: b.guestId, hostId: b.hostId, stage: kind });
-      }
-      return due.length;
-    };
     return {
-      late: await stage({ status: 'in_progress', 'period.end': { $lte: new Date(now - graceMs) } }, 'overdueNotifiedAt', 'late'),
-      escalated: await stage({ status: 'in_progress', 'period.end': { $lte: new Date(now - cfg.booking.overdueEscalationHours * HOUR_MS) } }, 'overdueEscalatedAt', 'escalated'),
-      notStarted: await stage({ status: 'paid', 'period.start': { $lte: new Date(now - graceMs) } }, 'notStartedNotifiedAt', 'never_started'),
+      escalated: await this.overdueStage({ status: 'in_progress', 'period.end': { $lte: new Date(now - cfg.booking.overdueEscalationHours * HOUR_MS) } }, 'overdueEscalatedAt', 'escalated'),
+      notStarted: await this.overdueStage({ status: 'paid', 'period.start': { $lte: new Date(now - graceMs) } }, 'notStartedNotifiedAt', 'never_started'),
     };
+  }
+
+  /** The moment the grace period ends: tell the guest and host the car is overdue. Run every minute so a short grace is honoured. */
+  async sweepOverdueLate(): Promise<number> {
+    const graceMs = ((await platformConfigService.get()).tracking?.overdueGraceMinutes ?? 60) * 60_000;
+    return this.overdueStage({ status: 'in_progress', 'period.end': { $lte: new Date(Date.now() - graceMs) } }, 'overdueNotifiedAt', 'late');
+  }
+
+  private async overdueStage(
+    filter: Record<string, unknown>,
+    marker: 'overdueNotifiedAt' | 'overdueEscalatedAt' | 'notStartedNotifiedAt',
+    kind: 'late' | 'escalated' | 'never_started',
+  ): Promise<number> {
+    const due = await BookingModel.find({ ...filter, [marker]: { $exists: false } }).lean<BookingDoc[]>();
+    let sent = 0;
+    for (const b of due) {
+      // Claimed first: a crash after this can only skip a nudge, never repeat one, and two runs never both send it.
+      const claimed = await BookingModel.updateOne({ _id: b._id, [marker]: { $exists: false } }, { [marker]: new Date() });
+      if (!claimed.modifiedCount) continue;
+      emit(EVENTS.BOOKING_OVERDUE, b._id, { bookingId: b._id, guestId: b.guestId, hostId: b.hostId, stage: kind });
+      sent++;
+    }
+    return sent;
+  }
+
+  /**
+   * The car is late back and `nextId` picks it up soon: offer that guest a similar car at no extra cost.
+   * Returns the offered car's name, or null when no comparable car is free (or the booking cannot be moved).
+   */
+  async offerLateSwap(nextId: string, lateBookingId: string): Promise<string | null> {
+    const next = await BookingModel.findOne({ _id: nextId, deletedAt: null }).lean<BookingDoc>();
+    if (!next || next.swapOffer?.status === 'open') return next?.swapOffer?.toName ?? null;
+    const plan = await this.swapPlanFor(next, (await platformConfigService.get()).extension, false);
+    if (!plan) return null;
+    const car = plan.options[0].candidate;
+    const toName = [car.year, car.make, car.model].filter(Boolean).join(' ');
+    await BookingModel.updateOne(
+      { _id: nextId },
+      { $set: { swapOffer: { status: 'open', toVehicleId: car._id, toName, lateBookingId, offeredAt: new Date() } } },
+    );
+    return toName;
+  }
+
+  /** The guest takes the similar car: the booking moves, same dates, same price. */
+  async acceptSwapOffer(userId: string, bookingId: string): Promise<BookingDoc> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== userId) throw new ForbiddenError('Not your booking');
+    const offer = booking.swapOffer;
+    if (offer?.status !== 'open') throw new ConflictError('This offer is no longer available.', 'OFFER_CLOSED');
+    const plan = await this.swapPlanFor(booking, (await platformConfigService.get()).extension, false);
+    if (!plan) {
+      await BookingModel.updateOne({ _id: bookingId }, { $set: { 'swapOffer.status': 'expired', 'swapOffer.respondedAt': new Date() } });
+      throw new ConflictError('No similar car is free for your dates any more. Your booking stays on the original car, and our team will help if it is not back in time.', 'OFFER_CLOSED');
+    }
+    // The car the guest was shown goes first; another comparable car only if it was taken meanwhile.
+    plan.options.sort((a, b) => Number(b.candidate._id === offer.toVehicleId) - Number(a.candidate._id === offer.toVehicleId));
+    await this.moveVehicle(plan, { reason: 'late_return', causeBookingId: offer.lateBookingId }, async () => undefined);
+    await BookingModel.updateOne({ _id: bookingId }, { $set: { 'swapOffer.status': 'accepted', 'swapOffer.respondedAt': new Date() } });
+    return this.getDoc(bookingId);
+  }
+
+  async declineSwapOffer(userId: string, bookingId: string): Promise<{ declined: true }> {
+    const res = await BookingModel.updateOne(
+      { _id: bookingId, guestId: userId, 'swapOffer.status': 'open' },
+      { $set: { 'swapOffer.status': 'declined', 'swapOffer.respondedAt': new Date() } },
+    );
+    if (!res.modifiedCount) throw new ConflictError('This offer is no longer available.', 'OFFER_CLOSED');
+    return { declined: true };
+  }
+
+  /** The late car is back: open offers it caused are withdrawn, and those guests are told their car is ready. */
+  async closeLateSwapOffers(lateBookingId: string): Promise<void> {
+    const open = await BookingModel.find({ 'swapOffer.lateBookingId': lateBookingId, 'swapOffer.status': 'open' }).select('_id guestId').lean<{ _id: string; guestId: string }[]>();
+    for (const b of open) {
+      const res = await BookingModel.updateOne({ _id: b._id, 'swapOffer.status': 'open' }, { $set: { 'swapOffer.status': 'expired', 'swapOffer.respondedAt': new Date() } });
+      if (res.modifiedCount) emit(EVENTS.NEXT_BOOKING_CLEARED, b._id, { bookingId: b._id, guestId: b.guestId });
+    }
   }
 
   // ── internals ────────────────────────────────────────────────────────

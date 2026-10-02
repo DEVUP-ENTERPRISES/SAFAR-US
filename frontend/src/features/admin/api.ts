@@ -54,7 +54,7 @@ export interface PlatformConfig {
   };
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };
   /** Post-trip charges: the combined ceiling per booking (bps of the booking total) and the guest's dispute window. */
-  incidentals: { maxTotalBps: number; disputeWindowHours: number; maxFuelPercent: number; maxLateHours: number };
+  incidentals: { maxTotalBps: number; disputeWindowHours: number; maxFuelPercent: number; maxLateHours: number; lateReturnPerHourCents?: number; lateHourlyMaxHours?: number; lateHalfDayMaxHours?: number };
   tolls: {
     enabled: boolean; feeCents: number; reviewHours: number; matchBufferMinutes: number; billingWindowDays: number; autoCharge: boolean;
     passEnabled: boolean; passPriceCents: number; passDailyCapCents: number;
@@ -62,7 +62,7 @@ export interface PlatformConfig {
   identityViewing?: { hostMinutesBefore: number; hostViewSeconds: number; adminViewSeconds: number };
   tripDocuments?: { enabled: boolean; viewSeconds: number; alertHost: boolean; alertCooldownMinutes: number };
   /** Handover and return timing: when live location opens, and how long past the return time before a trip counts as overdue. */
-  tracking: { approachWindowMinutes: number; overdueGraceMinutes: number };
+  tracking: { approachWindowMinutes: number; overdueGraceMinutes: number; returnReminderMinutes?: number[]; nextBookingAlertHours?: number };
   inspection: {
     preWindowMinutes: number;
     postWindowMinutes: number;

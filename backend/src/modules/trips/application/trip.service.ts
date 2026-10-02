@@ -156,6 +156,7 @@ export class TripService {
 
     const distanceKm = this.distanceFor(trip, ret.odometerEnd);
     const now = new Date();
+    const arrival = this.arrivalOf(trip, hostSide, now, minReturnPhotos);
     // Mileage and fuel are billed from the host's confirmed readings, never a guest's own number.
     const overage = hostSide ? await this.chargeMileageOverage(trip, distanceKm) : null;
 
@@ -163,21 +164,27 @@ export class TripService {
       { _id: tripId },
       {
         status: 'completed',
-        return: { at: now, ...ret },
+        return: { at: now, ...ret, arrivedAt: arrival.at, arrivedBasis: arrival.basis },
         distanceKm,
         ...(overage ? { mileageOverage: overage } : {}),
         ...(hostSide ? { returnConfirmed: true, returnConfirmedAt: now, returnConfirmedBy: userId } : { returnConfirmed: false }),
       },
     );
-    // Late return: billed once, on the way in, for the hours past the grace window.
+    // Late return: billed once, for each started hour past the grace window, counted to when the car was back.
     try {
       const booking = await bookingService.getDoc(trip.bookingId);
       const graceMinutes = (await platformConfigService.get()).tracking?.overdueGraceMinutes ?? 60;
-      const lateMs = Date.now() - new Date(booking.period.end).getTime() - graceMinutes * 60_000;
-      if (lateMs > 0) await incidentalsService.chargeLateReturn(trip.bookingId, Math.ceil(lateMs / 3_600_000));
+      const lateMs = arrival.at.getTime() - new Date(booking.period.end).getTime() - graceMinutes * 60_000;
+      if (lateMs > 0) {
+        const hours = Math.ceil(lateMs / 3_600_000);
+        const back = arrival.at.toISOString().slice(11, 16);
+        const proof = arrival.basis === 'guest_photos' ? 'return photos taken at the car' : arrival.basis === 'guest_ended' ? 'trip ended by the guest' : 'trip ended by the host';
+        await incidentalsService.chargeLateReturn(trip.bookingId, hours, `Back at ${back} UTC (${proof}); ${hours} started hour${hours === 1 ? '' : 's'} after the ${graceMinutes}-minute grace period.`);
+      }
     } catch (err) {
       logger.warn({ err, bookingId: trip.bookingId }, 'late return fee failed');
     }
+    await bookingService.closeLateSwapOffers(trip.bookingId).catch((err) => logger.warn({ err, bookingId: trip.bookingId }, 'closing late swap offers failed'));
 
     await bookingService.markCompleted(trip.bookingId);
     if (hostSide) await this.chargeFuel(trip, ret.fuelEnd);
@@ -516,6 +523,20 @@ export class TripService {
     const trip = await TripModel.findOne({ bookingId }).lean<TripDoc>();
     if (trip) await TripModel.updateOne({ _id: trip._id }, { pickupVerified: true, pickupVerifiedAt: new Date() });
     return { pickupVerified: true };
+  }
+
+  /**
+   * When the car was back. The guest's return photos are taken at the car with a location fix, so the moment the
+   * required set was complete is the proof; a host ending the trip later never adds to the guest's lateness.
+   */
+  private arrivalOf(trip: TripDoc, hostSide: boolean, now: Date, minReturnPhotos: number): { at: Date; basis: 'guest_photos' | 'guest_ended' | 'host_ended' } {
+    const atCar = (trip.photos ?? [])
+      .filter((p) => p.phase === 'post' && p.byUserId === trip.guestId && p.lat != null && p.lng != null)
+      .map((p) => new Date(p.at))
+      .sort((a, b) => a.getTime() - b.getTime());
+    const needed = Math.max(1, minReturnPhotos);
+    if (atCar.length >= needed && atCar[needed - 1] <= now) return { at: atCar[needed - 1], basis: 'guest_photos' };
+    return { at: now, basis: hostSide ? 'host_ended' : 'guest_ended' };
   }
 
   /** Same check addressed by trip id, kept for existing clients. */

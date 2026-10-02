@@ -589,6 +589,60 @@ export function registerEventSubscribers(): void {
     }
   });
 
+  // Before the return time: return on time or extend, and what lateness costs.
+  eventBus.subscribe(EVENTS.TRIP_RETURN_REMINDER, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string; minutesLeft: number; graceMinutes: number; perHourCents: number; hourlyMaxHours: number };
+    const left = p.minutesLeft >= 60 && p.minutesLeft % 60 === 0 ? `${p.minutesLeft / 60} hour${p.minutesLeft === 60 ? '' : 's'}` : `${p.minutesLeft} minutes`;
+    try {
+      await notificationService.send({
+        userId: p.guestId,
+        priority: p.minutesLeft <= 15 ? 'critical' : 'high',
+        templateKey: 'trip.return_reminder',
+        title: `Your trip ends in ${left}`,
+        body: `Return the car on time, or extend your trip from the app now. After a ${p.graceMinutes}-minute grace period, a late fee of ${formatAmount(p.perHourCents, 'USD')} per started hour applies, and more if you are over ${p.hourlyMaxHours} hours late.`,
+        deepLink: `/bookings/${p.bookingId}`,
+        actionLabel: 'Extend or return',
+        data: { bookingId: p.bookingId },
+      });
+    } catch (err) {
+      logger.warn({ err, bookingId: p.bookingId }, 'return reminder failed');
+    }
+  });
+
+  // The late car has another guest waiting: the host and staff hear now, and that guest is offered a similar car.
+  eventBus.subscribe(EVENTS.NEXT_BOOKING_AT_RISK, async (e) => {
+    const p = e.payload as { lateBookingId: string; lateCode: string; hostId: string; nextBookingId: string; nextCode: string; nextGuestId: string; nextStart: string; offeredCar: string | null };
+    const when = new Date(p.nextStart).toISOString().replace('T', ' ').slice(0, 16);
+    const offer = p.offeredCar ? ` The next guest has been offered a ${p.offeredCar} instead.` : ' No similar car was free to offer the next guest.';
+    await notifyHost(p.hostId, 'booking.next_at_risk', 'Your car is late back, and booked next', `Booking ${p.lateCode} is overdue, and booking ${p.nextCode} picks the car up at ${when} UTC. Contact your guest now.${offer}`, { bookingId: p.lateBookingId, nextBookingId: p.nextBookingId }, 'critical', `/host/trips/${p.lateBookingId}`);
+    await notifyStaff('booking.next_at_risk', 'Late car with a booking next', `Booking ${p.lateCode} is overdue; ${p.nextCode} starts at ${when} UTC.${offer}`, { bookingId: p.lateBookingId, nextBookingId: p.nextBookingId }, 'critical');
+    if (!p.offeredCar) return;
+    try {
+      await notificationService.send({
+        userId: p.nextGuestId,
+        priority: 'critical',
+        templateKey: 'booking.swap_offer',
+        title: 'Your car may not be back in time',
+        body: `The car you booked is running late from its previous trip. You can switch to a ${p.offeredCar} for the same dates at no extra cost, or keep your booking.`,
+        deepLink: `/bookings/${p.nextBookingId}`,
+        actionLabel: 'See the offer',
+        data: { bookingId: p.nextBookingId },
+      });
+    } catch (err) {
+      logger.warn({ err, bookingId: p.nextBookingId }, 'swap offer notification failed');
+    }
+  });
+
+  // The late car came back before the next guest decided: their original booking is fine.
+  eventBus.subscribe(EVENTS.NEXT_BOOKING_CLEARED, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string };
+    try {
+      await notificationService.send({ userId: p.guestId, priority: 'high', templateKey: 'booking.next_cleared', title: 'Your car is back and ready', body: 'The car you booked has been returned, so your booking goes ahead as planned. The switch offer is closed.', deepLink: `/bookings/${p.bookingId}`, data: { bookingId: p.bookingId } });
+    } catch (err) {
+      logger.warn({ err, bookingId: p.bookingId }, 'next booking cleared notice failed');
+    }
+  });
+
   // A car that lost its Wheelbase insurance approval must be looked at before it is booked again.
   eventBus.subscribe(EVENTS.INSURANCE_STATUS_CHANGED, async (e) => {
     const p = e.payload as { vehicleId: string; from?: string; to: string; name: string };
@@ -1018,7 +1072,9 @@ export function registerEventSubscribers(): void {
       toVehicleId: string;
       toHostId: string;
       extensionEarnings?: { amount: number; currency: string };
+      reason?: 'extension' | 'late_return';
     };
+    const chosen = p.reason === 'late_return';
     const car = await vehicleService.getById(p.toVehicleId).then((v) => `${v.make} ${v.model} ${v.year}`, () => 'a similar car');
     await postSystemNote(p.bookingId, `Your trip moved to ${car} — same dates, same price.`);
     await notificationService
@@ -1026,14 +1082,14 @@ export function registerEventSubscribers(): void {
         userId: p.guestId,
         priority: 'critical',
         templateKey: 'booking.swapped',
-        title: 'Your trip moved to a similar car',
+        title: chosen ? 'You switched to a similar car' : 'Your trip moved to a similar car',
         body: `Same dates, same price: you will now be driving ${car}. Nothing else about your booking changed.`,
         deepLink: `/bookings/${p.bookingId}`,
         data: { bookingId: p.bookingId, toVehicleId: p.toVehicleId },
       })
       .catch((err) => logger.warn({ err, bookingId: p.bookingId }, 'swap guest notification failed'));
     const earns = p.extensionEarnings ? ` You earn ${formatAmount(p.extensionEarnings.amount, p.extensionEarnings.currency)} from the extension.` : '';
-    await notifyHost(p.fromHostId, 'booking.swapped_out', 'An upcoming booking moved', `A guest extended their trip on your car, so an upcoming booking was moved to a similar car.${earns}`, { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
+    await notifyHost(p.fromHostId, 'booking.swapped_out', 'An upcoming booking moved', chosen ? 'Your car was late back from a trip, so the next guest chose a similar car instead.' : `A guest extended their trip on your car, so an upcoming booking was moved to a similar car.${earns}`, { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
     await notifyHost(p.toHostId, 'booking.swapped_in', 'New booking on your car', `A confirmed booking was placed on ${car}. It is already paid.`, { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
   });
   eventBus.subscribe(EVENTS.BOOKING_SWAP_FAILED, async (e) => {

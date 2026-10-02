@@ -39,9 +39,11 @@ export interface BookingSwap {
   fromHostId: string;
   toVehicleId: string;
   toHostId: string;
-  reason: 'extension';
+  reason: 'extension' | 'late_return';
   at: Date;
-  extendedByBookingId: string;
+  extendedByBookingId?: string;
+  /** The trip whose late return caused a guest-accepted move. */
+  lateBookingId?: string;
 }
 
 export interface BookingDoc {
@@ -172,6 +174,12 @@ export interface BookingDoc {
   extensions?: BookingExtension[];
   /** Set when the platform moved this booking to a comparable car to make room for another guest's extension. */
   swap?: BookingSwap;
+  /** The car before this booking is late back: a similar car offered to this guest, which they accept or decline. */
+  swapOffer?: { status: 'open' | 'accepted' | 'declined' | 'expired'; toVehicleId: string; toName: string; lateBookingId: string; offeredAt: Date; respondedAt?: Date };
+  /** Return reminders already sent, by minutes before the return time. */
+  returnRemindersSent?: number[];
+  /** Set once this late trip's next booking was checked, so the host and staff are alerted once. */
+  nextBookingAlertedAt?: Date;
   /** Which exception kind the guest has already been told about, so the notice
    *  is sent once per episode rather than on every read. */
   trackingNoticeSentFor?: 'sos' | 'overdue' | 'incident';
@@ -376,12 +384,27 @@ const schema = new Schema<BookingDoc>(
         fromHostId: String,
         toVehicleId: String,
         toHostId: String,
-        reason: { type: String, enum: ['extension'] },
+        reason: { type: String, enum: ['extension', 'late_return'] },
         at: Date,
         extendedByBookingId: String,
+        lateBookingId: String,
       },
       default: undefined,
     },
+    swapOffer: {
+      type: {
+        _id: false,
+        status: { type: String, enum: ['open', 'accepted', 'declined', 'expired'] },
+        toVehicleId: String,
+        toName: String,
+        lateBookingId: String,
+        offeredAt: Date,
+        respondedAt: Date,
+      },
+      default: undefined,
+    },
+    returnRemindersSent: { type: [Number], default: undefined },
+    nextBookingAlertedAt: Date,
     trackingNoticeSentFor: { type: String, enum: ['sos', 'overdue', 'incident'] },
     identityCheck: {
       result: { type: String, enum: ['match', 'mismatch'] },
