@@ -1,34 +1,23 @@
-import { createHash, randomBytes } from 'crypto';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { TripModel, type TripDoc } from '../infrastructure/trip.model';
-import { TripDocumentViewModel } from '../infrastructure/trip-document-view.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { DocumentModel } from '../../documents/infrastructure/document.model';
-import { UserModel } from '../../users/infrastructure/user.model';
 import { storageGateway } from '../../../infrastructure/storage/storage.provider';
 import { auditService } from '../../audit/application/audit.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
-import { timezoneForState } from '../../../shared/utils/us-timezone';
 import { logger } from '../../../infrastructure/logging/logger';
 import { AppError, ForbiddenError, NotFoundError } from '../../../core/errors/app-error';
-import { stampDocument } from '../domain/document-watermark';
+import { timedViewService, viewerStamp, stampForView, type Viewer } from '../../media/application/timed-view.service';
 
 /** The papers an officer asks for at a stop, in the order they are shown. */
 export const TRIP_PAPERS = ['registration', 'insurance'] as const;
 export type TripPaper = (typeof TRIP_PAPERS)[number];
 const LABEL: Record<TripPaper, string> = { registration: 'Vehicle registration', insurance: 'Proof of insurance' };
 
-/** Who is asking, as the route knows them. */
-export interface Viewer {
-  userId: string;
-  roles: string[];
-  ip?: string;
-  userAgent?: string;
-}
-
-const hashToken = (t: string) => createHash('sha256').update(t).digest('hex');
+export type { Viewer };
+const PURPOSE = 'trip_documents';
 
 const unavailable = (message: string, code = 'TRIP_DOCUMENTS_UNAVAILABLE') =>
   new AppError({ code, message, httpStatus: 409 });
@@ -81,19 +70,14 @@ export const tripDocumentsService = {
     const papers = (await this.papersFor(booking.vehicleId)).filter((p) => p.doc);
     if (!papers.length) throw unavailable('Your host has not uploaded the documents yet. Tap "Request documents" and we will alert them.', 'TRIP_DOCUMENTS_MISSING');
 
-    const token = randomBytes(32).toString('base64url');
     const openedAt = new Date();
-    const expiresAt = new Date(openedAt.getTime() + cfg.viewSeconds * 1000);
-    await TripDocumentViewModel.create({
-      _id: hashToken(token),
-      bookingId,
-      tripId: trip._id,
-      vehicleId: booking.vehicleId,
+    const { token, expiresAt } = await timedViewService.open({
+      purpose: PURPOSE,
+      resourceId: bookingId,
       viewerId: viewer.userId,
-      documentIds: papers.map((p) => p.doc!._id),
-      openedAt,
-      expiresAt,
-      purgeAt: new Date(expiresAt.getTime() + 24 * 3_600_000),
+      items: papers.map((p) => p.doc!._id),
+      seconds: cfg.viewSeconds,
+      context: { tripId: trip._id },
     });
 
     await auditService.record({
@@ -130,29 +114,19 @@ export const tripDocumentsService = {
 
   /** One file from an open viewing, stamped with who is looking and when. Refused once the time is up or the trip ends. */
   async file(viewer: Viewer, bookingId: string, documentId: string, token: string) {
-    const view = await TripDocumentViewModel.findById(hashToken(token)).lean();
-    if (!view || view.bookingId !== bookingId || view.viewerId !== viewer.userId || !view.documentIds.includes(documentId)) {
-      throw new ForbiddenError('This view has closed. Open the documents again.');
-    }
-    if (view.expiresAt.getTime() <= Date.now()) throw new ForbiddenError('This view has closed. Open the documents again.');
+    const view = await timedViewService.check({ token, purpose: PURPOSE, resourceId: bookingId, viewerId: viewer.userId, item: documentId });
     const { booking, trip } = await this.liveTrip(viewer.userId, bookingId);
-    if (!trip || trip._id !== view.tripId) throw new ForbiddenError('This view has closed. Open the documents again.');
+    if (!trip || trip._id !== view.context?.tripId) throw new ForbiddenError('This view has closed. Open the documents again.');
 
     const doc = await DocumentModel.findOne({ _id: documentId, vehicleId: booking.vehicleId, deletedAt: null }).select('category key').lean<{ _id: string; category: TripPaper; key?: string }>();
     if (!doc?.key) throw new NotFoundError('Document');
 
-    const [user, vehicle] = await Promise.all([
-      UserModel.findById(viewer.userId).select('firstName lastName').lean<{ firstName?: string; lastName?: string }>(),
-      VehicleModel.findById(booking.vehicleId).select('location.state').lean<{ location?: { state?: string } }>(),
-    ]);
-    const timeZone = timezoneForState(vehicle?.location?.state) ?? 'America/Chicago';
-    const when = new Intl.DateTimeFormat('en-US', { timeZone, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }).format(new Date());
-    const name = [user?.firstName, user?.lastName ? `${user.lastName[0]}.` : ''].filter(Boolean).join(' ') || 'Guest';
-    const stamp = [`CatoDrive trip ${booking.code}`, `Viewed by ${name}`, when, 'For a traffic stop only'];
+    const vehicle = await VehicleModel.findById(booking.vehicleId).select('location.state').lean<{ location?: { state?: string } }>();
+    const stamp = await viewerStamp(viewer.userId, `CatoDrive trip ${booking.code}`, 'For a traffic stop only', vehicle?.location?.state);
 
-    let stamped: Awaited<ReturnType<typeof stampDocument>> = null;
+    let stamped: Awaited<ReturnType<typeof stampForView>> = null;
     try {
-      stamped = await stampDocument((await storageGateway.readObject(doc.key)).body, stamp);
+      stamped = await stampForView((await storageGateway.readObject(doc.key)).body, stamp);
     } catch (err) {
       logger.error({ err: (err as Error).message, documentId, bookingId }, 'trip document could not be read from storage');
     }
@@ -172,7 +146,7 @@ export const tripDocumentsService = {
     if (!stamped) {
       throw unavailable('This document could not be shown. Your host has been asked for a clearer copy.', 'TRIP_DOCUMENT_UNREADABLE');
     }
-    return { category: doc.category, contentType: stamped.contentType, data: stamped.body.toString('base64'), expiresAt: view.expiresAt };
+    return { category: doc.category, ...stamped, expiresAt: view.expiresAt };
   },
 
   /** The guest needs papers the host has not uploaded: alert the host and support, once per cooldown. */

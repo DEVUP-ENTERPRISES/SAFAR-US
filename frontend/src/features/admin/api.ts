@@ -59,6 +59,7 @@ export interface PlatformConfig {
     enabled: boolean; feeCents: number; reviewHours: number; matchBufferMinutes: number; billingWindowDays: number; autoCharge: boolean;
     passEnabled: boolean; passPriceCents: number; passDailyCapCents: number;
   };
+  identityViewing?: { hostMinutesBefore: number; hostViewSeconds: number; adminViewSeconds: number };
   tripDocuments?: { enabled: boolean; viewSeconds: number; alertHost: boolean; alertCooldownMinutes: number };
   /** Handover and return timing: when live location opens, and how long past the return time before a trip counts as overdue. */
   tracking: { approachWindowMinutes: number; overdueGraceMinutes: number };
@@ -532,6 +533,10 @@ export const adminApi = {
 
   bookings: (q: Q = {}) => api.get<any[]>('/admin/bookings', q),
   cancelBooking: (id: string, reason: string) => api.post(`/admin/bookings/${id}/cancel`, { reason }),
+  bookingOverview: (id: string) => api.get<AdminBookingOverview>(`/admin/bookings/${id}/overview`),
+  openGuestId: (id: string, reason: string) => api.post<{ token: string; expiresAt: string; viewSeconds: number; items: { id: string; label: string }[] }>(`/admin/bookings/${id}/guest-id/open`, { reason }),
+  guestIdFile: (id: string, token: string, kind: string) => api.post<{ contentType: 'image/jpeg' | 'application/pdf'; data: string }>(`/admin/bookings/${id}/guest-id/file`, { token, kind }),
+  clearIdentityCheck: (id: string, reason: string) => api.post(`/admin/bookings/${id}/identity-check/clear`, { reason }),
 
   claims: (q: Q = {}) => api.get<any[]>('/admin/claims', q),
   assignClaim: (id: string) => api.post(`/admin/claims/${id}/assign`),
@@ -745,4 +750,23 @@ export interface ReferralStats {
   conversionRatePct: number;
   inWindow: number;
   topReferrers: { userId: string; conversions: number }[];
+}
+
+/** One booking for staff: trip, car, host and who booked it (identity summary only, photos open separately). */
+export interface AdminBookingOverview {
+  booking: {
+    id: string; code: string; status: string; period: { start: string; end: string }; total?: { amount: number; currency: string };
+    createdAt?: string; pickupVerifiedAt?: string;
+    identityCheck: { result: 'match' | 'mismatch'; at: string; by: string; note?: string; clearedAt?: string } | null;
+  };
+  trip: { status: string; startedAt?: string; returnedAt?: string } | null;
+  vehicle: { id: string; name: string; plate?: string } | null;
+  host: { id: string; name: string; email?: string; phone?: string };
+  guest: {
+    id: string; name: string; email?: string; phone?: string; memberSince?: string; tripsCompleted: number;
+    identity: {
+      status: string; verifiedName?: string; dob?: string; age?: number; licenceExpiry?: string; verifiedAt?: string;
+      source?: 'stripe' | 'upload'; photos: { id: string; label: string }[]; photosReadable: boolean;
+    };
+  };
 }

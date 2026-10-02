@@ -243,6 +243,7 @@ export class PlatformConfigService {
         passEnabled: true, passPriceCents: 1500, passDailyCapCents: 1000,
         ...(doc.tolls ?? {}),
       },
+      identityViewing: { hostMinutesBefore: 60, hostViewSeconds: 100, adminViewSeconds: 300, ...(doc.identityViewing ?? {}) },
       tripDocuments: { enabled: true, viewSeconds: 100, alertHost: true, alertCooldownMinutes: 10, ...(doc.tripDocuments ?? {}) },
       incidentals: {
         fuelPerPercentCents: 300, cleaningCents: 7500, smokingCents: 25000, petCents: 10000, lateReturnPerHourCents: 2500,

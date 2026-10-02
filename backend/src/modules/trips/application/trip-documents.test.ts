@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import { PDFDocument } from 'pdf-lib';
 import { tripDocumentsService } from './trip-documents.service';
 import { TripModel } from '../infrastructure/trip.model';
-import { TripDocumentViewModel } from '../infrastructure/trip-document-view.model';
+import { TimedViewModel } from '../../media/infrastructure/timed-view.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { DocumentModel } from '../../documents/infrastructure/document.model';
@@ -76,8 +76,8 @@ describe('car papers during a trip', () => {
     expect(v.viewSeconds).toBe(100);
     expect(v.expiresAt.getTime() - Date.now()).toBeGreaterThan(95_000);
     expect(v.documents.map((d) => d.category)).toEqual(['registration', 'insurance']);
-    expect(await TripDocumentViewModel.findById(v.token)).toBeNull();
-    expect(await TripDocumentViewModel.countDocuments()).toBe(1);
+    expect(await TimedViewModel.findById(v.token)).toBeNull();
+    expect(await TimedViewModel.countDocuments()).toBe(1);
 
     await tripDocumentsService.open(guest, 'bk');
     expect(emit.mock.calls.filter(([n]) => n === EVENTS.TRIP_DOCUMENTS_OPENED)).toHaveLength(1);
@@ -111,7 +111,7 @@ describe('car papers during a trip', () => {
     const v = await tripDocumentsService.open(guest, 'bk');
     await expect(tripDocumentsService.file(guest, 'bk', 'doc-registration', 'x'.repeat(43))).rejects.toThrow(/closed/);
     await expect(tripDocumentsService.file({ ...guest, userId: 'other' }, 'bk', 'doc-registration', v.token)).rejects.toThrow(/closed/);
-    await TripDocumentViewModel.updateMany({}, { $set: { expiresAt: new Date(Date.now() - 1) } });
+    await TimedViewModel.updateMany({}, { $set: { expiresAt: new Date(Date.now() - 1) } });
     await expect(tripDocumentsService.file(guest, 'bk', 'doc-registration', v.token)).rejects.toThrow(/closed/);
   });
 

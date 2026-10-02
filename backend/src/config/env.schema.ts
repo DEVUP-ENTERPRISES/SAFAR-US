@@ -109,6 +109,8 @@ export const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_IDENTITY_WEBHOOK_SECRET: optional(z.string()),
+  /** Restricted key (Identity + Files read) for viewing a guest's ID photos; Stripe serves them to no other key. */
+  STRIPE_IDENTITY_READ_KEY: optional(z.string().regex(/^rk_(live|test)_/, 'must be a Stripe restricted key (rk_...)')),
   /** Public by design. Served to the browser at runtime so card entry and identity capture do not depend on the frontend build having it. */
   STRIPE_PUBLISHABLE_KEY: optional(z.string()),
   /**

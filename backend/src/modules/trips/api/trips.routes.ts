@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from 'express';
+import { Router } from 'express';
 import { z } from 'zod';
 import { tripService } from '../application/trip.service';
 import { hostTripsService } from '../../bookings/application/host-trips.service';
@@ -13,6 +13,8 @@ import { trackingPhaseService } from '../application/tracking-phase.service';
 import { ForbiddenError } from '../../../core/errors/app-error';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { tripDocumentsService } from '../application/trip-documents.service';
+import { guestIdentityCheckService } from '../application/guest-identity-check.service';
+import { viewerOf, noStore } from '../../../shared/http/viewer';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 
 const router = Router();
@@ -124,8 +126,6 @@ router.post(
 
 // ── The car's papers during a trip (a traffic stop) ──────────────────
 
-const viewerOf = (req: Request) => ({ userId: req.principal!.userId, roles: req.principal!.roles, ip: req.ip, userAgent: req.get('user-agent') });
-const noStore = (res: Response) => res.set({ 'Cache-Control': 'no-store, private, max-age=0', Pragma: 'no-cache' });
 
 /** Whether the guest can open the papers now, and which are on file. */
 router.get(
@@ -177,6 +177,46 @@ router.get(
     const staff = p.permissions.includes('*') || p.permissions.includes('admin:read');
     if (!booking || !(staff || (await tripService.isHostSideOf(p.userId, booking)))) throw new ForbiddenError('Not allowed');
     sendSuccess(res, await tripDocumentsService.history(req.params.bookingId));
+  }),
+);
+
+// ── The guest's verified selfie for the host, shortly before pickup ──
+
+router.get(
+  '/booking/:bookingId/guest-photo',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    noStore(res);
+    sendSuccess(res, await guestIdentityCheckService.status(viewerOf(req), req.params.bookingId));
+  }),
+);
+
+router.post(
+  '/booking/:bookingId/guest-photo/open',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    noStore(res);
+    sendSuccess(res, await guestIdentityCheckService.open(viewerOf(req), req.params.bookingId));
+  }),
+);
+
+router.post(
+  '/booking/:bookingId/guest-photo/file',
+  authenticate,
+  validate({ body: z.object({ token: z.string().min(20).max(100) }).strict() }),
+  asyncHandler(async (req, res) => {
+    noStore(res);
+    sendSuccess(res, await guestIdentityCheckService.file(viewerOf(req), req.params.bookingId, req.body.token));
+  }),
+);
+
+/** The host's answer: the person at the car is, or is not, the verified guest. */
+router.post(
+  '/booking/:bookingId/guest-photo/check',
+  authenticate,
+  validate({ body: z.object({ result: z.enum(['match', 'mismatch']), note: z.string().max(300).optional() }).strict() }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await guestIdentityCheckService.record(viewerOf(req), req.params.bookingId, req.body.result, req.body.note));
   }),
 );
 

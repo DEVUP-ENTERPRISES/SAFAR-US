@@ -175,6 +175,8 @@ export interface BookingDoc {
   /** Which exception kind the guest has already been told about, so the notice
    *  is sent once per episode rather than on every read. */
   trackingNoticeSentFor?: 'sos' | 'overdue' | 'incident';
+  /** The host compared the guest with their verified selfie at pickup. A mismatch blocks the trip until staff clear it. */
+  identityCheck?: { result: 'match' | 'mismatch'; at: Date; by: string; note?: string; clearedAt?: Date; clearedBy?: string };
   /**
    * The hour before the keys change hands.
    *
@@ -381,6 +383,14 @@ const schema = new Schema<BookingDoc>(
       default: undefined,
     },
     trackingNoticeSentFor: { type: String, enum: ['sos', 'overdue', 'incident'] },
+    identityCheck: {
+      result: { type: String, enum: ['match', 'mismatch'] },
+      at: Date,
+      by: String,
+      note: String,
+      clearedAt: Date,
+      clearedBy: String,
+    },
     approach: {
       guest: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date },
       host: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date },

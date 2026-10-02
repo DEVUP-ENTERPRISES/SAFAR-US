@@ -290,6 +290,13 @@ router.put(
           passDailyCapCents: z.number().int().min(0).max(20_000).optional(),
         })
         .optional(),
+      identityViewing: z
+        .object({
+          hostMinutesBefore: z.number().int().min(0).max(1440).optional(),
+          hostViewSeconds: z.number().int().min(15).max(600).optional(),
+          adminViewSeconds: z.number().int().min(30).max(1800).optional(),
+        })
+        .optional(),
       tripDocuments: z
         .object({
           enabled: z.boolean().optional(),
