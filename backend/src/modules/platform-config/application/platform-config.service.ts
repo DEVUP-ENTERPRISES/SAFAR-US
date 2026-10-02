@@ -185,7 +185,7 @@ export class PlatformConfigService {
         ...(doc.handover ?? {}),
       },
       extension: {
-        enabled: true, maxDays: 30, swapPolicy: 'auto' as const, swapPriceToleranceBps: 1500, swapMaxAbsorbCents: 5000,
+        enabled: true, maxDays: 30, swapPolicy: 'auto' as const, swapPriceToleranceBps: 1500, swapMaxAbsorbCents: 5000, lateExtendHours: 6,
         ...(doc.extension ?? {}),
       },
       violations: {

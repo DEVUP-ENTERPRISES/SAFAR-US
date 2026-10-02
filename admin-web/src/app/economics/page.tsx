@@ -740,6 +740,10 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={1} max={365} value={draft.extension.maxDays}
               onChange={(e) => set((d) => { d.extension.maxDays = Number(e.target.value); })} />
           </Field>
+          <Field label="Extend while late (hours)" hint="A guest past the return time can still extend for this long. Late time already passed is charged at the late fee. 0 = no extending once late.">
+            <Input type="number" min={0} max={72} value={draft.extension.lateExtendHours ?? 6}
+              onChange={(e) => set((d) => { d.extension.lateExtendHours = Number(e.target.value); })} />
+          </Field>
           <Field label="Swap the next guest">
             <Select value={draft.extension.swapPolicy}
               onChange={(e) => set((d) => { d.extension.swapPolicy = e.target.value as 'auto' | 'off'; })}>

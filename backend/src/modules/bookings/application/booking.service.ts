@@ -4,6 +4,7 @@ import { BookingModel, type BookingDoc, type BookingExtension } from '../infrast
 import { PaymentModel, type PaymentDoc } from '../../payments/infrastructure/payment.model';
 import type { AvailabilityDoc } from '../../availability/infrastructure/availability.model';
 import { canTransition, type BookingStatus } from '../domain/booking-status';
+import { lateFeeCents, dayPriceCents } from '../domain/late-fee';
 import { computeRefund, serviceFeeOf } from '../domain/cancellation-policy';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { wheelbaseInsuranceService } from '../../insurance/application/wheelbase-insurance.service';
@@ -1417,6 +1418,9 @@ export class BookingService {
     extraCost?: Money;
     newEnd: string;
     days?: number;
+    /** Extending after the grace period: the late time already passed, charged with the extension. */
+    lateCharge?: Money;
+    lateHours?: number;
     swap?: { possible: true; vehicle: { id: string; make: string; model: string; year: number } };
   }> {
     const booking = await this.getDoc(bookingId);
@@ -1425,7 +1429,8 @@ export class BookingService {
     const plan = await this.planExtension(booking, newEndIso);
     if (!plan.ok) return { available: false, reason: plan.reason, newEnd: plan.newEnd?.toISOString() ?? newEndIso };
 
-    const base = { extraCost: plan.extra.total, days: plan.days, newEnd: plan.newEnd.toISOString() };
+    const late = await this.lateSoFar(booking);
+    const base = { extraCost: plan.extra.total, days: plan.days, newEnd: plan.newEnd.toISOString(), ...(late.amount ? { lateCharge: { amount: late.amount, currency: booking.priceBreakdown.currency }, lateHours: late.hours } : {}) };
     if (!plan.swap) return { available: true, ...base };
     const { candidate } = plan.swap.options[0];
     return {
@@ -1445,12 +1450,35 @@ export class BookingService {
       if (['INVALID_DATE', 'TOO_SHORT', 'EXTENSION_TOO_LONG'].includes(plan.code)) throw new ValidationError(plan.reason);
       throw new ConflictError(plan.reason, plan.code);
     }
+    const late = await this.lateSoFar(booking);
     const swap = plan.swap;
-    if (!swap) return this.commitExtension(booking, plan, userId);
+    const extended = swap
+      ? await this.moveVehicle(swap, { reason: 'extension', causeBookingId: bookingId, extensionEarnings: plan.extra.hostEarnings }, (chosen) =>
+          this.commitExtension(booking, plan, userId, { movedBookingId: swap.blocker._id, toVehicleId: chosen.candidate._id }),
+        )
+      : await this.commitExtension(booking, plan, userId);
+    if (late.hours > 0) {
+      const { incidentalsService } = await import('./incidentals.service');
+      await incidentalsService
+        .chargeLateReturn(bookingId, late.hours, `Extended ${late.hours} started hour${late.hours === 1 ? '' : 's'} after the grace period ended; the late time before the extension is charged.`)
+        .catch((err) => logger.error({ err, bookingId }, 'late fee before extension failed'));
+    }
+    return extended;
+  }
 
-    return this.moveVehicle(swap, { reason: 'extension', causeBookingId: bookingId, extensionEarnings: plan.extra.hostEarnings }, (chosen) =>
-      this.commitExtension(booking, plan, userId, { movedBookingId: swap.blocker._id, toVehicleId: chosen.candidate._id }),
-    );
+  /** Started hours past the grace period right now, and what they cost; zero before the grace ends. */
+  private async lateSoFar(booking: BookingDoc): Promise<{ hours: number; amount: number }> {
+    const cfg = await platformConfigService.get();
+    const lateMs = Date.now() - booking.period.end.getTime() - (cfg.tracking?.overdueGraceMinutes ?? 60) * 60_000;
+    if (lateMs <= 0) return { hours: 0, amount: 0 };
+    const hours = Math.min(Math.ceil(lateMs / HOUR_MS), cfg.incidentals.maxLateHours ?? 72);
+    const amount = lateFeeCents(hours, {
+      perHourCents: cfg.incidentals.lateReturnPerHourCents,
+      hourlyMaxHours: cfg.incidentals.lateHourlyMaxHours ?? 6,
+      halfDayMaxHours: cfg.incidentals.lateHalfDayMaxHours ?? 12,
+      dayCents: dayPriceCents(booking.priceBreakdown),
+    });
+    return { hours, amount };
   }
 
   /** Everything decided before any money or calendar row moves: rules, days, conflicts, price, swap. */
@@ -1471,7 +1499,13 @@ export class BookingService {
     if (isNaN(newEnd.getTime()) || newEnd <= booking.period.end) {
       return fail('INVALID_DATE', 'Pick a date after your current trip end.');
     }
-    if (booking.period.end.getTime() <= Date.now()) return fail('TRIP_ENDED', 'This trip has already ended and cannot be extended.');
+    if (booking.period.end.getTime() <= Date.now()) {
+      // Past the return time the trip may still be extended for a while, if the car is out (not yet returned).
+      const lateMs = Date.now() - booking.period.end.getTime();
+      if (booking.status !== 'in_progress' || lateMs > (cfg.lateExtendHours ?? 0) * HOUR_MS) {
+        return fail('TRIP_ENDED', 'Your return time has passed, so this trip can no longer be extended. Please return the car.');
+      }
+    }
     // The licence and account must still be good through the NEW end date.
     const eligibility = await eligibilityService.evaluate(booking.guestId, newEnd);
     if (!eligibility.eligible) {
@@ -1548,8 +1582,8 @@ export class BookingService {
         { _id: bookingId },
         {
           $set: { 'period.end': newEnd },
-          // A new return time earns its own reminders.
-          $unset: { returnRemindersSent: 1 },
+          // A new return time earns its own reminders, and the car is no longer overdue.
+          $unset: { returnRemindersSent: 1, overdueNotifiedAt: 1, overdueEscalatedAt: 1, nextBookingAlertedAt: 1 },
           $inc: {
             'priceBreakdown.total.amount': extra.total.amount,
             'priceBreakdown.hostEarnings.amount': extra.hostEarnings.amount,
@@ -1780,6 +1814,7 @@ export class BookingService {
           $set: {
             vehicleId: candidate._id,
             hostId: candidate.hostId,
+            ...(blocker.swapOffer?.status === 'open' ? { 'swapOffer.status': 'expired', 'swapOffer.respondedAt': at } : {}),
             'priceBreakdown.hostEarnings.amount': quote.hostEarnings.amount,
             'priceBreakdown.commission.amount': quote.commission.amount,
             'priceBreakdown.tax.amount': quote.tax.amount,
