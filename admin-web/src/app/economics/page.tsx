@@ -98,6 +98,7 @@ export default function AdminEconomicsPage() {
         ...(draft.rebookingProtection ? { rebookingProtection: draft.rebookingProtection } : {}),
         tracking: draft.tracking,
         ...(draft.tripDocuments ? { tripDocuments: draft.tripDocuments } : {}),
+        ...(draft.identityViewing ? { identityViewing: draft.identityViewing } : {}),
         inspection: draft.inspection,
         extension: draft.extension,
         handover: draft.handover,
@@ -509,6 +510,22 @@ export default function AdminEconomicsPage() {
             <Input type="number" min={1} max={336} value={draft.booking.overdueEscalationHours}
               onChange={(e) => set((d) => { d.booking.overdueEscalationHours = Number(e.target.value); })} />
           </Field>
+          {draft.identityViewing && (
+            <>
+              <Field label="Host sees guest photo (minutes before pickup)" hint="The host can see the guest's verified selfie from this long before pickup until the trip starts.">
+                <Input type="number" min={0} max={1440} value={draft.identityViewing.hostMinutesBefore}
+                  onChange={(e) => set((d) => { d.identityViewing!.hostMinutesBefore = Number(e.target.value); })} />
+              </Field>
+              <Field label="Host photo view (seconds)" hint="How long the guest's selfie stays open for the host each time.">
+                <Input type="number" min={15} max={600} value={draft.identityViewing.hostViewSeconds}
+                  onChange={(e) => set((d) => { d.identityViewing!.hostViewSeconds = Number(e.target.value); })} />
+              </Field>
+              <Field label="Staff ID view (seconds)" hint="How long a guest's licence and selfie stay open for staff each time.">
+                <Input type="number" min={30} max={1800} value={draft.identityViewing.adminViewSeconds}
+                  onChange={(e) => set((d) => { d.identityViewing!.adminViewSeconds = Number(e.target.value); })} />
+              </Field>
+            </>
+          )}
           {draft.tripDocuments && (
             <>
               <Field label="Vehicle documents view (seconds)" hint="How long the registration and insurance stay open for a guest at a traffic stop.">

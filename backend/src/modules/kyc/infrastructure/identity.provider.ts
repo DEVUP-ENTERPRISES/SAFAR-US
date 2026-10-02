@@ -25,6 +25,9 @@ export interface IdentitySession {
   url?: string;
 }
 
+/** The ID photos a verification captured. */
+export type IdPhoto = 'selfie' | 'licence_front' | 'licence_back';
+
 export interface IdentityProvider {
   readonly kind: 'stripe' | 'stub';
   /** Begin a document + selfie check for a user. */
@@ -33,6 +36,10 @@ export interface IdentityProvider {
   parseEvent(rawBody: Buffer, signature: string): Promise<{ userId: string; result: IdentityResult } | null>;
   /** Ask the provider for a session's current outcome — the backup for a webhook that never arrived. Null while still undecided. */
   retrieve(sessionId: string): Promise<{ userId: string; result: IdentityResult } | null>;
+  /** Whether ID photos can be read at all (the provider gives them only to a dedicated read key). */
+  readonly canReadPhotos: boolean;
+  /** One ID photo from a verification, or null when it was not captured. */
+  photo(sessionId: string, kind: IdPhoto): Promise<Buffer | null>;
 }
 
 function hashLicence(v: string): string {
@@ -47,9 +54,28 @@ function hashLicence(v: string): string {
 class StripeIdentityProvider implements IdentityProvider {
   readonly kind = 'stripe' as const;
   private readonly stripe: Stripe;
+  private readonly reader?: Stripe;
 
-  constructor(secretKey: string) {
+  constructor(secretKey: string, private readonly readKey?: string) {
     this.stripe = new Stripe(secretKey);
+    if (readKey) this.reader = new Stripe(readKey);
+  }
+
+  get canReadPhotos() {
+    return !!this.reader;
+  }
+
+  async photo(sessionId: string, kind: IdPhoto): Promise<Buffer | null> {
+    if (!this.reader || !this.readKey) return null;
+    const vs = await this.reader.identity.verificationSessions.retrieve(sessionId, { expand: ['last_verification_report'] });
+    const report = vs.last_verification_report as Stripe.Identity.VerificationReport | string | null;
+    if (!report || typeof report === 'string') return null;
+    const fileId = kind === 'selfie' ? report.selfie?.selfie : report.document?.files?.[kind === 'licence_front' ? 0 : 1];
+    if (!fileId) return null;
+    // File bytes come from files.stripe.com, which the SDK does not wrap.
+    const res = await fetch(`https://files.stripe.com/v1/files/${encodeURIComponent(fileId)}/contents`, { headers: { Authorization: `Bearer ${this.readKey}` } });
+    if (!res.ok) throw new ExternalServiceError(`Stripe file ${res.status}`);
+    return Buffer.from(await res.arrayBuffer());
   }
 
   async createSession(userId: string): Promise<IdentitySession> {
@@ -144,10 +170,14 @@ class StubIdentityProvider implements IdentityProvider {
   async retrieve(): Promise<null> {
     return null;
   }
+  readonly canReadPhotos = false;
+  async photo(): Promise<null> {
+    return null;
+  }
 }
 
 export const identityProvider: IdentityProvider = config.kyc.identityEnabled
-  ? new StripeIdentityProvider(config.stripe.secretKey!)
+  ? new StripeIdentityProvider(config.stripe.secretKey!, config.kyc.identityReadKey)
   : new StubIdentityProvider();
 
 if (config.env === 'production' && !config.kyc.identityEnabled) {

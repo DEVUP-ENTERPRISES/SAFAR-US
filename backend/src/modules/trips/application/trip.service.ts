@@ -19,6 +19,7 @@ import { eligibilityService } from '../../bookings/application/eligibility.servi
 import { wheelbaseInsuranceService } from '../../insurance/application/wheelbase-insurance.service';
 import { payoutService } from '../../payouts/application/payout.service';
 import { ClaimModel } from '../../claims/infrastructure/claim.model';
+import { assertIdentityNotBlocked } from '../../bookings/domain/identity-check';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 
 export class TripService {
@@ -43,6 +44,7 @@ export class TripService {
     if (booking.status !== 'paid') {
       throw new ConflictError('Booking must be paid before starting the trip', 'INVALID_STATE');
     }
+    assertIdentityNotBlocked(booking);
     const existing = await TripModel.findOne({ bookingId }).lean();
     if (existing) throw new ConflictError('Trip already started', 'TRIP_EXISTS');
 
@@ -509,6 +511,7 @@ export class TripService {
     if (!this.isAdmin(principal) && !(await this.isHost(principal.userId, booking.hostId, booking.vehicleId, 'trip:handover'))) {
       throw new ForbiddenError('Only the host verifies pickup');
     }
+    assertIdentityNotBlocked(booking);
     await bookingService.verifyPickupCode(bookingId, code, principal.userId);
     const trip = await TripModel.findOne({ bookingId }).lean<TripDoc>();
     if (trip) await TripModel.updateOne({ _id: trip._id }, { pickupVerified: true, pickupVerifiedAt: new Date() });

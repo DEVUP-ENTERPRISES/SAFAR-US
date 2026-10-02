@@ -343,6 +343,13 @@ export interface PlatformConfigDoc {
     /** Minutes between repeat host alerts for the same trip. */
     alertCooldownMinutes: number;
   };
+  /** Who may see a guest's ID photos, and for how long. */
+  identityViewing: {
+    /** Minutes before pickup that the host can see the guest's selfie; hidden again once the trip starts. */
+    hostMinutesBefore: number;
+    hostViewSeconds: number;
+    adminViewSeconds: number;
+  };
   /** Post-trip incidental fee schedule (host-compensating), in minor units. */
   incidentals: {
     /** Charged per whole % of fuel returned below pickup level. */
@@ -774,6 +781,11 @@ const schema = new Schema<PlatformConfigDoc>(
       viewSeconds: { type: Number, default: 100 },
       alertHost: { type: Boolean, default: true },
       alertCooldownMinutes: { type: Number, default: 10 },
+    },
+    identityViewing: {
+      hostMinutesBefore: { type: Number, default: 60 },
+      hostViewSeconds: { type: Number, default: 100 },
+      adminViewSeconds: { type: Number, default: 300 },
     },
     incidentals: {
       fuelPerPercentCents: { type: Number, default: 300 },

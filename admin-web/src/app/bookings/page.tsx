@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { BookingStatusBadge } from '@/features/bookings/components/status-badge';
 import { formatMoney, formatDateRange } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
+import { adminPath } from '@/lib/admin-path';
 
 /**
  * Every state an operator needs to triage, not just the happy path.
@@ -78,7 +80,7 @@ export default function AdminBookingsPage() {
   };
 
   const columns: Column<any>[] = [
-    { header: 'Code', cell: (b) => <span className="font-mono text-xs">{b.code}</span> },
+    { header: 'Code', cell: (b) => <Link href={adminPath(`bookings/${b._id}`)} className="font-mono text-xs text-primary hover:underline">{b.code}</Link> },
     { header: 'Dates', cell: (b) => <span className="text-xs">{formatDateRange(b.period.start, b.period.end)}</span> },
     { header: 'Total', cell: (b) => formatMoney(b.priceBreakdown.total) },
     { header: 'Status', cell: (b) => <BookingStatusBadge status={b.status} /> },

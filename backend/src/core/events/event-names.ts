@@ -88,6 +88,7 @@ export const EVENTS = {
   TRIP_DOCUMENTS_OPENED: 'trip.documents.opened',
   TRIP_DOCUMENTS_REQUESTED: 'trip.documents.requested',
   TRIP_DOCUMENTS_READY: 'trip.documents.ready',
+  GUEST_IDENTITY_MISMATCH: 'trip.identity.mismatch',
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

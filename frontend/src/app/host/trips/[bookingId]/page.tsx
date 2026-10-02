@@ -33,6 +33,7 @@ import { HandoverStep, type StepStatus } from '@/features/host/components/handov
 import { usePlatformConfig } from '@/features/platform/config';
 import { DepositCard } from '@/features/payments/deposit-card';
 import { TripDocumentsHistory } from '@/features/host/components/trip-documents-history';
+import { GuestIdentityCard } from '@/features/host/components/guest-identity-card';
 
 type Tab = 'details' | 'messages' | 'help';
 
@@ -332,6 +333,8 @@ export default function HostTripDetailPage() {
               </p>
             </div>
           </div>
+
+          {!started && <GuestIdentityCard bookingId={bookingId} />}
 
           {!started && t.tripId && (
             <>

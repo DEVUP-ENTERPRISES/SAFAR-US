@@ -92,6 +92,7 @@ async function bookingTerms(bookingId: string): Promise<string[] | undefined> {
     }
     terms.push(
       'Only the verified driver on this booking may drive. Bring the driver’s licence you verified.',
+      `Shortly before pickup your host sees the photo from your ID check, to confirm it is you at the car. If they cannot, the trip is held until our team confirms your identity.`,
       'The vehicle is tracked for safety and recovery, as set out in the terms and conditions.',
       'Return the car on time and in the condition you received it. Late returns, tolls, tickets, fuel and damage are charged as set out in the terms and conditions.',
     );
@@ -574,6 +575,17 @@ export function registerEventSubscribers(): void {
       await notificationService.send({ userId: p.guestId, priority: 'critical', templateKey: 'trip.documents.ready', title: 'The car\'s documents are ready', body: 'Your host uploaded them. Open your trip and tap "Vehicle documents".', deepLink: `/bookings/${p.bookingId}?documents=1`, data: { bookingId: p.bookingId } });
     } catch (err) {
       logger.warn({ err, bookingId: p.bookingId }, 'documents ready notice failed');
+    }
+  });
+
+  // The host says the person at the car is not the verified guest: the trip is blocked, staff must check now.
+  eventBus.subscribe(EVENTS.GUEST_IDENTITY_MISMATCH, async (e) => {
+    const p = e.payload as { bookingId: string; code: string; guestId: string; note?: string };
+    await notifyStaff('trip.identity.mismatch', 'Guest identity did not match at pickup', `Booking ${p.code}: the host says the person at pickup is not the verified guest.${p.note ? ` Note: ${p.note}` : ''} The trip is blocked until you check and clear it in Admin → Bookings.`, { bookingId: p.bookingId }, 'critical');
+    try {
+      await notificationService.send({ userId: p.guestId, priority: 'critical', templateKey: 'trip.identity.mismatch', title: 'We need to confirm your identity', body: 'Your host could not match you with your verified photo, so the trip is on hold. Our team will contact you shortly.', deepLink: `/bookings/${p.bookingId}`, data: { bookingId: p.bookingId } });
+    } catch (err) {
+      logger.warn({ err, bookingId: p.bookingId }, 'identity mismatch guest notice failed');
     }
   });
 
