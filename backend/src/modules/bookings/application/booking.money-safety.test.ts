@@ -229,4 +229,33 @@ describe('extension re-checks', () => {
     await seedPaidBooking('e2', { status: 'in_progress', period: { start: new Date(Date.now() - 48 * HOUR), end: new Date(Date.now() - HOUR) } });
     await expect(bookingService.requestExtension('g1', 'e2', newEnd)).rejects.toMatchObject({ code: 'TRIP_ENDED' });
   });
+
+  it('lets a late guest extend for a while, with the late fee for the time already passed', async () => {
+    const saved = { extension: { ...mockConfig.extension } };
+    Object.assign(mockConfig.extension, { lateExtendHours: 6 });
+    Object.assign(mockConfig, {
+      tracking: { overdueGraceMinutes: 10 },
+      incidentals: { lateReturnPerHourCents: 2500, lateHourlyMaxHours: 6, lateHalfDayMaxHours: 12, maxLateHours: 72 },
+    });
+    try {
+      (pricingService.quote as jest.Mock).mockResolvedValue(breakdown(5000));
+      const newEnd = new Date(Date.now() + 48 * HOUR).toISOString();
+      const ended = (h: number) => ({ status: 'in_progress', period: { start: new Date(Date.now() - 48 * HOUR), end: new Date(Date.now() - h * HOUR) } });
+
+      await seedPaidBooking('l1', ended(1));
+      const p = await bookingService.extensionPreview('g1', 'l1', newEnd);
+      expect(p.available).toBe(true);
+      expect(p).toMatchObject({ lateCharge: money(2500), lateHours: 1 });
+
+      await seedPaidBooking('l2', ended(7));
+      const late = await bookingService.extensionPreview('g1', 'l2', newEnd);
+      expect(late.available).toBe(false);
+      expect(late.reason).toMatch(/return time has passed/);
+    } finally {
+      Object.assign(mockConfig.extension, saved.extension);
+      delete (mockConfig.extension as Record<string, unknown>).lateExtendHours;
+      delete (mockConfig as Record<string, unknown>).tracking;
+      delete (mockConfig as Record<string, unknown>).incidentals;
+    }
+  });
 });

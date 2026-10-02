@@ -168,6 +168,7 @@ router.put(
           swapPolicy: z.enum(['auto', 'off']).optional(),
           swapPriceToleranceBps: bps.optional(),
           swapMaxAbsorbCents: cents.optional(),
+          lateExtendHours: z.number().int().min(0).max(72).optional(),
         })
         .optional(),
       noShow: z

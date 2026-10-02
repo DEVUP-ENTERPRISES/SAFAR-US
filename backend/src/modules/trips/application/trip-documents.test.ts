@@ -15,6 +15,16 @@ import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/m
 
 const guest = { userId: 'guest', roles: ['guest'], ip: '1.2.3.4', userAgent: 'jest' };
 
+/** Audit rows are written in the background; wait for them instead of guessing a delay. */
+const auditCount = async (filter: Record<string, unknown>, want: number) => {
+  for (let i = 0; i < 60; i++) {
+    const n = await AuditLogModel.countDocuments(filter);
+    if (n >= want) return n;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  return AuditLogModel.countDocuments(filter);
+};
+
 beforeAll(connectTestDb);
 afterAll(disconnectTestDb);
 beforeEach(async () => {
@@ -81,8 +91,7 @@ describe('car papers during a trip', () => {
 
     await tripDocumentsService.open(guest, 'bk');
     expect(emit.mock.calls.filter(([n]) => n === EVENTS.TRIP_DOCUMENTS_OPENED)).toHaveLength(1);
-    await new Promise((r) => setTimeout(r, 50));
-    expect(await AuditLogModel.countDocuments({ action: 'trip.documents.opened', resourceId: 'bk' })).toBe(2);
+    expect(await auditCount({ action: 'trip.documents.opened', resourceId: 'bk' }, 2)).toBe(2);
   });
 
   it('serves each file stamped: an image becomes a JPEG, a PDF keeps its pages but loses its metadata', async () => {

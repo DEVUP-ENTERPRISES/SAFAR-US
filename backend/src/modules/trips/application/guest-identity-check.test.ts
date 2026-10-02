@@ -17,6 +17,16 @@ import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/m
 const host = { userId: 'hostUser', roles: ['host'], ip: '1.1.1.1', userAgent: 'jest' };
 const staff = { userId: 'staff', roles: ['support'], ip: '2.2.2.2', userAgent: 'jest' };
 
+/** Audit rows are written in the background; wait for them instead of guessing a delay. */
+const auditCount = async (filter: Record<string, unknown>, want: number) => {
+  for (let i = 0; i < 60; i++) {
+    const n = await AuditLogModel.countDocuments(filter);
+    if (n >= want) return n;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  return AuditLogModel.countDocuments(filter);
+};
+
 beforeAll(connectTestDb);
 afterAll(disconnectTestDb);
 beforeEach(async () => {
@@ -68,8 +78,7 @@ describe('host sees the guest selfie before pickup', () => {
 
     await TripModel.collection.insertOne({ _id: 't' as never, bookingId: 'bk', vehicleId: 'car', guestId: 'guest', hostId: 'host', status: 'active', handover: { at: new Date() } });
     await expect(guestIdentityCheckService.file(host, 'bk', v.token)).rejects.toThrow(/hidden again/);
-    await new Promise((r) => setTimeout(r, 50));
-    expect(await AuditLogModel.countDocuments({ action: 'guest.selfie.opened', resourceId: 'bk' })).toBe(1);
+    expect(await auditCount({ action: 'guest.selfie.opened', resourceId: 'bk' }, 1)).toBe(1);
   });
 
   it('a mismatch blocks the pickup until staff clear it, and alerts staff', async () => {
@@ -104,7 +113,7 @@ describe('staff view of who booked', () => {
     const f = await adminBookingOverviewService.idFile(staff, 'bk', v.token, 'licence_front');
     expect(f.contentType).toBe('image/jpeg');
     await expect(adminBookingOverviewService.idFile({ ...staff, userId: 'other' }, 'bk', v.token, 'selfie')).rejects.toThrow(/closed/);
-    await new Promise((r) => setTimeout(r, 50));
+    await auditCount({ action: 'guest.id.opened' }, 1);
     expect(await AuditLogModel.findOne({ action: 'guest.id.opened' }).lean()).toMatchObject({ reason: 'Damage claim on CD-7', actorId: 'staff' });
   });
 

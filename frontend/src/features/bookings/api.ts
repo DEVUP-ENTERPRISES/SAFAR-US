@@ -21,6 +21,9 @@ export interface ExtensionPreview {
   newEnd: string;
   /** The car is taken, but the platform can make the extension work by moving the next guest. */
   swap?: { possible: true; vehicle: { id: string; make: string; model: string; year: number } };
+  /** Extending after the grace period: the late time already passed, charged with the extension. */
+  lateCharge?: Money;
+  lateHours?: number;
 }
 
 export interface ReceiptLine {

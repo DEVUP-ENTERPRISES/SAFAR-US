@@ -87,6 +87,7 @@ export interface PlatformConfig {
     swapPolicy: 'auto' | 'off';
     swapPriceToleranceBps: number;
     swapMaxAbsorbCents: number;
+    lateExtendHours?: number;
   };
   /** Guest-cancel refunds per listing policy: full refund at least `fullBeforeHours` before pickup, else `partialBps`. */
   cancellation?: Record<'flexible' | 'moderate' | 'strict', { fullBeforeHours: number; partialBps: number }>;

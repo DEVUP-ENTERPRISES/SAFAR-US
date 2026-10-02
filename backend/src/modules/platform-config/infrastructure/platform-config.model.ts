@@ -495,6 +495,8 @@ export interface PlatformConfigDoc {
     swapPriceToleranceBps: number;
     /** The most the platform absorbs when the replacement car costs more (minor units). */
     swapMaxAbsorbCents: number;
+    /** A guest past the return time may still extend for this many hours; the late time already passed is charged. 0 = not once late. */
+    lateExtendHours: number;
   };
   /** Lines that rotate above the booking calendar; edited in admin, never hardcoded in the app. */
   content: {
@@ -861,6 +863,7 @@ const schema = new Schema<PlatformConfigDoc>(
       swapPolicy: { type: String, enum: ['auto', 'off'], default: 'auto' },
       swapPriceToleranceBps: { type: Number, default: 1500 },
       swapMaxAbsorbCents: { type: Number, default: 5000 },
+      lateExtendHours: { type: Number, default: 6 },
     },
     content: {
       bookingQuotes: { type: [String], default: undefined },

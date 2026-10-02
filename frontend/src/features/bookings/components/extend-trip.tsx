@@ -58,6 +58,9 @@ export function ExtendTrip({ booking, onDone }: { booking: Pick<Booking, '_id' |
             description: (
               <span>
                 Extending to {new Date(p.newEnd).toLocaleString()} adds <b>{formatMoney(p.extraCost)}</b>, charged now.
+                {p.lateCharge && (
+                  <> You are past your return time, so a late fee of <b>{formatMoney(p.lateCharge)}</b> for {p.lateHours} started hour{p.lateHours === 1 ? '' : 's'} is also charged.</>
+                )}
               </span>
             ),
             confirmLabel: `Pay ${formatMoney(p.extraCost)} & extend`,
@@ -77,6 +80,7 @@ export function ExtendTrip({ booking, onDone }: { booking: Pick<Booking, '_id' |
       {newEnd && p?.available && p.extraCost && (
         <p className="w-full text-sm">
           Adds <b>{formatMoney(p.extraCost)}</b> for the extra day{p.days === 1 ? '' : 's'}.
+          {p.lateCharge && <> Plus a late fee of <b>{formatMoney(p.lateCharge)}</b> for the time already past your return.</>}
         </p>
       )}
       {preview.isError && <p className="w-full text-sm text-destructive">Could not check those dates. Try again.</p>}
