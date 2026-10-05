@@ -257,8 +257,13 @@ textarea {
    whether it is on screen. A transition waits for the class the observer adds.
    ───────────────────────────────────────────────────────────────────── */
 .reveal {
-  opacity: 0;
-  transform: translateY(14px);
+  /*
+   * Keep content visible while hydration and IntersectionObserver settle.
+   * Hiding server-rendered content first caused a timing race on reload where
+   * the observer missed the initial intersection and the content disappeared.
+   */
+  opacity: 1;
+  transform: none;
   /* Decelerating curve - arrives fast, settles slowly. Linear entrances read
      as mechanical. */
   transition:
