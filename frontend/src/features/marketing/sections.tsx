@@ -57,9 +57,13 @@ export function TractionStats({
         <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">{heading}</h2>
         <p className="mt-4 text-base text-muted-foreground sm:text-lg">Real figures from a real fleet - 100% bootstrapped.</p>
       </Reveal>
-      <div className={`mt-12 grid gap-8 sm:grid-cols-2 ${stats.length === 4 ? 'lg:grid-cols-4 lg:gap-8' : 'lg:grid-cols-2 max-w-4xl mx-auto lg:gap-16'}`}>
+      <div className={`mt-12 grid sm:grid-cols-2 ${stats.length === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-2 max-w-4xl mx-auto'}`}>
         {stats.map((s, i) => (
-          <Reveal key={s.label} delay={i * 90}>
+          <Reveal
+            key={s.label}
+            delay={i * 90}
+            className={i > 0 ? 'border-t border-border sm:border-t-0 sm:border-l sm:border-border' : ''}
+          >
             <StatCard {...s} />
           </Reveal>
         ))}
@@ -72,9 +76,8 @@ function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label,
   prefix?: string; value: number; suffix?: string; decimals?: number; comma?: boolean; label: string; sub?: string;
 }) {
   return (
-    <div className="group relative flex flex-col items-center sm:items-start text-center sm:text-left py-6 transition-transform duration-500 hover:-translate-y-1">
-      <div className="pointer-events-none absolute -left-4 top-0 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-opacity duration-500 group-hover:bg-primary/10" />
-      <p className="numeric text-4xl font-extrabold tracking-tight text-primary sm:text-5xl lg:text-6xl drop-shadow-sm">
+    <div className="group flex min-w-0 flex-col px-6 py-8 transition-transform duration-500 hover:-translate-y-1">
+      <p className="numeric text-4xl font-extrabold tracking-tight text-primary sm:text-5xl">
         {prefix}
         <CountUp value={value} decimals={decimals} comma={comma} />
         {suffix}

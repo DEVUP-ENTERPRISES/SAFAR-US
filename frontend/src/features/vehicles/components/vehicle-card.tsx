@@ -66,10 +66,10 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
         <div className="relative z-20 flex flex-col flex-1 px-2 py-4 sm:px-4 sm:py-5">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
-              <h3 className="display truncate text-base sm:text-lg font-bold text-foreground transition-colors group-hover:text-primary">
+              <h3 className="display line-clamp-2 break-words text-sm font-bold leading-snug text-foreground transition-colors group-hover:text-primary sm:text-base">
                 {vehicle.make} {vehicle.model}
               </h3>
-              <p className="mt-1 truncate text-sm font-medium text-muted-foreground/80 flex items-center gap-1.5">
+              <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground/80 flex items-center gap-1">
                 {vehicle.year} 
                 <span className="h-1 w-1 rounded-full bg-muted-foreground/40"></span> 
                 {vehicle.location.city || '-'}
@@ -78,10 +78,10 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
             <VehicleRating vehicle={vehicle} className="shrink-0 rounded-full bg-foreground/5 px-2.5 py-1 text-[13px] leading-none text-foreground border border-border/50" />
           </div>
 
-          <div className="mt-auto pt-4 space-y-4">
+          <div className="mt-auto space-y-2 pt-2 sm:space-y-3 sm:pt-4">
             {/* Spec row */}
             <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
-              <span className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 border border-border/30">
+              <span className="flex items-center gap-1 rounded-md bg-muted/50 px-1.5 py-0.5 border border-border/30 sm:gap-1.5 sm:px-2 sm:py-1">
                 <Users className="h-3.5 w-3.5 text-foreground/60" /> {vehicle.seats}
               </span>
               <span className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 border border-border/30 capitalize">
@@ -103,11 +103,9 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
             </div>
 
             {/* Price */}
-            <div className="flex items-end gap-1.5 border-t border-border/50 pt-3">
-              {/* Price is data. Tabular figures keep it from shuffling
-                  sideways as digits change across a grid of cards. */}
-              <DailyPrice amount={vehicle.pricing.dailyPrice} currency={vehicle.pricing.currency} className="numeric text-2xl font-semibold text-foreground" />
-              <span className="text-sm font-medium text-muted-foreground pb-1">/ day</span>
+            <div className="flex items-end gap-1 border-t border-border/50 pt-2 sm:pt-3">
+              <DailyPrice amount={vehicle.pricing.dailyPrice} currency={vehicle.pricing.currency} className="numeric text-lg font-bold text-foreground sm:text-xl" />
+              <span className="pb-0.5 text-xs font-medium text-muted-foreground sm:text-sm">/ day</span>
             </div>
           </div>
         </div>
