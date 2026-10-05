@@ -156,7 +156,7 @@ export const envSchema = z.object({
    * transactional mail is safer with it. Deliverability suffers without one.
    */
   COMPANY_ADDRESS: z.string().default(''),
-  SUPPORT_EMAIL: z.string().default('support@example.com'),
+  SUPPORT_EMAIL: z.string().default('support@catodrive.com'),
   APPLE_CLIENT_ID: optional(z.string()),
   FACEBOOK_APP_ID: optional(z.string()),
   FACEBOOK_APP_SECRET: optional(z.string()),
