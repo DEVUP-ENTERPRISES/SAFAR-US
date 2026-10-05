@@ -12,11 +12,13 @@ import { formatMoney, formatDate } from '@/lib/utils/format';
 import { walletApi } from '@/features/wallet/api';
 import { AddCard } from '@/features/payments/add-card';
 import { ApiError } from '@/lib/api/types';
+import { useToast } from '@/components/ui/toast';
 
 const PRESETS = [2500, 5000, 10000, 20000]; // cents
 
 function Wallet() {
   const qc = useQueryClient();
+  const toast = useToast();
   const balanceQ = useQuery({ queryKey: ['wallet', 'balance'], queryFn: () => walletApi.balance() });
   const txQ = useQuery({ queryKey: ['wallet', 'transactions'], queryFn: () => walletApi.transactions() });
   const [amount, setAmount] = useState(5000);
@@ -26,6 +28,12 @@ function Wallet() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['wallet', 'balance'] });
       qc.invalidateQueries({ queryKey: ['wallet', 'transactions'] });
+      toast({ tone: 'success', title: `${formatMoney({ amount, currency: 'USD' })} added to your wallet.` });
+    },
+    onError: (e) => {
+      // PAYMENT_METHOD_REQUIRED is handled inline (shows AddCard) — don't toast for it.
+      if (e instanceof ApiError && e.code === 'PAYMENT_METHOD_REQUIRED') return;
+      toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Top-up failed. Please try again.' });
     },
   });
 
@@ -80,18 +88,13 @@ function Wallet() {
               Add {formatMoney({ amount, currency: 'USD' })}
             </Button>
           </div>
-          {topup.isSuccess && <p className="text-sm text-success">Added to your wallet ✓</p>}
           {topup.isError &&
             (topup.error instanceof ApiError && topup.error.code === 'PAYMENT_METHOD_REQUIRED' ? (
               <div className="space-y-3 rounded-xl border border-border p-3">
                 <p className="text-sm font-medium">{topup.error.message}</p>
                 <AddCard onSaved={() => topup.reset()} />
               </div>
-            ) : (
-              <p className="text-sm text-destructive">
-                {topup.error instanceof ApiError ? topup.error.message : 'Top-up failed. Please try again.'}
-              </p>
-            ))}
+            ) : null)}
         </CardContent>
       </Card>
 

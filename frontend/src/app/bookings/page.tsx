@@ -1,14 +1,14 @@
-'use client';
+﻿'use client';
 
 import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CarFront } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState, ErrorState } from '@/components/ui/states';
+import { ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ApiError } from '@/lib/api/types';
 import { BookingStatusBadge } from '@/features/bookings/components/status-badge';
@@ -65,53 +65,65 @@ function BookingsList() {
 
   if (isLoading)
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full" />
+          <Skeleton key={i} className="h-32 w-full rounded-2xl" />
         ))}
       </div>
     );
   if (isError) return <ErrorState message="Couldn't load your trips." retry={() => refetch()} />;
   if (!data || data.length === 0)
-    return <EmptyState title="No trips yet" description="Book a vehicle to see it here." />;
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-20 text-center">
+        <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+          <CarFront className="h-8 w-8 text-muted-foreground" />
+        </span>
+
+        <p className="mt-2 text-sm text-muted-foreground">Book a vehicle to see it here.</p>
+        <button
+          onClick={() => router.push('/search')}
+          className="mt-6 rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-md transition-all hover:brightness-110"
+        >
+          Browse vehicles
+        </button>
+      </div>
+    );
 
   const cancellable = ['pending_approval', 'confirmed', 'paid'];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {data.map((b) => (
-        <Card key={b._id}>
-          <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6">
-            <button onClick={() => router.push(`/bookings/${b._id}`)} className="min-w-0 text-start">
+        <div key={b._id} className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
+          <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:p-5">
+            <button onClick={() => router.push(`/bookings/${b._id}`)} className="min-w-0 flex-1 text-start">
               <div className="flex items-center gap-2">
-                <span className="font-semibold hover:text-primary hover:underline">{b.code}</span>
+                <span className="font-mono text-xs text-muted-foreground">{b.code}</span>
                 <BookingStatusBadge status={b.status} />
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                Pick-up {formatDateTime(b.period.start)} → Return {formatDateTime(b.period.end)}
+                {formatDateTime(b.period.start)} â†’ {formatDateTime(b.period.end)}
               </p>
               {NEXT_STEP[b.status] && (
-                <p className="mt-1 text-sm font-medium text-primary">{NEXT_STEP[b.status]}</p>
+                <p className="mt-2 text-xs font-medium text-primary">{NEXT_STEP[b.status]}</p>
               )}
               {b.status === 'paid' && (hostOnlyStart || (startTrip.error instanceof ApiError && startTrip.error.code === 'HOST_ONLY_START')) && (
-                <p className="mt-1 text-sm text-muted-foreground">{HOST_STARTS}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{HOST_STARTS}</p>
               )}
               {b.status === 'paid' && startTrip.variables === b._id && startTrip.error instanceof ApiError && startTrip.error.code !== 'HOST_ONLY_START' && startTrip.error.code !== 'PRE_PHOTOS_REQUIRED' && (
                 <p className="mt-1 text-sm text-destructive">{startTrip.error.message}</p>
               )}
             </button>
-            <div className="flex flex-col items-end gap-1">
-              <button
-                onClick={() => router.push(`/bookings/${b._id}/receipt`)}
-                className="font-semibold hover:text-primary hover:underline"
-                title="View receipt"
-              >
-                {formatMoney(b.priceBreakdown.total)}
+            <div className="flex shrink-0 flex-row items-center justify-between gap-3 sm:flex-col sm:items-end">
+              <button onClick={() => router.push(`/bookings/${b._id}/receipt`)} className="text-right" title="View receipt">
+                <p className="text-xl font-bold text-foreground hover:text-primary">{formatMoney(b.priceBreakdown.total)}</p>
+                <p className="text-xs text-muted-foreground">Total &middot; tap for receipt</p>
               </button>
-              <div className="flex items-center gap-1">
+
+              <div className="flex flex-wrap items-center justify-end gap-1.5">
                 {b.status === 'pending_payment' && (
                   <Button
-                    size="sm"
+                    size="sm" className="rounded-full"
                     loading={completePayment.isPending && completePayment.variables === b._id}
                     onClick={() => completePayment.mutate(b._id)}
                   >
@@ -119,27 +131,27 @@ function BookingsList() {
                   </Button>
                 )}
                 {b.status === 'paid' && !hostOnlyStart && (
-                  <Button size="sm" loading={startTrip.isPending} onClick={() => startTrip.mutate(b._id)}>
+                  <Button size="sm" className="rounded-full" loading={startTrip.isPending} onClick={() => startTrip.mutate(b._id)}>
                     Start trip
                   </Button>
                 )}
                 {b.status === 'in_progress' && b.tripId && (
-                  <Button size="sm" onClick={() => router.push(`/trips/${b.tripId}`)}>
+                  <Button size="sm" className="rounded-full" onClick={() => router.push(`/trips/${b.tripId}`)}>
                     Open trip
                   </Button>
                 )}
                 {['paid', 'in_progress'].includes(b.status) && (
-                  <Button size="sm" variant="outline" onClick={() => { setExtendId(extendId === b._id ? null : b._id); setShortenId(null); }}>
+                  <Button size="sm" className="rounded-full" variant="outline" onClick={() => { setExtendId(extendId === b._id ? null : b._id); setShortenId(null); }}>
                     Extend
                   </Button>
                 )}
                 {b.status === 'paid' && (
-                  <Button size="sm" variant="outline" onClick={() => { setShortenId(shortenId === b._id ? null : b._id); setShortEnd(''); setExtendId(null); }}>
+                  <Button size="sm" className="rounded-full" variant="outline" onClick={() => { setShortenId(shortenId === b._id ? null : b._id); setShortEnd(''); setExtendId(null); }}>
                     Shorten
                   </Button>
                 )}
                 {['completed', 'cancelled'].includes(b.status) && (
-                  <Button size="sm" variant="outline" onClick={() => router.push(`/vehicles/${b.vehicleId}`)}>
+                  <Button size="sm" className="rounded-full" variant="outline" onClick={() => router.push(`/vehicles/${b.vehicleId}`)}>
                     Book again
                   </Button>
                 )}
@@ -147,8 +159,7 @@ function BookingsList() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-destructive"
-                    loading={cancel.isPending || previewing === b._id}
+                    className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive" loading={cancel.isPending || previewing === b._id}
                     onClick={async () => {
                       // Fetch the exact refund first, the way Turo does - a
                       // guest deciding whether to eat a loss deserves the real
@@ -164,11 +175,11 @@ function BookingsList() {
                             <span className="block">
                               You paid <b>{formatMoney(p.total)}</b>.{' '}
                               {p.isFullRefund ? (
-                                <>You’ll be refunded the <b>full {formatMoney(p.refund)}</b>.</>
+                                <>Youâ€™ll be refunded the <b>full {formatMoney(p.refund)}</b>.</>
                               ) : p.refund.amount > 0 ? (
-                                <>You’ll be refunded <b>{formatMoney(p.refund)}</b> - {formatMoney(p.nonRefundable)} is non-refundable under this host’s {policyLabel.toLowerCase()} policy.</>
+                                <>Youâ€™ll be refunded <b>{formatMoney(p.refund)}</b> - {formatMoney(p.nonRefundable)} is non-refundable under this hostâ€™s {policyLabel.toLowerCase()} policy.</>
                               ) : (
-                                <>This is <b>non-refundable</b> under this host’s {policyLabel.toLowerCase()} policy.</>
+                                <>This is <b>non-refundable</b> under this hostâ€™s {policyLabel.toLowerCase()} policy.</>
                               )}
                             </span>
                             {p.fullRefundUntil && !p.isFullRefund && (
@@ -200,7 +211,7 @@ function BookingsList() {
                 )}
               </div>
             </div>
-          </CardContent>
+          </div>
           {extendId === b._id && (
             <div className="border-t border-border p-4">
               <ExtendTrip booking={b} onDone={() => setExtendId(null)} />
@@ -219,7 +230,7 @@ function BookingsList() {
                 />
               </div>
               <Button
-                size="sm"
+                size="sm" className="rounded-full"
                 disabled={!shortEnd || !shortPreview.data?.available}
                 loading={shorten.isPending}
                 onClick={async () => {
@@ -241,7 +252,7 @@ function BookingsList() {
                 Confirm shorter trip
               </Button>
               {shortEnd && shortPreview.isFetching && (
-                <p className="w-full text-xs text-muted-foreground">Checking your refund…</p>
+                <p className="w-full text-xs text-muted-foreground">Checking your refundâ€¦</p>
               )}
               {shortEnd && shortPreview.data && !shortPreview.data.available && (
                 <p className="w-full text-sm text-destructive">{shortPreview.data.reason}</p>
@@ -258,7 +269,7 @@ function BookingsList() {
               )}
             </div>
           )}
-        </Card>
+        </div>
       ))}
     </div>
   );
@@ -267,8 +278,15 @@ function BookingsList() {
 export default function BookingsPage() {
   return (
     <AuthGuard>
-      <div className="space-y-6">
-        <h1 className="display text-display-sm">Your trips</h1>
+      <div className="space-y-6 px-0">
+        <div>
+          <h1 className="display text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+            Your trips
+          </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            All your bookings and trip history in one place.
+          </p>
+        </div>
         <BookingsList />
       </div>
     </AuthGuard>

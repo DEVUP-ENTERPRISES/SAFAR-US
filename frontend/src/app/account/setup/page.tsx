@@ -174,7 +174,7 @@ export default function AccountSetupPage() {
               <Input id="lastName" value={form.lastName} onChange={set('lastName')} autoComplete="family-name" required />
             </Field>
             <Field label="Date of birth" htmlFor="dob" required invalid={bad('dateOfBirth')}>
-              <Input id="dob" type="date" value={form.dateOfBirth} onChange={set('dateOfBirth')} autoComplete="bday" required />
+              <Input id="dob" type="date" value={form.dateOfBirth} onChange={set('dateOfBirth')} autoComplete="bday" required min="1900-01-01" max={new Date(Date.now() - 16 * 365.25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)} />
             </Field>
             <Field label="Mobile number" htmlFor="phone" required invalid={bad('phone')}>
               <PhoneInput id="phone" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} required />

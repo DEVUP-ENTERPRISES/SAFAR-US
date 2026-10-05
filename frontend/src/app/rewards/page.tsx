@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Sparkles, Gift, TrendingUp, Check } from 'lucide-react';
+import { Gift, TrendingUp, Check } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,7 @@ function Rewards() {
       <div className={`overflow-hidden rounded-2xl bg-gradient-to-br ${TIER_COLOR[data.tier.key] ?? 'from-primary to-primary'} p-6 text-white shadow-lift`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="flex items-center gap-1 text-sm text-white/80"><Sparkles className="h-4 w-4" /> {data.tier.label} member</p>
+            <p className="flex items-center gap-1 text-sm text-white/80">{data.tier.label} member</p>
             <p className="mt-1 text-4xl font-black">{data.balance.toLocaleString()} <span className="text-lg font-medium">pts</span></p>
             <p className="text-sm text-white/80">≈ {formatMoney({ amount: data.balance * data.pointValueCents, currency: 'USD' })} in credit</p>
           </div>
