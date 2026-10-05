@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, CreditCard, AlertTriangle } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -136,7 +136,12 @@ function Membership() {
       ) : list.length === 0 ? (
         <EmptyState title="No plans available" description="Memberships are not open yet. Check back soon." />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={cn(
+          'grid gap-4',
+          list.length === 1
+            ? 'grid-cols-1'
+            : 'sm:grid-cols-2 lg:grid-cols-3',
+        )}>
           {list.map((p) => (
             <PlanCard
               key={p.code}
@@ -144,6 +149,7 @@ function Membership() {
               current={active?.planCode === p.code}
               disabled={!!active}
               busy={subscribe.isPending}
+              featured={list.length === 1}
               onSubscribe={() => subscribe.mutate(p.code)}
             />
           ))}
@@ -161,48 +167,68 @@ function Membership() {
 }
 
 function PlanCard({
-  plan, current, disabled, busy, onSubscribe,
+  plan, current, disabled, busy, onSubscribe, featured,
 }: {
-  plan: Plan; current: boolean; disabled: boolean; busy: boolean; onSubscribe: () => void;
+  plan: Plan; current: boolean; disabled: boolean; busy: boolean; onSubscribe: () => void; featured?: boolean;
 }) {
   const benefits = describeBenefits(plan.benefits);
   const free = plan.priceCents === 0;
 
   return (
-    <Card className={cn('flex flex-col', current && 'border-primary ring-1 ring-primary')}>
-      <CardContent className="flex flex-1 flex-col py-6">
-        <div className="flex items-start justify-between gap-2">
-          <p className="font-semibold">{plan.name}</p>
-          {current && <Badge tone="success">Current</Badge>}
+    <Card className={cn(
+      'flex overflow-hidden',
+      featured ? 'flex-col sm:flex-row' : 'flex-col',
+      current && 'border-primary ring-1 ring-primary',
+      featured && !current && 'border-primary/30',
+    )}>
+      {/* Left / top: price + name */}
+      <div className={cn(
+        'flex shrink-0 flex-col justify-between bg-primary/5 p-6',
+        featured ? 'sm:w-56' : '',
+      )}>
+        <div>
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-bold text-foreground">{plan.name}</p>
+            {current && <Badge tone="success">Current</Badge>}
+          </div>
+          {plan.description && (
+            <p className="mt-1.5 text-sm text-muted-foreground">{plan.description}</p>
+          )}
         </div>
+        <div className="mt-6">
+          <p className="numeric text-4xl font-extrabold leading-none text-foreground">
+            {free ? 'Free' : money(plan.priceCents)}
+          </p>
+          {!free && <p className="mt-1 text-sm text-muted-foreground">per month</p>}
+          <Button
+            className="mt-4 w-full rounded-full font-bold"
+            variant={current ? 'outline' : 'primary'}
+            disabled={disabled || current || free}
+            loading={busy}
+            onClick={onSubscribe}
+          >
+            {current ? 'Your plan' : disabled ? 'Cancel your plan first' : free ? 'Included' : `Join for ${money(plan.priceCents)}/mo`}
+          </Button>
+        </div>
+      </div>
 
-        <p className="numeric mt-2 text-3xl font-bold leading-none">
-          {free ? 'Free' : money(plan.priceCents)}
-          {!free && <span className="text-base font-medium text-muted-foreground">/mo</span>}
+      {/* Right / bottom: benefits */}
+      <div className={cn('flex flex-1 flex-col p-6', featured && 'sm:border-l sm:border-border')}>
+        <p className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          What's included
         </p>
-
-        {plan.description && <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>}
-
-        <ul className="mt-4 flex-1 space-y-2 text-sm">
+        <ul className={cn('space-y-2.5 text-sm', featured && 'sm:grid sm:grid-cols-2 sm:gap-x-6 sm:space-y-0 sm:gap-y-2.5')}>
           {benefits.map((b) => (
             <li key={b} className="flex items-start gap-2">
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-              <span>{b}</span>
+              <span className="text-foreground">{b}</span>
             </li>
           ))}
-          {benefits.length === 0 && <li className="text-muted-foreground">Standard pricing.</li>}
+          {benefits.length === 0 && (
+            <li className="text-muted-foreground">Standard pricing.</li>
+          )}
         </ul>
-
-        <Button
-          className="mt-5"
-          variant={current ? 'outline' : 'primary'}
-          disabled={disabled || current || free}
-          loading={busy}
-          onClick={onSubscribe}
-        >
-          {current ? 'Your plan' : disabled ? 'Cancel your plan first' : free ? 'Included' : `Join for ${money(plan.priceCents)}/mo`}
-        </Button>
-      </CardContent>
+      </div>
     </Card>
   );
 }

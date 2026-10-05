@@ -18,6 +18,7 @@ import { useVehicleSearch, useFacets, useFilterCounts } from '@/features/vehicle
 import { useMutation } from '@tanstack/react-query';
 import { savedSearchApi } from '@/features/saved-search/api';
 import { useAuthStore } from '@/features/auth/store';
+import { useToast } from '@/components/ui/toast';
 import { FUEL_LABEL } from '@/lib/utils/format';
 import { MapboxPanel } from '@/features/maps/components/mapbox-panel';
 import { SearchBarFields } from '@/features/search/search-bar-fields';
@@ -95,7 +96,7 @@ function FilterDropdown({
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition-colors',
+          'flex h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors sm:h-10 sm:gap-1.5 sm:px-4 sm:text-sm',
           active ? 'border-foreground bg-foreground text-background' : 'border-border bg-card hover:border-foreground/50',
         )}
       >
@@ -167,7 +168,12 @@ function SearchInner() {
   const cities = facets.data?.cities ?? [];
   const categories = facets.data?.categories ?? [];
   const status = useAuthStore((s) => s.status);
-  const saveSearch = useMutation({ mutationFn: savedSearchApi.create });
+  const toast = useToast();
+  const saveSearch = useMutation({
+    mutationFn: savedSearchApi.create,
+    onSuccess: () => toast({ tone: 'success', title: "Search saved — we'll alert you when new vehicles match." }),
+    onError: () => toast({ tone: 'error', title: 'Could not save search. Please try again.' }),
+  });
 
   // Where / From / Until / Age live in the shared store so the bar can render
   // in the navbar (desktop) and here (mobile) and stay in sync.
@@ -299,17 +305,16 @@ function SearchInner() {
   };
 
   return (
-    <div className="space-y-5">
-      {/* Search bar - desktop shows it inline in the navbar; mobile shows the
-          full box here. Same shared store drives both. */}
+    <div className="space-y-4">
+      {/* Search bar — hidden on desktop (lives in navbar), shown on mobile */}
       <div className="relative z-40 lg:hidden">
         <SearchBarFields variant="bar" />
       </div>
 
       {/* ── Filter pills + view toggle ────────────────────────────────── */}
-      <div className="sticky top-16 z-30 -mx-4 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6">
+      <div className="-mx-4 border-b border-border/60 bg-background/95 px-4 py-2.5 backdrop-blur-md sm:-mx-6 sm:px-6">
         <div className="flex items-center gap-2">
-          <div className="hide-scrollbar flex flex-1 items-center gap-2 overflow-x-auto">
+          <div className="hide-scrollbar flex flex-1 items-center gap-1.5 overflow-x-auto sm:gap-2">
             {/* All filters */}
             <FilterDropdown
               label={<SlidersHorizontal className="h-4 w-4" />}
@@ -442,7 +447,7 @@ function SearchInner() {
               type="button"
               onClick={() => setInstantBook((v) => !v)}
               className={cn(
-                'flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition-colors',
+                'flex h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors sm:h-10 sm:gap-1.5 sm:px-4 sm:text-sm',
                 instantBook ? 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-500' : 'border-border bg-card hover:border-foreground/50',
               )}
             >
@@ -451,36 +456,38 @@ function SearchInner() {
           </div>
 
           {/* Grid / Map toggle (Desktop) */}
-          <div className="hidden md:flex shrink-0 rounded-full border border-border bg-card p-1">
+          <div className="hidden md:flex shrink-0 items-center gap-1 rounded-full border border-border bg-card px-1 py-1">
             <button
               onClick={() => setView('grid')}
-              className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors', view === 'grid' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground')}
+              className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors', view === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
             >
-              <LayoutGrid className="h-4 w-4" /> <span>Grid</span>
+              <LayoutGrid className="h-4 w-4" /> Grid
             </button>
             <button
               onClick={() => setView('map')}
-              className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors', view === 'map' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground')}
+              className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors', view === 'map' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
             >
-              <MapIcon className="h-4 w-4" /> <span>Map</span>
+              <MapIcon className="h-4 w-4" /> Map
             </button>
           </div>
         </div>
       </div>
 
       {/* ── Count + sort + save ───────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2 mb-2">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-          {isFetching ? 'Searching…' : `${data?.length ?? 0} cars available`}
-          <span className="block sm:inline sm:ms-2 text-sm sm:text-base font-medium text-muted-foreground mt-1 sm:mt-0">in {areaLabel}</span>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-lg font-bold tracking-tight sm:text-2xl">
+          {isFetching ? 'Searching…' : `${data?.length ?? 0} cars`}
+          <span className="ms-1.5 text-sm font-medium text-muted-foreground sm:text-base">
+            in {areaLabel}
+          </span>
         </h1>
-        <div className="flex items-center gap-2 self-start sm:self-auto w-full sm:w-auto">
+        <div className="flex shrink-0 items-center gap-2">
           {status === 'authenticated' && (
             <Button
               variant="outline"
               size="sm"
               loading={saveSearch.isPending}
-              className="flex-1 sm:flex-none h-10 sm:h-9"
+              className="hidden h-9 sm:flex"
               onClick={() =>
                 saveSearch.mutate({
                   city: city || undefined,
@@ -493,18 +500,18 @@ function SearchInner() {
                 })
               }
             >
-              <Bell className="h-4 w-4" /> {saveSearch.isSuccess ? 'Saved' : 'Save search'}
+              <Bell className="h-4 w-4" /> {saveSearch.isSuccess ? 'Saved' : 'Save'}
             </Button>
           )}
-          <div className="relative flex-1 sm:flex-none">
+          <div className="relative">
             <Select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="h-10 sm:h-9 w-full sm:w-auto cursor-pointer appearance-none rounded-full border border-border bg-card ps-4 pe-9 text-sm font-medium outline-none hover:border-foreground/40"
+              className="h-9 w-auto cursor-pointer appearance-none rounded-full border border-border bg-card ps-3 pe-8 text-xs font-medium outline-none hover:border-foreground/40 sm:ps-4 sm:pe-9 sm:text-sm"
             >
               {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
             </Select>
-            <ChevronDown className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <ChevronDown className="pointer-events-none absolute end-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:end-3 sm:h-4 sm:w-4" />
           </div>
         </div>
       </div>
@@ -537,7 +544,7 @@ function SearchInner() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-20 md:pb-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-24 sm:gap-5 md:pb-6">
             {data.map((v, i) => (
               <Reveal key={v._id} delay={Math.min(i, 7) * 45}>
                 <VehicleCard vehicle={v} />

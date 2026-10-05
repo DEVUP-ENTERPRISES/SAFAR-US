@@ -64,12 +64,18 @@ export function Reveal({
     if (!el) return;
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (still) return;
-    setArmed(true);
     const obs = observer();
     if (!obs) return;
+    setArmed(true);
     // Anything already on screen at mount reveals immediately rather than
     // waiting for a scroll that may never come on a short page.
     obs.observe(el);
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom > 0 && rect.top < window.innerHeight) {
+      el.classList.add('is-revealed');
+      shown.add(el);
+      obs.unobserve(el);
+    }
     return () => obs.unobserve(el);
   }, []);
 

@@ -50,34 +50,26 @@ export default function AboutPage() {
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate grain overflow-hidden hero-mesh">
         <div className="mx-auto max-w-6xl px-4 pb-20 pt-14 sm:px-6 sm:pb-28 sm:pt-20">
-          <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur">
-              <PlaneTakeoff className="h-3.5 w-3.5" /> Airport mobility, reimagined
-            </span>
-          </Reveal>
-          <Reveal delay={80}>
-            <h1 className="display mt-6 max-w-4xl text-[2.4rem] leading-[0.98] text-white sm:mt-7 sm:text-[4rem] lg:text-[4.9rem]">
-              Airport mobility is trapped in{' '}
-              <span className="text-white/30 line-through decoration-primary/70 decoration-4">1995</span>.
-            </h1>
-          </Reveal>
-          <Reveal delay={160}>
-            <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70 sm:mt-7 sm:text-xl">
-              Every rental company makes you take a shuttle bus to a satellite lot. {BRAND} delivers your
-              car <span className="font-semibold text-white">curbside at the terminal</span> - DFW and Love Field.
-              Keys in hand.
-            </p>
-          </Reveal>
-          <Reveal delay={240}>
-            <div className="mt-8 flex flex-wrap gap-4 sm:mt-10">
-              <Link href="/search" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
-                Book a car <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-              <Link href="/asset-partners" className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10 sm:h-14 sm:px-7 sm:text-base">
-                Become an Asset Partner
-              </Link>
-            </div>
-          </Reveal>
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur">
+            <PlaneTakeoff className="h-3.5 w-3.5" /> Airport mobility, reimagined
+          </span>
+          <h1 className="display mt-6 max-w-4xl text-[2.4rem] leading-[0.98] text-white sm:mt-7 sm:text-[4rem] lg:text-[4.9rem]">
+            Airport mobility is trapped in{' '}
+            <span className="text-white/30 line-through decoration-primary/70 decoration-4">1995</span>.
+          </h1>
+          <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70 sm:mt-7 sm:text-xl">
+            Every rental company makes you take a shuttle bus to a satellite lot. {BRAND} delivers your
+            car <span className="font-semibold text-white">curbside at the terminal</span> - DFW and Love Field.
+            Keys in hand.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-4 sm:mt-10">
+            <Link href="/search" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
+              Book a car <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <Link href="/asset-partners" className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10 sm:h-14 sm:px-7 sm:text-base">
+              Become an Asset Partner
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -89,7 +81,6 @@ export default function AboutPage() {
           and a responsive aspect ratio keeps it a real photo at every width
           instead of squashing into a thin strip on small screens. */}
       <div className="relative z-10 mx-auto -mt-10 max-w-6xl px-4 sm:-mt-20 sm:px-6">
-        <Reveal delay={300}>
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.75rem] border border-border shadow-2xl shadow-black/20 sm:aspect-[16/9] lg:aspect-[21/9]">
             <Image
               src="/newsections/cato-hero-people.webp"
@@ -100,7 +91,6 @@ export default function AboutPage() {
               className="object-cover"
             />
           </div>
-        </Reveal>
       </div>
 
       <div className="mx-auto max-w-6xl space-y-14 px-4 pb-16 pt-8 sm:space-y-16 sm:px-6 sm:pt-12">
