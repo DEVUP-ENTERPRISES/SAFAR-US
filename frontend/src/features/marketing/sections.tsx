@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { ArrowRight, TrendingUp, Briefcase, Building2, Users } from 'lucide-react';
 import { Reveal } from '@/components/ui/reveal';
 import { config } from '@/lib/config';
+import { useFacets } from '@/features/vehicles/hooks';
 
 /**
  * Shared CatoDrive marketing sections, so the homepage and the About page show
@@ -47,9 +48,18 @@ export function TractionStats({
   heading = 'The numbers, unedited.',
   excludeLive = false,
 }: { heading?: string; excludeLive?: boolean }) {
+  const live = useFacets().data?.stats;
+  const liveReviews = !excludeLive && live && live.ratingCount > 0
+    ? {
+        prefix: '', value: live.ratingCount, suffix: '', decimals: 0, comma: true, label: `Reviews on ${BRAND}`,
+        sub: live.ratingAvg != null ? `${live.ratingAvg.toFixed(2)}★ average, live` : undefined,
+      }
+    : null;
+  // Live reviews take the revenue tile's place once there are any; until then the revenue figure stays.
+  const base = liveReviews ? [liveReviews, ...STATS.slice(1)] : STATS;
   const stats = excludeLive
-    ? STATS.filter((s) => s.label !== 'Rating' && s.label !== 'Trips Completed')
-    : STATS;
+    ? base.filter((s) => s.label !== 'Rating' && s.label !== 'Trips Completed')
+    : base;
   return (
     <section>
       <Reveal className="mx-auto max-w-2xl text-center">
@@ -72,9 +82,10 @@ function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label,
   prefix?: string; value: number; suffix?: string; decimals?: number; comma?: boolean; label: string; sub?: string;
 }) {
   return (
-    <div className="group relative flex flex-col items-center sm:items-start text-center sm:text-left py-6 transition-transform duration-500 hover:-translate-y-1">
+    <div className="group relative flex min-w-0 flex-col items-center sm:items-start text-center sm:text-left py-6 transition-transform duration-500 hover:-translate-y-1">
       <div className="pointer-events-none absolute -left-4 top-0 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-opacity duration-500 group-hover:bg-primary/10" />
-      <p className="numeric text-4xl font-extrabold tracking-tight text-primary sm:text-5xl lg:text-6xl drop-shadow-sm">
+      {/* Sized to the column on wide screens so a long figure ($766,143+) never runs into the next one. */}
+      <p className="numeric max-w-full whitespace-nowrap text-4xl font-extrabold tracking-tight text-primary sm:text-5xl lg:text-[clamp(2rem,2.9vw,2.85rem)] drop-shadow-sm">
         {prefix}
         <CountUp value={value} decimals={decimals} comma={comma} />
         {suffix}
