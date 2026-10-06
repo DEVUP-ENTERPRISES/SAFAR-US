@@ -21,19 +21,19 @@ import { useTrending, useFacets } from '@/features/vehicles/hooks';
 const STEPS = [
   {
     icon: CarFront,
-    image: '/sections/find-the-one.webp',
+    image: '/catodrive/catodrive-find-the-one.webp',
     title: 'Find the one',
     body: 'Browse our premium managed fleet. Filter by price, vehicle type, or delivery - every car is operated by us.',
   },
   {
     icon: KeyRound,
-    image: '/sections/book-in-seconds.webp',
+    image: '/catodrive/catodrive-book-in-seconds.webp',
     title: 'Book in seconds',
     body: 'Reserve instantly with Instant Book. No back-and-forth, no waiting on anyone to approve.',
   },
   {
     icon: Route,
-    image: '/sections/hit-the-road.webp',
+    image: '/catodrive/catodrive-hit-the-road.webp',
     title: 'Hit the road',
     body: 'Pick it up or have our team deliver it - your door, hotel, or terminal. Keys in hand, on time.',
   },
@@ -96,7 +96,7 @@ export default function HomePage() {
         {/* Full-bleed background photo */}
         <div className="absolute inset-0 -z-10">
           <Image
-            src="/sections/hit-the-road.webp"
+            src="/catodrive/catodrive-hit-the-road.webp"
             alt=""
             fill
             priority
@@ -347,7 +347,7 @@ export default function HomePage() {
             <div className="relative order-first lg:order-last">
               <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-primary/15 blur-3xl" />
               <Image
-                src="/sections/cato-your-car.webp"
+                src="/catodrive/catodrive-your-car.webp"
                 alt="CatoDrive managed fleet earnings"
                 width={1200}
                 height={800}
