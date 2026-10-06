@@ -44,7 +44,7 @@ export class AuthService {
       lastName: dto.lastName,
     });
     // Attach referral (best-effort; never blocks signup).
-    if (dto.referralCode) {
+    if (dto.referralCode && (await platformConfigService.get()).programs.referralEnabled) {
       const { referralService } = await import('../../referral/application/referral.service');
       await referralService.attach(user._id, dto.referralCode).catch(() => undefined);
     }

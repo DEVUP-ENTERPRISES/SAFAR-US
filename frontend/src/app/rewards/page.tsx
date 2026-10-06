@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { rewardsApi } from '@/features/rewards/api';
+import { usePrograms, usePlatformConfig } from '@/features/platform/config';
+import { ProgramPaused } from '@/features/platform/program-paused';
 
 const TIER_COLOR: Record<string, string> = {
   bronze: 'from-amber-700 to-amber-500',
@@ -106,5 +108,13 @@ function Rewards() {
 }
 
 export default function RewardsPage() {
-  return <AuthGuard><Rewards /></AuthGuard>;
+  return <AuthGuard><Gate /></AuthGuard>;
+}
+
+/** The page only mounts while the programme is switched on; otherwise a paused notice. */
+function Gate() {
+  const programs = usePrograms();
+  const cfgLoading = usePlatformConfig().isLoading;
+  if (cfgLoading) return null;
+  return programs.rewards ? <Rewards /> : <ProgramPaused name="Rewards" />;
 }

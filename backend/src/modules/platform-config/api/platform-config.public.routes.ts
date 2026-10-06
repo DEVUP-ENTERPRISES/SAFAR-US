@@ -40,6 +40,7 @@ router.get(
       handover: cfg.handover,
       booking: { minLeadMinutes: cfg.booking.minLeadMinutes, dailyMileageMiles: cfg.booking.dailyMileageMiles, cancellationPolicy: cfg.booking.cancellationPolicy },
       content: { bookingQuotes: cfg.content.bookingQuotes },
+      programs: { rewardsEnabled: cfg.programs.rewardsEnabled, referralEnabled: cfg.programs.referralEnabled },
       checkout: { otherMethodsEnabled: cfg.checkout.otherMethodsEnabled },
       // Sign-in by text code is only offered when a text provider is actually configured.
       auth: { phoneSignIn: config.notifications.smsEnabled },

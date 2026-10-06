@@ -103,6 +103,7 @@ export default function AdminEconomicsPage() {
         extension: draft.extension,
         handover: draft.handover,
         security: draft.security,
+        ...(draft.programs ? { programs: draft.programs } : {}),
         content: { bookingQuotes: (draft.content?.bookingQuotes ?? []).map((l) => l.trim()).filter(Boolean).slice(0, 12) },
       });
     }
@@ -548,6 +549,16 @@ export default function AdminEconomicsPage() {
                 <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.tripDocuments.enabled}
                   onChange={(e) => set((d) => { d.tripDocuments!.enabled = e.target.checked; })} />
                 Guests can open vehicle documents during a trip
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="h-4 w-4 accent-primary" checked={!!draft.programs?.rewardsEnabled}
+                  onChange={(e) => set((d) => { d.programs = { rewardsEnabled: e.target.checked, referralEnabled: !!d.programs?.referralEnabled }; })} />
+                Rewards programme is on (off hides Rewards everywhere; points already earned are kept)
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="h-4 w-4 accent-primary" checked={!!draft.programs?.referralEnabled}
+                  onChange={(e) => set((d) => { d.programs = { rewardsEnabled: !!d.programs?.rewardsEnabled, referralEnabled: e.target.checked }; })} />
+                Refer a friend is on (off hides it, and referral codes at sign-up are ignored)
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.tripDocuments.alertHost}

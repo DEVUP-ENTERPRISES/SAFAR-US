@@ -16,6 +16,7 @@ import { Field } from '@/components/ui/field';
 import { useRegister } from '@/features/auth/hooks';
 import { ApiError } from '@/lib/api/types';
 import { safeRedirect } from '@/lib/utils/safe-redirect';
+import { usePrograms } from '@/features/platform/config';
 
 const schema = z.object({
   firstName: z.string().min(1, 'Required'),
@@ -36,6 +37,7 @@ function RegisterInner() {
   const bookingReturn = returnTo.startsWith('/vehicles/');
 
   const registerMutation = useRegister({ redirectTo: returnTo });
+  const programs = usePrograms();
   const { register, handleSubmit, setValue, watch, formState } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const ref = qp.get('ref');
@@ -73,9 +75,11 @@ function RegisterInner() {
             <Field label="Password" htmlFor="password" hint="Use at least 8 characters." error={formState.errors.password?.message}>
               <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
             </Field>
-            <Field label="Referral code (optional)" htmlFor="referralCode">
-              <Input id="referralCode" placeholder="Have a code?" {...register('referralCode')} />
-            </Field>
+            {programs.referral && (
+              <Field label="Referral code (optional)" htmlFor="referralCode">
+                <Input id="referralCode" placeholder="Have a code?" {...register('referralCode')} />
+              </Field>
+            )}
 
             {registerMutation.isError && (
               <p role="alert" className="text-sm text-destructive">

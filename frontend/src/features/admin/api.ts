@@ -37,6 +37,7 @@ export interface PlatformConfig {
   /** Charged to the guest on top; commission comes out of host earnings. */
   serviceFee: { bps: number; maxCents: number; flatCents: number };
   content?: { bookingQuotes: string[] };
+  programs?: { rewardsEnabled: boolean; referralEnabled: boolean };
   tax: { bps: number };
   /**
    * The Asset Partner agreement's figures. Separate from commission on

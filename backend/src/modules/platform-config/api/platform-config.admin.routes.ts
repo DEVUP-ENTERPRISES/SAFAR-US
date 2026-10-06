@@ -359,6 +359,9 @@ router.put(
           instantFeeMinCents: cents.optional(),
         })
         .optional(),
+      programs: z
+        .object({ rewardsEnabled: z.boolean().optional(), referralEnabled: z.boolean().optional() })
+        .optional(),
       content: z
         .object({ bookingQuotes: z.array(z.string().trim().min(3).max(160)).max(12).optional() })
         .optional(),

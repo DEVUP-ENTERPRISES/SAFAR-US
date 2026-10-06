@@ -10,6 +10,7 @@ import { useUnreadMessages } from '@/features/messaging/hooks';
 import { useLogout } from '@/features/auth/hooks';
 import { useIsAssetPartner } from '@/features/asset-partners/hooks';
 import { cn } from '@/lib/utils/cn';
+import { usePrograms } from '@/features/platform/config';
 
 
 /**
@@ -45,6 +46,7 @@ export function UserMenu() {
   // `inFooter` items are already in the phone tab bar, so the drawer hides them
   // on mobile to avoid showing everything twice. Desktop has no footer bar, so
   // there they stay visible.
+  const programs = usePrograms();
   const items = [
     { href: '/bookings', label: 'My trips', icon: Car, inFooter: true },
     { href: '/messages', label: 'Messages', icon: MessageSquare, inFooter: true },
@@ -53,7 +55,7 @@ export function UserMenu() {
     { href: '/wallet', label: 'Wallet', icon: Wallet, inFooter: false },
     { href: '/citations', label: 'Tickets & tolls', icon: FileWarning, inFooter: false },
     { href: '/membership', label: 'Membership', icon: Sparkles, inFooter: false },
-    { href: '/rewards', label: 'Rewards', icon: Gift, inFooter: false },
+    ...(programs.rewards ? [{ href: '/rewards', label: 'Rewards', icon: Gift, inFooter: false }] : []),
     { href: '/account', label: 'Account', icon: User, inFooter: true },
     { href: '/help', label: 'Help centre', icon: BookOpen, inFooter: false },
     { href: '/support', label: 'Support', icon: LifeBuoy, inFooter: false },

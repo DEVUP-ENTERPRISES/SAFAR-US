@@ -499,6 +499,11 @@ export interface PlatformConfigDoc {
     lateExtendHours: number;
   };
   /** Lines that rotate above the booking calendar; edited in admin, never hardcoded in the app. */
+  /** Guest programmes that can be paused while a decision is pending. */
+  programs: {
+    rewardsEnabled: boolean;
+    referralEnabled: boolean;
+  };
   content: {
     bookingQuotes: string[];
   };
@@ -864,6 +869,10 @@ const schema = new Schema<PlatformConfigDoc>(
       swapPriceToleranceBps: { type: Number, default: 1500 },
       swapMaxAbsorbCents: { type: Number, default: 5000 },
       lateExtendHours: { type: Number, default: 6 },
+    },
+    programs: {
+      rewardsEnabled: { type: Boolean, default: false },
+      referralEnabled: { type: Boolean, default: false },
     },
     content: {
       bookingQuotes: { type: [String], default: undefined },

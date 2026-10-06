@@ -1,4 +1,7 @@
+'use client';
+
 import { Logo } from '@/components/layout/logo';
+import { usePrograms } from '@/features/platform/config';
 import Link from 'next/link';
 import { config } from '@/lib/config';
 
@@ -58,6 +61,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
 ];
 
 export function Footer() {
+  const programs = usePrograms();
   return (
     <footer className="mt-24 border-t border-border bg-subtle">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
@@ -74,7 +78,7 @@ export function Footer() {
           </div>
 
           {/* Link columns */}
-          {COLUMNS.map((col) => (
+          {COLUMNS.map((col) => ({ ...col, links: col.links.filter((l) => (l.href !== '/rewards' || programs.rewards) && (l.href !== '/referral' || programs.referral)) })).map((col) => (
             <div key={col.title}>
               <h3 className="text-sm font-semibold">{col.title}</h3>
               <ul className="mt-4 space-y-2.5">

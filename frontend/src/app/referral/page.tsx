@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatMoney } from '@/lib/utils/format';
+import { usePrograms, usePlatformConfig } from '@/features/platform/config';
+import { ProgramPaused } from '@/features/platform/program-paused';
 
 interface Referral {
   code: string; referred: number; pending: number;
@@ -57,5 +59,13 @@ function ReferralInner() {
 }
 
 export default function ReferralPage() {
-  return <AuthGuard><ReferralInner /></AuthGuard>;
+  return <AuthGuard><Gate /></AuthGuard>;
+}
+
+/** The page only mounts while the programme is switched on; otherwise a paused notice. */
+function Gate() {
+  const programs = usePrograms();
+  const cfgLoading = usePlatformConfig().isLoading;
+  if (cfgLoading) return null;
+  return programs.referral ? <ReferralInner /> : <ProgramPaused name="Refer a friend" />;
 }
