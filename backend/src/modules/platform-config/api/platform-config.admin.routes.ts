@@ -360,7 +360,7 @@ router.put(
         })
         .optional(),
       programs: z
-        .object({ rewardsEnabled: z.boolean().optional(), referralEnabled: z.boolean().optional() })
+        .object({ rewardsEnabled: z.boolean().optional(), referralEnabled: z.boolean().optional(), membershipEnabled: z.boolean().optional() })
         .optional(),
       content: z
         .object({ bookingQuotes: z.array(z.string().trim().min(3).max(160)).max(12).optional() })

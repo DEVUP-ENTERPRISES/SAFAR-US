@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils/cn';
 import { ApiError } from '@/lib/api/types';
 import { subscriptionApi, describeBenefits, type Plan } from '@/features/subscriptions/api';
 import { ProBadge } from '@/features/subscriptions/member-ui';
+import { usePrograms, usePlatformConfig } from '@/features/platform/config';
+import { ProgramPaused } from '@/features/platform/program-paused';
 
 const money = (c: number) => `$${(c / 100).toFixed(c % 100 === 0 ? 0 : 2)}`;
 
@@ -210,7 +212,15 @@ function PlanCard({
 export default function MembershipPage() {
   return (
     <AuthGuard>
-      <Membership />
+      <Gate />
     </AuthGuard>
   );
+}
+
+/** The page only mounts while membership is switched on; otherwise a paused notice. */
+function Gate() {
+  const programs = usePrograms();
+  const cfgLoading = usePlatformConfig().isLoading;
+  if (cfgLoading) return null;
+  return programs.membership ? <Membership /> : <ProgramPaused name="Membership" />;
 }

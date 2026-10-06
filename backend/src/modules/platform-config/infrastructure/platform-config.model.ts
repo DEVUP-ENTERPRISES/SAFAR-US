@@ -503,6 +503,8 @@ export interface PlatformConfigDoc {
   programs: {
     rewardsEnabled: boolean;
     referralEnabled: boolean;
+    /** CATO Plus: off stops new sign-ups and hides it; existing members keep their benefits until their period ends. */
+    membershipEnabled: boolean;
   };
   content: {
     bookingQuotes: string[];
@@ -873,6 +875,7 @@ const schema = new Schema<PlatformConfigDoc>(
     programs: {
       rewardsEnabled: { type: Boolean, default: false },
       referralEnabled: { type: Boolean, default: false },
+      membershipEnabled: { type: Boolean, default: false },
     },
     content: {
       bookingQuotes: { type: [String], default: undefined },

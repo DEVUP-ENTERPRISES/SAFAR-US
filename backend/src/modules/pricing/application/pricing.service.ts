@@ -264,7 +264,7 @@ export class PricingService implements IPricingContract {
       memberPlan: memberSub?.planCode,
       // Only computed for non-members: a member is already getting the benefit,
       // and telling them what they would save by joining is nonsense.
-      memberOffer: memberSub ? undefined : await bestMemberOffer(base),
+      memberOffer: memberSub || !cfg.programs.membershipEnabled ? undefined : await bestMemberOffer(base),
     };
   }
 }

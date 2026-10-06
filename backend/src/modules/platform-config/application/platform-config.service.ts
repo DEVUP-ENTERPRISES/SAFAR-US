@@ -261,7 +261,7 @@ export class PlatformConfigService {
         // only a non-empty override replaces the default.
         tiers: doc.rewards?.tiers?.length ? doc.rewards.tiers : DEFAULT_REWARD_TIERS,
       },
-      programs: { rewardsEnabled: false, referralEnabled: false, ...(doc.programs ?? {}) },
+      programs: { rewardsEnabled: false, referralEnabled: false, membershipEnabled: false, ...(doc.programs ?? {}) },
       content: { bookingQuotes: doc.content?.bookingQuotes?.length ? doc.content.bookingQuotes : DEFAULT_BOOKING_QUOTES },
       booking: {
         hostApprovalHours: 24,

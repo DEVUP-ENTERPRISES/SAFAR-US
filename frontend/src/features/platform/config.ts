@@ -20,7 +20,7 @@ export interface PlatformPublicConfig {
   /** Lines rotating above the booking calendar. */
   content?: { bookingQuotes: string[] };
   /** Guest programmes the admin can pause; absent on an older backend. */
-  programs?: { rewardsEnabled: boolean; referralEnabled: boolean };
+  programs?: { rewardsEnabled: boolean; referralEnabled: boolean; membershipEnabled?: boolean };
   checkout?: { otherMethodsEnabled: boolean };
   auth?: { phoneSignIn: boolean };
   /** Protection tiers a guest can buy at checkout; priced per day in cents. */
@@ -76,7 +76,7 @@ export const platformApi = {
 /** Rewards / Refer-a-friend switches; off while unknown, so a paused programme never flashes on screen. */
 export function usePrograms() {
   const p = usePlatformConfig().data?.programs;
-  return { rewards: !!p?.rewardsEnabled, referral: !!p?.referralEnabled };
+  return { rewards: !!p?.rewardsEnabled, referral: !!p?.referralEnabled, membership: !!p?.membershipEnabled };
 }
 
 export function usePlatformConfig() {

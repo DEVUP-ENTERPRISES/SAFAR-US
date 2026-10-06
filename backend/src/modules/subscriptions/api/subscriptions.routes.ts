@@ -5,14 +5,19 @@ import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate } from '../../../shared/middleware/authenticate';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { AppError } from '../../../core/errors/app-error';
 
 const router = Router();
+
+// CATO Plus can be paused from admin: nothing is offered and nobody new can join; existing members are unaffected.
+const membershipOn = async () => (await platformConfigService.get()).programs.membershipEnabled;
 
 /** Public: the membership tiers on offer. */
 router.get(
   '/plans',
   asyncHandler(async (_req, res) => {
-    sendSuccess(res, await subscriptionService.listPlans(true));
+    sendSuccess(res, (await membershipOn()) ? await subscriptionService.listPlans(true) : []);
   }),
 );
 
@@ -38,6 +43,7 @@ router.post(
   authenticate,
   validate({ body: z.object({ planCode: z.string().min(1) }) }),
   asyncHandler(async (req, res) => {
+    if (!(await membershipOn())) throw new AppError({ code: 'PROGRAM_PAUSED', message: 'Membership is paused for now.', httpStatus: 403 });
     sendSuccess(res, await subscriptionService.subscribe(req.principal!.userId, req.body.planCode), 201);
   }),
 );
