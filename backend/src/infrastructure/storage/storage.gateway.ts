@@ -100,7 +100,7 @@ export function parseKey(key: string): { category: string; ownerId: string } | n
 export interface StorageGateway {
   createUploadTargets(input: CreateUploadInput): Promise<UploadTarget[]>;
   /** Short-lived read URL for a private object (presigned GET on S3). */
-  createDownloadUrl(key: string): Promise<string>;
+  createDownloadUrl(key: string, opts?: { publicStable?: boolean }): Promise<string>;
   /** The object's bytes, read on the server so a private file never needs a link the client could keep. */
   readObject(key: string): Promise<{ body: Buffer; contentType?: string }>;
   /** The durable URL an object is served from once uploaded. */

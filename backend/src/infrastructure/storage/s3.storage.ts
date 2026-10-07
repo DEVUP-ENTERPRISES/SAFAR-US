@@ -174,7 +174,17 @@ export class S3StorageGateway implements StorageGateway {
    * access to whoever holds it — it's handed to an already-authorized viewer
    * and expires before it can be shared around.
    */
-  async createDownloadUrl(key: string): Promise<string> {
+  async createDownloadUrl(key: string, opts: { publicStable?: boolean } = {}): Promise<string> {
+    if (opts.publicStable) {
+      // Public marketplace photos: signed from the start of the UTC day for 7 days, so every request that day
+      // gets the same URL and browsers can cache the image instead of downloading it again.
+      const day = new Date();
+      day.setUTCHours(0, 0, 0, 0);
+      return getSignedUrl(this.s3, new GetObjectCommand({ Bucket: this.bucket, Key: key }), {
+        expiresIn: 7 * 24 * 3600,
+        signingDate: day,
+      });
+    }
     return getSignedUrl(
       this.s3,
       new GetObjectCommand({ Bucket: this.bucket, Key: key }),

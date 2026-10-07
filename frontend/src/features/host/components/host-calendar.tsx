@@ -113,7 +113,7 @@ export function HostCalendar() {
                     <div className="h-9 w-12 shrink-0 overflow-hidden rounded bg-muted">
                       {v.photos?.[0]?.url ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={v.photos[0].url} alt="" className="h-full w-full object-cover" />
+                        <img src={v.photos[0].url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center brand-gradient text-[10px] font-bold text-white/70">
                           {v.make.slice(0, 1)}

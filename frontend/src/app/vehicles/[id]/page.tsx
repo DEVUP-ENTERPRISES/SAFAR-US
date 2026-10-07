@@ -438,6 +438,8 @@ export default function VehicleDetailPage() {
                 <img
                   src={p.url}
                   alt=""
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-full cursor-pointer object-cover transition-opacity hover:opacity-90"
                 />
               </button>
@@ -453,7 +455,7 @@ export default function VehicleDetailPage() {
                 aria-label={`Open photo ${i + 2}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.url} alt="" className="h-full w-full object-cover" />
+                <img src={p.url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
               </button>
             ))}
           </div>

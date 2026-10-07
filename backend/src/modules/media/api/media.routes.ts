@@ -117,10 +117,9 @@ router.get(
       throw new ForbiddenError('This file is not public');
     }
 
-    const url = await storageGateway.createDownloadUrl(key);
-    // Cache below the signature's own lifetime so a cached redirect can never
-    // outlive the URL it points at.
-    res.set('Cache-Control', 'public, max-age=60');
+    const url = await storageGateway.createDownloadUrl(key, { publicStable: true });
+    // The link is the same all day and valid for at least six more days, so a six-hour cache can never outlive it.
+    res.set('Cache-Control', 'public, max-age=21600');
     // helmet defaults every response to `same-origin`, which makes the browser
     // refuse to paint this image into the web app (it is served from the API
     // origin, not the site's). These objects are public marketplace content and
