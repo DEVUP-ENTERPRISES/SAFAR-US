@@ -1,4 +1,5 @@
 import { config } from '../../config';
+import { storageGateway } from '../../infrastructure/storage/storage.provider';
 
 /**
  * Rewriting stored media URLs to the host we are actually running on.
@@ -16,6 +17,8 @@ import { config } from '../../config';
  */
 
 const MARKER = '/media/view?key=';
+/** Only marketplace media may go straight to the CDN; the CDN can read nothing else in the bucket. */
+const CDN_PUBLIC = /^(vehicle_photo|trip_photo|avatar)\//;
 
 /** Cheap guard so the common case costs one substring check. */
 export function looksLikeStoredMedia(s: string): boolean {
@@ -25,6 +28,15 @@ export function looksLikeStoredMedia(s: string): boolean {
 export function rewriteMediaUrl(url: string): string {
   const at = url.indexOf(MARKER);
   if (at === -1) return url;
+  // With a CDN configured, a public photo is served from it directly instead of through this API.
+  let key = '';
+  try {
+    key = decodeURIComponent(url.slice(at + MARKER.length).split('&')[0]);
+  } catch {
+    key = '';
+  }
+  const cdn = key && CDN_PUBLIC.test(key) ? storageGateway.cdnUrlFor(key) : null;
+  if (cdn) return cdn;
   // Keep everything from the marker on; replace whatever host preceded it.
   return `${config.app.publicUrl}${url.slice(at)}`;
 }

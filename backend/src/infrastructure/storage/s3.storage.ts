@@ -164,6 +164,10 @@ export class S3StorageGateway implements StorageGateway {
    * used to return the direct URL unconditionally, which is why every photo
    * uploaded successfully and then rendered as a broken image (S3 answered 403).
    */
+  cdnUrlFor(key: string): string | null {
+    return this.hasCdn ? `${this.publicBase}/${key}` : null;
+  }
+
   publicUrlFor(key: string): string {
     if (this.hasCdn) return `${this.publicBase}/${key}`;
     return `${config.app.publicUrl}/media/view?key=${encodeURIComponent(key)}`;

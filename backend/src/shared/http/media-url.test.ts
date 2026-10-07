@@ -1,5 +1,6 @@
 import { normaliseMediaUrls, rewriteMediaUrl, looksLikeStoredMedia } from './media-url';
 import { config } from '../../config';
+import { storageGateway } from '../../infrastructure/storage/storage.provider';
 
 /**
  * This runs on every single response, so it has to be both correct and
@@ -70,6 +71,18 @@ describe('media URL normalisation', () => {
     const out = normaliseMediaUrls({ at: d });
     expect(out.at).toBeInstanceOf(Date);
     expect(out.at.getTime()).toBe(d.getTime());
+  });
+
+  it('sends public photos to the CDN when one is configured, and never private files', () => {
+    const spy = jest.spyOn(storageGateway, 'cdnUrlFor').mockImplementation((k) => `https://dcdn.cloudfront.net/${k}`);
+    expect(rewriteMediaUrl(stale)).toBe('https://dcdn.cloudfront.net/vehicle_photo/abc.jpg');
+    const priv = 'http://localhost:8080/api/v1/media/view?key=kyc%2F2026%2F01%2Fu%2Fx.jpg';
+    expect(rewriteMediaUrl(priv)).toBe(`${base}/media/view?key=kyc%2F2026%2F01%2Fu%2Fx.jpg`);
+    spy.mockRestore();
+  });
+
+  it('keeps the API link when no CDN is configured', () => {
+    expect(rewriteMediaUrl(stale)).toBe(`${base}/media/view?key=vehicle_photo%2Fabc.jpg`);
   });
 
   it('handles an array at the top level', () => {

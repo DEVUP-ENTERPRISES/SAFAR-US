@@ -105,4 +105,6 @@ export interface StorageGateway {
   readObject(key: string): Promise<{ body: Buffer; contentType?: string }>;
   /** The durable URL an object is served from once uploaded. */
   publicUrlFor(key: string): string;
+  /** The CDN address of an object, or null when no CDN is configured. */
+  cdnUrlFor(key: string): string | null;
 }

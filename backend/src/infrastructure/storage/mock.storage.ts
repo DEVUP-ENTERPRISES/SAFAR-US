@@ -37,6 +37,10 @@ export class MockStorageGateway implements StorageGateway {
     });
   }
 
+  cdnUrlFor(): string | null {
+    return null;
+  }
+
   publicUrlFor(key: string): string {
     return `https://picsum.photos/seed/${encodeURIComponent(key)}/1200/800`;
   }
