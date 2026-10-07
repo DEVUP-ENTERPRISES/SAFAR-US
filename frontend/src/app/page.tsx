@@ -91,68 +91,40 @@ export default function HomePage() {
     <div className="-mt-24">
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="full-bleed relative isolate flex flex-col overflow-hidden sm:min-h-[72vh] lg:min-h-[70vh]">
-        {/* Full-bleed background photo, drifting slowly so the hero feels alive */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
+      {/* A rounded photo card that starts just below the floating navbar, so nothing in the photo hides behind it;
+          the search bar sits across the card's bottom edge. */}
+      <section className="full-bleed px-3 pt-[5.5rem] sm:px-5">
+        <h1 className="sr-only">CatoDrive: rent premium cars delivered to you</h1>
+
+        <div className="relative isolate mx-auto aspect-[3/2] max-w-7xl overflow-hidden rounded-[1.75rem] shadow-2xl shadow-black/40 ring-1 ring-white/10 sm:aspect-auto sm:h-[56vh] sm:min-h-[380px] sm:rounded-[2.25rem] lg:h-[62vh] lg:max-h-[640px]">
           <Image
             src="/catodrive/catodrive-hit-the-road.webp"
             alt=""
             fill
             priority
             sizes="100vw"
-            className="hero-drift object-cover object-center opacity-70"
+            className="hero-drift -z-10 object-cover object-[center_35%]"
           />
           {/* A soft band of light that crosses the photo every few seconds */}
           <div aria-hidden className="hero-sweep pointer-events-none absolute inset-0" />
-          {/* Multi-layer overlay for depth:
-              1. Radial vignette — darkens edges, focuses eye on center
-              2. Linear gradient — bottom half darker so search bar always readable
-              3. Subtle teal tint at the very bottom — ties photo to brand */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.55)_100%)]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/80" />
-          <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" />
-          {/* Fades into the page instead of ending on a hard edge */}
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
+          {/* Gentle vignette and a darker base, so the search bar always reads */}
+          <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.45)_100%)]" />
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent" />
         </div>
 
-        {/* Content — vertically centered in the full viewport */}
-        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 pb-8 pt-28 text-center sm:px-6 sm:pb-14 sm:pt-28">
-
-          <h1 className="sr-only">CatoDrive: rent premium cars delivered to you</h1>
-
-          {/* Search bar: glass card with a slow light running round its edge, so it reads as the one thing to do here. */}
-          <Reveal delay={60}>
-            <div className="relative w-[min(100vw-2rem,60rem)]">
-              <div aria-hidden className="search-halo-glow pointer-events-none absolute -inset-6 -z-10 rounded-[3rem] blur-3xl" />
-              <div className="search-halo">
-                <SearchBarFields calendarPlacement="overlay" />
-              </div>
+        {/* Search bar: half on the photo, half on the page */}
+        <Reveal delay={60}>
+          <div className="relative z-10 mx-auto -mt-10 w-[min(100%,60rem)] px-1 sm:-mt-[42px] sm:px-0">
+            <div aria-hidden className="search-halo-glow pointer-events-none absolute -inset-6 -z-10 rounded-[3rem] blur-3xl" />
+            <div className="search-halo">
+              <SearchBarFields calendarPlacement="overlay" />
             </div>
-          </Reveal>
-
-          {/* What every booking includes, in one glance */}
-          <Reveal delay={140}>
-            <ul className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:mt-7 sm:gap-3">
-              {[
-                { icon: Zap, label: 'Instant Book' },
-                { icon: MapPin, label: 'Curbside delivery' },
-                { icon: BadgeCheck, label: 'Every car verified' },
-              ].map(({ icon: Icon, label }) => (
-                <li
-                  key={label}
-                  className="hero-chip inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md sm:text-sm"
-                >
-                  <Icon className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" /> {label}
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-
-        </div>
+          </div>
+        </Reveal>
       </section>
 
       {/* ── Body sections ────────────────────────────────────────────────── */}
-      <div className="space-y-20 pb-12 pt-4 sm:space-y-24 sm:pb-16 sm:pt-6">
+      <div className="space-y-20 pb-12 pt-10 sm:space-y-24 sm:pb-16 sm:pt-14">
 
         {/* ── Available vehicles ─────────────────────────────────────────── */}
         <section className="space-y-6">
