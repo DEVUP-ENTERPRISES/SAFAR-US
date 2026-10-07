@@ -91,17 +91,19 @@ export default function HomePage() {
     <div className="-mt-24">
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="full-bleed relative isolate flex min-h-screen flex-col overflow-hidden">
-        {/* Full-bleed background photo */}
-        <div className="absolute inset-0 -z-10">
+      <section className="full-bleed relative isolate flex flex-col overflow-hidden sm:min-h-[72vh] lg:min-h-[70vh]">
+        {/* Full-bleed background photo, drifting slowly so the hero feels alive */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
           <Image
             src="/catodrive/catodrive-hit-the-road.webp"
             alt=""
             fill
             priority
             sizes="100vw"
-            className="object-cover object-center opacity-70"
+            className="hero-drift object-cover object-center opacity-70"
           />
+          {/* A soft band of light that crosses the photo every few seconds */}
+          <div aria-hidden className="hero-sweep pointer-events-none absolute inset-0" />
           {/* Multi-layer overlay for depth:
               1. Radial vignette — darkens edges, focuses eye on center
               2. Linear gradient — bottom half darker so search bar always readable
@@ -109,10 +111,12 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.55)_100%)]" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/80" />
           <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" />
+          {/* Fades into the page instead of ending on a hard edge */}
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
         </div>
 
         {/* Content — vertically centered in the full viewport */}
-        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 pb-[22vh] pt-[5.5rem] text-center sm:px-6 sm:pt-20">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 pb-8 pt-28 text-center sm:px-6 sm:pb-14 sm:pt-28">
 
           <h1 className="sr-only">CatoDrive: rent premium cars delivered to you</h1>
 
@@ -126,11 +130,29 @@ export default function HomePage() {
             </div>
           </Reveal>
 
+          {/* What every booking includes, in one glance */}
+          <Reveal delay={140}>
+            <ul className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:mt-7 sm:gap-3">
+              {[
+                { icon: Zap, label: 'Instant Book' },
+                { icon: MapPin, label: 'Curbside delivery' },
+                { icon: BadgeCheck, label: 'Every car verified' },
+              ].map(({ icon: Icon, label }) => (
+                <li
+                  key={label}
+                  className="hero-chip inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md sm:text-sm"
+                >
+                  <Icon className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" /> {label}
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+
         </div>
       </section>
 
       {/* ── Body sections ────────────────────────────────────────────────── */}
-      <div className="space-y-20 py-12 sm:space-y-24 sm:py-16">
+      <div className="space-y-20 pb-12 pt-4 sm:space-y-24 sm:pb-16 sm:pt-6">
 
         {/* ── Available vehicles ─────────────────────────────────────────── */}
         <section className="space-y-6">

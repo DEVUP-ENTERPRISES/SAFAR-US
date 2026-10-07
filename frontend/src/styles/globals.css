@@ -385,3 +385,32 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   .search-halo, .search-halo-glow { animation: none; }
 }
+
+/* ── Homepage hero motion ───────────────────────────────────────────────── */
+.hero-drift {
+  animation: hero-drift 24s ease-in-out infinite alternate;
+  transform-origin: 60% 50%;
+}
+@keyframes hero-drift {
+  from { transform: scale(1.02) translate3d(0, 0, 0); }
+  to { transform: scale(1.1) translate3d(-1.5%, -1%, 0); }
+}
+.hero-sweep {
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.07) 48%, hsl(var(--primary) / 0.1) 52%, transparent 65%);
+  background-size: 250% 100%;
+  animation: hero-sweep 9s ease-in-out infinite;
+}
+@keyframes hero-sweep {
+  0% { background-position: 120% 0; }
+  55%, 100% { background-position: -40% 0; }
+}
+.hero-chip {
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+.hero-chip:hover {
+  background-color: rgba(255, 255, 255, 0.16);
+  border-color: hsl(var(--primary) / 0.5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-drift, .hero-sweep { animation: none; }
+}

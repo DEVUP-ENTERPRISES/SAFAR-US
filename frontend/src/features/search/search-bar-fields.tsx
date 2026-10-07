@@ -276,9 +276,9 @@ export function SearchBarFields({
     <div ref={wrap} className="w-full" data-search-root>
       <div
         className={cn(
-          'flex items-stretch bg-card',
-          'flex-col overflow-hidden rounded-2xl border border-border/50 shadow-2xl',
-          'sm:h-[72px] sm:flex-row sm:rounded-full',
+          'grid grid-cols-2 items-stretch bg-card',
+          'overflow-hidden rounded-2xl border border-border/50 shadow-2xl',
+          'sm:flex sm:h-[72px] sm:flex-row sm:rounded-full',
         )}
       >
         {/* Where */}
@@ -294,6 +294,7 @@ export function SearchBarFields({
           grow
           divider
           bar
+          className="col-span-2"
         />
 
         {/* From date */}
@@ -308,6 +309,7 @@ export function SearchBarFields({
           onOpen={() => setOpen(open === 'from-date' ? null : 'from-date')}
           divider
           bar
+          className="border-r border-border/50"
         />
 
         {/* From time */}
@@ -336,6 +338,7 @@ export function SearchBarFields({
           onOpen={() => setOpen(open === 'until-date' ? null : 'until-date')}
           divider
           bar
+          className="border-b-0 border-r border-border/50"
         />
 
         {/* Until time */}
@@ -352,7 +355,7 @@ export function SearchBarFields({
         />
 
         {/* Search */}
-        <div className="flex items-center p-2.5 sm:pe-2.5">
+        <div className="col-span-2 flex items-center border-t border-border/50 p-2.5 sm:border-t-0 sm:pe-2.5">
           <button
             onClick={onSearch}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary font-bold text-primary-foreground transition-all hover:brightness-110 active:scale-95 sm:h-12 sm:w-12"
@@ -377,7 +380,7 @@ export function SearchBarFields({
 // ─── Seg (field segment) ─────────────────────────────────────────────────────
 
 function Seg({
-  id, segRefs, icon, label, value, placeholder, open, onOpen, grow, divider, bar,
+  id, segRefs, icon, label, value, placeholder, open, onOpen, grow, divider, bar, className,
 }: {
   id: FieldId;
   segRefs?: React.MutableRefObject<Partial<Record<FieldId, HTMLButtonElement | null>>>;
@@ -390,6 +393,7 @@ function Seg({
   grow?: boolean;
   divider?: boolean;
   bar?: boolean;
+  className?: string;
 }) {
   return (
     <button
@@ -402,11 +406,12 @@ function Seg({
         grow ? 'flex-1' : '',
         bar
           ? cn(
-              'px-5 py-4 sm:py-0',
+              'px-4 py-3 sm:px-5 sm:py-0',
               divider && 'border-b border-border/50 sm:border-b-0 sm:border-r sm:border-border/40',
               open ? 'bg-muted/40' : 'hover:bg-muted/20',
             )
           : cn('h-full px-3', open ? 'bg-muted/50' : 'hover:bg-muted/30'),
+        className,
       )}
     >
       <span className="shrink-0 text-muted-foreground">{icon}</span>
