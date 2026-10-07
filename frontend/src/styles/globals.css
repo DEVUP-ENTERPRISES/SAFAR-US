@@ -340,3 +340,48 @@ textarea {
   outline-offset: 2px;
   border-radius: 2px;
 }
+
+/* ── Homepage search halo ───────────────────────────────────────────────────
+   A thin light that travels round the search bar's edge, over frosted glass.
+   No transform on hover: the calendar and phone sheet are fixed-position and
+   a transformed ancestor would pull them out of place. */
+@property --halo-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+.search-halo {
+  position: relative;
+  padding: 1.5px;
+  border-radius: 1.1rem;
+  background:
+    conic-gradient(from var(--halo-angle), transparent 0deg, hsl(var(--primary)) 55deg, rgba(255, 255, 255, 0.85) 85deg, hsl(var(--primary)) 115deg, transparent 175deg, transparent 360deg),
+    rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 30px 80px -24px rgba(0, 0, 0, 0.75),
+    0 0 0 6px rgba(255, 255, 255, 0.06),
+    0 0 48px -12px hsl(var(--primary) / 0.55);
+  backdrop-filter: blur(14px) saturate(1.2);
+  animation: halo-spin 7s linear infinite;
+  transition: box-shadow 0.35s ease, filter 0.35s ease;
+}
+.search-halo:hover,
+.search-halo:focus-within {
+  filter: brightness(1.04);
+  box-shadow:
+    0 34px 90px -22px rgba(0, 0, 0, 0.8),
+    0 0 0 7px rgba(255, 255, 255, 0.09),
+    0 0 70px -8px hsl(var(--primary) / 0.75);
+}
+.search-halo-glow {
+  background: radial-gradient(ellipse at center, hsl(var(--primary) / 0.35), transparent 70%);
+  animation: halo-breathe 5s ease-in-out infinite;
+}
+@media (min-width: 640px) {
+  .search-halo { border-radius: 9999px; }
+}
+@keyframes halo-spin { to { --halo-angle: 360deg; } }
+@keyframes halo-breathe { 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) {
+  .search-halo, .search-halo-glow { animation: none; }
+}

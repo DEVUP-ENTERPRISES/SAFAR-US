@@ -13,7 +13,6 @@ import { Reveal } from '@/components/ui/reveal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
 import { SearchBarFields } from '@/features/search/search-bar-fields';
-import { CategoryCarousel } from '@/features/vehicles/components/category-carousel';
 import { useTrending, useFacets } from '@/features/vehicles/hooks';
 
 // ─── Static data ──────────────────────────────────────────────────────────────
@@ -113,35 +112,17 @@ export default function HomePage() {
         </div>
 
         {/* Content — vertically centered in the full viewport */}
-        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 pb-16 pt-[5.5rem] text-center sm:px-6 sm:pt-20">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 pb-[22vh] pt-[5.5rem] text-center sm:px-6 sm:pt-20">
 
+          <h1 className="sr-only">CatoDrive: rent premium cars delivered to you</h1>
+
+          {/* Search bar: glass card with a slow light running round its edge, so it reads as the one thing to do here. */}
           <Reveal delay={60}>
-            <h1 className="display mt-6 text-[2.6rem] leading-[0.95] text-white [text-shadow:0_2px_20px_rgba(0,0,0,0.5)] sm:text-[4rem] lg:text-[5rem]">
-              Drive away certain.
-            </h1>
-          </Reveal>
-
-          <Reveal delay={110}>
-            <p className="mt-4 max-w-xl text-base font-medium leading-relaxed text-white/85 [text-shadow:0_1px_10px_rgba(0,0,0,0.6)] sm:text-lg">
-              Our own premium vehicles, delivered curbside at your terminal.
-              No counters. No queues. No surprises.
-            </p>
-          </Reveal>
-
-          {/* Search bar — glass card so it lifts cleanly off the photo */}
-          <Reveal delay={160}>
-            <div className="relative mt-10 w-[min(100vw-2rem,60rem)] sm:mt-12">
-              {/* Glow */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -inset-4 -z-10 rounded-[2.5rem] bg-primary/20 blur-2xl"
-              />
-              {/* Glass backdrop behind the bar */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -inset-1 -z-10 rounded-[2rem] bg-black/30 backdrop-blur-sm"
-              />
-              <SearchBarFields calendarPlacement="overlay" />
+            <div className="relative w-[min(100vw-2rem,60rem)]">
+              <div aria-hidden className="search-halo-glow pointer-events-none absolute -inset-6 -z-10 rounded-[3rem] blur-3xl" />
+              <div className="search-halo">
+                <SearchBarFields calendarPlacement="overlay" />
+              </div>
             </div>
           </Reveal>
 
@@ -150,20 +131,6 @@ export default function HomePage() {
 
       {/* ── Body sections ────────────────────────────────────────────────── */}
       <div className="space-y-20 py-12 sm:space-y-24 sm:py-16">
-
-        {/* ── Browse by category ─────────────────────────────────────────── */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Our fleet</p>
-              <h2 className="display mt-1.5 text-2xl text-foreground sm:text-3xl">Browse by style</h2>
-            </div>
-            <Link href="/search" className="hidden shrink-0 items-center gap-1.5 text-sm font-semibold text-primary hover:underline underline-offset-4 sm:flex">
-              See all <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <CategoryCarousel city={city} />
-        </section>
 
         {/* ── Available vehicles ─────────────────────────────────────────── */}
         <section className="space-y-6">
