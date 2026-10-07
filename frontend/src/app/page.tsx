@@ -347,7 +347,7 @@ export default function HomePage() {
             <div className="relative order-first lg:order-last">
               <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-primary/15 blur-3xl" />
               <Image
-                src="/catodrive/catodrive-your-car.webp"
+                src="/catodrive/catodrive-more-opportunities.webp"
                 alt="CatoDrive managed fleet earnings"
                 width={1200}
                 height={800}
