@@ -96,7 +96,8 @@ export default function HomePage() {
       <section className="full-bleed px-3 pt-[5.5rem] sm:px-5">
         <h1 className="sr-only">CatoDrive: rent premium cars delivered to you</h1>
 
-        <div className="relative isolate mx-auto aspect-[3/2] max-w-7xl overflow-hidden rounded-[1.75rem] shadow-2xl shadow-black/40 ring-1 ring-white/10 sm:aspect-auto sm:h-[56vh] sm:min-h-[380px] sm:rounded-[2.25rem] lg:h-[62vh] lg:max-h-[640px]">
+        <div className="relative mx-auto max-w-7xl">
+        <div className="relative isolate aspect-[3/2] overflow-hidden rounded-[1.75rem] shadow-2xl shadow-black/40 ring-1 ring-white/10 sm:aspect-auto sm:h-[56vh] sm:min-h-[380px] sm:rounded-[2.25rem] lg:h-[62vh] lg:max-h-[640px]">
           <Image
             src="/catodrive/catodrive-hit-the-road.webp"
             alt=""
@@ -112,19 +113,20 @@ export default function HomePage() {
           <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent" />
         </div>
 
-        {/* Search bar: half on the photo, half on the page */}
-        <Reveal delay={60}>
-          <div className="relative z-10 mx-auto -mt-10 w-[min(100%,60rem)] px-1 sm:-mt-[42px] sm:px-0">
+        {/* Search bar: across the photo's bottom edge on phones, centred on the photo from tablet up */}
+        <Reveal delay={60} className="relative z-10 -mt-10 sm:pointer-events-none sm:absolute sm:inset-0 sm:mt-0 sm:flex sm:items-center sm:justify-center sm:px-8">
+          <div className="relative mx-auto w-[min(100%,60rem)] px-1 sm:pointer-events-auto sm:px-0">
             <div aria-hidden className="search-halo-glow pointer-events-none absolute -inset-6 -z-10 rounded-[3rem] blur-3xl" />
             <div className="search-halo">
               <SearchBarFields calendarPlacement="overlay" />
             </div>
           </div>
         </Reveal>
+        </div>
       </section>
 
       {/* ── Body sections ────────────────────────────────────────────────── */}
-      <div className="space-y-20 pb-12 pt-10 sm:space-y-24 sm:pb-16 sm:pt-14">
+      <div className="space-y-20 pb-12 pt-10 sm:space-y-24 sm:pb-16 sm:pt-12">
 
         {/* ── Available vehicles ─────────────────────────────────────────── */}
         <section className="space-y-6">
