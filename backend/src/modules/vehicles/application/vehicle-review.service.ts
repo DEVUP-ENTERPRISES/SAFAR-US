@@ -90,7 +90,7 @@ export const vehicleReviewService = {
         detail: !doc
           ? 'Not uploaded'
           : expired
-            ? `Expired ${new Date(doc.expiresAt!).toDateString()}`
+            ? `Expired ${new Date(doc.expiresAt!).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'UTC' })}`
             : doc.verification?.status === 'verified'
               ? 'Uploaded and verified'
               : 'Uploaded, not yet verified',

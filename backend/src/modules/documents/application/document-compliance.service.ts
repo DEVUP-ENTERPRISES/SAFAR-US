@@ -116,7 +116,7 @@ export class DocumentComplianceService {
                 : `${v.make} ${v.model}: ${d.category} expires soon`,
             body:
               `The ${d.category} on your ${v.make} ${v.model} expires on ` +
-              `${d.expiresAt ? new Date(d.expiresAt).toLocaleDateString('en-US', { dateStyle: 'medium' }) : 'soon'}. ` +
+              `${d.expiresAt ? new Date(d.expiresAt).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'UTC' }) : 'soon'}. ` +
               `Upload the renewal before then and the car keeps taking bookings — after it lapses we have to pause the listing.`,
             deepLink: `/host/listings/${d.vehicleId}`,
             data: { vehicleId: d.vehicleId, category: d.category, days },

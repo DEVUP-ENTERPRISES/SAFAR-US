@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { cn } from '@/lib/utils/cn';
-import { formatDate } from '@/lib/utils/format';
+import { formatDate, formatDay } from '@/lib/utils/format';
 import { vehicleApi, type VehicleInsights } from '@/features/vehicles/api';
 
 const money = (c: number) => `$${(c / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -58,7 +58,7 @@ function Insights({ id }: { id: string }) {
             <div>
               <p className="font-semibold">Paperwork expiring</p>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                {expiring.map((x) => `${x.category}${x.expiresAt ? ` (${formatDate(x.expiresAt)})` : ''}`).join(', ')} -
+                {expiring.map((x) => `${x.category}${x.expiresAt ? ` (${formatDay(x.expiresAt)})` : ''}`).join(', ')} -
                 {' '}this car is unlisted automatically when it lapses.
               </p>
             </div>
@@ -167,7 +167,7 @@ function Insights({ id }: { id: string }) {
                   <span className="flex items-center gap-3">
                     {doc.expiresAt && (
                       <span className={cn('text-xs', doc.expiringSoon ? 'font-medium text-warning' : 'text-muted-foreground')}>
-                        expires {formatDate(doc.expiresAt)}
+                        expires {formatDay(doc.expiresAt)}
                       </span>
                     )}
                     <Badge tone={doc.status === 'approved' ? 'success' : 'warning'}>{doc.status}</Badge>

@@ -2,7 +2,7 @@
 
 import { BadgeCheck, IdCard, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { formatDate } from '@/lib/utils/format';
+import { formatDate, formatDay } from '@/lib/utils/format';
 import type { HostTrip } from '../trips.api';
 
 function Fact({ label, value, tone }: { label: string; value: string; tone?: 'ok' | 'bad' }) {
@@ -63,7 +63,7 @@ export function GuestVerification({
           <Fact label="Age" value={v?.age != null ? String(v.age) : '-'} />
           <Fact
             label="Licence expires"
-            value={v?.licenceExpiry ? formatDate(v.licenceExpiry) : 'Not recorded'}
+            value={v?.licenceExpiry ? formatDay(v.licenceExpiry) : 'Not recorded'}
             tone={v?.licenceValidThroughTrip === true ? 'ok' : expired ? 'bad' : undefined}
           />
           <Fact label="Trips taken" value={String(guest.tripCount)} />

@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
-import { formatDate } from '@/lib/utils/format';
+import { formatDate, formatDay } from '@/lib/utils/format';
 import { uploadFiles } from '@/features/media/upload';
 import { documentsApi, type PartnerDocument } from '@/features/documents/api';
 import { ApiError } from '@/lib/api/types';
@@ -208,7 +208,7 @@ function DocumentRow({ doc }: { doc: PartnerDocument }) {
         <p className="truncate font-medium">{CATEGORY_LABEL[doc.category] ?? doc.category}</p>
         <p className="text-xs text-muted-foreground">
           Uploaded {formatDate(doc.createdAt)}
-          {doc.expiresAt && ` · expires ${formatDate(doc.expiresAt)}`}
+          {doc.expiresAt && ` · expires ${formatDay(doc.expiresAt)}`}
         </p>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">

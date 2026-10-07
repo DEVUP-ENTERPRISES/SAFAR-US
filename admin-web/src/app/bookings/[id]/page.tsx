@@ -16,7 +16,7 @@ import { TimedViewer } from '@/components/secure/timed-viewer';
 import { BookingStatusBadge } from '@/features/bookings/components/status-badge';
 import { adminApi } from '@/features/admin/api';
 import { ApiError } from '@/lib/api/types';
-import { formatDate, formatDateRange, formatDateTime, formatMoney } from '@/lib/utils/format';
+import { formatDate, formatDateRange, formatDateTime, formatMoney, formatDay } from '@/lib/utils/format';
 import { adminPath } from '@/lib/admin-path';
 
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong. Please try again.');
@@ -134,8 +134,8 @@ export default function AdminBookingDetailPage() {
               </div>
               <div>
                 <Line label="Age" value={g.identity.age} />
-                <Line label="Date of birth" value={g.identity.dob ? formatDate(g.identity.dob) : undefined} />
-                <Line label="Licence expires" value={g.identity.licenceExpiry ? formatDate(g.identity.licenceExpiry) : undefined} />
+                <Line label="Date of birth" value={g.identity.dob ? formatDay(g.identity.dob) : undefined} />
+                <Line label="Licence expires" value={g.identity.licenceExpiry ? formatDay(g.identity.licenceExpiry) : undefined} />
                 <Line label="ID verified on" value={g.identity.verifiedAt ? formatDate(g.identity.verifiedAt) : undefined} />
               </div>
             </div>

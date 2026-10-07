@@ -12,7 +12,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { adminApi, type ReviewCheck } from '@/features/admin/api';
 import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
-import { formatMoney, formatDate } from '@/lib/utils/format';
+import { formatMoney, formatDate, formatDay } from '@/lib/utils/format';
 import { adminPath } from '@/lib/admin-path';
 
 // Checklist items the host can fix themselves; the photo match and Wheelbase link are for staff.
@@ -230,7 +230,7 @@ export default function VehicleReviewPage() {
                     <span className="font-medium capitalize">{d.category.replace('_', ' ')}</span>
                     <span className="block text-xs text-muted-foreground">
                       {d.verification?.status ?? 'pending'}
-                      {d.expiresAt ? ` · expires ${formatDate(d.expiresAt)}` : ''}
+                      {d.expiresAt ? ` · expires ${formatDay(d.expiresAt)}` : ''}
                     </span>
                   </a>
                   {d.verification?.status !== 'verified' && (

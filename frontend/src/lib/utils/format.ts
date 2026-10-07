@@ -28,6 +28,15 @@ export function formatDate(value: string | Date): string {
   return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+/**
+ * A calendar date with no time of day: a birthday, a licence or document expiry. These are stored as midnight UTC,
+ * so they must be shown in UTC; a viewer in Texas would otherwise see the day before.
+ */
+export function formatDay(value: string | Date): string {
+  const d = typeof value === 'string' ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00Z` : value) : value;
+  return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+
 export function formatDateTime(value: string | Date): string {
   const d = typeof value === 'string' ? new Date(value) : value;
   return d.toLocaleString('en-US', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });

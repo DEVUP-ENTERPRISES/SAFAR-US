@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
-import { formatDate } from '@/lib/utils/format';
+import { formatDay } from '@/lib/utils/format';
 import { accountApi } from '@/features/account/api';
 import { kycApi, type KycStatusView } from '@/features/kyc/api';
 import { openIdentityModal } from '@/features/kyc/stripe-identity';
@@ -200,7 +200,7 @@ function VerifyIdentity() {
               <p className="text-sm text-muted-foreground">These must match the license you’re about to scan.</p>
               <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Detail label="Legal name" value={nameKnown ? `${profile!.firstName} ${profile!.lastName}` : '-'} />
-                <Detail label="Date of birth" value={profile?.dateOfBirth ? formatDate(profile.dateOfBirth) : '-'} />
+                <Detail label="Date of birth" value={profile?.dateOfBirth ? formatDay(profile.dateOfBirth) : '-'} />
                 <Detail
                   label="Address"
                   value={primaryAddress ? [primaryAddress.line1, primaryAddress.line2, primaryAddress.city, [primaryAddress.state, primaryAddress.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '-'}
