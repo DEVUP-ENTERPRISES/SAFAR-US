@@ -89,14 +89,12 @@ export function AvailabilityCalendar({
   const priceFor = (d: Date): number => {
     let cents = p.dailyPrice;
     const dow = d.getDay();
-    if ((dow === 5 || dow === 6) && p.weekendMultiplierBps) {
+    if ((dow === 0 || dow === 6) && p.weekendMultiplierBps) {
       cents = Math.round((cents * p.weekendMultiplierBps) / 10_000);
     }
-    for (const r of p.seasonalRules ?? []) {
-      const s = new Date(r.start).getTime();
-      const e = new Date(r.end).getTime();
-      if (d.getTime() >= s && d.getTime() <= e) cents = Math.round((cents * r.multiplierBps) / 10_000);
-    }
+    const dayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const season = (p.seasonalRules ?? []).find((r) => dayKey >= r.start.slice(0, 10) && dayKey <= r.end.slice(0, 10));
+    if (season) cents = Math.round((cents * season.multiplierBps) / 10_000);
     if (p.promoActive && p.promoDiscountBps) {
       cents = Math.round(cents * (1 - p.promoDiscountBps / 10_000));
     }

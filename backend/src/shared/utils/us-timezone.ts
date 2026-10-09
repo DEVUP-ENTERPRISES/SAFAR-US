@@ -27,3 +27,17 @@ export function isValidTimezone(tz: string): boolean {
     return false;
   }
 }
+
+/** The calendar day `d` falls on in `timeZone`, as midnight UTC of that date. */
+export function localCalendarDay(d: Date, timeZone: string): Date {
+  const [y, m, day] = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
+    .format(d)
+    .split('-')
+    .map(Number);
+  return new Date(Date.UTC(y, m - 1, day));
+}
+
+/** The last moment of a calendar date anywhere in the US (Hawaii, UTC-10, finishes last). */
+export function endOfUsDay(date: string): Date {
+  return new Date(`${date}T23:59:59.999-10:00`);
+}

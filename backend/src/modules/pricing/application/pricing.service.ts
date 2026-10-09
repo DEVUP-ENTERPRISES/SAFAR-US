@@ -8,6 +8,7 @@ import { getProtectionPlan } from '../domain/protection-plans';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { surgeService } from './surge.service';
 import { subscriptionService } from '../../subscriptions/application/subscription.service';
+import { localCalendarDay, timezoneForState } from '../../../shared/utils/us-timezone';
 import type { Money } from '../../../core/types/money';
 
 // Platform economics are NOT constants — commission, tax, protection pricing and
@@ -59,10 +60,11 @@ export class PricingService implements IPricingContract {
     // A day is 24 hours from pickup (any part of a day counts as one), each priced by the calendar date it starts on.
     // Counting calendar dates instead charged a 24-hour trip as 2 days and a 48-hour trip as 3.
     const periods = Math.max(1, Math.ceil((input.end.getTime() - input.start.getTime()) / 86_400_000 - 1e-9));
-    const tripDays: Date[] = Array.from({ length: periods }, (_, i) => {
-      const t = new Date(input.start.getTime() + i * 86_400_000);
-      return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()));
-    });
+    // Weekend and seasonal days follow the car's local calendar, not UTC.
+    const tz = timezoneForState(v.location?.state) ?? 'UTC';
+    const tripDays: Date[] = Array.from({ length: periods }, (_, i) =>
+      localCalendarDay(new Date(input.start.getTime() + i * 86_400_000), tz),
+    );
 
     // One surge lookup per calendar day, run in parallel — resolved one at a time this made
     // a two-week trip's quote wait on fourteen sequential round trips (each with its own
