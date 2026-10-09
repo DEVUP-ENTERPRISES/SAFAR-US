@@ -466,7 +466,7 @@ export class BookingService {
       });
 
       if (status === 'paid') {
-        await availabilityService.confirmHold(holdId, bookingId, dayKeys(start, end).length);
+        await availabilityService.confirmHold(holdId, bookingId, (await availabilityService.tripDayKeys(dto.vehicleId, start, end)).length);
       } else if (status === 'pending_approval') {
         // Held until the host's own response window, not the short
         // checkout-hold TTL — otherwise the days free up while the host
@@ -651,7 +651,7 @@ export class BookingService {
           continue;
         }
         try {
-          await availabilityService.confirmHold(booking.holdId!, booking._id, dayKeys(booking.period.start, booking.period.end).length);
+          await availabilityService.confirmHold(booking.holdId!, booking._id, (await availabilityService.tripDayKeys(booking.vehicleId, booking.period.start, booking.period.end)).length);
         } catch {
           await this.cancelCapturedBooking(doc, 'The dates were no longer held when verification completed');
           continue;
@@ -771,7 +771,7 @@ export class BookingService {
     const holdId = await this.ensureHold(booking);
     await paymentService.captureBooking(bookingId);
     try {
-      await availabilityService.confirmHold(holdId, bookingId, dayKeys(booking.period.start, booking.period.end).length);
+      await availabilityService.confirmHold(holdId, bookingId, (await availabilityService.tripDayKeys(booking.vehicleId, booking.period.start, booking.period.end)).length);
     } catch (err) {
       await this.cancelCapturedBooking(booking, 'The dates were no longer held when the host approved');
       throw err;
@@ -1512,9 +1512,10 @@ export class BookingService {
       return fail('NOT_ELIGIBLE', 'Your verification does not cover the extended dates. Update your documents to extend.');
     }
     // Extra days are whole calendar days, the same keys the availability calendar uses.
-    const extraStart = dayAfter(booking.period.end);
+    const tz = await availabilityService.timeZoneOf(booking.vehicleId);
+    const extraStart = dayAfter(booking.period.end, tz);
     if (newEnd < extraStart) return fail('TOO_SHORT', 'Extend by at least one more calendar day.');
-    const days = dayKeys(extraStart, newEnd).length;
+    const days = dayKeys(extraStart, newEnd, tz).length;
     if (days > cfg.maxDays) {
       return fail('EXTENSION_TOO_LONG', `You can extend by up to ${cfg.maxDays} day${cfg.maxDays === 1 ? '' : 's'} at a time.`);
     }

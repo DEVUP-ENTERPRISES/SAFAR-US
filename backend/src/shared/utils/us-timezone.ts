@@ -41,3 +41,21 @@ export function localCalendarDay(d: Date, timeZone: string): Date {
 export function endOfUsDay(date: string): Date {
   return new Date(`${date}T23:59:59.999-10:00`);
 }
+
+/** The calendar date `d` falls on in `timeZone`, as YYYY-MM-DD. */
+export function localDateKey(d: Date, timeZone: string): string {
+  return localCalendarDay(d, timeZone).toISOString().slice(0, 10);
+}
+
+/** The instant a calendar date begins in `timeZone`. */
+export function zonedMidnight(dateKey: string, timeZone: string): Date {
+  const guess = Date.parse(`${dateKey}T00:00:00Z`);
+  const offsetAt = (t: number) => {
+    const p = new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' })
+      .formatToParts(new Date(t))
+      .reduce<Record<string, number>>((a, x) => (x.type === 'literal' ? a : { ...a, [x.type]: Number(x.value) }), {});
+    return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - t;
+  };
+  const first = guess - offsetAt(guess);
+  return new Date(guess - offsetAt(first));
+}

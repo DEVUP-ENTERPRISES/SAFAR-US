@@ -18,6 +18,8 @@ Open actions, newest first. Tick them off (`[x]`) when done; move finished featu
 - [ ] `git pull`, `npm ci`, `npm run build`, `pm2 restart tura-api` on the API server.
 - [ ] Fonts for document stamps installed once: `sudo apt-get install -y fonts-dejavu-core fontconfig`.
 - [ ] Stripe ID-photo read key (restricted, IP-allowlisted) set on the server.
+- [ ] Server Node version is 20.9 or newer (`node -v`), needed by the image library since 2026-10-09.
+- [ ] Once, after the 2026-10-10 deploy: move upcoming trips to the car's local calendar days. Preview first with `npx ts-node --transpile-only scripts/rekey-availability-local-days.ts --dry`, then run it without `--dry`. Safe to run twice.
 
 ## Reviews
 

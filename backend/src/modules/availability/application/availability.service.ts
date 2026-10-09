@@ -4,17 +4,18 @@ import { ConflictError } from '../../../core/errors/app-error';
 import { randomId } from '../../../shared/utils/uuid';
 import type { IAvailabilityContract } from '../../../core/contracts/availability.contract';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { localCalendarDay, timezoneForState, zonedMidnight } from '../../../shared/utils/us-timezone';
 
 // How long a checkout hold survives is operational policy (it trades abandoned
 // carts against inventory being locked up), so it lives in PlatformConfig.
 const holdTtlMs = async (): Promise<number> =>
   (await platformConfigService.get()).booking.checkoutHoldMinutes * 60 * 1000;
 
-/** Enumerate the UTC day keys occupied by a [start, end] rental (inclusive). */
-export function dayKeys(start: Date, end: Date): string[] {
+/** The calendar dates a [start, end] rental touches (inclusive), in the car's time zone. */
+export function dayKeys(start: Date, end: Date, timeZone = 'UTC'): string[] {
   const keys: string[] = [];
-  const d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
-  const last = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
+  const d = localCalendarDay(start, timeZone);
+  const last = localCalendarDay(end, timeZone);
   while (d <= last) {
     keys.push(d.toISOString().slice(0, 10));
     d.setUTCDate(d.getUTCDate() + 1);
@@ -28,10 +29,14 @@ export function addDays(d: Date, n: number): Date {
   return out;
 }
 
-/** The first UTC day after the one `d` falls on, at 00:00 — where an extension's extra days begin. */
-export function dayAfter(d: Date): Date {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1));
+/** Midnight of the day after the one `d` falls on — where an extension's extra days begin. */
+export function dayAfter(d: Date, timeZone = 'UTC'): Date {
+  const next = localCalendarDay(d, timeZone);
+  next.setUTCDate(next.getUTCDate() + 1);
+  return zonedMidnight(next.toISOString().slice(0, 10), timeZone);
 }
+
+const zoneOf = (v?: { location?: { state?: string } } | null): string => timezoneForState(v?.location?.state) ?? 'UTC';
 
 export interface BlockingRow {
   dayKey: string;
@@ -41,13 +46,23 @@ export interface BlockingRow {
 }
 
 export class AvailabilityService implements IAvailabilityContract {
-  /** Cached per call chain; a config read per availability check is wasteful. */
-  private async turnaroundDays(vehicleId: string): Promise<number> {
+  /** The car's turnaround gap and the time zone its calendar days are counted in. */
+  private async calendarOf(vehicleId: string): Promise<{ turnaround: number; tz: string }> {
     const v = await VehicleModel.findOne(
       { _id: vehicleId },
-      { 'listing.turnaroundDays': 1 },
+      { 'listing.turnaroundDays': 1, 'location.state': 1 },
     ).lean();
-    return Math.max(0, Math.min(7, v?.listing?.turnaroundDays ?? 0));
+    return { turnaround: Math.max(0, Math.min(7, v?.listing?.turnaroundDays ?? 0)), tz: zoneOf(v) };
+  }
+
+  /** The time zone a car's calendar days are counted in. */
+  async timeZoneOf(vehicleId: string): Promise<string> {
+    return (await this.calendarOf(vehicleId)).tz;
+  }
+
+  /** The calendar days a trip occupies on this car — the rows a confirmed hold must have. */
+  async tripDayKeys(vehicleId: string, start: Date, end: Date): Promise<string[]> {
+    return dayKeys(start, end, await this.timeZoneOf(vehicleId));
   }
 
   /**
@@ -80,8 +95,8 @@ export class AvailabilityService implements IAvailabilityContract {
     opts: { excludeHoldId?: string; excludeBookingId?: string } = {},
     limit = 200,
   ): Promise<BlockingRow[]> {
-    const turnaround = await this.turnaroundDays(vehicleId);
-    const keys = turnaround > 0 ? dayKeys(addDays(start, -turnaround), addDays(end, turnaround)) : dayKeys(start, end);
+    const { turnaround, tz } = await this.calendarOf(vehicleId);
+    const keys = dayKeys(addDays(start, -turnaround), addDays(end, turnaround), tz);
     const now = new Date();
     return AvailabilityModel.find(
       {
@@ -133,12 +148,14 @@ export class AvailabilityService implements IAvailabilityContract {
     // 1. Every turnaround in one read.
     const vehicles = await VehicleModel.find(
       { _id: { $in: vehicleIds } },
-      { 'listing.turnaroundDays': 1 },
-    ).lean<{ _id: string; listing?: { turnaroundDays?: number } }[]>();
+      { 'listing.turnaroundDays': 1, 'location.state': 1 },
+    ).lean<{ _id: string; listing?: { turnaroundDays?: number }; location?: { state?: string } }[]>();
 
     const turnaroundOf = new Map<string, number>();
+    const zoneOfCar = new Map<string, string>();
     for (const v of vehicles) {
       turnaroundOf.set(String(v._id), Math.max(0, Math.min(7, v.listing?.turnaroundDays ?? 0)));
+      zoneOfCar.set(String(v._id), zoneOf(v));
     }
 
     // 2. Each car's own key range, plus the union to fetch against.
@@ -146,7 +163,7 @@ export class AvailabilityService implements IAvailabilityContract {
     const union = new Set<string>();
     for (const id of vehicleIds) {
       const t = turnaroundOf.get(id) ?? 0;
-      const keys = t > 0 ? dayKeys(addDays(start, -t), addDays(end, t)) : dayKeys(start, end);
+      const keys = dayKeys(addDays(start, -t), addDays(end, t), zoneOfCar.get(id) ?? 'UTC');
       keysOf.set(id, new Set(keys));
       for (const k of keys) union.add(k);
     }
@@ -198,7 +215,7 @@ export class AvailabilityService implements IAvailabilityContract {
 
   /** Atomically reserve the range. The unique index rejects overlaps. */
   async placeHold(vehicleId: string, start: Date, end: Date): Promise<string> {
-    const keys = dayKeys(start, end);
+    const keys = await this.tripDayKeys(vehicleId, start, end);
     const now = new Date();
 
     // Reclaim any expired holds in the range so they don't false-block.
@@ -273,11 +290,13 @@ export class AvailabilityService implements IAvailabilityContract {
    * released tail reopens for others while the days the guest keeps stay booked.
    */
   async releaseRange(bookingId: string, from: Date, to: Date): Promise<void> {
-    const keys = dayKeys(from, to);
+    const row = await AvailabilityModel.findOne({ bookingId }, { vehicleId: 1 }).lean();
+    if (!row) return;
+    const keys = await this.tripDayKeys(String(row.vehicleId), from, to);
     await AvailabilityModel.deleteMany({ bookingId, dayKey: { $in: keys } });
   }
 
-  /** Host blocks a range (maintenance / personal use / blackout dates). */
+  /** Host blocks a range (maintenance / personal use / blackout dates); start and end are the picked dates. */
   async block(vehicleId: string, start: Date, end: Date): Promise<void> {
     const keys = dayKeys(start, end);
     await AvailabilityModel.bulkWrite(
@@ -303,7 +322,8 @@ export class AvailabilityService implements IAvailabilityContract {
     from: Date,
     to: Date,
   ): Promise<{ dayKey: string; state: string }[]> {
-    const keys = dayKeys(from, to);
+    // A day either side, so the edges are covered whatever zone the bounds were sent in.
+    const keys = dayKeys(addDays(from, -1), addDays(to, 1));
     const docs = await AvailabilityModel.find({ vehicleId, dayKey: { $in: keys } })
       .select('dayKey state holdExpiresAt')
       .lean();

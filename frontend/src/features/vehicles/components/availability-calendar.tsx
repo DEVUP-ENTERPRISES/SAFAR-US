@@ -92,7 +92,7 @@ export function AvailabilityCalendar({
     if ((dow === 0 || dow === 6) && p.weekendMultiplierBps) {
       cents = Math.round((cents * p.weekendMultiplierBps) / 10_000);
     }
-    const dayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const dayKey = keyOf(d);
     const season = (p.seasonalRules ?? []).find((r) => dayKey >= r.start.slice(0, 10) && dayKey <= r.end.slice(0, 10));
     if (season) cents = Math.round((cents * season.multiplierBps) / 10_000);
     if (p.promoActive && p.promoDiscountBps) {
