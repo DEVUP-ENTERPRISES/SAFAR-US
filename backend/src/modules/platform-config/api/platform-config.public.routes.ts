@@ -27,6 +27,8 @@ router.get(
   '/config',
   asyncHandler(async (_req, res) => {
     const cfg = await platformConfigService.get();
+    // Same for every visitor; admin changes still reach browsers within a minute.
+    res.set('Cache-Control', 'public, max-age=60');
     sendSuccess(res, {
       cancellation: cfg.cancellation,
       deposit: {
