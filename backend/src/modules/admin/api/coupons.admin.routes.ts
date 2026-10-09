@@ -5,6 +5,7 @@ import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
+import { endOfUsDay } from '../../../shared/utils/us-timezone';
 
 /**
  * Promo-code management. Coupons previously had no admin surface at all — they
@@ -34,7 +35,8 @@ const bodySchema = z.object({
   cities: z.array(z.string().max(80)).max(50).optional(),
   categories: z.array(z.string().max(40)).max(20).optional(),
   validFrom: z.coerce.date().optional(),
-  validTo: z.coerce.date(),
+  // A bare date means the coupon works through that whole day.
+  validTo: z.preprocess((v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? endOfUsDay(v) : v), z.coerce.date()),
   status: z.enum(['active', 'disabled']).optional(),
 });
 

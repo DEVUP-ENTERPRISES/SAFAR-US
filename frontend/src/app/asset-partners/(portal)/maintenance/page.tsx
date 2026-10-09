@@ -12,7 +12,7 @@ import { ErrorState, EmptyState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
-import { formatMoney, formatDate } from '@/lib/utils/format';
+import { formatMoney, formatDay } from '@/lib/utils/format';
 import {
   assetPartnerApi,
   type MaintenanceApproval,
@@ -170,7 +170,7 @@ export default function PartnerMaintenancePage() {
                         : 'Cost to be confirmed'}
                     </p>
                     <p className="mt-0.5 text-sm text-muted-foreground">
-                      Scheduled {formatDate(m.scheduledFor)}
+                      Scheduled {formatDay(m.scheduledFor)}
                     </p>
                   </div>
 

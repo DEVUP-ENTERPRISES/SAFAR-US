@@ -29,7 +29,7 @@ export class MaintenanceService {
           priority: 'normal',
           templateKey: 'vehicle.maintenance_due',
           title: 'Maintenance due soon',
-          body: `A ${m.type} is scheduled for ${new Date(m.scheduledFor).toLocaleDateString()} on one of your cars.`,
+          body: `A ${m.type} is scheduled for ${new Date(m.scheduledFor).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'UTC' })} on one of your cars.`,
           deepLink: `/host/listings/${m.vehicleId}`,
           data: { vehicleId: m.vehicleId, maintenanceId: m._id },
         });

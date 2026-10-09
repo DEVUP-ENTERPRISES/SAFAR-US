@@ -9,7 +9,7 @@ import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
 import { Select } from '@/components/ui/select';
-import { formatDateRange, formatDate } from '@/lib/utils/format';
+import { formatDateRange, formatDay } from '@/lib/utils/format';
 import { bookingApi } from '@/features/bookings/api';
 import { hostApi } from '@/features/host/api';
 import { useMyVehicles } from '@/features/vehicles/hooks';
@@ -102,7 +102,7 @@ function Maintenance() {
               <CardContent className="flex items-center justify-between pt-6">
                 <div>
                   <p className="font-medium capitalize">{m.type}</p>
-                  <p className="text-sm text-muted-foreground">{formatDate(m.scheduledFor)} · {m.notes}</p>
+                  <p className="text-sm text-muted-foreground">{formatDay(m.scheduledFor)} · {m.notes}</p>
                 </div>
                 <span className="text-sm capitalize text-muted-foreground">{m.status}</span>
               </CardContent>

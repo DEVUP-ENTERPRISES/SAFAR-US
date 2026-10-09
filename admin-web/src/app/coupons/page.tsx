@@ -12,10 +12,12 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
-import { formatDate } from '@/lib/utils/format';
 import { adminApi, type Coupon } from '@/features/admin/api';
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+// End dates are stored as the end of that day in Hawaii, the last US zone to finish it.
+const endsOn = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Pacific/Honolulu' });
 
 export default function AdminCouponsPage() {
   const qc = useQueryClient();
@@ -123,7 +125,7 @@ export default function AdminCouponsPage() {
         </span>
       ),
     },
-    { header: 'Ends', cell: (c) => formatDate(c.validTo) },
+    { header: 'Ends', cell: (c) => endsOn(c.validTo) },
     {
       header: 'Status',
       cell: (c) => <Badge tone={c.status === 'active' ? 'success' : 'muted'}>{c.status}</Badge>,

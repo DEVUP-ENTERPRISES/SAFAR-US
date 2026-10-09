@@ -379,8 +379,9 @@ export function registerEventSubscribers(): void {
   eventBus.subscribe(EVENTS.BOOKING_REMINDER, async (e) => {
     const p = e.payload as { bookingId: string; guestId: string; kind?: string; deadline?: string | Date };
     if (p.kind === 'verification') {
+      const booking = p.deadline ? await bookingService.getDoc(p.bookingId).catch(() => null) : null;
       const by = p.deadline
-        ? new Date(p.deadline).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+        ? fmtWhen(new Date(p.deadline), booking ? await tripTimeZone(booking.vehicleId) : 'UTC')
         : 'shortly before pickup';
       await notificationService.send({
         userId: p.guestId,

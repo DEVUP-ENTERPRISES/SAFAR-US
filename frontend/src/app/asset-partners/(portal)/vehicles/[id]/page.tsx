@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/states';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart } from '@/components/ui/charts';
-import { formatMoney, formatDate } from '@/lib/utils/format';
+import { formatMoney, formatDate, formatDay } from '@/lib/utils/format';
 import { assetPartnerApi } from '@/features/asset-partners/api';
 
 /**
@@ -181,7 +181,7 @@ export default function PartnerVehicleDetailPage({
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium capitalize">{m.type}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(m.scheduledFor)}</p>
+                    <p className="text-xs text-muted-foreground">{formatDay(m.scheduledFor)}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     {typeof m.cost === 'number' && (

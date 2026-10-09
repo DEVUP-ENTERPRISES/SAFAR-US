@@ -374,7 +374,7 @@ export class IncidentalsService {
     const closesAt = new Date(new Date(item.at).getTime() + (cfg.disputeWindowHours ?? 72) * 3_600_000);
     if (Date.now() > closesAt.getTime()) {
       throw new ValidationError(
-        `The window to dispute this charge closed on ${closesAt.toLocaleDateString('en-US')}. Contact support.`,
+        `Charges can be disputed for ${cfg.disputeWindowHours ?? 72} hours, and that time has passed for this one. Contact support.`,
       );
     }
 
