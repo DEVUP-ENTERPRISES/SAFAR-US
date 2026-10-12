@@ -28,6 +28,7 @@ export default function PartnerMaintenanceScreen() {
     void qc.invalidateQueries({ queryKey: ['asset-partner-dashboard'] });
   };
   const approve = useMutation({
+    meta: { silentError: true },
     mutationFn: (id: string) => assetPartnerApi.approveMaintenance(id),
     onSuccess: () => {
       invalidate();
@@ -36,6 +37,7 @@ export default function PartnerMaintenanceScreen() {
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not approve' }),
   });
   const decline = useMutation({
+    meta: { silentError: true },
     mutationFn: ({ id, reason }: { id: string; reason?: string }) => assetPartnerApi.declineMaintenance(id, reason),
     onSuccess: () => {
       invalidate();

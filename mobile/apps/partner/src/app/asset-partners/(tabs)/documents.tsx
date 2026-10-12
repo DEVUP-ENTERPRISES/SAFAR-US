@@ -21,6 +21,7 @@ export default function PartnerDocumentsScreen() {
   const q = useQuery({ queryKey: ['partner-documents'], queryFn: () => documentsApi.list() });
 
   const upload = useMutation({
+    meta: { silentError: true },
     mutationFn: async (source: PickSource) => {
       const photos = await pickPhotos(source);
       if (!photos?.length) return null;

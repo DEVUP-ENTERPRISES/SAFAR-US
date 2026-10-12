@@ -31,6 +31,7 @@ export default function PartnerProfileScreen() {
   }
 
   const savePayout = useMutation({
+    meta: { silentError: true },
     mutationFn: () => assetPartnerApi.setPayoutDetails({ mailingAddress, zelleHandle }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['asset-partner-me'] });

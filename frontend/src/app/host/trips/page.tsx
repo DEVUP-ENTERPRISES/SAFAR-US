@@ -10,31 +10,10 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Tabs } from '@/components/ui/rows';
 import { TripCard } from '@/features/host/components/trip-card';
 import { HostCalendar } from '@/features/host/components/host-calendar';
-import { hostTripsApi, type HostTrip } from '@/features/host/trips.api';
+import { hostTripsApi } from '@/features/host/trips.api';
+import { groupByDay } from '@/features/host/trip-timing';
 
 type Tab = 'booked' | 'history' | 'calendar';
-
-/** Group trips under day headings (TODAY / TOMORROW / a date) like the app does. */
-function groupByDay(trips: HostTrip[], key: 'start' | 'end') {
-  const groups = new Map<string, HostTrip[]>();
-  for (const t of trips) {
-    const d = new Date(t.period[key]);
-    const label = dayLabel(d);
-    if (!groups.has(label)) groups.set(label, []);
-    groups.get(label)!.push(t);
-  }
-  return [...groups.entries()];
-}
-
-function dayLabel(d: Date): string {
-  const today = new Date();
-  const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  if (sameDay(d, today)) return 'TODAY';
-  if (sameDay(d, tomorrow)) return 'TOMORROW';
-  return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
-}
 
 export default function HostTripsPage() {
   const [tab, setTab] = useState<Tab>('booked');

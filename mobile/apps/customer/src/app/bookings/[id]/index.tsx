@@ -1,12 +1,10 @@
-import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import * as Notifications from 'expo-notifications';
-import { Bell, CalendarPlus, Car, Lock, MapPin, Receipt, ShieldCheck, Shuffle, XCircle } from 'lucide-react-native';
+import { CalendarPlus, Car, Lock, MapPin, Receipt, ShieldCheck, Shuffle, XCircle } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { Badge, Button, Card, ErrorState, KeyValue, Screen, ScreenHeader, Skeleton, Text, useConfirm, useTheme, useToast, radius, space, type BadgeTone } from '@catodrive/ui';
-import { ChatPanel, InspectionPhotos, RequireAuth, TrackingCard, enablePush, openInAppBrowser, webUrl } from '@catodrive/core';
+import { ChatPanel, InspectionPhotos, RequireAuth, TrackingCard, PushPrompt, openInAppBrowser, webUrl } from '@catodrive/core';
 import { bookingApi } from '@catodrive/core/web/features/bookings/api';
 import { BOOKING_STATE, CHATTABLE, DETAIL_CANCELLABLE } from '@catodrive/core/web/features/bookings/status';
 import { claimsApi } from '@catodrive/core/web/features/claims/api';
@@ -40,8 +38,6 @@ function BookingDetail({ id }: { id: string }) {
   const vehicle = useQuery({ queryKey: ['vehicle', booking.data?.vehicleId], queryFn: () => vehicleApi.getById(booking.data!.vehicleId), enabled: !!booking.data?.vehicleId });
   const cancelPreview = useQuery({ queryKey: ['cancellation-preview', id], queryFn: () => bookingApi.cancellationPreview(id), enabled: !!booking.data && DETAIL_CANCELLABLE.includes(booking.data.status), retry: false });
   const settlement = useQuery({ queryKey: ['settlement', id], queryFn: () => claimsApi.settlement(id), enabled: booking.data?.status === 'completed', retry: false });
-  const permission = useQuery({ queryKey: ['push-permission'], queryFn: () => Notifications.getPermissionsAsync() });
-  const [enablingPush, setEnablingPush] = useState(false);
 
   const cancel = useMutation({
     meta: { silentError: true },
@@ -88,7 +84,6 @@ function BookingDetail({ id }: { id: string }) {
   const p = b.priceBreakdown;
   const canCancel = DETAIL_CANCELLABLE.includes(b.status);
   const canReportNoShow = b.status === 'paid' && !b.tripId && new Date(b.period.start).getTime() < Date.now();
-  const showPushBanner = permission.data && !permission.data.granted && permission.data.canAskAgain;
 
   const onCancel = async () => {
     const preview = await bookingApi.cancellationPreview(id).catch(() => null);
@@ -157,31 +152,7 @@ function BookingDetail({ id }: { id: string }) {
       {b.status === 'pending_verification' ? <BookingReadiness /> : null}
       {['paid', 'confirmed', 'in_progress', 'completed'].includes(b.status) ? <DepositCard bookingId={id} canPlace={['paid', 'confirmed'].includes(b.status)} /> : null}
 
-      {showPushBanner ? (
-        <Card>
-          <View style={styles.row}>
-            <Bell size={18} color={c.primary} />
-            <Text variant="caption" style={{ flex: 1 }}>Turn on notifications to hear the moment your identity clears, your host replies, or your trip status changes.</Text>
-          </View>
-          <Button
-            title="Enable notifications"
-            size="sm"
-            full={false}
-            loading={enablingPush}
-            style={{ marginTop: space.sm }}
-            onPress={async () => {
-              setEnablingPush(true);
-              try {
-                const ok = await enablePush();
-                toast(ok ? { tone: 'success', title: 'Notifications on', body: 'We’ll alert you about your trips.' } : { tone: 'error', title: 'Notifications not enabled', body: 'Permission was denied or unavailable.' });
-                void permission.refetch();
-              } finally {
-                setEnablingPush(false);
-              }
-            }}
-          />
-        </Card>
-      ) : null}
+      <PushPrompt detail="Turn on notifications to hear the moment your identity clears, your host replies, or your trip status changes." successBody="We’ll alert you about your trips." />
 
       <SwapOfferCard booking={b} />
       {b.swap ? (

@@ -29,25 +29,16 @@ import { IncidentalsForm } from '@/features/host/components/incidentals-form';
 import { VerifyPickup } from '@/features/bookings/components/pickup-code';
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
 import { HandoverTimeline } from '@/features/host/components/handover-timeline';
-import { HandoverStep, type StepStatus } from '@/features/host/components/handover-step';
+import { HandoverStep } from '@/features/host/components/handover-step';
 import { usePlatformConfig } from '@/features/platform/config';
 import { DepositCard } from '@/features/payments/deposit-card';
 import { TripDocumentsHistory } from '@/features/host/components/trip-documents-history';
 import { GuestIdentityCard } from '@/features/host/components/guest-identity-card';
+import { START_ERRORS, TRIP_FINISHED, handoverGates, tripHeading } from '@/features/host/trip-handover';
 
 type Tab = 'details' | 'messages' | 'help';
 
 const miles = (v: number) => `${kmToMiles(v).toLocaleString()} miles`;
-
-/** Plain message and the checklist step to send the host back to, per start error code. */
-const START_ERRORS: Record<string, { text: string; step?: string }> = {
-  HOST_ONLY_START: { text: 'Only the host can start this trip, at pickup. Refresh the page and try again.' },
-  HOST_INSPECTION_REQUIRED: { text: 'Take the pickup photos of the car before starting the trip.', step: 'handover-inspect' },
-  GUEST_NOT_VERIFIED: { text: 'This guest has not finished identity verification. Ask them to complete it in their app, or contact support.' },
-  LICENCE_EXPIRES_DURING_TRIP: { text: 'The guest’s licence expires before the trip ends, so they cannot drive it. Contact support.' },
-  PICKUP_CODE_REQUIRED: { text: 'Enter the guest’s pickup code before starting the trip.', step: 'handover-code' },
-  ODOMETER_REQUIRED: { text: 'Enter the starting odometer reading.', step: 'handover-odo' },
-};
 
 const goToStep = (id?: string) => id && document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -189,25 +180,8 @@ export default function HostTripDetailPage() {
   const cur = t.currency;
   const unlimited = t.mileage.includedKm === 0;
   const started = t.status === 'in_progress';
-  const finished = ['completed', 'cancelled', 'cancelled_guest', 'cancelled_host', 'cancelled_system', 'declined', 'expired'].includes(t.status);
-
-  // Handover gates: the per-trip payload wins, then the public config; unknown means the server decides.
-  const hv = t.handover;
-  const inspectRequired = hv?.requirements?.hostInspectionRequired ?? cfg?.handover?.hostInspectionRequired ?? false;
-  const codeRequired = hv?.requirements?.pickupCodeRequired ?? cfg?.handover?.pickupCodeRequired ?? false;
-  const insp = hv?.inspection;
-  const inspectDone = !inspectRequired || (insp ? insp.taken >= insp.required : (t.photoCount ?? 0) > 0);
-  const guestVerified = hv ? hv.guestVerified : (t.guest.verification?.verified ?? true);
-  const licenceExpired = (hv?.licenceValidThroughTrip ?? t.guest.verification?.licenceValidThroughTrip) === false;
-  const verifyDone = guestVerified && !licenceExpired;
-  const codeDone = !codeRequired || !!t.pickupVerified || !!hv?.pickupVerified;
-  const odoDone = odoStart !== '' && Number(odoStart) >= 0;
-  const canStart = inspectDone && verifyDone && codeDone && odoDone;
-  const stepStatus = (done: boolean, prevDone: boolean, na = false): StepStatus =>
-    na ? 'na' : done ? 'done' : prevDone ? 'active' : 'locked';
-  const sInspect = stepStatus(inspectDone, true, !inspectRequired);
-  const sCode = stepStatus(codeDone, inspectDone && verifyDone, !codeRequired);
-  const sOdo = stepStatus(odoDone, inspectDone && verifyDone && codeDone);
+  const finished = TRIP_FINISHED.includes(t.status);
+  const { insp, inspectDone, codeDone, canStart, blocker, codeLocked, sInspect, sCode, sOdo } = handoverGates(t, cfg?.handover, odoStart);
 
   const doCheckIn = async () => {
     const { ok } = await confirm({
@@ -261,19 +235,7 @@ export default function HostTripDetailPage() {
         </div>
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold leading-tight">
-            {t.status === 'pending_approval'
-              ? 'Booking request'
-              : t.status === 'completed'
-                ? 'Completed trip'
-                : t.status === 'expired'
-                  ? 'Expired booking'
-                  : t.status === 'declined'
-                    ? 'Declined request'
-                    : finished
-                      ? 'Cancelled booking'
-                      : started
-                        ? 'Trip in progress'
-                        : 'Booked trip'}
+            {tripHeading(t.status)}
           </h1>
           <p className="truncate text-sm uppercase tracking-wide text-muted-foreground">{t.guest.name}</p>
         </div>
@@ -591,7 +553,7 @@ export default function HostTripDetailPage() {
                   <VerifyPickup
                     tripId={t.tripId}
                     bookingId={t.bookingId}
-                    locked={!!hv?.codeLocked}
+                    locked={codeLocked}
                     onVerified={invalidate}
                   />
                 )}
@@ -633,13 +595,7 @@ export default function HostTripDetailPage() {
               </Button>
               {!canStart && (
                 <p className="text-xs text-muted-foreground">
-                  {!inspectDone
-                    ? 'Take the pickup photos to continue.'
-                    : !verifyDone
-                      ? (licenceExpired ? 'The guest’s licence expires before the trip ends. Contact support.' : 'The guest hasn’t finished ID verification yet. Ask them to complete it in the app.')
-                      : !codeDone
-                        ? 'Enter the guest’s pickup code to continue.'
-                        : 'Enter the starting odometer to start the trip.'}
+                  {blocker}
                 </p>
               )}
               {handover.error && (() => {

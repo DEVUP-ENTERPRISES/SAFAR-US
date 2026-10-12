@@ -1,10 +1,9 @@
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import * as Print from 'expo-print';
 import { Printer } from 'lucide-react-native';
 import { Badge, Button, Card, Divider, ErrorState, KeyValue, Screen, ScreenHeader, Skeleton, Text, useTheme, useToast, space } from '@catodrive/ui';
-import { RequireAuth } from '@catodrive/core';
+import { RequireAuth, printHtml } from '@catodrive/core';
 import { bookingApi } from '@catodrive/core/web/features/bookings/api';
 import { statusLabel } from '@catodrive/core/web/features/bookings/status';
 import { vehicleApi } from '@catodrive/core/web/features/vehicles/api';
@@ -31,11 +30,8 @@ function Receipt({ id }: { id: string }) {
   const m = (amount: number) => formatMoney({ amount: Math.abs(amount), currency });
 
   const print = async (only: string | null) => {
-    try {
-      await Print.printAsync({ html: receiptHtml(receipts.data, { code: b.code, status: b.status, vehicle: v ? `${v.make} ${v.model} ${v.year}` : undefined, createdAt: b.createdAt, paid, only }) });
-    } catch {
-      toast({ tone: 'error', title: 'Printing isn’t available on this phone right now.' });
-    }
+    const ok = await printHtml(receiptHtml(receipts.data, { code: b.code, status: b.status, vehicle: v ? `${v.make} ${v.model} ${v.year}` : undefined, createdAt: b.createdAt, paid, only }));
+    if (!ok) toast({ tone: 'error', title: 'Printing isn’t available on this phone right now.' });
   };
 
   return (
