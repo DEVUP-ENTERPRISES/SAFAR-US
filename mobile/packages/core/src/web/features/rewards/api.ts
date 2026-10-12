@@ -12,3 +12,15 @@ export const rewardsApi = {
   summary: () => api.get<RewardsSummary>('/rewards'),
   redeem: (points: number) => api.post<{ redeemed: number; creditCents: number }>('/rewards/redeem', { points }),
 };
+
+/** The guest's referral code and how it's going. */
+export interface Referral {
+  code: string;
+  referred: number;
+  pending: number;
+  rewardPerReferral: { youGetCents: number; friendGetsCents: number };
+}
+
+export const referralApi = {
+  mine: () => api.get<Referral>('/referral/me'),
+};

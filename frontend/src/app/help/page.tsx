@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils/cn';
 import { kbApi } from '@/features/kb/api';
+import { titleCase } from '@/features/kb/markdown-parse';
 
 export default function HelpCentre() {
   const [q, setQ] = useState('');
@@ -111,6 +112,3 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   );
 }
 
-function titleCase(s: string): string {
-  return s.replace(/(^|[-_\s])(\w)/g, (_, sep, c) => (sep ? ' ' : '') + c.toUpperCase()).trim();
-}

@@ -10,22 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
-import { api } from '@/lib/api/client';
+import { violationsApi } from './api';
 
-interface Violation {
-  _id: string;
-  bookingId: string;
-  citationRef: string;
-  issuedBy: string;
-  type: string;
-  description?: string;
-  amount: number;
-  currency: string;
-  occurredAt: string;
-  status: 'reported' | 'charged' | 'disputed' | 'waived' | 'resolved';
-  evidenceUrl?: string;
-  createdAt: string;
-}
 
 const money = (c: number, cur = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: cur }).format(c / 100);
@@ -50,12 +36,12 @@ export function MyCitations() {
 
   const q = useQuery({
     queryKey: ['my-violations'],
-    queryFn: () => api.get<Violation[]>('/violations/me'),
+    queryFn: () => violationsApi.mine(),
     retry: false,
   });
 
   const dispute = useMutation({
-    mutationFn: ({ id, why }: { id: string; why: string }) => api.post(`/violations/${id}/dispute`, { reason: why }),
+    mutationFn: ({ id, why }: { id: string; why: string }) => violationsApi.dispute(id, why),
     onSuccess: () => {
       toast({ tone: 'success', title: 'Dispute sent', description: 'The charge is on hold until we review it.' });
       setDisputing(null);

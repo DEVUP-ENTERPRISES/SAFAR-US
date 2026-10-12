@@ -10,27 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { claimsApi } from '@/features/claims/api';
+import { CLAIM_DETAIL_TONE, CLAIM_STATUS_COPY } from '@/features/claims/status';
 
-const TONE: Record<string, 'success' | 'warning' | 'destructive' | 'muted' | 'default'> = {
-  opened: 'warning',
-  investigating: 'warning',
-  assigned: 'warning',
-  approved: 'success',
-  settled: 'success',
-  rejected: 'destructive',
-  closed: 'muted',
-};
 
 /** What each status means, in the claimant's terms. */
-const STATUS_COPY: Record<string, string> = {
-  opened: 'Filed and waiting for our team to pick it up.',
-  investigating: 'Our team is reviewing the evidence.',
-  assigned: 'Assigned to a specialist for review.',
-  approved: 'Upheld - settlement is being processed.',
-  settled: 'Resolved and settled.',
-  rejected: 'Reviewed and not upheld.',
-  closed: 'Closed.',
-};
 
 function ClaimDetail() {
   const { id } = useParams<{ id: string }>();
@@ -63,10 +46,10 @@ function ClaimDetail() {
               </h1>
               <p className="mt-1 text-xs text-muted-foreground">Filed {formatDate(c.createdAt)}</p>
             </div>
-            <Badge tone={TONE[c.status] ?? 'muted'}>{c.status}</Badge>
+            <Badge tone={CLAIM_DETAIL_TONE[c.status] ?? 'muted'}>{c.status}</Badge>
           </div>
 
-          <p className="rounded-lg bg-subtle p-3 text-sm">{STATUS_COPY[c.status] ?? ''}</p>
+          <p className="rounded-lg bg-subtle p-3 text-sm">{CLAIM_STATUS_COPY[c.status] ?? ''}</p>
 
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Details</p>

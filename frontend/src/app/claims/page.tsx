@@ -16,10 +16,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatDate } from '@/lib/utils/format';
 import Link from 'next/link';
 import { claimsApi } from '@/features/claims/api';
+import { CLAIM_LIST_TONE } from '@/features/claims/status';
 
-const TONE: Record<string, 'success' | 'warning' | 'destructive' | 'muted' | 'default'> = {
-  opened: 'warning', investigating: 'default', approved: 'success', settled: 'success', rejected: 'destructive', closed: 'muted',
-};
 
 function Claims() {
   const qc = useQueryClient();
@@ -69,7 +67,7 @@ function Claims() {
                     <p className="line-clamp-1 max-w-md text-sm text-muted-foreground">{c.description}</p>
                     <p className="text-xs text-muted-foreground">Filed {formatDate(c.createdAt)}</p>
                   </div>
-                  <Badge tone={TONE[c.status] ?? 'muted'}>{c.status}</Badge>
+                  <Badge tone={CLAIM_LIST_TONE[c.status] ?? 'muted'}>{c.status}</Badge>
                 </CardContent>
               </Card>
             </Link>

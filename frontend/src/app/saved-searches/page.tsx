@@ -9,26 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
-import { savedSearchApi, type SavedSearch } from '@/features/saved-search/api';
-import { FUEL_LABEL } from '@/lib/utils/format';
+import { savedSearchApi, searchParamsOf, summariseSearch, type SavedSearch } from '@/features/saved-search/api';
 
-function summarise(c: SavedSearch['criteria']): string {
-  const bits: string[] = [];
-  if (c.category) bits.push(c.category);
-  if (c.fuelType) bits.push(FUEL_LABEL[c.fuelType as keyof typeof FUEL_LABEL] ?? c.fuelType);
-  if (c.transmission) bits.push(c.transmission);
-  if (c.seatsMin) bits.push(`${c.seatsMin}+ seats`);
-  if (c.instantBook) bits.push('Instant Book');
-  if (c.priceMaxCents) bits.push(`≤ $${Math.round(c.priceMaxCents / 100)}/day`);
-  return bits.join(' · ') || 'Any car';
-}
 
 /** Rebuild the search URL so "View" reopens the exact search. */
 function toSearchHref(c: SavedSearch['criteria']): string {
-  const q = new URLSearchParams();
-  if (c.city) q.set('city', c.city);
-  if (c.category) q.set('category', c.category);
-  return `/search?${q.toString()}`;
+  return `/search?${new URLSearchParams(searchParamsOf(c)).toString()}`;
 }
 
 function SavedSearches() {
@@ -82,7 +68,7 @@ function SavedSearches() {
                 <Link href={toSearchHref(s.criteria)} className="min-w-0 flex-1">
                   <p className="truncate font-semibold hover:text-primary hover:underline">{s.label}</p>
                   <p className="truncate text-sm text-muted-foreground">
-                    {s.criteria.city ? `${s.criteria.city} - ` : ''}{summarise(s.criteria)}
+                    {s.criteria.city ? `${s.criteria.city} - ` : ''}{summariseSearch(s.criteria)}
                   </p>
                 </Link>
                 <div className="flex shrink-0 items-center gap-1">
