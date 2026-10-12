@@ -1,3 +1,4 @@
+import { gateSession } from '../application/app-audience';
 import { Router } from 'express';
 import { z } from 'zod';
 import { authController } from './auth.controller';
@@ -95,7 +96,7 @@ router.post(
       { ip: req.ip, userAgent: req.get('user-agent') },
       req.body.mfaToken,
     );
-    sendSuccess(res, result);
+    sendSuccess(res, await gateSession(req, result));
   }),
 );
 

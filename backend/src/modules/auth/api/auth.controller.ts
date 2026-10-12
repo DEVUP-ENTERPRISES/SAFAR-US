@@ -2,6 +2,8 @@ import type { Request, Response } from 'express';
 import { authService, type AuthCtx } from '../application/auth.service';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import type { RegisterDto, LoginDto, RefreshDto } from '../dto/auth.schemas';
+import { AppError } from '../../../core/errors/app-error';
+import { gateSession, mobileAppOf } from '../application/app-audience';
 
 function ctxOf(req: Request): AuthCtx {
   return { userAgent: req.header('user-agent') ?? undefined, ip: req.ip };
@@ -10,13 +12,17 @@ function ctxOf(req: Request): AuthCtx {
 /** Thin HTTP adapter: parse request → call service → format response. */
 export class AuthController {
   async register(req: Request, res: Response): Promise<void> {
+    // Partners apply on the website; the partner app never creates accounts.
+    if (mobileAppOf(req) === 'partner') {
+      throw new AppError({ code: 'APP_NOT_PARTNER', message: 'Partner accounts are created by applying on catodrive.com.', httpStatus: 403 });
+    }
     const result = await authService.register(req.body as RegisterDto, ctxOf(req));
-    sendCreated(res, result);
+    sendCreated(res, await gateSession(req, result));
   }
 
   async login(req: Request, res: Response): Promise<void> {
     const result = await authService.login(req.body as LoginDto, ctxOf(req));
-    sendSuccess(res, result);
+    sendSuccess(res, await gateSession(req, result));
   }
 
   async refresh(req: Request, res: Response): Promise<void> {
@@ -38,7 +44,7 @@ export class AuthController {
   async verifyOtp(req: Request, res: Response): Promise<void> {
     const { email, code, mfaToken } = req.body as { email: string; code: string; mfaToken?: string };
     const result = await authService.verifyEmailOtp(email, code, ctxOf(req), mfaToken);
-    sendSuccess(res, result);
+    sendSuccess(res, await gateSession(req, result));
   }
 
   async forgotPassword(req: Request, res: Response): Promise<void> {
@@ -58,13 +64,13 @@ export class AuthController {
 
   async verifyPhoneOtp(req: Request, res: Response): Promise<void> {
     const { phone, code, mfaToken } = req.body as { phone: string; code: string; mfaToken?: string };
-    sendSuccess(res, await authService.verifyPhoneOtp(phone, code, ctxOf(req), mfaToken));
+    sendSuccess(res, await gateSession(req, await authService.verifyPhoneOtp(phone, code, ctxOf(req), mfaToken)));
   }
 
   async googleLogin(req: Request, res: Response): Promise<void> {
     const { idToken, mfaToken } = req.body as { idToken: string; mfaToken?: string };
     const result = await authService.loginWithGoogle(idToken, ctxOf(req), mfaToken);
-    sendSuccess(res, result);
+    sendSuccess(res, await gateSession(req, result));
   }
 
   async sessions(req: Request, res: Response): Promise<void> {

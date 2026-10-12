@@ -18,6 +18,13 @@ export type VerificationTrigger =
   | 'on_every_booking'  // checked at every booking (reused if still valid)
   | 'manual';           // only when ops requests it
 
+export interface AppReleaseConfig {
+  minVersion: string;
+  latestVersion: string;
+  androidUrl: string;
+  iosUrl: string;
+}
+
 export interface VerificationPolicy {
   required: boolean;
   /** When the check fires. */
@@ -509,6 +516,8 @@ export interface PlatformConfigDoc {
   content: {
     bookingQuotes: string[];
   };
+  /** Mobile app versions: below minVersion the app blocks with "Update"; below latestVersion it shows a banner. */
+  appRelease: Record<'customer' | 'partner', AppReleaseConfig>;
   booking: {
     hostApprovalHours: number;
     verificationGraceHours: number;
@@ -879,6 +888,10 @@ const schema = new Schema<PlatformConfigDoc>(
     },
     content: {
       bookingQuotes: { type: [String], default: undefined },
+    },
+    appRelease: {
+      customer: { minVersion: String, latestVersion: String, androidUrl: String, iosUrl: String },
+      partner: { minVersion: String, latestVersion: String, androidUrl: String, iosUrl: String },
     },
     booking: {
       hostApprovalHours: { type: Number, default: 24 },

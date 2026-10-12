@@ -64,4 +64,14 @@ router.get(
   }),
 );
 
+/** What the mobile apps check at start-up: block below minVersion, suggest an update below latestVersion. */
+router.get(
+  '/app-release/:app(customer|partner)',
+  asyncHandler(async (req, res) => {
+    const cfg = await platformConfigService.get();
+    res.set('Cache-Control', 'public, max-age=60');
+    sendSuccess(res, cfg.appRelease[req.params.app as 'customer' | 'partner']);
+  }),
+);
+
 export const platformConfigPublicRoutes = router;

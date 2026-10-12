@@ -20,6 +20,8 @@ import { logger } from '../../../infrastructure/logging/logger';
  */
 import { DEFAULT_BOOKING_QUOTES } from './booking-quotes';
 
+const DEFAULT_APP_RELEASE = { minVersion: '1.0.0', latestVersion: '1.0.0', androidUrl: '', iosUrl: '' };
+
 export const DEFAULT_REWARD_TIERS = [
   { key: 'bronze', label: 'Bronze', min: 0, earnMultiplierBps: 10000 },
   { key: 'silver', label: 'Silver', min: 500, earnMultiplierBps: 11000 },
@@ -263,6 +265,10 @@ export class PlatformConfigService {
       },
       programs: { rewardsEnabled: false, referralEnabled: false, membershipEnabled: false, ...(doc.programs ?? {}) },
       content: { bookingQuotes: doc.content?.bookingQuotes?.length ? doc.content.bookingQuotes : DEFAULT_BOOKING_QUOTES },
+      appRelease: {
+        customer: { ...DEFAULT_APP_RELEASE, ...(doc.appRelease?.customer ?? {}) },
+        partner: { ...DEFAULT_APP_RELEASE, ...(doc.appRelease?.partner ?? {}) },
+      },
       booking: {
         hostApprovalHours: 24,
         verificationGraceHours: 72,

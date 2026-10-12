@@ -2,6 +2,7 @@ import { config } from "@/lib/config";
 import { tokenStore } from "./token-store";
 import { ApiError, type ApiSuccess } from "./types";
 import { onSessionExpired } from "./session-events";
+import { platform } from "./platform";
 import { safeMessage, GENERIC_ERROR } from "@/lib/utils/safe-message";
 
 interface RequestOptions {
@@ -81,9 +82,9 @@ async function attemptRefresh(): Promise<RefreshOutcome> {
         const current = tokenStore.getRefresh();
         if (current !== refreshToken) return "ok"; // another tab already did it
 
-        const res = await fetch(buildUrl("/auth/token/refresh"), {
+        const res = await platform.fetch(buildUrl("/auth/token/refresh"), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...platform.headers() },
           body: JSON.stringify({ refreshToken: current }),
         });
         // Only an explicit refusal ends the session; a 5xx from a restarting server or a dropped connection does not.
@@ -119,6 +120,7 @@ async function raw<T>(
 ): Promise<ApiSuccess<T>> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...platform.headers(),
   };
   if (opts.auth !== false) {
     const token = tokenStore.getAccess();
@@ -129,7 +131,7 @@ async function raw<T>(
 
   let res: Response;
   try {
-    res = await fetch(buildUrl(path, opts.query), {
+    res = await platform.fetch(buildUrl(path, opts.query), {
       method: opts.method ?? "GET",
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,

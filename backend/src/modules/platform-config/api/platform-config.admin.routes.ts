@@ -6,6 +6,10 @@ import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
 
+const semver = z.string().trim().regex(/^\d+\.\d+\.\d+$/, 'Use a version like 1.4.0');
+const storeUrl = z.union([z.literal(''), z.string().trim().url().max(300)]);
+const appRelease = z.object({ minVersion: semver.optional(), latestVersion: semver.optional(), androidUrl: storeUrl.optional(), iosUrl: storeUrl.optional() });
+
 const router = Router();
 
 const bps = z.number().int().min(0).max(10000);
@@ -364,6 +368,9 @@ router.put(
         .optional(),
       content: z
         .object({ bookingQuotes: z.array(z.string().trim().min(3).max(160)).max(12).optional() })
+        .optional(),
+      appRelease: z
+        .object({ customer: appRelease.optional(), partner: appRelease.optional() })
         .optional(),
       booking: z
         .object({
