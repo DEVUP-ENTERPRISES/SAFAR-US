@@ -3,36 +3,23 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck, Clock, Lock } from 'lucide-react';
-import { api } from '@/lib/api/client';
+import { depositsApi } from './deposits-api';
 import { ApiError } from '@/lib/api/types';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { formatDateTime, formatMoney } from '@/lib/utils/format';
 import { PayNow } from './pay-now';
 
-interface DepositState {
-  held: boolean;
-  status: string;
-  enabled?: boolean;
-  amount?: { amount: number; currency: string };
-  releaseHours?: number;
-  opensAt?: string;
-  requiredAtHandover?: boolean;
-}
-type Session =
-  | { status: 'held' | 'not_needed'; amount: { amount: number; currency: string } }
-  | { status: 'needs_payment'; clientSecret: string; amount: { amount: number; currency: string } }
-  | { status: 'too_early'; amount: { amount: number; currency: string }; opensAt: string };
 
 /** The security deposit on a guest's booking: how much, when it is held, when it comes back, and a button to place it if the saved card cannot. */
 export function DepositCard({ bookingId, isGuest }: { bookingId: string; isGuest: boolean }) {
   const qc = useQueryClient();
   const toast = useToast();
   const [secret, setSecret] = useState<string | null>(null);
-  const q = useQuery({ queryKey: ['deposit', bookingId], queryFn: () => api.get<DepositState>(`/payments/deposits/${bookingId}`), retry: false });
+  const q = useQuery({ queryKey: ['deposit', bookingId], queryFn: () => depositsApi.get(bookingId), retry: false });
   const refresh = () => qc.invalidateQueries({ queryKey: ['deposit', bookingId] });
   const start = useMutation({
-    mutationFn: () => api.post<Session>(`/bookings/${bookingId}/deposit-session`, {}),
+    mutationFn: () => depositsApi.session(bookingId),
     onSuccess: (s) => {
       if (s.status === 'needs_payment') setSecret(s.clientSecret);
       else if (s.status === 'held') { setSecret(null); toast({ tone: 'success', title: 'Deposit held. You are ready for pickup.' }); refresh(); }

@@ -1,17 +1,13 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import * as Location from 'expo-location';
-import { CalendarDays, Clock, LocateFixed, MapPin, Search } from 'lucide-react-native';
+import { CalendarDays, LocateFixed, MapPin, Search } from 'lucide-react-native';
 import { BottomSheet, Button, Card, DateRangeCalendar, Divider, Text, useTheme, useToast, space, TOUCH } from '@catodrive/ui';
 import { useFacets } from '@catodrive/core/web/features/vehicles/hooks';
 import { useSearchBar } from '@catodrive/core/web/features/search/search-store';
 import { formatClock } from '@catodrive/core/web/lib/utils/format';
+import { TimeSheet } from './TimeSheet';
 
-const TIMES: string[] = [];
-for (let h = 0; h < 24; h++) {
-  TIMES.push(`${String(h).padStart(2, '0')}:00`);
-  if (h < 23) TIMES.push(`${String(h).padStart(2, '0')}:30`);
-}
 
 const shortDate = (d: string) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '');
 
@@ -116,34 +112,8 @@ export function SearchBar({ onSearch }: { onSearch?: () => void }) {
         <DateRangeCalendar from={s.fromDate} to={s.untilDate} onChange={(f, t) => s.patch({ fromDate: f, untilDate: t })} />
       </BottomSheet>
 
-      {(['from-time', 'until-time'] as const).map((id) => {
-        const isFrom = id === 'from-time';
-        const current = isFrom ? s.fromTime : s.untilTime;
-        return (
-          <BottomSheet key={id} visible={sheet === id} onClose={() => setSheet(null)} title={isFrom ? 'Pick-up time' : 'Return time'}>
-            <View style={styles.times}>
-              {TIMES.map((t) => {
-                const on = t === current;
-                return (
-                  <Pressable
-                    key={t}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: on }}
-                    onPress={() => {
-                      s.patch(isFrom ? { fromTime: t } : { untilTime: t });
-                      setSheet(isFrom ? 'until-time' : null);
-                    }}
-                    style={[styles.time, { borderColor: on ? c.primary : c.border, backgroundColor: on ? c.primary : c.card }]}
-                  >
-                    <Clock size={14} color={on ? c.primaryForeground : c.mutedForeground} />
-                    <Text variant="label" style={{ color: on ? c.primaryForeground : c.foreground }}>{formatClock(t)}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </BottomSheet>
-        );
-      })}
+      <TimeSheet visible={sheet === 'from-time'} title="Pick-up time" value={s.fromTime} onClose={() => setSheet(null)} onPick={(t) => { s.patch({ fromTime: t }); setSheet('until-time'); }} />
+      <TimeSheet visible={sheet === 'until-time'} title="Return time" value={s.untilTime} onClose={() => setSheet(null)} onPick={(t) => { s.patch({ untilTime: t }); setSheet(null); }} />
     </>
   );
 }
@@ -152,6 +122,4 @@ const styles = StyleSheet.create({
   row: { minHeight: TOUCH + 12, flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.sm },
   action: { padding: space.md, paddingTop: space.sm },
   option: { minHeight: TOUCH, flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.md, borderRadius: 12 },
-  times: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  time: { minHeight: 44, width: '31%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderRadius: 12 },
 });

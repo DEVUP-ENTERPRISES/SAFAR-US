@@ -5,16 +5,8 @@ import { ShieldCheck, Landmark, Clock, Info } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatMoney } from '@/lib/utils/format';
-import { api } from '@/lib/api/client';
+import { depositsApi } from './deposits-api';
 
-interface Deposit {
-  held: boolean;
-  amount?: { amount: number; currency: string };
-  captured?: { amount: number; currency: string };
-  status?: 'authorized' | 'captured' | 'released' | 'partially_captured';
-  reason?: string | null;
-  settledAt?: string | null;
-}
 
 /**
  * The security deposit, explained without anyone having to ask.
@@ -32,7 +24,7 @@ interface Deposit {
 export function DepositStatus({ bookingId }: { bookingId: string }) {
   const q = useQuery({
     queryKey: ['deposit', bookingId],
-    queryFn: () => api.get<Deposit>(`/payments/deposits/${bookingId}`),
+    queryFn: () => depositsApi.get(bookingId),
     retry: false,
   });
 

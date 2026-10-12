@@ -120,9 +120,15 @@ export type DeliveryMode = 'airport' | 'home' | 'hotel' | 'business';
 
 export interface DeliveryRequest {
   mode: DeliveryMode;
+  /** Which configured delivery location the guest picked; priced server-side from it. */
+  locationId?: string;
   address: string;
   lat?: number;
   lng?: number;
+  /** Airport pickups only. */
+  flightNumber?: string;
+  terminal?: string;
+  arrivesAt?: string;
 }
 
 export interface QuoteInput {

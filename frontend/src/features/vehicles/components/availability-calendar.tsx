@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils/cn';
 import type { Vehicle } from '@/features/vehicles/types';
 import { usePlatformConfig, leadMinutes } from '@/features/platform/config';
 import { TripQuotes } from './trip-quotes';
+import { busyDayKeys, localDayKey, minNightsOf, nightlyPrice } from '../calendar-pricing';
 
 /**
  * The availability calendar.
@@ -51,8 +52,7 @@ interface Day {
 }
 
 const MS_DAY = 86_400_000;
-const keyOf = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const keyOf = localDayKey;
 const money = (c: number) => `$${Math.round(c / 100)}`;
 
 export function AvailabilityCalendar({
@@ -70,13 +70,10 @@ export function AvailabilityCalendar({
   const [hover, setHover] = useState<string | null>(null);
   const [range, setRange] = useState<{ from: string; to: string } | null>(null);
 
-  const busy = useMemo(
-    () => new Set(occupied.filter((o) => ['booked', 'blocked', 'held'].includes(o.state)).map((o) => o.dayKey)),
-    [occupied],
-  );
+  const busy = useMemo(() => busyDayKeys(occupied), [occupied]);
 
   const p = vehicle.pricing;
-  const minNights = Math.max(1, Math.ceil((vehicle.listing?.minTripHours ?? 24) / 24));
+  const minNights = minNightsOf(vehicle);
   const platformCfg = usePlatformConfig();
   // Platform minimum lead, raised by this car's own notice.
   const noticeHours = leadMinutes(platformCfg.data, vehicle.listing?.advanceNoticeHours ?? 0) / 60;
@@ -86,20 +83,7 @@ export function AvailabilityCalendar({
    * promise - the quote is authoritative and says so below - but a good-faith
    * figure beats no figure, which is what the guest had before.
    */
-  const priceFor = (d: Date): number => {
-    let cents = p.dailyPrice;
-    const dow = d.getDay();
-    if ((dow === 0 || dow === 6) && p.weekendMultiplierBps) {
-      cents = Math.round((cents * p.weekendMultiplierBps) / 10_000);
-    }
-    const dayKey = keyOf(d);
-    const season = (p.seasonalRules ?? []).find((r) => dayKey >= r.start.slice(0, 10) && dayKey <= r.end.slice(0, 10));
-    if (season) cents = Math.round((cents * season.multiplierBps) / 10_000);
-    if (p.promoActive && p.promoDiscountBps) {
-      cents = Math.round(cents * (1 - p.promoDiscountBps / 10_000));
-    }
-    return cents;
-  };
+  const priceFor = (d: Date): number => nightlyPrice(p, d);
 
   const { days, monthLabel, cheapest, longestRun, longestFrom } = useMemo(() => {
     const now = new Date();

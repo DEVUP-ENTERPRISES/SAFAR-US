@@ -1,36 +1,15 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingApi } from './api';
-import { useAuthStore } from '@/features/auth/store';
+import { useCreateBooking as useCreateBookingWith } from './queries';
 import { confirmCardPayment } from '@/features/payments/confirm-payment';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/types';
-import type { QuoteInput } from './types';
 
-export function useMyBookings(role: 'guest' | 'host' = 'guest') {
-  // Gated on being signed in. Nothing needed this while the hook was only
-  // mounted on pages behind an auth guard, but the phone tab bar shows a trip
-  // count on every screen - without this, every signed-out visitor fires a
-  // request that can only ever 401.
-  const status = useAuthStore((s) => s.status);
-  return useQuery({
-    queryKey: ['bookings', role],
-    queryFn: () => bookingApi.list(role),
-    enabled: status === 'authenticated',
-  });
-}
+export { useMyBookings, useBooking, useQuote, useCancelBooking } from './queries';
 
-export function useBooking(id: string) {
-  return useQuery({ queryKey: ['booking', id], queryFn: () => bookingApi.getById(id), enabled: !!id });
-}
-
-export function useQuote() {
-  return useMutation({ mutationFn: (input: QuoteInput) => bookingApi.quote(input) });
-}
-
-/** Never blocks or fails the booking on a slow/denied/unsupported browser. */
 function bestEffortCoords(): Promise<{ lat: number; lng: number } | undefined> {
   return new Promise((resolve) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) return resolve(undefined);
@@ -42,29 +21,11 @@ function bestEffortCoords(): Promise<{ lat: number; lng: number } | undefined> {
   });
 }
 
+/** The shared create hook, with the browser's location for the risk check. */
 export function useCreateBooking() {
-  const qc = useQueryClient();
-  return useMutation({
-    // The booking panel shows the error inline (with "use another card" for a decline); no second toast.
-    meta: { silentError: true },
-    // A stable idempotency key per attempt makes retries safe (backend dedupes).
-    mutationFn: async (input: QuoteInput) => {
-      const coords = await bestEffortCoords();
-      return bookingApi.create(input, crypto.randomUUID(), coords);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
-  });
+  return useCreateBookingWith(bestEffortCoords);
 }
 
-export function useCancelBooking() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => bookingApi.cancel(id, reason),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
-  });
-}
-
-/** Finishes a booking stuck in pending_payment: retries the charge, runs 3-D Secure, or sends the guest to add a card. */
 export function useCompletePayment() {
   const qc = useQueryClient();
   const router = useRouter();

@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { I18nProvider, ThemeProvider, ToastProvider, useAppFonts, useTheme, useToast } from '@catodrive/ui';
+import { ConfirmProvider, I18nProvider, ThemeProvider, ToastProvider, useAppFonts, useTheme, useToast } from '@catodrive/ui';
 import { hydrateTokens } from './web/lib/api/token-store';
 import { createQueryClient } from './query-client';
 import { installGlobalErrorHandlers, setErrorNotifier } from './errors';
@@ -32,7 +32,7 @@ function ThemedStatusBar() {
 }
 
 /**
- * Every app's root: GestureHandler > SafeArea > Theme > I18n > Toast > Query >
+ * Every app's root: GestureHandler > SafeArea > Theme > I18n > Toast > Confirm > Query >
  * UpdateGate > session bootstrap > routes. The splash stays up until fonts and
  * saved tokens are loaded, so the first frame is already signed in or out.
  */
@@ -58,11 +58,13 @@ export function AppShell({ children, resolveLink }: { children: ReactNode; resol
           <ThemedStatusBar />
           <I18nProvider>
             <ToastProvider>
-              <QueryLayer>
-                <UpdateGate>
-                  <SessionBootstrap openLink={openLink}>{children}</SessionBootstrap>
-                </UpdateGate>
-              </QueryLayer>
+              <ConfirmProvider>
+                <QueryLayer>
+                  <UpdateGate>
+                    <SessionBootstrap openLink={openLink}>{children}</SessionBootstrap>
+                  </UpdateGate>
+                </QueryLayer>
+              </ConfirmProvider>
             </ToastProvider>
           </I18nProvider>
         </ThemeProvider>

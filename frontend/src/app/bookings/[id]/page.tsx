@@ -17,7 +17,8 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { formatMoney, formatDateTime } from '@/lib/utils/format';
 import { TrackingPanel } from '@/features/trips/components/tracking-panel';
-import { useLocationStreaming, useTrackingState } from '@/features/trips/hooks';
+import { useTrackingState } from '@/features/trips/hooks';
+import { useLocationStreaming } from '@/features/trips/location-streaming';
 import { cn } from '@/lib/utils/cn';
 import { ChatPanel } from '@/features/messaging/chat-panel';
 import { bookingApi } from '@/features/bookings/api';
@@ -40,25 +41,10 @@ import { BookingReadiness } from '@/features/account/booking-readiness';
 import { PayNow } from '@/features/payments/pay-now';
 import { DepositCard } from '@/features/payments/deposit-card';
 import { usePlatformConfig } from '@/features/platform/config';
+import { BOOKING_STATE, CHATTABLE, DETAIL_CANCELLABLE } from '@/features/bookings/status';
 
 /** How each state reads to the guest, and what it means for them. */
-const STATE: Record<string, { tone: 'success' | 'warning' | 'destructive' | 'muted' | 'default'; label: string; detail: string }> = {
-  pending_approval: { tone: 'warning', label: 'Waiting on the host', detail: 'The host has up to 24 hours to accept. Your card is only held, not charged; if they decline or don’t answer, the hold is released.' },
-  pending_verification: { tone: 'warning', label: 'Verifying your identity', detail: 'We’re confirming your licence. Your card is authorised but not charged.' },
-  pending_payment: { tone: 'warning', label: 'Payment incomplete', detail: 'Your dates are held but the payment didn’t finish. This trip isn’t confirmed until it does.' },
-  paid: { tone: 'success', label: 'Confirmed', detail: 'You’re booked. The host will meet you at pickup.' },
-  confirmed: { tone: 'success', label: 'Confirmed', detail: 'You’re booked. The host will meet you at pickup.' },
-  in_progress: { tone: 'default', label: 'Trip in progress', detail: 'Enjoy the drive - return it on time to avoid late fees.' },
-  completed: { tone: 'muted', label: 'Completed', detail: 'This trip is finished. Thanks for riding.' },
-  declined: { tone: 'destructive', label: 'Declined by host', detail: 'The host couldn’t take this trip. You haven’t been charged.' },
-  expired: { tone: 'destructive', label: 'Request expired', detail: 'The host didn’t respond in time. You haven’t been charged.' },
-  cancelled_guest: { tone: 'muted', label: 'Cancelled by you', detail: 'You cancelled this trip.' },
-  cancelled_host: { tone: 'destructive', label: 'Cancelled by host', detail: 'The host cancelled. We’ll cover the price difference on a replacement car.' },
-  cancelled_system: { tone: 'muted', label: 'Cancelled', detail: 'This booking was cancelled.' },
-};
 
-const CANCELLABLE = ['pending_approval', 'pending_verification', 'pending_payment', 'confirmed', 'paid'];
-const CHATTABLE = ['pending_approval', 'pending_verification', 'pending_payment', 'confirmed', 'paid', 'in_progress', 'completed'];
 
 function BookingDetail({ id }: { id: string }) {
   const qc = useQueryClient();
@@ -82,7 +68,7 @@ function BookingDetail({ id }: { id: string }) {
   const cancelPreview = useQuery({
     queryKey: ['cancellation-preview', id],
     queryFn: () => bookingApi.cancellationPreview(id),
-    enabled: !!booking.data && CANCELLABLE.includes(booking.data.status),
+    enabled: !!booking.data && DETAIL_CANCELLABLE.includes(booking.data.status),
     retry: false,
   });
 
@@ -165,9 +151,9 @@ function BookingDetail({ id }: { id: string }) {
   }
 
   const b = booking.data;
-  const state = STATE[b.status] ?? { tone: 'muted' as const, label: b.status, detail: '' };
+  const state = BOOKING_STATE[b.status] ?? { tone: 'muted' as const, label: b.status, detail: '' };
   const v = vehicle.data;
-  const canCancel = CANCELLABLE.includes(b.status);
+  const canCancel = DETAIL_CANCELLABLE.includes(b.status);
   const canChat = CHATTABLE.includes(b.status);
 
   const onCancel = async () => {

@@ -21,13 +21,15 @@ export interface DateRangeCalendarProps {
   unavailable?: Set<string>;
   /** Optional small label under each day, like the price for that night. */
   labelFor?: (key: string) => string | undefined;
+  /** Pick one day instead of a range; `to` stays empty. */
+  single?: boolean;
 }
 
 /**
  * The website's two-tap range picker, one month at a time: tap a start, tap an
  * end. Tapping the same day again, or a day before the start, restarts.
  */
-export const DateRangeCalendar = memo(function DateRangeCalendar({ from, to, onChange, earliest, unavailable, labelFor }: DateRangeCalendarProps) {
+export const DateRangeCalendar = memo(function DateRangeCalendar({ from, to, onChange, earliest, unavailable, labelFor, single }: DateRangeCalendarProps) {
   const { c } = useTheme();
   const today = useMemo(() => {
     const d = earliest ? new Date(earliest) : new Date();
@@ -51,6 +53,7 @@ export const DateRangeCalendar = memo(function DateRangeCalendar({ from, to, onC
 
   const pick = (key: string) => {
     void Haptics.selectionAsync().catch(() => undefined);
+    if (single) return onChange(key, '');
     if (!anchor) {
       setAnchor(key);
       onChange(key, '');

@@ -112,6 +112,9 @@ export const tripApi = {
   reportDamage: (id: string, description: string, photos: string[]) =>
     api.post<Trip>(`/trips/${id}/damage`, { description, photos }),
   sos: (id: string) => api.post<{ alerted: boolean }>(`/trips/${id}/sos`),
+  /** The host checks the guest's pickup code, by trip or (before the trip exists) by booking. */
+  verifyPickup: (target: { tripId?: string; bookingId?: string }, code: string) =>
+    api.post<{ verified: boolean }>(target.tripId ? `/trips/${target.tripId}/verify-pickup` : `/trips/booking/${target.bookingId}/verify-pickup`, { code }),
 };
 
 /** Whether tracking is open for a trip, and why. Resolved by the server. */
