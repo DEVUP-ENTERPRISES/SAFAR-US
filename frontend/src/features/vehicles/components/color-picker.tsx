@@ -2,6 +2,7 @@
 
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { CAR_COLORS as COLORS, LIGHT_COLORS } from '../listing-options';
 
 /**
  * Car colour, as swatches.
@@ -14,24 +15,6 @@ import { cn } from '@/lib/utils/cn';
  * order of how common they are - white, black, grey and silver are most of the
  * road, so they come first rather than sitting alphabetically in the middle.
  */
-const COLORS: { value: string; label: string; hex: string; ring?: boolean }[] = [
-  // `ring` marks colours that would vanish against the card, so they get a
-  // border of their own rather than appearing as a hole in the grid.
-  { value: 'white', label: 'White', hex: '#FFFFFF', ring: true },
-  { value: 'black', label: 'Black', hex: '#111111' },
-  { value: 'gray', label: 'Gray', hex: '#8A8D91' },
-  { value: 'silver', label: 'Silver', hex: '#C9CCD1', ring: true },
-  { value: 'blue', label: 'Blue', hex: '#1D4ED8' },
-  { value: 'red', label: 'Red', hex: '#DC2626' },
-  { value: 'green', label: 'Green', hex: '#15803D' },
-  { value: 'brown', label: 'Brown', hex: '#78503C' },
-  { value: 'beige', label: 'Beige', hex: '#D8C3A5', ring: true },
-  { value: 'gold', label: 'Gold', hex: '#B48A3C' },
-  { value: 'orange', label: 'Orange', hex: '#EA580C' },
-  { value: 'yellow', label: 'Yellow', hex: '#EAB308' },
-  { value: 'purple', label: 'Purple', hex: '#7C3AED' },
-  { value: 'other', label: 'Other', hex: 'conic-gradient(#DC2626,#EAB308,#15803D,#1D4ED8,#7C3AED,#DC2626)' },
-];
 
 export function ColorPicker({
   value,
@@ -70,7 +53,7 @@ export function ColorPicker({
                   className={cn(
                     'h-4 w-4',
                     // Tick contrast follows the swatch, not the theme.
-                    ['white', 'silver', 'beige', 'yellow'].includes(c.value) ? 'text-black' : 'text-white',
+                    LIGHT_COLORS.includes(c.value) ? 'text-black' : 'text-white',
                   )}
                   strokeWidth={3}
                 />

@@ -15,6 +15,7 @@ import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
 import { PricingPanel, type PricingField } from '@/features/vehicles/components/pricing-panel';
 import { ApiError } from '@/lib/api/types';
+import { PRICING_FIELD_HINT, competitiveness, fieldForDays } from '@/features/vehicles/pricing-form';
 
 export default function PricingDiscountsPage() {
   const { id } = useParams<{ id: string }>();
@@ -27,7 +28,6 @@ export default function PricingDiscountsPage() {
   useEffect(() => {
     if (editing) editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [editing]);
-  const fieldFor = (days: number): PricingField => (days >= 28 ? 'monthly' : days >= 7 ? 'weekly' : 'daily');
 
   const { data: v, isPending: vPending, isError: vError, refetch: refetchV } = useVehicle(id);
   const { data: preview, isPending: pPending, isError: pError, refetch: refetchP } = useQuery({
@@ -70,14 +70,7 @@ export default function PricingDiscountsPage() {
   // Where this car's own rate lands against the market for its category/area -
   // the same comps Smart Price already computes, read as a 4-bar dial instead
   // of a single "suggested" number.
-  const competitiveness = (() => {
-    if (!comps.data) return 0;
-    const nightly = v.pricing.dailyPrice; // the base rate - tier discounts don't change how it reads on the market
-    if (nightly <= comps.data.p25) return 4;
-    if (nightly <= comps.data.median) return 3;
-    if (nightly <= comps.data.p75) return 2;
-    return 1;
-  })();
+  const rating = competitiveness(v.pricing.dailyPrice, comps.data);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-10">
@@ -94,7 +87,7 @@ export default function PricingDiscountsPage() {
               <CardContent className="space-y-3 py-5">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-lg font-semibold">{t.label}</p>
-                  <Button size="sm" variant="outline" onClick={() => setEditing(fieldFor(t.days))}>
+                  <Button size="sm" variant="outline" onClick={() => setEditing(fieldForDays(t.days))}>
                     Edit
                   </Button>
                 </div>
@@ -124,8 +117,8 @@ export default function PricingDiscountsPage() {
                         key={i}
                         className={cn(
                           'h-1.5 flex-1 rounded-full',
-                          i <= competitiveness
-                            ? competitiveness >= 3
+                          i <= rating
+                            ? rating >= 3
                               ? 'bg-emerald-500'
                               : 'bg-amber-500'
                             : 'bg-muted',
@@ -161,11 +154,7 @@ export default function PricingDiscountsPage() {
           <Card>
             <CardContent className="p-0">
               <p className="px-4 pt-4 text-sm text-muted-foreground">
-                {editing === 'daily'
-                  ? '1- and 3-day earnings follow your daily price.'
-                  : editing === 'weekly'
-                    ? '7-day earnings follow your weekly discount.'
-                    : '28-day earnings follow your monthly discount.'}
+                {PRICING_FIELD_HINT[editing]}
               </p>
               {/* Keyed by the field so reopening from another card focuses that card's lever. */}
               <PricingPanel

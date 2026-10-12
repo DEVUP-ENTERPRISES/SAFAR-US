@@ -14,7 +14,8 @@ export type DocumentCategory =
   | 'pollution'
   | 'fitness'
   | 'kyc'
-  | 'claim';
+  | 'claim'
+  | 'recall_receipt';
 
 export interface PartnerDocument {
   _id: string;

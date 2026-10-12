@@ -3,6 +3,7 @@
 import { Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils/cn';
+import { FEATURE_GROUPS as GROUPS, KNOWN_FEATURES as KNOWN } from '../listing-options';
 
 /**
  * Vehicle features, as a checklist rather than free text.
@@ -11,48 +12,6 @@ import { cn } from '@/lib/utils/cn';
  * feature, which makes the amenity filter useless. Grouped to match how a
  * guest actually scans a listing - safety first, then what's in the cabin.
  */
-const GROUPS: { label: string; items: { value: string; label: string }[] }[] = [
-  {
-    label: 'Safety',
-    items: [
-      { value: 'backup_camera', label: 'Backup camera' },
-      { value: 'blind_spot_warning', label: 'Blind spot warning' },
-    ],
-  },
-  {
-    label: 'Convenience',
-    items: [
-      { value: 'bluetooth', label: 'Bluetooth' },
-      { value: 'gps', label: 'GPS' },
-      { value: 'keyless_entry', label: 'Keyless entry' },
-      { value: 'usb_charger', label: 'USB charger' },
-      { value: 'usb_input', label: 'USB input' },
-      { value: 'aux_input', label: 'AUX input' },
-      { value: 'toll_pass', label: 'Toll pass' },
-      { value: 'sunroof', label: 'Sunroof' },
-      { value: 'android_auto', label: 'Android Auto' },
-      { value: 'apple_carplay', label: 'Apple CarPlay' },
-    ],
-  },
-  // No pet option - pets are not permitted on any CatoDrive trip.
-  {
-    label: 'Family',
-    items: [{ value: 'child_seat', label: 'Child seat' }],
-  },
-  {
-    label: 'Adventure',
-    items: [
-      { value: 'bike_rack', label: 'Bike rack' },
-      { value: 'ski_rack', label: 'Ski rack' },
-      { value: 'snow_tires', label: 'Snow tires' },
-    ],
-  },
-  {
-    label: 'Accessibility',
-    items: [{ value: 'wheelchair_accessible', label: 'Wheelchair accessible' }],
-  },
-];
-const KNOWN = new Set(GROUPS.flatMap((g) => g.items.map((i) => i.value)));
 
 export function FeaturePicker({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
   const [customInput, setCustomInput] = useState('');

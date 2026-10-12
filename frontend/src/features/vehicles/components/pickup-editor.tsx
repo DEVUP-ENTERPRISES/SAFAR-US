@@ -11,6 +11,7 @@ import { Field } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
 import { vehicleApi } from '@/features/vehicles/api';
 import { hostApi } from '@/features/host/api';
+import { pickupPatch } from '../listing-form';
 
 /**
  * Where the car actually is, and how to get into it.
@@ -60,15 +61,7 @@ export function PickupEditor({
   };
 
   const save = useMutation({
-    mutationFn: () =>
-      vehicleApi.update(vehicleId, {
-        pickup: {
-          // Empty strings clear the field rather than saving a blank.
-          ...(instructions.trim() ? { instructions: instructions.trim() } : {}),
-          ...(accessCode.trim() ? { accessCode: accessCode.trim() } : {}),
-          ...(spotPhotoUrl.trim() ? { spotPhotoUrl: spotPhotoUrl.trim() } : {}),
-        },
-      }),
+    mutationFn: () => vehicleApi.update(vehicleId, pickupPatch({ instructions, accessCode, spotPhotoUrl })),
     onSuccess: () => {
       toast({ tone: 'success', title: 'Pickup details saved' });
       onSaved?.();

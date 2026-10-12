@@ -19,7 +19,7 @@ import { SectionLabel, RowGroup, Row } from '@/components/ui/rows';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { Textarea } from '@/components/ui/textarea';
-import { formatMoney, FUEL_LABEL, kmToMiles, perKmToPerMile, milesToKm, perMileToPerKm } from '@/lib/utils/format';
+import { formatMoney, FUEL_LABEL, kmToMiles, perKmToPerMile } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
@@ -33,6 +33,7 @@ import { ColorPicker } from '@/features/vehicles/components/color-picker';
 import { DeliveryLocationsEditor } from '@/features/vehicles/components/delivery-locations-editor';
 import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import type { DeliveryLocation } from '@/features/vehicles/types';
+import { detailsForm, detailsPatch, fmtRange, groupRanges, listingStatusText, tripPrefsForm, tripPrefsPatch, type DetailsForm, type TripPrefsForm } from '@/features/vehicles/listing-form';
 
 type Panel = null | 'pricing' | 'photos' | 'availability' | 'details' | 'safety' | 'location' | 'trip';
 const PANELS: Panel[] = ['pricing', 'photos', 'availability', 'details', 'safety', 'location', 'trip'];
@@ -584,13 +585,7 @@ export default function ManageListingPage() {
         <Row
           title={v.status === 'listed' ? 'Listed' : `Status: ${v.status}`}
           subtitle={
-            v.status === 'listed'
-              ? 'Your car appears in search results and can be booked.'
-              : v.verificationStatus === 'verified'
-                ? 'Verified but not listed.'
-                : photosNeeded > 0
-                  ? `Add ${photosNeeded} more photo${photosNeeded === 1 ? '' : 's'} to submit for verification.`
-                  : 'Submit for verification to go live.'
+            listingStatusText(v, photosNeeded)
           }
           action={
             v.status === 'draft'
@@ -623,27 +618,7 @@ export default function ManageListingPage() {
  * previous version treated a rejected upload as success and attached a URL to
  * an object that was never stored - the photo then rendered broken.
  */
-/** Collapse a sorted list of YYYY-MM-DD day keys into contiguous ranges. */
-function groupRanges(days: string[]): { from: string; to: string }[] {
-  const out: { from: string; to: string }[] = [];
-  const nextDay = (d: string) => {
-    const t = new Date(d + 'T00:00:00Z');
-    t.setUTCDate(t.getUTCDate() + 1);
-    return t.toISOString().slice(0, 10);
-  };
-  for (const day of days) {
-    const last = out[out.length - 1];
-    if (last && nextDay(last.to) === day) last.to = day;
-    else out.push({ from: day, to: day });
-  }
-  return out;
-}
 
-/** "Mar 3" or "Mar 3 – Mar 7" for a blocked range chip. */
-function fmtRange(from: string, to: string): string {
-  const f = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
-  return from === to ? f(from) : `${f(from)} – ${f(to)}`;
-}
 
 async function putToStorage(uploadUrl: string, file: File): Promise<void> {
   const res = await fetch(uploadUrl, {
@@ -704,19 +679,15 @@ function LocationPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: 
 
 function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: SaveFn; saving: boolean }) {
   const l = vehicle.listing;
-  const [instantBook, setInstantBook] = useState(!!l?.instantBook);
+  const [form, setForm] = useState<TripPrefsForm>(() => tripPrefsForm(vehicle));
+  const { instantBook, minHours, maxDays, turnaround, notice, overagePerMile } = form;
+  const field = <K extends keyof TripPrefsForm>(k: K) => (v: TripPrefsForm[K]) => setForm((p) => ({ ...p, [k]: v }));
+  const [setInstantBook, setMinHours, setMaxDays, setTurnaround, setNotice, setOveragePerMile] = [field('instantBook'), field('minHours'), field('maxDays'), field('turnaround'), field('notice'), field('overagePerMile')];
   // The server keeps every car on the platform's one policy; shown here, not chosen.
   const platformPolicy = l?.cancellationPolicy ?? 'flexible';
-  const [minHours, setMinHours] = useState(String(l?.minTripHours ?? 24));
-  // Max trip length is in days; hosts do not need hour precision for how long a trip can run.
-  const [maxDays, setMaxDays] = useState(String(Math.max(1, Math.round((l?.maxTripHours ?? 720) / 24))));
-  const [turnaround, setTurnaround] = useState(String(l?.turnaroundDays ?? 0));
-  const [notice, setNotice] = useState(String(l?.advanceNoticeHours ?? 0));
   const platformCfg = usePlatformConfig();
   const platformLead = describeLead(leadMinutes(platformCfg.data));
-  const m = vehicle.mileageLimit;
   const dailyMiles = platformCfg.data?.booking?.dailyMileageMiles ?? 200;
-  const [overagePerMile, setOveragePerMile] = useState(String((perKmToPerMile(m?.overageFeePerKm ?? 0) / 100) || ''));
 
   return (
     <div className="space-y-4 bg-subtle px-4 py-4">
@@ -765,21 +736,7 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
       <Button
         size="sm"
         loading={saving}
-        onClick={() =>
-          onSave({
-            listing: {
-              instantBook,
-              minTripHours: Math.min(720, Math.max(1, Number(minHours) || 1)),
-              maxTripHours: Math.max(1, Number(maxDays) || 1) * 24,
-              turnaroundDays: Math.min(7, Math.max(0, Number(turnaround) || 0)),
-              advanceNoticeHours: Math.min(720, Math.max(0, Number(notice) || 0)),
-            },
-            mileageLimit: {
-              perDayKm: milesToKm(dailyMiles),
-              overageFeePerKm: perMileToPerKm(Math.round(Number(overagePerMile || 0) * 100)),
-            },
-          })
-        }
+        onClick={() => onSave(tripPrefsPatch(form, dailyMiles))}
       >
         Save trip preferences
       </Button>
@@ -788,13 +745,10 @@ function TripPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: Save
 }
 
 function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: SaveFn; saving: boolean }) {
-  const [title, setTitle] = useState(vehicle.listing?.title ?? '');
-  const [description, setDescription] = useState(vehicle.listing?.description ?? '');
-  const [features, setFeatures] = useState<string[]>(vehicle.features ?? []);
-  const [plate, setPlate] = useState(vehicle.registrationNumber ?? '');
-  const [color, setColor] = useState(vehicle.specs?.color ?? '');
-  const [doors, setDoors] = useState(String(vehicle.specs?.doors ?? ''));
-  const [odometerMiles, setOdometerMiles] = useState(String(kmToMiles(vehicle.specs?.mileageKm ?? 0) || ''));
+  const [form, setForm] = useState<DetailsForm>(() => detailsForm(vehicle));
+  const { title, description, features, plate, color, doors, odometerMiles } = form;
+  const field = <K extends keyof DetailsForm>(k: K) => (v: DetailsForm[K]) => setForm((p) => ({ ...p, [k]: v }));
+  const [setTitle, setDescription, setFeatures, setPlate, setColor, setDoors, setOdometerMiles] = [field('title'), field('description'), field('features'), field('plate'), field('color'), field('doors'), field('odometerMiles')];
 
   return (
     <div className="space-y-3">
@@ -829,21 +783,7 @@ function DetailsPanel({ vehicle, onSave, saving }: { vehicle: Vehicle; onSave: S
         size="sm"
         loading={saving}
         disabled={!title.trim()}
-        onClick={() =>
-          onSave({
-            listing: { title: title.trim(), description },
-            features,
-            registrationNumber: plate.trim() || undefined,
-            // Omit rather than set undefined - the merge spreads this object
-            // over the stored specs, and an explicit undefined key would
-            // overwrite an existing value instead of leaving it alone.
-            specs: {
-              ...(color ? { color } : {}),
-              ...(doors ? { doors: Number(doors) } : {}),
-              ...(odometerMiles ? { mileageKm: milesToKm(Number(odometerMiles)) } : {}),
-            },
-          })
-        }
+        onClick={() => onSave(detailsPatch(form))}
       >
         Save details
       </Button>
