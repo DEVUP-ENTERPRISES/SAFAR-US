@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Camera } from 'lucide-react-native';
 import { Avatar, Button, DateOfBirthInput, Input, Screen, ScreenHeader, Skeleton, Text, useTheme, useToast, space } from '@catodrive/ui';
-import { PhoneInput, RequireAuth, pickPhotos, uploadPhotos } from '@catodrive/core';
+import { PhoneInput, RequireAuth, usePhotoUpload } from '@catodrive/core';
 import { accountApi } from '@catodrive/core/web/features/account/api';
 import { ApiError } from '@catodrive/core/web/lib/api/types';
 
@@ -15,7 +15,7 @@ function Profile() {
   const qc = useQueryClient();
   const me = useQuery({ queryKey: ['me'], queryFn: () => accountApi.me() });
   const [p, setP] = useState({ firstName: '', lastName: '', phone: '', dateOfBirth: '', avatarUrl: '' });
-  const [uploading, setUploading] = useState(false);
+  const photo = usePhotoUpload('avatar');
 
   useEffect(() => {
     if (me.data) setP({ firstName: me.data.firstName ?? '', lastName: me.data.lastName ?? '', avatarUrl: me.data.avatarUrl ?? '', phone: me.data.phone ?? '', dateOfBirth: me.data.dateOfBirth ?? '' });
@@ -31,19 +31,6 @@ function Profile() {
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not save your profile' }),
   });
 
-  const changePhoto = async () => {
-    const picked = await pickPhotos('library');
-    if (!picked?.length) return;
-    setUploading(true);
-    try {
-      const [up] = await uploadPhotos('avatar', picked.slice(0, 1));
-      setP((prev) => ({ ...prev, avatarUrl: up.url }));
-    } catch (e) {
-      toast({ tone: 'error', title: e instanceof Error ? e.message : 'That photo didn’t upload' });
-    } finally {
-      setUploading(false);
-    }
-  };
 
   return (
     <Screen header={<ScreenHeader title="Profile details" onBack={() => router.back()} />} footer={<Button title="Save profile" loading={save.isPending} onPress={() => save.mutate()} />}>
@@ -51,11 +38,14 @@ function Profile() {
         <Skeleton height={300} />
       ) : (
         <>
-          <Pressable accessibilityRole="button" accessibilityLabel="Change profile photo" onPress={() => void changePhoto()} style={{ alignSelf: 'center', alignItems: 'center', gap: space.sm }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Change profile photo" onPress={async () => {
+            const up = await photo.upload();
+            if (up) setP((prev) => ({ ...prev, avatarUrl: up.url }));
+          }} style={{ alignSelf: 'center', alignItems: 'center', gap: space.sm }}>
             <Avatar uri={p.avatarUrl || null} name={p.firstName || me.data.email} size={96} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Camera size={16} color={c.primary} />
-              <Text variant="label" tone="primary">{uploading ? 'Uploading…' : 'Change photo'}</Text>
+              <Text variant="label" tone="primary">{photo.uploading ? 'Uploading…' : 'Change photo'}</Text>
             </View>
           </Pressable>
           <Input label="First name" value={p.firstName} onChangeText={(t) => setP({ ...p, firstName: t })} autoComplete="given-name" />

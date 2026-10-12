@@ -28,6 +28,16 @@ export const TOLL_AGENCIES: { id: string; label: string; supported: boolean }[] 
 
 export const agencyLabel = (id: string) => TOLL_AGENCIES.find((a) => a.id === id)?.label ?? id.toUpperCase();
 
+/** How a linked account reads to the host. `manual`: login saved; tolls arrive from statements until NTTA opens automatic access. */
+export const TOLL_STATUS: Record<HostTollAccount['status'], { label: string; tone: 'success' | 'primary' | 'destructive' }> = {
+  connected: { label: 'Connected', tone: 'success' },
+  manual: { label: 'Linked', tone: 'primary' },
+  disconnected: { label: 'Disconnected', tone: 'destructive' },
+};
+
+/** A car's listing state on the toll page. */
+export const TOLL_CAR_STATUS: Record<string, string> = { listed: 'Listed', draft: 'Draft', paused: 'Snoozed', pending_verification: 'In review' };
+
 export const hostTollsApi = {
   accounts: () => api.get<HostTollAccount[]>('/hosts/me/tolls/accounts'),
   account: (id: string) => api.get<HostTollAccount>(`/hosts/me/tolls/accounts/${id}`),

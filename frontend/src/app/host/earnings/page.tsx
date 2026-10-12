@@ -15,6 +15,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { useEarnings, usePayouts, useInstantPayout } from '@/features/host/hooks';
 import { PayoutReadinessCard } from '@/features/host/components/payout-readiness-card';
+import { instantPayoutQuote } from '@/features/host/payouts';
 
 export default function EarningsPage() {
   const { data, isLoading } = useEarnings();
@@ -67,8 +68,7 @@ export default function EarningsPage() {
             loading={instant.isPending}
             onClick={async () => {
               // Show the exact fee/net before they commit - same maths as the server.
-              const fee = Math.max(50, Math.round((data.pendingPayout * 150) / 10000));
-              const net = data.pendingPayout - fee;
+              const { fee, net } = instantPayoutQuote(data.pendingPayout);
               const { ok } = await confirm({
                 title: 'Cash out instantly?',
                 description: (

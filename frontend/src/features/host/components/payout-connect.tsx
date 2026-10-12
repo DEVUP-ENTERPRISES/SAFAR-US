@@ -7,16 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
-import { api } from '@/lib/api/client';
-
-interface ConnectStatus {
-  connected: boolean;
-  accountId?: string;
-  payoutsEnabled: boolean;
-  chargesEnabled: boolean;
-  requirementsDue: string[];
-  needsOnboarding: boolean;
-}
+import { connectApi, humaniseRequirement as humanise } from '../payouts';
 
 /**
  * Connecting a bank account.
@@ -33,38 +24,24 @@ interface ConnectStatus {
  * host can abandon onboarding halfway and the only thing that knows whether
  * they can actually be paid is Stripe.
  */
-
-/** Stripe's requirement keys are machine names; these are the common ones. */
-const REQUIREMENT_LABELS: Record<string, string> = {
-  'individual.verification.document': 'A photo of your ID',
-  'individual.id_number': 'Your SSN or tax ID',
-  'external_account': 'Your bank account',
-  'individual.address.line1': 'Your address',
-  'individual.dob.day': 'Your date of birth',
-  'business_profile.url': 'A website or profile link',
-  'business_profile.mcc': 'What your business does',
-  'tos_acceptance.date': 'Accepting Stripe’s terms',
-};
-const humanise = (k: string) => REQUIREMENT_LABELS[k] ?? k.replace(/[._]/g, ' ');
-
 export function PayoutConnect() {
   const toast = useToast();
 
   const status = useQuery({
     queryKey: ['connect-status'],
-    queryFn: () => api.get<ConnectStatus>('/payouts/connect/status'),
+    queryFn: () => connectApi.status(),
     retry: false,
   });
 
   const onboard = useMutation({
-    mutationFn: () => api.post<{ url: string }>('/payouts/connect/onboard', { returnPath: '/host/earnings' }),
+    mutationFn: () => connectApi.onboard('/host/earnings'),
     // Stripe's flow replaces the page; coming back re-reads status.
     onSuccess: (r) => { window.location.href = r.url; },
     onError: (e) => toast({ tone: 'error', title: 'Could not start payout setup', description: e instanceof Error ? e.message : undefined }),
   });
 
   const dashboard = useMutation({
-    mutationFn: () => api.post<{ url: string }>('/payouts/connect/dashboard', {}),
+    mutationFn: () => connectApi.dashboard(),
     onSuccess: (r) => window.open(r.url, '_blank', 'noopener'),
     onError: () => toast({ tone: 'error', title: 'Could not open your Stripe dashboard' }),
   });

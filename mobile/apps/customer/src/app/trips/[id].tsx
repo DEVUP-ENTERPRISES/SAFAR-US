@@ -77,7 +77,6 @@ function TripDashboard({ id }: { id: string }) {
                 onPress={() =>
                   complete.mutate(
                     { odometerEnd: odoEnd ? Number(odoEnd) : undefined, fuelEnd: fuelEnd ? Number(fuelEnd) : undefined },
-                    { onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not complete the trip' }) },
                   )
                 }
               />

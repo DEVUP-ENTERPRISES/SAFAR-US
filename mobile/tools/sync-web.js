@@ -85,6 +85,8 @@ const ENTRIES = [
   'features/host/trip-timing.ts',
   'features/host/trip-handover.ts',
   'features/host/incidentals.ts',
+  'features/host/payouts.ts',
+  'features/host/profile-form.ts',
   'features/host/team-api.ts',
   'features/host/tolls-api.ts',
   'features/asset-partners/api.ts',

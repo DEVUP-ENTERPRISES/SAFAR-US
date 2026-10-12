@@ -13,10 +13,9 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ApiError } from '@/lib/api/types';
 import { useHostMe } from '@/features/host/hooks';
 import { useMyVehicles } from '@/features/vehicles/hooks';
-import { hostTollsApi, agencyLabel } from '@/features/host/tolls-api';
+import { hostTollsApi, agencyLabel, TOLL_CAR_STATUS as STATUS_LABEL } from '@/features/host/tolls-api';
 import { TollStatusPill } from '@/features/host/components/toll-status';
 
-const STATUS_LABEL: Record<string, string> = { listed: 'Listed', draft: 'Draft', paused: 'Snoozed', pending_verification: 'In review' };
 
 /** One linked toll account: who it belongs to, its login, and the cars tracked on it. */
 export default function TollAccountPage() {

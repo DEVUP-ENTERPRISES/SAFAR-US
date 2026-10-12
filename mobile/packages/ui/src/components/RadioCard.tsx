@@ -4,21 +4,22 @@ import { radius, space } from '../theme/tokens';
 import { Text } from './Text';
 
 /** One choice in a list of options (protection plan, payment method): title, detail and a price or note. */
-export function RadioCard({ selected, onPress, title, detail, aside }: { selected: boolean; onPress: () => void; title: string; detail?: string; aside?: string }) {
+export function RadioCard({ selected, onPress, title, detail, aside, disabled }: { selected: boolean; onPress: () => void; title: string; detail?: string; aside?: string; disabled?: boolean }) {
   const { c } = useTheme();
   return (
     <Pressable
       accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      accessibilityState={{ selected, disabled }}
       accessibilityLabel={[title, aside, detail].filter(Boolean).join(', ')}
       onPress={onPress}
-      style={[styles.card, { borderColor: selected ? c.primary : c.border, backgroundColor: selected ? c.primarySoft : c.card }]}
+      disabled={disabled}
+      style={[styles.card, { borderColor: selected ? c.primary : c.border, backgroundColor: selected ? c.primarySoft : c.card, opacity: disabled ? 0.5 : 1 }]}
     >
       <View style={[styles.dot, { borderColor: selected ? c.primary : c.input }]}>{selected ? <View style={[styles.inner, { backgroundColor: c.primary }]} /> : null}</View>
       <View style={{ flex: 1, gap: 2 }}>
         <View style={styles.top}>
           <Text variant="label" style={{ flex: 1 }}>{title}</Text>
-          {aside ? <Text variant="label">{aside}</Text> : null}
+          {aside ? <Text variant={disabled ? 'caption' : 'label'} tone={disabled ? 'muted' : 'default'}>{aside}</Text> : null}
         </View>
         {detail ? <Text variant="caption" tone="muted">{detail}</Text> : null}
       </View>

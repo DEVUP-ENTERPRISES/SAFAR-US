@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Camera, ShieldCheck } from 'lucide-react-native';
 import { Avatar, Button, Card, DateOfBirthInput, Input, ScreenHeader, Section, Text, useTheme, useToast, radius, space } from '@catodrive/ui';
-import { PhoneInput, RequireAuth, pickPhotos, safeReturn, uploadPhotos } from '@catodrive/core';
+import { PhoneInput, RequireAuth, safeReturn, usePhotoUpload } from '@catodrive/core';
 import { accountApi } from '@catodrive/core/web/features/account/api';
 import { EMPTY_SETUP, onboardingInput, setupChecklist, type SetupForm } from '@catodrive/core/web/features/account/setup-form';
 import { usePlatformConfig } from '@catodrive/core/web/features/platform/config';
@@ -22,7 +22,7 @@ function Setup() {
   const minAge = usePlatformConfig().data?.legal?.minAgeYears ?? 18;
   const [form, setForm] = useState<SetupForm>(EMPTY_SETUP);
   const [avatar, setAvatar] = useState<{ url: string; key: string } | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const photo = usePhotoUpload('avatar');
   const [attempted, setAttempted] = useState(false);
   const scroller = useRef<ScrollView>(null);
   const set = (k: keyof SetupForm) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -57,19 +57,6 @@ function Setup() {
     scroller.current?.scrollTo({ y: 0, animated: true });
   };
 
-  const changePhoto = async () => {
-    const picked = await pickPhotos('library');
-    if (!picked?.length) return;
-    setUploading(true);
-    try {
-      const [up] = await uploadPhotos('avatar', picked.slice(0, 1));
-      setAvatar(up);
-    } catch (e) {
-      toast({ tone: 'error', title: e instanceof Error ? e.message : 'That photo didn’t upload' });
-    } finally {
-      setUploading(false);
-    }
-  };
 
   return (
     <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: c.background }}>
@@ -100,12 +87,15 @@ function Setup() {
             </Card>
           ) : null}
 
-          <Pressable accessibilityRole="button" accessibilityLabel="Add a profile photo" onPress={() => void changePhoto()} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Add a profile photo" onPress={async () => {
+            const up = await photo.upload();
+            if (up) setAvatar(up);
+          }} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
             <Avatar uri={avatar?.url} name={form.firstName} size={64} />
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Camera size={16} color={c.primary} />
-                <Text variant="label" tone="primary">{uploading ? 'Uploading…' : 'Profile photo (optional)'}</Text>
+                <Text variant="label" tone="primary">{photo.uploading ? 'Uploading…' : 'Profile photo (optional)'}</Text>
               </View>
               <Text variant="caption" tone="muted">Optional, but a clear photo of your face helps hosts recognise you at handover.</Text>
             </View>

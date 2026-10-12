@@ -10,74 +10,21 @@ import { useHostMe, useUpdateHostProfile } from '@/features/host/hooks';
 import { AvatarUpload } from '@/components/ui/avatar-upload';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { EMPTY_HOST_PROFILE, hostProfileForm, hostProfilePatch, type HostProfileForm } from '@/features/host/profile-form';
 
 export default function HostProfilePage() {
   const { data, isLoading } = useHostMe();
   const update = useUpdateHostProfile();
 
-  const [form, setForm] = useState({
-    displayName: '',
-    bio: '',
-    avatarUrl: '',
-    avatarKey: '',
-    city: '',
-    work: '',
-    languages: '',
-    hostType: 'individual' as 'individual' | 'business',
-    legalName: '',
-    registrationNumber: '',
-    taxId: '',
-    accountHolder: '',
-    bankName: '',
-    ifscOrRouting: '',
-    accountNumberMasked: '',
-  });
+  const [form, setForm] = useState<HostProfileForm>(EMPTY_HOST_PROFILE);
 
   useEffect(() => {
-    if (data) {
-      setForm((f) => ({
-        ...f,
-        displayName: data.displayName ?? '',
-        bio: data.bio ?? '',
-        avatarUrl: (data.avatarUrl as string) ?? '',
-        avatarKey: (data.avatarKey as string) ?? '',
-        city: (data.city as string) ?? '',
-        work: (data.work as string) ?? '',
-        languages: ((data.languages as string[]) ?? []).join(', '),
-        hostType: data.hostType ?? 'individual',
-        legalName: (data.businessProfile?.legalName as string) ?? '',
-        registrationNumber: (data.businessProfile?.registrationNumber as string) ?? '',
-        taxId: (data.taxInfo?.taxId as string) ?? '',
-        accountHolder: (data.bankingDetails?.accountHolder as string) ?? '',
-        bankName: (data.bankingDetails?.bankName as string) ?? '',
-        ifscOrRouting: (data.bankingDetails?.ifscOrRouting as string) ?? '',
-        accountNumberMasked: (data.bankingDetails?.accountNumberMasked as string) ?? '',
-      }));
-    }
+    if (data) setForm(hostProfileForm(data));
   }, [data]);
 
   if (isLoading) return <Skeleton className="h-96 w-full" />;
 
-  const save = () =>
-    update.mutate({
-      displayName: form.displayName,
-      bio: form.bio,
-      // Empty strings clear the field; undefined would leave the old value.
-      avatarUrl: form.avatarUrl || undefined,
-      avatarKey: form.avatarKey || undefined,
-      city: form.city,
-      work: form.work,
-      languages: form.languages.split(',').map((l) => l.trim()).filter(Boolean),
-      hostType: form.hostType,
-      businessProfile: { legalName: form.legalName, registrationNumber: form.registrationNumber },
-      taxInfo: { taxId: form.taxId },
-      bankingDetails: {
-        accountHolder: form.accountHolder,
-        bankName: form.bankName,
-        ifscOrRouting: form.ifscOrRouting,
-        accountNumberMasked: form.accountNumberMasked,
-      },
-    });
+  const save = () => update.mutate(hostProfilePatch(form));
 
   const f = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [k]: e.target.value });
