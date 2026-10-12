@@ -6,6 +6,7 @@ import { Award, Settings2, ShieldCheck, Users, Zap } from 'lucide-react-native';
 import { Card, Text, useTheme, radius, space } from '@catodrive/ui';
 import type { Vehicle } from '@catodrive/core/web/features/vehicles/types';
 import { WishlistButton } from '@/features/favorites/WishlistButton';
+import { CompareButton } from '@/features/compare/CompareButton';
 import { VehicleRating } from './VehicleRating';
 import { DailyPrice } from './DailyPrice';
 
@@ -52,6 +53,7 @@ export const VehicleCard = memo(function VehicleCard({ vehicle, width }: { vehic
         </View>
         <View style={styles.save}>
           <WishlistButton vehicleId={vehicle._id} />
+          <CompareButton vehicleId={vehicle._id} />
         </View>
       </View>
       <View style={styles.body}>
@@ -82,7 +84,7 @@ const styles = StyleSheet.create({
   chips: { position: 'absolute', top: space.sm, left: space.sm, right: 56, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
   chipText: { color: '#fff' },
-  save: { position: 'absolute', top: space.sm, right: space.sm },
+  save: { position: 'absolute', top: space.sm, right: space.sm, gap: space.sm },
   body: { padding: space.lg, gap: space.md },
   titleRow: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
   specs: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },

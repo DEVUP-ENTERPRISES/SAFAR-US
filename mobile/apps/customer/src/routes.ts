@@ -18,6 +18,7 @@ export const resolveLink = createRouteResolver([
   '/vehicles/[id]',
   '/hosts/[id]',
   '/wallet',
+  '/compare',
   '/citations',
   '/claims',
   '/claims/[id]',

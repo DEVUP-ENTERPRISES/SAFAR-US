@@ -42,6 +42,7 @@ const ENTRIES = [
   'features/vehicles/listing-form.ts',
   'features/vehicles/listing-options.ts',
   'features/vehicles/new-listing.ts',
+  'features/vehicles/compare.ts',
   'features/search/search-store.ts',
   'features/search/search-params.ts',
   'features/bookings/api.ts',
