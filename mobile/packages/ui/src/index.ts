@@ -28,3 +28,5 @@ export { Checkbox } from './components/Checkbox';
 export { RadioCard } from './components/RadioCard';
 export { ConfirmProvider, useConfirm, type ConfirmOptions } from './components/Confirm';
 export { DateOfBirthInput } from './components/DateOfBirthInput';
+export { BarChart, type BarDatum } from './components/BarChart';
+export { StatTile } from './components/StatTile';

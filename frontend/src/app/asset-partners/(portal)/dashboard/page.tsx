@@ -21,11 +21,10 @@ import { PartnerVehicleCard } from '@/features/asset-partners/components/vehicle
 import { PartnerSupport } from '@/features/asset-partners/components/partner-support';
 import {
   assetPartnerApi,
-  type ApplicationStatus,
   type PartnerApplication,
   type PartnerDashboard,
-  type PartnerStatus,
 } from '@/features/asset-partners/api';
+import { APPLICATION_STAGES, APPLICATION_STATUS, PARTNER_STATUS, applicationStage } from '@/features/asset-partners/status';
 
 /**
  * The Asset Partner's dashboard - an OVERVIEW, not a copy of the portal.
@@ -41,50 +40,9 @@ import {
  * maintenance needs a decision.
  */
 
-const STATUS_META: Record<
-  ApplicationStatus,
-  { label: string; tone: 'default' | 'success' | 'warning' | 'destructive' | 'muted'; detail: string }
-> = {
-  submitted: {
-    label: 'Submitted',
-    tone: 'warning',
-    detail: 'We have your application. A partner manager reviews it and comes back within 2 business days.',
-  },
-  under_review: {
-    label: 'Under review',
-    tone: 'warning',
-    detail: 'Your vehicle and documents are being checked. We’ll call you to arrange the inspection.',
-  },
-  approved: {
-    label: 'Approved',
-    tone: 'success',
-    detail: 'You’re approved. Once onboarding and the inspection are done, your car goes live and starts earning.',
-  },
-  rejected: {
-    label: 'Not approved',
-    tone: 'destructive',
-    detail: 'We couldn’t take this vehicle on. The reason is below - talk to us if anything has changed.',
-  },
-};
 
-const STAGES = ['Submitted', 'Under review', 'Approved', 'Earning'] as const;
 
-function stageIndex(app: PartnerApplication, isEarning: boolean): number {
-  if (isEarning) return 3;
-  if (app.status === 'approved') return 2;
-  if (app.status === 'under_review') return 1;
-  return 0;
-}
 
-const PARTNER_STATUS_META: Record<
-  PartnerStatus,
-  { label: string; tone: 'default' | 'success' | 'warning' | 'destructive' | 'muted' }
-> = {
-  onboarding: { label: 'Onboarding', tone: 'warning' },
-  active: { label: 'Active', tone: 'success' },
-  suspended: { label: 'Suspended', tone: 'destructive' },
-  exited: { label: 'Exited', tone: 'muted' },
-};
 
 export default function PartnerDashboardPage() {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -322,8 +280,8 @@ function Applied({
                 <span className="capitalize text-muted-foreground">{data.partner.partnerType}</span>
               </p>
             </div>
-            <Badge tone={PARTNER_STATUS_META[data.partner.status].tone}>
-              {PARTNER_STATUS_META[data.partner.status].label}
+            <Badge tone={PARTNER_STATUS[data.partner.status].tone}>
+              {PARTNER_STATUS[data.partner.status].label}
             </Badge>
           </CardContent>
         </Card>
@@ -352,8 +310,8 @@ function Applied({
 }
 
 function ApplicationCard({ app, isEarning }: { app: PartnerApplication; isEarning: boolean }) {
-  const meta = STATUS_META[app.status];
-  const current = stageIndex(app, isEarning);
+  const meta = APPLICATION_STATUS[app.status];
+  const current = applicationStage(app, isEarning);
   const rejected = app.status === 'rejected';
 
   return (
@@ -412,7 +370,7 @@ function ApplicationCard({ app, isEarning }: { app: PartnerApplication; isEarnin
 function StageTrack({ current }: { current: number }) {
   return (
     <ol className="flex flex-col gap-3 sm:flex-row sm:gap-0">
-      {STAGES.map((stage, i) => {
+      {APPLICATION_STAGES.map((stage, i) => {
         const done = i < current;
         const active = i === current;
         return (
@@ -428,7 +386,7 @@ function StageTrack({ current }: { current: number }) {
               >
                 {done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
               </span>
-              {i < STAGES.length - 1 && (
+              {i < APPLICATION_STAGES.length - 1 && (
                 <span className={cn('hidden h-px flex-1 sm:block', done ? 'bg-success/40' : 'bg-border')} />
               )}
             </span>

@@ -18,6 +18,7 @@ import {
   type MaintenanceApproval,
   type MaintenanceRequest,
 } from '@/features/asset-partners/api';
+import { MAINTENANCE_FILTERS, MAINTENANCE_LABEL, MAINTENANCE_TONE } from '@/features/asset-partners/status';
 import { ApiError } from '@/lib/api/types';
 
 /**
@@ -29,27 +30,8 @@ import { ApiError } from '@/lib/api/types';
  * pending requests lead and everything else is history.
  */
 
-const FILTERS: { value: MaintenanceApproval | 'all'; label: string }[] = [
-  { value: 'pending', label: 'Needs you' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'declined', label: 'Declined' },
-  { value: 'not_required', label: 'Routine' },
-  { value: 'all', label: 'All' },
-];
 
-const TONE: Record<MaintenanceApproval, 'default' | 'success' | 'warning' | 'destructive' | 'muted'> = {
-  pending: 'warning',
-  approved: 'success',
-  declined: 'destructive',
-  not_required: 'muted',
-};
 
-const LABEL: Record<MaintenanceApproval, string> = {
-  pending: 'Needs your approval',
-  approved: 'You approved',
-  declined: 'You declined',
-  not_required: 'Routine - no approval needed',
-};
 
 export default function PartnerMaintenancePage() {
   const qc = useQueryClient();
@@ -136,7 +118,7 @@ export default function PartnerMaintenancePage() {
       />
 
       <div className="hide-scrollbar flex gap-2 overflow-x-auto">
-        {FILTERS.map((f) => (
+        {MAINTENANCE_FILTERS.map((f) => (
           <Chip key={f.value} active={filter === f.value} onClick={() => setFilter(f.value)}>
             {f.label}
           </Chip>
@@ -161,7 +143,7 @@ export default function PartnerMaintenancePage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone={TONE[m.approval]}>{LABEL[m.approval]}</Badge>
+                      <Badge tone={MAINTENANCE_TONE[m.approval]}>{MAINTENANCE_LABEL[m.approval]}</Badge>
                       <span className="text-xs capitalize text-muted-foreground">{m.type}</span>
                     </div>
                     <p className="display mt-2 text-lg">

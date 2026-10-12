@@ -3,6 +3,7 @@ import { AppError } from '../../../core/errors/app-error';
 import { HostModel } from '../../hosts/infrastructure/host.model';
 import { AssetPartnerModel } from '../../asset-partners/infrastructure/asset-partner.model';
 import { MemberModel } from '../../corporate/infrastructure/corporate.models';
+import { HostStaffModel } from '../../hosts/infrastructure/host-staff.model';
 import { ROLES } from '../../../shared/constants/rbac';
 import { tokenService } from './token.service';
 import { authService } from './auth.service';
@@ -18,15 +19,16 @@ export function mobileAppOf(req: Request): MobileApp | undefined {
   return app === 'customer' || app === 'partner' ? app : undefined;
 }
 
-/** Hosts, asset partners and corporate admins or managers run the partner app. */
+/** Hosts, their active captains, asset partners and corporate admins or managers run the partner app. */
 async function isPartner(userId: string, roles: string[]): Promise<boolean> {
   if (roles.includes(ROLES.HOST)) return true;
-  const [host, partner, corp] = await Promise.all([
+  const [host, staff, partner, corp] = await Promise.all([
     HostModel.exists({ userId }),
+    HostStaffModel.exists({ userId, status: 'active' }),
     AssetPartnerModel.exists({ userId }),
     MemberModel.exists({ userId, status: 'active', role: { $in: ['corp_admin', 'manager'] } }),
   ]);
-  return !!(host || partner || corp);
+  return !!(host || staff || partner || corp);
 }
 
 /** Refuses a sign-in the app it came from is not for. Websites are never affected. */

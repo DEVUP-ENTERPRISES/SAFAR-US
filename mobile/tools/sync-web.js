@@ -86,6 +86,7 @@ const ENTRIES = [
   'features/host/tolls-api.ts',
   'features/asset-partners/api.ts',
   'features/asset-partners/hooks.ts',
+  'features/asset-partners/status.ts',
   'features/corporate/api.ts',
 ];
 

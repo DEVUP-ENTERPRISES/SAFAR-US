@@ -3,6 +3,7 @@ import { assertAppAudience, gateSession, mobileAppOf } from './app-audience';
 import { HostModel } from '../../hosts/infrastructure/host.model';
 import { AssetPartnerModel } from '../../asset-partners/infrastructure/asset-partner.model';
 import { MemberModel } from '../../corporate/infrastructure/corporate.models';
+import { HostStaffModel } from '../../hosts/infrastructure/host-staff.model';
 import { tokenService } from './token.service';
 import { authService } from './auth.service';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
@@ -47,6 +48,15 @@ describe('assertAppAudience', () => {
     await expect(assertAppAudience('partner', { id: 'ap', roles: ['guest'] })).resolves.toBeUndefined();
     await MemberModel.collection.insertOne({ _id: 'm1', orgId: 'o1', userId: 'mgr', email: 'm@x.co', role: 'manager', status: 'active' } as never);
     await expect(assertAppAudience('partner', { id: 'mgr', roles: ['guest'] })).resolves.toBeUndefined();
+  });
+
+  it('lets an active captain in, but not an invited or suspended one', async () => {
+    await HostStaffModel.collection.insertMany([
+      { _id: 's1', hostId: 'h1', email: 'cap@x.co', userId: 'cap', status: 'active' },
+      { _id: 's2', hostId: 'h1', email: 'inv@x.co', userId: 'inv', status: 'invited' },
+    ] as never[]);
+    await expect(assertAppAudience('partner', { id: 'cap', roles: ['guest'] })).resolves.toBeUndefined();
+    await expect(assertAppAudience('partner', { id: 'inv', roles: ['guest'] })).rejects.toMatchObject({ code: 'APP_NOT_PARTNER' });
   });
 
   it('does not count a corporate employee as a partner', async () => {

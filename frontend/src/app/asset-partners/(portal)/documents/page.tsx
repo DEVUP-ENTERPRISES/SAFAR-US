@@ -17,6 +17,7 @@ import { formatDate, formatDay } from '@/lib/utils/format';
 import { uploadFiles } from '@/features/media/upload';
 import { documentsApi, type PartnerDocument } from '@/features/documents/api';
 import { ApiError } from '@/lib/api/types';
+import { DOC_CATEGORY_LABEL, EXPIRY_WARNING_DAYS, PARTNER_DOC_CATEGORIES, daysUntil, type PartnerDocCategory } from '@/features/asset-partners/status';
 
 /**
  * The partner's own paperwork: insurance, registration, title.
@@ -29,28 +30,11 @@ import { ApiError } from '@/lib/api/types';
 
 /** The two document types this page collects - a narrower union than the full
  *  DocumentCategory / UploadCategory lists, which also cover KYC and claims. */
-type PartnerDocCategory = 'insurance' | 'registration';
 
-const CATEGORIES: { value: PartnerDocCategory; label: string }[] = [
-  { value: 'insurance', label: 'Insurance policy' },
-  { value: 'registration', label: 'Registration / title' },
-];
 
-const CATEGORY_LABEL: Record<string, string> = {
-  insurance: 'Insurance policy',
-  registration: 'Registration / title',
-  kyc: 'Identity',
-  claim: 'Claim evidence',
-  pollution: 'Emissions',
-  fitness: 'Fitness',
-};
 
 /** Inside this window, a policy is "expiring" and worth chasing. */
-const EXPIRY_WARNING_DAYS = 45;
 
-function daysUntil(date: string): number {
-  return Math.ceil((new Date(date).getTime() - Date.now()) / 86_400_000);
-}
 
 export default function PartnerDocumentsPage() {
   const qc = useQueryClient();
@@ -143,7 +127,7 @@ export default function PartnerDocumentsPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="What is it?">
               <Select value={category} onChange={(e) => setCategory(e.target.value as PartnerDocCategory)}>
-                {CATEGORIES.map((c) => (
+                {PARTNER_DOC_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
                     {c.label}
                   </option>
@@ -205,7 +189,7 @@ function DocumentRow({ doc }: { doc: PartnerDocument }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3 last:border-0 last:pb-0">
       <div className="min-w-0">
-        <p className="truncate font-medium">{CATEGORY_LABEL[doc.category] ?? doc.category}</p>
+        <p className="truncate font-medium">{DOC_CATEGORY_LABEL[doc.category] ?? doc.category}</p>
         <p className="text-xs text-muted-foreground">
           Uploaded {formatDate(doc.createdAt)}
           {doc.expiresAt && ` · expires ${formatDay(doc.expiresAt)}`}
