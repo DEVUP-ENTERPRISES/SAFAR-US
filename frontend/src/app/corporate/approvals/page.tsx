@@ -10,11 +10,8 @@ import { Chip } from '@/components/ui/chip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
 import { formatMoney, formatDateRange } from '@/lib/utils/format';
-import { corporateApi } from '@/features/corporate/api';
+import { corporateApi, REQUEST_TONE as TONE } from '@/features/corporate/api';
 
-const TONE: Record<string, 'warning' | 'success' | 'destructive' | 'default'> = {
-  pending: 'warning', approved: 'default', rejected: 'destructive', booked: 'success',
-};
 
 export default function ApprovalsPage() {
   const qc = useQueryClient();

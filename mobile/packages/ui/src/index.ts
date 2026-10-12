@@ -30,3 +30,4 @@ export { ConfirmProvider, useConfirm, type ConfirmOptions } from './components/C
 export { DateOfBirthInput } from './components/DateOfBirthInput';
 export { BarChart, type BarDatum } from './components/BarChart';
 export { StatTile } from './components/StatTile';
+export { RankedBars } from './components/RankedBars';

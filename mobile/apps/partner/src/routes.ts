@@ -38,6 +38,7 @@ export const resolveLink = createRouteResolver([
   '/corporate/policy',
   '/corporate/cost-centers',
   '/corporate/invoices',
+  '/corporate/menu',
   '/account/notifications',
   '/support',
   '/support/[id]',

@@ -7,29 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
-import { corporateApi } from '@/features/corporate/api';
+import { corporateApi, policyForm, policyPatch, type PolicyForm } from '@/features/corporate/api';
 
 export default function PolicyPage() {
   const qc = useQueryClient();
   const policy = useQuery({ queryKey: ['corp-policy'], queryFn: () => corporateApi.policy() });
-  const [form, setForm] = useState({ maxDailyPrice: 0, allowedCategories: '', autoApproveUnder: 0, requireApprovalOver: 0 });
+  const [form, setForm] = useState<PolicyForm>({ maxDailyPrice: 0, allowedCategories: '', autoApproveUnder: 0, requireApprovalOver: 0 });
 
   useEffect(() => {
-    if (policy.data) setForm({
-      maxDailyPrice: policy.data.maxDailyPrice / 100,
-      allowedCategories: policy.data.allowedCategories.join(', '),
-      autoApproveUnder: policy.data.autoApproveUnder / 100,
-      requireApprovalOver: policy.data.requireApprovalOver / 100,
-    });
+    if (policy.data) setForm(policyForm(policy.data));
   }, [policy.data]);
 
   const save = useMutation({
-    mutationFn: () => corporateApi.setPolicy({
-      maxDailyPrice: Math.round(form.maxDailyPrice * 100),
-      allowedCategories: form.allowedCategories.split(',').map((s) => s.trim()).filter(Boolean),
-      autoApproveUnder: Math.round(form.autoApproveUnder * 100),
-      requireApprovalOver: Math.round(form.requireApprovalOver * 100),
-    }),
+    mutationFn: () => corporateApi.setPolicy(policyPatch(form)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['corp-policy'] }),
   });
 

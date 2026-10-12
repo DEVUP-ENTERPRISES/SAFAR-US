@@ -8,13 +8,9 @@ import { EmptyState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart, Donut } from '@/components/ui/charts';
-import { formatMoney } from '@/lib/utils/format';
+import { formatMoney, monthShort } from '@/lib/utils/format';
 import { hostApi } from '@/features/host/api';
 
-const monthLabel = (m: string) => {
-  const mm = Number(m.split('-')[1]);
-  return ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][mm] ?? m;
-};
 
 export default function HostPerformancePage() {
   const { data, isLoading } = useQuery({ queryKey: ['host-performance'], queryFn: () => hostApi.performance() });
@@ -71,7 +67,7 @@ export default function HostPerformancePage() {
             <CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Earnings trend</CardTitle>
           </CardHeader>
           <CardContent>
-            <BarChart data={data.earningsByMonth.map((d) => ({ label: monthLabel(d.month), value: d.amount }))} currency={cur} />
+            <BarChart data={data.earningsByMonth.map((d) => ({ label: monthShort(d.month), value: d.amount }))} currency={cur} />
           </CardContent>
         </Card>
 

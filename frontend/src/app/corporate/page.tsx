@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart, Donut } from '@/components/ui/charts';
-import { formatMoney } from '@/lib/utils/format';
+import { formatMoney, monthShort } from '@/lib/utils/format';
 import { corporateApi } from '@/features/corporate/api';
 
 export default function CorporateDashboard() {
@@ -65,7 +65,7 @@ export default function CorporateDashboard() {
           <CardHeader><CardTitle>Spend - last 6 months</CardTitle></CardHeader>
           <CardContent>
             <BarChart
-              data={(data.spendByMonth ?? []).map((d) => ({ label: monthLabel(d.month), value: d.amount }))}
+              data={(data.spendByMonth ?? []).map((d) => ({ label: monthShort(d.month), value: d.amount }))}
               currency={data.currency}
             />
           </CardContent>
@@ -101,7 +101,3 @@ export default function CorporateDashboard() {
   );
 }
 
-const monthLabel = (m: string) => {
-  const mm = Number(m.split('-')[1]);
-  return ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][mm] ?? m;
-};

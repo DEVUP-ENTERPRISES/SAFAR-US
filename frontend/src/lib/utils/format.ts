@@ -57,3 +57,8 @@ export const milesToKm = (mi: number) => Math.round(mi / 0.621371);
 /** Per-mile money from a per-km amount (minor units). */
 export const perKmToPerMile = (cents: number) => Math.round(cents / 0.621371);
 export const perMileToPerKm = (cents: number) => Math.round(cents * 0.621371);
+
+/** 'YYYY-MM' to 'Jan'…'Dec', for chart axes. */
+export function monthShort(m: string): string {
+  return ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(m.split('-')[1])] ?? m;
+}

@@ -2,13 +2,10 @@ import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Car, CheckCircle2, Gauge, TrendingUp } from 'lucide-react-native';
-import { BarChart, Card, Divider, EmptyState, ErrorState, Screen, ScreenHeader, SkeletonList, StatTile, Text, space, useTheme } from '@catodrive/ui';
+import { BarChart, Card, RankedBars, Divider, EmptyState, ErrorState, Screen, ScreenHeader, SkeletonList, StatTile, Text, space, useTheme } from '@catodrive/ui';
 import { RequireAuth } from '@catodrive/core';
 import { hostApi } from '@catodrive/core/web/features/host/api';
-import { formatMoney } from '@catodrive/core/web/lib/utils/format';
-
-const MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const monthLabel = (m: string) => MONTHS[Number(m.split('-')[1])] ?? m;
+import { formatMoney, monthShort } from '@catodrive/core/web/lib/utils/format';
 
 /** The website's /host/performance: occupancy, acceptance, earnings trend and which cars earn the most. */
 function Performance() {
@@ -19,7 +16,6 @@ function Performance() {
   const m = (v: number) => formatMoney({ amount: v, currency: d?.currency ?? 'USD' });
   const icon = (I: typeof Car) => <I size={16} color={c.mutedForeground} />;
   const top = d?.perVehicle.slice(0, 5) ?? [];
-  const topMax = Math.max(1, ...top.map((v) => v.revenue));
 
   return (
     <Screen
@@ -41,23 +37,13 @@ function Performance() {
               <TrendingUp size={16} color={c.primary} />
               <Text variant="heading">Earnings trend</Text>
             </View>
-            <BarChart data={d.earningsByMonth.map((x) => ({ label: monthLabel(x.month), value: x.amount }))} format={m} />
+            <BarChart data={d.earningsByMonth.map((x) => ({ label: monthShort(x.month), value: x.amount }))} format={m} />
           </Card>
           <Card>
             <Text variant="heading">Revenue by vehicle</Text>
             {top.length ? (
-              <View style={{ gap: space.md, marginTop: space.md }}>
-                {top.map((v) => (
-                  <View key={v.vehicleId} style={{ gap: 4 }} accessibilityLabel={`${v.label}: ${m(v.revenue)}`}>
-                    <View style={{ flexDirection: 'row', gap: space.sm }}>
-                      <Text variant="caption" numberOfLines={1} style={{ flex: 1 }}>{v.label}</Text>
-                      <Text variant="caption" style={{ fontWeight: '600' }}>{m(v.revenue)}</Text>
-                    </View>
-                    <View style={{ height: 8, borderRadius: 4, backgroundColor: c.muted, overflow: 'hidden' }}>
-                      <View style={{ width: `${Math.max(2, Math.round((v.revenue / topMax) * 100))}%`, height: '100%', borderRadius: 4, backgroundColor: c.primary }} />
-                    </View>
-                  </View>
-                ))}
+              <View style={{ marginTop: space.md }}>
+                <RankedBars data={top.map((v) => ({ label: v.label, value: v.revenue }))} format={m} />
               </View>
             ) : (
               <Text variant="caption" tone="muted" style={{ marginTop: space.sm }}>No trips yet.</Text>

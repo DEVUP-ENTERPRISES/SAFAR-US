@@ -44,3 +44,26 @@ export const corporateApi = {
 
   invoice: () => api.get<Invoice>('/corporate/invoice'),
 };
+
+/** Badge tone per trip-request state. */
+export const REQUEST_TONE: Record<TripRequest['status'], 'warning' | 'success' | 'destructive' | 'default'> = {
+  pending: 'warning', approved: 'default', rejected: 'destructive', booked: 'success',
+};
+
+export interface PolicyForm { maxDailyPrice: number; allowedCategories: string; autoApproveUnder: number; requireApprovalOver: number }
+
+/** The policy in dollars and a comma list, for editing. */
+export const policyForm = (p: Policy): PolicyForm => ({
+  maxDailyPrice: p.maxDailyPrice / 100,
+  allowedCategories: p.allowedCategories.join(', '),
+  autoApproveUnder: p.autoApproveUnder / 100,
+  requireApprovalOver: p.requireApprovalOver / 100,
+});
+
+/** Back to cents and a list for the API. */
+export const policyPatch = (f: PolicyForm): Partial<Policy> => ({
+  maxDailyPrice: Math.round(f.maxDailyPrice * 100),
+  allowedCategories: f.allowedCategories.split(',').map((s) => s.trim()).filter(Boolean),
+  autoApproveUnder: Math.round(f.autoApproveUnder * 100),
+  requireApprovalOver: Math.round(f.requireApprovalOver * 100),
+});
