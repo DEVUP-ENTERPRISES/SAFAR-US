@@ -4,7 +4,7 @@ import { Crown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { formatMoney } from '@/lib/utils/format';
 import { describeBenefits } from './api';
-import { useMembership } from './hooks';
+import { useMembership, useMemberDailyPrice } from './hooks';
 
 /** A small gold "PRO" mark for anyone with a live membership. */
 export function ProBadge({ className, label = 'PRO' }: { className?: string; label?: string }) {
@@ -17,15 +17,13 @@ export function ProBadge({ className, label = 'PRO' }: { className?: string; lab
 
 /** A car's daily price; members see their own price live, with the normal price struck through beside it. */
 export function DailyPrice({ amount, currency, className }: { amount: number; currency: string; className?: string }) {
-  const { isMember, benefits } = useMembership();
-  const off = benefits?.bookingDiscountBps ?? 0;
-  if (!isMember || off <= 0) return <span className={className}>{formatMoney({ amount, currency })}</span>;
-  const mine = Math.round((amount * (10_000 - off)) / 10_000);
+  const member = useMemberDailyPrice(amount);
+  if (!member) return <span className={className}>{formatMoney({ amount, currency })}</span>;
   return (
     <span className="inline-flex flex-wrap items-baseline gap-x-1.5">
-      <span className={cn(className, 'text-amber-500')}>{formatMoney({ amount: mine, currency })}</span>
+      <span className={cn(className, 'text-amber-500')}>{formatMoney({ amount: member.price, currency })}</span>
       <span className="text-sm font-medium text-muted-foreground line-through">{formatMoney({ amount, currency })}</span>
-      <ProBadge label={`−${(off / 100).toFixed(0)}%`} className="self-center" />
+      <ProBadge label={`−${(member.discountBps / 100).toFixed(0)}%`} className="self-center" />
     </span>
   );
 }

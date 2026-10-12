@@ -1,0 +1,28 @@
+import { createRouteResolver } from '@catodrive/core';
+
+/** Screens a server link (push, email) may open. Paths match the website's, so its links work unchanged. */
+export const resolveLink = createRouteResolver([
+  '/',
+  '/search',
+  '/wishlist',
+  '/bookings',
+  '/bookings/[id]',
+  '/bookings/[id]/receipt',
+  '/bookings/[id]/rebook',
+  '/trips/[id]',
+  '/messages',
+  '/account',
+  '/account/setup',
+  '/account/verify-identity',
+  '/account/notifications',
+  '/vehicles/[id]',
+  '/hosts/[id]',
+  '/wallet',
+  '/citations',
+  '/claims',
+  '/claims/[id]',
+  '/support',
+  '/help',
+  '/help/[slug]',
+  '/saved-searches',
+]);

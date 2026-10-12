@@ -1,0 +1,141 @@
+// Generated from frontend/src/features/bookings/types.ts by mobile/tools/sync-web.js. Edit the web file, then run `npm run sync:api`.
+import type { Money } from '../../lib/api/types';
+export type { Money };
+
+export interface PriceBreakdown {
+  /** What a non-member would save on THIS trip by joining. Absent for members
+   *  and when no plan would beat its own monthly cost. */
+  memberOffer?: { planCode: string; planName: string; monthlyCents: number; savings: { amount: number; currency: string } };
+  days: number;
+  base: Money;
+  cleaningFee: Money;
+  discount: Money;
+  addOnsTotal: Money;
+  delivery: Money;
+  protection: Money;
+  /** Platform service fee charged on top. Zero unless an admin configured one. */
+  serviceFee: Money;
+  protectionPlan: string;
+  selectedAddOns: { code: string; label: string; amount: Money }[];
+  subtotal: Money;
+  commission: Money;
+  tax: Money;
+  hostEarnings: Money;
+  total: Money;
+  currency: string;
+  commissionBps?: number;
+  commissionSource?: string;
+  surgeDays?: number;
+  surgeSource?: string;
+  memberSavings?: Money;
+  memberPlan?: string;
+}
+
+/**
+ * Mirrors the backend BookingStatus exactly. It had drifted: the states a
+ * booking is actually held in while waiting on verification, and the three
+ * cancellation states that record WHO cancelled, were missing - so any UI
+ * switching on status silently failed to handle them.
+ */
+export type BookingStatus =
+  | 'pending_verification'
+  /** Held, but the money has not moved - a 3-D Secure challenge, or no saved
+   *  card. Not a confirmed trip, and must never be shown as one. */
+  | 'pending_payment'
+  | 'pending_approval'
+  | 'confirmed'
+  | 'paid'
+  | 'in_progress'
+  | 'completed'
+  | 'cancelled'
+  | 'cancelled_guest'
+  | 'cancelled_host'
+  | 'cancelled_system'
+  | 'declined'
+  | 'expired'
+  | 'disputed';
+
+export interface BookingExtension {
+  _id: string;
+  prevEnd: string;
+  newEnd: string;
+  days: number;
+  total: Money;
+  hostEarnings: Money;
+  receiptNo: string;
+  createdAt: string;
+}
+
+export interface BookingSwap {
+  fromVehicleId: string;
+  toVehicleId: string;
+  reason: 'extension' | 'late_return';
+  at: string;
+}
+
+/** The booked car is late back from its previous trip: a similar car the guest may switch to. */
+export interface BookingSwapOffer {
+  status: 'open' | 'accepted' | 'declined' | 'expired';
+  toVehicleId: string;
+  toName: string;
+  offeredAt: string;
+}
+
+export interface Booking {
+  /** One entry per paid extension, oldest first. */
+  extensions?: BookingExtension[];
+  /** Set when the platform moved this trip to a comparable car (same dates, same price). */
+  swap?: BookingSwap;
+  swapOffer?: BookingSwapOffer;
+  /** Post-trip charges. Each carries an id and status so it can be disputed. */
+  incidentals?: {
+    _id: string; type: string; amount: number; qty?: number; note?: string;
+    evidenceUrl?: string; status: 'charged' | 'disputed' | 'refunded' | 'upheld';
+    disputeReason?: string; resolutionNote?: string; at: string;
+  }[];
+  /** Set when the card needs the cardholder - a 3-D Secure challenge. The trip
+   *  is held, not confirmed, until the client finishes it. */
+  requiresAction?: boolean;
+  /** The guest chose to pay on the page; show checkout with this secret. */
+  requiresPayment?: boolean;
+  clientSecret?: string;
+  delivery?: { mode: string; address: string };
+  additionalDrivers?: { name: string; licenseNumber?: string; addedAt: string }[];
+  _id: string;
+  code: string;
+  guestId: string;
+  hostId: string;
+  vehicleId: string;
+  period: { start: string; end: string };
+  priceBreakdown: PriceBreakdown;
+  status: BookingStatus;
+  instantBook: boolean;
+  tripId?: string;
+  createdAt: string;
+  /** `charged` is what the guest paid and did not get back; older cancellations only carry the refund. */
+  cancellation?: { role?: 'guest' | 'host' | 'admin' | 'system'; at: string; reason?: string; refund: Money; charged?: Money };
+}
+
+export type DeliveryMode = 'airport' | 'home' | 'hotel' | 'business';
+
+export interface DeliveryRequest {
+  mode: DeliveryMode;
+  address: string;
+  lat?: number;
+  lng?: number;
+}
+
+export interface QuoteInput {
+  vehicleId: string;
+  start: string;
+  end: string;
+  couponCode?: string;
+  addOnCodes?: string[];
+  protectionPlan?: string;
+  useWallet?: boolean;
+  payWith?: 'saved_card' | 'other';
+  delivery?: DeliveryRequest;
+  /** The Terms & Conditions version the guest accepted. Required by the booking
+   *  create endpoint (a booking is a contract); ignored by the quote endpoint. */
+  acceptedTermsVersion?: string;
+}
