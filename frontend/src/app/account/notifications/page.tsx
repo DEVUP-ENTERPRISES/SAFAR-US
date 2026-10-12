@@ -12,20 +12,12 @@ import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils/cn';
 import { accountApi, type NotificationPrefs, type NotificationCategory } from '@/features/account/api';
+import { NOTIFICATION_CHANNELS, NOTIFICATION_TOPICS } from '@/features/account/notification-options';
 
-const CHANNELS = [
-  { key: 'push' as const, icon: Smartphone, label: 'Push', detail: 'On your phone and browser.' },
-  { key: 'email' as const, icon: Mail, label: 'Email', detail: 'To your account address.' },
-  { key: 'sms' as const, icon: MessageSquare, label: 'SMS', detail: 'Text messages for time-sensitive updates.' },
-];
+const ICON = { push: Smartphone, email: Mail, sms: MessageSquare };
+const CHANNELS = NOTIFICATION_CHANNELS.map((c) => ({ ...c, icon: ICON[c.key] }));
 
-const TOPICS: { key: NotificationCategory; label: string; detail: string }[] = [
-  { key: 'trips', label: 'Trips', detail: 'Bookings, pick-up/return, changes, reminders.' },
-  { key: 'messages', label: 'Messages', detail: 'When your host or guest messages you.' },
-  { key: 'payments', label: 'Payments & payouts', detail: 'Charges, refunds, receipts, earnings.' },
-  { key: 'reviews', label: 'Reviews', detail: 'When a review is left or is due.' },
-  { key: 'promotions', label: 'Promotions & tips', detail: 'Deals, credits, and product news.' },
-];
+const TOPICS = NOTIFICATION_TOPICS;
 
 function NotificationSettings() {
   const qc = useQueryClient();

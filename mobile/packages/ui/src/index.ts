@@ -27,3 +27,4 @@ export { DateRangeCalendar, dayKey, type DateRangeCalendarProps } from './compon
 export { Checkbox } from './components/Checkbox';
 export { RadioCard } from './components/RadioCard';
 export { ConfirmProvider, useConfirm, type ConfirmOptions } from './components/Confirm';
+export { DateOfBirthInput } from './components/DateOfBirthInput';

@@ -14,6 +14,8 @@ export interface ConfirmOptions {
   tone?: 'default' | 'destructive';
   /** Ask for a reason; with `required` the confirm button waits for one. */
   reason?: { label: string; placeholder?: string; required?: boolean };
+  /** The person must type this word to confirm a dangerous action. */
+  requireText?: string;
 }
 
 type Result = { ok: boolean; reason: string };
@@ -24,10 +26,12 @@ const ConfirmContext = createContext<(o: ConfirmOptions) => Promise<Result>>(asy
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [opts, setOpts] = useState<ConfirmOptions | null>(null);
   const [reason, setReason] = useState('');
+  const [typed, setTyped] = useState('');
   const resolver = useRef<((r: Result) => void) | null>(null);
 
   const confirm = useCallback((o: ConfirmOptions) => {
     setReason('');
+    setTyped('');
     setOpts(o);
     return new Promise<Result>((resolve) => {
       resolver.current = resolve;
@@ -40,7 +44,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     setOpts(null);
   };
 
-  const needsReason = !!opts?.reason?.required && !reason.trim();
+  const needsReason = (!!opts?.reason?.required && !reason.trim()) || (!!opts?.requireText && typed.trim() !== opts.requireText);
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
@@ -56,6 +60,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         }
       >
         {typeof opts?.description === 'string' ? <Text tone="muted">{opts.description}</Text> : opts?.description}
+        {opts?.requireText ? <Input label={`Type ${opts.requireText} to confirm`} value={typed} onChangeText={setTyped} autoCapitalize="characters" /> : null}
         {opts?.reason ? <Input label={opts.reason.label} placeholder={opts.reason.placeholder} value={reason} onChangeText={setReason} multiline /> : null}
       </BottomSheet>
     </ConfirmContext.Provider>

@@ -276,3 +276,15 @@ export function isPlausiblePhone(dial: string, national: string): boolean {
   const digits = national.replace(/\D/g, '').replace(/^0+/, '');
   return digits.length >= 6 && `${dial}${digits}`.length <= 15;
 }
+
+/** Splits an E.164 number into its country and national part; anything else is national digits in the fallback country. */
+export function parsePhone(value: string, fallback: string): { code: string; national: string } {
+  if (!value.startsWith('+')) return { code: fallback, national: value };
+  const digits = value.slice(1);
+  const matches = COUNTRIES.filter((c) => digits.startsWith(c.dial));
+  if (matches.length === 0) return { code: fallback, national: digits };
+  const longest = Math.max(...matches.map((c) => c.dial.length));
+  const best = matches.filter((c) => c.dial.length === longest);
+  const match = best.find((c) => c.code === fallback) ?? best.find((c) => c.code === 'US') ?? best[0];
+  return { code: match.code, national: digits.slice(match.dial.length) };
+}
