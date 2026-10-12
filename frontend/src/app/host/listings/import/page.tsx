@@ -16,6 +16,7 @@ import { ApiError } from '@/lib/api/types';
 import { LocationSearch } from '@/features/maps/components/location-search';
 import { hostApi, type RowPreview, type ImportResult } from '@/features/host/api';
 import { WheelbaseImport } from '@/features/host/components/wheelbase-import';
+import { DEFAULT_IMPORT_ADDRESS, IMPORT_SAMPLE, importReadiness, parseImport, toImportRows } from '@/features/host/fleet-import';
 
 /**
  * Fleet import & bulk edit - one shared address for the whole batch (set
@@ -24,58 +25,19 @@ import { WheelbaseImport } from '@/features/host/components/wheelbase-import';
  * already in the fleet updates that car instead of being skipped.
  */
 
-interface ParsedRow {
-  vin: string;
-  registrationNumber?: string;
-  title?: string;
-  status?: 'listed' | 'unlisted' | 'risk';
-}
 
-const STATUS_VALUES = ['listed', 'unlisted', 'risk'] as const;
 
-/** VIN, license plate, optional title, status - one row per car. */
-const SAMPLE = `4T1C11AK5NU123456, TXA1234, , Listed
-5YJ3E1EA7KF317834, TXB5678, Tesla Model 3 Long Range, Unlisted`;
 
-function parse(text: string): { rows: ParsedRow[]; errors: string[] } {
-  const rows: ParsedRow[] = [];
-  const errors: string[] = [];
 
-  text.split('\n').map((l) => l.trim()).filter(Boolean).forEach((line, i) => {
-    // Tolerate tabs (a paste from a spreadsheet) as well as commas.
-    const parts = line.split(/\t|,/).map((p) => p.trim());
-    const [vin, plate, ...rest] = parts;
-    if (!vin || vin.length < 11) { errors.push(`Line ${i + 1}: that does not look like a VIN`); return; }
-
-    // A trailing token matching a status word is the status; everything else
-    // between the plate and it is the optional title.
-    const last = rest[rest.length - 1]?.toLowerCase();
-    const hasStatus = STATUS_VALUES.includes(last as (typeof STATUS_VALUES)[number]);
-    const status = hasStatus ? (last as (typeof STATUS_VALUES)[number]) : undefined;
-    const title = (hasStatus ? rest.slice(0, -1) : rest).join(', ').trim();
-
-    rows.push({
-      vin: vin.toUpperCase(),
-      registrationNumber: plate?.trim() || undefined,
-      title: title || undefined,
-      status,
-    });
-  });
-
-  return { rows, errors };
-}
-
-/** The fleet's home base - pre-filled since every car in a batch import shares it. */
-const DEFAULT_ADDRESS = '3001 Esters Road, Irving, TX 75062';
 
 export default function ImportPage() {
   const [text, setText] = useState('');
-  const [address, setAddress] = useState(DEFAULT_ADDRESS);
+  const [address, setAddress] = useState(DEFAULT_IMPORT_ADDRESS);
   const [editingAddress, setEditingAddress] = useState(false);
   const [preview, setPreview] = useState<RowPreview[] | null>(null);
   const [results, setResults] = useState<ImportResult[] | null>(null);
 
-  const { rows, errors } = useMemo(() => parse(text), [text]);
+  const { rows, errors } = useMemo(() => parseImport(text), [text]);
 
   const doPreview = useMutation({
     mutationFn: () => hostApi.importPreview(rows.map((r) => r.vin)),
@@ -84,26 +46,13 @@ export default function ImportPage() {
 
   const doImport = useMutation({
     mutationFn: () =>
-      hostApi.importFleet(
-        rows.map((r) => ({
-          vin: r.vin,
-          address,
-          registrationNumber: r.registrationNumber,
-          title: r.title,
-          status: r.status,
-        })),
-      ),
+      hostApi.importFleet(toImportRows(rows, address)),
     onSuccess: setResults,
   });
 
   // A duplicate row still counts as ready when it carries an edit (plate,
   // title or status) - re-pasting a VIN already in the fleet updates it.
-  const readyCount = (preview ?? []).filter((p) => {
-    const row = rows.find((r) => r.vin === p.vin);
-    if (p.duplicate) return !!(row?.registrationNumber || row?.title || row?.status);
-    return p.ok && p.missing.length === 0;
-  }).length;
-  const blocked = (preview ?? []).filter((p) => !p.duplicate && (!p.ok || p.missing.length > 0));
+  const { ready: readyCount, blocked } = importReadiness(preview ?? [], rows);
 
   return (
     <div className="space-y-6">
@@ -160,7 +109,7 @@ export default function ImportPage() {
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="font-medium">Your cars</p>
             <button
-              onClick={() => setText(SAMPLE)}
+              onClick={() => setText(IMPORT_SAMPLE)}
               className="text-sm text-primary hover:underline"
             >
               Show me the format
@@ -170,7 +119,7 @@ export default function ImportPage() {
             rows={10}
             value={text}
             onChange={(e) => { setText(e.target.value); setPreview(null); setResults(null); }}
-            placeholder={'VIN, license plate, optional title, status\n' + SAMPLE}
+            placeholder={'VIN, license plate, optional title, status\n' + IMPORT_SAMPLE}
             className="font-mono text-sm"
           />
 

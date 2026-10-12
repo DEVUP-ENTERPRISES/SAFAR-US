@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { cn } from '@/lib/utils/cn';
 import { ApiError } from '@/lib/api/types';
-import { vehicleApi, type CreateVehicleInput } from '@/features/vehicles/api';
+import { vehicleApi } from '@/features/vehicles/api';
 import { hostApi, type RowPreview } from '@/features/host/api';
 import { uploadVehiclePhotos } from '@/features/host/upload-photos';
 import { usePlatformConfig } from '@/features/platform/config';
@@ -22,13 +22,15 @@ import { LocationSearch } from '@/features/maps/components/location-search';
 import { ColorPicker } from '@/features/vehicles/components/color-picker';
 import { FeaturePicker } from '@/features/vehicles/components/feature-picker';
 import { US_STATES } from '@/lib/data/us-states';
-import { milesToKm, perMileToPerKm } from '@/lib/utils/format';
 import { readListingDraft, saveListingDraft, clearListingDraft } from '@/features/vehicles/listing-draft';
 import { ShieldCheck } from 'lucide-react';
 import { DeliveryLocationsEditor } from '@/features/vehicles/components/delivery-locations-editor';
-import type { DeliveryLocation } from '@/features/vehicles/types';
+import {
+  ADDON_PRESETS, BODY_TYPE_OPTIONS, CATEGORY_OPTIONS, FUEL_OPTIONS, INITIAL_LISTING_DRAFT, LISTING_STEPS, TRANSMISSION_OPTIONS,
+  applyVinDecode, createListingInput, listingBlockers, listingStepErrors, type ListingDraft,
+} from '@/features/vehicles/new-listing';
 
-const STEPS = ['Basics', 'Details', 'Photos', 'Pricing', 'Delivery', 'Standards', 'Review'];
+const STEPS = LISTING_STEPS;
 
 /** SHA-256 of the file's bytes - identifies the same photo under any filename. */
 async function fingerprintFile(file: File): Promise<string> {
@@ -43,70 +45,10 @@ async function fingerprintFile(file: File): Promise<string> {
   }
 }
 
-interface Draft {
-  make: string;
-  model: string;
-  year: number;
-  category: string;
-  bodyType: string;
-  transmission: 'manual' | 'automatic';
-  fuelType: 'petrol' | 'diesel' | 'hybrid' | 'ev';
-  seats: number;
-  city: string;
-  address: string;      // geocoded, from the location picker
-  pickupNotes: string;  // host's free text: gate codes, which bay, etc.
-  lng: number | null;
-  lat: number | null;
-  color: string;
-  doors: number;
-  features: string[];
-  vin: string;
-  licensePlate: string;
-  licensePlateState: string;
-  odometerMiles: number | '';
-  standardsAgreed: boolean;
-  photos: { url: string; key?: string; isCover?: boolean; fingerprint?: string }[];
-  title: string;
-  description: string;
-  instantBook: boolean;
-  cancellationPolicy: 'flexible' | 'moderate' | 'strict';
-  dailyPrice: number; // USD/day
-  cleaningFee: number;
-  weekendPct: number; // % premium
-  weeklyDiscountPct: number;
-  monthlyDiscountPct: number;
-  earlyBirdPct: number;
-  lastMinutePct: number;
-  deliveryLocations: DeliveryLocation[];
-  addOnCodes: string[];
-  tripRules: string;
-  mileagePerDay: number;
-  mileageOverage: number;
-}
+type Draft = ListingDraft;
 
-// Preset extras a host can offer (guest selects at checkout).
-const ADDON_PRESETS: Record<string, { label: string; priceType: 'per_trip' | 'per_day'; amount: number; note?: string }> = {
-  child_seat: { label: 'Child seat', priceType: 'per_trip', amount: 15 },
-  // $8/gallon on a typical 15-gallon refill, plus a $20 service fee.
-  fuel_surcharge: {
-    label: 'Fuel surcharge',
-    priceType: 'per_trip',
-    amount: 140,
-    note: '$8/gallon + $20 service fee - guest returns it unfuelled',
-  },
-};
 
-const initial: Draft = {
-  make: '', model: '', year: 2022, category: 'economy', bodyType: 'sedan',
-  transmission: 'automatic', fuelType: 'petrol', seats: 5,
-  city: '', address: '', pickupNotes: '', lng: null, lat: null, color: '', doors: 4, features: [],
-  vin: '', licensePlate: '', licensePlateState: '', odometerMiles: '', standardsAgreed: false,
-  photos: [], title: '', description: '', instantBook: true, cancellationPolicy: 'moderate',
-  dailyPrice: 65, cleaningFee: 0, weekendPct: 20, weeklyDiscountPct: 10, monthlyDiscountPct: 20,
-  earlyBirdPct: 5, lastMinutePct: 0,
-  deliveryLocations: [],
-  addOnCodes: [], tripRules: '', mileagePerDay: 200, mileageOverage: 0.35,
-};
+const initial: Draft = INITIAL_LISTING_DRAFT;
 
 export default function NewListingPage() {
   const router = useRouter();
@@ -226,78 +168,12 @@ export default function NewListingPage() {
     onSuccess: ([r]) => {
       setVinResult(r);
       if (!r.ok) return;
-      setD((prev) => ({
-        ...prev,
-        make: r.make ?? prev.make,
-        model: r.model ?? prev.model,
-        year: r.year ?? prev.year,
-        bodyType: r.bodyType ?? prev.bodyType,
-        fuelType: r.fuelType ?? prev.fuelType,
-        transmission: r.transmission ?? prev.transmission,
-        seats: r.seats ?? prev.seats,
-        doors: r.doors ?? prev.doors,
-      }));
+      setD((prev) => applyVinDecode(prev, r));
     },
   });
 
   const create = useMutation({
-    mutationFn: () => {
-      const body: CreateVehicleInput = {
-        make: d.make, model: d.model, year: Number(d.year), bodyType: d.bodyType, category: d.category,
-        transmission: d.transmission, fuelType: d.fuelType, seats: Number(d.seats),
-        vin: d.vin.trim() || undefined,
-        registrationNumber:
-          d.licensePlate.trim()
-            ? `${d.licensePlate.trim()}${d.licensePlateState ? ` (${d.licensePlateState})` : ''}`
-            : undefined,
-        specs: {
-          color: d.color,
-          doors: Number(d.doors),
-          ...(d.odometerMiles !== '' ? { mileageKm: milesToKm(Number(d.odometerMiles)) } : {}),
-        },
-        features: d.features,
-        photos: d.photos,
-        location: {
-          lng: d.lng!,
-          lat: d.lat!,
-          address: [d.address, d.pickupNotes].filter(Boolean).join(' - '),
-          city: d.city,
-        },
-        listing: {
-          title: d.title || `${d.make} ${d.model} ${d.year}`,
-          description: d.description,
-          instantBook: d.instantBook,
-          minTripHours: 24,
-          maxTripHours: 24 * 30,
-          cancellationPolicy: d.cancellationPolicy,
-          deliveryLocations: d.deliveryLocations,
-        },
-        addOns: d.addOnCodes.map((code) => ({
-          code,
-          label: ADDON_PRESETS[code].label,
-          priceType: ADDON_PRESETS[code].priceType,
-          amount: Math.round(ADDON_PRESETS[code].amount * 100),
-        })),
-        tripRules: d.tripRules.split('\n').map((r) => r.trim()).filter(Boolean),
-        // The host types miles; storage stays in km.
-        mileageLimit: {
-          perDayKm: milesToKm(dailyMiles),
-          overageFeePerKm: perMileToPerKm(Math.round(d.mileageOverage * 100)),
-        },
-        pricing: {
-          dailyPrice: Math.round(d.dailyPrice * 100),
-          currency: 'USD',
-          cleaningFee: Math.round(d.cleaningFee * 100),
-          weekendMultiplierBps: 10000 + Math.round(d.weekendPct * 100),
-          weeklyDiscountBps: Math.round(d.weeklyDiscountPct * 100),
-          monthlyDiscountBps: Math.round(d.monthlyDiscountPct * 100),
-          earlyBirdBps: Math.round(d.earlyBirdPct * 100),
-          lastMinuteBps: Math.round(d.lastMinutePct * 100),
-          dynamicPricing: false,
-        },
-      };
-      return vehicleApi.create(body);
-    },
+    mutationFn: () => vehicleApi.create(createListingInput(d, dailyMiles)),
     onSuccess: (v) => { clearListingDraft(); router.push(`/host/listings/${v._id}`); },
   });
 
@@ -310,45 +186,13 @@ export default function NewListingPage() {
    * from where the mistake was made. Requirements are checked on the step that
    * owns them and the offending input is marked there.
    */
-  const stepErrors = (forStep: number): Record<string, string> => {
-    const e: Record<string, string> = {};
-    if (forStep === 0) {
-      if (!d.make.trim()) e.make = 'Required';
-      if (!d.model.trim()) e.model = 'Required';
-      const year = Number(d.year);
-      if (!year || year < 1900 || year > new Date().getFullYear() + 1) e.year = 'Enter a valid year';
-      if (!Number(d.seats) || Number(d.seats) < 1) e.seats = 'At least 1 seat';
-    }
-    if (forStep === 1) {
-      // A listing with no coordinates cannot be searched, so this is the one
-      // field a host must not be able to skip past.
-      if (d.lng === null || d.lat === null) e.location = 'Pick a pickup location from the suggestions';
-      else if (!d.city.trim()) e.location = 'That address has no city - pick a more specific one';
-    }
-    if (forStep === 2) {
-      if (d.photos.length < minPhotos) {
-        e.photos = `Add ${minPhotos - d.photos.length} more photo${minPhotos - d.photos.length === 1 ? '' : 's'}`;
-      }
-    }
-    if (forStep === 3) {
-      if (!Number(d.dailyPrice) || Number(d.dailyPrice) <= 0) e.dailyPrice = 'Set a daily price';
-    }
-    if (forStep === 4 && Number(d.mileageOverage) < 0) {
-      e.mileageOverage = 'Cannot be negative';
-    }
-    if (forStep === 5) {
-      if (!d.standardsAgreed) e.standardsAgreed = 'You must agree to continue';
-    }
-    return e;
-  };
+  const stepErrors = (forStep: number) => listingStepErrors(d, forStep, minPhotos);
 
   const errors = stepErrors(step);
   const canNext = () => Object.keys(errors).length === 0;
 
   /** Every unmet requirement across the whole wizard - shown on Review. */
-  const allBlockers = [0, 1, 2, 3, 4, 5].flatMap((i) =>
-    Object.entries(stepErrors(i)).map(([field, msg]) => ({ step: i, field, msg })),
-  );
+  const allBlockers = listingBlockers(d, minPhotos);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -420,19 +264,14 @@ export default function NewListingPage() {
                 <Field label="Year *" error={errors.year}><Input type="number" value={d.year} onChange={(e) => set('year', Number(e.target.value))} /></Field>
                 <Field label="Seats *" error={errors.seats}><Input type="number" value={d.seats} onChange={(e) => set('seats', Number(e.target.value))} /></Field>
                 <Field label="Doors"><Input type="number" value={d.doors} onChange={(e) => set('doors', Number(e.target.value))} /></Field>
-                <SelectField label="Category" value={d.category} onChange={(v) => set('category', v)} options={['economy', 'luxury', 'suv', 'van', 'sports', 'ev']} />
-                <SelectField label="Body type" value={d.bodyType} onChange={(v) => set('bodyType', v)} options={['sedan', 'suv', 'hatchback', 'coupe', 'van', 'truck']} />
-                <SelectField label="Transmission" value={d.transmission} onChange={(v) => set('transmission', v as Draft['transmission'])} options={['automatic', 'manual']} />
+                <SelectField label="Category" value={d.category} onChange={(v) => set('category', v)} options={CATEGORY_OPTIONS} />
+                <SelectField label="Body type" value={d.bodyType} onChange={(v) => set('bodyType', v)} options={BODY_TYPE_OPTIONS} />
+                <SelectField label="Transmission" value={d.transmission} onChange={(v) => set('transmission', v as Draft['transmission'])} options={TRANSMISSION_OPTIONS} />
                 <SelectField
                   label="Fuel"
                   value={d.fuelType}
                   onChange={(v) => set('fuelType', v as Draft['fuelType'])}
-                  options={[
-                    { value: 'petrol', label: 'Gas' },
-                    { value: 'diesel', label: 'Diesel' },
-                    { value: 'hybrid', label: 'Hybrid' },
-                    { value: 'ev', label: 'Electric' },
-                  ]}
+                  options={FUEL_OPTIONS}
                 />
                 <Field label="Odometer (miles)" hint="Optional">
                   <Input type="number" value={d.odometerMiles} onChange={(e) => set('odometerMiles', e.target.value === '' ? '' : Number(e.target.value))} />

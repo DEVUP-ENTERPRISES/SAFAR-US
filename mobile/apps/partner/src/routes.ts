@@ -13,6 +13,7 @@ export const resolveLink = createRouteResolver([
   '/host/listings/[id]/pricing',
   '/host/listings/[id]/insights',
   '/host/listings/new',
+  '/host/listings/import',
   '/host/earnings',
   '/host/inbox',
   '/host/inquiries/[vehicleId]/[guestId]',
