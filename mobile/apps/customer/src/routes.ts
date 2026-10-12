@@ -25,6 +25,7 @@ export const resolveLink = createRouteResolver([
   '/support',
   '/help',
   '/help/[slug]',
+  '/help/photo-guide',
   '/saved-searches',
   '/support/[id]',
   '/messages/[bookingId]',

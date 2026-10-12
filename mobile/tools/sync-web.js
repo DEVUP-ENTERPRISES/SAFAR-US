@@ -56,6 +56,7 @@ const ENTRIES = [
   'features/trips/guest-photo-api.ts',
   'features/trips/hooks.ts',
   'features/trips/incidents.ts',
+  'features/trips/photo-guide.ts',
   'features/ai/api.ts',
   'features/payments/deposits-api.ts',
   'features/account/eligibility-api.ts',

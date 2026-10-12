@@ -45,4 +45,5 @@ export const resolveLink = createRouteResolver([
   '/support/[id]',
   '/help',
   '/help/[slug]',
+  '/help/photo-guide',
 ]);

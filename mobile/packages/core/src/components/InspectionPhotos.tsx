@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { Image } from 'expo-image';
@@ -24,6 +25,7 @@ const GROUPS = [
  * afterwards: the same baseline the website records.
  */
 export function InspectionPhotos({ bookingId, phase }: { bookingId: string; phase: PhotoPhase }) {
+  const router = useRouter();
   const { c } = useTheme();
   const toast = useToast();
   const qc = useQueryClient();
@@ -139,6 +141,10 @@ export function InspectionPhotos({ bookingId, phase }: { bookingId: string; phas
           </View>
         );
       })}
+      <View style={{ gap: 4, marginTop: space.md }}>
+        <Text variant="caption" tone="muted">Left and right are as if you were sitting in the driver’s seat. Card numbers match the shooting order.</Text>
+        <Text variant="caption" tone="primary" accessibilityRole="link" onPress={() => router.push('/help/photo-guide' as never)}>Why each shot matters</Text>
+      </View>
     </Card>
   );
 }
