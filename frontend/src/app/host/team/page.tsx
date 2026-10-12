@@ -16,11 +16,10 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils/cn';
 import { ApiError } from '@/lib/api/types';
 import {
-  teamApi, ABILITY_LABELS, type Captain, type CaptainAbility, type AssignableVehicle,
+  teamApi, ABILITY_LABELS, CAPTAIN_ABILITIES as ALL, DEFAULT_CAPTAIN_ABILITIES as DEFAULTS, captainInviteValid,
+  type Captain, type CaptainAbility, type AssignableVehicle,
 } from '@/features/host/team-api';
 
-const ALL: CaptainAbility[] = ['trip:view', 'trip:handover', 'trip:message', 'calendar:manage', 'incident:report'];
-const DEFAULTS: CaptainAbility[] = ['trip:view', 'trip:handover', 'trip:message'];
 
 /**
  * Captains - the people who work a host's fleet.
@@ -229,7 +228,7 @@ function InviteForm({
   const [vehicleIds, setVehicleIds] = useState<string[]>([]);
 
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
-  const valid = f.name.trim().length >= 2 && /\S+@\S+\.\S+/.test(f.email) && abilities.length > 0;
+  const valid = captainInviteValid(f, abilities);
 
   return (
     <Card>

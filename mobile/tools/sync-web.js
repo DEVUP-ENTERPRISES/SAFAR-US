@@ -93,6 +93,7 @@ const ENTRIES = [
   'features/asset-partners/hooks.ts',
   'features/asset-partners/status.ts',
   'features/corporate/api.ts',
+  'features/maps/api.ts',
 ];
 
 // The apps' own versions of these web files.
