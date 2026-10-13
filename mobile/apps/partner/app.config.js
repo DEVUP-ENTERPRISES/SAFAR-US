@@ -1,5 +1,8 @@
 const buildConfig = require('@catodrive/core/app-config');
 
+// Own Metro port, so a bare `expo start` never lands on 8081-8083 used by other projects.
+process.env.RCT_METRO_PORT ||= '8091';
+
 module.exports = () =>
   buildConfig({
     id: 'partner',
