@@ -1,7 +1,7 @@
 /*
  * Shared Expo config for both apps. Each app's app.config.js passes its own
  * identity; everything else (permissions, plugins, updates) is identical.
- * Native keys (Google Maps, google-services.json, EAS project id) come from
+ * Each app passes its own EAS project id; native keys (Google Maps, google-services.json) come from
  * EAS environment variables, never from git.
  */
 const BLOCKED_PERMISSIONS = [
@@ -14,8 +14,10 @@ const BLOCKED_PERMISSIONS = [
 ];
 
 module.exports = function buildConfig(app) {
-  const projectId = process.env.EAS_PROJECT_ID;
+  const projectId = app.projectId ?? process.env.EAS_PROJECT_ID;
   return {
+    // The company Expo organisation owns both apps' builds and releases.
+    owner: 'devup-ventures-01',
     name: app.name,
     slug: app.slug,
     scheme: app.scheme,
