@@ -49,9 +49,9 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "start": "expo start --dev-client --port 8090",
+    "android": "expo start --dev-client --android --port 8090",
+    "ios": "expo start --dev-client --ios --port 8090",
     "typecheck": "tsc --noEmit",
     "export:android": "expo export --platform android --output-dir dist-android"
   },
