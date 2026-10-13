@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Calculator, TrendingUp, Info, ArrowRight, MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +10,7 @@ import { EmptyState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { vehicleApi } from '@/features/vehicles/api';
 import { usePlatformConfig } from '@/features/platform/config';
+import { SiteLink } from '@/components/layout/site-link';
 
 const money = (cents: number) =>
   `$${Math.round(cents / 100).toLocaleString('en-US')}`;
@@ -236,12 +236,13 @@ export default function CarculatorPage() {
             </CardContent>
           </Card>
 
-          <Link
-            href="/host/listings/new"
+          <SiteLink
+            site="partner"
+            path="/host/listings/new"
             className="inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
           >
             <Calculator className="h-4 w-4" /> List this car <ArrowRight className="h-4 w-4" />
-          </Link>
+          </SiteLink>
         </>
       )}
     </div>

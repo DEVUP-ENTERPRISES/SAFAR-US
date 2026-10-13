@@ -16,6 +16,7 @@ import { UserMenu } from './user-menu';
 import { ProBadge } from '@/features/subscriptions/member-ui';
 import { useMembership } from '@/features/subscriptions/hooks';
 import { NotificationBell } from './notification-bell';
+import { SiteLink } from './site-link';
 import { SearchBarFields } from '@/features/search/search-bar-fields';
 
 export function Navbar() {
@@ -129,12 +130,15 @@ export function Navbar() {
                   over the self-managed host flow. Once actually enrolled,
                   this goes straight to the partner's own dashboard rather
                   than the public pitch they no longer need. */}
-              <Link
-                href={isAssetPartner ? '/asset-partners/dashboard' : '/asset-partners'}
-                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold text-primary transition-all hover:bg-primary/10 sm:block"
-              >
-                {isAssetPartner ? 'Partner dashboard' : 'Asset Partners'}
-              </Link>
+              {isAssetPartner ? (
+                <SiteLink site="partner" path="/asset-partners/dashboard" className="hidden rounded-full px-4 py-1.5 text-sm font-semibold text-primary transition-all hover:bg-primary/10 sm:block">
+                  Partner dashboard
+                </SiteLink>
+              ) : (
+                <Link href="/asset-partners" className="hidden rounded-full px-4 py-1.5 text-sm font-semibold text-primary transition-all hover:bg-primary/10 sm:block">
+                  Asset Partners
+                </Link>
+              )}
               {/*
                 Asset-Partners-only launch: don't invite a NEW self-serve
                 host. An EXISTING host still reaches their own dashboard -
@@ -150,12 +154,9 @@ export function Navbar() {
                 booking instead of running it through their actual terms.
               */}
               {(isHost || !config.assetPartnersOnly) && !isAssetPartner ? (
-                <Link
-                  href="/host"
-                  className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
-                >
+                <SiteLink site="partner" path="/host" className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block">
                   {isHost ? 'Host dashboard' : 'Become a host'}
-                </Link>
+                </SiteLink>
               ) : null}
               {/* Lower-frequency destination - only at wider widths so it
                   doesn't crowd the primary consumer/partner links. */}
@@ -226,20 +227,23 @@ export function Navbar() {
               )}
               
               <nav className="px-2 space-y-1">
-                <Link
-                  href={isAssetPartner ? '/asset-partners/dashboard' : '/asset-partners'}
-                  className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-primary rounded-xl hover:bg-primary/10"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Sparkles className="h-5 w-5" />
-                  {isAssetPartner ? 'Partner dashboard' : 'Asset Partners'}
-                </Link>
+                {isAssetPartner ? (
+                  <SiteLink site="partner" path="/asset-partners/dashboard" className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-primary rounded-xl hover:bg-primary/10" onNavigate={() => setMobileMenuOpen(false)}>
+                    <Sparkles className="h-5 w-5" />
+                    Partner dashboard
+                  </SiteLink>
+                ) : (
+                  <Link href="/asset-partners" className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-primary rounded-xl hover:bg-primary/10" onClick={() => setMobileMenuOpen(false)}>
+                    <Sparkles className="h-5 w-5" />
+                    Asset Partners
+                  </Link>
+                )}
                 {/* See the desktop link above for why !isAssetPartner matters here. */}
                 {(isHost || !config.assetPartnersOnly) && !isAssetPartner && (
-                  <Link href="/host" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
+                  <SiteLink site="partner" path="/host" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onNavigate={() => setMobileMenuOpen(false)}>
                     <Car className="h-5 w-5 text-muted-foreground" />
                     {isHost ? 'Host dashboard' : 'Become a host'}
-                  </Link>
+                  </SiteLink>
                 )}
                 <Link href="/investors" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onClick={() => setMobileMenuOpen(false)}>
                   <TrendingUp className="h-5 w-5 text-muted-foreground" />

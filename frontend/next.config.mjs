@@ -1,5 +1,11 @@
 import { securityHeaders } from './security-headers.mjs';
 
+// The partner website (hosts, captains, asset partners, corporate) - see partner-web/.
+const PARTNER_SITE = (
+  process.env.NEXT_PUBLIC_PARTNER_URL ?? (process.env.NODE_ENV === 'production' ? 'https://partners.catodrive.com' : 'http://localhost:3010')
+).replace(/\/$/, '');
+const PARTNER_SECTIONS = ['/host', '/corporate', '/captain', '/asset-partners/:section(dashboard|vehicles|statements|maintenance|documents|profile)'];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -26,6 +32,22 @@ const nextConfig = {
         headers: securityHeaders({ apiUrl: process.env.NEXT_PUBLIC_API_URL, dev: process.env.NODE_ENV !== 'production' }),
       },
     ];
+  },
+  /*
+   * Partner pages moved to their own website. Old links - emails, bookmarks,
+   * push notifications already delivered - still arrive here, so each one is
+   * forwarded to the same page on the partner site. Temporary (307), so the
+   * mapping can change without browsers caching it forever.
+   */
+  async redirects() {
+    return PARTNER_SECTIONS.flatMap((section) => {
+      // The destination keeps the matched section name but drops its pattern.
+      const to = `${PARTNER_SITE}${section.replace(/\(.*\)$/, '')}`;
+      return [
+        { source: section, destination: to, permanent: false },
+        { source: `${section}/:path*`, destination: `${to}/:path*`, permanent: false },
+      ];
+    });
   },
   images: {
     remotePatterns: [

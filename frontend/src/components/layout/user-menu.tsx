@@ -10,6 +10,7 @@ import { useUnreadMessages } from '@/features/messaging/hooks';
 import { useLogout } from '@/features/auth/hooks';
 import { useIsAssetPartner } from '@/features/asset-partners/hooks';
 import { cn } from '@/lib/utils/cn';
+import { SiteLink } from './site-link';
 import { usePrograms } from '@/features/platform/config';
 
 
@@ -128,33 +129,18 @@ export function UserMenu() {
                 self-serve host tools to someone CatoDrive runs 100% of
                 operations for. */}
             {isAssetPartner && (
-              <Link
-                href="/asset-partners/dashboard"
-                onClick={() => setOpen(false)}
-                role="menuitem"
-                className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
-              >
+              <SiteLink site="partner" path="/asset-partners/dashboard" onNavigate={() => setOpen(false)} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent">
                 <Car className="h-4 w-4 text-primary" /> Partner dashboard
-              </Link>
+              </SiteLink>
             )}
             {!config.assetPartnersOnly && !isAssetPartner && (
               <>
-                <Link
-                  href="/host"
-                  onClick={() => setOpen(false)}
-                  role="menuitem"
-                  className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
-                >
+                <SiteLink site="partner" path="/host" onNavigate={() => setOpen(false)} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent">
                   <Car className="h-4 w-4 text-primary" /> Host dashboard
-                </Link>
-                <Link
-                  href="/corporate"
-                  onClick={() => setOpen(false)}
-                  role="menuitem"
-                  className="flex items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-accent"
-                >
+                </SiteLink>
+                <SiteLink site="partner" path="/corporate" onNavigate={() => setOpen(false)} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-accent">
                   <Building2 className="h-4 w-4 text-muted-foreground" /> Corporate
-                </Link>
+                </SiteLink>
               </>
             )}
             {/* No admin link here. The console is a separate application on

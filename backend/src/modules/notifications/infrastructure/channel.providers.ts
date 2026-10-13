@@ -5,6 +5,7 @@ import { config } from '../../../config';
 import { logger } from '../../../infrastructure/logging/logger';
 import type { ChannelProvider, DeliveryRequest, DeliveryResult } from '../domain/notification-channel';
 import { renderEmail, renderText, type EmailContent } from './email-template';
+import { webLink } from '../../../shared/http/site-links';
 
 /**
  * Channel adapters.
@@ -185,8 +186,7 @@ async function legalLinks(): Promise<{ label: string; url: string }[] | undefine
  * from being relative and broken.
  */
 function webAbsolute(path: string): string {
-  const base = config.notifications.webUrl || config.app.publicUrl;
-  return path.startsWith('http') ? path : `${base}${path.startsWith('/') ? '' : '/'}${path}`;
+  return webLink(path);
 }
 
 class SmsProvider implements ChannelProvider {

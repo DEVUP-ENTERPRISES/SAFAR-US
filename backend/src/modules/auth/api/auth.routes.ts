@@ -8,6 +8,7 @@ import { authenticate } from '../../../shared/middleware/authenticate';
 import { authLimiter, loginLimiter } from '../../../shared/middleware/auth-rate-limit';
 import { loginSchema, refreshSchema, registerSchema, otpRequestSchema, otpVerifySchema, forgotPasswordSchema, resetPasswordSchema } from '../dto/auth.schemas';
 import { authService } from '../application/auth.service';
+import { handoffService } from '../application/handoff.service';
 import { sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
@@ -122,6 +123,29 @@ router.post(
   '/logout/all',
   authenticate,
   asyncHandler((req, res) => authController.logoutOthers(req, res)),
+);
+
+/**
+ * Moving between CatoDrive's own websites, which keep separate sessions: the
+ * signed-in site asks for a one-time code, the other redeems it for its own
+ * session. The code lives a minute and works once.
+ */
+router.post(
+  '/handoff',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await handoffService.create(req.principal!.userId));
+  }),
+);
+
+router.post(
+  '/handoff/redeem',
+  authLimiter,
+  validate({ body: z.object({ code: z.string().trim().min(20).max(100) }) }),
+  asyncHandler(async (req, res) => {
+    const result = await handoffService.redeem(req.body.code, { userAgent: req.header('user-agent') ?? undefined, ip: req.ip });
+    sendSuccess(res, await gateSession(req, result));
+  }),
 );
 
 export const authRoutes = router;
