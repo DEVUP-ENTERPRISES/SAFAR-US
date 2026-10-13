@@ -257,6 +257,8 @@ export interface PlatformConfigDoc {
     requireApproved: boolean;
     /** Refuse a renter younger than the car's Wheelbase minimum renter age. */
     enforceMinAge: boolean;
+    /** CatoDrive's share of an insurance partner's protection premium, in basis points, unless set per insurer. */
+    partnerCommissionBps: number;
   };
   legal: {
     termsVersion: string;
@@ -596,6 +598,7 @@ const schema = new Schema<PlatformConfigDoc>(
       wheelbaseDealerId: { type: String },
       requireApproved: { type: Boolean, default: true },
       enforceMinAge: { type: Boolean, default: true },
+      partnerCommissionBps: { type: Number, default: 1500 },
     },
     legal: {
       termsVersion: { type: String, default: '2026-09-01' },

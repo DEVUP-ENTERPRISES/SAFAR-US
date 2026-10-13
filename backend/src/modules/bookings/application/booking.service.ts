@@ -1595,6 +1595,10 @@ export class BookingService {
             'priceBreakdown.discount.amount': extra.discount.amount,
             'priceBreakdown.cleaningFee.amount': extra.cleaningFee.amount,
             'priceBreakdown.protection.amount': extra.protection.amount,
+            // Extra days under the same insurer add to what that insurer is owed for this trip.
+            ...(extra.protectionInsurer && extra.protectionInsurer.id === booking.priceBreakdown.protectionInsurer?.id
+              ? { 'priceBreakdown.protectionInsurer.share.amount': extra.protectionInsurer.share.amount }
+              : {}),
             'priceBreakdown.taxTotal.amount': extra.taxTotal?.amount ?? 0,
             'priceBreakdown.days': extra.days,
           },
@@ -1643,12 +1647,13 @@ export class BookingService {
   }
 
   /** Split a quote into payment legs that sum to the total: protection and service fee ride in commission, rental tax in tax. */
-  private paymentSplit(b: PriceBreakdown): { hostEarnings: Money; commission: Money; tax: Money } {
+  private paymentSplit(b: PriceBreakdown): { hostEarnings: Money; commission: Money; tax: Money; insurer?: { id: string; share: number } } {
     const currency = b.currency;
     return {
       hostEarnings: b.hostEarnings,
       commission: { amount: b.commission.amount + b.protection.amount + (b.serviceFee?.amount ?? 0), currency },
       tax: { amount: b.tax.amount + (b.taxTotal?.amount ?? 0), currency },
+      ...(b.protectionInsurer ? { insurer: { id: b.protectionInsurer.id, share: b.protectionInsurer.share.amount } } : {}),
     };
   }
 
@@ -1948,7 +1953,7 @@ export class BookingService {
             addOns,
           },
           originalTotal,
-          pb.protectionPlan,
+          pb.protectionLabel ?? pb.protectionPlan,
         ),
         total: { amount: originalTotal, currency: cur },
         paymentRef: b.paymentId ? refs.get(b.paymentId) : undefined,
@@ -1961,7 +1966,7 @@ export class BookingService {
           issuedAt: e.createdAt,
           period: { start: e.prevEnd, end: e.newEnd },
           days: e.days,
-          lines: lines(`Extension · ${e.days} day${e.days === 1 ? '' : 's'}`, e.parts, e.total.amount, pb.protectionPlan),
+          lines: lines(`Extension · ${e.days} day${e.days === 1 ? '' : 's'}`, e.parts, e.total.amount, pb.protectionLabel ?? pb.protectionPlan),
           total: e.total,
           paymentRef: refs.get(e.paymentId),
         }),

@@ -33,10 +33,12 @@ export class DashboardRefundService {
     try {
       const hostPart = Math.round((diff * payment.hostEarnings) / payment.amount);
       const commissionPart = Math.round((diff * payment.commission) / payment.amount);
+      const insurerPart = payment.insurerId ? Math.min(commissionPart, Math.round((diff * (payment.insurerShare ?? 0)) / payment.amount)) : 0;
       const legs = [
         { account: Account.gatewayClearing(), direction: 'debit', amount: diff },
         { account: Account.hostPayable(payment.hostId!), direction: 'credit', amount: hostPart },
-        { account: Account.platformRevenue(), direction: 'credit', amount: commissionPart },
+        { account: Account.platformRevenue(), direction: 'credit', amount: commissionPart - insurerPart },
+        ...(insurerPart > 0 ? [{ account: Account.insurerPayable(payment.insurerId!), direction: 'credit', amount: insurerPart }] : []),
         { account: Account.platformTax(), direction: 'credit', amount: diff - hostPart - commissionPart },
       ].filter((l) => l.amount > 0) as LedgerLeg[];
       await ledgerService.post({

@@ -6,7 +6,7 @@ import { api } from '@/lib/api/client';
 const PRIVATE_PREFIXES = ['kyc/', 'registration/', 'insurance/', 'claim/', 'message/'];
 
 /** Pull the object key out of a stored URL: the pathname, minus the leading slash. */
-function keyFromUrl(url: string): string | null {
+export function keyFromUrl(url: string): string | null {
   try {
     const parsed = new URL(url);
     // Without a CDN the durable URL is /media/view?key=<key>, so the key is the query value.

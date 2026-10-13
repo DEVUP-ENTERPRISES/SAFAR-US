@@ -17,6 +17,10 @@ export interface PriceBreakdown {
   /** Platform service fee charged to the guest on top. Zero when not configured. */
   serviceFee: Money;
   protectionPlan: string;
+  /** The plan's name as the guest saw it, for receipts. */
+  protectionLabel?: string;
+  /** Set when an insurance partner's plan was chosen: who covers the trip and the part of `protection` owed to them. */
+  protectionInsurer?: { id: string; name: string; share: Money };
   selectedAddOns: { code: string; label: string; amount: Money }[];
   subtotal: Money;
   commission: Money; // platform take (from host portion)

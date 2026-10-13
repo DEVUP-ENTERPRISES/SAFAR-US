@@ -26,6 +26,7 @@ import { assetPartnerApplicationAdminRoutes } from '../asset-partners/api/asset-
 import { assetPartnerAdminRoutes } from '../asset-partners/api/asset-partner.admin.routes';
 import { contactInquiryAdminRoutes } from '../contact/api/contact-inquiry.admin.routes';
 import { insuranceAdminRoutes } from '../insurance/api/insurance.admin.routes';
+import { insurancePartnerAdminRoutes } from '../insurance-partners/api/insurance-partner.admin.routes';
 import { tollsAdminRoutes } from '../tolls/api/tolls.admin.routes';
 
 /**
@@ -61,6 +62,7 @@ export function buildAdminRouter(): Router {
   admin.use(contactInquiryAdminRoutes);
   admin.use(vehiclesAdminRoutes);
   admin.use(insuranceAdminRoutes);
+  admin.use(insurancePartnerAdminRoutes);
   admin.use(tollsAdminRoutes);
   admin.use(bookingsAdminRoutes);
   admin.use(claimsAdminRoutes);

@@ -62,6 +62,9 @@ export interface BookingDoc {
     delivery?: MoneyField;
     protection?: MoneyField;
     protectionPlan?: string;
+    protectionLabel?: string;
+    /** The insurance partner covering the trip, and the part of `protection` owed to it. */
+    protectionInsurer?: { id: string; name: string; share: MoneyField };
     selectedAddOns?: { code: string; label: string; amount: MoneyField }[];
     subtotal: MoneyField;
     commission: MoneyField;
@@ -234,6 +237,8 @@ const schema = new Schema<BookingDoc>(
       delivery: moneySchema,
       protection: moneySchema,
       protectionPlan: String,
+      protectionLabel: String,
+      protectionInsurer: { _id: false, id: String, name: String, share: moneySchema },
       selectedAddOns: [{ code: String, label: String, amount: moneySchema }],
       subtotal: moneySchema,
       commission: moneySchema,
@@ -435,6 +440,8 @@ const schema = new Schema<BookingDoc>(
 schema.index({ code: 1 }, { unique: true });
 schema.index({ guestId: 1, createdAt: -1 });
 schema.index({ hostId: 1, status: 1, createdAt: -1 });
+// The insurer portal: every trip an insurance partner covers.
+schema.index({ 'priceBreakdown.protectionInsurer.id': 1, createdAt: -1 }, { sparse: true });
 schema.index({ vehicleId: 1, 'period.start': 1, 'period.end': 1 });
 schema.index({ status: 1, approvalDeadline: 1 });
 schema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });

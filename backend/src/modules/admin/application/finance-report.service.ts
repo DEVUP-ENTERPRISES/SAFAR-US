@@ -116,6 +116,7 @@ export class FinanceReportService {
       hostEarnings: number;
       tax: number;
       protection: number;
+      insurerPremiums: number;
       delivery: number;
     }>([
       { $match: { status: { $in: ['paid', 'in_progress', 'completed'] } } },
@@ -127,6 +128,7 @@ export class FinanceReportService {
           hostEarnings: { $sum: '$priceBreakdown.hostEarnings.amount' },
           tax: { $sum: '$priceBreakdown.tax.amount' },
           protection: { $sum: '$priceBreakdown.protection.amount' },
+          insurerPremiums: { $sum: { $ifNull: ['$priceBreakdown.protectionInsurer.share.amount', 0] } },
           delivery: { $sum: { $ifNull: ['$priceBreakdown.delivery.amount', 0] } },
         },
       },
@@ -140,7 +142,8 @@ export class FinanceReportService {
       commission: b?.commission ?? 0,
       hostEarnings: b?.hostEarnings ?? 0,
       tax: b?.tax ?? 0,
-      protection: b?.protection ?? 0,
+      // Insurance partners' share of protection is owed to them, not ours.
+      protection: (b?.protection ?? 0) - (b?.insurerPremiums ?? 0),
       delivery: b?.delivery ?? 0,
       membership,
     };

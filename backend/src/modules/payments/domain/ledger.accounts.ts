@@ -19,6 +19,8 @@ export const Account = {
   cardFunding: () => 'card_funding', // external card inflow contra-account (wallet top-ups)
   userWallet: (userId: string) => `user_wallet:${userId}`,
   hostPayable: (hostId: string) => `host_payable:${hostId}`,
+  /** What CatoDrive owes an insurance partner: its protection premiums less CatoDrive's commission (debit-normal, like host payable). */
+  insurerPayable: (insurerId: string) => `insurer_payable:${insurerId}`,
 };
 
 export type LedgerDirection = 'debit' | 'credit';
