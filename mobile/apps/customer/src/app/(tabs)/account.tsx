@@ -9,6 +9,7 @@ import { appInfo, openInAppBrowser, useSignOut, webUrl } from '@catodrive/core';
 import { accountApi } from '@catodrive/core/web/features/account/api';
 import { usePlatformConfig, usePrograms } from '@catodrive/core/web/features/platform/config';
 import { useAuthStore } from '@catodrive/core/web/features/auth/store';
+import { ExploreLinks } from '@/features/account/ExploreLinks';
 
 function Legal() {
   const { c } = useTheme();
@@ -39,6 +40,7 @@ function SignedOut() {
         <MenuRow icon={<HelpCircle size={20} color={c.mutedForeground} />} label="Help centre" onPress={() => router.push('/help')} />
         <MenuRow icon={<Mail size={20} color={c.mutedForeground} />} label="Contact us" onPress={() => router.push('/contact')} />
       </MenuSection>
+      <ExploreLinks />
       <Legal />
       <Text variant="caption" tone="muted" center>CatoDrive {appInfo.version}</Text>
     </Screen>
@@ -117,6 +119,8 @@ function SignedIn() {
         <MenuRow icon={icon(LifeBuoy)} label="Support" onPress={() => router.push('/support')} />
         <MenuRow icon={icon(Mail)} label="Contact us" onPress={() => router.push('/contact')} />
       </MenuSection>
+
+      <ExploreLinks />
 
       <Legal />
 

@@ -26,6 +26,7 @@ export const resolveLink = createRouteResolver([
   '/host/tolls',
   '/host/tolls/[id]',
   '/captain',
+  '/host/accept-invite',
   '/asset-partners/dashboard',
   '/asset-partners/vehicles',
   '/asset-partners/vehicles/[id]',

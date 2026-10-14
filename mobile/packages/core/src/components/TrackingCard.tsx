@@ -3,6 +3,7 @@ import { MapPinOff, Navigation, ShieldAlert } from 'lucide-react-native';
 import { Badge, Card, Text, useTheme, space } from '@catodrive/ui';
 import { useTrackingState } from '../web/features/trips/hooks';
 import { useLocationStreaming } from '../location-streaming';
+import { ApproachStrip } from './ApproachStrip';
 
 /** Whether location is being shared on this trip right now, and why; streams this phone's position when it should. */
 export function TrackingCard({ bookingId, role }: { bookingId: string; role: 'guest' | 'host' }) {
@@ -23,7 +24,9 @@ export function TrackingCard({ bookingId, role }: { bookingId: string; role: 'gu
             <Text variant="label">{t.phase === 'in_trip' ? 'Location is off during the trip' : 'Location sharing is not on'}</Text>
             <Text variant="caption" tone="muted">
               {t.phase === 'in_trip'
-                ? 'You can see the trip status, not where the car is. Location comes back on shortly before the return so you can meet your guest.'
+                ? role === 'host'
+                  ? 'You can see the trip status, not where the car is. Location comes back on shortly before the return so you can meet your guest.'
+                  : 'Your host cannot see where you are. Location comes back on shortly before you return the car.'
                 : opensAt
                   ? `Sharing starts around ${opensAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}, close to the handover.`
                   : 'Nothing is being shared for this trip.'}
@@ -44,6 +47,11 @@ export function TrackingCard({ bookingId, role }: { bookingId: string; role: 'gu
         </View>
         <Badge label={t.isException ? t.exceptionKind ?? 'exception' : 'Live'} tone={t.isException ? 'warning' : 'success'} />
       </View>
+      {!t.isException && (t.phase === 'approach' || t.phase === 'return') ? (
+        <View style={{ marginTop: space.md }}>
+          <ApproachStrip bookingId={bookingId} role={role} />
+        </View>
+      ) : null}
     </Card>
   );
 }
