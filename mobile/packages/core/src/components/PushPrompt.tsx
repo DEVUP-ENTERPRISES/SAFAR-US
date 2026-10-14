@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import * as Notifications from 'expo-notifications';
 import { BellRing } from 'lucide-react-native';
 import { Button, Card, Text, space, useTheme, useToast } from '@catodrive/ui';
-import { enablePush } from '../push';
+import { enablePush, notificationsModule } from '../push';
 
-/** Offers to turn on notifications while the phone hasn't granted them and can still be asked. */
+/** Offers to turn on notifications while the phone hasn't granted them and can still be asked; hidden where push can't run. */
 export function PushPrompt({ title, detail, successBody }: { title?: string; detail: string; successBody: string }) {
   const { c } = useTheme();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
-  const permission = useQuery({ queryKey: ['push-permission'], queryFn: () => Notifications.getPermissionsAsync() });
+  const permission = useQuery({
+    queryKey: ['push-permission'],
+    queryFn: async () => (await notificationsModule()?.getPermissionsAsync().catch(() => null)) ?? null,
+  });
   if (!permission.data || permission.data.granted || !permission.data.canAskAgain) return null;
 
   const turnOn = async () => {
