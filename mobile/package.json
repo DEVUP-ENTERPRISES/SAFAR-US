@@ -11,8 +11,10 @@
     "check:api": "node tools/sync-web.js --check",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "export:android": "npm run export:android --workspaces --if-present",
-    "start:customer": "npm run start -w catodrive-customer",
-    "start:partner": "npm run start -w catodrive-partner"
+    "customer": "npm run start -w catodrive-customer",
+    "customer:clear": "npm run start -w catodrive-customer -- --clear",
+    "partner": "npm run start -w catodrive-partner",
+    "partner:clear": "npm run start -w catodrive-partner -- --clear"
   },
   "overrides": {
     "react": "19.2.3",
