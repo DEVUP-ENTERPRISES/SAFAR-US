@@ -60,6 +60,7 @@ router.put(
           wheelbaseDealerId: z.string().trim().regex(/^\d{0,20}$/, 'Digits only').optional(),
           requireApproved: z.boolean().optional(),
           enforceMinAge: z.boolean().optional(),
+          partnerCommissionBps: z.number().int().min(0).max(5000).optional(),
         })
         .optional(),
       legal: z

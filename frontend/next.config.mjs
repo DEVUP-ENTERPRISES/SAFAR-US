@@ -4,7 +4,7 @@ import { securityHeaders } from './security-headers.mjs';
 const PARTNER_SITE = (
   process.env.NEXT_PUBLIC_PARTNER_URL ?? (process.env.NODE_ENV === 'production' ? 'https://partners.catodrive.com' : 'http://localhost:3010')
 ).replace(/\/$/, '');
-const PARTNER_SECTIONS = ['/host', '/corporate', '/captain', '/asset-partners/:section(dashboard|vehicles|statements|maintenance|documents|profile)'];
+const PARTNER_SECTIONS = ['/host', '/corporate', '/captain', '/insurers/portal', '/asset-partners/:section(dashboard|vehicles|statements|maintenance|documents|profile)'];
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

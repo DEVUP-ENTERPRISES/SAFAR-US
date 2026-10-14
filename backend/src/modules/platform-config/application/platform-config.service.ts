@@ -121,6 +121,7 @@ export class PlatformConfigService {
         wheelbaseDealerId: config.wheelbase?.dealerId ?? '',
         requireApproved: true,
         enforceMinAge: true,
+        partnerCommissionBps: 1500,
         ...(doc.insurance ?? {}),
       },
       legal: {

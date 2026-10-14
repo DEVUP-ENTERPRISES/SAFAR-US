@@ -12,6 +12,8 @@ describe('webLink', () => {
     expect(webLink('/host/accept-invite?token=t')).toBe('https://partners.catodrive.com/host/accept-invite?token=t');
     expect(webLink('/asset-partners/dashboard')).toBe('https://partners.catodrive.com/asset-partners/dashboard');
     expect(webLink('/corporate/approvals')).toBe('https://partners.catodrive.com/corporate/approvals');
+    expect(webLink('/insurers/portal')).toBe('https://partners.catodrive.com/insurers/portal');
+    expect(webLink('/insurers')).toBe('https://www.catodrive.com/insurers');
     expect(webLink('/bookings/b1')).toBe('https://www.catodrive.com/bookings/b1');
     expect(webLink('/asset-partners/apply')).toBe('https://www.catodrive.com/asset-partners/apply');
     expect(webLink('/hosts/h1')).toBe('https://www.catodrive.com/hosts/h1');

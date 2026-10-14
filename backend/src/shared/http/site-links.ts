@@ -1,7 +1,7 @@
 import { config } from '../../config';
 
-/** Paths served by the partner website (host, captain, corporate and the Asset Partner portal). */
-const PARTNER_PATH = /^\/(host|corporate|captain)(\/|\?|$)|^\/asset-partners\/(dashboard|vehicles|statements|maintenance|documents|profile)(\/|\?|$)/;
+/** Paths served by the partner website (host, captain, corporate, the insurer and Asset Partner portals). */
+const PARTNER_PATH = /^\/(host|corporate|captain|insurers\/portal)(\/|\?|$)|^\/asset-partners\/(dashboard|vehicles|statements|maintenance|documents|profile)(\/|\?|$)/;
 
 export const isPartnerPath = (path: string) => PARTNER_PATH.test(path);
 

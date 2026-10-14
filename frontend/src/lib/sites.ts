@@ -47,5 +47,5 @@ export function safeNextPath(next: string | null | undefined): string {
 }
 
 /** Paths served by the partner site (kept in step with PARTNER_SECTIONS in next.config.mjs). */
-const PARTNER_PATH = /^\/(host|corporate|captain)(\/|$)|^\/asset-partners\/(dashboard|vehicles|statements|maintenance|documents|profile)(\/|$)/;
+const PARTNER_PATH = /^\/(host|corporate|captain|insurers\/portal)(\/|$)|^\/asset-partners\/(dashboard|vehicles|statements|maintenance|documents|profile)(\/|$)/;
 export const isPartnerPath = (path: string) => PARTNER_PATH.test(path);

@@ -25,6 +25,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     links: [
       { label: 'Asset Partners', href: '/asset-partners' },
       { label: 'Partner dashboard', href: '/asset-partners/dashboard' },
+      { label: 'For insurers', href: '/insurers' },
       ...(config.assetPartnersOnly
         ? []
         : [

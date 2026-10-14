@@ -189,9 +189,11 @@ export class PricingService implements IPricingContract {
 
     // ── Protection plan (priced from live config, not a code constant).
     // A member's included tier is free; anything above it they still pay for.
-    const plan = await getProtectionPlan(input.protectionPlan);
-    const includedFree = !!member.freeProtectionCode && member.freeProtectionCode === plan.code;
+    // An insurance partner's plan is re-checked against this car; its premium, less our commission, is owed to that insurer.
+    const plan = await getProtectionPlan(input.protectionPlan, v);
+    const includedFree = !plan.insurer && !!member.freeProtectionCode && member.freeProtectionCode === plan.code;
     const protection = includedFree ? zeroMoney(currency) : money(plan.pricePerDay * days, currency);
+    const protectionInsurerShare = plan.insurer ? Math.round((protection.amount * (10000 - (plan.commissionBps ?? 0))) / 10000) : 0;
     if (includedFree) {
       memberSavings = addMoney(memberSavings, money(plan.pricePerDay * days, currency));
     }
@@ -255,6 +257,8 @@ export class PricingService implements IPricingContract {
       serviceFee,
       taxLines, taxTotal,
       protectionPlan: plan.code, selectedAddOns,
+      protectionLabel: plan.label,
+      ...(plan.insurer ? { protectionInsurer: { id: plan.insurer.id, name: plan.insurer.name, share: money(protectionInsurerShare, currency) } } : {}),
       subtotal, commission, tax, hostEarnings, total, currency,
       // Which rate applied and why — makes every quote explainable in support.
       commissionBps: resolved.bps,

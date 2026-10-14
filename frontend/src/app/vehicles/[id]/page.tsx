@@ -130,8 +130,8 @@ export default function VehicleDetailPage() {
     enabled: !!v?.hostId,
   });
   const plans = useQuery({
-    queryKey: ['protection-plans'],
-    queryFn: () => bookingApi.protectionPlans(),
+    queryKey: ['protection-plans', id],
+    queryFn: () => bookingApi.protectionPlans(id),
   });
   const calendar = useQuery({
     queryKey: ['calendar', id],
@@ -929,6 +929,18 @@ export default function VehicleDetailPage() {
                         <span>{p.pricePerDay === 0 ? 'Free' : `${formatMoney({ amount: p.pricePerDay, currency: v.pricing.currency })}/day`}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">{p.description}</p>
+                      {p.insurer && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Covered by <span className="font-medium text-foreground">{p.insurer.name}</span>
+                          {typeof p.deductibleCents === 'number' && ` · ${formatMoney({ amount: p.deductibleCents, currency: v.pricing.currency })} deductible`}
+                          {!!p.liabilityLimitCents && ` · ${formatMoney({ amount: p.liabilityLimitCents, currency: v.pricing.currency })} liability`}
+                        </p>
+                      )}
+                      {p.coverage && p.coverage.length > 0 && (
+                        <ul className="mt-1 list-disc ps-4 text-xs text-muted-foreground">
+                          {p.coverage.map((c) => <li key={c}>{c}</li>)}
+                        </ul>
+                      )}
                     </div>
                   </label>
                 ))}

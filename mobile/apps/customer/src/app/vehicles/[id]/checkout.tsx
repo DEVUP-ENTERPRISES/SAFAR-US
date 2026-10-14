@@ -55,7 +55,7 @@ function Checkout() {
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [paying, setPaying] = useState(false);
 
-  const plans = useQuery({ queryKey: ['protection-plans'], queryFn: () => bookingApi.protectionPlans() });
+  const plans = useQuery({ queryKey: ['protection-plans', id], queryFn: () => bookingApi.protectionPlans(id) });
   const wallet = useQuery({ queryKey: ['wallet', 'balance'], queryFn: () => walletApi.balance() });
   const quote = useQuote();
   const createBooking = useCreateBooking(knownCoords);
@@ -234,7 +234,17 @@ function Checkout() {
               selected={choices.protectionPlan === p.code}
               onPress={() => patch({ protectionPlan: p.code })}
               title={p.label}
-              detail={p.description}
+              detail={[
+                p.description,
+                p.insurer
+                  ? [
+                      `Covered by ${p.insurer.name}`,
+                      typeof p.deductibleCents === 'number' ? `${formatMoney({ amount: p.deductibleCents, currency: cur })} deductible` : null,
+                      p.liabilityLimitCents ? `${formatMoney({ amount: p.liabilityLimitCents, currency: cur })} liability` : null,
+                    ].filter(Boolean).join(' · ')
+                  : null,
+                ...(p.coverage ?? []).map((c) => `• ${c}`),
+              ].filter(Boolean).join('\n')}
               aside={p.pricePerDay === 0 ? 'Free' : `${formatMoney({ amount: p.pricePerDay, currency: cur })}/day`}
             />
           ))}

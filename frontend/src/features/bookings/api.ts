@@ -66,7 +66,8 @@ export const bookingApi = {
    */
   quote: (input: QuoteInput) => api.post<PriceBreakdown>('/bookings/quote', input, { auth: 'optional' }),
   /** Protection tiers a guest can pick at checkout, priced per day in cents. */
-  protectionPlans: () => api.get<ProtectionPlanOption[]>('/bookings/protection-plans', undefined, false),
+  /** Platform tiers plus insurer plans that cover this car; the car is optional for the plain tier list. */
+  protectionPlans: (vehicleId?: string) => api.get<ProtectionPlanOption[]>('/bookings/protection-plans', vehicleId ? { vehicleId } : undefined, false),
   create: (input: QuoteInput, idempotencyKey: string, coords?: { lat: number; lng: number }) =>
     api.post<Booking>('/bookings', input, {
       idempotencyKey,
@@ -122,6 +123,11 @@ export interface ProtectionPlanOption {
   label: string;
   description: string;
   pricePerDay: number;
+  /** Set when an insurance partner sells the plan. */
+  insurer?: { id: string; name: string };
+  deductibleCents?: number;
+  liabilityLimitCents?: number;
+  coverage?: string[];
 }
 
 export interface RebookingOption {

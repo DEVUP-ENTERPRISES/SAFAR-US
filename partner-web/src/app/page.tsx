@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Building2, Car, Handshake } from 'lucide-react';
+import { Building2, Car, Handshake, ShieldCheck } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +14,7 @@ const PATHS = [
   { icon: Car, title: 'Host your own cars', body: 'List cars you own, set your prices, and run trips yourself.', href: '/host' },
   { icon: Handshake, title: 'Asset Partner programme', body: 'We run your car for you and pay you monthly.', guestPath: '/asset-partners' },
   { icon: Building2, title: 'Corporate travel', body: 'Set up your company to book and approve business trips.', href: '/corporate' },
+  { icon: ShieldCheck, title: 'Insurance partner', body: 'Sell your protection plans to guests at checkout.', href: '/insurers/portal' },
 ];
 
 /** Opens the account's workspace (the one last used, else the first); an account with none sees how to become a partner. */

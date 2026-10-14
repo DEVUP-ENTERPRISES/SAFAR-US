@@ -19,6 +19,7 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   hosts: BadgeCheck,
   vehicles: Car,
   insurance: Umbrella,
+  insurers: Shield,
   tolls: Milestone,
   bookings: CalendarCheck,
   claims: ShieldAlert,
