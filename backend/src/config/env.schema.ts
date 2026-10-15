@@ -157,10 +157,10 @@ export const envSchema = z.object({
   WEB_URL: optional(z.string()),
   /** The host website (self-serve hosts and their captains), for links to those pages. Falls back to WEB_URL. */
   HOST_WEB_URL: optional(z.string()),
-  /** 'true' makes two-step sign-in mandatory for the insurance desk; optional until then. */
-  INSURANCE_DESK_REQUIRE_MFA: optional(z.enum(['true', 'false'])),
-  /** The partner website (Asset Partner and insurer portals), for links to those pages. Falls back to WEB_URL. */
+  /** The partner website (the Asset Partner portal), for links to those pages. Falls back to WEB_URL. */
   PARTNER_WEB_URL: optional(z.string()),
+  /** The insurance partner portal, including its secret path; kept out of the repo. Falls back to WEB_URL. */
+  INSURANCE_WEB_URL: optional(z.string()),
   /**
    * Postal address in the email footer.
    *

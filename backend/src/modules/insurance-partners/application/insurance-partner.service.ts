@@ -55,6 +55,14 @@ export class InsurancePartnerService {
     return insurer;
   }
 
+  /** A pending or approved insurer: plans can be set up while the company waits for approval. */
+  async requirePlanner(userId: string): Promise<InsurancePartnerDoc> {
+    const insurer = await this.getByUserId(userId);
+    if (!insurer) throw new NotFoundError('Insurance partner account');
+    if (insurer.status !== 'pending' && insurer.status !== 'approved') throw new ForbiddenError('Your insurance partner account is not active');
+    return insurer;
+  }
+
   /** An approved or suspended insurer: a suspended one is still owed money and can see it. */
   async requireMember(userId: string): Promise<InsurancePartnerDoc> {
     const insurer = await this.getByUserId(userId);
@@ -144,7 +152,7 @@ export class InsurancePartnerService {
         title: decision === 'approved' ? 'You’re approved as an insurance partner' : 'Your insurance partner application',
         body:
           decision === 'approved'
-            ? 'Add your protection plans in your insurer portal. Guests see them at checkout as soon as they are active.'
+            ? 'Your company is approved. Guests see each of your plans at checkout once CatoDrive has approved it.'
             : `We couldn’t approve the application${notes ? `: ${notes}` : '.'} You can update it and apply again.`,
         data: { insurerId: doc._id, decision },
       })

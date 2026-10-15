@@ -6,7 +6,7 @@ import { authApi } from './api';
 import { loginWithGate, signOutEverywhere, useOnAuthSuccess, type LoginOptions } from './session';
 import type { LoginInput, RegisterInput } from './types';
 
-export { ADMIN_ROLES, INSURANCE_DESK_ROLES, STAFF_ROLES, useSessionBootstrap, useOnAuthSuccess, type LoginOptions } from './session';
+export { ADMIN_ROLES, STAFF_ROLES, useSessionBootstrap, useOnAuthSuccess, type LoginOptions } from './session';
 
 export function useLogin(opts: LoginOptions = {}) {
   const onSuccess = useOnAuthSuccess();

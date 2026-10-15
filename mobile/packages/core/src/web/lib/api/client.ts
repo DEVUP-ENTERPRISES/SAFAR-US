@@ -142,7 +142,7 @@ async function raw<T>(
     // fetch throws on network failure / server unreachable / CORS block.
     throw new ApiError(
       "NETWORK_ERROR",
-      "We couldn't complete your booking right now. Please try again later.",
+      "We couldn't reach CatoDrive right now. Check your connection and try again.",
       0,
     );
   }

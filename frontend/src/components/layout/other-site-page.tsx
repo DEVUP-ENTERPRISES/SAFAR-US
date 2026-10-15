@@ -9,7 +9,7 @@ import { goToSite, siteForPath, type Site } from '@/lib/sites';
 const GUEST_SECTIONS = new Set([
   'account', 'support', 'help', 'claims', 'vehicles', 'hosts', 'bookings', 'trips', 'messages', 'wallet', 'search',
   'wishlist', 'citations', 'saved-searches', 'membership', 'rewards', 'referral', 'contact', 'terms', 'privacy', 'legal',
-  'about', 'insurance', 'investors', 'calculator', 'compare', 'verify', 'delete-account', 'asset-partners', 'insurers', 'corporate',
+  'about', 'insurance', 'investors', 'calculator', 'compare', 'verify', 'delete-account', 'asset-partners', 'corporate',
 ]);
 
 // A page another site owns opens there signed in; anything else is a real 404.

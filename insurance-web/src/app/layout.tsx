@@ -2,15 +2,15 @@ import type { Metadata, Viewport } from 'next';
 import { Archivo, Instrument_Sans, IBM_Plex_Mono } from 'next/font/google';
 import '@/styles/globals.css';
 import { Providers } from '@/app/providers';
-import { DeskChrome } from './desk-chrome';
+import { InsuranceChrome } from './insurance-chrome';
 
 const fontDisplay = Archivo({ subsets: ['latin', 'latin-ext'], weight: ['600', '700', '800'], variable: '--font-display', display: 'swap' });
 const fontSans = Instrument_Sans({ subsets: ['latin', 'latin-ext'], variable: '--font-sans', display: 'swap' });
 const fontMono = IBM_Plex_Mono({ subsets: ['latin', 'latin-ext'], weight: ['400', '500', '600'], variable: '--font-mono', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: { default: 'Insurance desk', template: '%s · Insurance desk' },
-  applicationName: 'CatoDrive Insurance desk',
+  title: { default: 'Insurance partners', template: '%s · CatoDrive Insurance partners' },
+  applicationName: 'CatoDrive Insurance partners',
   robots: { index: false, follow: false },
   icons: { apple: '/icons/apple-touch-icon.png' },
 };
@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" dir="ltr" suppressHydrationWarning className={`${fontSans.variable} ${fontDisplay.variable} ${fontMono.variable}`}>
       <body className="flex min-h-screen flex-col overflow-x-clip font-sans antialiased">
         <Providers>
-          <DeskChrome>{children}</DeskChrome>
+          <InsuranceChrome>{children}</InsuranceChrome>
         </Providers>
       </body>
     </html>

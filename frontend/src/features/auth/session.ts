@@ -8,10 +8,8 @@ import type { AuthResult, LoginInput } from './types';
 
 /** Roles that may enter the admin back-office. */
 export const ADMIN_ROLES = ['admin', 'support', 'moderator', 'finance', 'ops', 'super_admin'];
-/** Roles that may enter the insurance desk. */
-export const INSURANCE_DESK_ROLES = ['insurance', 'admin', 'super_admin'];
 /** Every staff role; customer sign-in turns all of them away. */
-export const STAFF_ROLES = [...ADMIN_ROLES, 'insurance'];
+export const STAFF_ROLES = ADMIN_ROLES;
 
 export interface LoginOptions {
   /** Where to go after a successful login. */

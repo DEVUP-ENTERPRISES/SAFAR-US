@@ -7,10 +7,10 @@ const origin = (value, dev, prod) => (value ?? (PROD ? prod : dev)).replace(/\/$
 const SITE_SECTIONS = [
   // The host website (self-serve hosts and their captains) - see host-web/.
   { origin: origin(process.env.NEXT_PUBLIC_HOST_URL, 'http://localhost:3020', 'https://host.catodrive.com'), sections: ['/host', '/captain'] },
-  // The partner website (Asset Partner and insurer portals) - see partner-web/.
+  // The partner website (the Asset Partner portal) - see partner-web/.
   {
     origin: origin(process.env.NEXT_PUBLIC_PARTNER_URL, 'http://localhost:3010', 'https://partners.catodrive.com'),
-    sections: ['/insurers/portal', '/asset-partners/:section(dashboard|vehicles|statements|maintenance|documents|profile)'],
+    sections: ['/asset-partners/:section(dashboard|vehicles|statements|maintenance|documents|profile)'],
   },
 ];
 

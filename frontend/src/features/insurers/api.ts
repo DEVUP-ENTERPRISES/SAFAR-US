@@ -49,9 +49,18 @@ export interface InsurerPlan {
   categories: string[];
   active: boolean;
   sortOrder: number;
+  reviewStatus: 'pending' | 'approved' | 'rejected';
+  reviewNote?: string;
 }
 
-export type InsurerPlanInput = Omit<InsurerPlan, '_id' | 'insurerId' | 'sortOrder'> & { sortOrder?: number };
+export type InsurerPlanInput = Omit<InsurerPlan, '_id' | 'insurerId' | 'sortOrder' | 'reviewStatus' | 'reviewNote'> & { sortOrder?: number };
+
+/** What a plan's CatoDrive review means to the company and to staff. */
+export const PLAN_REVIEW: Record<InsurerPlan['reviewStatus'], { label: string; tone: 'warning' | 'success' | 'destructive' }> = {
+  pending: { label: 'Waiting for CatoDrive', tone: 'warning' },
+  approved: { label: 'Approved', tone: 'success' },
+  rejected: { label: 'Needs changes', tone: 'destructive' },
+};
 
 export interface InsurerSummary {
   balance: number;

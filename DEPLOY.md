@@ -41,7 +41,7 @@ pm2 save && pm2 startup   # survive reboots
 | `CORS_ORIGINS` | explicit list, no `*`, e.g. `https://yourdomain.com,https://www.yourdomain.com,https://host.yourdomain.com,https://partners.yourdomain.com` |
 | `WEB_URL` | the guest site, e.g. `https://www.yourdomain.com` — links in emails and texts |
 | `HOST_WEB_URL` | the host site, e.g. `https://host.yourdomain.com` — host and captain links in emails go here |
-| `PARTNER_WEB_URL` | the partner site, e.g. `https://partners.yourdomain.com` — Asset Partner and insurer portal links in emails go here |
+| `PARTNER_WEB_URL` | the partner site, e.g. `https://partners.yourdomain.com` — Asset Partner portal links in emails go here |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | ≥ 32 random chars, **different from each other**, not placeholders. `openssl rand -hex 32` |
 | `ADMIN_PASSWORD` | ≥ 12 chars, not a placeholder |
 | `MONGO_URI` | MongoDB Atlas connection string |
@@ -163,20 +163,22 @@ Locked down like the admin console:
 - The admin House Fleet sign-in opens the panel, so the admin project needs
   `NEXT_PUBLIC_CATODRIVE_ASSET_IOC_URL` set to the full panel address **including** the slug.
 
-### 2.3 Insurance desk — internal, its own login
+### 2.3 Insurance partner portal — secret link for insurance companies
 
-`insurance-web/` (port 3040): insurer partners and fleet insurance for the
-insurance team, signing in with an account that holds the `insurance` role
-(granted in the admin Staff section). It talks only to the API's
-`/insurance-desk` routes; insurance staff cannot open the admin console.
+`insurance-web/` (port 3040): outside insurance companies you invite sign up,
+send their company details and licence, and set up their plans. CatoDrive
+approves each company and each plan in the **main admin console** (Insurers);
+guests see a plan only when both are approved.
 
 - New Vercel project, root `insurance-web/`, on a hard-to-guess subdomain.
-  **Keep that name out of this repo** (it is public): add it only to the
-  backend `CORS_ORIGINS` and the S3 CORS list, and put Cloudflare Access in
-  front of it.
-- Environment variables: `NEXT_PUBLIC_API_URL`.
-- Two-step sign-in is optional for now; set `INSURANCE_DESK_REQUIRE_MFA=true`
-  on the backend to require it.
+  **Keep that name and the slug out of this repo** (it is public).
+- Environment variables: `NEXT_PUBLIC_API_URL` and `CATODRIVE_INSURANCE_SLUG`
+  (the secret path; every page lives under `/<slug>`, and a production build
+  without it refuses to run).
+- Backend: add the site's origin to `CORS_ORIGINS` and the S3 CORS list, and set
+  `INSURANCE_WEB_URL` to the full portal address **including** the slug, so
+  insurer emails open the portal.
+- No Cloudflare Access here: the companies themselves must reach it.
 
 Moving between sites keeps people signed in with a one-time, 60-second code
 (`/auth/handoff`), never by putting a token in a URL.

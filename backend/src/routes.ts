@@ -42,7 +42,6 @@ import { rewardsRoutes } from './modules/rewards/api/rewards.routes';
 import { referralRoutes } from './modules/referral/api/referral.routes';
 import { assetPartnerApplicationRoutes } from './modules/asset-partners/api/asset-partner-application.routes';
 import { insurancePartnerRoutes } from './modules/insurance-partners/api/insurance-partner.routes';
-import { buildInsuranceDeskRouter } from './modules/insurance-partners/api/insurance-desk.routes';
 import { contactInquiryRoutes } from './modules/contact/api/contact-inquiry.routes';
 import { visitorTrackingRoutes } from './modules/analytics/api/visitor-tracking.routes';
 import { notFound } from './shared/middleware/not-found';
@@ -101,8 +100,6 @@ export function buildApiRouter(): Router {
   api.use('/referral', referralRoutes);
   // Without a signed-in session the admin API does not exist as far as a scanner can tell: same 404 as any unknown path.
   api.use('/admin', (req, res, next) => (req.header('authorization')?.startsWith('Bearer ') ? next() : notFound(req, res)), buildAdminRouter());
-  // The insurance desk, hidden the same way.
-  api.use('/insurance-desk', (req, res, next) => (req.header('authorization')?.startsWith('Bearer ') ? next() : notFound(req, res)), buildInsuranceDeskRouter());
 
   return api;
 }

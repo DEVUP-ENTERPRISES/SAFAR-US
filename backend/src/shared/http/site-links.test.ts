@@ -3,6 +3,7 @@ const notifications = {
   webUrl: 'https://www.catodrive.com',
   hostWebUrl: 'https://host.catodrive.com',
   partnerWebUrl: 'https://partners.catodrive.com',
+  insuranceWebUrl: 'https://insure.example.com/s3cret',
 };
 jest.mock('../../config', () => ({ config: { notifications, app: { publicUrl: 'https://api.catodrive.com' } } }));
 
@@ -16,10 +17,13 @@ describe('webLink', () => {
     expect(webLink('/captain')).toBe('https://host.catodrive.com/captain');
   });
 
-  it('sends the Asset Partner and insurer portals to the partner site', () => {
+  it('sends the Asset Partner portal to the partner site', () => {
     expect(webLink('/asset-partners/dashboard')).toBe('https://partners.catodrive.com/asset-partners/dashboard');
     expect(webLink('/asset-partners/statements')).toBe('https://partners.catodrive.com/asset-partners/statements');
-    expect(webLink('/insurers/portal')).toBe('https://partners.catodrive.com/insurers/portal');
+  });
+
+  it('sends the insurer portal to the insurance site behind its secret path', () => {
+    expect(webLink('/insurers/portal')).toBe('https://insure.example.com/s3cret/insurers/portal');
   });
 
   it('keeps everything else on the guest site, corporate included', () => {
@@ -36,9 +40,11 @@ describe('webLink', () => {
     const saved = { ...notifications };
     notifications.hostWebUrl = '';
     notifications.partnerWebUrl = '';
+    notifications.insuranceWebUrl = '';
     try {
       expect(webLink('/host/trips/b1')).toBe('https://www.catodrive.com/host/trips/b1');
       expect(webLink('/asset-partners/dashboard')).toBe('https://www.catodrive.com/asset-partners/dashboard');
+      expect(webLink('/insurers/portal')).toBe('https://www.catodrive.com/insurers/portal');
     } finally {
       Object.assign(notifications, saved);
     }

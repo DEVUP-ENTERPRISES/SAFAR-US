@@ -11,7 +11,7 @@ const router = Router();
 /** Every car with its Wheelbase link and insurance, and the dealer's listings to link to. */
 router.get(
   '/insurance/wheelbase',
-  authorize('insurance:read'),
+  authorize('admin:read'),
   asyncHandler(async (_req, res) => {
     sendSuccess(res, await wheelbaseInsuranceService.overview());
   }),
@@ -20,7 +20,7 @@ router.get(
 /** Read Wheelbase now instead of waiting for the next scheduled check. */
 router.post(
   '/insurance/wheelbase/sync',
-  authorize('insurance:manage'),
+  authorize('vehicle:verify'),
   asyncHandler(async (_req, res) => {
     sendSuccess(res, await wheelbaseInsuranceService.sync());
   }),
@@ -29,7 +29,7 @@ router.post(
 /** Tie a car to a Wheelbase listing, or clear it with null. */
 router.patch(
   '/insurance/wheelbase/vehicles/:id',
-  authorize('insurance:manage'),
+  authorize('vehicle:verify'),
   validate({ body: z.object({ rentalId: z.number().int().positive().nullable() }) }),
   asyncHandler(async (req, res) => {
     await wheelbaseInsuranceService.link(req.params.id, req.body.rentalId);

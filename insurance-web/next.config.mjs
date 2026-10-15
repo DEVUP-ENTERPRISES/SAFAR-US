@@ -5,14 +5,20 @@ import { securityHeaders } from '../frontend/security-headers.mjs';
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const sharedSrc = path.resolve(dir, '../frontend/src');
 
+// Shared only with chosen insurance companies, so every page sits under a secret path; production refuses to run without it.
+const slug = (process.env.CATODRIVE_INSURANCE_SLUG ?? '').replace(/^\/+|\/+$/g, '');
+if (process.env.NODE_ENV === 'production' && !slug) throw new Error('CATODRIVE_INSURANCE_SLUG must be set: the insurance portal never runs on an open path');
+const basePath = slug ? `/${slug}` : '';
+
 // Shared code comes from ../frontend/src via `@/*`, as in admin-web and host-web.
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   output: 'standalone',
-  // Lets shared code know it is running on the insurance desk.
-  env: { NEXT_PUBLIC_APP_SURFACE: 'insurance' },
+  ...(basePath ? { basePath } : {}),
+  // Lets shared code know it is running on the insurance portal, and where its files are served from.
+  env: { NEXT_PUBLIC_APP_SURFACE: 'insurance', NEXT_PUBLIC_BASE_PATH: basePath },
   experimental: { externalDir: true },
   images: {
     remotePatterns: [
@@ -21,6 +27,15 @@ const nextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'picsum.photos' },
     ],
+  },
+  // Shared sign-in paths and old insurer links land on this portal's own pages.
+  async redirects() {
+    return [
+      { source: '/login', destination: '/sign-in', permanent: false },
+      { source: '/register', destination: '/sign-up', permanent: false },
+      { source: '/insurers/portal', destination: '/portal', permanent: false },
+      { source: '/insurers', destination: '/apply', permanent: false },
+    ];
   },
   // Signed-in dashboards only: nothing here belongs in a search index.
   async headers() {

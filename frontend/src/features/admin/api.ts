@@ -1,4 +1,5 @@
 import { api } from '@/lib/api/client';
+import type { Insurer, InsurerPayout, InsurerPlan, InsurerSummary } from '@/features/insurers/api';
 
 export interface AdminMetrics {
   users: { total: number; active: number; suspended: number; newThisWeek: number };
@@ -285,6 +286,31 @@ export interface GeoSummaryEntry {
   count: number;
 }
 
+export interface WheelbaseListingRow {
+  id: number;
+  name: string;
+  year?: number;
+  make?: string;
+  model?: string;
+  insuranceState?: string;
+  coverage?: string;
+  eligible?: boolean;
+  planLabel?: string;
+  minRenterAge?: number;
+}
+
+export interface WheelbaseCarLink {
+  rentalId: number;
+  name: string;
+  linkedBy: 'auto' | 'admin';
+  insuranceState?: string;
+  coverage?: string;
+  planLabel?: string;
+  minRenterAge?: number;
+  found: boolean;
+  syncedAt: string;
+}
+
 export interface TollAccount {
   _id: string;
   agency: 'ntta';
@@ -327,6 +353,17 @@ export interface TollImportSummary {
   skipped: number;
   errors: { line: number; reason: string }[];
 }
+
+export interface WheelbaseOverview {
+  dealerId: string;
+  error?: string;
+  listings: WheelbaseListingRow[];
+  cars: { _id: string; name: string; plate?: string; status: string; photoUrl?: string; wheelbase: WheelbaseCarLink | null; suggestions: number[] }[];
+}
+
+export type WheelbaseSyncResult =
+  | { listings: number; updated: number; autoLinked: number; unmatched: number; missing: number }
+  | { skipped: 'no_dealer' };
 
 export interface ReviewCheck {
   key: 'photos' | 'photo_match' | 'registration' | 'insurance' | 'wheelbase' | 'vin' | 'pricing' | 'location';
@@ -435,6 +472,17 @@ export const adminApi = {
   // Asset Partner applications - the primary acquisition intake. Approving is
   // the gate: the reviewed applicant's host account is verified so
   // vehicle.service will let them list a car.
+  // Insurance partners: insurers selling their own protection plans, approved here and paid from their own ledger account.
+  insurers: (q: Q = {}) => api.get<Insurer[]>('/admin/insurance-partners', q),
+  insurer: (id: string) =>
+    api.get<{ insurer: Insurer; plans: InsurerPlan[]; summary: InsurerSummary; payouts: InsurerPayout[]; commissionBps: number }>(`/admin/insurance-partners/${id}`),
+  reviewInsurer: (id: string, decision: 'approved' | 'rejected', notes?: string) => api.post(`/admin/insurance-partners/${id}/review`, { decision, notes }),
+  reviewInsurerPlan: (id: string, planId: string, decision: 'approved' | 'rejected', note?: string) =>
+    api.post<InsurerPlan>(`/admin/insurance-partners/${id}/plans/${planId}/review`, { decision, note }),
+  setInsurerStatus: (id: string, status: 'approved' | 'suspended', reason?: string) => api.post(`/admin/insurance-partners/${id}/status`, { status, reason }),
+  setInsurerCommission: (id: string, commissionBps: number | null) => api.patch(`/admin/insurance-partners/${id}/commission`, { commissionBps }),
+  recordInsurerPayout: (id: string, input: { amount: number; reference: string; note?: string }) => api.post(`/admin/insurance-partners/${id}/payouts`, input),
+
   assetPartnerApplications: (q: Q = {}) => api.get<any[]>('/admin/asset-partner-applications', q),
   assetPartnerApplication: (id: string) => api.get<any>(`/admin/asset-partner-applications/${id}`),
   reviewAssetPartnerApplication: (id: string, decision: 'approved' | 'rejected', notes?: string) =>
@@ -483,6 +531,10 @@ export const adminApi = {
   vehiclePhotoCheck: (id: string) => api.post<VehicleReview>(`/admin/vehicles/${id}/photo-check`),
   vehicleRemindHost: (id: string, note?: string) =>
     api.post<{ sent: number; items: string[] }>(`/admin/vehicles/${id}/remind-host`, note ? { note } : {}),
+  wheelbaseOverview: () => api.get<WheelbaseOverview>('/admin/insurance/wheelbase'),
+  wheelbaseSync: () => api.post<WheelbaseSyncResult>('/admin/insurance/wheelbase/sync'),
+  wheelbaseLink: (vehicleId: string, rentalId: number | null) =>
+    api.patch<{ ok: true }>(`/admin/insurance/wheelbase/vehicles/${vehicleId}`, { rentalId }),
   tollAccounts: () => api.get<{ accounts: TollAccount[]; loginStorage: boolean }>('/admin/tolls/accounts'),
   tollCreateAccount: (nickname: string) => api.post<TollAccount>('/admin/tolls/accounts', { agency: 'ntta', nickname }),
   tollUpdateAccount: (id: string, patch: { nickname?: string; vehicleIds?: string[] }) => api.patch<TollAccount>(`/admin/tolls/accounts/${id}`, patch),

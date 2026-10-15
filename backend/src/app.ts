@@ -7,7 +7,7 @@ import compression from 'compression';
 import pinoHttp from 'pino-http';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
-import { allowedOrigins } from './shared/http/allowed-origins';
+import { allowedOrigins, isLocalDevOrigin } from './shared/http/allowed-origins';
 import { logger } from './infrastructure/logging/logger';
 import { requestContext } from './shared/middleware/request-context';
 import { deviceContext } from './shared/middleware/device-context';
@@ -71,7 +71,7 @@ export function createApp(): Express {
     cors({
       origin(origin, cb) {
         // No Origin header (same-origin, curl, server-to-server) → allow.
-        if (!origin || allowAllOrigins || allowed.has(origin)) {
+        if (!origin || allowAllOrigins || allowed.has(origin) || isLocalDevOrigin(origin)) {
           return cb(null, true);
         }
         return cb(null, false);

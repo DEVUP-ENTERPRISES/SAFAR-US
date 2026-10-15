@@ -28,7 +28,7 @@ export function PlanEditor({ plan, licensedStates, saving, onSave, onCancel }: {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Plan name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Standard" /></Field>
         <Field label="Price per trip day ($)"><Input type="number" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} /></Field>
         <Field label="Deductible ($)" hint="What the guest pays toward a covered claim"><Input type="number" min={0} step="1" value={deductible} onChange={(e) => setDeductible(e.target.value)} /></Field>

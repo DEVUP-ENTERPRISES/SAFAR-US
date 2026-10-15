@@ -2,6 +2,7 @@ import type { Server as HttpServer } from 'http';
 import { Server as SocketServer, type Socket } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { config } from '../config';
+import { allowedOrigins, isLocalDevOrigin } from '../shared/http/allowed-origins';
 import { logger } from '../infrastructure/logging/logger';
 import { redis, isRedisHealthy } from '../infrastructure/cache/redis.client';
 import { tokenService } from '../modules/auth/application/token.service';
@@ -26,7 +27,10 @@ interface SocketPrincipal {
  */
 export function initRealtime(httpServer: HttpServer): SocketServer {
   const io = new SocketServer(httpServer, {
-    cors: { origin: config.cors.origins.includes('*') ? true : config.cors.origins, credentials: true },
+    cors: {
+      origin: (origin, cb) => cb(null, !origin || config.cors.origins.includes('*') || allowedOrigins().has(origin) || isLocalDevOrigin(origin)),
+      credentials: true,
+    },
     transports: ['websocket', 'polling'],
   });
 

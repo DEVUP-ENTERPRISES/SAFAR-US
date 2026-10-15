@@ -2,6 +2,8 @@ import { NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { InsurancePartnerModel, type InsurancePartnerDoc } from '../infrastructure/insurance-partner.model';
 import { InsurancePlanModel, type InsurancePlanDoc } from '../infrastructure/insurance-plan.model';
 import { insurancePartnerService } from './insurance-partner.service';
+import { notificationService } from '../../notifications/application/notification.service';
+import { logger } from '../../../infrastructure/logging/logger';
 
 /** Checkout codes for insurer plans; platform plans keep their own short codes. */
 export const INSURER_PLAN_PREFIX = 'ins_';
@@ -64,7 +66,8 @@ const toCheckout = (plan: InsurancePlanDoc, insurer: InsurancePartnerDoc): Insur
 
 export class InsurancePlanService {
   async listMine(userId: string): Promise<InsurancePlanDoc[]> {
-    const insurer = await insurancePartnerService.requireMember(userId);
+    const insurer = await insurancePartnerService.getByUserId(userId);
+    if (!insurer) throw new NotFoundError('Insurance partner account');
     return InsurancePlanModel.find({ insurerId: insurer._id }).sort({ sortOrder: 1, createdAt: 1 }).lean<InsurancePlanDoc[]>().exec();
   }
 
@@ -76,26 +79,57 @@ export class InsurancePlanService {
   }
 
   async create(userId: string, input: InsurerPlanInput): Promise<InsurancePlanDoc> {
-    const insurer = await insurancePartnerService.requireApproved(userId);
-    const doc = await InsurancePlanModel.create({ insurerId: insurer._id, ...this.clean(insurer, input) });
+    const insurer = await insurancePartnerService.requirePlanner(userId);
+    const doc = await InsurancePlanModel.create({ insurerId: insurer._id, ...this.clean(insurer, input), reviewStatus: 'pending' });
     return doc.toObject();
   }
 
   async update(userId: string, planId: string, input: InsurerPlanInput): Promise<InsurancePlanDoc> {
-    const insurer = await insurancePartnerService.requireApproved(userId);
-    const doc = await InsurancePlanModel.findOneAndUpdate({ _id: planId, insurerId: insurer._id }, { $set: this.clean(insurer, input) }, { new: true })
+    const insurer = await insurancePartnerService.requirePlanner(userId);
+    const doc = await InsurancePlanModel.findOneAndUpdate(
+      { _id: planId, insurerId: insurer._id },
+      { $set: { ...this.clean(insurer, input), reviewStatus: 'pending' }, $unset: { reviewNote: 1, reviewedAt: 1 } },
+      { new: true },
+    )
       .lean<InsurancePlanDoc>()
       .exec();
     if (!doc) throw new NotFoundError('Plan');
     return doc;
   }
 
-  /** Active plans from approved insurers that may be sold on this car. */
+  /** CatoDrive's decision on one plan; only approved plans of approved insurers reach checkout. */
+  async review(insurerId: string, planId: string, decision: 'approved' | 'rejected', note?: string): Promise<InsurancePlanDoc> {
+    const doc = await InsurancePlanModel.findOneAndUpdate(
+      { _id: planId, insurerId },
+      { $set: { reviewStatus: decision, reviewNote: note, reviewedAt: new Date() } },
+      { new: true },
+    )
+      .lean<InsurancePlanDoc>()
+      .exec();
+    if (!doc) throw new NotFoundError('Plan');
+    const insurer = await InsurancePartnerModel.findById(insurerId).select('userId').lean<{ userId: string }>().exec();
+    if (insurer) {
+      await notificationService
+        .send({
+          userId: insurer.userId,
+          priority: 'high',
+          deepLink: '/insurers/portal',
+          templateKey: decision === 'approved' ? 'account.insurer_plan_approved' : 'account.insurer_plan_rejected',
+          title: decision === 'approved' ? `Your plan ${doc.name} is approved` : `Your plan ${doc.name} needs changes`,
+          body: decision === 'approved' ? 'Guests can choose it at checkout.' : `CatoDrive couldn't approve it${note ? `: ${note}` : '.'} Edit the plan to send it again.`,
+          data: { insurerId, planId, decision },
+        })
+        .catch((err) => logger.warn({ err, planId }, 'plan review notice failed'));
+    }
+    return doc;
+  }
+
+  /** Active, approved plans from approved insurers that may be sold on this car. */
   async eligibleFor(v: PlanVehicle): Promise<InsurerCheckoutPlan[]> {
     const insurers = await InsurancePartnerModel.find({ status: 'approved' }).lean<InsurancePartnerDoc[]>().exec();
     if (!insurers.length) return [];
     const byId = new Map(insurers.map((i) => [i._id, i]));
-    const plans = await InsurancePlanModel.find({ active: true, insurerId: { $in: [...byId.keys()] } })
+    const plans = await InsurancePlanModel.find({ active: true, reviewStatus: 'approved', insurerId: { $in: [...byId.keys()] } })
       .sort({ sortOrder: 1, pricePerDay: 1 })
       .lean<InsurancePlanDoc[]>()
       .exec();
@@ -110,7 +144,7 @@ export class InsurancePlanService {
   async resolve(code: string | undefined, v: PlanVehicle): Promise<(InsurerCheckoutPlan & { commissionBps: number }) | null> {
     const planId = planIdFromCode(code);
     if (!planId) return null;
-    const plan = await InsurancePlanModel.findOne({ _id: planId, active: true }).lean<InsurancePlanDoc>().exec();
+    const plan = await InsurancePlanModel.findOne({ _id: planId, active: true, reviewStatus: 'approved' }).lean<InsurancePlanDoc>().exec();
     if (!plan) return null;
     const insurer = await InsurancePartnerModel.findOne({ _id: plan.insurerId, status: 'approved' }).lean<InsurancePartnerDoc>().exec();
     if (!insurer || !covers(plan, insurer, v)) return null;

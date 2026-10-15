@@ -14,11 +14,12 @@ import { ErrorState } from '@/components/ui/states';
 import { StatTile } from '@/components/ui/stat-tile';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
-import { deskApi } from '@/features/insurance-desk/api';
-import { INSURER_STATUS } from '@/features/insurers/api';
+import { adminApi } from '@/features/admin/api';
+import { INSURER_STATUS, PLAN_REVIEW, type InsurerPlan } from '@/features/insurers/api';
 import { keyFromUrl } from '@/features/media/secure-url';
 import { api } from '@/lib/api/client';
 import { formatDate, formatMoney } from '@/lib/utils/format';
+import { adminPath } from '@/lib/admin-path';
 import { ApiError } from '@/lib/api/types';
 
 const usd = (amount: number) => formatMoney({ amount, currency: 'USD' });
@@ -29,7 +30,7 @@ export default function InsurerPage({ params }: { params: Promise<{ id: string }
   const qc = useQueryClient();
   const toast = useToast();
   const confirm = useConfirm();
-  const q = useQuery({ queryKey: ['admin-insurer', id], queryFn: () => deskApi.insurer(id) });
+  const q = useQuery({ queryKey: ['admin-insurer', id], queryFn: () => adminApi.insurer(id) });
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['admin-insurer', id] });
     void qc.invalidateQueries({ queryKey: ['admin-insurers'] });
@@ -38,27 +39,33 @@ export default function InsurerPage({ params }: { params: Promise<{ id: string }
 
   const review = useMutation({
     meta: { silentError: true },
-    mutationFn: ({ decision, notes }: { decision: 'approved' | 'rejected'; notes?: string }) => deskApi.reviewInsurer(id, decision, notes),
+    mutationFn: ({ decision, notes }: { decision: 'approved' | 'rejected'; notes?: string }) => adminApi.reviewInsurer(id, decision, notes),
     onSuccess: () => { refresh(); toast({ tone: 'success', title: 'Decision saved and the insurer told' }); },
+    onError: fail,
+  });
+  const planReview = useMutation({
+    meta: { silentError: true },
+    mutationFn: ({ planId, decision, note }: { planId: string; decision: 'approved' | 'rejected'; note?: string }) => adminApi.reviewInsurerPlan(id, planId, decision, note),
+    onSuccess: () => { refresh(); toast({ tone: 'success', title: 'Plan decision saved and the insurer told' }); },
     onError: fail,
   });
   const status = useMutation({
     meta: { silentError: true },
-    mutationFn: ({ to, reason }: { to: 'approved' | 'suspended'; reason?: string }) => deskApi.setInsurerStatus(id, to, reason),
+    mutationFn: ({ to, reason }: { to: 'approved' | 'suspended'; reason?: string }) => adminApi.setInsurerStatus(id, to, reason),
     onSuccess: refresh,
     onError: fail,
   });
   const [commission, setCommission] = useState('');
   const saveCommission = useMutation({
     meta: { silentError: true },
-    mutationFn: (bps: number | null) => deskApi.setInsurerCommission(id, bps),
+    mutationFn: (bps: number | null) => adminApi.setInsurerCommission(id, bps),
     onSuccess: () => { refresh(); setCommission(''); toast({ tone: 'success', title: 'Commission saved' }); },
     onError: fail,
   });
   const [payout, setPayout] = useState({ amount: '', reference: '', note: '' });
   const recordPayout = useMutation({
     meta: { silentError: true },
-    mutationFn: () => deskApi.recordInsurerPayout(id, { amount: Math.round(Number(payout.amount) * 100), reference: payout.reference.trim(), note: payout.note.trim() || undefined }),
+    mutationFn: () => adminApi.recordInsurerPayout(id, { amount: Math.round(Number(payout.amount) * 100), reference: payout.reference.trim(), note: payout.note.trim() || undefined }),
     onSuccess: () => { refresh(); setPayout({ amount: '', reference: '', note: '' }); toast({ tone: 'success', title: 'Payout recorded' }); },
     onError: fail,
   });
@@ -70,12 +77,24 @@ export default function InsurerPage({ params }: { params: Promise<{ id: string }
   const decide = async (decision: 'approved' | 'rejected') => {
     const { ok, reason } = await confirm({
       title: decision === 'approved' ? `Approve ${insurer.displayName}?` : `Reject ${insurer.displayName}?`,
-      description: decision === 'approved' ? 'They can add plans at once, and active plans appear at checkout for cars in their licensed states.' : 'They are told, with your note, and can apply again.',
+      description: decision === 'approved' ? 'Each plan you have approved goes on checkout for cars in their licensed states.' : 'They are told, with your note, and can apply again.',
       confirmLabel: decision === 'approved' ? 'Approve' : 'Reject',
       tone: decision === 'approved' ? 'default' : 'destructive',
       reason: { label: decision === 'approved' ? 'Note (optional)' : 'Reason (shared with the insurer)', required: decision === 'rejected' },
     });
     if (ok) review.mutate({ decision, notes: reason || undefined });
+  };
+  const decidePlan = async (plan: InsurerPlan, decision: 'approved' | 'rejected') => {
+    const { ok, reason } = await confirm({
+      title: decision === 'approved' ? `Approve ${plan.name}?` : `Send ${plan.name} back?`,
+      description: decision === 'approved'
+        ? (insurer.status === 'approved' ? 'Guests can buy it at checkout straight away while it is switched on.' : 'It goes on checkout once the company itself is approved.')
+        : 'It stays off checkout. The insurer sees your note and can edit the plan, which sends it back for review.',
+      confirmLabel: decision === 'approved' ? 'Approve plan' : 'Send back',
+      tone: decision === 'approved' ? 'default' : 'destructive',
+      reason: decision === 'rejected' ? { label: 'What needs to change (shared with the insurer)', required: true } : undefined,
+    });
+    if (ok) planReview.mutate({ planId: plan._id, decision, note: reason || undefined });
   };
   const suspend = async () => {
     const { ok, reason } = await confirm({
@@ -98,7 +117,7 @@ export default function InsurerPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div className="space-y-6">
-      <Link href="/insurers" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+      <Link href={adminPath('insurers')} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Insurers
       </Link>
       <div className="flex flex-wrap items-center gap-3">
@@ -176,18 +195,31 @@ export default function InsurerPage({ params }: { params: Promise<{ id: string }
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Plans</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Plans</CardTitle>
+          <p className="text-sm text-muted-foreground">Guests see a plan only when you have approved it and the company. An edit by the insurer sends the plan back here.</p>
+        </CardHeader>
         <CardContent className="divide-y divide-border p-0">
           {plans.length === 0 && <p className="p-4 text-sm text-muted-foreground">No plans yet.</p>}
           {plans.map((p) => (
-            <div key={p._id} className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-medium">{p.name}</p>
+            <div key={p._id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 space-y-1">
+                <p className="flex flex-wrap items-center gap-2 font-medium">
+                  {p.name}
+                  <Badge tone={PLAN_REVIEW[p.reviewStatus ?? 'pending'].tone}>{PLAN_REVIEW[p.reviewStatus ?? 'pending'].label}</Badge>
+                  {!p.active && <Badge tone="muted">Switched off</Badge>}
+                </p>
+                {p.description && <p className="text-sm">{p.description}</p>}
                 <p className="text-xs text-muted-foreground">
                   {usd(p.pricePerDay)}/day · {usd(p.deductibleCents)} deductible · {p.states.length ? p.states.join(', ') : 'all licensed states'} · {p.categories.length ? p.categories.join(', ') : 'all categories'}
                 </p>
+                {p.coverage.length > 0 && <p className="text-xs text-muted-foreground">Covers: {p.coverage.join(', ')}</p>}
+                {p.reviewStatus === 'rejected' && p.reviewNote && <p className="text-xs text-destructive">Sent back: {p.reviewNote}</p>}
               </div>
-              <Badge tone={p.active ? 'success' : 'muted'}>{p.active ? 'On checkout' : 'Off'}</Badge>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                {p.reviewStatus !== 'approved' && <Button size="sm" disabled={planReview.isPending} onClick={() => void decidePlan(p, 'approved')}>Approve</Button>}
+                {p.reviewStatus !== 'rejected' && <Button size="sm" variant="outline" disabled={planReview.isPending} onClick={() => void decidePlan(p, 'rejected')}>{p.reviewStatus === 'approved' ? 'Pull from checkout' : 'Send back'}</Button>}
+              </div>
             </div>
           ))}
         </CardContent>

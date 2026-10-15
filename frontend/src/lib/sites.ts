@@ -10,7 +10,7 @@ export const GUEST_SITE = origin(process.env.NEXT_PUBLIC_SITE_URL, 'http://local
 /** The host website: self-serve hosts and their captains. */
 export const HOST_SITE = origin(process.env.NEXT_PUBLIC_HOST_URL, 'http://localhost:3020', 'https://host.catodrive.com');
 
-/** The partner website: the Asset Partner and insurer portals. */
+/** The partner website: the Asset Partner portal. */
 export const PARTNER_SITE = origin(process.env.NEXT_PUBLIC_PARTNER_URL, 'http://localhost:3010', 'https://partners.catodrive.com');
 
 /** CatoDrive's operations panel, including its secret path (e.g. https://housefleet.catodrive.com/<slug>); no public path maps to it. */
@@ -22,7 +22,7 @@ const ORIGIN: Record<Site, string> = { guest: GUEST_SITE, host: HOST_SITE, partn
 
 // Which site serves a path; kept in step with HOST_SECTIONS / PARTNER_SECTIONS in next.config.mjs and backend site-links.ts.
 const HOST_PATH = /^\/(host|captain)(\/|\?|$)/;
-const PARTNER_PATH = /^\/insurers\/portal(\/|\?|$)|^\/asset-partners\/(dashboard|vehicles|statements|maintenance|documents|profile)(\/|\?|$)/;
+const PARTNER_PATH = /^\/asset-partners\/(dashboard|vehicles|statements|maintenance|documents|profile)(\/|\?|$)/;
 
 export function siteForPath(path: string): Site {
   if (HOST_PATH.test(path)) return 'host';

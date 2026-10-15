@@ -152,6 +152,7 @@ export const config = Object.freeze({
     // Partner pages (host, captain, corporate, Asset Partner portal) live on their own site.
     hostWebUrl: (env.HOST_WEB_URL ?? '').replace(/\/+$/, ''),
     partnerWebUrl: (env.PARTNER_WEB_URL ?? '').replace(/\/+$/, ''),
+    insuranceWebUrl: (env.INSURANCE_WEB_URL ?? '').replace(/\/+$/, ''),
     companyAddress: env.COMPANY_ADDRESS,
     supportEmail: env.SUPPORT_EMAIL,
     emailApiEnabled: !!(env.EMAIL_API_URL && env.EMAIL_API_KEY && env.EMAIL_FROM),
@@ -223,9 +224,6 @@ export const config = Object.freeze({
     password: env.ADMIN_PASSWORD,
     name: env.ADMIN_NAME ?? 'CatoDrive Admin',
     enabled: !!(env.ADMIN_EMAIL && env.ADMIN_PASSWORD),
-  },
-  insuranceDesk: {
-    requireMfa: env.INSURANCE_DESK_REQUIRE_MFA === 'true',
   },
   houseFleet: {
     email: env.HOUSE_FLEET_EMAIL,

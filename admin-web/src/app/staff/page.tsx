@@ -21,7 +21,6 @@ const ROLES = [
   { value: 'finance', title: 'Finance', blurb: 'Refunds, payouts, reports, corporate' },
   { value: 'support', title: 'Support', blurb: 'Tickets, claims, help articles' },
   { value: 'moderator', title: 'Moderator', blurb: 'Users and reviews' },
-  { value: 'insurance', title: 'Insurance desk', blurb: 'Insurers and fleet insurance, on the insurance desk only' },
 ];
 
 interface Credentials { username: string; password: string; name?: string }

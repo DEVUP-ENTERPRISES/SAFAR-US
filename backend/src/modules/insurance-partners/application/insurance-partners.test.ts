@@ -76,9 +76,10 @@ describe('application and review', () => {
 
 describe('plans at checkout', () => {
   it('offers an approved insurer’s active plan only where it is licensed and the plan applies', async () => {
-    await approvedInsurer();
+    const insurer = await approvedInsurer();
     await expect(insurancePlanService.create('ins-user', { ...PLAN, states: ['CA'] })).rejects.toThrow('aren’t licensed in CA');
     const plan = await insurancePlanService.create('ins-user', { ...PLAN, categories: ['SUV'] });
+    await insurancePlanService.review(insurer._id, plan._id, 'approved');
 
     const inTexas = await listProtectionPlans({ location: { state: 'TX' }, category: 'suv' });
     expect(inTexas.map((p) => p.code)).toEqual(['basic', insurerPlanCode(plan._id)]);
@@ -94,9 +95,53 @@ describe('plans at checkout', () => {
 
   it('pulls a suspended insurer’s plans from checkout', async () => {
     const insurer = await approvedInsurer();
-    await insurancePlanService.create('ins-user', PLAN);
+    const plan = await insurancePlanService.create('ins-user', PLAN);
+    await insurancePlanService.review(insurer._id, plan._id, 'approved');
+    expect(await listProtectionPlans({ location: { state: 'TX' }, category: 'suv' })).toHaveLength(2);
     await insurancePartnerService.setStatus(insurer._id, 'suspended', 'Licence lapsed');
     expect(await listProtectionPlans({ location: { state: 'TX' }, category: 'suv' })).toHaveLength(1);
+  });
+});
+
+describe('plans need CatoDrive approval', () => {
+  it('a company still waiting for approval can set up plans, but guests see none', async () => {
+    const applied = await insurancePartnerService.apply('ins-user', APPLICATION);
+    const plan = await insurancePlanService.create('ins-user', PLAN);
+    expect(plan.reviewStatus).toBe('pending');
+    expect((await insurancePlanService.listMine('ins-user')).map((p) => p._id)).toEqual([plan._id]);
+    await insurancePlanService.review(applied._id, plan._id, 'approved');
+    // An approved plan stays off checkout until the company itself is approved.
+    expect(await listProtectionPlans({ location: { state: 'TX' }, category: 'suv' })).toHaveLength(1);
+    await insurancePartnerService.review(applied._id, 'staff-1', 'approved');
+    expect(await listProtectionPlans({ location: { state: 'TX' }, category: 'suv' })).toHaveLength(2);
+  });
+
+  it('a new or edited plan from an approved company waits for review before guests see it', async () => {
+    const insurer = await approvedInsurer();
+    const plan = await insurancePlanService.create('ins-user', PLAN);
+    expect(await listProtectionPlans({ location: { state: 'TX' }, category: 'suv' })).toHaveLength(1);
+    await insurancePlanService.review(insurer._id, plan._id, 'approved');
+    expect(await listProtectionPlans({ location: { state: 'TX' }, category: 'suv' })).toHaveLength(2);
+    const edited = await insurancePlanService.update('ins-user', plan._id, { ...PLAN, pricePerDay: 1 });
+    expect(edited.reviewStatus).toBe('pending');
+    expect(await listProtectionPlans({ location: { state: 'TX' }, category: 'suv' })).toHaveLength(1);
+    expect((await getProtectionPlan(insurerPlanCode(plan._id), { location: { state: 'TX' }, category: 'suv' })).code).toBe('basic');
+  });
+
+  it('a rejected plan never reaches checkout, and a suspended company cannot add plans', async () => {
+    const insurer = await approvedInsurer();
+    const plan = await insurancePlanService.create('ins-user', PLAN);
+    await insurancePlanService.review(insurer._id, plan._id, 'rejected', 'Deductible too high');
+    expect(await listProtectionPlans({ location: { state: 'TX' }, category: 'suv' })).toHaveLength(1);
+    await insurancePartnerService.setStatus(insurer._id, 'suspended', 'Licence lapsed');
+    await expect(insurancePlanService.create('ins-user', PLAN)).rejects.toThrow('not active');
+  });
+
+  it('a plan can only be reviewed through the company that owns it', async () => {
+    await approvedInsurer('ins-a');
+    const plan = await insurancePlanService.create('ins-a', PLAN);
+    await expect(insurancePlanService.review('another-insurer', plan._id, 'approved')).rejects.toThrow();
+    expect((await insurancePlanService.listMine('ins-a'))[0].reviewStatus).toBe('pending');
   });
 });
 

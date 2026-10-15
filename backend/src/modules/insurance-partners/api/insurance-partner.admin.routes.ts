@@ -6,13 +6,14 @@ import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
 import { insurancePartnerService } from '../application/insurance-partner.service';
 import { insurerLedgerService } from '../application/insurer-ledger.service';
+import { insurancePlanService } from '../application/insurance-plan.service';
 import { InsurancePlanModel } from '../infrastructure/insurance-plan.model';
 
 const router = Router();
 
 router.get(
   '/insurance-partners',
-  authorize('insurance:read'),
+  authorize('admin:read'),
   validate({
     query: z.object({
       status: z.enum(['pending', 'approved', 'rejected', 'suspended']).optional(),
@@ -29,7 +30,7 @@ router.get(
 /** One insurer with its plans, money and default commission. */
 router.get(
   '/insurance-partners/:id',
-  authorize('insurance:read'),
+  authorize('admin:read'),
   asyncHandler(async (req, res) => {
     const insurer = await insurancePartnerService.adminOne(req.params.id);
     const [plans, summary, payouts, commissionBps] = await Promise.all([
@@ -44,7 +45,7 @@ router.get(
 
 router.post(
   '/insurance-partners/:id/review',
-  authorize('insurance:manage'),
+  authorize('host:manage'),
   validate({ body: z.object({ decision: z.enum(['approved', 'rejected']), notes: z.string().trim().max(1000).optional() }) }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await insurancePartnerService.review(req.params.id, req.principal!.userId, req.body.decision, req.body.notes));
@@ -52,8 +53,17 @@ router.post(
 );
 
 router.post(
+  '/insurance-partners/:id/plans/:planId/review',
+  authorize('host:manage'),
+  validate({ body: z.object({ decision: z.enum(['approved', 'rejected']), note: z.string().trim().max(1000).optional() }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await insurancePlanService.review(req.params.id, req.params.planId, req.body.decision, req.body.note));
+  }),
+);
+
+router.post(
   '/insurance-partners/:id/status',
-  authorize('insurance:manage'),
+  authorize('host:manage'),
   validate({ body: z.object({ status: z.enum(['approved', 'suspended']), reason: z.string().trim().max(500).optional() }) }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await insurancePartnerService.setStatus(req.params.id, req.body.status, req.body.reason));
@@ -63,7 +73,7 @@ router.post(
 /** A negotiated commission in basis points, or null for the platform default. */
 router.patch(
   '/insurance-partners/:id/commission',
-  authorize('insurance:commission'),
+  authorize('platform:manage'),
   validate({ body: z.object({ commissionBps: z.number().int().min(0).max(5000).nullable() }) }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await insurancePartnerService.setCommission(req.params.id, req.body.commissionBps));
@@ -73,7 +83,7 @@ router.patch(
 /** Record money sent to the insurer against what it is owed. */
 router.post(
   '/insurance-partners/:id/payouts',
-  authorize('insurance:payout'),
+  authorize('payout:manage'),
   validate({
     body: z.object({
       amount: z.number().int().min(1),

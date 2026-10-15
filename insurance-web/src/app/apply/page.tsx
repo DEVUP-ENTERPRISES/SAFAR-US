@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, FileCheck2, ShieldCheck, Upload, Wallet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,19 +18,19 @@ import { uploadFiles } from '@/features/media/upload';
 import { DOC_ACCEPT } from '@/lib/upload-formats';
 import { US_STATES } from '@/lib/data/us-states';
 import { ApiError } from '@/lib/api/types';
-import { goToSite } from '@/lib/sites';
 import { INSURER_STATUS, insurerApi, type InsurerApplicationInput } from '@/features/insurers/api';
 
 const STEPS = [
-  { icon: FileCheck2, title: 'Apply', body: 'Tell us who you are and where you are licensed, and upload your licence.' },
-  { icon: ShieldCheck, title: 'Add your plans', body: 'Once approved, set your own prices, deductibles, limits and where each plan applies.' },
+  { icon: FileCheck2, title: 'Your company', body: 'Tell us who you are and where you are licensed, and upload your licence.' },
+  { icon: ShieldCheck, title: 'Your plans', body: 'Set your own prices, deductibles, limits and where each plan applies. CatoDrive reviews each plan before guests see it.' },
   { icon: Wallet, title: 'Get paid', body: 'Guests buy your plans at checkout. Your premiums, less CatoDrive’s commission, build up in your own account and are paid out to your bank.' },
 ];
 
 const BLANK: InsurerApplicationInput = { legalName: '', displayName: '', licenceNumber: '', licensedStates: [], contactName: '', email: '', phone: '', website: '' };
 
-/** Insurers apply to sell their own protection plans to CatoDrive guests; staff approve, the insurer runs its own portal. */
-export default function InsurersPage() {
+/** A company sends its details here; CatoDrive approves the company and each plan before guests see anything. */
+export default function ApplyPage() {
+  const router = useRouter();
   const status = useAuthStore((s) => s.status);
   const signedIn = status === 'authenticated';
   const qc = useQueryClient();
@@ -45,7 +46,8 @@ export default function InsurersPage() {
       insurerApi.apply({ ...form, phone: form.phone?.trim() || undefined, website: form.website?.trim() || undefined }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['insurer-me'] });
-      toast({ tone: 'success', title: 'Application sent', description: 'We’ll review it and email you.' });
+      toast({ tone: 'success', title: 'Details sent', description: 'Set up your plans while we review your company.' });
+      router.push('/portal');
     },
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not send the application' }),
   });
@@ -68,7 +70,7 @@ export default function InsurersPage() {
   const valid = form.legalName.trim().length >= 2 && form.displayName.trim().length >= 2 && form.licenceNumber.trim().length >= 2 && form.licensedStates.length > 0 && form.contactName.trim().length >= 2 && /\S+@\S+\.\S+/.test(form.email);
 
   return (
-    <div className="container max-w-4xl space-y-10 py-10">
+    <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 space-y-10 py-10">
       <header className="space-y-3">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Insurance partners</p>
         <h1 className="display text-3xl leading-tight sm:text-4xl">Sell your protection plans to CatoDrive guests</h1>
@@ -77,7 +79,7 @@ export default function InsurersPage() {
         </p>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {STEPS.map((s) => (
           <Card key={s.title}>
             <CardContent className="space-y-2 p-5">
@@ -92,9 +94,9 @@ export default function InsurersPage() {
       {!signedIn ? (
         <Card>
           <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm">Sign in or create a CatoDrive account to apply. Your insurer portal uses the same sign-in.</p>
-            <Link href="/login?next=/insurers">
-              <Button>Sign in to apply <ArrowRight className="h-4 w-4" /></Button>
+            <p className="text-sm">Create an account for your company to get started.</p>
+            <Link href="/sign-up">
+              <Button>Create an account <ArrowRight className="h-4 w-4" /></Button>
             </Link>
           </CardContent>
         </Card>
@@ -103,32 +105,32 @@ export default function InsurersPage() {
       ) : insurer && !canApply ? (
         <Card>
           <CardContent className="space-y-3 p-6">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <p className="text-lg font-semibold">{insurer.displayName}</p>
               <Badge tone={INSURER_STATUS[insurer.status].tone}>{INSURER_STATUS[insurer.status].label}</Badge>
             </div>
             <p className="text-sm text-muted-foreground">
               {insurer.status === 'pending'
-                ? 'We have your application and will email you when it is reviewed.'
+                ? 'We’re reviewing your company and will email you. You can set up your plans now.'
                 : insurer.status === 'suspended'
                   ? `Your plans are paused${insurer.suspendedReason ? `: ${insurer.suspendedReason}` : '.'} Contact us to reinstate them.`
                   : 'You are approved. Manage your plans and payouts in your portal.'}
             </p>
-            {insurer.status !== 'pending' && (
-              <Button onClick={() => void goToSite('partner', '/insurers/portal')}>Open your insurer portal <ArrowRight className="h-4 w-4" /></Button>
-            )}
+            <Link href="/portal" className="inline-block">
+              <Button>Open your portal <ArrowRight className="h-4 w-4" /></Button>
+            </Link>
           </CardContent>
         </Card>
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Apply as an insurance partner</CardTitle>
+            <CardTitle>Your company details</CardTitle>
             {insurer?.status === 'rejected' && (
               <p className="text-sm text-destructive">Your last application wasn’t approved{insurer.reviewNotes ? `: ${insurer.reviewNotes}` : '.'} You can correct it and apply again.</p>
             )}
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Registered company name"><Input value={form.legalName} onChange={(e) => set('legalName', e.target.value)} /></Field>
               <Field label="Name guests see" hint="Shown next to your plans at checkout"><Input value={form.displayName} onChange={(e) => set('displayName', e.target.value)} /></Field>
               <Field label="Licence or NAIC number"><Input value={form.licenceNumber} onChange={(e) => set('licenceNumber', e.target.value)} /></Field>
@@ -153,8 +155,8 @@ export default function InsurersPage() {
               </label>
               {form.licenceDoc && <p className="mt-1 text-xs text-success">Uploaded</p>}
             </Field>
-            <Button size="lg" disabled={!valid || uploading} loading={apply.isPending} onClick={() => apply.mutate()}>
-              Send application
+            <Button size="lg" className="w-full sm:w-auto" disabled={!valid || uploading} loading={apply.isPending} onClick={() => apply.mutate()}>
+              Send for review
             </Button>
           </CardContent>
         </Card>
