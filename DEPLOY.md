@@ -137,10 +137,7 @@ redirect to the right site.
 - **Partner project:** root `partner-web/`, domain `partners.yourdomain.com`.
 - **Environment variables, all three sites:** `NEXT_PUBLIC_API_URL`,
   `NEXT_PUBLIC_GOOGLE_MAPS_KEY`, `NEXT_PUBLIC_SITE_URL` (guest site),
-  `NEXT_PUBLIC_HOST_URL` (host site), `NEXT_PUBLIC_PARTNER_URL` (partner site);
-  the host project also `NEXT_PUBLIC_HOUSE_FLEET_HOST`.
-- **Admin project** (`admin-web/`) needs `NEXT_PUBLIC_HOST_URL`: its House Fleet
-  sign-in opens the host dashboard there.
+  `NEXT_PUBLIC_HOST_URL` (host site), `NEXT_PUBLIC_PARTNER_URL` (partner site).
 - **Corporate** stays off until `NEXT_PUBLIC_CORPORATE=on` on the guest site (and
   `EXPO_PUBLIC_CORPORATE=on` in the apps); until then its pages answer 404.
 
