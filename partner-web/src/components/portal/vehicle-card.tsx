@@ -23,7 +23,7 @@ export function PartnerVehicleCard({
 }) {
   const live = vehicle.status === 'listed';
   return (
-    <Link href={`/asset-partners/vehicles/${vehicle._id}`} className="group block">
+    <Link href={`/vehicles/${vehicle._id}`} className="group block">
       <Card className="h-full overflow-hidden transition-colors group-hover:border-primary/40">
         <div className="relative h-36 w-full bg-muted">
           {vehicle.photo ? (

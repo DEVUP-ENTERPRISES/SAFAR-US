@@ -2,13 +2,13 @@
 
 import type { ReactNode } from 'react';
 import { AuthGuard } from '@/components/layout/auth-guard';
-import { PartnerSidebar } from '@/features/asset-partners/components/partner-sidebar';
+import { PartnerSidebar } from '~/components/portal/partner-sidebar';
 
 /**
  * The Asset Partner portal shell.
  *
  * A route GROUP - `(portal)` adds no URL segment, so these pages stay at
- * /asset-partners/dashboard, /asset-partners/vehicles and so on. That matters
+ * /dashboard, /vehicles and so on. That matters
  * because /asset-partners and /asset-partners/apply are public marketing and
  * intake: a layout at the /asset-partners level would have put the whole
  * pitch behind a login wall.
@@ -20,7 +20,7 @@ import { PartnerSidebar } from '@/features/asset-partners/components/partner-sid
  */
 export default function AssetPartnerPortalLayout({ children }: { children: ReactNode }) {
   return (
-    <AuthGuard>
+    <AuthGuard loginPath="/sign-in">
       {/*
         pb-24 (a flat 96px) used to reserve clearance for PartnerSidebar's
         mobile bar - its real height is 4rem (64px) plus the safe-area inset,

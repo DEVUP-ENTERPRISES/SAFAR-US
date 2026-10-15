@@ -10,8 +10,8 @@ import { ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { formatMoney } from '@/lib/utils/format';
-import { PartnerVehicleCard } from '@/features/asset-partners/components/vehicle-card';
-import { NotAPartner } from '@/features/asset-partners/components/not-a-partner';
+import { PartnerVehicleCard } from '~/components/portal/vehicle-card';
+import { NotAPartner } from '~/components/portal/not-a-partner';
 import { assetPartnerApi } from '@/features/asset-partners/api';
 import { ApiError } from '@/lib/api/types';
 
@@ -91,7 +91,7 @@ export default function PartnerVehiclesPage() {
                 earning. We’ll call you to arrange it.
               </p>
             </div>
-            <Link href="/asset-partners/dashboard">
+            <Link href="/dashboard">
               <Button variant="outline">Check your application status</Button>
             </Link>
           </CardContent>

@@ -50,7 +50,7 @@ export default function PartnerVehicleDetailPage({
     return (
       <div className="py-8">
         <ErrorState message="We couldn’t find that vehicle." retry={() => refetch()} />
-        <Link href="/asset-partners/vehicles" className="mt-4 inline-block text-sm font-medium text-primary underline">
+        <Link href="/vehicles" className="mt-4 inline-block text-sm font-medium text-primary underline">
           Back to your vehicles
         </Link>
       </div>
@@ -63,7 +63,7 @@ export default function PartnerVehicleDetailPage({
   return (
     <div className="space-y-6 py-8">
       <Link
-        href="/asset-partners/vehicles"
+        href="/vehicles"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" /> Your vehicles

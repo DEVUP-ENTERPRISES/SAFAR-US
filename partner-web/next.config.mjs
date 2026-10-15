@@ -28,6 +28,16 @@ const nextConfig = {
       { protocol: 'https', hostname: 'picsum.photos' },
     ],
   },
+  // Old portal links and the shared sign-in paths land on this site's own routes.
+  async redirects() {
+    const section = ':section(dashboard|vehicles|statements|maintenance|documents|profile)';
+    return [
+      { source: `/asset-partners/${section}`, destination: '/:section', permanent: false },
+      { source: `/asset-partners/${section}/:path*`, destination: '/:section/:path*', permanent: false },
+      { source: '/login', destination: '/sign-in', permanent: false },
+      { source: '/register', destination: '/sign-in', permanent: false },
+    ];
+  },
   // Signed-in dashboards only: nothing here belongs in a search index.
   async headers() {
     return [
@@ -42,6 +52,8 @@ const nextConfig = {
   },
   webpack(config) {
     config.resolve.alias['@'] = sharedSrc;
+    // The partner site's own code.
+    config.resolve.alias['~'] = path.resolve(dir, 'src');
     // Shared files live in ../frontend/src, so bare imports must resolve here too.
     config.resolve.modules = [path.resolve(dir, 'node_modules'), 'node_modules'];
     // One instance of every stateful library, whichever source tree imports it (see admin-web/next.config.mjs).

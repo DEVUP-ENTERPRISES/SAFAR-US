@@ -19,7 +19,7 @@ function PartnerRouter() {
   const signedIn = useAuthStore((s) => s.status === 'authenticated');
   const isAssetPartner = useIsAssetPartner();
   const insurer = useQuery({ queryKey: ['insurer-me'], queryFn: () => insurerApi.me(), enabled: signedIn && isAssetPartner === false, retry: false });
-  const target = isAssetPartner ? '/asset-partners/dashboard' : insurer.data ? '/insurers/portal' : null;
+  const target = isAssetPartner ? '/dashboard' : insurer.data ? '/insurers/portal' : null;
 
   useEffect(() => {
     if (target) router.replace(target);
@@ -61,7 +61,7 @@ function PartnerRouter() {
 
 export default function PartnerHome() {
   return (
-    <AuthGuard>
+    <AuthGuard loginPath="/sign-in">
       <PartnerRouter />
     </AuthGuard>
   );

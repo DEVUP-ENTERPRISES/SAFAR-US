@@ -16,9 +16,9 @@ import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart } from '@/components/ui/charts';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
-import { StatementCard } from '@/features/asset-partners/components/statement-card';
-import { PartnerVehicleCard } from '@/features/asset-partners/components/vehicle-card';
-import { PartnerSupport } from '@/features/asset-partners/components/partner-support';
+import { StatementCard } from '~/components/portal/statement-card';
+import { PartnerVehicleCard } from '~/components/portal/vehicle-card';
+import { PartnerSupport } from '~/components/portal/partner-support';
 import {
   assetPartnerApi,
   type PartnerApplication,
@@ -165,7 +165,7 @@ function Applied({
     <div className="space-y-8">
       {/* The one thing on this page that needs a decision, not just reading. */}
       {pendingCount > 0 && (
-        <Link href="/asset-partners/maintenance" className="block">
+        <Link href="/maintenance" className="block">
           <Card className="border-warning/40 bg-warning/5 transition-colors hover:border-warning/60">
             <CardContent className="flex flex-wrap items-center justify-between gap-3 py-5">
               <span className="flex min-w-0 items-center gap-3">
@@ -213,7 +213,7 @@ function Applied({
               value={String(data.vehicles.length)}
               sub={`${s.terms.managementFeeBps / 100}% management fee`}
               icon={<Car className="h-5 w-5" />}
-              href="/asset-partners/vehicles"
+              href="/vehicles"
             />
           </div>
 
@@ -223,7 +223,7 @@ function Applied({
             <div className="space-y-3">
               <StatementCard statement={s} compact />
               <Link
-                href="/asset-partners/statements"
+                href="/statements"
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
               >
                 See every statement <ArrowRight className="h-3.5 w-3.5" />
@@ -252,7 +252,7 @@ function Applied({
               <h2 className="display text-xl">Your vehicles</h2>
               {data.vehicles.length > preview.length && (
                 <Link
-                  href="/asset-partners/vehicles"
+                  href="/vehicles"
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
                 >
                   View all {data.vehicles.length} <ArrowRight className="h-3.5 w-3.5" />

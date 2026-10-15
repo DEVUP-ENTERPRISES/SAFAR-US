@@ -27,15 +27,15 @@ const ICONS = {
  * don't need an override.
  */
 const NAV: PanelNavItem[] = [
-  { slug: 'dashboard', label: 'Dashboard', path: '/asset-partners/dashboard', group: 'Overview' },
-  { slug: 'vehicles', label: 'Vehicles', path: '/asset-partners/vehicles', group: 'Overview' },
-  { slug: 'statements', label: 'Statements', mobileLabel: 'Earnings', path: '/asset-partners/statements', group: 'Money' },
-  { slug: 'maintenance', label: 'Maintenance', mobileLabel: 'Repairs', path: '/asset-partners/maintenance', group: 'Vehicle care' },
+  { slug: 'dashboard', label: 'Dashboard', path: '/dashboard', group: 'Overview' },
+  { slug: 'vehicles', label: 'Vehicles', path: '/vehicles', group: 'Overview' },
+  { slug: 'statements', label: 'Statements', mobileLabel: 'Earnings', path: '/statements', group: 'Money' },
+  { slug: 'maintenance', label: 'Maintenance', mobileLabel: 'Repairs', path: '/maintenance', group: 'Vehicle care' },
   {
     slug: 'documents',
     label: 'Documents',
     mobileLabel: 'Docs',
-    path: '/asset-partners/documents',
+    path: '/documents',
     group: 'Vehicle care',
     // Was mobile: false, leaving the mobile bar at 5 items with a real page
     // (title deeds, agreements, insurance docs) reachable only from the
@@ -43,7 +43,7 @@ const NAV: PanelNavItem[] = [
     // it was hard-capped at 5 with no route behind that number), so there's
     // room for it without crowding anything else out.
   },
-  { slug: 'profile', label: 'Payout & profile', mobileLabel: 'Profile', path: '/asset-partners/profile', group: 'Account' },
+  { slug: 'profile', label: 'Payout & profile', mobileLabel: 'Profile', path: '/profile', group: 'Account' },
 ];
 
 export function PartnerSidebar() {

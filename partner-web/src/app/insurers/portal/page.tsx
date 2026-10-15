@@ -257,7 +257,7 @@ function Profile({ insurer }: { insurer: Insurer }) {
 
 export default function InsurerPortalPage() {
   return (
-    <AuthGuard loginPath="/login?next=/insurers/portal">
+    <AuthGuard loginPath="/sign-in?next=/insurers/portal">
       <InsurerPortal />
     </AuthGuard>
   );

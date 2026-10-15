@@ -11,10 +11,10 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart } from '@/components/ui/charts';
 import { formatMoney } from '@/lib/utils/format';
-import { StatementCard } from '@/features/asset-partners/components/statement-card';
+import { StatementCard } from '~/components/portal/statement-card';
 import { assetPartnerApi } from '@/features/asset-partners/api';
 import { ApiError } from '@/lib/api/types';
-import { NotAPartner } from '@/features/asset-partners/components/not-a-partner';
+import { NotAPartner } from '~/components/portal/not-a-partner';
 
 /**
  * The statement archive.
