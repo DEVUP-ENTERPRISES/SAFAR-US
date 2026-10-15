@@ -113,7 +113,7 @@ const AUDIENCES = [
 ] as const;
 
 export function AudienceSection({ heading = 'Two sides of one platform.' }: { heading?: string }) {
-  const audiences = config.assetPartnersOnly ? AUDIENCES.slice(0, 2) : AUDIENCES;
+  const audiences = (config.assetPartnersOnly ? AUDIENCES.slice(0, 2) : AUDIENCES).filter((a) => config.corporate || a.href !== '/corporate');
   return (
     <section>
       <Reveal className="max-w-3xl">

@@ -1,18 +1,29 @@
 /** Links in emails and texts open on the right website. */
-jest.mock('../../config', () => ({
-  config: { notifications: { webUrl: 'https://www.catodrive.com', partnerWebUrl: 'https://partners.catodrive.com' }, app: { publicUrl: 'https://api.catodrive.com' } },
-}));
+const notifications = {
+  webUrl: 'https://www.catodrive.com',
+  hostWebUrl: 'https://host.catodrive.com',
+  partnerWebUrl: 'https://partners.catodrive.com',
+};
+jest.mock('../../config', () => ({ config: { notifications, app: { publicUrl: 'https://api.catodrive.com' } } }));
 
-import { webLink, isPartnerPath } from './site-links';
+import { webLink, siteForPath } from './site-links';
 
 describe('webLink', () => {
-  it('sends partner pages to the partner site and everything else to the guest site', () => {
-    expect(webLink('/host/trips/b1')).toBe('https://partners.catodrive.com/host/trips/b1');
-    expect(webLink('/host')).toBe('https://partners.catodrive.com/host');
-    expect(webLink('/host/accept-invite?token=t')).toBe('https://partners.catodrive.com/host/accept-invite?token=t');
+  it('sends host and captain pages to the host site', () => {
+    expect(webLink('/host/trips/b1')).toBe('https://host.catodrive.com/host/trips/b1');
+    expect(webLink('/host')).toBe('https://host.catodrive.com/host');
+    expect(webLink('/host/accept-invite?token=t')).toBe('https://host.catodrive.com/host/accept-invite?token=t');
+    expect(webLink('/captain')).toBe('https://host.catodrive.com/captain');
+  });
+
+  it('sends the Asset Partner and insurer portals to the partner site', () => {
     expect(webLink('/asset-partners/dashboard')).toBe('https://partners.catodrive.com/asset-partners/dashboard');
-    expect(webLink('/corporate/approvals')).toBe('https://partners.catodrive.com/corporate/approvals');
+    expect(webLink('/asset-partners/statements')).toBe('https://partners.catodrive.com/asset-partners/statements');
     expect(webLink('/insurers/portal')).toBe('https://partners.catodrive.com/insurers/portal');
+  });
+
+  it('keeps everything else on the guest site, corporate included', () => {
+    expect(webLink('/corporate/approvals')).toBe('https://www.catodrive.com/corporate/approvals');
     expect(webLink('/insurers')).toBe('https://www.catodrive.com/insurers');
     expect(webLink('/bookings/b1')).toBe('https://www.catodrive.com/bookings/b1');
     expect(webLink('/asset-partners/apply')).toBe('https://www.catodrive.com/asset-partners/apply');
@@ -21,8 +32,23 @@ describe('webLink', () => {
     expect(webLink('https://example.com/x')).toBe('https://example.com/x');
   });
 
-  it('does not mistake look-alike paths for partner pages', () => {
-    expect(isPartnerPath('/hosting')).toBe(false);
-    expect(isPartnerPath('/asset-partners')).toBe(false);
+  it('falls back to the guest site when a site has no URL configured', () => {
+    const saved = { ...notifications };
+    notifications.hostWebUrl = '';
+    notifications.partnerWebUrl = '';
+    try {
+      expect(webLink('/host/trips/b1')).toBe('https://www.catodrive.com/host/trips/b1');
+      expect(webLink('/asset-partners/dashboard')).toBe('https://www.catodrive.com/asset-partners/dashboard');
+    } finally {
+      Object.assign(notifications, saved);
+    }
+  });
+
+  it('does not mistake look-alike paths for another site', () => {
+    expect(siteForPath('/hosting')).toBe('guest');
+    expect(siteForPath('/hosts/h1')).toBe('guest');
+    expect(siteForPath('/captains')).toBe('guest');
+    expect(siteForPath('/asset-partners')).toBe('guest');
+    expect(siteForPath('/insurers/portalx')).toBe('guest');
   });
 });

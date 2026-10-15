@@ -73,7 +73,8 @@ function CorporateShell({ children }: { children: ReactNode }) {
   );
 }
 
-export default function CorporateLayout({ children }: { children: ReactNode }) {
+/** The corporate area's frame: sign-in, organisation set-up, then the sidebar. */
+export function CorporateFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   if (pathname === '/corporate/login') return <>{children}</>;
   return (

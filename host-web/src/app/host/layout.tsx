@@ -15,6 +15,7 @@ import { useHostMe, useOnboardHost, isNotAHost } from '@/features/host/hooks';
 import { useIsAssetPartner } from '@/features/asset-partners/hooks';
 import { HostSidebar } from '@/features/host/components/host-sidebar';
 import { captainApi } from '@/features/host/team-api';
+import { goToSite } from '@/lib/sites';
 
 function HostShell({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -59,8 +60,9 @@ function HostShell({ children }: { children: ReactNode }) {
    * away.
    */
   useEffect(() => {
-    if (isAssetPartner) router.replace('/asset-partners/dashboard');
-  }, [isAssetPartner, router]);
+    // Their dashboard is on the partner site; the session is carried across.
+    if (isAssetPartner) void goToSite('partner', '/asset-partners/dashboard');
+  }, [isAssetPartner]);
 
   if (isAssetPartner || isAssetPartner === undefined) {
     return <Skeleton className="h-64 w-full" />;

@@ -38,9 +38,10 @@ pm2 save && pm2 startup   # survive reboots
 | Var | Requirement |
 |---|---|
 | `NODE_ENV` | `production` |
-| `CORS_ORIGINS` | explicit list, no `*`, e.g. `https://yourdomain.com,https://www.yourdomain.com,https://partners.yourdomain.com` |
+| `CORS_ORIGINS` | explicit list, no `*`, e.g. `https://yourdomain.com,https://www.yourdomain.com,https://host.yourdomain.com,https://partners.yourdomain.com` |
 | `WEB_URL` | the guest site, e.g. `https://www.yourdomain.com` — links in emails and texts |
-| `PARTNER_WEB_URL` | the partner site, e.g. `https://partners.yourdomain.com` — host, captain, corporate and Asset Partner links in emails go here |
+| `HOST_WEB_URL` | the host site, e.g. `https://host.yourdomain.com` — host and captain links in emails go here |
+| `PARTNER_WEB_URL` | the partner site, e.g. `https://partners.yourdomain.com` — Asset Partner and insurer portal links in emails go here |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | ≥ 32 random chars, **different from each other**, not placeholders. `openssl rand -hex 32` |
 | `ADMIN_PASSWORD` | ≥ 12 chars, not a placeholder |
 | `MONGO_URI` | MongoDB Atlas connection string |
@@ -113,25 +114,36 @@ Then `certbot --nginx -d api.yourdomain.com` for the certificate.
   | `NEXT_PUBLIC_GOOGLE_MAPS_KEY` | optional; a placeholder map shows without it |
 
 `next.config` uses `output: 'standalone'`, which Vercel handles transparently.
-  Also set `NEXT_PUBLIC_SITE_URL` (this site) and `NEXT_PUBLIC_PARTNER_URL`
-  (the partner site, 2.1) so sign-in can carry people between the two.
+Also set `NEXT_PUBLIC_SITE_URL` (this site), `NEXT_PUBLIC_HOST_URL` and
+`NEXT_PUBLIC_PARTNER_URL` (the other two sites, 2.1) so links and sign-in carry
+people between them.
 
-### 2.1 Partner site — a second Vercel project
+### 2.1 Host and partner sites — two more Vercel projects
 
-Host, captain, corporate and the Asset Partner portal run on their own site
-(`partner-web/`), so a busy guest site never slows partners down and each can be
-deployed alone. Old links like `catodrive.com/host/...` redirect there.
+Each audience has its own site, built and deployed on its own, so a busy guest
+site never slows hosts or partners down. Both share the guest site's code
+(`vercel.json` installs `../frontend`); neither copies it.
 
-- New Vercel project from the same repo, **root directory** `partner-web/`.
-  `vercel.json` already installs `../frontend`, whose code it shares.
-- Domain: `partners.yourdomain.com`. The House Fleet domain
-  (`NEXT_PUBLIC_HOUSE_FLEET_HOST`) now points at **this** project, not the guest site.
-- Environment variables: the same `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_APP_NAME`
-  and `NEXT_PUBLIC_GOOGLE_MAPS_KEY` as the guest site, plus
-  `NEXT_PUBLIC_SITE_URL` (guest site), `NEXT_PUBLIC_PARTNER_URL` (this site) and
-  `NEXT_PUBLIC_HOUSE_FLEET_HOST`.
-- The admin project (`admin-web/`) also needs `NEXT_PUBLIC_PARTNER_URL` — the
-  House Fleet bridge opens the host dashboard there.
+| Site | Folder (Vercel root) | Port (local) | Domain | Serves |
+|---|---|---|---|---|
+| Guest | `frontend/` | 3000 | `www.yourdomain.com` | everything guests use; corporate (hidden until version 3) |
+| Host | `host-web/` | 3020 | `host.yourdomain.com` | hosts and their captains; also the House Fleet domain |
+| Partner | `partner-web/` | 3010 | `partners.yourdomain.com` | the Asset Partner and insurer portals |
+
+Old links like `catodrive.com/host/...` and `catodrive.com/asset-partners/dashboard`
+redirect to the right site.
+
+- **Host project:** root `host-web/`, domain `host.yourdomain.com`. The House
+  Fleet domain (`NEXT_PUBLIC_HOUSE_FLEET_HOST`) points at **this** project.
+- **Partner project:** root `partner-web/`, domain `partners.yourdomain.com`.
+- **Environment variables, all three sites:** `NEXT_PUBLIC_API_URL`,
+  `NEXT_PUBLIC_GOOGLE_MAPS_KEY`, `NEXT_PUBLIC_SITE_URL` (guest site),
+  `NEXT_PUBLIC_HOST_URL` (host site), `NEXT_PUBLIC_PARTNER_URL` (partner site);
+  the host project also `NEXT_PUBLIC_HOUSE_FLEET_HOST`.
+- **Admin project** (`admin-web/`) needs `NEXT_PUBLIC_HOST_URL`: its House Fleet
+  sign-in opens the host dashboard there.
+- **Corporate** stays off until `NEXT_PUBLIC_CORPORATE=on` on the guest site (and
+  `EXPO_PUBLIC_CORPORATE=on` in the apps); until then its pages answer 404.
 
 Moving between sites keeps people signed in with a one-time, 60-second code
 (`/auth/handoff`), never by putting a token in a URL.
@@ -144,6 +156,7 @@ Moving between sites keeps people signed in with a one-time, 60-second code
 |---|---|---|---|
 | A | `api` | EC2 elastic IP | **DNS only (grey cloud)** at first, so Certbot can issue; proxy on afterwards |
 | CNAME | `@` / `www` | Vercel's target (from the Vercel dashboard) | per Vercel's instructions |
+| CNAME | `host`, `housefleet` | Vercel's target for the host project | per Vercel's instructions |
 | CNAME | `partners` | Vercel's target for the partner project | per Vercel's instructions |
 
 If you proxy `api` through Cloudflare (orange cloud), set SSL/TLS mode to **Full
@@ -162,7 +175,7 @@ is a cross-origin request. The bucket CORS rule currently only allows
 fails in production while passing every server-side test:
 ```json
 [{
-  "AllowedOrigins": ["https://yourdomain.com", "https://partners.yourdomain.com"],
+  "AllowedOrigins": ["https://yourdomain.com", "https://host.yourdomain.com", "https://partners.yourdomain.com"],
   "AllowedMethods": ["PUT", "GET"],
   "AllowedHeaders": ["*"],
   "MaxAgeSeconds": 3000

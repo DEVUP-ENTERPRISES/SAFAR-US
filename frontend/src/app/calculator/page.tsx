@@ -237,7 +237,6 @@ export default function CarculatorPage() {
           </Card>
 
           <SiteLink
-            site="partner"
             path="/host/listings/new"
             className="inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
           >

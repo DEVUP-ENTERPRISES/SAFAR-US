@@ -33,9 +33,13 @@ export const WEB_ORIGIN = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://www.catodr
 export const webUrl = (path: string) => `${WEB_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`;
 
 export const PARTNER_ORIGIN = process.env.EXPO_PUBLIC_PARTNER_URL ?? 'https://partners.catodrive.com';
+export const HOST_ORIGIN = process.env.EXPO_PUBLIC_HOST_URL ?? 'https://host.catodrive.com';
 
-/** A page on the partner website (host, captain, corporate, Asset Partner portal). */
-export const partnerWebUrl = (path: string) => `${PARTNER_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`;
+/** A page on the website that serves it: host and captain pages on the host site, the rest of the partner area on the partner site. */
+export const partnerWebUrl = (path: string) => {
+  const rel = path.startsWith('/') ? path : `/${path}`;
+  return `${/^\/(host|captain)(\/|\?|$)/.test(rel) ? HOST_ORIGIN : PARTNER_ORIGIN}${rel}`;
+};
 
 /** Opens a partner page in the Partner app when it is installed, otherwise on the partner website. */
 export async function openPartner(path: string): Promise<void> {

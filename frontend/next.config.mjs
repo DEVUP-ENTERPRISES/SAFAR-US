@@ -1,10 +1,18 @@
 import { securityHeaders } from './security-headers.mjs';
 
-// The partner website (hosts, captains, asset partners, corporate) - see partner-web/.
-const PARTNER_SITE = (
-  process.env.NEXT_PUBLIC_PARTNER_URL ?? (process.env.NODE_ENV === 'production' ? 'https://partners.catodrive.com' : 'http://localhost:3010')
-).replace(/\/$/, '');
-const PARTNER_SECTIONS = ['/host', '/corporate', '/captain', '/insurers/portal', '/asset-partners/:section(dashboard|vehicles|statements|maintenance|documents|profile)'];
+const PROD = process.env.NODE_ENV === 'production';
+const origin = (value, dev, prod) => (value ?? (PROD ? prod : dev)).replace(/\/$/, '');
+
+// Pages that live on the other websites, kept in step with siteForPath() in src/lib/sites.ts.
+const SITE_SECTIONS = [
+  // The host website (self-serve hosts and their captains) - see host-web/.
+  { origin: origin(process.env.NEXT_PUBLIC_HOST_URL, 'http://localhost:3020', 'https://host.catodrive.com'), sections: ['/host', '/captain'] },
+  // The partner website (Asset Partner and insurer portals) - see partner-web/.
+  {
+    origin: origin(process.env.NEXT_PUBLIC_PARTNER_URL, 'http://localhost:3010', 'https://partners.catodrive.com'),
+    sections: ['/insurers/portal', '/asset-partners/:section(dashboard|vehicles|statements|maintenance|documents|profile)'],
+  },
+];
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -40,14 +48,16 @@ const nextConfig = {
    * mapping can change without browsers caching it forever.
    */
   async redirects() {
-    return PARTNER_SECTIONS.flatMap((section) => {
-      // The destination keeps the matched section name but drops its pattern.
-      const to = `${PARTNER_SITE}${section.replace(/\(.*\)$/, '')}`;
-      return [
-        { source: section, destination: to, permanent: false },
-        { source: `${section}/:path*`, destination: `${to}/:path*`, permanent: false },
-      ];
-    });
+    return SITE_SECTIONS.flatMap(({ origin: site, sections }) =>
+      sections.flatMap((section) => {
+        // The destination keeps the matched section name but drops its pattern.
+        const to = `${site}${section.replace(/\(.*\)$/, '')}`;
+        return [
+          { source: section, destination: to, permanent: false },
+          { source: `${section}/:path*`, destination: `${to}/:path*`, permanent: false },
+        ];
+      }),
+    );
   },
   images: {
     remotePatterns: [

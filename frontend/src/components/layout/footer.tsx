@@ -4,7 +4,7 @@ import { Logo } from '@/components/layout/logo';
 import { usePrograms } from '@/features/platform/config';
 import Link from 'next/link';
 import { config } from '@/lib/config';
-import { isPartnerPath } from '@/lib/sites';
+import { siteForPath } from '@/lib/sites';
 import { SiteLink } from './site-link';
 
 // Host self-serve and Corporate links return when config.assetPartnersOnly is off.
@@ -39,7 +39,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: 'Business',
     links: [
-      ...(config.assetPartnersOnly
+      ...(config.assetPartnersOnly || !config.corporate
         ? []
         : [
             { label: 'CatoDrive for Business', href: '/corporate' },
@@ -87,8 +87,8 @@ export function Footer() {
               <ul className="mt-4 space-y-2.5">
                 {col.links.map((l) => (
                   <li key={l.href}>
-                    {isPartnerPath(l.href) ? (
-                      <SiteLink site="partner" path={l.href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                    {siteForPath(l.href) !== 'guest' ? (
+                      <SiteLink path={l.href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                         {l.label}
                       </SiteLink>
                     ) : (

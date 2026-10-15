@@ -33,8 +33,8 @@ export default function HouseFleetLoginPage() {
         setBusy(false);
         return;
       }
-      // The Host dashboard lives on the partner website.
-      const url = new URL(siteUrl('partner', '/host/bridge'));
+      // The Host dashboard lives on the host website.
+      const url = new URL(siteUrl('host', '/host/bridge'));
       // Fragment, not query: it is never sent to a server, logged, or leaked through Referer.
       url.hash = new URLSearchParams({ at: result.tokens.accessToken, rt: result.tokens.refreshToken }).toString();
       window.location.href = url.toString();

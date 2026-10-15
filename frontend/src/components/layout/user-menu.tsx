@@ -129,18 +129,20 @@ export function UserMenu() {
                 self-serve host tools to someone CatoDrive runs 100% of
                 operations for. */}
             {isAssetPartner && (
-              <SiteLink site="partner" path="/asset-partners/dashboard" onNavigate={() => setOpen(false)} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent">
+              <SiteLink path="/asset-partners/dashboard" onNavigate={() => setOpen(false)} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent">
                 <Car className="h-4 w-4 text-primary" /> Partner dashboard
               </SiteLink>
             )}
             {!config.assetPartnersOnly && !isAssetPartner && (
               <>
-                <SiteLink site="partner" path="/host" onNavigate={() => setOpen(false)} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent">
+                <SiteLink path="/host" onNavigate={() => setOpen(false)} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent">
                   <Car className="h-4 w-4 text-primary" /> Host dashboard
                 </SiteLink>
-                <SiteLink site="partner" path="/corporate" onNavigate={() => setOpen(false)} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-accent">
-                  <Building2 className="h-4 w-4 text-muted-foreground" /> Corporate
-                </SiteLink>
+                {config.corporate && (
+                  <Link href="/corporate" onClick={() => setOpen(false)} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-accent">
+                    <Building2 className="h-4 w-4 text-muted-foreground" /> Corporate
+                  </Link>
+                )}
               </>
             )}
             {/* No admin link here. The console is a separate application on

@@ -6,6 +6,7 @@ import { useHostMe, isNotAHost } from '../host/hooks';
 import { useIsAssetPartner } from '../asset-partners/hooks';
 import { captainApi } from '../host/team-api';
 import { corporateApi } from '../corporate/api';
+import { config } from '../../lib/config';
 
 export type Workspace = 'asset-partner' | 'host' | 'captain' | 'corporate';
 
@@ -41,10 +42,11 @@ export function useWorkspaces(): { ready: boolean; available: Workspace[] } {
   const host = useHostMe();
   const notAHost = isNotAHost(host.error);
   const captain = useQuery({ queryKey: ['captain-queue'], queryFn: () => captainApi.queue(), enabled: signedIn, retry: false });
-  const corporate = useQuery({ queryKey: ['corporate-me'], queryFn: () => corporateApi.me(), enabled: signedIn, retry: false });
+  // Corporate ships in version 3; until then it is never offered as a workspace.
+  const corporate = useQuery({ queryKey: ['corporate-me'], queryFn: () => corporateApi.me(), enabled: signedIn && config.corporate, retry: false });
 
   const hostKnown = host.isSuccess || notAHost || (host.isError && !host.isFetching);
-  const ready = signedIn && assetPartner !== undefined && hostKnown && !captain.isPending && !corporate.isPending;
+  const ready = signedIn && assetPartner !== undefined && hostKnown && !captain.isPending && (!config.corporate || !corporate.isPending);
   const available: Workspace[] = [];
   if (assetPartner) available.push('asset-partner');
   else if (host.isSuccess) available.push('host');

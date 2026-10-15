@@ -203,7 +203,7 @@ export default function AssetPartnerApplyPage() {
           <p className="numeric mt-6 text-lg font-bold text-primary">Reference: {reference}</p>
           {/* Somewhere to actually go next. Without this the reference number
               was the only trace of the application the applicant ever saw. */}
-          <SiteLink site="partner" path="/asset-partners/dashboard" className="mt-8 inline-block">
+          <SiteLink path="/asset-partners/dashboard" className="mt-8 inline-block">
             <Button size="lg" className="rounded-xl">
               Track your application <ArrowRight className="h-4 w-4" />
             </Button>

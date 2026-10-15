@@ -2,24 +2,38 @@ import { api } from '@/lib/api/client';
 import { tokenStore } from '@/lib/api/token-store';
 
 const DEV = process.env.NODE_ENV !== 'production';
+const origin = (value: string | undefined, dev: string, prod: string) => (value ?? (DEV ? dev : prod)).replace(/\/$/, '');
 
 /** The guest website (catodrive.com). */
-export const GUEST_SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? (DEV ? 'http://localhost:3000' : 'https://www.catodrive.com')).replace(/\/$/, '');
+export const GUEST_SITE = origin(process.env.NEXT_PUBLIC_SITE_URL, 'http://localhost:3000', 'https://www.catodrive.com');
 
-/** The partner website: hosts, captains, asset partners and corporate admins. */
-export const PARTNER_SITE = (process.env.NEXT_PUBLIC_PARTNER_URL ?? (DEV ? 'http://localhost:3010' : 'https://partners.catodrive.com')).replace(/\/$/, '');
+/** The host website: self-serve hosts and their captains. */
+export const HOST_SITE = origin(process.env.NEXT_PUBLIC_HOST_URL, 'http://localhost:3020', 'https://host.catodrive.com');
 
-export type Site = 'guest' | 'partner';
+/** The partner website: the Asset Partner and insurer portals. */
+export const PARTNER_SITE = origin(process.env.NEXT_PUBLIC_PARTNER_URL, 'http://localhost:3010', 'https://partners.catodrive.com');
 
-const originOf = (site: Site) => (site === 'partner' ? PARTNER_SITE : GUEST_SITE);
+export type Site = 'guest' | 'host' | 'partner';
 
-/** A path on the other site; relative paths only, so it can never be pointed elsewhere. */
-export const siteUrl = (site: Site, path = '/') => `${originOf(site)}${path.startsWith('/') ? path : `/${path}`}`;
+const ORIGIN: Record<Site, string> = { guest: GUEST_SITE, host: HOST_SITE, partner: PARTNER_SITE };
+
+// Which site serves a path; kept in step with HOST_SECTIONS / PARTNER_SECTIONS in next.config.mjs and backend site-links.ts.
+const HOST_PATH = /^\/(host|captain)(\/|\?|$)/;
+const PARTNER_PATH = /^\/insurers\/portal(\/|\?|$)|^\/asset-partners\/(dashboard|vehicles|statements|maintenance|documents|profile)(\/|\?|$)/;
+
+export function siteForPath(path: string): Site {
+  if (HOST_PATH.test(path)) return 'host';
+  if (PARTNER_PATH.test(path)) return 'partner';
+  return 'guest';
+}
+
+/** A path on one of the sites; relative paths only, so it can never be pointed elsewhere. */
+export const siteUrl = (site: Site, path = '/') => `${ORIGIN[site]}${path.startsWith('/') ? path : `/${path}`}`;
 
 /**
- * Go to a page on CatoDrive's other website, staying signed in.
+ * Go to a page on another CatoDrive website, staying signed in.
  *
- * The two sites are separate origins with separate sessions, so a signed-in
+ * The sites are separate origins with separate sessions, so a signed-in
  * person carries a one-time code (valid a minute, usable once) in the URL
  * fragment, which never reaches a server log; the other site redeems it for
  * its own session. Signed out, it simply navigates.
@@ -45,7 +59,3 @@ export function safeNextPath(next: string | null | undefined): string {
   if (!next || !next.startsWith('/') || next.startsWith('//') || next.includes('\\')) return '/';
   return next;
 }
-
-/** Paths served by the partner site (kept in step with PARTNER_SECTIONS in next.config.mjs). */
-const PARTNER_PATH = /^\/(host|corporate|captain|insurers\/portal)(\/|$)|^\/asset-partners\/(dashboard|vehicles|statements|maintenance|documents|profile)(\/|$)/;
-export const isPartnerPath = (path: string) => PARTNER_PATH.test(path);

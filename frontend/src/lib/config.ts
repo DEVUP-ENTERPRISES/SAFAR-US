@@ -18,4 +18,6 @@ export const config = {
    * self-onboard are hidden.
    */
   assetPartnersOnly: (process.env.NEXT_PUBLIC_LAUNCH_MODE ?? 'asset_partners_only') === 'asset_partners_only',
+  /** Corporate accounts ship in version 3: until this is on, their pages 404 and every link to them is hidden. */
+  corporate: process.env.NEXT_PUBLIC_CORPORATE === 'on',
 } as const;

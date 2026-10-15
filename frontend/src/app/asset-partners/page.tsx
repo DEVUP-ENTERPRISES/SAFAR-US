@@ -160,7 +160,6 @@ export default function AssetPartnersPage() {
           </Reveal>
           <Reveal delay={300}>
             <SiteLink
-              site="partner"
               path="/asset-partners/dashboard"
               className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-white/60 hover:text-white hover:underline"
             >
