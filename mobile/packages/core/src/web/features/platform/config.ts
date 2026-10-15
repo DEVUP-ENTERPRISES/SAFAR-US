@@ -17,7 +17,6 @@ export interface PlatformPublicConfig {
   deposit: { enabled: boolean; minCents: number; maxCents: number; multiplierBps: number };
   pricing: { earlyBirdMinDaysAhead: number; lastMinuteMaxHoursAhead: number };
   /** Lines rotating above the booking calendar. */
-  content?: { bookingQuotes: string[] };
   /** Guest programmes the admin can pause; absent on an older backend. */
   programs?: { rewardsEnabled: boolean; referralEnabled: boolean; membershipEnabled?: boolean };
   checkout?: { otherMethodsEnabled: boolean };

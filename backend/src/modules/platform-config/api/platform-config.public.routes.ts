@@ -41,7 +41,6 @@ router.get(
       inspection: cfg.inspection,
       handover: cfg.handover,
       booking: { minLeadMinutes: cfg.booking.minLeadMinutes, dailyMileageMiles: cfg.booking.dailyMileageMiles, cancellationPolicy: cfg.booking.cancellationPolicy },
-      content: { bookingQuotes: cfg.content.bookingQuotes },
       programs: { rewardsEnabled: cfg.programs.rewardsEnabled, referralEnabled: cfg.programs.referralEnabled, membershipEnabled: cfg.programs.membershipEnabled },
       checkout: { otherMethodsEnabled: cfg.checkout.otherMethodsEnabled },
       // Sign-in by text code is only offered when a text provider is actually configured.

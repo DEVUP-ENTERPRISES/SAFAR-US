@@ -2,16 +2,24 @@
 
 import { useEffect, useState } from 'react';
 import { Sun, Heart, Route, Sparkles, Mountain, Compass, Palmtree, type LucideIcon } from 'lucide-react';
-import { usePlatformConfig } from '@/features/platform/config';
 import { cn } from '@/lib/utils/cn';
 
 const ICONS: LucideIcon[] = [Sun, Heart, Route, Sparkles, Mountain, Compass, Palmtree];
 const ROTATE_MS = 4500;
 
-/** Lines that keep people dreaming about the next trip; one at a time, on a loop above the calendar. Text comes from admin. */
+const QUOTES = [
+  'Put a date in the calendar this week. Your next memory is one booking away.',
+  'Keep your family always on a trip. Home is even better when you come back to it.',
+  'Weekends were made for road trips. Lock yours in before someone else does.',
+  'The best stories start with “let’s just go”.',
+  'One week, one date, one adventure. Make it a habit.',
+  'Kids grow fast. The trips you take together stay forever.',
+  'Pick your dates. We’ll handle the rest.',
+];
+
+/** Lines that keep people dreaming about the next trip; one at a time, on a loop above the calendar. */
 export function TripQuotes({ className }: { className?: string }) {
-  const { data } = usePlatformConfig();
-  const quotes = data?.content?.bookingQuotes ?? [];
+  const quotes = QUOTES;
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
 

@@ -18,7 +18,6 @@ import { logger } from '../../../infrastructure/logging/logger';
  * the config layer stays the single source of truth for platform economics —
  * rewards reads whatever is configured, and this is only the starting point.
  */
-import { DEFAULT_BOOKING_QUOTES } from './booking-quotes';
 
 const DEFAULT_APP_RELEASE = { minVersion: '1.0.0', latestVersion: '1.0.0', androidUrl: '', iosUrl: '' };
 
@@ -265,7 +264,6 @@ export class PlatformConfigService {
         tiers: doc.rewards?.tiers?.length ? doc.rewards.tiers : DEFAULT_REWARD_TIERS,
       },
       programs: { rewardsEnabled: false, referralEnabled: false, membershipEnabled: false, ...(doc.programs ?? {}) },
-      content: { bookingQuotes: doc.content?.bookingQuotes?.length ? doc.content.bookingQuotes : DEFAULT_BOOKING_QUOTES },
       appRelease: {
         customer: { ...DEFAULT_APP_RELEASE, ...(doc.appRelease?.customer ?? {}) },
         partner: { ...DEFAULT_APP_RELEASE, ...(doc.appRelease?.partner ?? {}) },

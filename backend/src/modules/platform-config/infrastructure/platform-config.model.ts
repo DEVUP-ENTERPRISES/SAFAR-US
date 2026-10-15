@@ -515,9 +515,6 @@ export interface PlatformConfigDoc {
     /** CATO Plus: off stops new sign-ups and hides it; existing members keep their benefits until their period ends. */
     membershipEnabled: boolean;
   };
-  content: {
-    bookingQuotes: string[];
-  };
   /** Mobile app versions: below minVersion the app blocks with "Update"; below latestVersion it shows a banner. */
   appRelease: Record<'customer' | 'partner', AppReleaseConfig>;
   booking: {
@@ -888,9 +885,6 @@ const schema = new Schema<PlatformConfigDoc>(
       rewardsEnabled: { type: Boolean, default: false },
       referralEnabled: { type: Boolean, default: false },
       membershipEnabled: { type: Boolean, default: false },
-    },
-    content: {
-      bookingQuotes: { type: [String], default: undefined },
     },
     appRelease: {
       customer: { minVersion: String, latestVersion: String, androidUrl: String, iosUrl: String },

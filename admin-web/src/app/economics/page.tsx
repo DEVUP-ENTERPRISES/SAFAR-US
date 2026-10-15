@@ -42,7 +42,7 @@ const TABS = [
   { key: 'payouts', label: 'Payouts & rewards', about: 'When hosts are paid, and what guests earn in rewards.' },
   { key: 'rules', label: 'Booking & trip rules', about: 'How long each booking step may wait, trip photos, handovers, extensions and swaps.' },
   { key: 'checks', label: 'Guest checks', about: 'Who can book: age and licence rules, and when identity and driving checks run.' },
-  { key: 'safety', label: 'Safety & app', about: 'Limits that stop abuse, mobile app versions and the messages on the booking calendar.' },
+  { key: 'safety', label: 'Safety & app', about: 'Limits that stop abuse, and the mobile app versions guests and hosts must run.' },
   { key: 'history', label: 'History', about: 'Every saved change, with the option to roll back to an earlier version.' },
 ];
 
@@ -120,7 +120,6 @@ function Economics() {
         handover: draft.handover,
         security: draft.security,
         ...(draft.programs ? { programs: draft.programs } : {}),
-        content: { bookingQuotes: (draft.content?.bookingQuotes ?? []).map((l) => l.trim()).filter(Boolean).slice(0, 12) },
         ...(draft.appRelease ? { appRelease: draft.appRelease } : {}),
       });
     }
@@ -210,24 +209,6 @@ function Economics() {
               onChange={(e) => set((d) => { d.serviceFee.maxCents = Math.round(Number(e.target.value) * 100); })}
             />
           </Field>
-        </CardContent>
-      </Card>
-        </>
-      )}
-
-      {tab === 'safety' && (
-        <>
-      <Card className="rounded-2xl shadow-soft">
-        <CardHeader>
-          <CardTitle>Booking calendar messages</CardTitle>
-          <p className="text-sm text-muted-foreground">One per line. They rotate above the calendar guests pick dates on. Leave empty to use the built-in lines.</p>
-        </CardHeader>
-        <CardContent>
-          <textarea
-            className="min-h-[140px] w-full rounded-lg border border-border bg-background p-3 text-sm"
-            value={(draft.content?.bookingQuotes ?? []).join('\n')}
-            onChange={(e) => set((d) => { d.content = { bookingQuotes: e.target.value.split('\n') }; })}
-          />
         </CardContent>
       </Card>
         </>

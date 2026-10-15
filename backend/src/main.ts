@@ -11,7 +11,6 @@ import { installCrashHandlers } from './infrastructure/observability/error-repor
 import { seedAdmin, enforceSingleSuperAdmin } from './bootstrap/seed-admin';
 import { seedHouseFleet } from './bootstrap/seed-house-fleet';
 import { seedLegal } from './bootstrap/seed-legal';
-import { seedBookingQuotes } from './bootstrap/seed-booking-quotes';
 import { initRealtime } from './realtime';
 import { initJobs, closeJobs, startFallbackJobs } from './jobs';
 import { verifyChannels } from './modules/notifications/infrastructure/channel.providers';
@@ -80,7 +79,6 @@ async function bootstrap(): Promise<void> {
   await enforceSingleSuperAdmin();
   await seedHouseFleet();
   await seedLegal();
-  await seedBookingQuotes();
   registerEventSubscribers();
   // Every car carries the platform's daily mileage and cancellation policy; catches older cars or a missed change.
   void syncDailyMileage()

@@ -45,7 +45,6 @@ export interface PlatformConfig {
   commission: { defaultBps: number; minBps: number; maxBps: number };
   /** Charged to the guest on top; commission comes out of host earnings. */
   serviceFee: { bps: number; maxCents: number; flatCents: number };
-  content?: { bookingQuotes: string[] };
   programs?: { rewardsEnabled: boolean; referralEnabled: boolean; membershipEnabled?: boolean };
   appRelease?: Record<'customer' | 'partner', AppRelease>;
   tax: { bps: number };
