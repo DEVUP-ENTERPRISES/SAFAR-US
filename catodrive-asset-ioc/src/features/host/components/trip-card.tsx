@@ -12,7 +12,7 @@ export function TripCard({ trip }: { trip: HostTrip }) {
   const flight = flightLine(trip);
 
   return (
-    <Link href={`/host/trips/${trip.bookingId}`} className="group block">
+    <Link href={`/ops/trips/${trip.bookingId}`} className="group block">
       <article className="flex gap-4 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40">
         <div className="min-w-0 flex-1">
           <StatusPill tone={t.tone}>{t.label}</StatusPill>

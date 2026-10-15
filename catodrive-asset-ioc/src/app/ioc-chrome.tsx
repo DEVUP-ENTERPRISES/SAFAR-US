@@ -18,7 +18,7 @@ import { goToSite } from '@/lib/sites';
 import { cn } from '@/lib/utils/cn';
 
 // Full-screen pages: sign-in, the cross-site handoff, House Fleet's bridge and a captain's invite.
-const BARE = ['/sign-in', '/forgot-password', '/handoff', '/host/bridge', '/host/accept-invite'];
+const BARE = ['/sign-in', '/forgot-password', '/handoff', '/ops/bridge'];
 
 /** CatoDrive's operations panel frame: Host and Captain when the account is both, a way back to catodrive.com, and sign out. */
 export function IocChrome({ children }: { children: ReactNode }) {
@@ -32,9 +32,9 @@ export function IocChrome({ children }: { children: ReactNode }) {
     return <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6">{children}</main>;
   }
 
-  const inHost = pathname === '/host' || pathname.startsWith('/host/');
+  const inHost = pathname === '/ops' || pathname.startsWith('/ops/');
   const sections = [
-    ...(isHost ? [{ href: '/host', label: 'Host' }] : []),
+    ...(isHost ? [{ href: '/ops', label: 'Operations' }] : []),
     ...(captain.data ? [{ href: '/captain', label: 'Captain' }] : []),
   ];
   const showNav = signedIn && sections.length > 1;

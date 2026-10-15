@@ -150,7 +150,7 @@ export function HostCalendar() {
                     >
                       {span ? (
                         <Link
-                          href={`/host/trips/${span.trip.bookingId}`}
+                          href={`/ops/trips/${span.trip.bookingId}`}
                           title={`${request ? 'Request' : 'Booked'} · ${span.trip.guest.name} · ${span.trip.code}`}
                           className="absolute inset-0 flex flex-col justify-center gap-1 px-1 hover:bg-foreground/5"
                         >

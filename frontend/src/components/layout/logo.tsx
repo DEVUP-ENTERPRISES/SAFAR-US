@@ -14,7 +14,7 @@ export function Logo({ className = 'h-9 w-9' }: { className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/logos/cato-logo-256.png"
+      src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/logos/cato-logo-256.png`}
       alt="CatoDrive"
       width={256}
       height={256}

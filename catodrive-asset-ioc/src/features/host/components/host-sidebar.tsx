@@ -18,17 +18,17 @@ const ICONS = {
 };
 
 const NAV = [
-  { slug: 'dashboard', label: 'Dashboard', path: '/host', group: 'Overview' },
-  { slug: 'trips', label: 'Trips', path: '/host/trips', group: 'Overview' },
-  { slug: 'inbox', label: 'Inbox', path: '/host/inbox', group: 'Overview' },
-  { slug: 'listings', label: 'Listings', path: '/host/listings', group: 'Manage' },
-  { slug: 'fleet', label: 'Fleet', path: '/host/fleet', group: 'Manage', mobile: false },
-  { slug: 'operations', label: 'Operations', path: '/host/operations', group: 'Manage', mobile: false },
-  { slug: 'team', label: 'Captains', path: '/host/team', group: 'Manage', mobile: false },
-  { slug: 'tolls', label: 'Toll accounts', path: '/host/tolls', group: 'Manage' },
-  { slug: 'earnings', label: 'Earnings', path: '/host/earnings', group: 'Money' },
-  { slug: 'performance', label: 'Performance', path: '/host/performance', group: 'Money', mobile: false },
-  { slug: 'profile', label: 'Profile', path: '/host/profile', group: 'Account' },
+  { slug: 'dashboard', label: 'Dashboard', path: '/ops', group: 'Overview' },
+  { slug: 'trips', label: 'Trips', path: '/ops/trips', group: 'Overview' },
+  { slug: 'inbox', label: 'Inbox', path: '/ops/inbox', group: 'Overview' },
+  { slug: 'listings', label: 'Listings', path: '/ops/listings', group: 'Manage' },
+  { slug: 'fleet', label: 'Fleet', path: '/ops/fleet', group: 'Manage', mobile: false },
+  { slug: 'operations', label: 'Operations', path: '/ops/operations', group: 'Manage', mobile: false },
+  { slug: 'team', label: 'Captains', path: '/ops/team', group: 'Manage', mobile: false },
+  { slug: 'tolls', label: 'Toll accounts', path: '/ops/tolls', group: 'Manage' },
+  { slug: 'earnings', label: 'Earnings', path: '/ops/earnings', group: 'Money' },
+  { slug: 'performance', label: 'Performance', path: '/ops/performance', group: 'Money', mobile: false },
+  { slug: 'profile', label: 'Profile', path: '/ops/profile', group: 'Account' },
 ];
 
 export function HostSidebar() {
@@ -42,7 +42,7 @@ export function HostSidebar() {
       items={NAV}
       icons={ICONS}
       fallbackIcon={LayoutGrid}
-      exactPaths={['/host']}
+      exactPaths={['/ops']}
       // HostMobileTabBar already covers the mobile bottom nav for every
       // /host/* route (rendered by AppChrome) - without this, that bar and
       // PanelSidebar's own default one stacked on top of each other.

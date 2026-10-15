@@ -35,16 +35,16 @@ export function HostMobileTabBar() {
 
   // Full-height workspaces and the host sign-in render without the bar.
   const hidden =
-    pathname.startsWith('/host/listings/new') || pathname.startsWith('/host/login');
+    pathname.startsWith('/ops/listings/new') || pathname.startsWith('/ops/login');
   if (hidden) return null;
 
   const tabs: HostTab[] = [
-    { href: '/host', label: 'Dashboard', icon: <LayoutGrid />, exact: true },
-    { href: '/host/trips', label: 'Trips', icon: <CarFront /> },
-    { href: '/host/listings', label: 'Listings', icon: <ClipboardList /> },
-    { href: '/host/earnings', label: 'Earnings', icon: <Wallet /> },
-    { href: '/host/inbox', label: 'Inbox', icon: <MessageSquare />, count: unread },
-    { href: '/host/profile', label: 'Menu', icon: <User /> },
+    { href: '/ops', label: 'Dashboard', icon: <LayoutGrid />, exact: true },
+    { href: '/ops/trips', label: 'Trips', icon: <CarFront /> },
+    { href: '/ops/listings', label: 'Listings', icon: <ClipboardList /> },
+    { href: '/ops/earnings', label: 'Earnings', icon: <Wallet /> },
+    { href: '/ops/inbox', label: 'Inbox', icon: <MessageSquare />, count: unread },
+    { href: '/ops/profile', label: 'Menu', icon: <User /> },
   ];
 
   const isOn = (t: HostTab) =>

@@ -28,7 +28,7 @@ export default function HouseFleetLoginPage() {
     setError('');
     try {
       const result = await authApi.login({ email, password });
-      if (!result.user.roles.includes('host')) {
+      if (!result.user.roles.includes('house_fleet')) {
         setError('This account is not the House Fleet account.');
         setBusy(false);
         return;

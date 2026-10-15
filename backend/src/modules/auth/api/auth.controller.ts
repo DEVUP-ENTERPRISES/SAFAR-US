@@ -3,7 +3,8 @@ import { authService, type AuthCtx } from '../application/auth.service';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import type { RegisterDto, LoginDto, RefreshDto } from '../dto/auth.schemas';
 import { AppError } from '../../../core/errors/app-error';
-import { gateSession, mobileAppOf } from '../application/app-audience';
+import { gateSession, mobileAppOf, webPortalOf } from '../application/app-audience';
+import { tokenService } from '../application/token.service';
 
 function ctxOf(req: Request): AuthCtx {
   return { userAgent: req.header('user-agent') ?? undefined, ip: req.ip };
@@ -28,6 +29,11 @@ export class AuthController {
   async refresh(req: Request, res: Response): Promise<void> {
     const { refreshToken } = req.body as RefreshDto;
     const tokens = await authService.refresh(refreshToken);
+    // The operations panel re-checks its audience at every refresh, so a session brought in from elsewhere is cut off.
+    if (webPortalOf(req) === 'ioc') {
+      const { sub, roles } = tokenService.verifyAccess(tokens.accessToken);
+      await gateSession(req, { user: { id: sub, roles }, tokens });
+    }
     sendSuccess(res, tokens);
   }
 

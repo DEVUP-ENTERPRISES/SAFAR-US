@@ -1,5 +1,6 @@
 import type { Request } from 'express';
-import { assertAppAudience, gateSession, mobileAppOf } from './app-audience';
+import { assertAppAudience, gateSession, mobileAppOf, webPortalOf } from './app-audience';
+import { UserModel } from '../../users/infrastructure/user.model';
 import { HostModel } from '../../hosts/infrastructure/host.model';
 import { AssetPartnerModel } from '../../asset-partners/infrastructure/asset-partner.model';
 import { MemberModel } from '../../corporate/infrastructure/corporate.models';
@@ -77,5 +78,56 @@ describe('gateSession', () => {
   it('passes an MFA challenge through untouched', async () => {
     const challenge = { mfaRequired: true };
     await expect(gateSession(req({ 'x-client-type': 'mobile', 'x-app': 'partner' }), challenge)).resolves.toBe(challenge);
+  });
+});
+
+describe('operations panel audience', () => {
+  const seedFleet = async () => {
+    await UserModel.collection.insertMany([
+      { _id: 'fleet', email: 'fleet@x.co', roles: ['host', 'house_fleet'] },
+      { _id: 'owner', email: 'owner@x.co', roles: ['host'] },
+    ] as never[]);
+    await HostModel.collection.insertMany([
+      { _id: 'h-fleet', userId: 'fleet', displayName: 'House Fleet' },
+      { _id: 'h-other', userId: 'owner', displayName: 'Other host' },
+    ] as never[]);
+    await HostStaffModel.collection.insertMany([
+      { _id: 's-fleet', hostId: 'h-fleet', email: 'cap@x.co', userId: 'fleet-cap', status: 'active' },
+      { _id: 's-gone', hostId: 'h-fleet', email: 'old@x.co', userId: 'old-cap', status: 'suspended' },
+      { _id: 's-other', hostId: 'h-other', email: 'oc@x.co', userId: 'other-cap', status: 'active' },
+    ] as never[]);
+  };
+
+  it('lets the House Fleet account and its active captains in', async () => {
+    await seedFleet();
+    await expect(assertAppAudience(undefined, { id: 'fleet', roles: ['host', 'house_fleet'] }, 'ioc')).resolves.toBeUndefined();
+    await expect(assertAppAudience(undefined, { id: 'fleet-cap', roles: ['guest'] }, 'ioc')).resolves.toBeUndefined();
+  });
+
+  it('keeps out other hosts, their captains, suspended captains, guests and staff', async () => {
+    await seedFleet();
+    for (const u of [
+      { id: 'owner', roles: ['host'] },
+      { id: 'other-cap', roles: ['guest'] },
+      { id: 'old-cap', roles: ['guest'] },
+      { id: 'g', roles: ['guest'] },
+      { id: 'adm', roles: ['admin'] },
+    ]) {
+      await expect(assertAppAudience(undefined, u, 'ioc')).rejects.toMatchObject({ code: 'IOC_NOT_OPERATOR' });
+    }
+  });
+
+  it('only applies when the panel names itself', async () => {
+    expect(webPortalOf(req({ 'x-portal': 'ioc' }))).toBe('ioc');
+    expect(webPortalOf(req({}))).toBeUndefined();
+    await expect(assertAppAudience(undefined, { id: 'g', roles: ['guest'] })).resolves.toBeUndefined();
+  });
+
+  it('revokes a refused panel session', async () => {
+    jest.spyOn(tokenService, 'verifyAccess').mockReturnValue({ sid: 'sess-2' } as never);
+    const logout = jest.spyOn(authService, 'logout').mockResolvedValue();
+    const result = { user: { id: 'g', roles: ['guest'] }, tokens: { accessToken: 'a', refreshToken: 'r' } };
+    await expect(gateSession(req({ 'x-portal': 'ioc' }), result)).rejects.toMatchObject({ code: 'IOC_NOT_OPERATOR' });
+    expect(logout).toHaveBeenCalledWith('sess-2');
   });
 });

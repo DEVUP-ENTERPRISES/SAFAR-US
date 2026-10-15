@@ -49,7 +49,7 @@ export default function CaptainQueuePage() {
         ) : (
           <div className="space-y-3">
             {data.trips.map((t) => (
-              <Link key={t._id} href={`/host/trips/${t.bookingId}`}>
+              <Link key={t._id} href={`/ops/trips/${t.bookingId}`}>
                 <Card className="transition hover:border-primary/40">
                   <CardContent className="flex items-center gap-4 py-4">
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted">

@@ -5,14 +5,20 @@ import { securityHeaders } from '../frontend/security-headers.mjs';
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const sharedSrc = path.resolve(dir, '../frontend/src');
 
+// Every page lives under a secret path, like the admin console; a production build without it refuses to run.
+const slug = (process.env.IOC_SLUG ?? '').replace(/^\/+|\/+$/g, '');
+if (process.env.NODE_ENV === 'production' && !slug) throw new Error('IOC_SLUG must be set: the operations panel never runs on an open path');
+const basePath = slug ? `/${slug}` : '';
+
 // Shared code comes from ../frontend/src via `@/*`, as in admin-web and partner-web.
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   output: 'standalone',
-  // Lets shared code know it is running on the CatoDrive operations panel.
-  env: { NEXT_PUBLIC_APP_SURFACE: 'ioc' },
+  ...(basePath ? { basePath } : {}),
+  // Lets shared code know it is running on the CatoDrive operations panel, and where its files are served from.
+  env: { NEXT_PUBLIC_APP_SURFACE: 'ioc', NEXT_PUBLIC_BASE_PATH: basePath },
   experimental: { externalDir: true },
   images: {
     remotePatterns: [
@@ -22,9 +28,13 @@ const nextConfig = {
       { protocol: 'https', hostname: 'picsum.photos' },
     ],
   },
-  // The shared sign-in paths land on this panel's own sign-in.
+  // Shared sign-in paths land on this panel's own sign-in; old host links land on the same page here.
   async redirects() {
-    return ['/login', '/register', '/host/login'].map((source) => ({ source, destination: '/sign-in', permanent: false }));
+    return [
+      ...['/login', '/register', '/host/login'].map((source) => ({ source, destination: '/sign-in', permanent: false })),
+      { source: '/host', destination: '/ops', permanent: false },
+      { source: '/host/:path*', destination: '/ops/:path*', permanent: false },
+    ];
   },
   // Signed-in dashboards only: nothing here belongs in a search index.
   async headers() {

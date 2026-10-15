@@ -13,7 +13,7 @@ export const HOST_SITE = origin(process.env.NEXT_PUBLIC_HOST_URL, 'http://localh
 /** The partner website: the Asset Partner and insurer portals. */
 export const PARTNER_SITE = origin(process.env.NEXT_PUBLIC_PARTNER_URL, 'http://localhost:3010', 'https://partners.catodrive.com');
 
-/** CatoDrive's own operations panel (House Fleet); reached by its own domain, no public path maps to it. */
+/** CatoDrive's operations panel, including its secret path (e.g. https://housefleet.catodrive.com/<slug>); no public path maps to it. */
 export const IOC_SITE = origin(process.env.NEXT_PUBLIC_IOC_URL, 'http://localhost:3030', 'https://housefleet.catodrive.com');
 
 export type Site = 'guest' | 'host' | 'partner' | 'ioc';

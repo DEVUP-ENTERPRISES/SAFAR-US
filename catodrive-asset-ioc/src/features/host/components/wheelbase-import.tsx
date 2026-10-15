@@ -108,7 +108,7 @@ export function WheelbaseImport() {
                     {r.name}: {r.outcome}
                     {r.detail ? <span className="text-muted-foreground"> · {r.detail}</span> : null}
                     {r.vehicleIds.length === 1 && (
-                      <> · <Link href={`/host/listings/${r.vehicleIds[0]}`} className="text-primary underline underline-offset-2">open</Link></>
+                      <> · <Link href={`/ops/listings/${r.vehicleIds[0]}`} className="text-primary underline underline-offset-2">open</Link></>
                     )}
                   </span>
                 </li>
