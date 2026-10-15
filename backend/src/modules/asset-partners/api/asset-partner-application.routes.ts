@@ -57,7 +57,7 @@ router.post(
   }),
 );
 
-router.put(
+router.patch(
   '/asset-partners/me/applications/:id',
   authenticate,
   validate({ body: portalApplicationSchema }),

@@ -15,8 +15,9 @@ import { ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { formatMoney, formatDate } from '@/lib/utils/format';
-import { adminApi } from '@/features/admin/api';
-import { adminPath } from '@/lib/admin-path';
+import { partnerManageApi } from '@/features/asset-partners/manage-api';
+
+const manage = partnerManageApi('/ioc');
 
 /**
  * One Asset Partner: where they are in the programme, the terms actually in
@@ -57,16 +58,16 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-asset-partner', id],
-    queryFn: () => adminApi.assetPartner(id),
+    queryFn: () => manage.partner(id),
   });
   const statement = useQuery({
     queryKey: ['admin-asset-partner-statement', id],
-    queryFn: () => adminApi.assetPartnerStatement(id),
+    queryFn: () => manage.statement(id),
   });
 
   const setStatus = useMutation({
     mutationFn: ({ status, reason }: { status: string; reason?: string }) =>
-      adminApi.setAssetPartnerStatus(id, status, reason),
+      manage.setStatus(id, status, reason),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-asset-partner', id] });
       qc.invalidateQueries({ queryKey: ['admin-asset-partners'] });
@@ -77,7 +78,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
   const saveTerms = useMutation({
     mutationFn: (terms: Record<string, number | string | undefined>) =>
-      adminApi.setAssetPartnerTerms(id, terms),
+      manage.setTerms(id, terms),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-asset-partner', id] });
       qc.invalidateQueries({ queryKey: ['admin-asset-partner-statement', id] });
@@ -132,7 +133,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="space-y-5">
       <Link
-        href={adminPath('partners')}
+        href={'/ops/partners/members'}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" /> Asset Partners

@@ -2,41 +2,24 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Handshake } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { AuthGuard } from '@/components/layout/auth-guard';
-import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useIsAssetPartner } from '@/features/asset-partners/hooks';
-import { goToSite } from '@/lib/sites';
+import { ErrorState } from '@/components/ui/states';
+import { assetPartnerApi } from '@/features/asset-partners/api';
 
-/** Opens the Asset Partner dashboard; an account that isn't a partner yet sees how to join. */
+/** A partner who has finished getting started opens the dashboard; everyone else continues where they left off. */
 function PartnerRouter() {
   const router = useRouter();
-  const isAssetPartner = useIsAssetPartner();
+  const q = useQuery({ queryKey: ['partner-onboarding'], queryFn: () => assetPartnerApi.onboarding() });
+  const target = q.data ? (q.data.stage === 'ready' ? '/dashboard' : '/onboarding') : null;
 
   useEffect(() => {
-    if (isAssetPartner) router.replace('/dashboard');
-  }, [isAssetPartner, router]);
+    if (target) router.replace(target);
+  }, [target, router]);
 
-  if (isAssetPartner !== false) return <Skeleton className="h-48 w-full rounded-2xl" />;
-
-  return (
-    <div className="mx-auto max-w-3xl space-y-6 py-6">
-      <header className="space-y-2">
-        <h1 className="display text-3xl">Welcome to CatoDrive Partners</h1>
-        <p className="text-muted-foreground">This account isn’t an Asset Partner yet.</p>
-      </header>
-      <button type="button" className="block w-full text-start sm:max-w-sm" onClick={() => void goToSite('guest', '/asset-partners')}>
-        <Card className="h-full transition-colors hover:border-primary/40">
-          <CardContent className="space-y-2 p-5">
-            <Handshake className="h-6 w-6 text-primary" />
-            <p className="font-semibold">Asset Partner programme</p>
-            <p className="text-sm text-muted-foreground">We run your car for you and pay you monthly.</p>
-          </CardContent>
-        </Card>
-      </button>
-    </div>
-  );
+  if (q.isError) return <ErrorState message="We couldn’t load your account." retry={() => q.refetch()} />;
+  return <Skeleton className="h-48 w-full rounded-2xl" />;
 }
 
 export default function PartnerHome() {

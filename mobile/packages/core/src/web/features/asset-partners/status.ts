@@ -6,6 +6,7 @@ export type PartnerTone = 'default' | 'success' | 'warning' | 'destructive' | 'm
 /** Where an application stands, in the partner's words. */
 export const APPLICATION_STATUS: Record<ApplicationStatus, { label: string; tone: PartnerTone; detail: string }> = {
   submitted: { label: 'Submitted', tone: 'warning', detail: 'We have your application. A partner manager reviews it and comes back within 2 business days.' },
+  changes_requested: { label: 'Needs changes', tone: 'warning', detail: 'We need a few changes before we can continue. See the note below.' },
   under_review: { label: 'Under review', tone: 'warning', detail: 'Your vehicle and documents are being checked. We’ll call you to arrange the inspection.' },
   approved: { label: 'Approved', tone: 'success', detail: 'You’re approved. Once onboarding and the inspection are done, your car goes live and starts earning.' },
   rejected: { label: 'Not approved', tone: 'destructive', detail: 'We couldn’t take this vehicle on. The reason is below - talk to us if anything has changed.' },

@@ -20,9 +20,9 @@ export function NotAPartner() {
             the programme.
           </p>
         </div>
-        <Link href="/asset-partners/apply">
+        <Link href="/onboarding">
           <Button className="rounded-xl">
-            Apply to become a partner <ArrowRight className="h-4 w-4" />
+            Continue getting started <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
       </CardContent>

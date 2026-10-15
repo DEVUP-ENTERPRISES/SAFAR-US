@@ -483,41 +483,6 @@ export const adminApi = {
   setInsurerCommission: (id: string, commissionBps: number | null) => api.patch(`/admin/insurance-partners/${id}/commission`, { commissionBps }),
   recordInsurerPayout: (id: string, input: { amount: number; reference: string; note?: string }) => api.post(`/admin/insurance-partners/${id}/payouts`, input),
 
-  assetPartnerApplications: (q: Q = {}) => api.get<any[]>('/admin/asset-partner-applications', q),
-  assetPartnerApplication: (id: string) => api.get<any>(`/admin/asset-partner-applications/${id}`),
-  reviewAssetPartnerApplication: (id: string, decision: 'approved' | 'rejected', notes?: string) =>
-    api.post(`/admin/asset-partner-applications/${id}/review`, { decision, notes }),
-
-  // The programme itself - members, lifecycle and negotiated terms. Separate
-  // from the intake queue above, and from hosts: a partner is paid a monthly
-  // net after a management fee, insurance and detailing, which no host is.
-  assetPartners: (q: Q = {}) => api.get<any[]>('/admin/asset-partners', q),
-
-  /**
-   * Add a partner who never applied - the owners who signed before the site
-   * existed. Only what ops actually knows; the partner supplies payout
-   * details and documents themselves from their portal.
-   */
-  addAssetPartner: (input: {
-    email: string;
-    fullName: string;
-    businessName?: string;
-    phone?: string;
-    partnerType: 'individual' | 'business' | 'fleet';
-    notify?: boolean;
-  }) =>
-    api.post<{ partner: { _id: string; displayName: string }; alreadyExisted: boolean; accountCreated: boolean }>(
-      '/admin/asset-partners',
-      input,
-    ),
-  assetPartner: (id: string) => api.get<any>(`/admin/asset-partners/${id}`),
-  assetPartnerStatement: (id: string, period?: string) =>
-    api.get<any>(`/admin/asset-partners/${id}/statement`, period ? { period } : {}),
-  setAssetPartnerStatus: (id: string, status: string, reason?: string) =>
-    api.post(`/admin/asset-partners/${id}/status`, { status, reason }),
-  setAssetPartnerTerms: (id: string, terms: Record<string, number | string | undefined>) =>
-    api.patch(`/admin/asset-partners/${id}/terms`, terms),
-
   // Contact page leads - every inbound inquiry (asset partner, investor,
   // corporate, general) lands here so ops sees who's reaching out in one place.
   contactInquiries: (q: Q = {}) => api.get<any[]>('/admin/contact-inquiries', q),

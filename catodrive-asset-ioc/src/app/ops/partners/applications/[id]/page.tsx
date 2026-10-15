@@ -2,20 +2,25 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, MessageSquareWarning, XCircle, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
-import { adminApi } from '@/features/admin/api';
+import { partnerManageApi, type ReviewDecision } from '@/features/asset-partners/manage-api';
+import { APPLICATION_STATUS } from '@/features/asset-partners/status';
+import type { ApplicationStatus } from '@/features/asset-partners/api';
+
+const manage = partnerManageApi('/ioc');
 import { formatDate } from '@/lib/utils/format';
 
 interface ApplicationDetail {
   _id: string;
   reference: string;
-  status: string;
+  status: ApplicationStatus;
+  kind?: 'partner' | 'vehicle';
   fullName: string; businessName?: string; partnerType: string; email: string; phone: string;
   address: string; city: string; state: string; zip: string; referral?: string;
   vehicle: { year: string; make: string; model: string; trim?: string; mileage: number; exteriorColor?: string; interiorColor?: string; vin: string; plate: string };
@@ -29,10 +34,6 @@ interface ApplicationDetail {
   createdAt: string;
 }
 
-const TONE: Record<string, 'success' | 'warning' | 'destructive' | 'muted'> = {
-  approved: 'success', submitted: 'warning', under_review: 'warning', rejected: 'destructive',
-};
-
 export default function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -41,27 +42,35 @@ export default function ApplicationDetailPage() {
 
   const { data: a, isLoading, isError } = useQuery({
     queryKey: ['asset-partner-application', id],
-    queryFn: () => adminApi.assetPartnerApplication(id) as Promise<ApplicationDetail>,
+    queryFn: () => manage.application(id) as Promise<ApplicationDetail>,
   });
 
   const review = useMutation({
-    mutationFn: (decision: 'approved' | 'rejected') => adminApi.reviewAssetPartnerApplication(id, decision),
+    mutationFn: ({ decision, notes }: { decision: ReviewDecision; notes?: string }) => manage.reviewApplication(id, decision, notes),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['asset-partner-application', id] });
-      qc.invalidateQueries({ queryKey: ['asset-partner-applications'] });
+      qc.invalidateQueries({ queryKey: ['ioc-partner-applications'] });
+      qc.invalidateQueries({ queryKey: ['ioc-partner-summary'] });
     },
   });
 
-  const decide = async (decision: 'approved' | 'rejected') => {
-    const { ok } = await confirm({
-      title: decision === 'approved' ? `Approve ${a?.fullName}?` : `Reject ${a?.fullName}?`,
-      description: decision === 'approved'
-        ? 'Their CatoDrive account (if one exists for this email) will be verified as a host, unlocking vehicle listing. If no account exists yet, they’ll need to register before this takes effect.'
-        : 'This application will be marked rejected. The applicant is not notified automatically.',
-      confirmLabel: decision === 'approved' ? 'Approve application' : 'Reject application',
-      tone: decision === 'approved' ? 'default' : 'destructive',
+  const decide = async (decision: ReviewDecision) => {
+    const vehicle = a?.kind === 'vehicle';
+    const copy: Record<ReviewDecision, { title: string; description: string; label: string }> = {
+      approved: vehicle
+        ? { title: `Approve this ${a?.vehicle.make} ${a?.vehicle.model}?`, description: 'The partner is told it is approved. Arrange the inspection and list the car as usual.', label: 'Approve car' }
+        : { title: `Approve ${a?.fullName}?`, description: 'They become an Asset Partner and are asked to sign the agreement and add payout details before their dashboard opens.', label: 'Approve partner' },
+      changes_requested: { title: 'Ask for changes?', description: 'The applicant sees your note, corrects the application and sends it again.', label: 'Send back' },
+      rejected: { title: `Reject ${a?.fullName}?`, description: 'The applicant is told, with your note. This cannot be undone.', label: 'Reject' },
+    };
+    const { ok, reason } = await confirm({
+      title: copy[decision].title,
+      description: copy[decision].description,
+      confirmLabel: copy[decision].label,
+      tone: decision === 'rejected' ? 'destructive' : 'default',
+      reason: decision === 'approved' ? { label: 'Note (optional)' } : { label: 'Note for the applicant', required: true },
     });
-    if (ok) review.mutate(decision);
+    if (ok) review.mutate({ decision, notes: reason || undefined });
   };
 
   if (isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
@@ -81,16 +90,19 @@ export default function ApplicationDetailPage() {
           <h1 className="display text-2xl">{a.fullName}</h1>
           {a.businessName && <p className="text-sm text-muted-foreground">{a.businessName}</p>}
         </div>
-        <Badge tone={TONE[a.status]}>{a.status.replace('_', ' ')}</Badge>
+        <div className="flex flex-wrap gap-2">
+          {a.kind === 'vehicle' && <Badge>Extra car</Badge>}
+          <Badge tone={APPLICATION_STATUS[a.status].tone}>{APPLICATION_STATUS[a.status].label}</Badge>
+        </div>
       </div>
 
       {a.status === 'approved' && (
-        <Card className={a.hostVerified ? 'border-success/40 bg-success/5' : 'border-warning/40 bg-warning/5'}>
+        <Card className="border-success/40 bg-success/5">
           <CardContent className="flex items-center gap-3 py-4 text-sm">
             <ShieldCheck className="h-5 w-5 shrink-0" />
-            {a.hostVerified
-              ? 'Host account verified — this partner can now list a vehicle.'
-              : `No CatoDrive account exists yet for ${a.email}. Once they register, revisit this application or verify their host manually.`}
+            {a.kind === 'vehicle'
+              ? 'Approved. Arrange the inspection and list this car under the partner.'
+              : 'Approved. The partner now signs the agreement and adds payout details in their portal.'}
           </CardContent>
         </Card>
       )}
@@ -148,22 +160,28 @@ export default function ApplicationDetailPage() {
 
       {a.reviewedAt && (
         <Section title="Review">
-          <Row label="Decision" value={a.status} />
+          <Row label="Decision" value={APPLICATION_STATUS[a.status].label} />
           <Row label="Reviewed" value={formatDate(a.reviewedAt)} />
           {a.reviewNotes && <Row label="Notes" value={a.reviewNotes} />}
         </Section>
       )}
 
       {!decided && (
-        <div className="flex gap-3">
-          <Button loading={review.isPending} onClick={() => decide('approved')}>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button loading={review.isPending} onClick={() => void decide('approved')}>
             <CheckCircle2 className="h-4 w-4" /> Approve
           </Button>
-          <Button variant="outline" className="text-destructive" loading={review.isPending} onClick={() => decide('rejected')}>
+          {a.status !== 'changes_requested' && (
+            <Button variant="outline" disabled={review.isPending} onClick={() => void decide('changes_requested')}>
+              <MessageSquareWarning className="h-4 w-4" /> Ask for changes
+            </Button>
+          )}
+          <Button variant="outline" className="text-destructive" disabled={review.isPending} onClick={() => void decide('rejected')}>
             <XCircle className="h-4 w-4" /> Reject
           </Button>
         </div>
       )}
+      {review.isError && <p role="alert" className="text-sm text-destructive">{review.error instanceof Error ? review.error.message : 'That didn’t work'}</p>}
     </div>
   );
 }
@@ -181,7 +199,7 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
   return (
     <div className="flex items-start justify-between gap-4 text-sm">
       <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className={`text-right font-medium ${mono ? 'font-mono' : ''}`}>{value}</span>
+      <span className={`min-w-0 break-words text-right font-medium ${mono ? 'font-mono' : ''}`}>{value}</span>
     </div>
   );
 }

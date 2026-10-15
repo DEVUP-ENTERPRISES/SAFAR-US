@@ -3,7 +3,7 @@ import { config } from '@/lib/config';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.catodrive.com';
 
-const PAGES = ['', '/search', '/about', '/asset-partners', '/asset-partners/apply', '/insurance', '/insurers', '/membership', '/calculator', '/help', '/contact', '/investors', '/terms', '/privacy', '/legal'];
+const PAGES = ['', '/search', '/about', '/asset-partners', '/insurance', '/membership', '/calculator', '/help', '/contact', '/investors', '/terms', '/privacy', '/legal'];
 
 export const revalidate = 3600;
 

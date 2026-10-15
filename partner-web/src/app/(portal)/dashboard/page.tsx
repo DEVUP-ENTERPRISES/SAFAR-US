@@ -100,7 +100,7 @@ export default function PartnerDashboardPage() {
         }
         actions={
           hasApplied || isPartner ? (
-            <Link href="/asset-partners/apply">
+            <Link href="/vehicles/new">
               <Button variant="outline">Add another vehicle</Button>
             </Link>
           ) : undefined
@@ -131,7 +131,7 @@ function NotAppliedYet() {
             service it - you keep 80% of every booking.
           </p>
         </div>
-        <Link href="/asset-partners/apply">
+        <Link href="/onboarding">
           <Button size="lg" className="rounded-xl">
             Apply to become a partner <ArrowRight className="h-4 w-4" />
           </Button>

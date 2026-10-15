@@ -42,10 +42,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
    * operator edits a host rate and silently believes they changed partner
    * economics too. Listed first because it is the primary acquisition path.
    */
-  { slug: 'asset-partners', path: A('asset-partners'), apiPath: '/admin/asset-partner-applications', label: 'Applications', group: 'Asset Partners', permission: 'admin:read' },
-  // The programme itself, separate from the intake queue: members, their
-  // lifecycle and their negotiated terms.
-  { slug: 'partners', path: A('partners'), apiPath: '/admin/asset-partners', label: 'Partners', group: 'Asset Partners', permission: 'admin:read' },
+  { slug: 'asset-partners', path: A('asset-partners'), apiPath: '/admin/asset-partners/summary', label: 'Overview', group: 'Asset Partners', permission: 'admin:read' },
   // The programme's own economics. Backed by the same platform-config
   // document as Platform Economics, but a deliberately separate screen: these
   // are the partner-agreement figures, and none of them is a commission rule.

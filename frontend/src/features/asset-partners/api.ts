@@ -51,7 +51,27 @@ export interface CreateAssetPartnerApplicationInput {
   signDate: string;
 }
 
-export type ApplicationStatus = 'submitted' | 'under_review' | 'approved' | 'rejected';
+export type ApplicationStatus = 'submitted' | 'under_review' | 'changes_requested' | 'approved' | 'rejected';
+
+/** From the partner portal the account's own email is used. */
+export type PortalApplicationInput = Omit<CreateAssetPartnerApplicationInput, 'email'>;
+
+export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'agreement' | 'payout' | 'ready';
+
+export interface PartnerOnboarding {
+  stage: OnboardingStage;
+  email?: string;
+  emailVerified: boolean;
+  application?: PartnerApplicationDetail;
+  partner?: { displayName: string; status: PartnerStatus };
+  agreement?: { version: number; title: string; body: string } | null;
+  payoutMethod?: 'check' | 'zelle';
+}
+
+export interface VinLookup {
+  decoded: { vin: string; year?: number; make?: string; model?: string; trim?: string } | null;
+  alreadyWithUs: boolean;
+}
 
 export interface PartnerApplication {
   _id: string;
@@ -69,6 +89,27 @@ export interface PartnerApplication {
   reviewedAt?: string;
   reviewNotes?: string;
   hostVerified?: boolean;
+  kind?: 'partner' | 'vehicle';
+}
+
+/** Everything an application holds, as the applicant entered it. */
+export interface PartnerApplicationDetail extends PartnerApplication {
+  partnerType: 'individual' | 'business' | 'fleet';
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  ownership: 'owned' | 'financed' | 'leased';
+  lienholder?: string;
+  hadAccident: boolean;
+  accidentDetail?: string;
+  smokeFree: boolean;
+  petFree: boolean;
+  photos: { url: string; key?: string; label?: string }[];
+  insurance: { carrier: string; policyNumber: string; coverageType: 'full' | 'liability' | 'unsure'; policyExpiry?: string };
+  notes?: string;
+  signature: string;
+  signedAt: string;
 }
 
 export interface PartnerVehicleSummary {
@@ -220,6 +261,13 @@ export const assetPartnerApi = {
   vehicles: () => api.get<PartnerVehicleSummary[]>('/asset-partners/vehicles'),
   vehicle: (id: string) => api.get<PartnerVehicleDetail>(`/asset-partners/vehicles/${id}`),
   statements: (months = 12) => api.get<PartnerStatement[]>('/asset-partners/statements', { months }),
+
+  // Getting started on the partner portal.
+  onboarding: () => api.get<PartnerOnboarding>('/asset-partners/onboarding'),
+  submitApplication: (input: PortalApplicationInput) => api.post<PartnerApplicationDetail>('/asset-partners/me/applications', input),
+  resubmitApplication: (id: string, input: PortalApplicationInput) => api.patch<PartnerApplicationDetail>(`/asset-partners/me/applications/${id}`, input),
+  signAgreement: (version: number, signedName: string) => api.post('/asset-partners/me/agreement', { version, signedName, accept: true }),
+  lookupVin: (vin: string) => api.get<VinLookup>(`/asset-partners/vin/${encodeURIComponent(vin)}`),
 
   // Self-service payout recipient details. NOT terms - see the backend route.
   setPayoutDetails: (details: PayoutDetails) =>

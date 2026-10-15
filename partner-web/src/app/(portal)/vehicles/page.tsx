@@ -14,6 +14,9 @@ import { PartnerVehicleCard } from '~/components/portal/vehicle-card';
 import { NotAPartner } from '~/components/portal/not-a-partner';
 import { assetPartnerApi } from '@/features/asset-partners/api';
 import { ApiError } from '@/lib/api/types';
+import { Badge } from '@/components/ui/badge';
+import { APPLICATION_STATUS } from '@/features/asset-partners/status';
+import { formatDate } from '@/lib/utils/format';
 
 /**
  * Every car in the programme, with what each is actually earning.
@@ -72,11 +75,13 @@ export default function PartnerVehiclesPage() {
         title="Your vehicles"
         description="Every car in the programme, and what each earned this month."
         actions={
-          <Link href="/asset-partners/apply">
+          <Link href="/vehicles/new">
             <Button variant="outline">Add another vehicle</Button>
           </Link>
         }
       />
+
+      <CarRequests />
 
       {data.length === 0 ? (
         <Card>
@@ -118,5 +123,32 @@ export default function PartnerVehiclesPage() {
         </>
       )}
     </div>
+  );
+}
+
+/** Cars this partner has offered that CatoDrive is still reviewing or has sent back. */
+function CarRequests() {
+  const q = useQuery({ queryKey: ['asset-partner-dashboard'], queryFn: () => assetPartnerApi.dashboard() });
+  const open = (q.data?.applications ?? []).filter((a) => a.kind === 'vehicle' && a.status !== 'approved');
+  if (!open.length) return null;
+  return (
+    <section className="space-y-3">
+      <h2 className="text-lg font-bold">Cars you’ve offered</h2>
+      <Card>
+        <CardContent className="divide-y divide-border p-0">
+          {open.map((a) => (
+            <div key={a._id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="font-medium">{a.vehicle.year} {a.vehicle.make} {a.vehicle.model}</p>
+                <p className="text-xs text-muted-foreground">{a.reference} · sent {formatDate(a.createdAt)}</p>
+                {a.reviewNotes && a.status !== 'submitted' && <p className="mt-1 text-sm text-muted-foreground">{a.reviewNotes}</p>}
+                {a.status === 'changes_requested' && <Link href={`/vehicles/new?edit=${a._id}`} className="mt-1 inline-block text-sm font-semibold text-primary hover:underline">Update and send again</Link>}
+              </div>
+              <Badge tone={APPLICATION_STATUS[a.status].tone} className="self-start sm:self-center">{APPLICATION_STATUS[a.status].label}</Badge>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </section>
   );
 }

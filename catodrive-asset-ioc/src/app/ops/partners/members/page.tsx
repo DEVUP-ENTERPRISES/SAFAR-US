@@ -15,8 +15,10 @@ import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { formatDate } from '@/lib/utils/format';
-import { adminApi } from '@/features/admin/api';
-import { adminPath } from '@/lib/admin-path';
+import { partnerManageApi } from '@/features/asset-partners/manage-api';
+import { PartnersNav } from '~/features/partners/partners-nav';
+
+const manage = partnerManageApi('/ioc');
 import { ApiError } from '@/lib/api/types';
 
 /**
@@ -53,12 +55,12 @@ export default function AdminAssetPartnersPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-asset-partners', status],
-    queryFn: () => adminApi.assetPartners({ status: status || undefined }),
+    queryFn: () => manage.partners({ status: status || undefined }),
   });
 
   const add = useMutation({
     mutationFn: () =>
-      adminApi.addAssetPartner({
+      manage.addPartner({
         fullName: form.fullName.trim(),
         email: form.email.trim(),
         phone: form.phone.trim() || undefined,
@@ -96,7 +98,7 @@ export default function AdminAssetPartnersPage() {
     {
       header: 'Partner',
       cell: (p) => (
-        <Link href={adminPath(`partners/${p._id}`)} className="font-medium hover:underline">
+        <Link href={`/ops/partners/members/${p._id}`} className="font-medium hover:underline">
           {p.displayName}
         </Link>
       ),
@@ -134,6 +136,7 @@ export default function AdminAssetPartnersPage() {
           </Button>
         }
       />
+      <PartnersNav />
 
       {/*
         Direct entry, for owners who never applied — the fleet that predates

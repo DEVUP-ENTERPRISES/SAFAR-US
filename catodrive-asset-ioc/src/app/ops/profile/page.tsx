@@ -10,6 +10,7 @@ import { useHostMe, useUpdateHostProfile } from '~/features/host/hooks';
 import { AvatarUpload } from '@/components/ui/avatar-upload';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { PhoneSections } from '~/features/host/components/phone-sections';
 import { EMPTY_HOST_PROFILE, hostProfileForm, hostProfilePatch, type HostProfileForm } from '~/features/host/profile-form';
 
 export default function HostProfilePage() {
@@ -31,6 +32,7 @@ export default function HostProfilePage() {
 
   return (
     <div className="max-w-2xl space-y-6">
+      <PhoneSections />
       <h1 className="display text-display-sm">Host profile</h1>
 
       <Card>

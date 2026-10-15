@@ -4,12 +4,14 @@ const PROD = process.env.NODE_ENV === 'production';
 const origin = (value, dev, prod) => (value ?? (PROD ? prod : dev)).replace(/\/$/, '');
 
 // Pages that live on the other websites, kept in step with siteForPath() in src/lib/sites.ts.
+const PARTNER_SITE = origin(process.env.NEXT_PUBLIC_PARTNER_URL, 'http://localhost:3010', 'https://partners.catodrive.com');
+
 const SITE_SECTIONS = [
   // The host website (self-serve hosts and their captains) - see host-web/.
   { origin: origin(process.env.NEXT_PUBLIC_HOST_URL, 'http://localhost:3020', 'https://host.catodrive.com'), sections: ['/host', '/captain'] },
   // The partner website (the Asset Partner portal) - see partner-web/.
   {
-    origin: origin(process.env.NEXT_PUBLIC_PARTNER_URL, 'http://localhost:3010', 'https://partners.catodrive.com'),
+    origin: PARTNER_SITE,
     sections: ['/asset-partners/:section(dashboard|vehicles|statements|maintenance|documents|profile)'],
   },
 ];
@@ -48,7 +50,9 @@ const nextConfig = {
    * mapping can change without browsers caching it forever.
    */
   async redirects() {
-    return SITE_SECTIONS.flatMap(({ origin: site, sections }) =>
+    // Partners apply from their own account on the partner site.
+    const apply = { source: '/asset-partners/apply', destination: `${PARTNER_SITE}/sign-up`, permanent: false };
+    return [apply, ...SITE_SECTIONS.flatMap(({ origin: site, sections }) =>
       sections.flatMap((section) => {
         // The destination keeps the matched section name but drops its pattern.
         const to = `${site}${section.replace(/\(.*\)$/, '')}`;
@@ -57,7 +61,7 @@ const nextConfig = {
           { source: `${section}/:path*`, destination: `${to}/:path*`, permanent: false },
         ];
       }),
-    );
+    )];
   },
   images: {
     remotePatterns: [

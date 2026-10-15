@@ -35,7 +35,7 @@ const nextConfig = {
       { source: `/asset-partners/${section}`, destination: '/:section', permanent: false },
       { source: `/asset-partners/${section}/:path*`, destination: '/:section/:path*', permanent: false },
       { source: '/login', destination: '/sign-in', permanent: false },
-      { source: '/register', destination: '/sign-in', permanent: false },
+      { source: '/register', destination: '/sign-up', permanent: false },
     ];
   },
   // Signed-in dashboards only: nothing here belongs in a search index.

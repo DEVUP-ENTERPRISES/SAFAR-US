@@ -1,94 +1,56 @@
 'use client';
 
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import Link from 'next/link';
-import { Car, Users } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Chip } from '@/components/ui/chip';
+import { Car, CheckCircle2, Clock, Handshake, MessageSquareWarning, PauseCircle, UserPlus, XCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/states';
 import { StatTile } from '@/components/ui/stat-tile';
-import { DataTable, type Column } from '@/features/admin/components/data-table';
-import { adminApi } from '@/features/admin/api';
-import { formatDate } from '@/lib/utils/format';
-import { adminPath } from '@/lib/admin-path';
+import { partnerManageApi } from '@/features/asset-partners/manage-api';
 
-interface Application {
-  _id: string;
-  reference: string;
-  status: 'submitted' | 'under_review' | 'approved' | 'rejected';
-  fullName: string;
-  businessName?: string;
-  email: string;
-  vehicle: { year: string; make: string; model: string };
-  availability: string;
-  createdAt: string;
-}
+const manage = partnerManageApi('/admin');
 
-const TONE: Record<string, 'success' | 'warning' | 'destructive' | 'muted'> = {
-  approved: 'success', submitted: 'warning', under_review: 'warning', rejected: 'destructive',
-};
-
-export default function AssetPartnerApplicationsPage() {
-  const [status, setStatus] = useState('');
-  const { data, isLoading } = useQuery({
-    queryKey: ['asset-partner-applications', status],
-    queryFn: () => adminApi.assetPartnerApplications({ status: status || undefined }) as Promise<Application[]>,
-  });
-
-  const pending = (data ?? []).filter((a) => a.status === 'submitted' || a.status === 'under_review').length;
-  const approved = (data ?? []).filter((a) => a.status === 'approved').length;
-
-  const columns: Column<Application>[] = [
-    {
-      header: 'Applicant',
-      cell: (a) => (
-        <div>
-          <p className="font-medium">{a.fullName}</p>
-          <p className="text-xs text-muted-foreground">{a.businessName || a.email}</p>
-        </div>
-      ),
-    },
-    {
-      header: 'Vehicle',
-      cell: (a) => <span>{a.vehicle.year} {a.vehicle.make} {a.vehicle.model}</span>,
-    },
-    { header: 'Reference', cell: (a) => <span className="font-mono text-xs">{a.reference}</span> },
-    { header: 'Submitted', cell: (a) => <span className="text-xs">{formatDate(a.createdAt)}</span> },
-    { header: 'Status', cell: (a) => <Badge tone={TONE[a.status] ?? 'muted'}>{a.status.replace('_', ' ')}</Badge> },
-    {
-      header: 'Actions',
-      className: 'text-end',
-      cell: (a) => (
-        <Link href={adminPath(`asset-partners/${a._id}`)}>
-          <span className="text-sm font-medium text-primary hover:underline">Review →</span>
-        </Link>
-      ),
-    },
-  ];
+/** Headline numbers only; applications, partners and the agreement are run from the operations panel. */
+export default function AssetPartnersOverviewPage() {
+  const q = useQuery({ queryKey: ['admin-asset-partner-summary'], queryFn: () => manage.summary() });
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="People · Primary acquisition"
-        title="Asset Partner Applications"
-        description="Vehicle intake submissions from CatoDrive's primary acquisition path. Approving verifies the applicant as a host — the gate before they can list a vehicle."
+        eyebrow="Asset Partners"
+        title="Asset Partners at a glance"
+        description="Reviewing applications, partners and the agreement happens in the CatoDrive operations panel."
       />
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <StatTile tone="warning" icon={<Users className="h-5 w-5" />} label="Awaiting review" value={pending} />
-        <StatTile tone="success" icon={<Car className="h-5 w-5" />} label="Approved" value={approved} />
-      </div>
-
-      <div className="flex gap-2">
-        {['', 'submitted', 'under_review', 'approved', 'rejected'].map((s) => (
-          <Chip key={s || 'all'} active={status === s} onClick={() => setStatus(s)} className="capitalize">
-            {s ? s.replace('_', ' ') : 'All'}
-          </Chip>
-        ))}
-      </div>
-
-      <DataTable columns={columns} rows={data} isLoading={isLoading} emptyTitle="No applications" emptyDescription="Asset Partner intake submissions appear here." />
+      {q.isLoading ? (
+        <Skeleton className="h-64 w-full rounded-2xl" />
+      ) : q.isError || !q.data ? (
+        <ErrorState message="Couldn’t load the numbers." retry={() => q.refetch()} />
+      ) : (
+        <>
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Applications</h2>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <StatTile tone="warning" icon={<Clock className="h-5 w-5" />} label="Waiting for review" value={(q.data.applications.submitted ?? 0) + (q.data.applications.under_review ?? 0)} />
+              <StatTile icon={<MessageSquareWarning className="h-5 w-5" />} label="Sent back for changes" value={q.data.applications.changes_requested ?? 0} />
+              <StatTile tone="success" icon={<CheckCircle2 className="h-5 w-5" />} label="Approved" value={q.data.applications.approved ?? 0} />
+              <StatTile icon={<XCircle className="h-5 w-5" />} label="Not approved" value={q.data.applications.rejected ?? 0} />
+            </div>
+          </section>
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Partners and cars</h2>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <StatTile tone="success" icon={<Handshake className="h-5 w-5" />} label="Active partners" value={q.data.partners.active ?? 0} />
+              <StatTile tone="warning" icon={<UserPlus className="h-5 w-5" />} label="Onboarding" value={q.data.partners.onboarding ?? 0} />
+              <StatTile icon={<PauseCircle className="h-5 w-5" />} label="Suspended" value={q.data.partners.suspended ?? 0} />
+              <StatTile icon={<Car className="h-5 w-5" />} label="Partner cars" value={q.data.vehicles} />
+            </div>
+          </section>
+          <Card>
+            <CardContent className="p-4 text-sm text-muted-foreground">Programme terms (management fee, insurance, detailing, payout day) are still set here under Programme Terms.</CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

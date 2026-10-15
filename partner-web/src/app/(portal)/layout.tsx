@@ -1,7 +1,11 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { AuthGuard } from '@/components/layout/auth-guard';
+import { Skeleton } from '@/components/ui/skeleton';
+import { assetPartnerApi } from '@/features/asset-partners/api';
 import { PartnerSidebar } from '~/components/portal/partner-sidebar';
 
 /**
@@ -18,9 +22,23 @@ import { PartnerSidebar } from '~/components/portal/partner-sidebar';
  * own "you're not in the programme yet" state against real data rather than
  * this layout guessing.
  */
+// The dashboard stays closed until getting started is finished; the server enforces the same rule.
+function ReadyGate({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const q = useQuery({ queryKey: ['partner-onboarding'], queryFn: () => assetPartnerApi.onboarding() });
+  const ready = q.data?.stage === 'ready';
+  useEffect(() => {
+    if (q.data && !ready) router.replace('/onboarding');
+  }, [q.data, ready, router]);
+  // If the check itself fails, the pages still load and show their own errors.
+  if (!ready && !q.isError) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  return <>{children}</>;
+}
+
 export default function AssetPartnerPortalLayout({ children }: { children: ReactNode }) {
   return (
     <AuthGuard loginPath="/sign-in">
+      <ReadyGate>
       {/*
         pb-24 (a flat 96px) used to reserve clearance for PartnerSidebar's
         mobile bar - its real height is 4rem (64px) plus the safe-area inset,
@@ -34,6 +52,7 @@ export default function AssetPartnerPortalLayout({ children }: { children: React
         <PartnerSidebar />
         <div className="min-w-0 flex-1">{children}</div>
       </div>
+      </ReadyGate>
     </AuthGuard>
   );
 }

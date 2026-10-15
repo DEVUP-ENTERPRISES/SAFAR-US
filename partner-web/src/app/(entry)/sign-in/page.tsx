@@ -29,7 +29,7 @@ function SignIn() {
   return (
     <div>
       <h2 className="display text-3xl sm:text-4xl">Asset Partner sign-in</h2>
-      <p className="mt-2 text-muted-foreground">Sign in with the email you applied with.</p>
+      <p className="mt-2 text-muted-foreground">Sign in to your partner account.</p>
       <form onSubmit={handleSubmit((v) => login.mutate(v))} className="mt-8 space-y-4">
         <Field label="Email" htmlFor="email" error={formState.errors.email?.message}>
           <Input id="email" type="email" autoComplete="username" {...register('email')} />
@@ -54,6 +54,9 @@ function SignIn() {
           {mfaRequired ? 'Verify & sign in' : 'Sign in'}
         </Button>
       </form>
+      <p className="mt-6 text-sm text-muted-foreground">
+        New to CatoDrive? <Link href="/sign-up" className="font-bold text-primary hover:underline">Become a partner</Link>
+      </p>
     </div>
   );
 }

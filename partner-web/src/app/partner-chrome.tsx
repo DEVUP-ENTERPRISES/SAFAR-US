@@ -12,7 +12,7 @@ import { useAuthStore } from '@/features/auth/store';
 import { useLogout } from '@/features/auth/hooks';
 import { goToSite } from '@/lib/sites';
 
-const BARE = ['/sign-in', '/forgot-password', '/handoff'];
+const BARE = ['/sign-in', '/sign-up', '/forgot-password', '/handoff'];
 
 /** The partner site's frame: brand, a way back to catodrive.com, and sign out. */
 export function PartnerChrome({ children }: { children: ReactNode }) {
