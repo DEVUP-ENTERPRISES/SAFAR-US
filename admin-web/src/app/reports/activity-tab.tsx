@@ -6,7 +6,7 @@ import { TrendingUp, Users, Receipt, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
-import { PageHeader } from '@/components/ui/page-header';
+import { TabIntro } from '@/features/admin/components/page-tabs';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart, LineChart, Donut } from '@/components/ui/charts';
 import { formatMoney } from '@/lib/utils/format';
@@ -48,7 +48,7 @@ function Ranked({
   );
 }
 
-export default function AdminAnalyticsPage() {
+export function AdminAnalyticsPage() {
   const [days, setDays] = useState(30);
   const { data, isLoading } = useQuery({
     queryKey: ['admin-analytics', days],
@@ -60,9 +60,7 @@ export default function AdminAnalyticsPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow="Overview"
-        title="Analytics"
+      <TabIntro
         description="Demand, revenue and conversion across the marketplace. Aggregated live from bookings, listings and signups — nothing is precomputed."
         actions={
           <div className="flex gap-1 rounded-lg border border-border bg-card p-1">

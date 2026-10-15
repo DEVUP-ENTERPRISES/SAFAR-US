@@ -71,19 +71,8 @@ function AdminShell({ children }: { children: ReactNode }) {
   );
 }
 
-const HF_SLUG = process.env.NEXT_PUBLIC_CATODRIVE_ASSET_IOC_SLUG || process.env.NEXT_PUBLIC_HOUSE_FLEET_SLUG || '';
-const HF_HOST = process.env.NEXT_PUBLIC_CATODRIVE_ASSET_IOC_HOST || process.env.NEXT_PUBLIC_HOUSE_FLEET_HOST || '';
-
-export function AdminChrome({ children, host }: { children: ReactNode; host: string }) {
+export function AdminChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  // usePathname() reports the browser's actual URL, not middleware's rewritten
-  // destination — so the exemption has to match what the browser really has:
-  // the slug path on the shared domain, or the bare subdomain host itself.
-  const onHouseFleet =
-    (HF_SLUG && pathname?.startsWith(`/${HF_SLUG}`)) || (HF_HOST && host === HF_HOST);
-  if (onHouseFleet) {
-    return <>{children}</>;
-  }
   // The admin login page is public — everything else requires an admin session.
   if (pathname === adminPath('login')) {
     return <div className="flex min-h-screen items-center justify-center px-4">{children}</div>;

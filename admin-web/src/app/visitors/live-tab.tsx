@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
-import { PageHeader } from '@/components/ui/page-header';
+import { TabIntro } from '@/features/admin/components/page-tabs';
 import { StatTile } from '@/components/ui/stat-tile';
 import { adminApi, type TrafficSource } from '@/features/admin/api';
 
@@ -39,7 +39,7 @@ function Ranked({ rows }: { rows: { label: string; count: number }[] }) {
   );
 }
 
-export default function LiveTrafficPage() {
+export function LiveTrafficPage() {
   // Polling rather than a socket push: visitor volume here is low enough
   // that a 5s refresh reads as "live" without adding a second realtime
   // transport just for this one screen.
@@ -51,9 +51,7 @@ export default function LiveTrafficPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow="Overview"
-        title="Live Traffic"
+      <TabIntro
         description="Who's on the site right now, where they came from, and what they're looking at. Updates every 5 seconds."
       />
 

@@ -27,9 +27,9 @@ const A = (sub?: string) => (sub ? `${config.adminPanel.basePath}/${sub}` : conf
 
 export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'dashboard', path: A(), apiPath: '/admin/metrics', label: 'Dashboard', group: 'Overview', permission: 'admin:read' },
-  { slug: 'analytics', path: A('analytics'), apiPath: '/admin/analytics', label: 'Analytics', group: 'Overview', permission: 'analytics:read' },
-  { slug: 'live-traffic', path: A('live-traffic'), apiPath: '/admin/analytics/live-traffic', label: 'Live Traffic', group: 'Overview', permission: 'analytics:read' },
-  { slug: 'geo-intelligence', path: A('geo-intelligence'), apiPath: '/admin/analytics/geo', label: 'Geographic Intelligence', group: 'Overview', permission: 'analytics:read' },
+  // Money, revenue by source and bookings & users, as tabs of one page.
+  { slug: 'reports', path: A('reports'), apiPath: '/admin/finance', label: 'Reports', group: 'Overview', permission: 'analytics:read' },
+  { slug: 'visitors', path: A('visitors'), apiPath: '/admin/analytics/live-traffic', label: 'Visitors', group: 'Overview', permission: 'analytics:read' },
 
   /*
    * Asset Partners gets its own group, not a few entries scattered through
@@ -75,8 +75,6 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'payouts', path: A('payouts'), apiPath: '/admin/payouts', label: 'Payouts', group: 'Business', permission: 'payout:manage' },
 
   { slug: 'commission', path: A('commission'), apiPath: '/admin/commission-rules', label: 'Commission', group: 'Revenue', permission: 'admin:read' },
-  { slug: 'finance', path: A('finance'), apiPath: '/admin/finance', label: 'Finance', group: 'Revenue', permission: 'analytics:read' },
-  { slug: 'revenue-source', path: A('revenue-source'), apiPath: '/admin/finance/by-source', label: 'Revenue by Source', group: 'Revenue', permission: 'analytics:read' },
   { slug: 'economics', path: A('economics'), apiPath: '/admin/config', label: 'Platform Economics', group: 'Revenue', permission: 'admin:read' },
   { slug: 'tax', path: A('tax'), apiPath: '/admin/tax-rules', label: 'Tax Rules', group: 'Revenue', permission: 'platform:manage' },
 
@@ -85,7 +83,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'memberships', path: A('memberships'), apiPath: '/admin/subscription-plans', label: 'Memberships', group: 'Revenue', permission: 'admin:read' },
 
   { slug: 'ai', path: A('ai'), apiPath: '/ai/usage', label: 'AI Usage', group: 'Platform', permission: 'platform:manage' },
-  { slug: 'feature-flags', path: A('settings'), apiPath: '/admin/feature-flags', label: 'Feature Flags', group: 'Platform', permission: 'admin:read' },
+  { slug: 'feature-flags', path: A('feature-flags'), apiPath: '/admin/feature-flags', label: 'Feature Flags', group: 'Platform', permission: 'admin:read' },
   { slug: 'audit', path: A('audit'), apiPath: '/admin/audit-logs', label: 'Audit Logs', group: 'Platform', permission: '*' },
   { slug: 'staff', path: A('staff'), apiPath: '/admin/staff', label: 'Staff Accounts', group: 'Platform', permission: '*' },
 ];

@@ -29,7 +29,7 @@ export function AdminTopbar() {
         <Link href={adminPath()} className="flex shrink-0 items-center gap-2.5">
           <Logo className="h-8 w-8 shrink-0" />
           <span className="text-[15px] font-black tracking-tight">
-            {config.appName} <span className="font-medium text-muted-foreground">Console</span>
+            {config.appName} <span className="hidden font-medium text-muted-foreground min-[380px]:inline">Console</span>
           </span>
         </Link>
 
@@ -43,7 +43,7 @@ export function AdminTopbar() {
           {isProd ? 'production' : 'development'}
         </span>
 
-        <div className="ms-auto flex items-center gap-1.5">
+        <div className="ms-auto flex min-w-0 items-center gap-1.5">
           <Link
             href="/"
             target="_blank"
@@ -54,11 +54,11 @@ export function AdminTopbar() {
           <ThemeToggle />
           <NotificationBell linkFor={(n) => adminNotificationLink(n, adminPath)} />
 
-          <div className="ms-1 flex items-center gap-2 border-s border-border ps-3">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-muted text-muted-foreground">
+          <div className="ms-1 flex min-w-0 items-center gap-2 border-s border-border ps-2 sm:ps-3">
+            <span className="hidden h-8 w-8 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground sm:grid">
               <User className="h-4 w-4" />
             </span>
-            <div className="hidden min-w-0 leading-tight sm:block">
+            <div className="hidden min-w-0 max-w-[10rem] leading-tight sm:block">
               <p className="truncate text-xs font-semibold">{user?.email?.split('@')[0] ?? 'Staff'}</p>
               <p className="truncate text-[11px] text-muted-foreground">
                 {user?.roles?.filter((r) => r !== 'guest').join(', ') || 'staff'}

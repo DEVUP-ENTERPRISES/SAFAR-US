@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Globe2, MapPin, Flag } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PageHeader } from '@/components/ui/page-header';
+import { TabIntro } from '@/features/admin/components/page-tabs';
 import { StatTile } from '@/components/ui/stat-tile';
 import { MAPBOX_TOKEN } from '@/features/maps/api';
 import { loadMapbox } from '@/features/maps/mapbox-loader';
@@ -149,7 +149,7 @@ function Ranked({ rows }: { rows: { label: string; count: number }[] }) {
   );
 }
 
-export default function GeoIntelligencePage() {
+export function GeoIntelligencePage() {
   const [days, setDays] = useState(30);
   const { data, isLoading } = useQuery({
     queryKey: ['admin-geo', days],
@@ -176,9 +176,7 @@ export default function GeoIntelligencePage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow="Overview"
-        title="Geographic Intelligence"
+      <TabIntro
         description="Where visitors are actually coming from — resolved from IP to city/country, never storing the raw address."
         actions={
           <div className="flex gap-1 rounded-lg border border-border bg-card p-1">

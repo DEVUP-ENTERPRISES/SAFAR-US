@@ -11,12 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatTile } from '@/components/ui/stat-tile';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi, type CommissionRule, type CommissionScope } from '@/features/admin/api';
-import { adminPath } from '@/lib/admin-path';
+import { CommissionDefaults } from './defaults-card';
 
 const SCOPES: { key: CommissionScope; label: string; hint: string }[] = [
   { key: 'global', label: 'Global', hint: 'Every booking' },
@@ -167,28 +166,7 @@ export default function AdminCommissionPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatTile
-          tone="primary"
-          icon={<Percent className="h-5 w-5" />}
-          label="Default take rate"
-          value={cfg ? pct(cfg.commission.defaultBps) : '—'}
-          sub="When no rule matches"
-          href={adminPath('economics')}
-        />
-        <StatTile
-          icon={<Percent className="h-5 w-5" />}
-          label="Allowed band"
-          value={cfg ? `${pct(cfg.commission.minBps)} – ${pct(cfg.commission.maxBps)}` : '—'}
-          sub="Rules outside this are rejected"
-        />
-        <StatTile
-          icon={<Percent className="h-5 w-5" />}
-          label="Active rules"
-          value={rules.data ? rules.data.filter((r) => r.active).length : '—'}
-          sub={rules.data ? `${rules.data.length} total` : undefined}
-        />
-      </div>
+      {cfg && <CommissionDefaults cfg={cfg} />}
 
       {/* Create */}
       {creating && (

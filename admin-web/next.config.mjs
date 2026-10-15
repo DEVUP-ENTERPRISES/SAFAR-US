@@ -5,6 +5,17 @@ import { securityHeaders } from '../frontend/security-headers.mjs';
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const sharedSrc = path.resolve(dir, '../frontend/src');
 
+// Pages merged into tabbed pages; old bookmarks open the matching tab.
+const slug = process.env.NEXT_PUBLIC_ADMIN_SLUG || '';
+const MOVED = [
+  ['finance', 'reports?tab=money'],
+  ['revenue-source', 'reports?tab=sources'],
+  ['analytics', 'reports?tab=activity'],
+  ['live-traffic', 'visitors?tab=live'],
+  ['geo-intelligence', 'visitors?tab=places'],
+  ['settings', 'feature-flags'],
+];
+
 /**
  * The admin app is a SEPARATE Next application on its own port (3005), but it
  * shares one component library, API client and admin feature code with the
@@ -35,6 +46,9 @@ const nextConfig = {
   // Belt-and-braces against indexing: the meta robots tag lives in the page
   // head, and this sends the same instruction as an HTTP header, which some
   // crawlers honour even when they do not parse the HTML.
+  async redirects() {
+    return slug ? MOVED.map(([from, to]) => ({ source: `/${slug}/${from}`, destination: `/${slug}/${to}`, permanent: false })) : [];
+  },
   async headers() {
     return [
       {

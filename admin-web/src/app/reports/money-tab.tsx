@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, Wallet, Users, Truck, ShieldCheck, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PageHeader } from '@/components/ui/page-header';
+import { TabIntro } from '@/features/admin/components/page-tabs';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart, LineChart, Donut } from '@/components/ui/charts';
 import { formatMoney } from '@/lib/utils/format';
@@ -16,7 +16,7 @@ const monthLabel = (m: string) => {
   return ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(mm)] ?? m;
 };
 
-export default function AdminFinancePage() {
+export function AdminFinancePage() {
   const [months, setMonths] = useState(6);
   const { data, isLoading } = useQuery({
     queryKey: ['admin-finance', months],
@@ -41,9 +41,7 @@ export default function AdminFinancePage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow="Revenue"
-        title="Finance"
+      <TabIntro
         description="Every figure here is derived live from the double-entry ledger and bookings — nothing is stored or estimated."
         actions={
           <div className="flex gap-1 rounded-full border border-border p-1">

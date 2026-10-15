@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Percent, Clock, Gift, Users, ShieldCheck, Save, Scale, IdCard, History, RotateCcw, Car, Umbrella, UserSearch, Smartphone } from 'lucide-react';
+import { Percent, Clock, Gift, ShieldCheck, Save, Scale, IdCard, History, RotateCcw, Car, Umbrella, UserSearch, Smartphone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,13 +78,10 @@ export default function AdminEconomicsPage() {
     });
     if (ok) {
       save.mutate({
-        commission: draft.commission,
         serviceFee: draft.serviceFee,
-        tax: draft.tax,
         payout: draft.payout,
         incidentals: draft.incidentals,
         rewards: draft.rewards,
-        referral: draft.referral,
         protection: draft.protection,
         legal: { ...draft.legal, cancellationUrl: draft.legal.cancellationUrl?.trim() || undefined },
         verification: draft.verification,
@@ -141,30 +138,6 @@ export default function AdminEconomicsPage() {
       )}
 
       {/* Commission */}
-      <Card className="rounded-2xl shadow-soft">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Percent className="h-5 w-5 text-primary" /> Commission</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-4">
-          <Field label="Default take %" hint="Used when no commission rule matches.">
-            <Input type="number" step="0.5" value={toPct(draft.commission.defaultBps)}
-              onChange={(e) => set((d) => { d.commission.defaultBps = toBps(e.target.value); })} />
-          </Field>
-          <Field label="Minimum %" hint="Guard rail — rules below this are rejected.">
-            <Input type="number" step="0.5" value={toPct(draft.commission.minBps)}
-              onChange={(e) => set((d) => { d.commission.minBps = toBps(e.target.value); })} />
-          </Field>
-          <Field label="Maximum %" hint="Guard rail — a typo can't take 90%.">
-            <Input type="number" step="0.5" value={toPct(draft.commission.maxBps)}
-              onChange={(e) => set((d) => { d.commission.maxBps = toBps(e.target.value); })} />
-          </Field>
-          <Field label="Tax on commission %" hint="US launch = 0.">
-            <Input type="number" step="0.5" value={toPct(draft.tax.bps)}
-              onChange={(e) => set((d) => { d.tax.bps = toBps(e.target.value); })} />
-          </Field>
-        </CardContent>
-      </Card>
-
       {/*
         Service fee — deliberately its own card, not another column in
         Commission. The two are opposite sides of the take rate and confusing
@@ -589,11 +562,6 @@ export default function AdminEconomicsPage() {
                 Rewards programme is on (off hides Rewards everywhere; points already earned are kept)
               </label>
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" className="h-4 w-4 accent-primary" checked={!!draft.programs?.referralEnabled}
-                  onChange={(e) => set((d) => { d.programs = { rewardsEnabled: !!d.programs?.rewardsEnabled, referralEnabled: e.target.checked, membershipEnabled: !!d.programs?.membershipEnabled }; })} />
-                Refer a friend is on (off hides it, and referral codes at sign-up are ignored)
-              </label>
-              <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" className="h-4 w-4 accent-primary" checked={!!draft.programs?.membershipEnabled}
                   onChange={(e) => set((d) => { d.programs = { rewardsEnabled: !!d.programs?.rewardsEnabled, referralEnabled: !!d.programs?.referralEnabled, membershipEnabled: e.target.checked }; })} />
                 CATO Plus membership is on (off hides it and stops new sign-ups; current members keep their benefits)
@@ -911,29 +879,6 @@ export default function AdminEconomicsPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-soft">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Referrals</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Field label="Referrer credit ($)">
-              <Input type="number" step="0.01" value={toDollars(draft.referral.referrerCreditCents)}
-                onChange={(e) => set((d) => { d.referral.referrerCreditCents = toCents(e.target.value); })} />
-            </Field>
-            <Field label="Referee credit ($)">
-              <Input type="number" step="0.01" value={toDollars(draft.referral.refereeCreditCents)}
-                onChange={(e) => set((d) => { d.referral.refereeCreditCents = toCents(e.target.value); })} />
-            </Field>
-            <Field label="Minimum first trip ($)" hint="Nobody is rewarded until the referred guest's trip totals this much.">
-              <Input type="number" step="0.01" value={toDollars(draft.referral.minTripSpendCents)}
-                onChange={(e) => set((d) => { d.referral.minTripSpendCents = toCents(e.target.value); })} />
-            </Field>
-            <Field label="Max rewarded referrals per member">
-              <Input type="number" min={1} value={draft.referral.maxRewardsPerReferrer}
-                onChange={(e) => set((d) => { d.referral.maxRewardsPerReferrer = Number(e.target.value); })} />
-            </Field>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Config history & rollback */}

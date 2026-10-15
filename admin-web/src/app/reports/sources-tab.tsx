@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Car, Handshake, Warehouse } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PageHeader } from '@/components/ui/page-header';
+import { TabIntro } from '@/features/admin/components/page-tabs';
 import { Donut } from '@/components/ui/charts';
 import { formatMoney } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
@@ -15,7 +15,7 @@ const ICON: Record<string, typeof Car> = {
   'House Fleet': Warehouse,
 };
 
-export default function RevenueBySourcePage() {
+export function RevenueBySourcePage() {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-revenue-source'],
     queryFn: () => adminApi.revenueBySource(),
@@ -38,9 +38,7 @@ export default function RevenueBySourcePage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow="Revenue"
-        title="Revenue by Source"
+      <TabIntro
         description="Who supplied the car, not what the fee was — Host self-serve, Asset Partners and House Fleet each run different economics."
       />
 

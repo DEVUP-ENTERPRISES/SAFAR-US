@@ -6,7 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
+import { PageHeader } from '@/components/ui/page-header';
 import { adminApi } from '@/features/admin/api';
+import { ReferralRewards } from './rewards-card';
 
 export default function AdminReferralsPage() {
   const [days, setDays] = useState(30);
@@ -14,10 +16,15 @@ export default function AdminReferralsPage() {
     queryKey: ['admin-referrals', days],
     queryFn: () => adminApi.referralStats(days),
   });
+  const config = useQuery({ queryKey: ['platform-config'], queryFn: () => adminApi.config() });
 
   return (
     <div className="space-y-6">
-      <h1 className="display text-display-sm">Referrals</h1>
+      <PageHeader eyebrow="Revenue" title="Referrals" description="Set what Refer a friend pays out, and see how many referrals turn into trips." />
+
+      {config.data ? <ReferralRewards cfg={config.data} /> : <Skeleton className="h-56 w-full rounded-2xl" />}
+
+      <h2 className="pt-2 text-lg font-bold">How it’s going</h2>
 
       <div className="flex flex-wrap gap-2">
         {[7, 30, 90].map((d) => (
@@ -26,12 +33,12 @@ export default function AdminReferralsPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
       ) : !data ? (
         <EmptyState title="No referral data" description="Nothing has been referred yet." />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="Total referrals" value={data.total} />
             <Stat label="Converted" value={data.converted} />
             <Stat label="Pending" value={data.pending} />
