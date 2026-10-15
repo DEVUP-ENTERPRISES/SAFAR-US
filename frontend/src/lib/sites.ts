@@ -13,9 +13,12 @@ export const HOST_SITE = origin(process.env.NEXT_PUBLIC_HOST_URL, 'http://localh
 /** The partner website: the Asset Partner and insurer portals. */
 export const PARTNER_SITE = origin(process.env.NEXT_PUBLIC_PARTNER_URL, 'http://localhost:3010', 'https://partners.catodrive.com');
 
-export type Site = 'guest' | 'host' | 'partner';
+/** CatoDrive's own operations panel (House Fleet); reached by its own domain, no public path maps to it. */
+export const IOC_SITE = origin(process.env.NEXT_PUBLIC_IOC_URL, 'http://localhost:3030', 'https://housefleet.catodrive.com');
 
-const ORIGIN: Record<Site, string> = { guest: GUEST_SITE, host: HOST_SITE, partner: PARTNER_SITE };
+export type Site = 'guest' | 'host' | 'partner' | 'ioc';
+
+const ORIGIN: Record<Site, string> = { guest: GUEST_SITE, host: HOST_SITE, partner: PARTNER_SITE, ioc: IOC_SITE };
 
 // Which site serves a path; kept in step with HOST_SECTIONS / PARTNER_SECTIONS in next.config.mjs and backend site-links.ts.
 const HOST_PATH = /^\/(host|captain)(\/|\?|$)/;

@@ -17,7 +17,9 @@ export function OtherSitePage({ site, path }: { site: Site; path: string[] }) {
   const full = `/${path.map(encodeURIComponent).join('/')}`;
   const owner = siteForPath(full);
   // Host and partner pages are known exactly; a guest page only when it is one of the guest site's sections, so unknown paths stay a 404 here.
-  const target: Site | null = owner !== 'guest' ? (owner !== site ? owner : null) : site !== 'guest' && GUEST_SECTIONS.has(path[0]) ? 'guest' : null;
+  // The operations panel serves the host routes itself.
+  const local = owner === site || (site === 'ioc' && owner === 'host');
+  const target: Site | null = owner !== 'guest' ? (local ? null : owner) : site !== 'guest' && GUEST_SECTIONS.has(path[0]) ? 'guest' : null;
   useEffect(() => {
     if (target) void goToSite(target, `${full}${window.location.search}`);
   }, [target, full]);

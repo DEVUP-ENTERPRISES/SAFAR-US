@@ -127,14 +127,13 @@ site never slows hosts or partners down. Both share the guest site's code
 | Site | Folder (Vercel root) | Port (local) | Domain | Serves |
 |---|---|---|---|---|
 | Guest | `frontend/` | 3000 | `www.yourdomain.com` | everything guests use; corporate (hidden until version 3) |
-| Host | `host-web/` | 3020 | `host.yourdomain.com` | hosts and their captains; also the House Fleet domain |
+| Host | `host-web/` | 3020 | `host.yourdomain.com` | self-serve hosts and their captains |
 | Partner | `partner-web/` | 3010 | `partners.yourdomain.com` | the Asset Partner and insurer portals |
 
 Old links like `catodrive.com/host/...` and `catodrive.com/asset-partners/dashboard`
 redirect to the right site.
 
-- **Host project:** root `host-web/`, domain `host.yourdomain.com`. The House
-  Fleet domain (`NEXT_PUBLIC_HOUSE_FLEET_HOST`) points at **this** project.
+- **Host project:** root `host-web/`, domain `host.yourdomain.com`.
 - **Partner project:** root `partner-web/`, domain `partners.yourdomain.com`.
 - **Environment variables, all three sites:** `NEXT_PUBLIC_API_URL`,
   `NEXT_PUBLIC_GOOGLE_MAPS_KEY`, `NEXT_PUBLIC_SITE_URL` (guest site),
@@ -145,7 +144,20 @@ redirect to the right site.
 - **Corporate** stays off until `NEXT_PUBLIC_CORPORATE=on` on the guest site (and
   `EXPO_PUBLIC_CORPORATE=on` in the apps); until then its pages answer 404.
 
-### 2.2 Insurance desk — internal, its own login
+### 2.2 CatoDrive operations panel (House Fleet)
+
+`catodrive-asset-ioc/` (port 3030): CatoDrive's own panel for the cars it runs.
+It began as a full copy of the host dashboard, with its own copy of the host
+code (`~/`), so it changes without touching `host-web`; only the UI kit, the
+API client, sign-in and the trip screens both sides of a trip see stay common.
+
+- New Vercel project, root `catodrive-asset-ioc/`, domain `housefleet.yourdomain.com`
+  (moves here from the host project). Same environment variables as the host
+  site, plus `NEXT_PUBLIC_HOUSE_FLEET_HOST`.
+- Its own sign-in at `/sign-in`; the admin House Fleet sign-in opens it too,
+  so the admin project needs `NEXT_PUBLIC_IOC_URL`.
+
+### 2.3 Insurance desk — internal, its own login
 
 `insurance-web/` (port 3040): insurer partners and fleet insurance for the
 insurance team, signing in with an account that holds the `insurance` role
@@ -171,7 +183,8 @@ Moving between sites keeps people signed in with a one-time, 60-second code
 |---|---|---|---|
 | A | `api` | EC2 elastic IP | **DNS only (grey cloud)** at first, so Certbot can issue; proxy on afterwards |
 | CNAME | `@` / `www` | Vercel's target (from the Vercel dashboard) | per Vercel's instructions |
-| CNAME | `host`, `housefleet` | Vercel's target for the host project | per Vercel's instructions |
+| CNAME | `host` | Vercel's target for the host project | per Vercel's instructions |
+| CNAME | `housefleet` | Vercel's target for the operations panel project | per Vercel's instructions |
 | CNAME | `partners` | Vercel's target for the partner project | per Vercel's instructions |
 
 If you proxy `api` through Cloudflare (orange cloud), set SSL/TLS mode to **Full

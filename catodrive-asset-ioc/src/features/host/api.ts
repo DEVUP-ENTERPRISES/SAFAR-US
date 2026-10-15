@@ -1,0 +1,345 @@
+import { api } from '@/lib/api/client';
+
+export interface HostProfile {
+  _id: string;
+  userId: string;
+  displayName: string;
+  bio?: string;
+  avatarUrl?: string;
+  avatarKey?: string;
+  languages?: string[];
+  city?: string;
+  work?: string;
+  hostType: 'individual' | 'business';
+  isFleetOwner: boolean;
+  businessProfile?: Record<string, string | undefined>;
+  taxInfo?: Record<string, unknown>;
+  bankingDetails?: Record<string, unknown>;
+  verificationStatus: string;
+  isSuperhost?: boolean;
+  ratingAvg: number;
+  totalTrips: number;
+}
+
+/** The public view of a host - every figure computed from real activity. */
+export interface HostPublicProfile {
+  _id: string;
+  displayName: string;
+  bio: string | null;
+  avatarUrl: string | null;
+  city: string | null;
+  work: string | null;
+  languages: string[];
+  joinedAt: string;
+  isSuperhost: boolean;
+  ratingAvg: number | null;
+  ratingCount: number;
+  totalTrips: number;
+  listedVehicles: number;
+  responseRatePct: number | null;
+  responseTimeMinutes: number | null;
+  /** Share of finished trips this host cancelled. Null until enough history. */
+  cancellationRatePct: number | null;
+  verifications: { email: boolean; phone: boolean; identity: boolean };
+}
+
+export interface EarningsDashboard {
+  currency: string;
+  lifetimeEarnings: number;
+  currentBalance: number;
+  paidOut: number;
+  pendingPayout: number;
+  completedTrips: number;
+  monthly: { month: string; amount: number }[];
+}
+
+export interface Payout {
+  _id: string;
+  amount: number;
+  currency: string;
+  status: 'scheduled' | 'paid' | 'failed';
+  instant?: boolean;
+  scheduledFor: string;
+  paidAt?: string;
+  createdAt: string;
+}
+
+export interface InstantPayoutResult {
+  paidCount: number;
+  gross: number;
+  fee: number;
+  net: number;
+}
+
+/** Must match the backend's storage.gateway UploadCategory exactly. */
+export type UploadCategory =
+  | 'vehicle_photo'
+  | 'trip_photo'
+  | 'avatar'
+  | 'registration'
+  | 'insurance'
+  | 'kyc'
+  | 'claim'
+  | 'recall_receipt';
+
+export interface UploadTarget {
+  key: string;
+  uploadUrl: string;
+  publicUrl: string;
+}
+
+export interface FleetDeliveryPolicy {
+  airport?: boolean;
+  home?: boolean;
+  hotel?: boolean;
+  business?: boolean;
+  fee?: number;
+}
+
+export interface FleetLocationPolicy {
+  lat: number;
+  lng: number;
+  address: string;
+  city: string;
+}
+
+export interface Fleet {
+  _id: string;
+  name: string;
+  region?: string;
+  group?: string;
+  defaultDelivery?: FleetDeliveryPolicy;
+  defaultLocation?: FleetLocationPolicy;
+}
+
+export interface FleetDashboard {
+  fleetId: string;
+  name: string;
+  totalVehicles: number;
+  listedVehicles: number;
+  totalTrips: number;
+  avgRating: number;
+  occupancyPct: number;
+  revenue: number;
+}
+
+export interface VehiclePnl {
+  vehicleId: string;
+  label: string;
+  trips: number;
+  grossRevenue: number;
+  commission: number;
+  hostEarnings: number;
+  maintenanceCost: number;
+  netProfit: number;
+}
+
+export interface FleetProfitability {
+  fleetId: string;
+  name: string;
+  currency: string;
+  totals: {
+    grossRevenue: number;
+    commission: number;
+    hostEarnings: number;
+    maintenanceCost: number;
+    netProfit: number;
+    marginBps: number;
+  };
+  vehicles: VehiclePnl[];
+}
+
+export interface MaintenanceRecord {
+  _id: string;
+  vehicleId: string;
+  type: string;
+  scheduledFor: string;
+  status: string;
+  notes?: string;
+}
+
+export interface HostPerformance {
+  currency: string;
+  earningsByMonth: { month: string; amount: number }[];
+  perVehicle: { vehicleId: string; label: string; trips: number; revenue: number }[];
+  occupancyPct: number;
+  acceptanceRate: number;
+  completedTrips: number;
+  cancelledByHost: number;
+}
+
+/** Rates rather than totals - see earnings-insights.service on the backend. */
+export interface VehicleEconomics {
+  vehicleId: string;
+  label: string;
+  dailyPriceCents: number;
+  trips: number;
+  earnedCents: number;
+  daysBooked: number;
+  daysAvailable: number;
+  revPerAvailableDayCents: number;
+  utilisationPct: number;
+  idleCostCents: number;
+}
+
+export interface EarningsInsights {
+  windowDays: number;
+  currency: string;
+  fleet: VehicleEconomics[];
+  split: { grossCents: number; commissionCents: number; netCents: number; commissionPct: number };
+  byWeekday: { weekday: number; label: string; trips: number; earnedCents: number }[];
+  leadTime: { bucket: string; trips: number; earnedCents: number }[];
+  headline: string | null;
+}
+
+/** Fleet import - see fleet-import.service on the backend. */
+export interface RowPreview {
+  vin: string;
+  ok: boolean;
+  year?: number;
+  make?: string;
+  model?: string;
+  trim?: string;
+  bodyType?: string;
+  fuelType?: 'petrol' | 'diesel' | 'hybrid' | 'ev';
+  transmission?: 'manual' | 'automatic';
+  seats?: number;
+  doors?: number;
+  note?: string;
+  error?: string;
+  /** Required fields the VIN did not carry. */
+  missing: ('transmission' | 'fuelType' | 'seats' | 'bodyType')[];
+  duplicate?: boolean;
+}
+
+export interface WheelbasePreviewRow {
+  listingId: number;
+  name: string;
+  photos: number;
+  pricePerDayCents?: number;
+  action: 'update' | 'create' | 'choose';
+  cars: { id: string; name: string; status: string; fills: string[] }[];
+  note?: string;
+}
+
+export interface WheelbasePreview {
+  listings: number;
+  toUpdate: number;
+  toCreate: number;
+  toChoose: number;
+  rows: WheelbasePreviewRow[];
+}
+
+export interface WheelbaseImportResult {
+  listingId: number;
+  name: string;
+  outcome: 'updated' | 'created' | 'skipped' | 'failed';
+  vehicleIds: string[];
+  detail?: string;
+}
+
+export interface ImportResult {
+  vin: string;
+  status: 'created' | 'updated' | 'skipped' | 'failed';
+  vehicleId?: string;
+  label?: string;
+  reason?: string;
+}
+
+export interface ImportRow {
+  vin: string;
+  address: string;
+  dailyPrice?: number;
+  title?: string;
+  registrationNumber?: string;
+  status?: 'listed' | 'unlisted' | 'risk';
+}
+
+export const hostApi = {
+  me: () => api.get<HostProfile>('/hosts/me'),
+  onboard: (displayName: string, bio?: string) => api.post<HostProfile>('/hosts/onboard', { displayName, bio }),
+  updateProfile: (patch: Partial<HostProfile>) => api.patch<HostProfile>('/hosts/me', patch),
+  /** Public profile of any host - no auth, shoppers browse before signing up. */
+  publicProfile: (hostId: string) =>
+    api.get<HostPublicProfile>(`/hosts/${hostId}/public`, undefined, false),
+
+  performance: () => api.get<HostPerformance>('/earnings/performance'),
+  earningsInsights: (days = 90) => api.get<EarningsInsights>('/earnings/insights', { days }),
+  importPreview: (vins: string[]) => api.post<RowPreview[]>('/vehicles/import/preview', { vins }),
+  importFleet: (rows: ImportRow[]) => api.post<ImportResult[]>('/vehicles/import', { rows }),
+  wheelbaseAvailable: () => api.get<{ available: boolean }>('/vehicles/import/wheelbase/available'),
+  wheelbasePreview: () => api.post<WheelbasePreview>('/vehicles/import/wheelbase/preview'),
+  wheelbaseImport: () => api.post<WheelbaseImportResult[]>('/vehicles/import/wheelbase'),
+  earnings: () => api.get<EarningsDashboard>('/earnings/dashboard'),
+
+  payouts: () => api.get<Payout[]>('/payouts/me'),
+  /** Whether this host can actually get paid, and what is blocking it. */
+  payoutReadiness: () => api.get<PayoutReadiness>('/payouts/readiness'),
+  instantPayout: () => api.post<InstantPayoutResult>('/payouts/instant'),
+
+  // The byte size of every file is signed into its link, so storage refuses a body of any other length.
+  uploadUrls: (category: UploadCategory, files: { size: number }[], contentType = 'image/jpeg') =>
+    api.post<UploadTarget[]>('/media/upload-urls', { category, sizes: files.map((f) => f.size), contentType }),
+
+  fleets: () => api.get<Fleet[]>('/fleets'),
+  createFleet: (name: string, region?: string) => api.post<Fleet>('/fleets', { name, region }),
+  fleetDashboard: (id: string) => api.get<FleetDashboard>(`/fleets/${id}/dashboard`),
+  fleetProfitability: (id: string) => api.get<FleetProfitability>(`/fleets/${id}/profitability`),
+  assignToFleet: (fleetId: string, vehicleId: string) =>
+    api.post<{ assigned: boolean }>(`/fleets/${fleetId}/vehicles`, { vehicleId }),
+  updateFleetPolicy: (fleetId: string, patch: { delivery?: FleetDeliveryPolicy; location?: FleetLocationPolicy }) =>
+    api.patch<Fleet>(`/fleets/${fleetId}/policy`, patch),
+  applyFleetPolicy: (fleetId: string) =>
+    api.post<{ applied: number; failed: number }>(`/fleets/${fleetId}/policy/apply`, {}),
+
+  maintenance: (vehicleId?: string) =>
+    api.get<MaintenanceRecord[]>('/maintenance', vehicleId ? { vehicleId } : undefined),
+  scheduleMaintenance: (input: {
+    vehicleId: string;
+    type: string;
+    scheduledFor: string;
+    notes?: string;
+  }) => api.post<MaintenanceRecord>('/maintenance', input),
+  /** Everything waiting on the host, ordered by what ignoring it costs. */
+  inboxActions: () => api.get<HostInbox>('/hosts/inbox/actions'),
+};
+
+export interface HostActionItem {
+  kind: 'approval' | 'message' | 'document' | 'return_due';
+  id: string;
+  title: string;
+  detail: string;
+  dueAt: string | null;
+  /** Money lost if this lapses, in minor units. Null when it isn't money. */
+  atRisk: number | null;
+  href: string;
+}
+
+export interface HostInbox {
+  items: HostActionItem[];
+  atRiskTotal: number;
+}
+
+export interface PayoutBlocker {
+  key: 'bank_details' | 'identity' | 'insurance';
+  label: string;
+  detail: string;
+  href: string;
+  severity: 'blocking' | 'warning';
+}
+
+export interface PayoutReadiness {
+  ready: boolean;
+  blockers: PayoutBlocker[];
+  balance: { pending: number; scheduled: number; paidLifetime: number; currency: string };
+  nextPayoutAt: string | null;
+  destination: {
+    configured: boolean;
+    verified: boolean;
+    viaStripe: boolean;
+    platformOwned?: boolean;
+    accountHolder?: string;
+    bankName?: string;
+    last4?: string;
+  };
+}
