@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/types';
-import { adminApi, type WheelbaseCarLink } from '@/features/admin/api';
+import { deskApi, type WheelbaseCarLink } from '@/features/insurance-desk/api';
 
 const ago = (iso?: string) => {
   if (!iso) return 'never';
@@ -35,14 +35,14 @@ function StatusBadge({ wb }: { wb: WheelbaseCarLink | null }) {
 export default function InsurancePage() {
   const qc = useQueryClient();
   const toast = useToast();
-  const cfg = useQuery({ queryKey: ['platform-config'], queryFn: () => adminApi.config() });
-  const overview = useQuery({ queryKey: ['wheelbase-overview'], queryFn: () => adminApi.wheelbaseOverview() });
+  const cfg = useQuery({ queryKey: ['insurance-settings'], queryFn: () => deskApi.settings() });
+  const overview = useQuery({ queryKey: ['wheelbase-overview'], queryFn: () => deskApi.wheelbaseOverview() });
 
   const [dealerId, setDealerId] = useState('');
   const [requireApproved, setRequireApproved] = useState(false);
   const [enforceMinAge, setEnforceMinAge] = useState(true);
   useEffect(() => {
-    const i = cfg.data?.insurance;
+    const i = cfg.data;
     if (!i) return;
     setDealerId(i.wheelbaseDealerId ?? '');
     setRequireApproved(!!i.requireApproved);
@@ -51,17 +51,17 @@ export default function InsurancePage() {
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['wheelbase-overview'] });
-    qc.invalidateQueries({ queryKey: ['platform-config'] });
+    qc.invalidateQueries({ queryKey: ['insurance-settings'] });
   };
 
   const saveSettings = useMutation({
-    mutationFn: () => adminApi.saveConfig({ insurance: { wheelbaseDealerId: dealerId.trim(), requireApproved, enforceMinAge }, reason: 'Insurance settings' }),
+    mutationFn: () => deskApi.saveSettings({ wheelbaseDealerId: dealerId.trim(), requireApproved, enforceMinAge, reason: 'Insurance settings' }),
     onSuccess: () => { toast({ tone: 'success', title: 'Insurance settings saved', description: 'Wheelbase is being read now.' }); setTimeout(refresh, 3000); },
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not save' }),
   });
 
   const sync = useMutation({
-    mutationFn: () => adminApi.wheelbaseSync(),
+    mutationFn: () => deskApi.wheelbaseSync(),
     onSuccess: (r) => {
       toast('skipped' in r
         ? { tone: 'error', title: 'Set the Wheelbase dealer ID first' }
@@ -72,7 +72,7 @@ export default function InsurancePage() {
   });
 
   const link = useMutation({
-    mutationFn: ({ vehicleId, rentalId }: { vehicleId: string; rentalId: number | null }) => adminApi.wheelbaseLink(vehicleId, rentalId),
+    mutationFn: ({ vehicleId, rentalId }: { vehicleId: string; rentalId: number | null }) => deskApi.wheelbaseLink(vehicleId, rentalId),
     onSuccess: () => { toast({ tone: 'success', title: 'Link saved' }); refresh(); },
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not link' }),
   });

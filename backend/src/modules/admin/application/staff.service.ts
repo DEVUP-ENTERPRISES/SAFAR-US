@@ -7,7 +7,7 @@ import { ConflictError, NotFoundError, ValidationError } from '../../../core/err
 import { ROLES } from '../../../shared/constants/rbac';
 
 /** The only roles the main admin can hand out; super_admin is never grantable, it belongs to the .env account alone. */
-export const GRANTABLE_STAFF_ROLES = [ROLES.ADMIN, ROLES.SUPPORT, ROLES.MODERATOR, ROLES.FINANCE, ROLES.OPS] as const;
+export const GRANTABLE_STAFF_ROLES = [ROLES.ADMIN, ROLES.SUPPORT, ROLES.MODERATOR, ROLES.FINANCE, ROLES.OPS, ROLES.INSURANCE] as const;
 export type StaffRole = (typeof GRANTABLE_STAFF_ROLES)[number];
 
 // No look-alike characters (0/O, 1/l/I) so a password read off a screen is typed correctly.

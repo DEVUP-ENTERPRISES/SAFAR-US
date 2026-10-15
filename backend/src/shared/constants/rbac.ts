@@ -12,6 +12,8 @@ export const ROLES = {
   OPS: 'ops',
   ADMIN: 'admin',
   SUPER_ADMIN: 'super_admin',
+  /** The insurance desk team: insurer partners and fleet insurance, nothing else. */
+  INSURANCE: 'insurance',
 } as const;
 
 export type RoleName = (typeof ROLES)[keyof typeof ROLES];
@@ -47,6 +49,14 @@ export const PERMISSIONS = {
   PAYOUT_MANAGE: 'payout:manage',
   /** Moderate guest & host reviews. */
   REVIEW_MODERATE: 'review:moderate',
+  /** Open the insurance desk: insurer partners, their plans and money, fleet insurance. */
+  INSURANCE_READ: 'insurance:read',
+  /** Review, approve and suspend insurers; sync fleet insurance. */
+  INSURANCE_MANAGE: 'insurance:manage',
+  /** Record what was paid to an insurer. */
+  INSURANCE_PAYOUT: 'insurance:payout',
+  /** Change an insurer's commission: a money rule, so not part of the insurance role. */
+  INSURANCE_COMMISSION: 'insurance:commission',
   ALL: '*',
 } as const;
 
@@ -81,10 +91,22 @@ export const ROLE_PERMISSIONS: Record<RoleName, string[]> = {
     P.BOOKING_READ_ANY,
     P.FLEET_MANAGE,
   ],
+  [ROLES.INSURANCE]: [P.INSURANCE_READ, P.INSURANCE_MANAGE, P.INSURANCE_PAYOUT],
   // Every staff permission but '*': staff accounts and the audit log stay with the main admin.
   [ROLES.ADMIN]: Object.values(P).filter((p) => !MEMBER_PERMISSIONS.has(p) && p !== P.ALL),
   [ROLES.SUPER_ADMIN]: [P.ALL],
 };
+
+/** Every staff role: one list, so a new role is recognised everywhere staff are. */
+export const STAFF_ROLES: readonly string[] = [
+  ROLES.SUPER_ADMIN,
+  ROLES.ADMIN,
+  ROLES.SUPPORT,
+  ROLES.MODERATOR,
+  ROLES.FINANCE,
+  ROLES.OPS,
+  ROLES.INSURANCE,
+];
 
 /** Resolve the union of permissions for a set of roles. */
 export function permissionsForRoles(roles: string[]): string[] {

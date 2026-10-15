@@ -30,14 +30,7 @@ export function siteForPath(path: string): Site {
 /** A path on one of the sites; relative paths only, so it can never be pointed elsewhere. */
 export const siteUrl = (site: Site, path = '/') => `${ORIGIN[site]}${path.startsWith('/') ? path : `/${path}`}`;
 
-/**
- * Go to a page on another CatoDrive website, staying signed in.
- *
- * The sites are separate origins with separate sessions, so a signed-in
- * person carries a one-time code (valid a minute, usable once) in the URL
- * fragment, which never reaches a server log; the other site redeems it for
- * its own session. Signed out, it simply navigates.
- */
+// Carries the session as a one-time code in the URL fragment, which never reaches a server log.
 export async function goToSite(site: Site, path = '/'): Promise<void> {
   const target = siteUrl(site, path);
   if (!tokenStore.getAccess()) {

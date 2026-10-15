@@ -12,12 +12,7 @@ export function siteForPath(path: string): Site {
   return 'guest';
 }
 
-/**
- * The absolute web link a person should follow for an app path: host pages on
- * the host site, Asset Partner and insurer portal pages on the partner site,
- * everything else on the guest site. A site with no URL configured falls back
- * to the guest site, and that to the API base, so a link is never relative.
- */
+// A site with no URL configured falls back to the guest site, so a link is never relative.
 export function webLink(path: string): string {
   if (/^https?:\/\//.test(path)) return path;
   const rel = path.startsWith('/') ? path : `/${path}`;

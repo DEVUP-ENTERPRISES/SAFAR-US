@@ -4,13 +4,11 @@ import { HostModel } from '../../hosts/infrastructure/host.model';
 import { AssetPartnerModel } from '../../asset-partners/infrastructure/asset-partner.model';
 import { MemberModel } from '../../corporate/infrastructure/corporate.models';
 import { HostStaffModel } from '../../hosts/infrastructure/host-staff.model';
-import { ROLES } from '../../../shared/constants/rbac';
+import { ROLES, STAFF_ROLES } from '../../../shared/constants/rbac';
 import { tokenService } from './token.service';
 import { authService } from './auth.service';
 
 export type MobileApp = 'customer' | 'partner';
-
-const STAFF = [ROLES.SUPPORT, ROLES.MODERATOR, ROLES.FINANCE, ROLES.OPS, ROLES.ADMIN, ROLES.SUPER_ADMIN] as string[];
 
 /** Which mobile app sent the request; undefined for the websites. */
 export function mobileAppOf(req: Request): MobileApp | undefined {
@@ -34,7 +32,7 @@ async function isPartner(userId: string, roles: string[]): Promise<boolean> {
 /** Refuses a sign-in the app it came from is not for. Websites are never affected. */
 export async function assertAppAudience(app: MobileApp | undefined, user: { id: string; roles: string[] }): Promise<void> {
   if (!app) return;
-  if (user.roles.some((r) => STAFF.includes(r))) {
+  if (user.roles.some((r) => STAFF_ROLES.includes(r))) {
     throw new AppError({ code: 'APP_STAFF_ACCOUNT', message: 'Staff accounts sign in on the CatoDrive admin website, not the app.', httpStatus: 403 });
   }
   if (app === 'partner' && !(await isPartner(user.id, user.roles))) {

@@ -224,6 +224,9 @@ export const config = Object.freeze({
     name: env.ADMIN_NAME ?? 'CatoDrive Admin',
     enabled: !!(env.ADMIN_EMAIL && env.ADMIN_PASSWORD),
   },
+  insuranceDesk: {
+    requireMfa: env.INSURANCE_DESK_REQUIRE_MFA === 'true',
+  },
   houseFleet: {
     email: env.HOUSE_FLEET_EMAIL,
     password: env.HOUSE_FLEET_PASSWORD,

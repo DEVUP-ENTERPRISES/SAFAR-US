@@ -5,12 +5,7 @@ import { securityHeaders } from '../frontend/security-headers.mjs';
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const sharedSrc = path.resolve(dir, '../frontend/src');
 
-/**
- * The host website (self-serve hosts and their captains) is a separate Next
- * application on its own domain and port (3020), built and deployed on its own.
- * Components, API client and feature logic are shared, not copied: `@/*`
- * resolves into ../frontend/src, exactly as admin-web and partner-web do.
- */
+// Shared code comes from ../frontend/src via `@/*`, as in admin-web and partner-web.
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

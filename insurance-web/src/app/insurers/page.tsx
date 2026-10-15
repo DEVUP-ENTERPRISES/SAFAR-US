@@ -12,10 +12,9 @@ import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
-import { adminApi } from '@/features/admin/api';
+import { deskApi } from '@/features/insurance-desk/api';
 import { INSURER_STATUS, type Insurer } from '@/features/insurers/api';
 import { formatDate } from '@/lib/utils/format';
-import { adminPath } from '@/lib/admin-path';
 import { ApiError } from '@/lib/api/types';
 
 const STATUSES = ['', 'pending', 'approved', 'suspended', 'rejected'];
@@ -23,7 +22,7 @@ const STATUSES = ['', 'pending', 'approved', 'suspended', 'rejected'];
 /** Insurance partners: approve applications, and set the commission CatoDrive keeps on premiums by default. */
 export default function InsurersPage() {
   const [status, setStatus] = useState('pending');
-  const list = useQuery({ queryKey: ['admin-insurers', status], queryFn: () => adminApi.insurers({ status: status || undefined }) });
+  const list = useQuery({ queryKey: ['admin-insurers', status], queryFn: () => deskApi.insurers({ status: status || undefined }) });
 
   const columns: Column<Insurer>[] = [
     {
@@ -43,7 +42,7 @@ export default function InsurersPage() {
       header: 'Actions',
       className: 'text-end',
       cell: (i) => (
-        <Link href={adminPath(`insurers/${i._id}`)}>
+        <Link href={`/insurers/${i._id}`}>
           <span className="text-sm font-medium text-primary hover:underline">Open →</span>
         </Link>
       ),
@@ -73,17 +72,17 @@ export default function InsurersPage() {
 function DefaultCommission() {
   const qc = useQueryClient();
   const toast = useToast();
-  const cfg = useQuery({ queryKey: ['platform-config'], queryFn: () => adminApi.config() });
+  const cfg = useQuery({ queryKey: ['insurance-settings'], queryFn: () => deskApi.settings() });
   const [pct, setPct] = useState('');
   useEffect(() => {
-    const bps = cfg.data?.insurance?.partnerCommissionBps;
+    const bps = cfg.data?.partnerCommissionBps;
     if (typeof bps === 'number') setPct(String(bps / 100));
   }, [cfg.data]);
   const save = useMutation({
     meta: { silentError: true },
-    mutationFn: () => adminApi.saveConfig({ insurance: { partnerCommissionBps: Math.round(Number(pct) * 100) } as never, reason: 'Insurance partner commission' }),
+    mutationFn: () => deskApi.saveSettings({ partnerCommissionBps: Math.round(Number(pct) * 100), reason: 'Insurance partner commission' }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['platform-config'] });
+      void qc.invalidateQueries({ queryKey: ['insurance-settings'] });
       toast({ tone: 'success', title: 'Default commission saved' });
     },
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not save' }),

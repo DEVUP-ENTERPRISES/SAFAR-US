@@ -4,11 +4,6 @@ import '@/styles/globals.css';
 import { Providers } from '@/app/providers';
 import { HostChrome } from './host-chrome';
 
-/**
- * Root of the host website: the guest site's Providers, design tokens and
- * fonts from ../frontend/src, with the host frame instead of the marketplace
- * chrome.
- */
 const fontDisplay = Archivo({ subsets: ['latin', 'latin-ext'], weight: ['600', '700', '800'], variable: '--font-display', display: 'swap' });
 const fontSans = Instrument_Sans({ subsets: ['latin', 'latin-ext'], variable: '--font-sans', display: 'swap' });
 const fontMono = IBM_Plex_Mono({ subsets: ['latin', 'latin-ext'], weight: ['400', '500', '600'], variable: '--font-mono', display: 'swap' });

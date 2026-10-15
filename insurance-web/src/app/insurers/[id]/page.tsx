@@ -14,12 +14,11 @@ import { ErrorState } from '@/components/ui/states';
 import { StatTile } from '@/components/ui/stat-tile';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
-import { adminApi } from '@/features/admin/api';
+import { deskApi } from '@/features/insurance-desk/api';
 import { INSURER_STATUS } from '@/features/insurers/api';
 import { keyFromUrl } from '@/features/media/secure-url';
 import { api } from '@/lib/api/client';
 import { formatDate, formatMoney } from '@/lib/utils/format';
-import { adminPath } from '@/lib/admin-path';
 import { ApiError } from '@/lib/api/types';
 
 const usd = (amount: number) => formatMoney({ amount, currency: 'USD' });
@@ -30,7 +29,7 @@ export default function InsurerPage({ params }: { params: Promise<{ id: string }
   const qc = useQueryClient();
   const toast = useToast();
   const confirm = useConfirm();
-  const q = useQuery({ queryKey: ['admin-insurer', id], queryFn: () => adminApi.insurer(id) });
+  const q = useQuery({ queryKey: ['admin-insurer', id], queryFn: () => deskApi.insurer(id) });
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['admin-insurer', id] });
     void qc.invalidateQueries({ queryKey: ['admin-insurers'] });
@@ -39,27 +38,27 @@ export default function InsurerPage({ params }: { params: Promise<{ id: string }
 
   const review = useMutation({
     meta: { silentError: true },
-    mutationFn: ({ decision, notes }: { decision: 'approved' | 'rejected'; notes?: string }) => adminApi.reviewInsurer(id, decision, notes),
+    mutationFn: ({ decision, notes }: { decision: 'approved' | 'rejected'; notes?: string }) => deskApi.reviewInsurer(id, decision, notes),
     onSuccess: () => { refresh(); toast({ tone: 'success', title: 'Decision saved and the insurer told' }); },
     onError: fail,
   });
   const status = useMutation({
     meta: { silentError: true },
-    mutationFn: ({ to, reason }: { to: 'approved' | 'suspended'; reason?: string }) => adminApi.setInsurerStatus(id, to, reason),
+    mutationFn: ({ to, reason }: { to: 'approved' | 'suspended'; reason?: string }) => deskApi.setInsurerStatus(id, to, reason),
     onSuccess: refresh,
     onError: fail,
   });
   const [commission, setCommission] = useState('');
   const saveCommission = useMutation({
     meta: { silentError: true },
-    mutationFn: (bps: number | null) => adminApi.setInsurerCommission(id, bps),
+    mutationFn: (bps: number | null) => deskApi.setInsurerCommission(id, bps),
     onSuccess: () => { refresh(); setCommission(''); toast({ tone: 'success', title: 'Commission saved' }); },
     onError: fail,
   });
   const [payout, setPayout] = useState({ amount: '', reference: '', note: '' });
   const recordPayout = useMutation({
     meta: { silentError: true },
-    mutationFn: () => adminApi.recordInsurerPayout(id, { amount: Math.round(Number(payout.amount) * 100), reference: payout.reference.trim(), note: payout.note.trim() || undefined }),
+    mutationFn: () => deskApi.recordInsurerPayout(id, { amount: Math.round(Number(payout.amount) * 100), reference: payout.reference.trim(), note: payout.note.trim() || undefined }),
     onSuccess: () => { refresh(); setPayout({ amount: '', reference: '', note: '' }); toast({ tone: 'success', title: 'Payout recorded' }); },
     onError: fail,
   });
@@ -99,7 +98,7 @@ export default function InsurerPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div className="space-y-6">
-      <Link href={adminPath('insurers')} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+      <Link href="/insurers" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Insurers
       </Link>
       <div className="flex flex-wrap items-center gap-3">

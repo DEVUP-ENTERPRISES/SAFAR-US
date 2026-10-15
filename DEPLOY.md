@@ -145,6 +145,21 @@ redirect to the right site.
 - **Corporate** stays off until `NEXT_PUBLIC_CORPORATE=on` on the guest site (and
   `EXPO_PUBLIC_CORPORATE=on` in the apps); until then its pages answer 404.
 
+### 2.2 Insurance desk — internal, its own login
+
+`insurance-web/` (port 3040): insurer partners and fleet insurance for the
+insurance team, signing in with an account that holds the `insurance` role
+(granted in the admin Staff section). It talks only to the API's
+`/insurance-desk` routes; insurance staff cannot open the admin console.
+
+- New Vercel project, root `insurance-web/`, on a hard-to-guess subdomain.
+  **Keep that name out of this repo** (it is public): add it only to the
+  backend `CORS_ORIGINS` and the S3 CORS list, and put Cloudflare Access in
+  front of it.
+- Environment variables: `NEXT_PUBLIC_API_URL`.
+- Two-step sign-in is optional for now; set `INSURANCE_DESK_REQUIRE_MFA=true`
+  on the backend to require it.
+
 Moving between sites keeps people signed in with a one-time, 60-second code
 (`/auth/handoff`), never by putting a token in a URL.
 

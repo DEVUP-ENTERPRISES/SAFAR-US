@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ForbiddenError, NotFoundError, UnauthorizedError } from '../../core/errors/app-error';
 import { userRepository } from '../../modules/users/infrastructure/user.repository';
-import { permissionsForRoles, ROLES } from '../constants/rbac';
+import { permissionsForRoles, ROLES, STAFF_ROLES } from '../constants/rbac';
 import { config } from '../../config';
 import { logger } from '../../infrastructure/logging/logger';
 
@@ -32,15 +32,8 @@ import { logger } from '../../infrastructure/logging/logger';
  * low-volume surface — the back office is not a hot path.
  */
 
-/** Roles that may reach the back office at all. Everything else is a customer. */
-const STAFF_ROLES = new Set<string>([
-  ROLES.SUPER_ADMIN,
-  ROLES.SUPPORT,
-  ROLES.MODERATOR,
-  ROLES.FINANCE,
-  ROLES.OPS,
-  ROLES.ADMIN,
-]);
+/** Roles that may reach a staff surface at all. Everything else is a customer. */
+const STAFF = new Set<string>(STAFF_ROLES);
 
 export function requireAdmin(req: Request, _res: Response, next: NextFunction): void {
   void (async () => {
@@ -60,7 +53,7 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction): 
       }
 
       const liveRoles = user.roles ?? [];
-      const isStaff = liveRoles.some((r) => STAFF_ROLES.has(r));
+      const isStaff = liveRoles.some((r) => STAFF.has(r));
       if (!isStaff) {
         // A customer reaching an admin route is worth recording — it is either
         // a probe or a bug, and neither should pass silently.

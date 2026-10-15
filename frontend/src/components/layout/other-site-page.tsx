@@ -12,10 +12,7 @@ const GUEST_SECTIONS = new Set([
   'about', 'insurance', 'investors', 'calculator', 'compare', 'verify', 'delete-account', 'asset-partners', 'insurers', 'corporate',
 ]);
 
-/**
- * A path this site doesn't serve: a page another CatoDrive site owns is opened
- * there with the session kept; anything else is a real 404.
- */
+// A page another site owns opens there signed in; anything else is a real 404.
 export function OtherSitePage({ site, path }: { site: Site; path: string[] }) {
   const full = `/${path.map(encodeURIComponent).join('/')}`;
   const owner = siteForPath(full);

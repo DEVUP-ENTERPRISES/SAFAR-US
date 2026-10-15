@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
-import { useLogin, useOnAuthSuccess, ADMIN_ROLES } from '@/features/auth/hooks';
+import { useLogin, useOnAuthSuccess, STAFF_ROLES } from '@/features/auth/hooks';
 import { SocialSignIn } from '@/features/auth/social-signin';
 import { ReturnContext } from '@/features/auth/return-context';
 import { ApiError } from '@/lib/api/types';
@@ -28,7 +28,7 @@ function LoginInner() {
   // are honoured - an absolute URL here would be an open redirect.
   const returnTo = safeRedirect(qp.get('next'));
 
-  const login = useLogin({ redirectTo: returnTo, denyAnyRole: ADMIN_ROLES });
+  const login = useLogin({ redirectTo: returnTo, denyAnyRole: STAFF_ROLES });
   const router = useRouter();
   const onAuthSuccess = useOnAuthSuccess();
   const { register, handleSubmit, formState } = useForm<FormValues>({ resolver: zodResolver(schema) });

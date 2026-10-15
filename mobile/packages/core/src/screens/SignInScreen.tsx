@@ -5,7 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Phone } from 'lucide-react-native';
 import { Button, Input, OtpInput, Screen, ScreenHeader, Text, useTheme, useToast, space } from '@catodrive/ui';
 import { authApi } from '../web/features/auth/api';
-import { ADMIN_ROLES, loginWithGate, useOnAuthSuccess } from '../web/features/auth/session';
+import { STAFF_ROLES, loginWithGate, useOnAuthSuccess } from '../web/features/auth/session';
 import type { AuthResult } from '../web/features/auth/types';
 import { ApiError } from '../web/lib/api/types';
 import { usePlatformConfig } from '../web/features/platform/config';
@@ -50,7 +50,7 @@ export function SignInScreen({ title, subtitle, home, footer, forgotPath }: Sign
 
   const login = useMutation({
     meta: { silentError: true },
-    mutationFn: () => loginWithGate({ email: email.trim(), password, mfaToken: mfaToken || undefined }, { denyAnyRole: ADMIN_ROLES }),
+    mutationFn: () => loginWithGate({ email: email.trim(), password, mfaToken: mfaToken || undefined }, { denyAnyRole: STAFF_ROLES }),
     onSuccess: done,
   });
   const mfaRequired = login.error instanceof ApiError && login.error.code === 'MFA_REQUIRED';
