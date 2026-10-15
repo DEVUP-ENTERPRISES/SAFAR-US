@@ -4,14 +4,20 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Circle, Mail, Phone, IdCard, ShieldAlert } from 'lucide-react';
-import { eligibilityApi } from './eligibility-api';
+import { api } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils/cn';
 
+interface Eligibility { eligible: boolean; canRequest: boolean; blockers: string[]; messages: string[] }
 
+const eligibilityApi = {
+  get: () => api.get<Eligibility>('/bookings/eligibility'),
+  send: (channel: 'email' | 'phone') => api.post<{ sent: boolean; to: string; via: string; devCode?: string; message?: string }>('/users/me/verify-contact/send', { channel }),
+  confirm: (channel: 'email' | 'phone', code: string) => api.post<{ verified: boolean }>('/users/me/verify-contact/confirm', { channel, code }),
+};
 
 /** Confirm an email or mobile number in place: send a code, type it, done. */
 function ContactStep({ channel, onDone }: { channel: 'email' | 'phone'; onDone: () => void }) {

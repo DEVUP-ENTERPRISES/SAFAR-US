@@ -10,8 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { ApiError } from '@/lib/api/types';
 import { formatMoney } from '@/lib/utils/format';
 import { hostApi, type WheelbasePreview, type WheelbaseImportResult } from '@/features/host/api';
-import { WHEELBASE_FILL_LABEL as FILL_LABEL } from '../fleet-import';
 
+const FILL_LABEL: Record<string, string> = { photos: 'photos', description: 'description', features: 'features', insurance: 'insurance link' };
 
 /** Brings the host's Wheelbase fleet in: fills and links the cars already here, creates drafts for the rest. */
 export function WheelbaseImport() {

@@ -6,8 +6,7 @@ import { KeyRound, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api/types';
-import { bookingApi } from '@/features/bookings/api';
-import { tripApi } from '@/features/trips/api';
+import { api } from '@/lib/api/client';
 
 /**
  * The guest's pickup code.
@@ -26,7 +25,7 @@ export function PickupCode({ bookingId }: { bookingId: string }) {
   const [code, setCode] = useState<string | null>(null);
 
   const issue = useMutation({
-    mutationFn: () => bookingApi.pickupCode(bookingId),
+    mutationFn: () => api.post<{ code: string }>(`/bookings/${bookingId}/pickup-code`, {}),
     onSuccess: (r) => setCode(r.code),
   });
 
@@ -103,7 +102,11 @@ export function VerifyPickup({
   const [lockedNow, setLockedNow] = useState(false);
 
   const verify = useMutation({
-    mutationFn: () => tripApi.verifyPickup({ tripId, bookingId }, code),
+    mutationFn: () =>
+      api.post<{ verified: boolean }>(
+        tripId ? `/trips/${tripId}/verify-pickup` : `/trips/booking/${bookingId}/verify-pickup`,
+        { code },
+      ),
     onSuccess: () => { setOk(true); onVerified?.(); },
     onError: (e) => {
       setCode('');

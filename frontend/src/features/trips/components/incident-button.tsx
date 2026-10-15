@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils/cn';
-import { INCIDENT_TYPES, reportIncident, type IncidentType } from '../incidents';
+import { api } from '@/lib/api/client';
 
+type IncidentType = 'accident' | 'breakdown' | 'medical' | 'theft' | 'unsafe';
 
 /**
  * Reporting that something has gone wrong during a trip.
@@ -33,8 +34,13 @@ import { INCIDENT_TYPES, reportIncident, type IncidentType } from '../incidents'
  *    roadside is not writing paragraphs.
  */
 
-const ICONS: Record<IncidentType, typeof Car> = { accident: Car, breakdown: Wrench, medical: HeartPulse, theft: Ban, unsafe: ShieldAlert };
-const TYPES = INCIDENT_TYPES.map((t) => ({ ...t, icon: ICONS[t.key] }));
+const TYPES: { key: IncidentType; label: string; detail: string; icon: typeof Car }[] = [
+  { key: 'accident', label: 'Accident', detail: 'A collision, however minor', icon: Car },
+  { key: 'breakdown', label: 'Breakdown', detail: 'The car will not drive', icon: Wrench },
+  { key: 'medical', label: 'Medical', detail: 'Someone needs help', icon: HeartPulse },
+  { key: 'theft', label: 'Theft', detail: 'The car or belongings are gone', icon: Ban },
+  { key: 'unsafe', label: 'Feeling unsafe', detail: 'Something is not right', icon: ShieldAlert },
+];
 
 export function IncidentButton({ tripId }: { tripId: string }) {
   const qc = useQueryClient();
@@ -44,7 +50,7 @@ export function IncidentButton({ tripId }: { tripId: string }) {
   const [note, setNote] = useState('');
 
   const report = useMutation({
-    mutationFn: () => reportIncident(tripId, type!, note),
+    mutationFn: () => api.post(`/trips/${tripId}/incident`, { type, note: note.trim() || undefined }),
     onSuccess: () => {
       toast({
         tone: 'success',

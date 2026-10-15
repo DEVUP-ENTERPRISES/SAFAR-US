@@ -15,7 +15,6 @@ import { channelProviders } from '../../notifications/infrastructure/channel.pro
 import { config } from '../../../config';
 import { logger } from '../../../infrastructure/logging/logger';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
-import { webLink } from '../../../shared/http/site-links';
 
 /**
  * Captains — a host's staff, and the authority checks that make them safe.
@@ -57,7 +56,8 @@ async function hostFor(userId: string): Promise<HostDoc> {
 }
 
 function acceptUrl(token: string): string {
-  return webLink(`/host/accept-invite?token=${token}`);
+  const base = config.notifications.webUrl || config.app.publicUrl;
+  return `${base}/host/accept-invite?token=${token}`;
 }
 
 async function sendInviteEmail(staff: HostStaffDoc, fleetName: string): Promise<void> {

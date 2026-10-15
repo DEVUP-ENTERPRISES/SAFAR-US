@@ -4,9 +4,17 @@ import { Check } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
-import { TRIP_STAGE, TRIP_STEPS } from '../status';
 
 // Where each booking status sits on the journey; a step is done once the trip is past it.
+const STAGE: Record<string, number> = {
+  pending_verification: 1,
+  pending_approval: 2,
+  pending_payment: 3,
+  paid: 4,
+  confirmed: 4,
+  in_progress: 5,
+  completed: 7,
+};
 
 export function TripProgress({
   status,
@@ -17,10 +25,18 @@ export function TripProgress({
   pickupAt: string;
   onVerify: () => void;
 }) {
-  const stage = TRIP_STAGE[status];
+  const stage = STAGE[status];
   if (stage === undefined) return null;
 
-  const steps = TRIP_STEPS;
+  const steps = [
+    { title: 'Trip requested', detail: 'Your dates are held and your card is authorised.' },
+    { title: 'Verify your identity', detail: 'Photograph your licence and take a selfie. Nothing is charged until this passes, and it must be done a few hours before pickup or the booking is released.' },
+    { title: 'Host approval', detail: 'The host reviews and accepts your request.' },
+    { title: 'Payment confirmed', detail: 'Your card is charged and the trip is locked in.' },
+    { title: 'Pickup day', detail: 'We will communicate with you all the required information close to your pickup time.' },
+    { title: 'On the road', detail: 'Enjoy the drive.' },
+    { title: 'Return & close out', detail: 'Return on time with photos; your deposit is released after the host’s inspection window.' },
+  ];
   const current = stage >= steps.length ? -1 : stage;
 
   return (

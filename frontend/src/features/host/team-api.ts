@@ -16,13 +16,6 @@ export const ABILITY_LABELS: Record<CaptainAbility, { label: string; detail: str
   'incident:report': { label: 'Report damage', detail: 'Raise damage and citations - cannot charge for them' },
 };
 
-export const CAPTAIN_ABILITIES: CaptainAbility[] = ['trip:view', 'trip:handover', 'trip:message', 'calendar:manage', 'incident:report'];
-export const DEFAULT_CAPTAIN_ABILITIES: CaptainAbility[] = ['trip:view', 'trip:handover', 'trip:message'];
-
-/** A name, a real-looking email and at least one ability. */
-export const captainInviteValid = (f: { name: string; email: string }, abilities: CaptainAbility[]) =>
-  f.name.trim().length >= 2 && /\S+@\S+\.\S+/.test(f.email) && abilities.length > 0;
-
 export interface Captain {
   _id: string;
   hostId: string;

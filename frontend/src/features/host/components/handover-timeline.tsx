@@ -3,7 +3,6 @@
 import { Check, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { TimelineStep } from '../trips.api';
-import { nextHandoverLine } from '../trip-timing';
 
 /** The handover steps in order; renders nothing when the backend sends no timeline. */
 export function HandoverTimeline({ timeline }: { timeline?: TimelineStep[] | null }) {
@@ -41,7 +40,11 @@ export function HandoverTimeline({ timeline }: { timeline?: TimelineStep[] | nul
 
 /** One line for a trip row: what has to happen next. */
 export function NextHandoverStep({ timeline }: { timeline?: TimelineStep[] | null }) {
-  const line = nextHandoverLine(timeline);
-  if (!line) return null;
-  return <p className="mt-2 truncate text-[13px] font-medium text-primary">{line}</p>;
+  const cur = timeline?.find((s) => s.state === 'current');
+  if (!cur) return null;
+  return (
+    <p className="mt-2 truncate text-[13px] font-medium text-primary">
+      Next: {cur.label}{cur.detail ? ` - ${cur.detail}` : ''}
+    </p>
+  );
 }

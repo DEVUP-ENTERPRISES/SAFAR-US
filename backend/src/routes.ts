@@ -41,7 +41,6 @@ import { corporateRoutes } from './modules/corporate/api/corporate.routes';
 import { rewardsRoutes } from './modules/rewards/api/rewards.routes';
 import { referralRoutes } from './modules/referral/api/referral.routes';
 import { assetPartnerApplicationRoutes } from './modules/asset-partners/api/asset-partner-application.routes';
-import { insurancePartnerRoutes } from './modules/insurance-partners/api/insurance-partner.routes';
 import { contactInquiryRoutes } from './modules/contact/api/contact-inquiry.routes';
 import { visitorTrackingRoutes } from './modules/analytics/api/visitor-tracking.routes';
 import { notFound } from './shared/middleware/not-found';
@@ -76,7 +75,6 @@ export function buildApiRouter(): Router {
   api.use('/', riskRoutes);
   api.use('/', complianceRoutes);
   api.use('/', assetPartnerApplicationRoutes);
-  api.use('/', insurancePartnerRoutes);
   api.use('/', contactInquiryRoutes);
   api.use('/', visitorTrackingRoutes);
   api.use('/saved-searches', savedSearchRoutes);

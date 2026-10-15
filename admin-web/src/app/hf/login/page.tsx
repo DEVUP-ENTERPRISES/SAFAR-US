@@ -8,8 +8,9 @@ import { Field } from '@/components/ui/field';
 import { Logo } from '@/components/layout/logo';
 import { authApi } from '@/features/auth/api';
 import { ApiError } from '@/lib/api/types';
-import { siteUrl } from '@/lib/sites';
 
+// The consumer app's own domain — Host's dashboard pages live there, not here.
+const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? 'http://localhost:3000';
 
 /**
  * House Fleet's own sign-in. No admin session needed — this is a real
@@ -33,8 +34,7 @@ export default function HouseFleetLoginPage() {
         setBusy(false);
         return;
       }
-      // The Host dashboard lives on the partner website.
-      const url = new URL(siteUrl('partner', '/host/bridge'));
+      const url = new URL('/host/bridge', WEB_URL);
       // Fragment, not query: it is never sent to a server, logged, or leaked through Referer.
       url.hash = new URLSearchParams({ at: result.tokens.accessToken, rt: result.tokens.refreshToken }).toString();
       window.location.href = url.toString();

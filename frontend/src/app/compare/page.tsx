@@ -8,58 +8,107 @@ import { X, Check, Star, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/states';
+import { formatMoney, FUEL_LABEL } from '@/lib/utils/format';
 import { vehicleApi } from '@/features/vehicles/api';
 import { useCompareStore } from '@/features/vehicles/compare-store';
 import type { Vehicle } from '@/features/vehicles/types';
-import { COMPARE_ROWS, type CompareValue } from '@/features/vehicles/compare';
 
 // ── Row definitions ──────────────────────────────────────────────────────────
 
 type Row = { label: string; get: (v: Vehicle) => React.ReactNode };
 
-const dash = <Minus className="h-4 w-4 text-muted-foreground/40" />;
-
-/** The shared comparison rows, drawn with this page's styling. */
-function renderValue(val: CompareValue): React.ReactNode {
-  if ('yes' in val) return val.yes ? <Check className="h-5 w-5 text-primary" /> : dash;
-  if ('rating' in val) {
-    return (
-      <span className="inline-flex items-center gap-1.5 font-semibold">
-        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-        {val.rating}
-        <span className="text-xs font-normal text-muted-foreground">({val.count})</span>
-      </span>
-    );
-  }
-  if ('tags' in val) {
-    if (val.tags.length === 0) return dash;
-    return (
-      <div className="flex flex-wrap gap-1.5">
-        {val.tags.map((f) => (
-          <span
-            key={f}
-            className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-foreground"
-          >
-            {f}
-          </span>
-        ))}
-        {val.more > 0 && <span className="text-[11px] text-muted-foreground">+{val.more} more</span>}
-      </div>
-    );
-  }
-  if (val.muted) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-        {val.text}
-      </span>
-    );
-  }
-  if (val.strong) return <span className="text-lg font-bold text-foreground">{val.text}</span>;
-  return <span className={val.capitalize ? 'capitalize font-medium' : 'font-medium'}>{val.text}</span>;
-}
-
 function buildRows(): Row[] {
-  return COMPARE_ROWS.map((r) => ({ label: r.label, get: (v: Vehicle) => renderValue(r.get(v)) }));
+  return [
+    {
+      label: 'Price / day',
+      get: (v) => (
+        <span className="text-lg font-bold text-foreground">
+          {formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency })}
+        </span>
+      ),
+    },
+    {
+      label: 'Rating',
+      get: (v) =>
+        v.ratingCount ? (
+          <span className="inline-flex items-center gap-1.5 font-semibold">
+            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            {v.ratingAvg}
+            <span className="text-xs font-normal text-muted-foreground">({v.ratingCount})</span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+            New
+          </span>
+        ),
+    },
+    {
+      label: 'Category',
+      get: (v) => <span className="capitalize font-medium">{v.category}</span>,
+    },
+    {
+      label: 'Year',
+      get: (v) => <span className="font-medium">{v.year}</span>,
+    },
+    {
+      label: 'Seats',
+      get: (v) => <span className="font-medium">{v.seats} seats</span>,
+    },
+    {
+      label: 'Transmission',
+      get: (v) => <span className="capitalize font-medium">{v.transmission}</span>,
+    },
+    {
+      label: 'Fuel',
+      get: (v) => <span className="font-medium">{FUEL_LABEL[v.fuelType]}</span>,
+    },
+    {
+      label: 'Instant book',
+      get: (v) =>
+        v.listing.instantBook ? (
+          <Check className="h-5 w-5 text-primary" />
+        ) : (
+          <Minus className="h-4 w-4 text-muted-foreground/40" />
+        ),
+    },
+    {
+      label: 'Delivery',
+      get: (v) => {
+        const d = v.listing.delivery;
+        const has = d && (d.airport || d.home || d.hotel || d.business);
+        return has ? (
+          <Check className="h-5 w-5 text-primary" />
+        ) : (
+          <Minus className="h-4 w-4 text-muted-foreground/40" />
+        );
+      },
+    },
+    {
+      label: 'City',
+      get: (v) => <span className="font-medium">{v.location.city || '—'}</span>,
+    },
+    {
+      label: 'Features',
+      get: (v) =>
+        v.features.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {v.features.slice(0, 6).map((f) => (
+              <span
+                key={f}
+                className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-foreground"
+              >
+                {f}
+              </span>
+            ))}
+            {v.features.length > 6 && (
+              <span className="text-[11px] text-muted-foreground">+{v.features.length - 6} more</span>
+            )}
+          </div>
+        ) : (
+          <Minus className="h-4 w-4 text-muted-foreground/40" />
+        ),
+    },
+  ];
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────

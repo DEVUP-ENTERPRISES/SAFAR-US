@@ -1,8 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
-import { MAX_COMPARE as MAX, toggleCompare } from './compare';
 
+const MAX = 3;
 
 interface CompareState {
   ids: string[];
@@ -51,7 +51,11 @@ function write(ids: string[]): void {
 export const useCompareStore = create<CompareState>((set, get) => ({
   ids: read(),
   toggle: (id) => {
-    const next = toggleCompare(get().ids, id);
+    const cur = get().ids;
+    let next: string[];
+    if (cur.includes(id)) next = cur.filter((x) => x !== id);
+    else if (cur.length >= MAX) next = [...cur.slice(1), id];
+    else next = [...cur, id];
     write(next);
     set({ ids: next });
   },

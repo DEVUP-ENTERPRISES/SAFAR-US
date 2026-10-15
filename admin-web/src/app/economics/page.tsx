@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Percent, Clock, Gift, Users, ShieldCheck, Save, Scale, IdCard, History, RotateCcw, Car, Umbrella, UserSearch, Smartphone } from 'lucide-react';
+import { Percent, Clock, Gift, Users, ShieldCheck, Save, Scale, IdCard, History, RotateCcw, Car, Umbrella, UserSearch } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -105,7 +105,6 @@ export default function AdminEconomicsPage() {
         security: draft.security,
         ...(draft.programs ? { programs: draft.programs } : {}),
         content: { bookingQuotes: (draft.content?.bookingQuotes ?? []).map((l) => l.trim()).filter(Boolean).slice(0, 12) },
-        ...(draft.appRelease ? { appRelease: draft.appRelease } : {}),
       });
     }
   };
@@ -225,38 +224,6 @@ export default function AdminEconomicsPage() {
           />
         </CardContent>
       </Card>
-
-      {draft.appRelease && (
-        <Card className="rounded-2xl shadow-soft">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Smartphone className="h-5 w-5 text-primary" /> Mobile apps</CardTitle>
-            <p className="text-sm text-muted-foreground">An app older than the minimum version must update before it can be used. Older than the latest version, it shows an "update available" banner.</p>
-          </CardHeader>
-          <CardContent className="grid gap-6 sm:grid-cols-2">
-            {(['customer', 'partner'] as const).map((app) => (
-              <div key={app} className="space-y-3">
-                <p className="font-semibold">{app === 'customer' ? 'CatoDrive (guests)' : 'CatoDrive Partner (hosts and partners)'}</p>
-                <Field label="Minimum version" hint="Like 1.2.0. Older apps are blocked until updated.">
-                  <Input value={draft.appRelease![app].minVersion}
-                    onChange={(e) => set((d) => { d.appRelease![app].minVersion = e.target.value.trim(); })} />
-                </Field>
-                <Field label="Latest version" hint="The version in the stores now.">
-                  <Input value={draft.appRelease![app].latestVersion}
-                    onChange={(e) => set((d) => { d.appRelease![app].latestVersion = e.target.value.trim(); })} />
-                </Field>
-                <Field label="Google Play link">
-                  <Input value={draft.appRelease![app].androidUrl} placeholder="https://play.google.com/store/apps/details?id=…"
-                    onChange={(e) => set((d) => { d.appRelease![app].androidUrl = e.target.value.trim(); })} />
-                </Field>
-                <Field label="App Store link">
-                  <Input value={draft.appRelease![app].iosUrl} placeholder="https://apps.apple.com/app/…"
-                    onChange={(e) => set((d) => { d.appRelease![app].iosUrl = e.target.value.trim(); })} />
-                </Field>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Legal & eligibility */}
       <Card className="rounded-2xl shadow-soft">

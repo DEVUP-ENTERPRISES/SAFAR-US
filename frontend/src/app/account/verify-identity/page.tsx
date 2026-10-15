@@ -17,7 +17,6 @@ import { useToast } from '@/components/ui/toast';
 import { formatDay } from '@/lib/utils/format';
 import { accountApi } from '@/features/account/api';
 import { kycApi, type KycStatusView } from '@/features/kyc/api';
-import { KYC_MANUAL_FIELDS, KYC_STEPS, kycReasonLabel } from '@/features/kyc/copy';
 import { openIdentityModal } from '@/features/kyc/stripe-identity';
 import { useStripePublishableKey } from '@/features/payments/stripe-key';
 import { uploadFiles } from '@/features/media/upload';
@@ -27,8 +26,11 @@ import { ApiError } from '@/lib/api/types';
 const isDev = process.env.NODE_ENV !== 'production';
 
 /** The three checks Stripe runs, shown up front so there are no surprises. */
-const STEP_ICON = { license: IdCard, selfie: ScanFace, secure: LockKeyhole };
-const STEPS = KYC_STEPS.map((s) => ({ ...s, icon: STEP_ICON[s.key] }));
+const STEPS = [
+  { icon: IdCard, title: "Photograph your driver's license", detail: 'Front and back. Make sure the text is sharp and glare-free.' },
+  { icon: ScanFace, title: 'Take a quick selfie', detail: 'We match your face to the license to confirm it’s really you.' },
+  { icon: LockKeyhole, title: 'We confirm and secure it', detail: 'Documents you upload here are visible only to our verification team.' },
+];
 
 function VerifyIdentity() {
   const qc = useQueryClient();
@@ -153,7 +155,7 @@ function VerifyIdentity() {
                 <div>
                   <p className="font-semibold text-destructive">Your last check didn’t pass</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {kycReasonLabel(status.data?.reason)} You can try again - a clear, well-lit photo of a valid license usually does it.
+                    {reasonLabel(status.data?.reason)} You can try again - a clear, well-lit photo of a valid license usually does it.
                   </p>
                 </div>
               </CardContent>
@@ -268,20 +270,25 @@ function VerifyIdentity() {
   );
 }
 
+const MANUAL_FIELDS = [
+  { id: 'front', label: 'Driver’s license, front', type: 'license' },
+  { id: 'back', label: 'Driver’s license, back', type: 'license' },
+  { id: 'selfie', label: 'Selfie holding your license', type: 'selfie' },
+] as const;
 
 /** Secondary path: photograph the documents live for our team to review by hand. No file picker: every shot is taken here, now, and stamped. */
 function ManualUpload({ disabled, onSubmitted }: { disabled: boolean; onSubmitted: () => void }) {
   const toast = useToast();
   const [shots, setShots] = useState<Record<string, { blob: Blob; previewUrl: string } | undefined>>({});
-  const [capturing, setCapturing] = useState<(typeof KYC_MANUAL_FIELDS)[number] | null>(null);
-  const complete = KYC_MANUAL_FIELDS.every((f) => shots[f.id]);
+  const [capturing, setCapturing] = useState<(typeof MANUAL_FIELDS)[number] | null>(null);
+  const complete = MANUAL_FIELDS.every((f) => shots[f.id]);
 
   const submit = useMutation({
     mutationFn: async () => {
       const uploaded = await Promise.all(
-        KYC_MANUAL_FIELDS.map((f) => uploadFiles('kyc', [new File([shots[f.id]!.blob], `${f.id}.jpg`, { type: 'image/jpeg' })])),
+        MANUAL_FIELDS.map((f) => uploadFiles('kyc', [new File([shots[f.id]!.blob], `${f.id}.jpg`, { type: 'image/jpeg' })])),
       );
-      return kycApi.submitDocuments(KYC_MANUAL_FIELDS.map((f, i) => ({ type: f.type, key: uploaded[i][0].key })));
+      return kycApi.submitDocuments(MANUAL_FIELDS.map((f, i) => ({ type: f.type, key: uploaded[i][0].key })));
     },
     onSuccess: onSubmitted,
     onError: (e) => toast({ title: e instanceof ApiError ? e.message : (e as Error).message, tone: 'error' }),
@@ -296,7 +303,7 @@ function ManualUpload({ disabled, onSubmitted }: { disabled: boolean; onSubmitte
           Reviewed by our team, usually within a few hours, and visible only to our verification team.
         </p>
         <div className="grid gap-3">
-          {KYC_MANUAL_FIELDS.map((f) => {
+          {MANUAL_FIELDS.map((f) => {
             const shot = shots[f.id];
             return (
               <div key={f.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
@@ -351,6 +358,15 @@ function Detail({ label, value, full }: { label: string; value: string; full?: b
   );
 }
 
+function reasonLabel(reason?: string): string {
+  const map: Record<string, string> = {
+    documents_unreadable: 'The document photo wasn’t clear enough.',
+    document_expired: 'The license appears to be expired.',
+    selfie_mismatch: 'The selfie didn’t match the license photo.',
+    verification_failed: 'We couldn’t confirm the details.',
+  };
+  return reason ? (map[reason] ?? 'We couldn’t confirm the details.') : 'We couldn’t confirm the details.';
+}
 
 export default function Page() {
   return (

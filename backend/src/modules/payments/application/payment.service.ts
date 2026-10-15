@@ -93,7 +93,6 @@ export class PaymentService implements IPaymentContract {
       hostEarnings: input.hostEarnings.amount,
       commission: input.commission.amount,
       tax: input.tax.amount,
-      ...(input.insurer && input.insurer.share > 0 ? { insurerId: input.insurer.id, insurerShare: input.insurer.share } : {}),
       capturedAmount: status === 'succeeded' ? cardAmount : 0,
       walletApplied: input.walletApplied ?? 0,
       status,
@@ -212,13 +211,10 @@ export class PaymentService implements IPaymentContract {
       const hostPart = Math.round((take * payment.hostEarnings) / payment.amount);
       const commissionPart = Math.round((take * payment.commission) / payment.amount);
       const taxPart = take - hostPart - commissionPart;
-      // The insurer gives back its premium in the same proportion as everyone else.
-      const insurerPart = payment.insurerId ? Math.min(commissionPart, Math.round((take * (payment.insurerShare ?? 0)) / payment.amount)) : 0;
       const legs: LedgerLeg[] = [
         { account: Account.gatewayClearing(), direction: 'debit', amount: take },
         { account: Account.hostPayable(payment.hostId!), direction: 'credit', amount: hostPart },
-        { account: Account.platformRevenue(), direction: 'credit', amount: commissionPart - insurerPart },
-        ...(insurerPart > 0 ? [{ account: Account.insurerPayable(payment.insurerId!), direction: 'credit' as const, amount: insurerPart }] : []),
+        { account: Account.platformRevenue(), direction: 'credit', amount: commissionPart },
         { account: Account.platformTax(), direction: 'credit', amount: taxPart },
       ].filter((l) => l.amount > 0) as LedgerLeg[];
       // Wallet money goes back only if this booking's wallet spend really happened.
@@ -499,8 +495,6 @@ export class PaymentService implements IPaymentContract {
 
   private async postBookingLedger(payment: PaymentDoc): Promise<void> {
     if (payment.ledgerTxnId) return; // already posted (idempotent)
-    // The insurer's premium rides inside commission on the payment; on the books it is owed to the insurer.
-    const insurerShare = payment.insurerId ? Math.min(payment.insurerShare ?? 0, payment.commission) : 0;
     const txnId = await ledgerService.post({
       refType: 'booking',
       refId: payment.bookingId!,
@@ -509,8 +503,7 @@ export class PaymentService implements IPaymentContract {
       legs: [
         { account: Account.gatewayClearing(), direction: 'credit', amount: payment.amount },
         { account: Account.hostPayable(payment.hostId!), direction: 'debit', amount: payment.hostEarnings },
-        { account: Account.platformRevenue(), direction: 'debit', amount: payment.commission - insurerShare },
-        ...(insurerShare > 0 ? [{ account: Account.insurerPayable(payment.insurerId!), direction: 'debit' as const, amount: insurerShare }] : []),
+        { account: Account.platformRevenue(), direction: 'debit', amount: payment.commission },
         { account: Account.platformTax(), direction: 'debit', amount: payment.tax },
       ],
     });

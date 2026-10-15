@@ -1,8 +1,7 @@
 import { cn } from '@/lib/utils/cn';
-import { SHOT_ACCENT } from '../photo-guide';
 
 // Amber marks what to do: where to stand, where to aim, and the part that must be in frame.
-export { SHOT_ACCENT };
+export const SHOT_ACCENT = '#E3A33B';
 
 const A = SHOT_ACCENT;
 const faint = { fill: 'currentColor', fillOpacity: 0.08 };

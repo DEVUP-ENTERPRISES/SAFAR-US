@@ -4,8 +4,6 @@ import { Logo } from '@/components/layout/logo';
 import { usePrograms } from '@/features/platform/config';
 import Link from 'next/link';
 import { config } from '@/lib/config';
-import { isPartnerPath } from '@/lib/sites';
-import { SiteLink } from './site-link';
 
 // Host self-serve and Corporate links return when config.assetPartnersOnly is off.
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
@@ -25,7 +23,6 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     links: [
       { label: 'Asset Partners', href: '/asset-partners' },
       { label: 'Partner dashboard', href: '/asset-partners/dashboard' },
-      { label: 'For insurers', href: '/insurers' },
       ...(config.assetPartnersOnly
         ? []
         : [
@@ -87,15 +84,12 @@ export function Footer() {
               <ul className="mt-4 space-y-2.5">
                 {col.links.map((l) => (
                   <li key={l.href}>
-                    {isPartnerPath(l.href) ? (
-                      <SiteLink site="partner" path={l.href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                        {l.label}
-                      </SiteLink>
-                    ) : (
-                      <Link href={l.href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                        {l.label}
-                      </Link>
-                    )}
+                    <Link
+                      href={l.href}
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {l.label}
+                    </Link>
                   </li>
                 ))}
               </ul>

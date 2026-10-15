@@ -4,8 +4,7 @@ import type { ReactNode } from 'react';
 import { Check, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
-export type { StepStatus } from '../trip-handover';
-import type { StepStatus } from '../trip-handover';
+export type StepStatus = 'done' | 'active' | 'locked' | 'na';
 
 /** One numbered step of the host's pickup checklist; locked steps say why. */
 export function HandoverStep({

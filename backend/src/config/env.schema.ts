@@ -155,8 +155,6 @@ export const envSchema = z.object({
   BRAND_NAME: z.string().default('CatoDrive'),
   /** The web app, for links in emails. Falls back to the first CORS origin. */
   WEB_URL: optional(z.string()),
-  /** The partner website (hosts, captains, asset partners, corporate), for links to those pages. Falls back to WEB_URL. */
-  PARTNER_WEB_URL: optional(z.string()),
   /**
    * Postal address in the email footer.
    *

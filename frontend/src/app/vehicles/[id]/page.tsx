@@ -24,6 +24,7 @@ import { DailyPrice, MemberBanner, ProBadge } from '@/features/subscriptions/mem
 import { useMembership } from '@/features/subscriptions/hooks';
 import { VehicleRating, VehicleBadges } from '@/features/vehicles/components/vehicle-rating';
 import { cn } from '@/lib/utils/cn';
+import { api } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/types';
 import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
@@ -45,9 +46,24 @@ import { PhotoLightbox } from '@/features/vehicles/components/photo-lightbox';
 import { confirmCardPayment } from '@/features/payments/confirm-payment';
 import { PayNow } from '@/features/payments/pay-now';
 import { useSearchBar } from '@/features/search/search-store';
-import { reviewsApi } from '@/features/reviews/api';
-import { bookingInput, canQuote as canQuoteChoices, type BookingChoices } from '@/features/bookings/booking-selection';
 
+interface Review {
+  _id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+interface RatingDistribution {
+  total: number;
+  avg: number;
+  counts: Record<'1' | '2' | '3' | '4' | '5', number>;
+}
+interface ProtectionPlan {
+  code: string;
+  label: string;
+  description: string;
+  pricePerDay: number;
+}
 
 
 export default function VehicleDetailPage() {
@@ -121,17 +137,17 @@ export default function VehicleDetailPage() {
 
   const reviews = useQuery({
     queryKey: ['reviews', v?.hostId],
-    queryFn: () => reviewsApi.forSubject(v!.hostId),
+    queryFn: () => api.get<Review[]>('/reviews', { subjectId: v!.hostId }, false),
     enabled: !!v?.hostId,
   });
   const ratingBreakdown = useQuery({
     queryKey: ['reviews-distribution', v?.hostId],
-    queryFn: () => reviewsApi.distribution(v!.hostId),
+    queryFn: () => api.get<RatingDistribution>('/reviews/distribution', { subjectId: v!.hostId }, false),
     enabled: !!v?.hostId,
   });
   const plans = useQuery({
-    queryKey: ['protection-plans', id],
-    queryFn: () => bookingApi.protectionPlans(id),
+    queryKey: ['protection-plans'],
+    queryFn: () => api.get<ProtectionPlan[]>('/bookings/protection-plans', undefined, false),
   });
   const calendar = useQuery({
     queryKey: ['calendar', id],
@@ -212,9 +228,47 @@ export default function VehicleDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const choices: BookingChoices = { start, end, addOnCodes, protectionPlan, payWithWallet, payOther, deliveryMode, deliveryLocationId, deliveryAddress, flightNumber, terminal, arrivesAt, appliedCoupon };
-  const selection = () => bookingInput(id, choices, { instantBook: !!v?.listing.instantBook, termsVersion: platformCfg.data?.legal?.termsVersion });
-  const canQuote = canQuoteChoices(choices);
+  const selection = () => ({
+    vehicleId: id,
+    start: iso(start),
+    end: iso(end),
+    // Trimmed, and omitted when blank - an empty string is not "no coupon" to
+    // the validator. The server is the one that decides if it's valid; a bad
+    // code surfaces as a quote error, not a silent no-op.
+    couponCode: appliedCoupon.trim() || undefined,
+    addOnCodes,
+    protectionPlan,
+    useWallet: payWithWallet && !!v?.listing.instantBook,
+    payWith: payOther ? ('other' as const) : undefined,
+    // The Terms version the guest is accepting on this booking. The quote
+    // endpoint ignores it; the create endpoint requires it.
+    acceptedTermsVersion: platformCfg.data?.legal?.termsVersion,
+    // Only send delivery once a mode AND an address are chosen - a mode with no
+    // address would be a delivery the host can't fulfil.
+    delivery:
+      deliveryMode && deliveryAddress.trim()
+        ? {
+            mode: deliveryMode,
+            locationId: deliveryLocationId || undefined,
+            address: deliveryAddress.trim(),
+            ...(deliveryMode === 'airport'
+              ? {
+                  flightNumber: flightNumber.trim().toUpperCase() || undefined,
+                  terminal: terminal.trim() || undefined,
+                  arrivesAt: arrivesAt ? new Date(arrivesAt).toISOString() : undefined,
+                }
+              : {}),
+          }
+        : undefined,
+  });
+  // Delivery needs an address before it can be quoted/booked.
+  // Airport delivery also needs the flight - the API rejects it otherwise, so
+  // the button should not promise a quote it cannot get.
+  const deliveryReady =
+    !deliveryMode ||
+    (deliveryAddress.trim().length > 2 &&
+      (deliveryMode !== 'airport' || flightNumber.trim().length >= 3));
+  const canQuote = !!(start && end && deliveryReady);
 
   // The price recalculates by itself whenever anything that changes it changes (debounced), so there is no Get price step.
   const quoteKey = JSON.stringify([start, end, appliedCoupon, addOnCodes, protectionPlan, deliveryMode, deliveryLocationId, deliveryAddress.trim(), flightNumber.trim(), terminal, arrivesAt]);
@@ -929,18 +983,6 @@ export default function VehicleDetailPage() {
                         <span>{p.pricePerDay === 0 ? 'Free' : `${formatMoney({ amount: p.pricePerDay, currency: v.pricing.currency })}/day`}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">{p.description}</p>
-                      {p.insurer && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Covered by <span className="font-medium text-foreground">{p.insurer.name}</span>
-                          {typeof p.deductibleCents === 'number' && ` · ${formatMoney({ amount: p.deductibleCents, currency: v.pricing.currency })} deductible`}
-                          {!!p.liabilityLimitCents && ` · ${formatMoney({ amount: p.liabilityLimitCents, currency: v.pricing.currency })} liability`}
-                        </p>
-                      )}
-                      {p.coverage && p.coverage.length > 0 && (
-                        <ul className="mt-1 list-disc ps-4 text-xs text-muted-foreground">
-                          {p.coverage.map((c) => <li key={c}>{c}</li>)}
-                        </ul>
-                      )}
                     </div>
                   </label>
                 ))}
@@ -1273,5 +1315,8 @@ function SavingsCard({
       </CardContent>
     </Card>
   );
+}
+function iso(local: string): string {
+  return new Date(local).toISOString();
 }
 

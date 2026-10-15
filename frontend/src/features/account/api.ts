@@ -82,13 +82,6 @@ export const accountApi = {
   notificationPrefs: () => api.get<NotificationPrefs>('/users/me/notification-preferences'),
   updateNotificationPrefs: (patch: NotificationPrefs) =>
     api.patch<NotificationPrefs>('/users/me/notification-preferences', patch),
-
-  // ── Account deletion ──
-  erasureEligibility: () => api.get<{ eligible: boolean; blockers: string[] }>('/me/erasure-eligibility'),
-  /** For accounts without a password: emails or texts a confirmation code. */
-  requestErasureCode: () => api.post<{ sent: boolean; devCode?: string }>('/me/erase/code'),
-  erase: (proof: { password?: string; code?: string; reason?: string }) =>
-    api.post<{ erased: true }>('/me/erase', { confirm: 'DELETE MY ACCOUNT', ...proof }),
 };
 
 /** The six topic buckets every notification maps to (mirrors the backend). */

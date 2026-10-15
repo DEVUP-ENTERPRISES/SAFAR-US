@@ -18,18 +18,14 @@ import { trackingNoticeService } from '../../trips/application/tracking-notice.s
 import { ForbiddenError, ConflictError } from '../../../core/errors/app-error';
 import { depositService } from '../../payments/application/deposit.service';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
-import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 
 const router = Router();
 
-// Public: protection plans shown on the vehicle page and at checkout; with a car, insurance partners' plans for it are included.
+// Public: platform protection tiers shown on the vehicle detail page.
 router.get(
   '/protection-plans',
-  validate({ query: z.object({ vehicleId: z.string().trim().min(1).max(64).optional() }) }),
-  asyncHandler(async (req, res) => {
-    const vehicleId = (req.query as { vehicleId?: string }).vehicleId;
-    const vehicle = vehicleId ? await VehicleModel.findById(vehicleId).select('location.state category').lean() : null;
-    sendSuccess(res, await listProtectionPlans(vehicle ?? undefined));
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, await listProtectionPlans());
   }),
 );
 

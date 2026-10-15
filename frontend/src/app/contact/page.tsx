@@ -14,13 +14,30 @@ import { useToast } from '@/components/ui/toast';
 import { SectionEyebrow, BRAND } from '@/features/marketing/sections';
 import { LocationMap } from '@/features/maps/components/location-map';
 import { contactApi, type ContactInterest } from '@/features/contact/api';
-import { CONTACT, CONTACT_CARDS, CONTACT_FAQ, INTEREST_OPTIONS, contactFormErrors } from '@/features/contact/content';
 import { ApiError } from '@/lib/api/types';
 
-const CARD_ICON = { call: Phone, email: Mail, visit: MapPin };
-const INFO_CARDS = CONTACT_CARDS.map((c) => ({ ...c, icon: CARD_ICON[c.key] }));
-const FAQ_ITEMS = CONTACT_FAQ;
-const DFW_AIRPORT = CONTACT.mapCenter;
+const INFO_CARDS = [
+  { icon: Phone, title: 'Call Us', lines: ['(214) 814-0402', 'Available 7 days a week', '8 AM – 10 PM Central'] },
+  { icon: Mail, title: 'Email Us', lines: ['shoaib@catodrive.com', 'Asset partner inquiries', 'Corporate accounts'] },
+  { icon: MapPin, title: 'Visit Us', lines: ['Dallas/Fort Worth, TX', 'Operations near DFW Airport', 'By appointment only'] },
+] as const;
+
+const INTEREST_OPTIONS: { value: ContactInterest; label: string }[] = [
+  { value: 'asset_partner', label: 'Listing my vehicle as an Asset Partner' },
+  { value: 'investor', label: 'Investing in CatoDrive' },
+  { value: 'corporate', label: 'A corporate account' },
+  { value: 'general', label: 'A general question' },
+  { value: 'other', label: 'Something else' },
+];
+
+const FAQ_ITEMS = [
+  { q: 'How do I become an asset partner?', a: `Start the intake form on the Asset Partners page - it takes about 10 minutes. Our team reviews every submission and schedules an in-person vehicle assessment within 2–3 business days.` },
+  { q: 'What’s the fastest way to reach you?', a: 'Call or text (214) 814-0402 - we’re available 7 days a week, 8 AM–10 PM Central. For anything that needs documents or detail attached, email is usually faster to act on.' },
+  { q: 'Do you offer corporate accounts?', a: `Yes - B2B fleet accounts for enterprises and staffing agencies, with volume pricing and consolidated billing. Select "A corporate account" below and tell us your team size and use case.` },
+  { q: 'Where are you located?', a: `${BRAND} operates near DFW International Airport and Dallas Love Field, serving the greater Dallas/Fort Worth area. Our office is by appointment only - reach out to schedule a visit.` },
+] as const;
+
+const DFW_AIRPORT = { lat: 32.8998, lng: -97.0403 };
 
 const VALID_INTERESTS = new Set(INTEREST_OPTIONS.map((o) => o.value));
 
@@ -45,7 +62,11 @@ function ContactForm() {
   const [sent, setSent] = useState(false);
 
   const submit = async () => {
-    const next = contactFormErrors({ fullName, email, interest, message });
+    const next = new Set<string>();
+    if (!fullName.trim()) next.add('fullName');
+    if (!/^\S+@\S+\.\S+$/.test(email)) next.add('email');
+    if (!interest) next.add('interest');
+    if (message.trim().length < 5) next.add('message');
     setErrors(next);
     if (next.size > 0) return;
 

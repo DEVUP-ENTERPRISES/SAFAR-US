@@ -305,17 +305,6 @@ function Account() {
           ))}
         </div>
       </section>
-
-      {/* Store rule: deletion must be reachable from inside the account. */}
-      <section className="rounded-3xl border border-destructive/30 p-6 sm:p-8">
-        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="flex items-center gap-2 text-xl font-bold"><Trash2 className="h-6 w-6 text-destructive" /> Delete account</h2>
-            <p className="mt-1 text-sm font-medium text-muted-foreground">Permanently remove your account and personal data.</p>
-          </div>
-          <Button size="sm" variant="outline" className="rounded-full font-bold text-destructive w-full sm:w-auto" onClick={() => router.push('/account/delete')}>Delete account</Button>
-        </div>
-      </section>
     </div>
   );
 }

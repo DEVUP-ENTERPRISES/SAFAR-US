@@ -1,6 +1,25 @@
 'use client';
 
-import { useSecureUrl } from './secure-url';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api/client';
+
+const PRIVATE_PREFIXES = ['kyc/', 'registration/', 'insurance/', 'claim/', 'message/'];
+
+/** Pull the object key out of a stored URL: the pathname, minus the leading slash. */
+function keyFromUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    // Without a CDN the durable URL is /media/view?key=<key>, so the key is the query value.
+    const path = parsed.searchParams.get('key') ?? parsed.pathname.replace(/^\/+/, '');
+    return path || null;
+  } catch {
+    return null;
+  }
+}
+
+function isPrivateKey(key: string | null): key is string {
+  return !!key && PRIVATE_PREFIXES.some((p) => key.startsWith(p));
+}
 
 /**
  * Renders a document image. For PRIVATE keys (KYC, licence, insurance, claim) it
@@ -17,12 +36,23 @@ export function SecureDoc({
   alt?: string;
   className?: string;
 }) {
-  const { src, loading, denied } = useSecureUrl(url);
+  const key = keyFromUrl(url);
+  const priv = isPrivateKey(key);
 
-  if (loading) {
+  const signed = useQuery({
+    queryKey: ['secure-doc', key],
+    queryFn: () => api.get<{ url: string }>('/media/download', { key: key! }),
+    enabled: priv,
+    // A presigned GET expires in ~2 min; refetch a bit before that.
+    staleTime: 90_000,
+  });
+
+  const src = priv ? signed.data?.url : url;
+
+  if (priv && signed.isLoading) {
     return <span className={className} style={{ display: 'inline-block', background: 'hsl(var(--muted))' }} />;
   }
-  if (denied) {
+  if (priv && signed.isError) {
     return (
       <span className={`grid place-items-center text-[10px] text-destructive ${className ?? ''}`}>
         no access

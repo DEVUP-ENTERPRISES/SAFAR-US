@@ -363,7 +363,7 @@ export class HostTripsService {
           cleaningFee: b.priceBreakdown.cleaningFee?.amount ?? 0,
           delivery: b.priceBreakdown.delivery?.amount ?? 0,
           protection: b.priceBreakdown.protection?.amount ?? 0,
-          protectionPlan: b.priceBreakdown.protectionLabel ?? b.priceBreakdown.protectionPlan,
+          protectionPlan: b.priceBreakdown.protectionPlan,
           discount: b.priceBreakdown.discount?.amount ?? 0,
           subtotal: b.priceBreakdown.subtotal.amount,
           commission: b.priceBreakdown.commission.amount,

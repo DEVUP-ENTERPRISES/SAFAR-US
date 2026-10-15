@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, CountUp, BRAND, TractionStats } from '@/features/marketing/sections';
-import { SiteLink } from '@/components/layout/site-link';
 
 /**
  * Asset Partners - CatoDrive's primary acquisition page (v1 priority, per the
@@ -159,13 +158,12 @@ export default function AssetPartnersPage() {
             </div>
           </Reveal>
           <Reveal delay={300}>
-            <SiteLink
-              site="partner"
-              path="/asset-partners/dashboard"
+            <Link
+              href="/asset-partners/dashboard"
               className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-white/60 hover:text-white hover:underline"
             >
               Already applied? Track your application <ArrowRight className="h-3.5 w-3.5" />
-            </SiteLink>
+            </Link>
           </Reveal>
         </div>
       </section>

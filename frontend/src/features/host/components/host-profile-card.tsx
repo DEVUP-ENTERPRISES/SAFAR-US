@@ -1,13 +1,34 @@
 'use client';
 
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { Star, BadgeCheck, MessageSquare, Clock, Globe, MapPin, Briefcase, ShieldCheck, CalendarX } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { HostPublicProfile } from '@/features/host/api';
+import { hostApi, type HostPublicProfile } from '@/features/host/api';
 
-export { useHostPublicProfile, joinedLabel, responseTimeLabel } from '../public-profile';
-import { joinedLabel, responseTimeLabel, useHostPublicProfile } from '../public-profile';
+export function useHostPublicProfile(hostId?: string) {
+  return useQuery({
+    queryKey: ['host-public', hostId],
+    queryFn: () => hostApi.publicProfile(hostId!),
+    enabled: !!hostId,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** "Joined May 2026" - month precision; the exact day is nobody's business. */
+export function joinedLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+/** "12 min" / "about 3 hours" / "about 2 days" - a human sense of the wait. */
+export function responseTimeLabel(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `about ${hours} hour${hours === 1 ? '' : 's'}`;
+  const days = Math.round(hours / 24);
+  return `about ${days} day${days === 1 ? '' : 's'}`;
+}
 
 export function HostAvatar({
   profile,

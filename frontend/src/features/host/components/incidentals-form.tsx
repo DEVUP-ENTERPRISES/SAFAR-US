@@ -10,16 +10,25 @@ import { Select } from '@/components/ui/select';
 import { Field } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/types';
-import {
-  FREEFORM,
-  NEW_INCIDENTAL,
-  RATED,
-  applyIncidentals,
-  incidentalsValid,
-  isFreeform,
-  type IncidentalKind as Kind,
-  type IncidentalLine as Line,
-} from '../incidentals';
+import { api } from '@/lib/api/client';
+
+type Kind = 'fuel' | 'cleaning' | 'smoking' | 'pet' | 'late_return' | 'toll' | 'fine' | 'other';
+
+/** Types priced by admin config vs types where the host names the amount. */
+const RATED: Record<string, { label: string; unit?: string }> = {
+  cleaning: { label: 'Extra cleaning' },
+  smoking: { label: 'Smoked in the car' },
+  pet: { label: 'Unapproved pet' },
+  fuel: { label: 'Fuel shortfall', unit: '% of tank' },
+  late_return: { label: 'Late return', unit: 'hours late' },
+};
+const FREEFORM: Record<string, string> = {
+  toll: 'Toll',
+  fine: 'Fine',
+  other: 'Other',
+};
+
+interface Line { type: Kind; qty?: number; amount?: number; note: string }
 
 /**
  * Post-trip charges.
@@ -38,14 +47,22 @@ export function IncidentalsForm({ bookingId, onDone }: { bookingId: string; onDo
   const qc = useQueryClient();
   const toast = useToast();
   const [open, setOpen] = useState(false);
-  const [lines, setLines] = useState<Line[]>([NEW_INCIDENTAL]);
+  const [lines, setLines] = useState<Line[]>([{ type: 'cleaning', note: '' }]);
 
   const submit = useMutation({
-    mutationFn: () => applyIncidentals(bookingId, lines),
+    mutationFn: () =>
+      api.post(`/bookings/${bookingId}/incidentals`, {
+        items: lines.map((l) => ({
+          type: l.type,
+          ...(l.qty ? { qty: l.qty } : {}),
+          ...(l.amount ? { amount: Math.round(l.amount * 100) } : {}),
+          note: l.note.trim() || undefined,
+        })),
+      }),
     onSuccess: () => {
       toast({ tone: 'success', title: 'Charges applied', description: 'Your guest has been notified with the reason.' });
       setOpen(false);
-      setLines([NEW_INCIDENTAL]);
+      setLines([{ type: 'cleaning', note: '' }]);
       qc.invalidateQueries({ queryKey: ['host-trip', bookingId] });
       onDone?.();
     },
@@ -57,7 +74,14 @@ export function IncidentalsForm({ bookingId, onDone }: { bookingId: string; onDo
   const update = (i: number, patch: Partial<Line>) =>
     setLines((prev) => prev.map((l, j) => (j === i ? { ...l, ...patch } : l)));
 
-  const valid = incidentalsValid(lines);
+  const isFreeform = (t: Kind) => t in FREEFORM;
+  const valid = lines.every((l) =>
+    isFreeform(l.type)
+      ? (l.amount ?? 0) > 0 && l.note.trim().length >= 10
+      : RATED[l.type]?.unit
+        ? (l.qty ?? 0) > 0
+        : true,
+  );
 
   if (!open) {
     return (
@@ -152,7 +176,7 @@ export function IncidentalsForm({ bookingId, onDone }: { bookingId: string; onDo
         ))}
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="ghost" onClick={() => setLines((p) => [...p, NEW_INCIDENTAL])}>
+          <Button size="sm" variant="ghost" onClick={() => setLines((p) => [...p, { type: 'cleaning', note: '' }])}>
             <Plus className="h-4 w-4" /> Another charge
           </Button>
           <span className="flex-1" />

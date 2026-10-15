@@ -10,8 +10,6 @@ export interface ChargeBookingInput {
   hostEarnings: Money;
   commission: Money;
   tax: Money;
-  /** The part of `commission` owed to the insurance partner covering the trip. */
-  insurer?: { id: string; share: number };
   walletApplied?: number; // minor units funded from wallet → card charges the remainder
   idempotencyKey: string;
   /** Guest pays now on the page with any method Stripe offers (wallets, pay-later, Cash App…) instead of the saved card. */

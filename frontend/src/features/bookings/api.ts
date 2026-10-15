@@ -65,9 +65,6 @@ export const bookingApi = {
    * price before deciding to sign up.
    */
   quote: (input: QuoteInput) => api.post<PriceBreakdown>('/bookings/quote', input, { auth: 'optional' }),
-  /** Protection tiers a guest can pick at checkout, priced per day in cents. */
-  /** Platform tiers plus insurer plans that cover this car; the car is optional for the plain tier list. */
-  protectionPlans: (vehicleId?: string) => api.get<ProtectionPlanOption[]>('/bookings/protection-plans', vehicleId ? { vehicleId } : undefined, false),
   create: (input: QuoteInput, idempotencyKey: string, coords?: { lat: number; lng: number }) =>
     api.post<Booking>('/bookings', input, {
       idempotencyKey,
@@ -82,11 +79,6 @@ export const bookingApi = {
   decline: (id: string) => api.post<Booking>(`/bookings/${id}/decline`),
   /** Either side reports the other's no-show; the server decides who may and when. */
   noShow: (id: string, party: 'guest' | 'host') => api.post<Booking>(`/bookings/${id}/no-show`, { party }),
-  /** A fresh code the guest shows the host at handover. */
-  pickupCode: (id: string) => api.post<{ code: string }>(`/bookings/${id}/pickup-code`, {}),
-  /** The guest disputes one post-trip charge. */
-  disputeIncidental: (id: string, incidentalId: string, reason: string) =>
-    api.post(`/bookings/${id}/incidentals/${incidentalId}/dispute`, { reason }),
   paymentSession: (id: string) =>
     api.post<{ status: 'succeeded' | 'requires_action' | 'requires_payment_method'; clientSecret?: string }>(`/bookings/${id}/payment-session`),
   cancellationPreview: (id: string) =>
@@ -117,18 +109,6 @@ export const bookingApi = {
       false,
     ),
 };
-
-export interface ProtectionPlanOption {
-  code: string;
-  label: string;
-  description: string;
-  pricePerDay: number;
-  /** Set when an insurance partner sells the plan. */
-  insurer?: { id: string; name: string };
-  deductibleCents?: number;
-  liabilityLimitCents?: number;
-  coverage?: string[];
-}
 
 export interface RebookingOption {
   vehicle: Vehicle;

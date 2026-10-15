@@ -23,9 +23,6 @@ export interface PaymentDoc {
   hostEarnings: number;
   commission: number;
   tax: number;
-  /** The insurance partner covering the trip; `insurerShare` is the part of `commission` owed to it. */
-  insurerId?: string;
-  insurerShare?: number;
   /** Card money captured; the wallet-funded part of `amount` is `walletApplied`. */
   capturedAmount: number;
   /** The guest chose to pay on the page with any method; never fall back to charging their saved card silently. */
@@ -56,8 +53,6 @@ const schema = new Schema<PaymentDoc>(
     hostEarnings: { type: Number, default: 0 },
     commission: { type: Number, default: 0 },
     tax: { type: Number, default: 0 },
-    insurerId: String,
-    insurerShare: Number,
     capturedAmount: { type: Number, default: 0 },
     onPage: Boolean,
     walletApplied: { type: Number, default: 0 },

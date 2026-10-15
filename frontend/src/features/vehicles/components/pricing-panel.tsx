@@ -6,11 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import type { Vehicle } from '@/features/vehicles/types';
-import { NEW_SEASONAL_RULE, pricingForm, pricingPatch, pricingValid, type PricingField, type PricingForm } from '../pricing-form';
 
 type SaveFn = (patch: Record<string, unknown>) => void;
 
-export type { PricingField };
+export type PricingField = 'daily' | 'weekly' | 'monthly';
 
 /** The editable form behind "Pricing & discounts" - shared by the accordion and the dedicated page. */
 export function PricingPanel({
@@ -27,18 +26,51 @@ export function PricingPanel({
   focus?: PricingField;
   onCancel?: () => void;
 }) {
-  const cur = vehicle.pricing.currency;
-  const [form, setForm] = useState<PricingForm>(() => pricingForm(vehicle.pricing));
-  const { daily, weekend, weekly, monthly, earlyBird, lastMinute, rules } = form;
-  const set = (k: Exclude<keyof PricingForm, 'rules'>) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
-  const [setDaily, setWeekend, setWeekly, setMonthly, setEarlyBird, setLastMinute] = [set('daily'), set('weekend'), set('weekly'), set('monthly'), set('earlyBird'), set('lastMinute')];
-  const setRules = (fn: (rs: PricingForm['rules']) => PricingForm['rules']) => setForm((f) => ({ ...f, rules: fn(f.rules) }));
-  const addRule = () => setRules((rs) => [...rs, NEW_SEASONAL_RULE]);
-  const setRule = (i: number, patch: Partial<PricingForm['rules'][number]>) =>
+  const p = vehicle.pricing;
+  const cur = p.currency;
+  const pctFromBps = (bps?: number) => String(bps ? Math.round(bps / 100) : 0);
+  const upliftFromBps = (bps?: number) => String(bps ? Math.round((bps - 10000) / 100) : 0);
+
+  const [daily, setDaily] = useState(String(p.dailyPrice / 100));
+  const [weekend, setWeekend] = useState(upliftFromBps(p.weekendMultiplierBps));
+  const [weekly, setWeekly] = useState(pctFromBps(p.weeklyDiscountBps));
+  const [monthly, setMonthly] = useState(pctFromBps(p.monthlyDiscountBps));
+  const [earlyBird, setEarlyBird] = useState(pctFromBps(p.earlyBirdBps));
+  const [lastMinute, setLastMinute] = useState(pctFromBps(p.lastMinuteBps));
+  const [rules, setRules] = useState(
+    (p.seasonalRules ?? []).map((r) => ({
+      label: r.label,
+      start: r.start.slice(0, 10),
+      end: r.end.slice(0, 10),
+      pct: String(Math.round(r.multiplierBps / 100)),
+    })),
+  );
+
+  const num = (s: string) => Number(s) || 0;
+  // Basis points must be whole numbers: 7.25% is 725, never 724.9999.
+  const bps = (pct: number, max: number) => Math.round(Math.min(max, Math.max(0, pct)) * 100);
+  const addRule = () => setRules((rs) => [...rs, { label: '', start: '', end: '', pct: '150' }]);
+  const setRule = (i: number, patch: Partial<(typeof rules)[number]>) =>
     setRules((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const removeRule = (i: number) => setRules((rs) => rs.filter((_, j) => j !== i));
 
-  const save = () => onSave(pricingPatch(form));
+  const save = () =>
+    onSave({
+      dailyPrice: Math.round(num(daily) * 100),
+      weekendMultiplierBps: 10000 + bps(num(weekend), 1000),
+      weeklyDiscountBps: bps(num(weekly), 90),
+      monthlyDiscountBps: bps(num(monthly), 90),
+      earlyBirdBps: bps(num(earlyBird), 50),
+      lastMinuteBps: bps(num(lastMinute), 50),
+      seasonalRules: rules
+        .filter((r) => r.label.trim() && r.start && r.end)
+        .map((r) => ({
+          label: r.label.trim(),
+          start: r.start,
+          end: r.end,
+          multiplierBps: Math.round(Math.min(300, Math.max(10, num(r.pct))) * 100),
+        })),
+    });
 
   return (
     <div className="space-y-4 bg-subtle px-4 py-4">
@@ -91,7 +123,7 @@ export function PricingPanel({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" loading={saving} disabled={!pricingValid(form)} onClick={save}>
+        <Button size="sm" loading={saving} disabled={!daily || num(daily) <= 0} onClick={save}>
           Save pricing
         </Button>
         {onCancel && (

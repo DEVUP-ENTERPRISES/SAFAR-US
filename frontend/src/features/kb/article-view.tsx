@@ -10,7 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { Markdown } from '@/features/kb/markdown';
 import { kbApi } from '@/features/kb/api';
-import { titleCase } from '@/features/kb/markdown-parse';
 
 export function ArticleView({ slug }: { slug: string }) {
   const [voted, setVoted] = useState<null | 'up' | 'down'>(null);
@@ -90,3 +89,6 @@ export function ArticleView({ slug }: { slug: string }) {
   );
 }
 
+function titleCase(s: string): string {
+  return s.replace(/(^|[-_\s])(\w)/g, (_, sep, c) => (sep ? ' ' : '') + c.toUpperCase()).trim();
+}

@@ -10,8 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { formatMoney } from '@/lib/utils/format';
 import { ApiError } from '@/lib/api/types';
-import { bookingApi } from '../api';
-import { INCIDENTAL_LABEL } from '../status';
+import { api } from '@/lib/api/client';
 
 export interface Incidental {
   _id: string;
@@ -26,6 +25,10 @@ export interface Incidental {
   at: string;
 }
 
+const LABEL: Record<string, string> = {
+  fuel: 'Fuel', cleaning: 'Extra cleaning', smoking: 'Smoking', pet: 'Unapproved pet',
+  late_return: 'Late return', toll: 'Toll', fine: 'Fine', other: 'Other',
+};
 
 /**
  * Post-trip charges, and the way to argue with one.
@@ -56,7 +59,7 @@ export function IncidentalCharges({
 
   const dispute = useMutation({
     mutationFn: ({ id, why }: { id: string; why: string }) =>
-      bookingApi.disputeIncidental(bookingId, id, why),
+      api.post(`/bookings/${bookingId}/incidentals/${id}/dispute`, { reason: why }),
     onSuccess: () => {
       toast({ tone: 'success', title: 'Dispute sent', description: 'We will review it and come back to you.' });
       setDisputing(null);
@@ -86,7 +89,7 @@ export function IncidentalCharges({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 font-medium">
-                    {INCIDENTAL_LABEL[it.type] ?? it.type}
+                    {LABEL[it.type] ?? it.type}
                     {it.status === 'disputed' && <Badge tone="warning">Under review</Badge>}
                     {it.status === 'refunded' && <Badge tone="success">Refunded</Badge>}
                     {it.status === 'upheld' && <Badge tone="muted">Upheld</Badge>}

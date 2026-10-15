@@ -7,8 +7,30 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils/cn';
-import { titleUnavailableText, vehicleHistory } from '../listing-form';
+import { api } from '@/lib/api/client';
 
+interface Recall {
+  campaignNumber: string;
+  component: string;
+  summary: string;
+  remedy?: string;
+  consequence?: string;
+  reportedAt?: string;
+}
+
+interface History {
+  vin?: string;
+  recalls: Recall[];
+  title: {
+    clean: boolean | null;
+    brands: string[];
+    stolen: boolean | null;
+    odometerMiles: number | null;
+    odometerSuspect: boolean | null;
+  } | null;
+  titleUnavailableReason?: 'not_configured' | 'lookup_failed' | 'no_vin';
+  checkedAt: string;
+}
 
 /**
  * Safety recalls and title history for a car.
@@ -30,7 +52,7 @@ export function VehicleHistory({ vehicleId, audience }: { vehicleId: string; aud
 
   const q = useQuery({
     queryKey: ['vehicle-history', vehicleId],
-    queryFn: () => vehicleHistory(vehicleId),
+    queryFn: () => api.get<History>(`/vehicles/${vehicleId}/history`),
     staleTime: 60 * 60 * 1000, // Recalls change on the order of months.
     retry: false,
   });
@@ -131,7 +153,11 @@ export function VehicleHistory({ vehicleId, audience }: { vehicleId: string; aud
             // Never a green tick for a check that did not run.
             <p className="flex items-start gap-2 text-sm text-muted-foreground">
               <FileSearch className="mt-0.5 h-4 w-4 shrink-0" />
-              {titleUnavailableText(titleUnavailableReason)}
+              {titleUnavailableReason === 'no_vin'
+                ? 'Title and odometer history needs a VIN on this listing.'
+                : titleUnavailableReason === 'lookup_failed'
+                  ? 'Title history could not be checked just now.'
+                  : 'Title, salvage and odometer history has not been checked on this car.'}
             </p>
           )}
         </div>

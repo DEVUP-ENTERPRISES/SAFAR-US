@@ -17,7 +17,6 @@ import { uploadFiles } from '@/features/media/upload';
 import { assetPartnerApi, type CreateAssetPartnerApplicationInput } from '@/features/asset-partners/api';
 import { ApiError } from '@/lib/api/types';
 import { BRAND } from '@/features/marketing/sections';
-import { SiteLink } from '@/components/layout/site-link';
 
 /**
  * The Asset Partner Vehicle Intake - a 6-step qualification form.
@@ -203,11 +202,11 @@ export default function AssetPartnerApplyPage() {
           <p className="numeric mt-6 text-lg font-bold text-primary">Reference: {reference}</p>
           {/* Somewhere to actually go next. Without this the reference number
               was the only trace of the application the applicant ever saw. */}
-          <SiteLink site="partner" path="/asset-partners/dashboard" className="mt-8 inline-block">
+          <Link href="/asset-partners/dashboard" className="mt-8 inline-block">
             <Button size="lg" className="rounded-xl">
               Track your application <ArrowRight className="h-4 w-4" />
             </Button>
-          </SiteLink>
+          </Link>
           <p className="mt-3 text-xs text-muted-foreground">
             Sign in with this email to follow your application and, once you’re live, your earnings.
           </p>

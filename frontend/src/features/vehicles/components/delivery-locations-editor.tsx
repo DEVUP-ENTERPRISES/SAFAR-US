@@ -11,19 +11,33 @@ import { formatMoney } from '@/lib/utils/format';
 import { LocationSearch } from '@/features/maps/components/location-search';
 import { DeliveryLocationsMap } from './delivery-locations-map';
 import type { DeliveryLocation, DeliveryLocationKind } from '@/features/vehicles/types';
-import { ACCESS_METHOD_LABEL, DELIVERY_KIND, blankDeliveryLocation, deliveryLocationPatch } from '../listing-options';
 
-const KIND_ICON: Record<DeliveryLocationKind, typeof Plane> = { airport: Plane, hotel: Building2, business: Briefcase, custom: MapPinned };
-const KIND_META = Object.fromEntries(
-  (Object.keys(DELIVERY_KIND) as DeliveryLocationKind[]).map((k) => [k, { ...DELIVERY_KIND[k], icon: KIND_ICON[k] }]),
-) as Record<DeliveryLocationKind, { icon: typeof Plane; label: string; defaultName: string }>;
+const KIND_META: Record<DeliveryLocationKind, { icon: typeof Plane; label: string; defaultName: string }> = {
+  airport: { icon: Plane, label: 'Airport', defaultName: '' },
+  hotel: { icon: Building2, label: 'Hotel / resort', defaultName: '' },
+  business: { icon: Briefcase, label: 'Business address', defaultName: '' },
+  custom: { icon: MapPinned, label: 'Anywhere within a radius', defaultName: 'Custom delivery' },
+};
 
-const ACCESS_ICON: Record<DeliveryLocation['accessMethod'], typeof Lock> = { lockbox: Lock, remote_unlock: Unlock, in_person: User };
-const ACCESS_LABEL = Object.fromEntries(
-  (Object.keys(ACCESS_ICON) as DeliveryLocation['accessMethod'][]).map((k) => [k, { icon: ACCESS_ICON[k], label: ACCESS_METHOD_LABEL[k] }]),
-) as Record<DeliveryLocation['accessMethod'], { icon: typeof Lock; label: string }>;
+const ACCESS_LABEL: Record<DeliveryLocation['accessMethod'], { icon: typeof Lock; label: string }> = {
+  lockbox: { icon: Lock, label: 'Lockbox' },
+  remote_unlock: { icon: Unlock, label: 'Remote unlock' },
+  in_person: { icon: User, label: 'Meet in person' },
+};
 
-const blankLocation = blankDeliveryLocation;
+function blankLocation(kind: DeliveryLocationKind): DeliveryLocation {
+  return {
+    id: `draft-${Date.now()}`,
+    kind,
+    name: KIND_META[kind].defaultName,
+    address: '',
+    fee: 0,
+    minTripDays: kind === 'airport' ? 2 : 0,
+    accessMethod: 'in_person',
+    ...(kind === 'custom' ? { radiusMiles: 20 } : {}),
+    enabled: true,
+  };
+}
 
 /**
  * Turo-style delivery setup: a map of the host's coverage, their home
@@ -278,7 +292,17 @@ function LocationEditRow({
           size="sm"
           disabled={!canSave}
           onClick={() =>
-            onSave(deliveryLocationPatch(value.kind, { name, address, coords, fee, minTripDays, accessMethod, radiusMiles, parkingRate, subLocations }))
+            onSave({
+              name: name.trim(),
+              address: address.trim(),
+              ...(coords ?? {}),
+              fee: Math.round(Number(fee || 0) * 100),
+              minTripDays: Math.max(0, Number(minTripDays) || 0),
+              accessMethod,
+              ...(value.kind === 'custom' ? { radiusMiles: Math.max(1, Number(radiusMiles) || 20) } : {}),
+              ...(parkingRate ? { parkingRate: parkingRate as DeliveryLocation['parkingRate'] } : {}),
+              ...(value.kind === 'airport' ? { subLocations } : {}),
+            })
           }
         >
           Save location

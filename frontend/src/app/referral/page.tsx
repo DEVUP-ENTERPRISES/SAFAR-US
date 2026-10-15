@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { referralApi } from '@/features/rewards/api';
+import { api } from '@/lib/api/client';
 import { Gift, Copy, Check, Users } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,9 +12,13 @@ import { formatMoney } from '@/lib/utils/format';
 import { usePrograms, usePlatformConfig } from '@/features/platform/config';
 import { ProgramPaused } from '@/features/platform/program-paused';
 
+interface Referral {
+  code: string; referred: number; pending: number;
+  rewardPerReferral: { youGetCents: number; friendGetsCents: number };
+}
 
 function ReferralInner() {
-  const { data, isLoading } = useQuery({ queryKey: ['referral'], queryFn: () => referralApi.mine() });
+  const { data, isLoading } = useQuery({ queryKey: ['referral'], queryFn: () => api.get<Referral>('/referral/me') });
   const [copied, setCopied] = useState(false);
 
   if (isLoading || !data) return <Skeleton className="h-80 w-full" />;

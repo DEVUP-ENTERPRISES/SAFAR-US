@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck } from 'lucide-react';
-import { accountApi } from '@/features/account/api';
-import { EMPTY_SETUP, onboardingInput, setupChecklist, type SetupForm } from '@/features/account/setup-form';
+import { accountApi, type OnboardingInput } from '@/features/account/api';
 import { usePlatformConfig } from '@/features/platform/config';
 import { useAuthStore } from '@/features/auth/store';
 import { Field } from '@/components/ui/field';
@@ -16,7 +15,17 @@ import { AvatarUpload } from '@/components/ui/avatar-upload';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/types';
 
+type Form = {
+  firstName: string; lastName: string; dateOfBirth: string; phone: string;
+  line1: string; line2: string; city: string; state: string; zip: string; country: string;
+  ecName: string; ecPhone: string; ecRelation: string;
+};
 
+const EMPTY: Form = {
+  firstName: '', lastName: '', dateOfBirth: '', phone: '',
+  line1: '', line2: '', city: '', state: '', zip: '', country: 'US',
+  ecName: '', ecPhone: '', ecRelation: '',
+};
 
 export default function AccountSetupPage() {
   const router = useRouter();
@@ -26,9 +35,9 @@ export default function AccountSetupPage() {
   const cfg = usePlatformConfig();
   const minAge = cfg.data?.legal?.minAgeYears ?? 18;
 
-  const [form, setForm] = useState<SetupForm>(EMPTY_SETUP);
+  const [form, setForm] = useState<Form>(EMPTY);
   const [avatar, setAvatar] = useState<{ url: string; key: string } | null>(null);
-  const set = (k: keyof SetupForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
   // Not signed in → nothing to set up here.
@@ -54,7 +63,24 @@ export default function AccountSetupPage() {
 
   const submit = useMutation({
     meta: { silentError: true },
-    mutationFn: () => accountApi.completeOnboarding(onboardingInput(form, avatar?.url)),
+    mutationFn: () => {
+      const dto: OnboardingInput = {
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        dateOfBirth: form.dateOfBirth,
+        phone: form.phone.trim(),
+        avatarUrl: avatar?.url,
+        address: {
+          line1: form.line1.trim(), line2: form.line2.trim() || undefined, city: form.city.trim(), state: form.state.trim(),
+          zip: form.zip.trim(), country: form.country.trim(),
+        },
+        emergencyContact: {
+          name: form.ecName.trim(), phone: form.ecPhone.trim(),
+          relation: form.ecRelation.trim() || undefined,
+        },
+      };
+      return accountApi.completeOnboarding(dto);
+    },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['profile-status'] });
       notify({ tone: 'success', title: 'You’re all set', description: 'Your account is ready.' });
@@ -67,7 +93,19 @@ export default function AccountSetupPage() {
   });
 
   // Everything the account needs before it can book, in the order it appears on the page.
-  const required = setupChecklist(form);
+  const required: { key: string; label: string; id: string; ok: boolean }[] = [
+    { key: 'firstName', label: 'Legal first name', id: 'firstName', ok: !!form.firstName.trim() },
+    { key: 'lastName', label: 'Legal last name', id: 'lastName', ok: !!form.lastName.trim() },
+    { key: 'dateOfBirth', label: 'Date of birth', id: 'dob', ok: !!form.dateOfBirth },
+    { key: 'phone', label: 'Mobile number', id: 'phone', ok: !!form.phone.trim() },
+    { key: 'line1', label: 'Street address', id: 'line1', ok: !!form.line1.trim() },
+    { key: 'city', label: 'City', id: 'city', ok: !!form.city.trim() },
+    { key: 'state', label: 'State / province', id: 'state', ok: !!form.state.trim() },
+    { key: 'zip', label: 'ZIP / postal code', id: 'zip', ok: !!form.zip.trim() },
+    { key: 'country', label: 'Country', id: 'country', ok: !!form.country.trim() },
+    { key: 'ecName', label: 'Emergency contact name', id: 'ecName', ok: !!form.ecName.trim() },
+    { key: 'ecPhone', label: 'Emergency contact phone', id: 'ecPhone', ok: !!form.ecPhone.trim() },
+  ];
   const missing = required.filter((r) => !r.ok);
   const done = required.length - missing.length;
   const [attempted, setAttempted] = useState(false);

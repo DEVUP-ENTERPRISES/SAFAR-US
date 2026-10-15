@@ -3,17 +3,24 @@
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Star, Car } from 'lucide-react';
-import { hostApi } from '@/features/hosts/api';
-import { reviewsApi } from '@/features/reviews/api';
+import { api } from '@/lib/api/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/states';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
 import { Reveal } from '@/components/ui/reveal';
+import type { Vehicle } from '@/features/vehicles/types';
 import {
   useHostPublicProfile, HostAvatar, HostTrustSignals, joinedLabel,
 } from '@/features/host/components/host-profile-card';
 
+interface Review {
+  _id: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  authorName?: string;
+}
 
 /**
  * The public host profile. Guests reach it from "Hosted by" on a listing -
@@ -25,13 +32,13 @@ export default function HostProfilePage() {
 
   const reviews = useQuery({
     queryKey: ['reviews', id],
-    queryFn: () => reviewsApi.forSubject(id),
+    queryFn: () => api.get<Review[]>('/reviews', { subjectId: id }, false),
     enabled: !!id,
   });
 
   const vehicles = useQuery({
     queryKey: ['host-vehicles', id],
-    queryFn: () => hostApi.publicVehicles(id),
+    queryFn: () => api.get<Vehicle[]>(`/hosts/${id}/vehicles`, undefined, false),
     enabled: !!id,
   });
 

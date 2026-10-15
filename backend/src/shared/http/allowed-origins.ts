@@ -4,7 +4,6 @@ import { config } from '../../config';
 const ALWAYS_ALLOWED = [
   'https://www.catodrive.com',
   'https://catodrive.com',
-  'https://partners.catodrive.com',
   'https://housefleet.catodrive.com',
   'https://integratedoperationscenter.catodrive.com',
 ];

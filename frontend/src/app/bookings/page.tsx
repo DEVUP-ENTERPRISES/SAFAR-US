@@ -12,7 +12,6 @@ import { EmptyState, ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ApiError } from '@/lib/api/types';
 import { BookingStatusBadge } from '@/features/bookings/components/status-badge';
-import { CANCELLABLE, HOST_STARTS, NEXT_STEP, POLICY_LABEL } from '@/features/bookings/status';
 import { useMyBookings, useCancelBooking, useCompletePayment } from '@/features/bookings/hooks';
 import { bookingApi } from '@/features/bookings/api';
 import { ExtendTrip } from '@/features/bookings/components/extend-trip';
@@ -21,6 +20,14 @@ import { usePlatformConfig } from '@/features/platform/config';
 import { formatMoney, formatDateTime } from '@/lib/utils/format';
 
 /** What the guest should do or expect next, per status - the "what happens now" of each trip. */
+const NEXT_STEP: Record<string, string> = {
+  pending_verification: 'Next: verify your licence before pickup - tap to continue',
+  pending_approval: 'Next: waiting for the host to accept',
+  pending_payment: 'Next: finish your payment to lock in the trip',
+  paid: 'Next: show your pickup code to the host at the car',
+  confirmed: 'Next: show your pickup code to the host at the car',
+  in_progress: 'Trip in progress',
+};
 
 function BookingsList() {
   const router = useRouter();
@@ -31,6 +38,7 @@ function BookingsList() {
   const completePayment = useCompletePayment();
   // Only a loaded config that says host-only hides the guest's own start.
   const hostOnlyStart = usePlatformConfig().data?.handover?.hostOnlyStart === true;
+  const HOST_STARTS = 'Your host starts the trip at pickup. Show them your pickup code.';
   const [extendId, setExtendId] = useState<string | null>(null);
   const [shortenId, setShortenId] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState<string | null>(null);
@@ -67,6 +75,7 @@ function BookingsList() {
   if (!data || data.length === 0)
     return <EmptyState title="No trips yet" description="Book a vehicle to see it here." />;
 
+  const cancellable = ['pending_approval', 'confirmed', 'paid'];
 
   return (
     <div className="space-y-3">
@@ -134,7 +143,7 @@ function BookingsList() {
                     Book again
                   </Button>
                 )}
-                {CANCELLABLE.includes(b.status) && (
+                {cancellable.includes(b.status) && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -149,7 +158,7 @@ function BookingsList() {
                         'This cannot be undone - you would need to rebook.';
                       try {
                         const p = await bookingApi.cancellationPreview(b._id);
-                        const policyLabel = POLICY_LABEL[p.policy];
+                        const policyLabel = { flexible: 'Flexible', moderate: 'Moderate', strict: 'Strict' }[p.policy];
                         desc = (
                           <span className="block space-y-1.5">
                             <span className="block">

@@ -22,10 +22,19 @@ import { FUEL_LABEL } from '@/lib/utils/format';
 import { MapboxPanel } from '@/features/maps/components/mapbox-panel';
 import { SearchBarFields } from '@/features/search/search-bar-fields';
 import { useSearchBar, toIso } from '@/features/search/search-store';
-import { SORTS, FUELS, SEAT_OPTIONS, activeFilterCount, buildSearchParams, savedSearchInput, type SearchFilters } from '@/features/search/search-params';
 import { cn } from '@/lib/utils/cn';
-import type { SortKey } from '@/features/vehicles/types';
+import type { SearchParams, SortKey } from '@/features/vehicles/types';
 
+const SORTS: { key: SortKey; label: string }[] = [
+  { key: 'relevance', label: 'Relevance' },
+  { key: 'price_asc', label: 'Price: low to high' },
+  { key: 'price_desc', label: 'Price: high to low' },
+  { key: 'rating', label: 'Top rated' },
+  { key: 'trending', label: 'Trending' },
+];
+
+const FUELS = ['petrol', 'diesel', 'hybrid', 'ev'] as const;
+const SEAT_OPTIONS = [2, 4, 5, 7];
 
 /** A filter "pill" that opens a small popover, Turo-style. Closes on outside click. */
 /**
@@ -221,15 +230,35 @@ function SearchInner() {
       : undefined;
   const areaLabel = center ? center.label : city;
 
-  const filters: SearchFilters = { category, make, fuelType, transmission, instantBook, delivery, seatsMin, priceMin, priceMax, yearMin, yearMax, ratingMin, sort };
-  const params = buildSearchParams(coords, { startIso, endIso }, filters);
+  const params: SearchParams | null = coords
+    ? {
+        ...coords,
+        radiusKm: 50,
+        start: bothDates ? startIso : undefined,
+        end: bothDates ? endIso : undefined,
+        category: category || undefined,
+        make: make.trim() || undefined,
+        fuelType: (fuelType as SearchParams['fuelType']) || undefined,
+        transmission: (transmission as SearchParams['transmission']) || undefined,
+        instantBook: instantBook || undefined,
+        delivery: delivery || undefined,
+        seatsMin: seatsMin ? Number(seatsMin) : undefined,
+        priceMin: priceMin ? Number(priceMin) * 100 : undefined,
+        priceMax: priceMax ? Number(priceMax) * 100 : undefined,
+        yearMin: yearMin ? Number(yearMin) : undefined,
+        yearMax: yearMax ? Number(yearMax) : undefined,
+        ratingMin: ratingMin || undefined,
+        sort,
+        limit: 24,
+      }
+    : null;
 
   const { data, isLoading, isError, refetch, isFetching } = useVehicleSearch(params);
   // Counts share the search's params, so every option shows what picking it
   // would actually return rather than making the guest find out by clicking.
   const counts = useFilterCounts(params).data;
 
-  const activeCount = activeFilterCount(filters);
+  const activeCount = [category, make, fuelType, transmission, instantBook, delivery, seatsMin, priceMin, priceMax, yearMin, yearMax, ratingMin].filter(Boolean).length;
 
   /*
    * Mirror the filters into the address bar.
@@ -453,7 +482,15 @@ function SearchInner() {
               loading={saveSearch.isPending}
               className="flex-1 sm:flex-none h-10 sm:h-9"
               onClick={() =>
-                saveSearch.mutate(savedSearchInput(city, filters))
+                saveSearch.mutate({
+                  city: city || undefined,
+                  category: category || undefined,
+                  fuelType: (fuelType || undefined) as never,
+                  transmission: (transmission || undefined) as never,
+                  seatsMin: seatsMin ? Number(seatsMin) : undefined,
+                  priceMaxCents: priceMax ? Number(priceMax) * 100 : undefined,
+                  instantBook: instantBook || undefined,
+                })
               }
             >
               <Bell className="h-4 w-4" /> {saveSearch.isSuccess ? 'Saved' : 'Save search'}

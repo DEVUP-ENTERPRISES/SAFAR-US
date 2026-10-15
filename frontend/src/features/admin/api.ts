@@ -1,5 +1,4 @@
 import { api } from '@/lib/api/client';
-import type { Insurer, InsurerPayout, InsurerPlan, InsurerSummary } from '@/features/insurers/api';
 
 export interface AdminMetrics {
   users: { total: number; active: number; suspended: number; newThisWeek: number };
@@ -33,21 +32,12 @@ export interface FeatureFlag {
 }
 
 // ── Platform economics & commission ──────────────────────────────────
-/** A mobile app's update rules: below minVersion the app blocks, below latestVersion it suggests updating. */
-export interface AppRelease {
-  minVersion: string;
-  latestVersion: string;
-  androidUrl: string;
-  iosUrl: string;
-}
-
 export interface PlatformConfig {
   commission: { defaultBps: number; minBps: number; maxBps: number };
   /** Charged to the guest on top; commission comes out of host earnings. */
   serviceFee: { bps: number; maxCents: number; flatCents: number };
   content?: { bookingQuotes: string[] };
   programs?: { rewardsEnabled: boolean; referralEnabled: boolean; membershipEnabled?: boolean };
-  appRelease?: Record<'customer' | 'partner', AppRelease>;
   tax: { bps: number };
   /**
    * The Asset Partner agreement's figures. Separate from commission on
@@ -145,7 +135,7 @@ export interface PlatformConfig {
     maxMultiplierBps: number;
     occupancyThresholds: { occupancyPct: number; multiplierBps: number }[];
   };
-  insurance?: { wheelbaseDealerId: string; requireApproved: boolean; enforceMinAge: boolean; partnerCommissionBps?: number };
+  insurance?: { wheelbaseDealerId: string; requireApproved: boolean; enforceMinAge: boolean };
   legal: {
     termsVersion: string;
     termsUrl: string;
@@ -472,15 +462,6 @@ export const adminApi = {
   // Asset Partner applications - the primary acquisition intake. Approving is
   // the gate: the reviewed applicant's host account is verified so
   // vehicle.service will let them list a car.
-  // Insurance partners: insurers selling their own protection plans, approved here and paid from their own ledger account.
-  insurers: (q: Q = {}) => api.get<Insurer[]>('/admin/insurance-partners', q),
-  insurer: (id: string) =>
-    api.get<{ insurer: Insurer; plans: InsurerPlan[]; summary: InsurerSummary; payouts: InsurerPayout[]; commissionBps: number }>(`/admin/insurance-partners/${id}`),
-  reviewInsurer: (id: string, decision: 'approved' | 'rejected', notes?: string) => api.post(`/admin/insurance-partners/${id}/review`, { decision, notes }),
-  setInsurerStatus: (id: string, status: 'approved' | 'suspended', reason?: string) => api.post(`/admin/insurance-partners/${id}/status`, { status, reason }),
-  setInsurerCommission: (id: string, commissionBps: number | null) => api.patch(`/admin/insurance-partners/${id}/commission`, { commissionBps }),
-  recordInsurerPayout: (id: string, input: { amount: number; reference: string; note?: string }) => api.post(`/admin/insurance-partners/${id}/payouts`, input),
-
   assetPartnerApplications: (q: Q = {}) => api.get<any[]>('/admin/asset-partner-applications', q),
   assetPartnerApplication: (id: string) => api.get<any>(`/admin/asset-partner-applications/${id}`),
   reviewAssetPartnerApplication: (id: string, decision: 'approved' | 'rejected', notes?: string) =>
