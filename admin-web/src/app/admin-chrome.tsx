@@ -71,8 +71,8 @@ function AdminShell({ children }: { children: ReactNode }) {
   );
 }
 
-const HF_SLUG = process.env.NEXT_PUBLIC_HOUSE_FLEET_SLUG || '';
-const HF_HOST = process.env.NEXT_PUBLIC_HOUSE_FLEET_HOST || '';
+const HF_SLUG = process.env.NEXT_PUBLIC_CATODRIVE_ASSET_IOC_SLUG || process.env.NEXT_PUBLIC_HOUSE_FLEET_SLUG || '';
+const HF_HOST = process.env.NEXT_PUBLIC_CATODRIVE_ASSET_IOC_HOST || process.env.NEXT_PUBLIC_HOUSE_FLEET_HOST || '';
 
 export function AdminChrome({ children, host }: { children: ReactNode; host: string }) {
   const pathname = usePathname();

@@ -24,10 +24,10 @@ const SLUG = process.env.NEXT_PUBLIC_ADMIN_SLUG || '';
 // House Fleet: its own secret slug, its own sign-in, no admin login required.
 // Rewrites into /hf/... instead of the admin route tree — separate chrome,
 // separate auth, so the two portals can never be reached through each other's slug.
-const HF_SLUG = process.env.NEXT_PUBLIC_HOUSE_FLEET_SLUG || '';
+const HF_SLUG = process.env.NEXT_PUBLIC_CATODRIVE_ASSET_IOC_SLUG || process.env.NEXT_PUBLIC_HOUSE_FLEET_SLUG || '';
 
 // On its own subdomain, the hostname itself is the separation — no slug needed in the URL.
-const HF_HOST = process.env.NEXT_PUBLIC_HOUSE_FLEET_HOST || '';
+const HF_HOST = process.env.NEXT_PUBLIC_CATODRIVE_ASSET_IOC_HOST || process.env.NEXT_PUBLIC_HOUSE_FLEET_HOST || '';
 
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;

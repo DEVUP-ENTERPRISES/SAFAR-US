@@ -14,7 +14,7 @@ export const HOST_SITE = origin(process.env.NEXT_PUBLIC_HOST_URL, 'http://localh
 export const PARTNER_SITE = origin(process.env.NEXT_PUBLIC_PARTNER_URL, 'http://localhost:3010', 'https://partners.catodrive.com');
 
 /** CatoDrive's operations panel, including its secret path (e.g. https://housefleet.catodrive.com/<slug>); no public path maps to it. */
-export const IOC_SITE = origin(process.env.NEXT_PUBLIC_IOC_URL, 'http://localhost:3030', 'https://housefleet.catodrive.com');
+export const IOC_SITE = origin(process.env.NEXT_PUBLIC_CATODRIVE_ASSET_IOC_URL, 'http://localhost:3030', 'https://housefleet.catodrive.com');
 
 export type Site = 'guest' | 'host' | 'partner' | 'ioc';
 

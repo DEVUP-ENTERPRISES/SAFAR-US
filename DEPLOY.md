@@ -150,18 +150,18 @@ API client, sign-in and the trip screens both sides of a trip see stay common.
 
 Locked down like the admin console:
 
-- **Secret path.** Every page lives under `/<slug>`; set `IOC_SLUG` on the Vercel
+- **Secret path.** Every page lives under `/<slug>`; set `CATODRIVE_ASSET_IOC_SLUG` on the Vercel
   project (a long random value, kept out of this repo). Anything outside it is a
-  404, and a production build without `IOC_SLUG` refuses to run.
+  404, and a production build without `CATODRIVE_ASSET_IOC_SLUG` refuses to run.
 - **Sign-in only.** No sign-up, no host onboarding, no captain invite page here.
   The server lets only the House Fleet account and its active captains sign in
   (the panel sends `x-portal: ioc`); anyone else's new session is revoked on the
   spot, and the check repeats at every token refresh.
 - New Vercel project, root `catodrive-asset-ioc/`, domain `housefleet.yourdomain.com`
   (moves here from the host project), same environment variables as the host
-  site plus `IOC_SLUG`. Put Cloudflare Access in front of it.
+  site plus `CATODRIVE_ASSET_IOC_SLUG`. Put Cloudflare Access in front of it.
 - The admin House Fleet sign-in opens the panel, so the admin project needs
-  `NEXT_PUBLIC_IOC_URL` set to the full panel address **including** the slug.
+  `NEXT_PUBLIC_CATODRIVE_ASSET_IOC_URL` set to the full panel address **including** the slug.
 
 ### 2.3 Insurance desk — internal, its own login
 

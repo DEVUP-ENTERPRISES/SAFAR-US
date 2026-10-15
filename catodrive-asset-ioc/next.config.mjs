@@ -6,8 +6,8 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 const sharedSrc = path.resolve(dir, '../frontend/src');
 
 // Every page lives under a secret path, like the admin console; a production build without it refuses to run.
-const slug = (process.env.IOC_SLUG ?? '').replace(/^\/+|\/+$/g, '');
-if (process.env.NODE_ENV === 'production' && !slug) throw new Error('IOC_SLUG must be set: the operations panel never runs on an open path');
+const slug = (process.env.CATODRIVE_ASSET_IOC_SLUG ?? '').replace(/^\/+|\/+$/g, '');
+if (process.env.NODE_ENV === 'production' && !slug) throw new Error('CATODRIVE_ASSET_IOC_SLUG must be set: the operations panel never runs on an open path');
 const basePath = slug ? `/${slug}` : '';
 
 // Shared code comes from ../frontend/src via `@/*`, as in admin-web and partner-web.
