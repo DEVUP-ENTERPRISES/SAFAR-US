@@ -240,7 +240,7 @@ export function Donut({
       </div>
 
       {/* Legend - identity is label + colour, never colour alone. */}
-      <ul className="min-w-0 flex-1 space-y-1.5">
+      <ul className="min-w-[11rem] flex-1 space-y-1.5">
         {data.map((d, i) => (
           <li
             key={i}

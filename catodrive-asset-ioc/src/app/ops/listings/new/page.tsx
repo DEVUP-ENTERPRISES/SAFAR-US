@@ -258,7 +258,7 @@ export default function NewListingPage() {
                 )}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="Make *" error={errors.make}><Input value={d.make} onChange={(e) => set('make', e.target.value)} placeholder="Toyota" /></Field>
                 <Field label="Model *" error={errors.model}><Input value={d.model} onChange={(e) => set('model', e.target.value)} placeholder="Camry" /></Field>
                 <Field label="Year *" error={errors.year}><Input type="number" value={d.year} onChange={(e) => set('year', Number(e.target.value))} /></Field>
@@ -290,7 +290,7 @@ export default function NewListingPage() {
           )}
 
           {step === 1 && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field
                 label="Where guests pick it up *"
                 className="sm:col-span-2"
@@ -411,7 +411,7 @@ export default function NewListingPage() {
           )}
 
           {step === 3 && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
                   <div className="flex items-center gap-2 text-sm">
@@ -472,7 +472,7 @@ export default function NewListingPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 border-t border-border pt-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 border-t border-border pt-3 sm:grid-cols-2">
                 <Field label="Daily mileage limit" hint="Set by CatoDrive for every car.">
                   <Input value={`${dailyMiles} miles/day`} disabled readOnly />
                 </Field>

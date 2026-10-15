@@ -31,7 +31,7 @@ const nextConfig = {
   // Shared sign-in paths land on this panel's own sign-in; old host links land on the same page here.
   async redirects() {
     return [
-      ...['/login', '/register', '/host/login'].map((source) => ({ source, destination: '/sign-in', permanent: false })),
+      ...['/login', '/register', '/host/login', '/forgot-password'].map((source) => ({ source, destination: '/sign-in', permanent: false })),
       { source: '/host', destination: '/ops', permanent: false },
       { source: '/host/:path*', destination: '/ops/:path*', permanent: false },
     ];

@@ -19,7 +19,7 @@ export default function HostPerformancePage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-12 w-72" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 rounded-2xl" />)}
         </div>
         <Skeleton className="h-72 rounded-2xl" />
@@ -38,7 +38,7 @@ export default function HostPerformancePage() {
         description="How your fleet is doing - earnings trend, how full your cars are, and which ones earn the most."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatTile
           tone={data.occupancyPct >= 70 ? 'success' : data.occupancyPct >= 40 ? 'warning' : 'default'}
           icon={<Gauge className="h-5 w-5" />}
@@ -61,7 +61,7 @@ export default function HostPerformancePage() {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="rounded-2xl shadow-soft">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Earnings trend</CardTitle>

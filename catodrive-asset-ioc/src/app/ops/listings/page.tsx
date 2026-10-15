@@ -144,7 +144,7 @@ export default function HostListingsPage() {
           }
         />
       ) : (
-        <div className={cn(grid ? 'grid gap-5 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3')}>
+        <div className={cn(grid ? 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3')}>
           {filtered.map((v) => {
             const trip = onTrip.get(v._id);
             return (

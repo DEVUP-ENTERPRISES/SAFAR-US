@@ -158,7 +158,7 @@ function CaptainCard({
               </p>
               {c.title && <p className="text-sm text-muted-foreground">{c.title}</p>}
               <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" />{c.email}</span>
+                <span className="inline-flex min-w-0 max-w-full items-center gap-1 break-all"><Mail className="h-3 w-3 shrink-0" />{c.email}</span>
                 {c.lastActiveAt ? (
                   <span className="inline-flex items-center gap-1">
                     <Clock className="h-3 w-3" />
@@ -183,7 +183,7 @@ function CaptainCard({
           </div>
         </div>
 
-        <div className="mt-4 grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-2">
           <div>
             <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">Can do</p>
             <ul className="space-y-1 text-sm">
@@ -233,7 +233,7 @@ function InviteForm({
   return (
     <Card>
       <CardContent className="space-y-5 py-5">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Name"><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Marcus Reed" /></Field>
           <Field label="Email" hint="Where their invite goes">
             <Input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="marcus@example.com" />
@@ -248,7 +248,7 @@ function InviteForm({
 
         <div>
           <p className="mb-2 text-sm font-medium">What can they do?</p>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {ALL.map((a) => {
               const on = abilities.includes(a);
               return (

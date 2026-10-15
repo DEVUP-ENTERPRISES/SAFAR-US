@@ -4,7 +4,7 @@ import { Logo } from '@/components/layout/logo';
 
 export default function EntryLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="grid min-h-[80vh] w-full items-center gap-10 lg:grid-cols-2">
+    <div className="grid grid-cols-1 min-h-[80vh] w-full items-center gap-10 lg:grid-cols-2">
       <section className="hidden rounded-3xl bg-gradient-to-br from-primary/15 via-background to-background p-10 lg:block">
         <div className="flex items-center gap-3">
           <Logo className="h-11 w-11" />

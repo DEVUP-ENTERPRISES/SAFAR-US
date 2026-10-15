@@ -1,7 +1,6 @@
 'use client';
 
 import { Suspense } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,9 +35,6 @@ function SignIn() {
         </Field>
         <Field label="Password" htmlFor="password" error={formState.errors.password?.message}>
           <Input id="password" type="password" autoComplete="current-password" {...register('password')} />
-          <Link href="/forgot-password" className="mt-2 inline-block text-sm font-semibold text-primary hover:underline">
-            Forgot password?
-          </Link>
         </Field>
         {mfaRequired && (
           <Field label="Two-factor code" htmlFor="mfa" hint="Enter the 6-digit code from your authenticator app.">

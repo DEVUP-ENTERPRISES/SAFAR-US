@@ -45,7 +45,7 @@ export default function EarningsPage() {
 
       {!readiness.data?.destination.platformOwned && <PayoutConnect />}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile tone="primary" icon={<TrendingUp className="h-5 w-5" />} label="Lifetime earnings" value={money(data.lifetimeEarnings)} />
         <StatTile tone="success" icon={<Wallet className="h-5 w-5" />} label="Available balance" value={money(data.currentBalance)} />
         <StatTile tone={data.pendingPayout > 0 ? 'warning' : 'default'} emphasis={data.pendingPayout > 0} icon={<Clock className="h-5 w-5" />} label="Pending payout" value={money(data.pendingPayout)} sub={data.pendingPayout > 0 ? 'Cash out below' : undefined} />

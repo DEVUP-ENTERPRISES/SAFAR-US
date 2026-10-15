@@ -73,7 +73,7 @@ function Maintenance() {
     <div className="space-y-4">
       <Card>
         <CardHeader><CardTitle>Schedule maintenance</CardTitle></CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Vehicle">
             <Select value={form.vehicleId} onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}>
               <option value="">Select…</option>

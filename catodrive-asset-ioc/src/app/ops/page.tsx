@@ -139,7 +139,7 @@ export default function HostDashboardPage() {
         <Skeleton className="h-40 w-full rounded-3xl" />
       ) : hasHistory ? (
         <section className="rounded-3xl bg-muted/20 border border-border/30 overflow-hidden">
-          <div className="grid sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <div className="p-8 sm:border-r border-border/40 flex flex-col justify-center">
               <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
                 <TrendingUp className="h-4 w-4 text-primary" /> Lifetime earnings
@@ -207,7 +207,7 @@ export default function HostDashboardPage() {
         </div>
 
         {vehicles.isLoading ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2].map((i) => <Skeleton key={i} className="h-72 w-full rounded-[2rem]" />)}
           </div>
         ) : cars.length === 0 ? (
@@ -225,7 +225,7 @@ export default function HostDashboardPage() {
             </div>
           </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {cars.slice(0, 6).map((v) => <FleetCard key={v._id} v={v} />)}
           </div>
         )}

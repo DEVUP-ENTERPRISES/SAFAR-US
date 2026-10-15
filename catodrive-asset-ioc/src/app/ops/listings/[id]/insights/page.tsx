@@ -67,7 +67,7 @@ function Insights({ id }: { id: string }) {
       )}
 
       {/* The verdict on the asset, in four numbers. */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Earned lifetime" value={money(d.earnings.lifetime)} sub={`${money(d.earnings.averagePerTrip)} per trip`} icon={TrendingUp} />
         <Stat label="Last 30 days" value={money(d.earnings.last30d)} sub={`${d.utilisation.completedTrips} trips all-time`} icon={TrendingUp} />
         <Stat

@@ -186,13 +186,13 @@ export function Tabs<T extends string>({
   onChange: (t: T) => void;
 }) {
   return (
-    <div className="flex border-b border-border">
+    <div className="flex overflow-x-auto border-b border-border [scrollbar-width:none]">
       {tabs.map((t) => (
         <button
           key={t.key}
           onClick={() => onChange(t.key)}
           className={cn(
-            'relative flex-1 px-4 py-3.5 text-[12px] font-bold uppercase tracking-[0.1em] transition-colors',
+            'relative flex-1 shrink-0 whitespace-nowrap px-3 py-3.5 text-[12px] font-bold uppercase tracking-[0.1em] transition-colors sm:px-4',
             value === t.key ? 'text-primary' : 'text-muted-foreground/60 hover:text-foreground',
           )}
         >

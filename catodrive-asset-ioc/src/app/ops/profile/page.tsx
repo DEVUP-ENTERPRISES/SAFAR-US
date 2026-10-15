@@ -53,7 +53,7 @@ export default function HostProfilePage() {
             }
           />
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Display name"><Input value={form.displayName} onChange={f('displayName')} /></Field>
             <Field label="Host type">
               <Select value={form.hostType} onChange={(e) => setForm({ ...form, hostType: e.target.value as 'individual' | 'business' })}>
@@ -84,7 +84,7 @@ export default function HostProfilePage() {
 
       <Card>
         <CardHeader><CardTitle>Business profile</CardTitle></CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Legal name"><Input value={form.legalName} onChange={f('legalName')} /></Field>
           <Field label="Registration number"><Input value={form.registrationNumber} onChange={f('registrationNumber')} /></Field>
           <Field label="Tax ID (EIN / SSN)" className="sm:col-span-2"><Input value={form.taxId} onChange={f('taxId')} /></Field>
@@ -93,7 +93,7 @@ export default function HostProfilePage() {
 
       <Card>
         <CardHeader><CardTitle>Banking details</CardTitle></CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Account holder"><Input value={form.accountHolder} onChange={f('accountHolder')} /></Field>
           <Field label="Bank name"><Input value={form.bankName} onChange={f('bankName')} /></Field>
           <Field label="Routing number"><Input value={form.ifscOrRouting} onChange={f('ifscOrRouting')} /></Field>

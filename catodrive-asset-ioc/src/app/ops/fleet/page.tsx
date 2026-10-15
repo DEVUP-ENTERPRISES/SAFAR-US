@@ -57,7 +57,7 @@ export default function FleetPage() {
         <EmptyState title="No fleets yet" description="Group your vehicles into fleets to track occupancy and revenue." />
       )}
       {fleets.data && fleets.data.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {fleets.data.map((fl) => (
             <button key={fl._id} onClick={() => setSelected(fl._id)} className="text-start">
               <Card className={selected === fl._id ? 'border-primary' : ''}>
@@ -78,7 +78,7 @@ export default function FleetPage() {
       {selected && dashboard.data && (
         <Card>
           <CardHeader><CardTitle>{dashboard.data.name} - analytics</CardTitle></CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             <Metric label="Vehicles" value={String(dashboard.data.totalVehicles)} />
             <Metric label="Listed" value={String(dashboard.data.listedVehicles)} />
             <Metric label="Occupancy" value={`${dashboard.data.occupancyPct}%`} />
@@ -94,7 +94,7 @@ export default function FleetPage() {
             <CardTitle>Profitability (P&amp;L)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
               <Metric label="Gross revenue" value={usd(pnl.data.totals.grossRevenue)} />
               <Metric label="Platform commission" value={`−${usd(pnl.data.totals.commission)}`} />
               <Metric label="Host earnings" value={usd(pnl.data.totals.hostEarnings)} />
