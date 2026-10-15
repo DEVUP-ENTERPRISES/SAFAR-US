@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Percent, Clock, Gift, ShieldCheck, Save, Scale, IdCard, History, RotateCcw, Car, Umbrella, UserSearch, Smartphone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
+import { TabBar, useTabParam } from '@/features/admin/components/page-tabs';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ApiError } from '@/lib/api/types';
 import { adminApi, type PlatformConfig } from '@/features/admin/api';
@@ -36,7 +37,25 @@ const VERIFICATION_META = {
   insurance: { label: 'Insurance', hint: 'Proof of personal coverage.', icon: Umbrella },
 } as const;
 
+const TABS = [
+  { key: 'fees', label: 'Fees & charges', about: 'What guests pay: the service fee, deposit, cancellations, charges after a trip and protection plans.' },
+  { key: 'payouts', label: 'Payouts & rewards', about: 'When hosts are paid, and what guests earn in rewards.' },
+  { key: 'rules', label: 'Booking & trip rules', about: 'How long each booking step may wait, trip photos, handovers, extensions and swaps.' },
+  { key: 'checks', label: 'Guest checks', about: 'Who can book: age and licence rules, and when identity and driving checks run.' },
+  { key: 'safety', label: 'Safety & app', about: 'Limits that stop abuse, mobile app versions and the messages on the booking calendar.' },
+  { key: 'history', label: 'History', about: 'Every saved change, with the option to roll back to an earlier version.' },
+];
+
 export default function AdminEconomicsPage() {
+  return (
+    <Suspense fallback={<Skeleton className="h-96 w-full rounded-2xl" />}>
+      <Economics />
+    </Suspense>
+  );
+}
+
+function Economics() {
+  const [tab, setTab] = useTabParam(TABS.map((t) => t.key));
   const qc = useQueryClient();
   const confirm = useConfirm();
   const { data, isLoading } = useQuery({ queryKey: ['platform-config'], queryFn: () => adminApi.config() });
@@ -114,17 +133,25 @@ export default function AdminEconomicsPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Revenue"
         title="Platform economics"
-        description="Every rate the marketplace runs on. Nothing here is hardcoded — changes are hot and audited."
-        actions={
-          <Button disabled={!dirty} loading={save.isPending} onClick={commit}>
-            <Save className="h-4 w-4" /> {dirty ? 'Apply changes' : 'No changes'}
-          </Button>
-        }
+        description="The rates and rules the marketplace runs on, grouped by topic. Changes apply on the next quote and are recorded in History."
       />
+
+      <div className="sticky top-14 z-20 -mx-4 space-y-3 border-b border-border bg-background/90 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <TabBar tabs={TABS} active={tab} onChange={setTab} className="lg:flex-1" />
+          <div className="flex items-center justify-between gap-3 lg:justify-end">
+            <span className={dirty ? 'text-xs font-medium text-warning' : 'text-xs text-muted-foreground'}>{dirty ? 'Unsaved changes on this page' : 'Everything saved'}</span>
+            <Button disabled={!dirty} loading={save.isPending} onClick={commit}>
+              <Save className="h-4 w-4" /> Apply changes
+            </Button>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground">{TABS.find((t) => t.key === tab)?.about}</p>
+      </div>
 
       {save.isError && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
@@ -137,7 +164,8 @@ export default function AdminEconomicsPage() {
         </p>
       )}
 
-      {/* Commission */}
+      {tab === 'fees' && (
+        <>
       {/*
         Service fee — deliberately its own card, not another column in
         Commission. The two are opposite sides of the take rate and confusing
@@ -151,7 +179,7 @@ export default function AdminEconomicsPage() {
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
             Charged to the guest on top of the trip and shown as its own line at checkout. Separate
-            from commission above, which is taken out of host earnings. Set to 0 to charge no fee.
+            from commission (on the Commission page), which is taken out of host earnings. Set to 0 to charge no fee.
           </p>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -184,7 +212,11 @@ export default function AdminEconomicsPage() {
           </Field>
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'safety' && (
+        <>
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
           <CardTitle>Booking calendar messages</CardTitle>
@@ -198,7 +230,11 @@ export default function AdminEconomicsPage() {
           />
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'safety' && (
+        <>
       {draft.appRelease && (
         <Card className="rounded-2xl shadow-soft">
           <CardHeader>
@@ -230,7 +266,11 @@ export default function AdminEconomicsPage() {
           </CardContent>
         </Card>
       )}
+        </>
+      )}
 
+      {tab === 'checks' && (
+        <>
       {/* Legal & eligibility */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -259,7 +299,11 @@ export default function AdminEconomicsPage() {
           </Field>
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'fees' && (
+        <>
       {/* Security deposit — the hold taken before pickup and released after the trip */}
       {draft.deposit && (
         <Card className="rounded-2xl shadow-soft">
@@ -284,7 +328,11 @@ export default function AdminEconomicsPage() {
           </CardContent>
         </Card>
       )}
+        </>
+      )}
 
+      {tab === 'checks' && (
+        <>
       {/* Verification services — when each check runs, who runs it, how often */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -361,7 +409,11 @@ export default function AdminEconomicsPage() {
           })}
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'fees' && (
+        <>
       {/* Cancellations & no-shows — what a guest gets back, and what a host pays for cancelling */}
       {draft.cancellation && (
         <Card className="rounded-2xl shadow-soft">
@@ -466,7 +518,11 @@ export default function AdminEconomicsPage() {
           </CardContent>
         </Card>
       )}
+        </>
+      )}
 
+      {tab === 'rules' && (
+        <>
       {/* Booking timing — how long each stage may wait before it is released */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -613,7 +669,11 @@ export default function AdminEconomicsPage() {
           </Field>
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'rules' && (
+        <>
       {/* Condition photos */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -655,7 +715,11 @@ export default function AdminEconomicsPage() {
           </label>
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'safety' && (
+        <>
       {/* Abuse limits */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -696,7 +760,11 @@ export default function AdminEconomicsPage() {
           </Field>
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'rules' && (
+        <>
       {/* Handover rules */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -737,7 +805,11 @@ export default function AdminEconomicsPage() {
           </Field>
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'rules' && (
+        <>
       {/* Extensions & swaps */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -778,7 +850,11 @@ export default function AdminEconomicsPage() {
           </Field>
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'payouts' && (
+        <>
       {/* Payouts */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -799,7 +875,11 @@ export default function AdminEconomicsPage() {
           </Field>
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'fees' && (
+        <>
       {/* Post-trip charges */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -836,7 +916,11 @@ export default function AdminEconomicsPage() {
           </Field>
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'fees' && (
+        <>
       {/* Protection */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -860,7 +944,11 @@ export default function AdminEconomicsPage() {
           ))}
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'payouts' && (
+        <>
       {/* Growth levers */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="rounded-2xl shadow-soft">
@@ -880,7 +968,11 @@ export default function AdminEconomicsPage() {
         </Card>
 
       </div>
+        </>
+      )}
 
+      {tab === 'history' && (
+        <>
       {/* Config history & rollback */}
       <Card className="rounded-2xl shadow-soft">
         <CardHeader>
@@ -936,6 +1028,8 @@ export default function AdminEconomicsPage() {
           })}
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }
