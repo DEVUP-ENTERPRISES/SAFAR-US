@@ -16,6 +16,11 @@ export const ROLES = {
 
 export type RoleName = (typeof ROLES)[keyof typeof ROLES];
 
+/** CatoDrive's own fleet account; it runs the operations panel and is never a staff role. */
+export const HOUSE_FLEET_ROLE = 'house_fleet';
+/** What the operations panel may do behind requireFleetOwner: read and manage Asset Partners. */
+export const IOC_PERMISSIONS = ['admin:read', 'host:manage'] as const;
+
 export const PERMISSIONS = {
   BOOKING_CREATE: 'booking:create',
   BOOKING_CANCEL_OWN: 'booking:cancel:own',

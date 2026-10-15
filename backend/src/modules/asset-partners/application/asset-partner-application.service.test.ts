@@ -1,3 +1,4 @@
+jest.mock('../../notifications/application/notification.service', () => ({ notificationService: { send: jest.fn(async () => undefined) } }));
 /**
  * Asset Partner application against a real in-memory MongoDB. Proves the core
  * business rule: approving an application verifies the applicant's host
@@ -104,7 +105,8 @@ describe('asset partner application', () => {
   it('rejection never verifies a host', async () => {
     await UserModel.create({ email: 'jordan@example.com', roles: ['guest'] });
     const app = await assetPartnerApplicationService.create(baseDto(), {});
-    const reviewed = await assetPartnerApplicationService.review(app._id, ADMIN, 'rejected');
+    await expect(assetPartnerApplicationService.review(app._id, ADMIN, 'rejected')).rejects.toThrow('Add a note');
+    const reviewed = await assetPartnerApplicationService.review(app._id, ADMIN, 'rejected', 'Vehicle too old');
     expect(reviewed.status).toBe('rejected');
     expect(reviewed.hostVerified).toBe(false);
     expect(await HostModel.countDocuments({})).toBe(0);

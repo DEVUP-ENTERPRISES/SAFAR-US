@@ -19,7 +19,9 @@ import { uuid } from '../../../shared/utils/uuid';
  * agreement" step, matching the four-step process on the marketing page —
  * this record is not auto-converted into a live listing.
  */
-export type ApplicationStatus = 'submitted' | 'under_review' | 'approved' | 'rejected';
+export type ApplicationStatus = 'submitted' | 'under_review' | 'changes_requested' | 'approved' | 'rejected';
+/** A new partner joining, or an existing partner offering another car. */
+export type ApplicationKind = 'partner' | 'vehicle';
 export type PartnerType = 'individual' | 'business' | 'fleet';
 export type OwnershipStatus = 'owned' | 'financed' | 'leased';
 export type CoverageType = 'full' | 'liability' | 'unsure';
@@ -31,6 +33,9 @@ export interface AssetPartnerApplicationDoc {
    *  for support lookups. Never client-supplied. */
   reference: string;
   status: ApplicationStatus;
+  kind: ApplicationKind;
+  /** Set on a vehicle application: the partner offering the car. */
+  partnerId?: string;
 
   // Step 1 — Partner information
   fullName: string;
@@ -113,7 +118,9 @@ const schema = new Schema<AssetPartnerApplicationDoc>(
   {
     _id: { type: String, default: () => uuid() },
     reference: { type: String, required: true, unique: true },
-    status: { type: String, default: 'submitted', enum: ['submitted', 'under_review', 'approved', 'rejected'] },
+    status: { type: String, default: 'submitted', enum: ['submitted', 'under_review', 'changes_requested', 'approved', 'rejected'] },
+    kind: { type: String, default: 'partner', enum: ['partner', 'vehicle'] },
+    partnerId: String,
 
     fullName: { type: String, required: true },
     businessName: String,
@@ -184,6 +191,7 @@ const schema = new Schema<AssetPartnerApplicationDoc>(
 
 schema.index({ status: 1, createdAt: -1 });
 schema.index({ email: 1 });
+schema.index({ submittedByUserId: 1, createdAt: -1 });
 schema.index({ 'vehicle.vin': 1 });
 
 export const AssetPartnerApplicationModel = model<AssetPartnerApplicationDoc>(

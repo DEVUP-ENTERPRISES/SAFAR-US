@@ -41,6 +41,16 @@ export type PartnerStatus =
   | 'exited';
 
 export type PartnerType = 'individual' | 'business' | 'fleet';
+
+export interface PartnerAgreementSignature {
+  version: number;
+  /** The exact text signed, so a later edit can never change what they agreed to. */
+  bodyHash: string;
+  signedName: string;
+  signedAt: Date;
+  ip?: string;
+  userAgent?: string;
+}
 export type PayoutMethod = 'check' | 'zelle';
 
 /**
@@ -98,6 +108,10 @@ export interface AssetPartnerDoc {
     zelleHandle?: string;
   };
 
+  /** Partners approved through the portal sign the agreement there; ones added directly signed outside it. */
+  agreementRequired?: boolean;
+  agreement?: PartnerAgreementSignature;
+
   /** Programme milestones, for the partner's own status tracker. */
   approvedAt?: Date;
   onboardedAt?: Date;
@@ -141,6 +155,12 @@ const schema = new Schema<AssetPartnerDoc>(
     payoutDetails: {
       mailingAddress: String,
       zelleHandle: String,
+    },
+
+    agreementRequired: Boolean,
+    agreement: {
+      type: new Schema({ version: Number, bodyHash: String, signedName: String, signedAt: Date, ip: String, userAgent: String }, { _id: false }),
+      default: undefined,
     },
 
     approvedAt: Date,

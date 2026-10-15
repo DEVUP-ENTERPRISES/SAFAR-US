@@ -5,7 +5,7 @@ import { AssetPartnerModel } from '../../asset-partners/infrastructure/asset-par
 import { MemberModel } from '../../corporate/infrastructure/corporate.models';
 import { HostStaffModel } from '../../hosts/infrastructure/host-staff.model';
 import { UserModel } from '../../users/infrastructure/user.model';
-import { ROLES, STAFF_ROLES } from '../../../shared/constants/rbac';
+import { HOUSE_FLEET_ROLE, ROLES, STAFF_ROLES } from '../../../shared/constants/rbac';
 import { tokenService } from './token.service';
 import { authService } from './auth.service';
 
@@ -25,11 +25,11 @@ export function webPortalOf(req: Request): 'ioc' | undefined {
 
 /** The House Fleet account, or an active captain on its team, runs CatoDrive's operations panel. */
 async function isFleetOperator(userId: string, roles: string[]): Promise<boolean> {
-  if (roles.includes('house_fleet')) return true;
+  if (roles.includes(HOUSE_FLEET_ROLE)) return true;
   const hostIds = await HostStaffModel.find({ userId, status: 'active' }).distinct('hostId');
   if (hostIds.length === 0) return false;
   const ownerIds = await HostModel.find({ _id: { $in: hostIds } }).distinct('userId');
-  return !!(await UserModel.exists({ _id: { $in: ownerIds }, roles: 'house_fleet' }));
+  return !!(await UserModel.exists({ _id: { $in: ownerIds }, roles: HOUSE_FLEET_ROLE }));
 }
 
 /** Hosts, their active captains, asset partners and corporate admins or managers run the partner app. */

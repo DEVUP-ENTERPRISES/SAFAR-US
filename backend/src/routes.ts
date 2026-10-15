@@ -41,6 +41,9 @@ import { corporateRoutes } from './modules/corporate/api/corporate.routes';
 import { rewardsRoutes } from './modules/rewards/api/rewards.routes';
 import { referralRoutes } from './modules/referral/api/referral.routes';
 import { assetPartnerApplicationRoutes } from './modules/asset-partners/api/asset-partner-application.routes';
+import { assetPartnerIocRoutes } from './modules/asset-partners/api/asset-partner.ioc.routes';
+import { requireFleetOwner } from './shared/middleware/require-fleet-owner';
+import { authenticate } from './shared/middleware/authenticate';
 import { insurancePartnerRoutes } from './modules/insurance-partners/api/insurance-partner.routes';
 import { contactInquiryRoutes } from './modules/contact/api/contact-inquiry.routes';
 import { visitorTrackingRoutes } from './modules/analytics/api/visitor-tracking.routes';
@@ -76,6 +79,8 @@ export function buildApiRouter(): Router {
   api.use('/', riskRoutes);
   api.use('/', complianceRoutes);
   api.use('/', assetPartnerApplicationRoutes);
+  // CatoDrive's operations panel: Asset Partner applications, partners and the agreement.
+  api.use('/ioc', authenticate, requireFleetOwner, assetPartnerIocRoutes);
   api.use('/', insurancePartnerRoutes);
   api.use('/', contactInquiryRoutes);
   api.use('/', visitorTrackingRoutes);

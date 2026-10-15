@@ -4,14 +4,79 @@ import { assetPartnerApplicationService } from '../application/asset-partner-app
 import { assetPartnerService } from '../application/asset-partner.service';
 import { assetPartnerPortalService } from '../application/asset-partner-portal.service';
 import { assetPartnerMaintenanceService } from '../application/asset-partner-maintenance.service';
-import { createApplicationSchema } from '../dto/asset-partner-application.schemas';
+import { assetPartnerAgreementService } from '../application/asset-partner-agreement.service';
+import { createApplicationSchema, portalApplicationSchema, signAgreementSchema } from '../dto/asset-partner-application.schemas';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate, authenticateOptional } from '../../../shared/middleware/authenticate';
 import { authLimiter } from '../../../shared/middleware/auth-rate-limit';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
+import { ForbiddenError } from '../../../core/errors/app-error';
 
 const router = Router();
+
+// A partner who has not signed the agreement or added payout details can't open the dashboard's data yet.
+const requirePartnerReady = asyncHandler(async (req, _res, next) => {
+  const partner = await assetPartnerService.getByUserId(req.principal!.userId);
+  if (partner) await assetPartnerService.requirePortalReady(req.principal!.userId);
+  next();
+});
+
+/** Fills the car's details from its VIN and says whether that car is already with CatoDrive. */
+router.get(
+  '/asset-partners/vin/:vin',
+  authenticate,
+  authLimiter,
+  validate({ params: z.object({ vin: z.string().trim().regex(/^[A-HJ-NPR-Z0-9]{17}$/i, 'Enter the 17-character VIN') }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerApplicationService.lookupVin(req.params.vin));
+  }),
+);
+
+/** Which getting-started step the signed-in account is on. */
+router.get(
+  '/asset-partners/onboarding',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerApplicationService.onboarding(req.principal!.userId));
+  }),
+);
+
+/** Apply from the partner portal: as a new partner, or with another car once in the programme. */
+router.post(
+  '/asset-partners/me/applications',
+  authenticate,
+  authLimiter,
+  validate({ body: portalApplicationSchema }),
+  asyncHandler(async (req, res) => {
+    const app = await assetPartnerApplicationService.createForAccount(req.principal!.userId, req.body, {
+      ip: req.ip,
+      userAgent: req.header('user-agent'),
+    });
+    sendCreated(res, app);
+  }),
+);
+
+router.put(
+  '/asset-partners/me/applications/:id',
+  authenticate,
+  validate({ body: portalApplicationSchema }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerApplicationService.resubmit(req.principal!.userId, req.params.id, req.body));
+  }),
+);
+
+router.post(
+  '/asset-partners/me/agreement',
+  authenticate,
+  validate({ body: signAgreementSchema }),
+  asyncHandler(async (req, res) => {
+    const partner = await assetPartnerService.getByUserId(req.principal!.userId);
+    if (!partner) throw new ForbiddenError('Not an Asset Partner');
+    const signed = await assetPartnerAgreementService.sign(partner, req.body, { ip: req.ip, userAgent: req.header('user-agent') });
+    sendSuccess(res, { agreement: signed.agreement });
+  }),
+);
 
 /**
  * The Asset Partner intake form submission. No login required — the form
@@ -83,6 +148,7 @@ router.get(
 router.get(
   '/asset-partners/vehicles',
   authenticate,
+  requirePartnerReady,
   asyncHandler(async (req, res) => {
     sendSuccess(res, await assetPartnerPortalService.vehicles(req.principal!.userId));
   }),
@@ -91,6 +157,7 @@ router.get(
 router.get(
   '/asset-partners/vehicles/:id',
   authenticate,
+  requirePartnerReady,
   asyncHandler(async (req, res) => {
     sendSuccess(res, await assetPartnerPortalService.vehicleDetail(req.principal!.userId, req.params.id));
   }),
@@ -99,6 +166,7 @@ router.get(
 router.get(
   '/asset-partners/statements',
   authenticate,
+  requirePartnerReady,
   asyncHandler(async (req, res) => {
     const months = req.query.months ? Number(req.query.months) : 12;
     sendSuccess(res, await assetPartnerPortalService.statements(req.principal!.userId, months));
@@ -132,6 +200,7 @@ router.patch(
 router.get(
   '/asset-partners/maintenance',
   authenticate,
+  requirePartnerReady,
   asyncHandler(async (req, res) => {
     const partner = await assetPartnerService.getByUserId(req.principal!.userId);
     if (!partner) {
@@ -150,6 +219,7 @@ router.get(
 router.post(
   '/asset-partners/maintenance/:id/approve',
   authenticate,
+  requirePartnerReady,
   asyncHandler(async (req, res) => {
     sendSuccess(
       res,
@@ -161,6 +231,7 @@ router.post(
 router.post(
   '/asset-partners/maintenance/:id/decline',
   authenticate,
+  requirePartnerReady,
   validate({ body: z.object({ reason: z.string().max(300).optional() }) }),
   asyncHandler(async (req, res) => {
     sendSuccess(

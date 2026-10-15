@@ -8,8 +8,10 @@ import {
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { userRepository } from '../../users/infrastructure/user.repository';
 import { hostService } from '../../hosts/application/host.service';
-import { NotFoundError, ConflictError } from '../../../core/errors/app-error';
+import { AppError, NotFoundError, ConflictError, ForbiddenError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
+import { AssetPartnerApplicationModel } from '../infrastructure/asset-partner-application.model';
+import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 
 /**
  * Asset Partner programme membership: who is in it, what stage they are at,
@@ -59,6 +61,7 @@ export class AssetPartnerService {
     businessName?: string;
     email?: string;
     phone?: string;
+    agreementRequired?: boolean;
   }): Promise<AssetPartnerDoc> {
     const existing = await AssetPartnerModel.findOne({ userId: input.userId }).lean<AssetPartnerDoc>();
     if (existing) return existing;
@@ -110,6 +113,7 @@ export class AssetPartnerService {
     phone?: string;
     partnerType: PartnerType;
     applicationId?: string;
+    agreementRequired?: boolean;
   }): Promise<{ partner: AssetPartnerDoc; userId: string; accountCreated: boolean }> {
     const email = input.email.toLowerCase().trim();
     const displayName = input.businessName || input.fullName;
@@ -147,6 +151,7 @@ export class AssetPartnerService {
       businessName: input.businessName,
       email,
       phone: input.phone,
+      agreementRequired: input.agreementRequired,
     });
 
     return { partner, userId: user._id, accountCreated };
@@ -211,6 +216,38 @@ export class AssetPartnerService {
 
   async getByUserId(userId: string): Promise<AssetPartnerDoc | null> {
     return AssetPartnerModel.findOne({ userId }).lean<AssetPartnerDoc>();
+  }
+
+  /** Where an enrolled partner is in getting started; anything but 'ready' keeps the full portal locked. */
+  async portalStage(partner: AssetPartnerDoc): Promise<'agreement' | 'payout' | 'ready'> {
+    if (!partner.agreementRequired) return 'ready';
+    if (!partner.agreement?.signedAt) return 'agreement';
+    const { payoutMethod } = await this.termsFor(partner);
+    const paid = payoutMethod === 'zelle' ? partner.payoutDetails?.zelleHandle : partner.payoutDetails?.mailingAddress;
+    return paid?.trim() ? 'ready' : 'payout';
+  }
+
+  async requirePortalReady(userId: string): Promise<AssetPartnerDoc> {
+    const partner = await this.getByUserId(userId);
+    if (!partner) throw new ForbiddenError('Not an Asset Partner');
+    if ((await this.portalStage(partner)) !== 'ready') {
+      throw new AppError({ code: 'PARTNER_ONBOARDING', message: 'Finish getting started to open your dashboard.', httpStatus: 403 });
+    }
+    return partner;
+  }
+
+  async summary(): Promise<{
+    applications: Record<string, number>;
+    partners: Record<string, number>;
+    vehicles: number;
+  }> {
+    const [apps, partners, vehicles] = await Promise.all([
+      AssetPartnerApplicationModel.aggregate<{ _id: string; n: number }>([{ $group: { _id: '$status', n: { $sum: 1 } } }]),
+      AssetPartnerModel.aggregate<{ _id: string; n: number }>([{ $group: { _id: '$status', n: { $sum: 1 } } }]),
+      VehicleModel.countDocuments({ assetPartnerId: { $exists: true, $ne: null } }),
+    ]);
+    const count = (rows: { _id: string; n: number }[]) => Object.fromEntries(rows.map((r) => [r._id, r.n]));
+    return { applications: count(apps), partners: count(partners), vehicles };
   }
 
   async getById(partnerId: string): Promise<AssetPartnerDoc> {

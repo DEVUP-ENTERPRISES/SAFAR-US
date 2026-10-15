@@ -14,7 +14,8 @@ router.get(
   authorize('admin:read'),
   validate({
     query: z.object({
-      status: z.enum(['submitted', 'under_review', 'approved', 'rejected']).optional(),
+      status: z.enum(['submitted', 'under_review', 'changes_requested', 'approved', 'rejected']).optional(),
+      kind: z.enum(['partner', 'vehicle']).optional(),
       limit: z.coerce.number().int().min(1).max(50).optional(),
       skip: z.coerce.number().int().min(0).optional(),
     }),

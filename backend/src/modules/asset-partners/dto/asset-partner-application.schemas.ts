@@ -67,7 +67,17 @@ export const createApplicationSchema = z.object({
 
 export type CreateApplicationDto = z.infer<typeof createApplicationSchema>;
 
+// From the partner portal the email is always the signed-in account's own.
+export const portalApplicationSchema = createApplicationSchema.omit({ email: true });
+export type PortalApplicationDto = z.infer<typeof portalApplicationSchema>;
+
+export const signAgreementSchema = z.object({
+  version: z.number().int().min(1),
+  signedName: z.string().trim().min(2).max(120),
+  accept: z.literal(true, { errorMap: () => ({ message: 'Required' }) }),
+});
+
 export const reviewApplicationSchema = z.object({
-  decision: z.enum(['approved', 'rejected']),
+  decision: z.enum(['approved', 'changes_requested', 'rejected']),
   notes: z.string().trim().max(1000).optional(),
 });

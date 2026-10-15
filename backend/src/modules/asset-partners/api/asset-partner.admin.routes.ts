@@ -55,6 +55,15 @@ router.post(
   }),
 );
 
+/** Headline numbers for the programme; the main admin shows only these. */
+router.get(
+  '/asset-partners/summary',
+  authorize('admin:read'),
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, await assetPartnerService.summary());
+  }),
+);
+
 router.get(
   '/asset-partners',
   authorize('admin:read'),
