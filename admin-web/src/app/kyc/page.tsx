@@ -14,6 +14,7 @@ import { adminApi } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
 import { SecureDoc } from '@/features/media/secure-doc';
 import { VerificationChecks } from '@/features/admin/components/verification-checks';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function AdminKycPage() {
   const qc = useQueryClient();
@@ -77,7 +78,7 @@ export default function AdminKycPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="display text-display-sm">KYC review</h1>
+      <PageHeader eyebrow="People & cars" title="ID checks" description="Guests’ driving licence and selfie checks. Review the ones the automatic check couldn’t decide." />
       {userId && <VerificationChecks userId={userId} />}
       {userId ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3 text-sm">

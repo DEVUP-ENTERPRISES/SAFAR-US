@@ -94,10 +94,11 @@ export default function AdminMembershipsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Revenue"
+        eyebrow="Money in"
         title="Memberships"
-        description="Paid tiers that make guests book more. Benefits apply to the price automatically — and are snapshotted at purchase so a plan change can't hurt existing members."
+        description="Monthly plans guests pay for. Members get a booking discount and extra reward points automatically, and keep the benefits they signed up with if a plan changes later."
       />
+      <p className="rounded-xl bg-primary/5 px-4 py-3 text-sm"><span className="font-semibold">Example:</span> A member on a plan with 10% off saves $10 on a $100 rental (fees aren’t discounted), and earns reward points faster by the plan’s multiplier.</p>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatTile tone="primary" icon={<Users className="h-5 w-5" />} label="Active members" value={totalMembers} />

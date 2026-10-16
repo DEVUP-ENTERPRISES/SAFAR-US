@@ -12,6 +12,7 @@ import { CaseFilePanel } from '@/features/ai/components/case-file-panel';
 import { FileSearch } from 'lucide-react';
 import { formatDate, formatMoney } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
+import { PageHeader } from '@/components/ui/page-header';
 
 const TONE: Record<string, 'success' | 'warning' | 'destructive' | 'muted' | 'default'> = {
   opened: 'warning', investigating: 'default', approved: 'success', settled: 'success', rejected: 'destructive', closed: 'muted',
@@ -109,8 +110,8 @@ export default function AdminClaimsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="display text-display-sm">Claims management</h1>
-      <div className="flex gap-2">
+      <PageHeader eyebrow="Help & safety" title="Damage claims" description="Damage and incident claims from hosts. Assign each one, then settle or reject it." />
+      <div className="flex flex-wrap gap-2">
         {['', 'opened', 'investigating', 'approved', 'settled', 'rejected'].map((s) => (
           <Chip key={s || 'all'} active={status === s} onClick={() => setStatus(s)} className="capitalize">{s || 'All'}</Chip>
         ))}

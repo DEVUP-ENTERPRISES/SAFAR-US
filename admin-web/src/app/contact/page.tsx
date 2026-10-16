@@ -87,8 +87,8 @@ export default function ContactInquiriesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="People · Every lead in one place"
-        title="Contact Inquiries"
+        eyebrow="Help & safety"
+        title="Contact requests"
         description="Every inbound message from the site's Contact page and the Investors page's deck requests — labeled by who's reaching out, so nothing gets lost in an inbox."
       />
 

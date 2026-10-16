@@ -11,6 +11,7 @@ import { BookingStatusBadge } from '@/features/bookings/components/status-badge'
 import { formatMoney, formatDateRange } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
+import { PageHeader } from '@/components/ui/page-header';
 
 /**
  * Every state an operator needs to triage, not just the happy path.
@@ -93,7 +94,7 @@ export default function AdminBookingsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="display text-display-sm">Booking management</h1>
+      <PageHeader eyebrow="People & cars" title="Bookings" description="Every booking on the platform. Filter by status to find one, cancel it, or check the guest’s ID." />
       <div className="hide-scrollbar flex gap-2 overflow-x-auto">
         {STATUSES.map((s) => (
           <Chip key={s || 'all'} active={status === s} onClick={() => setStatus(s)} className="capitalize">{s ? s.replace(/_/g, ' ') : 'All'}</Chip>

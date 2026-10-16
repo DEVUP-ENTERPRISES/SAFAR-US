@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/toast';
 import { adminApi } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
 import { cn } from '@/lib/utils/cn';
+import { PageHeader } from '@/components/ui/page-header';
 
 const ROLES = [
   { value: 'admin', title: 'Admin', blurb: 'Everything except staff accounts and the audit log' },
@@ -61,12 +62,7 @@ export default function AdminStaffPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div>
-        <h1 className="display text-display-sm">Staff accounts</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Add people to your team. Their username and password are generated for you. Only you, the main admin, can see this page.
-        </p>
-      </div>
+      <PageHeader eyebrow="Control" title="Staff accounts" description="Add people to your team. Their username and password are generated for you. Only you, the main admin, can see this page." />
 
       <Card>
         <CardContent className="space-y-5 p-5 sm:p-6">

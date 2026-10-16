@@ -40,8 +40,8 @@ export default function AdminFleetsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Supply"
-        title="Fleet management"
+        eyebrow="People & cars"
+        title="Fleets"
         description="Every multi-vehicle operator on the platform, with live vehicle counts."
       />
 

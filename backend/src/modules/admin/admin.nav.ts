@@ -27,65 +27,44 @@ const A = (sub?: string) => (sub ? `${config.adminPanel.basePath}/${sub}` : conf
 
 export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'dashboard', path: A(), apiPath: '/admin/metrics', label: 'Dashboard', group: 'Overview', permission: 'admin:read' },
-  // Money, revenue by source and bookings & users, as tabs of one page.
   { slug: 'reports', path: A('reports'), apiPath: '/admin/finance', label: 'Reports', group: 'Overview', permission: 'analytics:read' },
   { slug: 'visitors', path: A('visitors'), apiPath: '/admin/analytics/live-traffic', label: 'Visitors', group: 'Overview', permission: 'analytics:read' },
 
-  /*
-   * Asset Partners gets its own group, not a few entries scattered through
-   * People and Revenue.
-   *
-   * The programme is a different business from hosting and is paid by
-   * different arithmetic: a host earns per booking (subtotal − commission −
-   * tax) while a partner is paid monthly (gross − management fee − insurance
-   * − detailing). Sharing a "Commission" screen between them is how an
-   * operator edits a host rate and silently believes they changed partner
-   * economics too. Listed first because it is the primary acquisition path.
-   */
-  { slug: 'asset-partners', path: A('asset-partners'), apiPath: '/admin/asset-partners/summary', label: 'Overview', group: 'Asset Partners', permission: 'admin:read' },
-  // The programme's own economics. Backed by the same platform-config
-  // document as Platform Economics, but a deliberately separate screen: these
-  // are the partner-agreement figures, and none of them is a commission rule.
-  { slug: 'asset-partner-terms', path: A('asset-partner-terms'), apiPath: '/admin/config', label: 'Programme Terms', group: 'Asset Partners', permission: 'platform:manage' },
+  { slug: 'commission', path: A('commission'), apiPath: '/admin/commission-rules', label: 'Commission', group: 'Money in', permission: 'admin:read' },
+  { slug: 'economics', path: A('economics'), apiPath: '/admin/config', label: 'Platform Economics', group: 'Money in', permission: 'admin:read' },
+  { slug: 'tax', path: A('tax'), apiPath: '/admin/tax-rules', label: 'Rental Tax', group: 'Money in', permission: 'platform:manage' },
+  { slug: 'coupons', path: A('coupons'), apiPath: '/admin/coupons', label: 'Promo Codes', group: 'Money in', permission: 'platform:manage' },
+  { slug: 'surge', path: A('surge'), apiPath: '/admin/surge-rules', label: 'Surge Pricing', group: 'Money in', permission: 'admin:read' },
+  { slug: 'memberships', path: A('memberships'), apiPath: '/admin/subscription-plans', label: 'Memberships', group: 'Money in', permission: 'admin:read' },
+  { slug: 'referrals', path: A('referrals'), apiPath: '/admin/referrals/stats', label: 'Referrals', group: 'Money in', permission: 'admin:read' },
 
-  { slug: 'contact', path: A('contact'), apiPath: '/admin/contact-inquiries', label: 'Contact Inquiries', group: 'People', permission: 'admin:read' },
-  { slug: 'users', path: A('users'), apiPath: '/admin/users', label: 'User Management', group: 'People', permission: 'admin:read' },
-  { slug: 'kyc', path: A('kyc'), apiPath: '/admin/kyc', label: 'KYC Review', group: 'People', permission: 'kyc:review' },
-  { slug: 'hosts', path: A('hosts'), apiPath: '/admin/hosts', label: 'Host Management', group: 'People', permission: 'admin:read' },
+  { slug: 'payouts', path: A('payouts'), apiPath: '/admin/payouts', label: 'Host Payouts', group: 'Money out', permission: 'payout:manage' },
+  { slug: 'asset-partners', path: A('asset-partners'), apiPath: '/admin/asset-partners/summary', label: 'Asset Partners', group: 'Money out', permission: 'admin:read' },
+  { slug: 'asset-partner-terms', path: A('asset-partner-terms'), apiPath: '/admin/config', label: 'Partner Terms', group: 'Money out', permission: 'platform:manage' },
+  { slug: 'insurers', path: A('insurers'), apiPath: '/admin/insurance-partners', label: 'Insurance Partners', group: 'Money out', permission: 'admin:read' },
+  { slug: 'corporate', path: A('corporate'), apiPath: '/admin/corporate/orgs', label: 'Corporate Accounts', group: 'Money out', permission: 'corporate:manage' },
 
-  { slug: 'vehicles', path: A('vehicles'), apiPath: '/admin/vehicles', label: 'Vehicle Management', group: 'Supply', permission: 'admin:read' },
-  { slug: 'insurance', path: A('insurance'), apiPath: '/admin/insurance/wheelbase', label: 'Insurance', group: 'Supply', permission: 'admin:read' },
-  // Insurance partners: insurers who sell their own protection plans, approved here and paid from their own ledger account.
-  { slug: 'insurers', path: A('insurers'), apiPath: '/admin/insurance-partners', label: 'Insurers', group: 'Supply', permission: 'admin:read' },
-  { slug: 'tolls', path: A('tolls'), apiPath: '/admin/tolls/accounts', label: 'Tolls', group: 'Supply', permission: 'admin:read' },
-  { slug: 'fleets', path: A('fleets'), apiPath: '/admin/fleets', label: 'Fleet Management', group: 'Supply', permission: 'fleet:manage' },
+  { slug: 'users', path: A('users'), apiPath: '/admin/users', label: 'Users', group: 'People & cars', permission: 'admin:read' },
+  { slug: 'kyc', path: A('kyc'), apiPath: '/admin/kyc', label: 'ID Checks', group: 'People & cars', permission: 'kyc:review' },
+  { slug: 'hosts', path: A('hosts'), apiPath: '/admin/hosts', label: 'Hosts', group: 'People & cars', permission: 'admin:read' },
+  { slug: 'vehicles', path: A('vehicles'), apiPath: '/admin/vehicles', label: 'Vehicles', group: 'People & cars', permission: 'admin:read' },
+  { slug: 'bookings', path: A('bookings'), apiPath: '/admin/bookings', label: 'Bookings', group: 'People & cars', permission: 'admin:read' },
+  { slug: 'fleets', path: A('fleets'), apiPath: '/admin/fleets', label: 'Fleets', group: 'People & cars', permission: 'fleet:manage' },
+  { slug: 'tolls', path: A('tolls'), apiPath: '/admin/tolls/accounts', label: 'Tolls', group: 'People & cars', permission: 'admin:read' },
+  { slug: 'insurance', path: A('insurance'), apiPath: '/admin/insurance/wheelbase', label: 'Fleet Cover', group: 'People & cars', permission: 'admin:read' },
 
-  // Keep every group's entries contiguous: the sidebar builds groups in
-  // first-appearance order, so a split group renders as two sections.
-  { slug: 'bookings', path: A('bookings'), apiPath: '/admin/bookings', label: 'Booking Management', group: 'Operations', permission: 'admin:read' },
-  { slug: 'failures', path: A('failures'), apiPath: '/admin/failures', label: 'Failed Attempts', group: 'Operations', permission: 'admin:read' },
-  { slug: 'claims', path: A('claims'), apiPath: '/admin/claims', label: 'Claims Management', group: 'Operations', permission: 'claim:manage' },
-  { slug: 'support', path: A('support'), apiPath: '/admin/tickets', label: 'Support', group: 'Operations', permission: 'ticket:manage' },
-  { slug: 'kb', path: A('kb'), apiPath: '/admin/kb/articles', label: 'Knowledge Base', group: 'Operations', permission: 'ticket:manage' },
-  { slug: 'violations', path: A('violations'), apiPath: '/admin/violations', label: 'Citations', group: 'Operations', permission: 'claim:manage' },
-  { slug: 'reviews', path: A('reviews'), apiPath: '/admin/reviews', label: 'Reviews', group: 'Operations', permission: 'review:moderate' },
+  { slug: 'support', path: A('support'), apiPath: '/admin/tickets', label: 'Support Tickets', group: 'Help & safety', permission: 'ticket:manage' },
+  { slug: 'kb', path: A('kb'), apiPath: '/admin/kb/articles', label: 'Help Articles', group: 'Help & safety', permission: 'ticket:manage' },
+  { slug: 'contact', path: A('contact'), apiPath: '/admin/contact-inquiries', label: 'Contact Requests', group: 'Help & safety', permission: 'admin:read' },
+  { slug: 'claims', path: A('claims'), apiPath: '/admin/claims', label: 'Damage Claims', group: 'Help & safety', permission: 'claim:manage' },
+  { slug: 'violations', path: A('violations'), apiPath: '/admin/violations', label: 'Traffic Tickets', group: 'Help & safety', permission: 'claim:manage' },
+  { slug: 'reviews', path: A('reviews'), apiPath: '/admin/reviews', label: 'Reviews', group: 'Help & safety', permission: 'review:moderate' },
+  { slug: 'failures', path: A('failures'), apiPath: '/admin/failures', label: 'Failed Actions', group: 'Help & safety', permission: 'admin:read' },
 
-  { slug: 'referrals', path: A('referrals'), apiPath: '/admin/referrals/stats', label: 'Referrals', group: 'Business', permission: 'admin:read' },
-  { slug: 'corporate', path: A('corporate'), apiPath: '/admin/corporate/orgs', label: 'Corporate Accounts', group: 'Business', permission: 'corporate:manage' },
-  { slug: 'payouts', path: A('payouts'), apiPath: '/admin/payouts', label: 'Payouts', group: 'Business', permission: 'payout:manage' },
-
-  { slug: 'commission', path: A('commission'), apiPath: '/admin/commission-rules', label: 'Commission', group: 'Revenue', permission: 'admin:read' },
-  { slug: 'economics', path: A('economics'), apiPath: '/admin/config', label: 'Platform Economics', group: 'Revenue', permission: 'admin:read' },
-  { slug: 'tax', path: A('tax'), apiPath: '/admin/tax-rules', label: 'Tax Rules', group: 'Revenue', permission: 'platform:manage' },
-
-  { slug: 'coupons', path: A('coupons'), apiPath: '/admin/coupons', label: 'Promo Codes', group: 'Revenue', permission: 'platform:manage' },
-  { slug: 'surge', path: A('surge'), apiPath: '/admin/surge-rules', label: 'Surge Pricing', group: 'Revenue', permission: 'admin:read' },
-  { slug: 'memberships', path: A('memberships'), apiPath: '/admin/subscription-plans', label: 'Memberships', group: 'Revenue', permission: 'admin:read' },
-
-  { slug: 'ai', path: A('ai'), apiPath: '/ai/usage', label: 'AI Usage', group: 'Platform', permission: 'platform:manage' },
-  { slug: 'feature-flags', path: A('feature-flags'), apiPath: '/admin/feature-flags', label: 'Feature Flags', group: 'Platform', permission: 'admin:read' },
-  { slug: 'audit', path: A('audit'), apiPath: '/admin/audit-logs', label: 'Audit Logs', group: 'Platform', permission: '*' },
-  { slug: 'staff', path: A('staff'), apiPath: '/admin/staff', label: 'Staff Accounts', group: 'Platform', permission: '*' },
+  { slug: 'feature-flags', path: A('feature-flags'), apiPath: '/admin/feature-flags', label: 'Feature Flags', group: 'Control', permission: 'admin:read' },
+  { slug: 'staff', path: A('staff'), apiPath: '/admin/staff', label: 'Staff Accounts', group: 'Control', permission: '*' },
+  { slug: 'audit', path: A('audit'), apiPath: '/admin/audit-logs', label: 'Audit Log', group: 'Control', permission: '*' },
+  { slug: 'ai', path: A('ai'), apiPath: '/ai/usage', label: 'AI Usage', group: 'Control', permission: 'platform:manage' },
 ];
 
 // Fail fast at boot if a group's entries got split by a later insertion — the

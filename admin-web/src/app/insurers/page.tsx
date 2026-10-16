@@ -53,7 +53,7 @@ export default function InsurersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Supply · Insurance"
+        eyebrow="Money out"
         title="Insurance partners"
         description="Insurers apply on catodrive.com/insurers and run their own plans and payouts. You approve them, suspend them, and record what has been paid to them."
       />

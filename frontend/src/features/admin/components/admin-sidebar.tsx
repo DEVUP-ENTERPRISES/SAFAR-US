@@ -5,7 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Users, BadgeCheck, Car, CalendarCheck, ShieldAlert, LifeBuoy,
   ScanFace, Flag, ScrollText, LayoutGrid, Shield, Percent, SlidersHorizontal, TrendingUp, Star, Layers, Building2, Banknote, Route,
-  ClipboardCheck, Handshake, Receipt, PieChart, Radio, Gift, Umbrella, Milestone,
+  Handshake, Receipt, PieChart, Radio, Gift, Umbrella, Milestone,
+  Landmark, Ticket, BookOpen, Mail, FileWarning, AlertTriangle, UserCog, Sparkles,
 } from 'lucide-react';
 import { PanelSidebar, type PanelNavItem } from '@/components/layout/panel-sidebar';
 import { adminApi, type AdminNavItem } from '@/features/admin/api';
@@ -40,10 +41,17 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   audit: ScrollText,
   // The intake queue vs the programme itself - distinct icons, because they
   // sit next to each other and are different jobs.
-  'asset-partners': ClipboardCheck,
-  partners: Handshake,
+  'asset-partners': Handshake,
   // The programme's own economics - a fee, not a commission rule.
   'asset-partner-terms': Receipt,
+  tax: Landmark,
+  coupons: Ticket,
+  kb: BookOpen,
+  contact: Mail,
+  violations: FileWarning,
+  failures: AlertTriangle,
+  staff: UserCog,
+  ai: Sparkles,
 };
 
 export function AdminSidebar() {

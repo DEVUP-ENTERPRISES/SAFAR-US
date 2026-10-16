@@ -133,9 +133,9 @@ export default function AdminSurgePage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Revenue"
+        eyebrow="Money in"
         title="Surge pricing"
-        description="Lift prices when demand outstrips supply. Manual rules for known peaks; auto-surge from measured occupancy. CatoDrive Plus members never pay surge."
+        description="Raises prices when most cars are booked. Add rules for known busy dates; auto-surge follows how full the fleet is. CatoDrive Plus members never pay surge."
         actions={
           <Button onClick={() => setCreating((c) => !c)} variant={creating ? 'outline' : 'primary'}>
             <Plus className="h-4 w-4" /> {creating ? 'Cancel' : 'New surge rule'}

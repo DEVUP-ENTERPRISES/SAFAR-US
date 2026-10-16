@@ -11,6 +11,7 @@ import { Rating } from '@/components/ui/rating';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
+import { PageHeader } from '@/components/ui/page-header';
 
 const TONE: Record<string, 'success' | 'warning' | 'destructive'> = {
   verified: 'success', pending: 'warning', rejected: 'destructive',
@@ -70,8 +71,8 @@ export default function AdminHostsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="display text-display-sm">Host management</h1>
-      <div className="flex gap-2">
+      <PageHeader eyebrow="People & cars" title="Hosts" description="People and businesses who list cars. A host must be verified before their cars can be booked." />
+      <div className="flex flex-wrap gap-2">
         {['', 'pending', 'verified', 'rejected'].map((s) => (
           <Chip key={s || 'all'} active={status === s} onClick={() => setStatus(s)} className="capitalize">{s || 'All'}</Chip>
         ))}

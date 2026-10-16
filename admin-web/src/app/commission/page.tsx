@@ -156,7 +156,7 @@ export default function AdminCommissionPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Revenue"
+        eyebrow="Money in"
         title="Commission"
         description="What the platform takes, and when. The most specific active rule wins: host → tier → category → default."
         actions={

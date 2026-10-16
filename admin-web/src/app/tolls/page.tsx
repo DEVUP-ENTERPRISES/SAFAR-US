@@ -245,7 +245,7 @@ export default function TollsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Supply"
+        eyebrow="People & cars"
         title="Tolls"
         description="Toll charges from your NTTA accounts are matched to the trip they happened on and charged to that guest once the trip has finished."
       />

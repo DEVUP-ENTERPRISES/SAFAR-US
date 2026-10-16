@@ -35,7 +35,8 @@ export default function AiUsagePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="AI usage" description="What each AI feature costs, and whether it is working." />
+      <PageHeader eyebrow="Control"
+        title="AI usage" description="What each AI feature costs, and whether it is working." />
 
       <div className="flex gap-2">
         {[1, 7, 30].map((d) => (

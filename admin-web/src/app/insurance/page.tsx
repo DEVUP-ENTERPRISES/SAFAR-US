@@ -87,8 +87,8 @@ export default function InsurancePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Supply"
-        title="Insurance"
+        eyebrow="People & cars"
+        title="Fleet cover"
         description="Each car’s insurance as Wheelbase reports it. Checked every 6 hours; if Wheelbase can’t be reached, cars keep their last known status."
       />
 

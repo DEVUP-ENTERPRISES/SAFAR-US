@@ -94,7 +94,7 @@ export default function AdminCorporatePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Business"
+        eyebrow="Money out"
         title="Corporate accounts"
         description="Company workspaces, their members, and what they spend on the platform."
       />

@@ -64,7 +64,8 @@ export default function ViolationsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Citations" description="Tickets and tolls from trips, charged through at cost or waived." />
+      <PageHeader eyebrow="Help & safety"
+        title="Traffic tickets" description="Tickets and tolls from trips, charged through at cost or waived." />
 
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
 

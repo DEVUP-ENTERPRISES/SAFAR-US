@@ -61,8 +61,9 @@ export default function TaxPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Money in"
         title="Rental tax"
-        description="Per-jurisdiction tax. These rules stack — a booking pays every rule that matches it."
+        description="Taxes added to each rental, by state, city or airport. When several match one booking, the guest pays all of them."
       />
 
       <div className="flex justify-end">

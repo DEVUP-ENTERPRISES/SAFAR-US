@@ -20,7 +20,7 @@ export default function AdminReferralsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Revenue" title="Referrals" description="Set what Refer a friend pays out, and see how many referrals turn into trips." />
+      <PageHeader eyebrow="Money in" title="Referrals" description="Set what Refer a friend pays out, and see how many referrals turn into trips." />
 
       {config.data ? <ReferralRewards cfg={config.data} /> : <Skeleton className="h-56 w-full rounded-2xl" />}
 

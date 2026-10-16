@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
+import { PageHeader } from '@/components/ui/page-header';
 
 const STATUS_TONE: Record<string, 'success' | 'warning' | 'destructive' | 'muted'> = {
   active: 'success', suspended: 'warning', banned: 'destructive',
@@ -106,10 +107,10 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="display text-display-sm">User management</h1>
+      <PageHeader eyebrow="People & cars" title="Users" description="Every account on CatoDrive. Search for someone, then suspend or ban them if needed." />
       <div className="flex flex-wrap items-center gap-3">
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name / email / phone…" className="max-w-xs" />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {['', 'active', 'suspended', 'banned'].map((s) => (
             <Chip key={s || 'all'} active={status === s} onClick={() => setStatus(s)} className="capitalize">{s || 'All'}</Chip>
           ))}

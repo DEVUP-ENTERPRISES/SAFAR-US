@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { Chip } from '@/components/ui/chip';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
@@ -42,13 +43,12 @@ export default function FailuresPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="display text-display-sm">Failed attempts</h1>
-          <p className="text-sm text-muted-foreground">Bookings, payments and identity checks that did not go through, and every server error. Refreshes every 30 seconds.</p>
-        </div>
-        <Button size="sm" variant="outline" loading={q.isFetching} onClick={() => q.refetch()}><RefreshCw className="h-4 w-4" /> Refresh</Button>
-      </div>
+      <PageHeader
+        eyebrow="Help & safety"
+        title="Failed actions"
+        description="Bookings, payments and ID checks that didn’t go through, and every server error. Refreshes every 30 seconds."
+        actions={<Button size="sm" variant="outline" loading={q.isFetching} onClick={() => q.refetch()}><RefreshCw className="h-4 w-4" /> Refresh</Button>}
+      />
 
       <div className="flex flex-wrap gap-2">
         {AREAS.map((a) => <Chip key={a.v || 'all'} active={area === a.v} onClick={() => setArea(a.v)}>{a.l}</Chip>)}

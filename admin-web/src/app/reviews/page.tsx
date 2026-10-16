@@ -95,7 +95,7 @@ export default function AdminReviewsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Operations"
+        eyebrow="Help & safety"
         title="Reviews"
         description="Moderate guest and host reviews. Hiding removes a review from listings and rating averages."
       />

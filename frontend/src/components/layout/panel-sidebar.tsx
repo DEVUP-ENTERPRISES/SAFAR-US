@@ -1,8 +1,9 @@
 'use client';
 
-import { type ComponentType } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { LayoutGrid, X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 export interface PanelNavItem {
@@ -161,7 +162,21 @@ export function PanelSidebar({
    * silently dropped a real page (Documents) off the partner nav even though
    * nothing about the layout required stopping at 5.
    */
-  const mobileItems = items.filter((i) => i.mobile !== false).slice(0, 6);
+  const phoneItems = items.filter((i) => i.mobile !== false);
+  // More than six pages: show five and a More button, so no page is out of reach on a phone.
+  const overflow = phoneItems.length > 6;
+  const mobileItems = overflow ? phoneItems.slice(0, 5) : phoneItems;
+  const [moreOpen, setMoreOpen] = useState(false);
+  const isActive = (n: PanelNavItem) =>
+    exactPaths.includes(n.path) ? pathname === n.path : pathname === n.path || pathname.startsWith(`${n.path}/`);
+  const moreActive = overflow && !mobileItems.some(isActive) && items.some(isActive);
+  useEffect(() => setMoreOpen(false), [pathname]);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMoreOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [moreOpen]);
 
   const mobileNav = (
     /*
@@ -188,9 +203,7 @@ export function PanelSidebar({
     <nav className="glass fixed inset-x-0 bottom-0 z-50 flex h-16 items-stretch border-t border-border/60 pb-safe md:hidden">
       {mobileItems.map((n) => {
         const NavIcon = icons[n.slug] ?? FallbackIcon;
-        const active = exactPaths.includes(n.path)
-          ? pathname === n.path
-          : pathname === n.path || pathname.startsWith(`${n.path}/`);
+        const active = isActive(n);
 
         return (
           <Link
@@ -253,13 +266,65 @@ export function PanelSidebar({
           </Link>
         );
       })}
+      {overflow && (
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={moreOpen}
+          className={cn('relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 transition-colors', moreActive ? 'text-primary' : 'text-muted-foreground/70 hover:text-foreground')}
+        >
+          <LayoutGrid className="h-[1.4rem] w-[1.4rem]" />
+          <span className="w-full truncate text-center text-[10px] font-semibold tracking-tight">More</span>
+          {moreActive && <span className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-primary" />}
+        </button>
+      )}
     </nav>
+  );
+
+  const moreSheet = overflow && moreOpen && (
+    <div className="fixed inset-0 z-[60] md:hidden" role="dialog" aria-modal="true" aria-label={`${title} menu`}>
+      <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/50" onClick={() => setMoreOpen(false)} />
+      <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-border bg-background pb-safe">
+        <div className="sticky top-0 flex items-center justify-between border-b border-border bg-background px-5 py-4">
+          <p className="text-base font-bold">{title}</p>
+          <button type="button" onClick={() => setMoreOpen(false)} aria-label="Close menu" className="grid h-9 w-9 place-items-center rounded-full hover:bg-accent">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="space-y-5 px-3 py-4">
+          {groups.map((g) => (
+            <div key={g.name}>
+              <p className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{g.name}</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {g.items.map((n) => {
+                  const NavIcon = icons[n.slug] ?? FallbackIcon;
+                  const active = isActive(n);
+                  return (
+                    <Link
+                      key={n.slug}
+                      href={n.path}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn('flex min-w-0 items-center gap-2.5 rounded-xl px-3 py-3 text-sm font-medium', active ? 'bg-primary/10 text-primary' : 'hover:bg-accent')}
+                    >
+                      <NavIcon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{n.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 
   return (
     <>
       {desktopSidebar}
       {showMobileNav && mobileNav}
+      {showMobileNav && moreSheet}
     </>
   );
 }

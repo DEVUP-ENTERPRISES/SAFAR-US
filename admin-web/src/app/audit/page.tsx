@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi } from '@/features/admin/api';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function AdminAuditPage() {
   const [actor, setActor] = useState(() => (typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('actor') ?? ''));
@@ -23,8 +24,7 @@ export default function AdminAuditPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="display text-display-sm">Audit logs</h1>
-      <p className="text-sm text-muted-foreground">Immutable record of what each staff member changed. Passwords and codes are never stored.</p>
+      <PageHeader eyebrow="Control" title="Audit log" description="What each staff member changed and when. Passwords and codes are never recorded." />
       <Select wrapperClassName="max-w-xs" value={actor} onChange={(e) => setActor(e.target.value)}>
         <option value="">All staff</option>
         {staff.data?.map((u) => <option key={u._id} value={u._id}>{[u.firstName, u.lastName].filter(Boolean).join(' ') || u.email}</option>)}

@@ -13,6 +13,7 @@ import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { formatMoney } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
+import { PageHeader } from '@/components/ui/page-header';
 
 /** A rating the car really earned elsewhere (e.g. Turo). Shown to guests with its source, never mixed into CatoDrive's own rating. */
 function ExternalRatingCell({ v }: { v: any }) {
@@ -115,8 +116,8 @@ export default function AdminVehiclesPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="display text-display-sm">Vehicle management</h1>
-      <div className="flex gap-2">
+      <PageHeader eyebrow="People & cars" title="Vehicles" description="Every listed car. Check its photos and documents, then verify or reject it." />
+      <div className="flex flex-wrap gap-2">
         {['', 'pending', 'verified', 'rejected'].map((s) => (
           <Chip key={s || 'all'} active={verification === s} onClick={() => setVerification(s)} className="capitalize">{s || 'All'}</Chip>
         ))}

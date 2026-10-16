@@ -97,9 +97,9 @@ export default function AdminPayoutsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Business"
-        title="Payouts"
-        description="What the platform owes hosts and what it has already released."
+        eyebrow="Money out"
+        title="Host payouts"
+        description="What CatoDrive owes hosts for finished trips, and what has already been paid out to them."
         actions={
           <Button loading={runDue.isPending} onClick={doRun} disabled={!data?.totals.scheduled}>
             <Play className="h-4 w-4" /> Run due payouts

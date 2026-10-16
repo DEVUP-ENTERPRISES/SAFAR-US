@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Chip } from '@/components/ui/chip';
 import { Input } from '@/components/ui/input';
@@ -121,10 +122,12 @@ export default function AdminKbPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="display text-display-sm">Knowledge base</h1>
-        <Button onClick={() => { setComposing((v) => !v); setEditingId(null); setDraft({ title: '', summary: '', category: 'general', body: '' }); }}>{composing ? 'Cancel' : 'New article'}</Button>
-      </div>
+      <PageHeader
+        eyebrow="Help & safety"
+        title="Help articles"
+        description="The articles guests and hosts read in the help centre. Write and publish them, and see which ones help."
+        actions={<Button onClick={() => { setComposing((v) => !v); setEditingId(null); setDraft({ title: '', summary: '', category: 'general', body: '' }); }}>{composing ? 'Cancel' : 'New article'}</Button>}
+      />
 
       {/* Health — what's live, what's read, and what readers dislike. */}
       {stats.data && (

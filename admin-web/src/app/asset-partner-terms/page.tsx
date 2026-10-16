@@ -84,9 +84,9 @@ export default function AdminAssetPartnerTermsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Asset Partners"
-        title="Programme terms"
-        description="The partner agreement's figures. These drive every monthly statement — they are not commission rules and never touch host payouts."
+        eyebrow="Money out"
+        title="Partner terms"
+        description="The numbers in the Asset Partner agreement. Every partner’s monthly statement is worked out from these; they don’t affect hosts."
         actions={
           <Button disabled={!dirty} loading={save.isPending} onClick={commit}>
             <Save className="h-4 w-4" /> {dirty ? 'Apply changes' : 'No changes'}

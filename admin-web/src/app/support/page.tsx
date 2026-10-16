@@ -15,6 +15,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { StatTile } from '@/components/ui/stat-tile';
 import { AlertTriangle, Clock, CheckCircle2 as OnTrack } from 'lucide-react';
 import { adminApi } from '@/features/admin/api';
+import { PageHeader } from '@/components/ui/page-header';
 
 const PRIORITY_TONE: Record<string, 'destructive' | 'warning' | 'muted' | 'default'> = {
   urgent: 'destructive', high: 'warning', normal: 'default', low: 'muted',
@@ -69,7 +70,7 @@ export default function AdminSupportPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="display text-display-sm">Support</h1>
+      <PageHeader eyebrow="Help & safety" title="Support tickets" description="Questions and problems from guests and hosts, and how fast they are being answered." />
 
       {/* SLA health — a breached queue should be impossible to miss. */}
       {sla.data && (

@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/toast';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi, type Coupon } from '@/features/admin/api';
+import { PageHeader } from '@/components/ui/page-header';
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 // End dates are stored as the end of that day in Hawaii, the last US zone to finish it.
@@ -163,10 +164,8 @@ export default function AdminCouponsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="display text-display-sm">Promo codes</h1>
-        <Button onClick={() => setComposing((v) => !v)}>{composing ? 'Cancel' : 'New code'}</Button>
-      </div>
+      <PageHeader eyebrow="Money in" title="Promo codes" description="Discount codes guests enter at checkout. Each code has its own amount, limits and dates." actions={<Button onClick={() => setComposing((v) => !v)}>{composing ? 'Cancel' : 'New code'}</Button>} />
+      <p className="rounded-xl bg-primary/5 px-4 py-3 text-sm"><span className="font-semibold">Example:</span> A 10% code with a $20 cap on a $300 trip saves the guest $20, not $30. The discount comes off the trip price, so the host’s earnings and CatoDrive’s commission are both worked out on the lower price.</p>
 
       {composing && (
         <Card>

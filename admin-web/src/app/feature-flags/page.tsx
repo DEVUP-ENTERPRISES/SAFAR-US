@@ -90,7 +90,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Platform"
+        eyebrow="Control"
         title="Feature flags"
         description="Toggle features live for real users — no deploy required. Every change is audited."
         actions={

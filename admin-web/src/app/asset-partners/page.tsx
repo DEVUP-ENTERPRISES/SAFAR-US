@@ -18,7 +18,7 @@ export default function AssetPartnersOverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Asset Partners"
+        eyebrow="Money out"
         title="Asset Partners at a glance"
         description="Reviewing applications, partners and the agreement happens in the CatoDrive operations panel."
       />

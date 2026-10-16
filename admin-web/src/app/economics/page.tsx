@@ -134,7 +134,7 @@ function Economics() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Revenue"
+        eyebrow="Money in"
         title="Platform economics"
         description="The rates and rules the marketplace runs on, grouped by topic. Changes apply on the next quote and are recorded in History."
       />
