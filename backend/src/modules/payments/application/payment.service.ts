@@ -146,7 +146,7 @@ export class PaymentService implements IPaymentContract {
    * came from its card back to the card, and only the wallet-funded part back
    * to the wallet, so the guest is never paid twice.
    */
-  async refundBooking(bookingId: string, amount: Money, reason: string): Promise<void> {
+  async refundBooking(bookingId: string, amount: Money, reason: string): Promise<{ toCard: number; toWallet: number }> {
     const payments = await PaymentModel.find({
       bookingId,
       type: 'booking',
@@ -160,17 +160,21 @@ export class PaymentService implements IPaymentContract {
     }
 
     let remaining = amount.amount;
+    const sent = { toCard: 0, toWallet: 0 };
     for (const payment of payments) {
       const take = Math.min(remaining, refundable(payment));
       if (take <= 0) continue;
-      await this.refundPayment(payment, take, amount.currency, reason);
+      const split = await this.refundPayment(payment, take, amount.currency, reason);
+      sent.toCard += split.card;
+      sent.toWallet += split.wallet;
       remaining -= take;
       if (remaining <= 0) break;
     }
     emit(EVENTS.PAYMENT_REFUNDED, bookingId, { bookingId, amount });
+    return sent;
   }
 
-  private async refundPayment(payment: PaymentDoc, take: number, currency: string, reason: string): Promise<void> {
+  private async refundPayment(payment: PaymentDoc, take: number, currency: string, reason: string): Promise<{ card: number; wallet: number }> {
     /*
      * Claim this refund step atomically before any money moves.
      *
@@ -222,7 +226,8 @@ export class PaymentService implements IPaymentContract {
         { account: Account.platformTax(), direction: 'credit', amount: taxPart },
       ].filter((l) => l.amount > 0) as LedgerLeg[];
       // Wallet money goes back only if this booking's wallet spend really happened.
-      if (walletPart > 0 && (await this.walletWasSpent(payment.bookingId!, payment.userId))) {
+      const walletBack = walletPart > 0 && (await this.walletWasSpent(payment.bookingId!, payment.userId));
+      if (walletBack) {
         legs.push(
           { account: Account.cardFunding(), direction: 'debit', amount: walletPart },
           { account: Account.userWallet(payment.userId), direction: 'credit', amount: walletPart },
@@ -236,6 +241,7 @@ export class PaymentService implements IPaymentContract {
         description: `Refund: ${reason}`,
         legs,
       });
+      return { card: cardPart, wallet: walletBack ? walletPart : 0 };
     } catch (err) {
       // Money did not move — release the claim so the step can be retried; the
       // deterministic keys make a retry safe even if Stripe had partially succeeded.

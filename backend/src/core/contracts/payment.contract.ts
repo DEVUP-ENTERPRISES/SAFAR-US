@@ -31,6 +31,6 @@ export interface ChargeResult {
 export interface IPaymentContract {
   chargeForBooking(input: ChargeBookingInput): Promise<ChargeResult>;
   captureBooking(bookingId: string): Promise<void>;
-  refundBooking(bookingId: string, amount: Money, reason: string): Promise<void>;
+  refundBooking(bookingId: string, amount: Money, reason: string): Promise<{ toCard: number; toWallet: number }>;
   cancelAuthorization(bookingId: string): Promise<void>;
 }

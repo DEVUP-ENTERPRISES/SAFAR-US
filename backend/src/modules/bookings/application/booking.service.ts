@@ -5,7 +5,7 @@ import { PaymentModel, type PaymentDoc } from '../../payments/infrastructure/pay
 import type { AvailabilityDoc } from '../../availability/infrastructure/availability.model';
 import { canTransition, type BookingStatus } from '../domain/booking-status';
 import { lateFeeCents, dayPriceCents } from '../domain/late-fee';
-import { computeRefund, serviceFeeOf } from '../domain/cancellation-policy';
+import { computeRefund, explainRefund, serviceFeeOf, type RefundExplanation } from '../domain/cancellation-policy';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { wheelbaseInsuranceService } from '../../insurance/application/wheelbase-insurance.service';
 import { documentComplianceService } from '../../documents/application/document-compliance.service';
@@ -825,6 +825,8 @@ export class BookingService {
 
     const total = booking.priceBreakdown.total;
     let refund = { amount: 0, currency: total.currency };
+    let explained: RefundExplanation | undefined;
+    let sent = { toCard: 0, toWallet: 0 };
     // Only money actually taken can be kept; a held-but-uncaptured card is released in full.
     const captured = booking.status === 'paid' || booking.status === 'confirmed';
 
@@ -835,11 +837,14 @@ export class BookingService {
         // Host and admin cancellations refund in full — the guest did nothing
         // wrong and is being stranded. Only a guest cancellation is policy-bound.
         const cancelCfg = (await platformConfigService.get()).cancellation;
-        refund = isGuest
-          ? computeRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg, new Date(), serviceFeeOf(booking.priceBreakdown))
-          : { ...total };
+        if (isGuest) {
+          explained = explainRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg, new Date(), serviceFeeOf(booking.priceBreakdown));
+          refund = explained.refund;
+        } else {
+          refund = { ...total };
+        }
         if (refund.amount > 0) {
-          await paymentService.refundBooking(bookingId, refund, reason);
+          sent = (await paymentService.refundBooking(bookingId, refund, reason)) ?? sent;
         }
       } else {
         await paymentService.cancelAuthorization(bookingId);
@@ -872,6 +877,7 @@ export class BookingService {
       cancelledBy: isHost ? 'host' : isGuest ? 'guest' : 'system',
       refund,
       charged: { amount: captured ? Math.max(0, total.amount - refund.amount) : 0, currency: total.currency },
+      ...(captured ? { explained, toCard: sent.toCard, toWallet: sent.toWallet } : {}),
     });
     // A host cancel strands the guest — offer rebooking on a similar free car,
     // and make the cancellation cost the host something.

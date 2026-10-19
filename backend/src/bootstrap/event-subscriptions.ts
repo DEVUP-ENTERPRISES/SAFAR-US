@@ -20,6 +20,8 @@ import { ROLES } from '../shared/constants/rbac';
 import { timezoneForState } from '../shared/utils/us-timezone';
 import { config } from '../config';
 import { wheelbaseInsuranceService } from '../modules/insurance/application/wheelbase-insurance.service';
+import { cancellationNotice } from '../modules/bookings/domain/refund-notice';
+import type { RefundExplanation } from '../modules/bookings/domain/cancellation-policy';
 
 /** Best-effort system note into a booking conversation; never breaks the flow. */
 async function postSystemNote(bookingId: string, body: string): Promise<void> {
@@ -743,20 +745,19 @@ export function registerEventSubscribers(): void {
       bookingId: string; guestId: string; hostId: string; cancelledBy?: string;
       refund: { amount: number; currency?: string };
       charged?: { amount: number; currency?: string };
+      explained?: RefundExplanation; toCard?: number; toWallet?: number;
     };
-    const refunded = p.refund?.amount ?? 0;
-    const charged = p.charged?.amount;
-    const cur = p.refund?.currency ?? p.charged?.currency;
-    const policyUrl = webLink((await platformConfigService.get()).legal.cancellationUrl);
-    const refundLine = refunded > 0 ? ` We're refunding ${formatAmount(refunded, cur)}; it usually reaches your card in 5–10 business days.` : '';
-    const guestBody =
-      charged && charged > 0
-        ? `Your booking was cancelled.${refundLine} We have charged you ${formatAmount(charged, cur)} for this cancellation. Please refer ${policyUrl} for additional information.`
-        : refunded > 0
-          ? `Your booking was cancelled.${refundLine}`
-          : charged === 0 || p.cancelledBy === 'system'
-            ? 'Your booking was cancelled. You haven’t been charged, and any hold on your card has been released.'
-            : 'Your booking was cancelled.';
+    const cancellationUrl = (await platformConfigService.get()).legal.cancellationUrl;
+    const notice = cancellationNotice({
+      cancelledBy: p.cancelledBy,
+      currency: p.refund?.currency ?? p.charged?.currency,
+      refunded: p.refund?.amount ?? 0,
+      kept: p.charged?.amount,
+      explained: p.explained,
+      toCard: p.toCard,
+      toWallet: p.toWallet,
+      policyUrl: cancellationUrl ? webLink(cancellationUrl) : undefined,
+    });
     // A late guest cancel keeps part of the money; the host's share of it is theirs.
     if (p.cancelledBy === 'guest') {
       await payoutService.scheduleRetainedShare(p.bookingId).catch((err) => logger.error({ err, bookingId: p.bookingId }, 'retained share payout failed'));
@@ -768,13 +769,10 @@ export function registerEventSubscribers(): void {
       priority: 'critical',
       deepLink: `/bookings/${p.bookingId}`,
       templateKey: 'booking.cancelled',
-      title: 'Booking cancelled',
-      // Money is in minor units, formatted with its currency.
-      body: guestBody,
+      title: notice.title,
+      body: notice.body,
       data: { bookingId: p.bookingId },
-      facts: charged !== undefined
-        ? [{ label: 'Refunded', value: formatAmount(refunded, cur) }, { label: 'Cancellation charge', value: formatAmount(charged, cur) }]
-        : undefined,
+      facts: notice.facts,
     });
     await notifyHost(
       p.hostId,

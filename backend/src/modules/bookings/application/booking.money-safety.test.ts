@@ -41,6 +41,8 @@ import { availabilityService } from '../../availability/application/availability
 import { createHash } from 'crypto';
 import { toPublicBooking } from './booking.service';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
+import { eventBus } from '../../../shared/events/event-bus';
+import { EVENTS } from '../../../core/events/event-names';
 
 beforeAll(connectTestDb);
 afterAll(disconnectTestDb);
@@ -89,6 +91,24 @@ describe('cancel race', () => {
     const p = await PaymentModel.findOne({ bookingId: 'b1' }).lean();
     expect(p?.refundedAmount).toBe(5_000);
     expect((await BookingModel.findById('b1').lean())?.status).toBe('cancelled_guest');
+  });
+
+  it('tells the guest why they get what they get, and where the money goes', async () => {
+    await seedPaidBooking('b3');
+    const seen: unknown[] = [];
+    eventBus.subscribe(EVENTS.BOOKING_CANCELLED, async (e) => { seen.push(e.payload); });
+
+    await bookingService.cancel(guest, 'b3', 'Plans changed');
+    await new Promise((r) => setImmediate(r));
+
+    expect(seen.at(-1)).toMatchObject({
+      cancelledBy: 'guest',
+      refund: { amount: 5_000 },
+      charged: { amount: 5_000 },
+      explained: { kind: 'partial', policy: 'moderate', partialPct: 50, fullBeforeHours: 48 },
+      toCard: 5_000,
+      toWallet: 0,
+    });
   });
 
   it('rolls the cancellation back when the refund fails', async () => {
