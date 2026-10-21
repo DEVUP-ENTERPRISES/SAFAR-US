@@ -128,7 +128,7 @@ site never slows hosts or partners down. Both share the guest site's code
 |---|---|---|---|---|
 | Guest | `frontend/` | 3000 | `www.yourdomain.com` | everything guests use; corporate (hidden until version 3) |
 | Host | `host-web/` | 3020 | `host.yourdomain.com` | self-serve hosts and their captains |
-| Partner | `partner-web/` | 3010 | `partners.yourdomain.com` | the Asset Partner and insurer portals |
+| Partner | `partner-web/` | 3010 | `partners.yourdomain.com` | the Asset Partner portal: sign-up, application, agreement, dashboard |
 
 Old links like `catodrive.com/host/...` and `catodrive.com/asset-partners/dashboard`
 redirect to the right site.
@@ -160,8 +160,10 @@ Locked down like the admin console:
 - New Vercel project, root `catodrive-asset-ioc/`, domain `housefleet.yourdomain.com`
   (moves here from the host project), same environment variables as the host
   site plus `CATODRIVE_ASSET_IOC_SLUG`. Put Cloudflare Access in front of it.
-- The admin House Fleet sign-in opens the panel, so the admin project needs
-  `NEXT_PUBLIC_CATODRIVE_ASSET_IOC_URL` set to the full panel address **including** the slug.
+- The admin console no longer has a House Fleet sign-in; remove
+  `NEXT_PUBLIC_CATODRIVE_ASSET_IOC_SLUG` and `NEXT_PUBLIC_CATODRIVE_ASSET_IOC_HOST` from the admin project.
+- Asset Partner applications, partners and the partner agreement are managed here (Asset Partners).
+  Publish the agreement before approving the first partner, or approved partners wait at that step.
 
 ### 2.3 Insurance partner portal — secret link for insurance companies
 
