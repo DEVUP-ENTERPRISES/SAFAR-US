@@ -4,6 +4,9 @@ import { assetPartnerApplicationAdminRoutes } from './asset-partner-application.
 import { assetPartnerAdminRoutes } from './asset-partner.admin.routes';
 import { assetPartnerAgreementService, AGREEMENT_PLACEHOLDERS } from '../application/asset-partner-agreement.service';
 import { assetPartnerService, PARTNER_DOCS } from '../application/asset-partner.service';
+import { assetPartnerCarService } from '../application/asset-partner-car.service';
+import { assetPartnerPayoutService } from '../application/asset-partner-payout.service';
+import { assetPartnerIntakeService } from '../application/asset-partner-intake.service';
 import { DocumentModel } from '../../documents/infrastructure/document.model';
 import { storageGateway } from '../../../infrastructure/storage/storage.provider';
 import { notificationService } from '../../notifications/application/notification.service';
@@ -118,5 +121,121 @@ async function partnerDocument(partnerId: string, docId: string) {
   if (!doc) throw new NotFoundError('Document');
   return doc;
 }
+
+/** Puts an approved car on the fleet as a draft listing, tagged to its partner. */
+router.post(
+  '/asset-partner-applications/:id/listing',
+  authorize('host:manage'),
+  validate({
+    body: z.object({
+      address: z.string().trim().max(300).optional(),
+      transmission: z.enum(['manual', 'automatic']).optional(),
+      fuelType: z.enum(['petrol', 'diesel', 'hybrid', 'ev']).optional(),
+      seats: z.number().int().min(1).max(15).optional(),
+      bodyType: z.string().trim().max(40).optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerCarService.createListing(req.params.id, req.principal!.userId, req.body));
+  }),
+);
+
+/** Every partner's net for a finished month, and whether it was paid. */
+router.get(
+  '/asset-partner-payouts',
+  authorize('admin:read'),
+  validate({ query: z.object({ period: z.string().regex(/^\d{4}-\d{2}$/) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerPayoutService.month(String(req.query.period)));
+  }),
+);
+
+router.post(
+  '/asset-partner-payouts',
+  authorize('host:manage'),
+  validate({
+    body: z.object({
+      partnerId: z.string(),
+      period: z.string().regex(/^\d{4}-\d{2}$/),
+      amount: z.number().int().min(1),
+      method: z.enum(['zelle', 'check']),
+      reference: z.string().trim().min(2).max(120),
+      note: z.string().trim().max(500).optional(),
+      paidAt: z.coerce.date().optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendCreated(res, await assetPartnerPayoutService.record(req.principal!.userId, req.body));
+  }),
+);
+
+/** Undo a payout recorded by mistake. */
+router.delete(
+  '/asset-partner-payouts/:payoutId',
+  authorize('host:manage'),
+  asyncHandler(async (req, res) => {
+    await assetPartnerPayoutService.remove(req.params.payoutId);
+    sendSuccess(res, { removed: true });
+  }),
+);
+
+router.get(
+  '/asset-partners/:id/intakes',
+  authorize('admin:read'),
+  asyncHandler(async (req, res) => {
+    const partner = await assetPartnerService.getById(req.params.id);
+    sendSuccess(res, await assetPartnerIntakeService.list(partner._id));
+  }),
+);
+
+router.get(
+  '/asset-partners/:id/intakes/draft',
+  authorize('admin:read'),
+  asyncHandler(async (req, res) => {
+    const partner = await assetPartnerService.getById(req.params.id);
+    sendSuccess(res, await assetPartnerIntakeService.draftFor(partner._id, req.query.applicationId ? String(req.query.applicationId) : undefined));
+  }),
+);
+
+/** CatoDrive records and signs the Exhibit A intake report; the partner is asked to review it. */
+router.post(
+  '/asset-partners/:id/intakes',
+  authorize('host:manage'),
+  validate({ body: z.object({
+    applicationId: z.string().optional(),
+    vehicleId: z.string().optional(),
+    vehicle: z.object({
+      year: z.string().trim().regex(/^\d{4}$/), make: z.string().trim().min(1).max(60), model: z.string().trim().min(1).max(60),
+      trim: z.string().trim().max(60).optional(), color: z.string().trim().max(40).optional(),
+      vin: z.string().trim().length(17), plate: z.string().trim().min(2).max(20),
+    }),
+    odometer: z.number().int().min(0).max(1_000_000),
+    estimatedMarketValue: z.string().trim().max(40).optional(),
+    listingUrl: z.string().trim().url().max(300).optional(),
+    intakeDate: z.coerce.date(),
+    location: z.string().trim().min(3).max(200),
+    fuelLevel: z.enum(['full', 'three_quarters', 'half', 'quarter']),
+    preExistingDamage: z.string().trim().min(1).max(2000),
+    conditionNotes: z.string().trim().max(2000).optional(),
+    photos: z.array(z.object({ url: z.string().url(), key: z.string().optional(), label: z.string().max(40).optional() })).max(40).optional(),
+    signedName: z.string().trim().min(2).max(120),
+    signedTitle: z.string().trim().min(2).max(120),
+  }) }),
+  asyncHandler(async (req, res) => {
+    sendCreated(res, await assetPartnerIntakeService.create(req.params.id, req.principal!.userId, req.body));
+  }),
+);
+
+router.get(
+  '/asset-partners/:id/intakes/:intakeId/pdf',
+  authorize('admin:read'),
+  asyncHandler(async (req, res) => {
+    const { pdf, filename } = await assetPartnerIntakeService.pdf(req.params.id, req.params.intakeId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(pdf);
+  }),
+);
 
 export const assetPartnerIocRoutes = router;

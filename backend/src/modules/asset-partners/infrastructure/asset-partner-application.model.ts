@@ -36,6 +36,8 @@ export interface AssetPartnerApplicationDoc {
   kind: ApplicationKind;
   /** Set on a vehicle application: the partner offering the car. */
   partnerId?: string;
+  /** The draft listing created for this car once it was approved. */
+  vehicleId?: string;
 
   // Step 1 — Partner information
   fullName: string;
@@ -121,6 +123,7 @@ const schema = new Schema<AssetPartnerApplicationDoc>(
     status: { type: String, default: 'submitted', enum: ['submitted', 'under_review', 'changes_requested', 'approved', 'rejected'] },
     kind: { type: String, default: 'partner', enum: ['partner', 'vehicle'] },
     partnerId: String,
+    vehicleId: String,
 
     fullName: { type: String, required: true },
     businessName: String,

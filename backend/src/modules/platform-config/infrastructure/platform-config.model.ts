@@ -90,6 +90,8 @@ export interface PlatformConfigDoc {
     /** Partner payouts run monthly on this day. */
     payoutDayOfMonth: number;
     payoutMethod: 'check' | 'zelle';
+    /** Business days a partner has to object to an intake report before it stands as written. */
+    intakeObjectionDays: number;
   };
   /**
    * The platform's service fee, charged to the GUEST on top of the trip.
@@ -682,6 +684,7 @@ const schema = new Schema<PlatformConfigDoc>(
       maintenanceApprovalCents: { type: Number, default: 50_000 }, // above $500 → ask
       payoutDayOfMonth: { type: Number, default: 5 }, // "on the 5th"
       payoutMethod: { type: String, default: 'check', enum: ['check', 'zelle'] },
+      intakeObjectionDays: { type: Number, default: 3 },
     },
     serviceFee: {
       bps: { type: Number, default: 0 }, // off until an admin sets it

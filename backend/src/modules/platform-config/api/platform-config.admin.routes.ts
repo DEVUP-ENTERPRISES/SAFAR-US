@@ -104,6 +104,7 @@ router.put(
           maintenanceApprovalCents: z.number().int().min(0).optional(),
           payoutDayOfMonth: z.number().int().min(1).max(28).optional(),
           payoutMethod: z.enum(['check', 'zelle']).optional(),
+          intakeObjectionDays: z.number().int().min(1).max(30).optional(),
         })
         .optional(),
       // Charged to the guest on top; commission above comes out of host pay.

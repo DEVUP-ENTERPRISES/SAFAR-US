@@ -170,7 +170,7 @@ export class AssetPartnerAgreementService {
     if (!source) throw new NotFoundError('Signed document');
     const fields = Object.fromEntries(Object.entries(sig.fields ?? {}));
     const text = renderAgreement(source.body, fields);
-    const pdf = await buildPdf(source.title, text, [
+    const pdf = await buildTextPdf(source.title, text, [
       `Signed electronically by ${sig.signedName} on ${new Date(sig.signedAt).toUTCString()}${sig.ip ? ` from ${sig.ip}` : ''}.`,
       `Document version ${sig.version}. Fingerprint of the signed text (SHA-256): ${hashOf(text)}`,
       'Electronic signatures are valid and binding under the E-SIGN Act and Texas law.',
@@ -201,7 +201,7 @@ function drawable(font: PDFFont, text: string, cache: Map<string, string>): stri
   return out;
 }
 
-async function buildPdf(title: string, body: string, footer: string[]): Promise<Buffer> {
+export async function buildTextPdf(title: string, body: string, footer: string[]): Promise<Buffer> {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);

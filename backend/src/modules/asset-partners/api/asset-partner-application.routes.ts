@@ -5,6 +5,7 @@ import { assetPartnerService } from '../application/asset-partner.service';
 import { assetPartnerPortalService } from '../application/asset-partner-portal.service';
 import { assetPartnerMaintenanceService } from '../application/asset-partner-maintenance.service';
 import { assetPartnerAgreementService } from '../application/asset-partner-agreement.service';
+import { assetPartnerIntakeService } from '../application/asset-partner-intake.service';
 import { createApplicationSchema, portalApplicationSchema, signAgreementSchema } from '../dto/asset-partner-application.schemas';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate, authenticateOptional } from '../../../shared/middleware/authenticate';
@@ -87,6 +88,47 @@ router.post(
       })
       .catch(() => undefined);
     sendSuccess(res, { agreement: signed.agreement, nda: signed.nda });
+  }),
+);
+
+/** Intake reports CatoDrive recorded for the partner's cars. */
+router.get(
+  '/asset-partners/me/intakes',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const partner = await assetPartnerService.getByUserId(req.principal!.userId);
+    sendSuccess(res, partner ? await assetPartnerIntakeService.list(partner._id) : []);
+  }),
+);
+
+/** The partner agrees with an intake report, or objects to it in writing. */
+router.post(
+  '/asset-partners/me/intakes/:id/respond',
+  authenticate,
+  validate({
+    body: z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('acknowledged'), signedName: z.string().trim().min(2).max(120) }),
+      z.object({ kind: z.literal('objected'), objection: z.string().trim().min(10).max(2000) }),
+    ]),
+  }),
+  asyncHandler(async (req, res) => {
+    const partner = await assetPartnerService.getByUserId(req.principal!.userId);
+    if (!partner) throw new ForbiddenError('Not an Asset Partner');
+    sendSuccess(res, await assetPartnerIntakeService.respond(partner, req.params.id, req.body, req.ip));
+  }),
+);
+
+router.get(
+  '/asset-partners/me/intakes/:id/pdf',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const partner = await assetPartnerService.getByUserId(req.principal!.userId);
+    if (!partner) throw new ForbiddenError('Not an Asset Partner');
+    const { pdf, filename } = await assetPartnerIntakeService.pdf(partner._id, req.params.id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(pdf);
   }),
 );
 

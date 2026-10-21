@@ -164,6 +164,7 @@ export class PlatformConfigService {
         maintenanceApprovalCents: 50_000,
         payoutDayOfMonth: 5,
         payoutMethod: 'check' as const,
+        intakeObjectionDays: 3,
         ...(doc.assetPartner ?? {}),
       },
       serviceFee: { bps: 0, maxCents: 0, flatCents: 250, ...(doc.serviceFee ?? {}) },

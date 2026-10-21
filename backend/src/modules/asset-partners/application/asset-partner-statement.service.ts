@@ -2,6 +2,7 @@ import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { assetPartnerService, type ResolvedPartnerTerms } from './asset-partner.service';
 import type { AssetPartnerDoc } from '../infrastructure/asset-partner.model';
+import { AssetPartnerPayoutModel } from '../infrastructure/asset-partner-payout.model';
 
 /**
  * What an Asset Partner is actually owed, worked out the way the published
@@ -56,6 +57,8 @@ export interface PartnerStatement {
   payoutMethod: string;
   /** False while the month is still running — the figures can still move. */
   final: boolean;
+  /** Set once CatoDrive has recorded sending this month's money. */
+  paid?: { amount: number; method: string; reference: string; paidAt: Date };
 }
 
 /** Inclusive-start, exclusive-end bounds for a 'YYYY-MM' period. */
@@ -132,6 +135,7 @@ export class AssetPartnerStatementService {
     // Paid on the configured day of the month AFTER the month being reported.
     const [y, m] = period.split('-').map(Number);
     const payoutDate = new Date(Date.UTC(y, m, terms.payoutDayOfMonth));
+    const paid = await AssetPartnerPayoutModel.findOne({ partnerId: partner._id, period }).select('amount method reference paidAt').lean<{ amount: number; method: string; reference: string; paidAt: Date }>();
 
     return {
       period,
@@ -149,6 +153,7 @@ export class AssetPartnerStatementService {
       payoutDate,
       payoutMethod: terms.payoutMethod,
       final: period !== currentPeriod(),
+      ...(paid ? { paid: { amount: paid.amount, method: paid.method, reference: paid.reference, paidAt: paid.paidAt } } : {}),
     };
   }
 
