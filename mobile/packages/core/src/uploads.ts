@@ -4,7 +4,7 @@ import * as Crypto from 'expo-crypto';
 import { api } from './web/lib/api/client';
 
 /** Must match the backend storage.gateway UploadCategory list (same list as the website's upload helper). */
-export type UploadCategory = 'vehicle_photo' | 'trip_photo' | 'message' | 'avatar' | 'registration' | 'insurance' | 'kyc' | 'claim' | 'recall_receipt';
+export type UploadCategory = 'vehicle_photo' | 'trip_photo' | 'message' | 'avatar' | 'registration' | 'insurance' | 'kyc' | 'claim' | 'recall_receipt' | 'w9' | 'title';
 
 interface UploadTarget {
   key: string;

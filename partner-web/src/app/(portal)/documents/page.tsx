@@ -17,6 +17,7 @@ import { formatDate, formatDay } from '@/lib/utils/format';
 import { uploadFiles } from '@/features/media/upload';
 import { documentsApi, type PartnerDocument } from '@/features/documents/api';
 import { ApiError } from '@/lib/api/types';
+import { SignedCopies } from '~/components/portal/signed-copies';
 import { DOC_CATEGORY_LABEL, EXPIRY_WARNING_DAYS, PARTNER_DOC_CATEGORIES, daysUntil, type PartnerDocCategory } from '@/features/asset-partners/status';
 
 /**
@@ -97,8 +98,10 @@ export default function PartnerDocumentsPage() {
       <PageHeader
         eyebrow="Asset Partners"
         title="Documents"
-        description="Insurance, registration and title for the cars in your programme."
+        description="Your signed agreements, and the papers for you and your cars."
       />
+
+      <SignedCopies />
 
       {expiring.length > 0 && (
         <Card className="border-warning/40 bg-warning/5">

@@ -223,4 +223,19 @@ export const api = {
   async delete<T>(path: string): Promise<T> {
     return (await raw<T>(path, { method: "DELETE" })).data;
   },
+  /** Fetch a signed-in file (a PDF, say) and hand back its bytes and the server's filename. */
+  async download(path: string): Promise<{ blob: Blob; filename?: string }> {
+    const go = () => {
+      const headers: Record<string, string> = { ...platform.headers() };
+      const token = tokenStore.getAccess();
+      if (token) headers.Authorization = `Bearer ${token}`;
+      return platform.fetch(buildUrl(path), { method: "GET", headers });
+    };
+    let res = await go().catch(() => null);
+    if (res?.status === 401 && (await attemptRefresh()) === "ok") res = await go().catch(() => null);
+    if (!res) throw new ApiError("NETWORK_ERROR", "We couldn't reach CatoDrive right now. Check your connection and try again.", 0);
+    if (!res.ok) throw new ApiError("DOWNLOAD_FAILED", GENERIC_ERROR, res.status);
+    const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1];
+    return { blob: await res.blob(), filename: name };
+  },
 };

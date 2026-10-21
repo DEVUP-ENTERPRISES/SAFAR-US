@@ -50,18 +50,24 @@ export const MAINTENANCE_LABEL: Record<MaintenanceApproval, string> = {
   not_required: 'Routine - no approval needed',
 };
 
-export type PartnerDocCategory = 'insurance' | 'registration';
+export type { PartnerDocCategory } from './api';
+import type { PartnerDocCategory } from './api';
 
 /** What a partner can upload for their cars. */
 export const PARTNER_DOC_CATEGORIES: { value: PartnerDocCategory; label: string }[] = [
-  { value: 'insurance', label: 'Insurance policy' },
-  { value: 'registration', label: 'Registration / title' },
+  { value: 'insurance', label: 'Insurance declarations page' },
+  { value: 'registration', label: 'Registration and inspection' },
+  { value: 'title', label: 'Title or loan papers' },
+  { value: 'w9', label: 'Tax form (W-9 / W-8BEN)' },
+  { value: 'kyc', label: 'Driver’s licence or ID' },
 ];
 
 export const DOC_CATEGORY_LABEL: Record<string, string> = {
-  insurance: 'Insurance policy',
-  registration: 'Registration / title',
-  kyc: 'Identity',
+  insurance: 'Insurance declarations page',
+  registration: 'Registration and inspection',
+  title: 'Title or loan papers',
+  w9: 'Tax form',
+  kyc: 'Driver’s licence or ID',
   claim: 'Claim evidence',
   pollution: 'Emissions',
   fitness: 'Fitness',

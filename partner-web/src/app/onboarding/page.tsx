@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Clock, FileSignature, Mail, XCircle } from 'lucide-react';
+import { Check, Clock, Mail, XCircle } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,13 +19,15 @@ import { ApiError } from '@/lib/api/types';
 import { formatDate } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import { ApplicationForm } from '~/features/onboarding/application-form';
+import { SignDocuments } from '~/features/onboarding/sign-documents';
+import { UploadDocuments } from '~/features/onboarding/upload-documents';
 
 const TRACK: { label: string; stages: OnboardingStage[] }[] = [
   { label: 'Email', stages: ['verify_email'] },
   { label: 'Application', stages: ['apply', 'changes', 'rejected'] },
   { label: 'Review', stages: ['review'] },
   { label: 'Agreement', stages: ['agreement'] },
-  { label: 'Payout', stages: ['payout'] },
+  { label: 'Papers', stages: ['documents', 'payout'] },
 ];
 
 const failMessage = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
@@ -104,54 +106,6 @@ function InReview({ data }: { data: PartnerOnboarding }) {
           <div><dt className="text-xs text-muted-foreground">Car</dt><dd className="font-medium">{app.vehicle.year} {app.vehicle.make} {app.vehicle.model}</dd></div>
           <div><dt className="text-xs text-muted-foreground">Sent</dt><dd className="font-medium">{formatDate(app.createdAt)}</dd></div>
         </dl>
-      </CardContent>
-    </Card>
-  );
-}
-
-function Agreement({ data, onDone }: { data: PartnerOnboarding; onDone: () => void }) {
-  const [name, setName] = useState('');
-  const [accepted, setAccepted] = useState(false);
-  const sign = useMutation({ meta: { silentError: true }, mutationFn: () => assetPartnerApi.signAgreement(data.agreement!.version, name), onSuccess: onDone });
-
-  if (!data.agreement) {
-    return (
-      <Card>
-        <CardContent className="flex items-start gap-3 p-5 sm:p-6">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-success/10 text-success"><Check className="h-5 w-5" /></span>
-          <div>
-            <h2 className="text-lg font-bold">You’re approved</h2>
-            <p className="text-sm text-muted-foreground">Your partner agreement is being prepared. We’ll email you as soon as it’s ready to sign.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardContent className="space-y-5 p-5 sm:p-6">
-        <div className="flex items-start gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><FileSignature className="h-5 w-5" /></span>
-          <div>
-            <h2 className="text-lg font-bold">You’re approved. Sign your agreement</h2>
-            <p className="text-sm text-muted-foreground">Read it through, then sign by typing your full legal name.</p>
-          </div>
-        </div>
-        <article className="max-h-[28rem] overflow-y-auto rounded-2xl border border-border bg-muted/30 p-4 text-sm leading-relaxed sm:p-5" tabIndex={0} aria-label="Agreement text">
-          <h3 className="mb-3 text-base font-bold">{data.agreement.title}</h3>
-          <div className="whitespace-pre-wrap break-words">{data.agreement.body}</div>
-          <p className="mt-4 text-xs text-muted-foreground">Version {data.agreement.version}</p>
-        </article>
-        <Field label="Full legal name" htmlFor="signedName" hint="This is your electronic signature.">
-          <Input id="signedName" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
-        </Field>
-        <label className="flex cursor-pointer gap-3 text-sm">
-          <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-primary" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
-          <span>I have read and agree to the {data.agreement.title}, and I’m signing it electronically.</span>
-        </label>
-        {sign.isError && <p role="alert" className="text-sm text-destructive">{failMessage(sign.error, 'We couldn’t record your signature. Try again.')}</p>}
-        <Button className="w-full sm:w-auto" disabled={!accepted || name.trim().length < 2} loading={sign.isPending} onClick={() => sign.mutate()}>Sign agreement</Button>
       </CardContent>
     </Card>
   );
@@ -236,7 +190,8 @@ function GettingStarted() {
           </CardContent>
         </Card>
       )}
-      {data.stage === 'agreement' && <Agreement data={data} onDone={() => void refresh()} />}
+      {data.stage === 'agreement' && <SignDocuments data={data} onDone={() => void refresh()} />}
+      {data.stage === 'documents' && <UploadDocuments documents={data.documents ?? []} onChange={() => void refresh()} />}
       {data.stage === 'payout' && <Payout method={data.payoutMethod ?? 'check'} onDone={() => void refresh()} />}
     </div>
   );

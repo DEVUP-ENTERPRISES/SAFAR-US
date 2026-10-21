@@ -16,7 +16,9 @@ export type DocumentCategory =
   | 'fitness'
   | 'kyc'
   | 'claim'
-  | 'recall_receipt';
+  | 'recall_receipt'
+  | 'w9'
+  | 'title';
 
 export interface PartnerDocument {
   _id: string;

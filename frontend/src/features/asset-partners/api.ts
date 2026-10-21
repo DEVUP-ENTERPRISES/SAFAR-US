@@ -56,7 +56,40 @@ export type ApplicationStatus = 'submitted' | 'under_review' | 'changes_requeste
 /** From the partner portal the account's own email is used. */
 export type PortalApplicationInput = Omit<CreateAssetPartnerApplicationInput, 'email'>;
 
-export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'agreement' | 'payout' | 'ready';
+export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'agreement' | 'documents' | 'payout' | 'ready';
+
+export interface SignableDocument {
+  version: number;
+  title: string;
+  /** Already carries the partner's details; licence and payout placeholders are filled as they type. */
+  body: string;
+}
+
+export type PartnerDocCategory = 'w9' | 'kyc' | 'title' | 'insurance' | 'registration';
+
+export interface OnboardingDocument {
+  category: PartnerDocCategory;
+  label: string;
+  hint: string;
+  uploaded: boolean;
+  status?: 'pending' | 'verified' | 'rejected';
+}
+
+export type PayoutElection =
+  | { method: 'zelle'; zelleHandle: string; zelleName: string }
+  | { method: 'check'; payableTo: string; mailingAddress: string };
+
+export interface SignDocumentsInput {
+  agreementVersion: number;
+  ndaVersion: number;
+  signedName: string;
+  licenceNumber: string;
+  licenceState: string;
+  payout: PayoutElection;
+  acceptAgreement: true;
+  acceptNda: true;
+  acknowledgeDeductibles: true;
+}
 
 export interface PartnerOnboarding {
   stage: OnboardingStage;
@@ -64,7 +97,10 @@ export interface PartnerOnboarding {
   emailVerified: boolean;
   application?: PartnerApplicationDetail;
   partner?: { displayName: string; status: PartnerStatus };
-  agreement?: { version: number; title: string; body: string } | null;
+  agreement?: SignableDocument | null;
+  nda?: SignableDocument | null;
+  prefill?: Record<string, string>;
+  documents?: OnboardingDocument[];
   payoutMethod?: 'check' | 'zelle';
 }
 
@@ -246,6 +282,8 @@ export interface PartnerMe {
     partnerType: 'individual' | 'business' | 'fleet';
     displayName: string;
     payoutDetails?: PayoutDetails;
+    agreement?: { version: number; signedAt: string };
+    nda?: { version: number; signedAt: string };
   };
   terms: ResolvedPartnerTerms;
 }
@@ -266,7 +304,8 @@ export const assetPartnerApi = {
   onboarding: () => api.get<PartnerOnboarding>('/asset-partners/onboarding'),
   submitApplication: (input: PortalApplicationInput) => api.post<PartnerApplicationDetail>('/asset-partners/me/applications', input),
   resubmitApplication: (id: string, input: PortalApplicationInput) => api.patch<PartnerApplicationDetail>(`/asset-partners/me/applications/${id}`, input),
-  signAgreement: (version: number, signedName: string) => api.post('/asset-partners/me/agreement', { version, signedName, accept: true }),
+  signDocuments: (input: SignDocumentsInput) => api.post('/asset-partners/me/agreement', input),
+  downloadSigned: (kind: 'agreement' | 'nda') => api.download(`/asset-partners/me/signed/${kind}`),
   lookupVin: (vin: string) => api.get<VinLookup>(`/asset-partners/vin/${encodeURIComponent(vin)}`),
 
   // Self-service payout recipient details. NOT terms - see the backend route.
