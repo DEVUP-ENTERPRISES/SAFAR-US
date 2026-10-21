@@ -214,7 +214,7 @@ export default function AdminAssetPartnerTermsPage() {
               />
             </Field>
 
-            <Field label="Payout method" hint="How the monthly net reaches the partner.">
+            <Field label="Default payout method" hint="Partners choose Zelle or check when they sign; this applies only to partners who haven’t.">
               <Select
                 value={ap.payoutMethod}
                 onChange={(e) => set((d) => {
@@ -224,6 +224,18 @@ export default function AdminAssetPartnerTermsPage() {
                 <option value="check">Check</option>
                 <option value="zelle">Zelle</option>
               </Select>
+            </Field>
+
+            <Field label="Days to object to an intake report" hint="Business days a partner has to dispute the condition report (Exhibit A) before it stands as written.">
+              <Input
+                type="number"
+                min="1"
+                max="30"
+                value={String(ap.intakeObjectionDays ?? 3)}
+                onChange={(e) => set((d) => {
+                  d.assetPartner.intakeObjectionDays = Math.min(30, Math.max(1, Number(e.target.value) || 1));
+                })}
+              />
             </Field>
           </CardContent>
         </Card>

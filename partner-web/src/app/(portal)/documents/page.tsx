@@ -18,6 +18,7 @@ import { uploadFiles } from '@/features/media/upload';
 import { documentsApi, type PartnerDocument } from '@/features/documents/api';
 import { ApiError } from '@/lib/api/types';
 import { SignedCopies } from '~/components/portal/signed-copies';
+import { IntakeReports } from '~/components/portal/intake-reports';
 import { DOC_CATEGORY_LABEL, EXPIRY_WARNING_DAYS, PARTNER_DOC_CATEGORIES, daysUntil, type PartnerDocCategory } from '@/features/asset-partners/status';
 
 /**
@@ -102,6 +103,7 @@ export default function PartnerDocumentsPage() {
       />
 
       <SignedCopies />
+      <IntakeReports />
 
       {expiring.length > 0 && (
         <Card className="border-warning/40 bg-warning/5">

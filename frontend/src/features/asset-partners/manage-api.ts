@@ -1,4 +1,5 @@
 import { api } from '@/lib/api/client';
+import type { FuelLevel, IntakeReport } from './api';
 
 type Q = Record<string, string | number | boolean | undefined>;
 export type ReviewDecision = 'approved' | 'changes_requested' | 'rejected';
@@ -10,6 +11,36 @@ export interface ProgrammeSummary {
 }
 
 export type AgreementKind = 'agreement' | 'nda';
+
+export interface PayoutRow {
+  partnerId: string;
+  displayName: string;
+  status: string;
+  net: number;
+  trips: number;
+  cars: number;
+  method: 'zelle' | 'check';
+  sendTo?: string;
+  dueDate: string;
+  paid?: { _id: string; amount: number; method: string; reference: string; paidAt: string; note?: string };
+}
+
+export interface IntakeInput {
+  applicationId?: string;
+  vehicleId?: string;
+  vehicle: { year: string; make: string; model: string; trim?: string; color?: string; vin: string; plate: string };
+  odometer: number;
+  estimatedMarketValue?: string;
+  listingUrl?: string;
+  intakeDate: string;
+  location: string;
+  fuelLevel: FuelLevel;
+  preExistingDamage: string;
+  conditionNotes?: string;
+  photos?: { url: string; key?: string; label?: string }[];
+  signedName: string;
+  signedTitle: string;
+}
 
 export interface AgreementVersion {
   _id: string;
@@ -42,5 +73,15 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     partnerDocuments: (id: string) => api.get<{ checklist: { category: string; label: string; hint: string; uploaded: boolean; status?: string }[]; documents: { _id: string; category: string; createdAt: string; verification?: { status: string; reason?: string } }[] }>(`${base}/asset-partners/${id}/documents`),
     viewDocument: (id: string, docId: string) => api.get<{ url: string }>(`${base}/asset-partners/${id}/documents/${docId}/view`),
     reviewDocument: (id: string, docId: string, decision: 'verified' | 'rejected', reason?: string) => api.post(`${base}/asset-partners/${id}/documents/${docId}/review`, { decision, reason }),
+    createListing: (applicationId: string, input: { address?: string; transmission?: string; fuelType?: string; seats?: number; bodyType?: string }) =>
+      api.post<{ vehicleId: string; created: boolean }>(`${base}/asset-partner-applications/${applicationId}/listing`, input),
+    payouts: (period: string) => api.get<{ period: string; rows: PayoutRow[]; totals: { due: number; paid: number; unpaid: number } }>(`${base}/asset-partner-payouts`, { period }),
+    recordPayout: (input: { partnerId: string; period: string; amount: number; method: 'zelle' | 'check'; reference: string; note?: string; paidAt?: string }) =>
+      api.post(`${base}/asset-partner-payouts`, input),
+    removePayout: (payoutId: string) => api.delete(`${base}/asset-partner-payouts/${payoutId}`),
+    intakes: (id: string) => api.get<IntakeReport[]>(`${base}/asset-partners/${id}/intakes`),
+    intakeDraft: (id: string, applicationId?: string) => api.get<Partial<IntakeInput>>(`${base}/asset-partners/${id}/intakes/draft`, applicationId ? { applicationId } : {}),
+    createIntake: (id: string, input: IntakeInput) => api.post<IntakeReport>(`${base}/asset-partners/${id}/intakes`, input),
+    intakePdf: (id: string, intakeId: string) => api.download(`${base}/asset-partners/${id}/intakes/${intakeId}/pdf`),
   };
 }

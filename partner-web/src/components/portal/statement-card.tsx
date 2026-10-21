@@ -41,8 +41,8 @@ export function StatementCard({
             <FileText className="h-5 w-5 shrink-0 text-primary" />
             <span className="truncate">Statement · {statement.period}</span>
           </span>
-          <Badge tone={statement.final ? 'muted' : 'warning'}>
-            {statement.final ? 'Final' : 'In progress'}
+          <Badge tone={statement.paid ? 'success' : statement.final ? 'muted' : 'warning'}>
+            {statement.paid ? 'Paid' : statement.final ? 'Final' : 'In progress'}
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -71,7 +71,12 @@ export function StatementCard({
         )}
 
         <p className="pt-2 text-xs leading-relaxed text-muted-foreground">
-          Paid {formatDate(statement.payoutDate)} by {statement.payoutMethod}. Insurance and
+          {statement.paid
+            ? `Paid ${money(statement.paid.amount)} on ${formatDate(statement.paid.paidAt)} by ${statement.paid.method === 'zelle' ? 'Zelle' : 'check'} (ref ${statement.paid.reference}).`
+            : t.net <= 0
+              ? 'No payout this month - the monthly costs were more than the earnings.'
+              : `${statement.final ? 'Due' : 'Payable'} ${formatDate(statement.payoutDate)} by ${statement.payoutMethod === 'zelle' ? 'Zelle' : 'check'}.`}{' '}
+          Insurance and
           detailing are charged monthly per vehicle while it is in the programme, whether or not it
           was booked.
         </p>

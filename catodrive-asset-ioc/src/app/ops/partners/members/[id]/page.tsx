@@ -17,6 +17,7 @@ import { useToast } from '@/components/ui/toast';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { partnerManageApi } from '@/features/asset-partners/manage-api';
 import { PartnerPaperwork } from '~/features/partners/partner-paperwork';
+import { IntakeReports } from '~/features/partners/intake-reports';
 
 const manage = partnerManageApi('/ioc');
 
@@ -183,6 +184,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       )}
 
       <PartnerPaperwork partnerId={id} signed={{ agreement: partner.agreement, nda: partner.nda }} />
+
+      <IntakeReports partnerId={id} applications={data.applications ?? []} />
 
       {/* Terms in force — resolved, so this is what the statement uses. */}
       <Card>

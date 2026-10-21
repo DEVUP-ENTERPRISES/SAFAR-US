@@ -61,6 +61,7 @@ export interface PlatformConfig {
     maintenanceApprovalCents: number;
     payoutDayOfMonth: number;
     payoutMethod: 'check' | 'zelle';
+    intakeObjectionDays?: number;
   };
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };
   /** Post-trip charges: the combined ceiling per booking (bps of the booking total) and the guest's dispute window. */

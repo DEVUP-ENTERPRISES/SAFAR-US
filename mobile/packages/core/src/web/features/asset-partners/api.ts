@@ -59,6 +59,32 @@ export type PortalApplicationInput = Omit<CreateAssetPartnerApplicationInput, 'e
 
 export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'agreement' | 'documents' | 'payout' | 'ready';
 
+
+export type FuelLevel = 'full' | 'three_quarters' | 'half' | 'quarter';
+export type IntakeStatus = 'awaiting_partner' | 'acknowledged' | 'objected' | 'deemed_accepted';
+
+export interface IntakeReport {
+  _id: string;
+  partnerId: string;
+  applicationId?: string;
+  vehicleId?: string;
+  vehicle: { year: string; make: string; model: string; trim?: string; color?: string; vin: string; plate: string };
+  odometer: number;
+  estimatedMarketValue?: string;
+  listingUrl?: string;
+  intakeDate: string;
+  location: string;
+  fuelLevel: FuelLevel;
+  preExistingDamage: string;
+  conditionNotes?: string;
+  photos: { url: string; key?: string; label?: string }[];
+  catodriveSignature: { name: string; title: string; signedAt: string };
+  partnerResponse?: { kind: 'acknowledged' | 'objected'; signedName?: string; objection?: string; at: string };
+  status: IntakeStatus;
+  respondBy: string;
+  createdAt: string;
+}
+
 export interface SignableDocument {
   version: number;
   title: string;
@@ -213,6 +239,8 @@ export interface PartnerStatement {
   payoutMethod: string;
   /** False while the month is still running - figures can still move. */
   final: boolean;
+  /** Set once CatoDrive has recorded sending this month's money. */
+  paid?: { amount: number; method: string; reference: string; paidAt: string };
 }
 
 export interface PartnerDashboard {
@@ -307,6 +335,10 @@ export const assetPartnerApi = {
   resubmitApplication: (id: string, input: PortalApplicationInput) => api.patch<PartnerApplicationDetail>(`/asset-partners/me/applications/${id}`, input),
   signDocuments: (input: SignDocumentsInput) => api.post('/asset-partners/me/agreement', input),
   downloadSigned: (kind: 'agreement' | 'nda') => api.download(`/asset-partners/me/signed/${kind}`),
+  intakes: () => api.get<IntakeReport[]>('/asset-partners/me/intakes'),
+  respondIntake: (id: string, body: { kind: 'acknowledged'; signedName: string } | { kind: 'objected'; objection: string }) =>
+    api.post<IntakeReport>(`/asset-partners/me/intakes/${id}/respond`, body),
+  downloadIntake: (id: string) => api.download(`/asset-partners/me/intakes/${id}/pdf`),
   lookupVin: (vin: string) => api.get<VinLookup>(`/asset-partners/vin/${encodeURIComponent(vin)}`),
 
   // Self-service payout recipient details. NOT terms - see the backend route.

@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { partnerManageApi, type ReviewDecision } from '@/features/asset-partners/manage-api';
+import { ListingCard } from '~/features/partners/listing-card';
 import { APPLICATION_STATUS } from '@/features/asset-partners/status';
 import type { ApplicationStatus } from '@/features/asset-partners/api';
 
@@ -21,6 +22,8 @@ interface ApplicationDetail {
   reference: string;
   status: ApplicationStatus;
   kind?: 'partner' | 'vehicle';
+  vehicleId?: string;
+  partnerId?: string;
   fullName: string; businessName?: string; partnerType: string; email: string; phone: string;
   address: string; city: string; state: string; zip: string; referral?: string;
   vehicle: { year: string; make: string; model: string; trim?: string; mileage: number; exteriorColor?: string; interiorColor?: string; vin: string; plate: string };
@@ -101,11 +104,12 @@ export default function ApplicationDetailPage() {
           <CardContent className="flex items-center gap-3 py-4 text-sm">
             <ShieldCheck className="h-5 w-5 shrink-0" />
             {a.kind === 'vehicle'
-              ? 'Approved. Arrange the inspection and list this car under the partner.'
-              : 'Approved. The partner now signs the agreement and adds payout details in their portal.'}
+              ? 'Approved. Inspect the car, record the intake report on the partner’s page, and put it on the fleet below.'
+              : 'Approved. The partner now signs the agreement and uploads their papers in their portal.'}
           </CardContent>
         </Card>
       )}
+      {a.status === 'approved' && <ListingCard applicationId={a._id} vehicleId={a.vehicleId} />}
 
       <Section title="Partner information">
         <Row label="Type" value={a.partnerType} />
