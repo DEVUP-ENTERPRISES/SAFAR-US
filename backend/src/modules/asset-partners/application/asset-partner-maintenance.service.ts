@@ -4,7 +4,7 @@ import { assetPartnerService } from './asset-partner.service';
 import { notificationService } from '../../notifications/application/notification.service';
 import { NotFoundError, ConflictError, ForbiddenError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
-import type { AssetPartnerDoc } from '../infrastructure/asset-partner.model';
+import { AssetPartnerModel, type AssetPartnerDoc } from '../infrastructure/asset-partner.model';
 
 /**
  * Maintenance approval for Asset Partner vehicles.
@@ -86,6 +86,20 @@ export class AssetPartnerMaintenanceService {
     const filter: Record<string, unknown> = { assetPartnerId: partner._id };
     if (opts.approval) filter.approval = opts.approval;
     return MaintenanceModel.find(filter).sort({ scheduledFor: -1 }).lean<MaintenanceDoc[]>();
+  }
+
+  /** Every partner car's repairs for the operations panel, newest first, with the car and owner named. */
+  async listAll(opts: { approval?: MaintenanceDoc['approval'] } = {}): Promise<(MaintenanceDoc & { vehicleLabel: string; partnerName: string })[]> {
+    const filter: Record<string, unknown> = { assetPartnerId: { $exists: true, $ne: null } };
+    if (opts.approval) filter.approval = opts.approval;
+    const recs = await MaintenanceModel.find(filter).sort({ scheduledFor: -1 }).limit(300).lean<MaintenanceDoc[]>();
+    const [cars, partners] = await Promise.all([
+      VehicleModel.find({ _id: { $in: [...new Set(recs.map((r) => r.vehicleId))] } }).select('_id year make model').lean<{ _id: string; year: number; make: string; model: string }[]>(),
+      AssetPartnerModel.find({ _id: { $in: [...new Set(recs.map((r) => r.assetPartnerId!))] } }).select('_id displayName').lean<{ _id: string; displayName: string }[]>(),
+    ]);
+    const car = new Map(cars.map((c) => [c._id, `${c.year} ${c.make} ${c.model}`]));
+    const owner = new Map(partners.map((p) => [p._id, p.displayName]));
+    return recs.map((r) => ({ ...r, vehicleLabel: car.get(r.vehicleId) ?? 'Car', partnerName: owner.get(r.assetPartnerId!) ?? 'Partner' }));
   }
 
   private async getOwned(userId: string, maintenanceId: string): Promise<MaintenanceDoc> {

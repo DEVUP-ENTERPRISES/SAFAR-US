@@ -2,6 +2,8 @@ import { AssetPartnerApplicationModel, type AssetPartnerApplicationDoc } from '.
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { fleetImportService } from '../../vehicles/application/fleet-import.service';
 import { hostService } from '../../hosts/application/host.service';
+import { vehicleService } from '../../vehicles/application/vehicle.service';
+import { assetPartnerService } from './asset-partner.service';
 import { ConflictError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
 
@@ -49,15 +51,44 @@ export const assetPartnerCarService = {
     }
     if (!vehicleId) throw new ValidationError(result?.reason ?? 'We couldn’t create the listing for this VIN');
 
-    const current = await VehicleModel.findById(vehicleId).select('assetPartnerId photos').lean<{ assetPartnerId?: string; photos?: unknown[] }>();
+    const current = await VehicleModel.findById(vehicleId).select('assetPartnerId assetPartnerEndedAt photos').lean<{ assetPartnerId?: string; assetPartnerEndedAt?: Date; photos?: unknown[] }>();
     if (current?.assetPartnerId && current.assetPartnerId !== app.partnerId) throw new ConflictError('This car already belongs to another partner.', 'OTHER_PARTNER');
     const photos = (app.photos ?? []).map((p, i) => ({ url: p.url, key: p.key, isCover: i === 0 }));
     await VehicleModel.updateOne(
       { _id: vehicleId },
-      { $set: { assetPartnerId: app.partnerId, ...(photos.length && !current?.photos?.length ? { photos } : {}) } },
+      {
+        $set: { assetPartnerId: app.partnerId, ...(!current?.assetPartnerId ? { assetPartnerSince: new Date() } : {}), ...(photos.length && !current?.photos?.length ? { photos } : {}) },
+        $unset: { assetPartnerEndedAt: 1 },
+      },
     );
     await AssetPartnerApplicationModel.updateOne({ _id: app._id }, { $set: { vehicleId } });
     logger.info({ applicationId, vehicleId, partnerId: app.partnerId }, 'Asset Partner car added to the fleet');
     return { vehicleId, created: result?.status === 'created' };
+  },
+
+  /** Records who owns a car already on CatoDrive's fleet, for cars that were placed before the portal existed. */
+  async assign(operatorUserId: string, vehicleId: string, partnerId: string): Promise<void> {
+    const host = await hostService.requireHostForUser(operatorUserId);
+    const car = await VehicleModel.findOne({ _id: vehicleId, hostId: host._id, deletedAt: null }).select('assetPartnerId assetPartnerEndedAt').lean<{ assetPartnerId?: string; assetPartnerEndedAt?: Date }>();
+    if (!car) throw new NotFoundError('Car');
+    if (car.assetPartnerId && car.assetPartnerId !== partnerId) throw new ConflictError('This car already belongs to another partner.', 'OTHER_PARTNER');
+    if (car.assetPartnerId === partnerId && !car.assetPartnerEndedAt) return;
+    const partner = await assetPartnerService.getById(partnerId);
+    if (!['onboarding', 'active'].includes(partner.status)) throw new ConflictError('This partner isn’t active, so a car can’t be added to them.', 'PARTNER_NOT_ACTIVE');
+    await VehicleModel.updateOne(
+      { _id: vehicleId },
+      { $set: { assetPartnerId: partnerId, ...(!car.assetPartnerId ? { assetPartnerSince: new Date() } : {}) }, $unset: { assetPartnerEndedAt: 1 } },
+    );
+    logger.info({ vehicleId, partnerId, operatorUserId }, 'Asset Partner car assigned');
+  },
+
+  /** The car goes back to its owner: it comes off the marketplace and stops being charged from next month. */
+  async end(operatorUserId: string, vehicleId: string): Promise<void> {
+    const car = await VehicleModel.findById(vehicleId).select('assetPartnerId assetPartnerEndedAt').lean<{ assetPartnerId?: string; assetPartnerEndedAt?: Date }>();
+    if (!car?.assetPartnerId) throw new ConflictError('This car isn’t a partner car.', 'NOT_PARTNER_VEHICLE');
+    if (car.assetPartnerEndedAt) return;
+    await vehicleService.delist(operatorUserId, vehicleId);
+    await VehicleModel.updateOne({ _id: vehicleId }, { $set: { assetPartnerEndedAt: new Date() } });
+    logger.info({ vehicleId, partnerId: car.assetPartnerId, operatorUserId }, 'Asset Partner car returned to its owner');
   },
 };

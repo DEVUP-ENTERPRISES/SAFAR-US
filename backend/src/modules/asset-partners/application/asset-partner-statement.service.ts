@@ -85,9 +85,11 @@ export class AssetPartnerStatementService {
     const terms = await assetPartnerService.termsFor(partner);
     const { start, end } = monthBounds(period);
 
-    const vehicles = await VehicleModel.find({ assetPartnerId: partner._id })
-      .select('_id year make model trim createdAt')
-      .lean<{ _id: string; year: number; make: string; model: string; trim?: string; createdAt: Date }[]>();
+    const vehicles = (await VehicleModel.find({ assetPartnerId: partner._id })
+      .select('_id year make model trim createdAt assetPartnerSince assetPartnerEndedAt')
+      .lean<{ _id: string; year: number; make: string; model: string; trim?: string; createdAt: Date; assetPartnerSince?: Date; assetPartnerEndedAt?: Date }[]>())
+      // A car counts for a month only if it was in the programme during it.
+      .filter((v) => new Date(v.assetPartnerSince ?? v.createdAt) < end && (!v.assetPartnerEndedAt || new Date(v.assetPartnerEndedAt) >= start));
 
     const revenue = await BookingModel.aggregate<{ _id: string; trips: number; gross: number }>([
       {
@@ -109,9 +111,6 @@ export class AssetPartnerStatementService {
     const byVehicle = new Map(revenue.map((r) => [r._id, r]));
 
     const lines: StatementLine[] = vehicles
-      // A car onboarded after this month ended was not in the programme yet,
-      // so it must not be charged that month's insurance or detailing.
-      .filter((v) => new Date(v.createdAt) < end)
       .map((v) => {
         const r = byVehicle.get(v._id);
         const gross = r?.gross ?? 0;

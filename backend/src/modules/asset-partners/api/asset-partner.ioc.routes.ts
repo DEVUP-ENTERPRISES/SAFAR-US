@@ -7,6 +7,8 @@ import { assetPartnerService, PARTNER_DOCS } from '../application/asset-partner.
 import { assetPartnerCarService } from '../application/asset-partner-car.service';
 import { assetPartnerPayoutService } from '../application/asset-partner-payout.service';
 import { assetPartnerIntakeService } from '../application/asset-partner-intake.service';
+import { assetPartnerPortfolioService } from '../application/asset-partner-portfolio.service';
+import { assetPartnerMaintenanceService } from '../application/asset-partner-maintenance.service';
 import { DocumentModel } from '../../documents/infrastructure/document.model';
 import { storageGateway } from '../../../infrastructure/storage/storage.provider';
 import { notificationService } from '../../notifications/application/notification.service';
@@ -235,6 +237,64 @@ router.get(
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'private, no-store');
     res.send(pdf);
+  }),
+);
+
+const periodQuery = z.object({ period: z.string().regex(/^\d{4}-\d{2}$/).optional() });
+
+router.get(
+  '/asset-management/overview',
+  authorize('admin:read'),
+  validate({ query: periodQuery }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerPortfolioService.overview(req.query.period ? String(req.query.period) : undefined));
+  }),
+);
+
+/** Every partner car with its owner, price, fee and the month's money each side. */
+router.get(
+  '/asset-management/cars',
+  authorize('admin:read'),
+  validate({ query: periodQuery }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerPortfolioService.cars(req.query.period ? String(req.query.period) : undefined));
+  }),
+);
+
+router.get(
+  '/asset-management/unassigned-cars',
+  authorize('admin:read'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerPortfolioService.unassigned(req.principal!.userId));
+  }),
+);
+
+router.post(
+  '/asset-management/cars/:vehicleId/assign',
+  authorize('host:manage'),
+  validate({ body: z.object({ partnerId: z.string().min(1) }) }),
+  asyncHandler(async (req, res) => {
+    await assetPartnerCarService.assign(req.principal!.userId, req.params.vehicleId, req.body.partnerId);
+    sendSuccess(res, { assigned: true });
+  }),
+);
+
+/** The car goes back to its owner. */
+router.post(
+  '/asset-management/cars/:vehicleId/end',
+  authorize('host:manage'),
+  asyncHandler(async (req, res) => {
+    await assetPartnerCarService.end(req.principal!.userId, req.params.vehicleId);
+    sendSuccess(res, { ended: true });
+  }),
+);
+
+router.get(
+  '/asset-partner-repairs',
+  authorize('admin:read'),
+  validate({ query: z.object({ approval: z.enum(['not_required', 'pending', 'approved', 'declined']).optional() }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerMaintenanceService.listAll({ approval: req.query.approval as 'pending' | undefined }));
   }),
 );
 

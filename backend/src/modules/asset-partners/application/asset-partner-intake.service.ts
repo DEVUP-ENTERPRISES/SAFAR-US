@@ -48,7 +48,7 @@ export function intakeStatus(doc: Pick<AssetPartnerIntakeDoc, 'partnerResponse' 
 }
 
 // The objection window is an admin setting (Partner Terms), matching the agreement.
-const objectionDays = async () => (await platformConfigService.get()).assetPartner.intakeObjectionDays ?? 3;
+export const objectionDays = async () => (await platformConfigService.get()).assetPartner.intakeObjectionDays ?? 3;
 const withStatus = (doc: AssetPartnerIntakeDoc, days: number) => ({ ...doc, ...intakeStatus(doc, days) });
 
 export const assetPartnerIntakeService = {
