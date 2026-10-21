@@ -95,6 +95,7 @@ export interface MaintenanceRecord {
   scheduledFor: string;
   status: string;
   notes?: string;
+  approval?: 'not_required' | 'pending' | 'approved' | 'declined';
 }
 
 export interface HostPerformance {
@@ -227,6 +228,7 @@ export const hostApi = {
     type: string;
     scheduledFor: string;
     notes?: string;
+    cost?: number;
   }) => api.post<MaintenanceRecord>('/maintenance', input),
   /** Everything waiting on the host, ordered by what ignoring it costs. */
   inboxActions: () => api.get<HostInbox>('/hosts/inbox/actions'),

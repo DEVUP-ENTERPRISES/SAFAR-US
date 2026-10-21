@@ -270,7 +270,7 @@ export class AssetPartnerService {
     const [apps, partners, vehicles] = await Promise.all([
       AssetPartnerApplicationModel.aggregate<{ _id: string; n: number }>([{ $group: { _id: '$status', n: { $sum: 1 } } }]),
       AssetPartnerModel.aggregate<{ _id: string; n: number }>([{ $group: { _id: '$status', n: { $sum: 1 } } }]),
-      VehicleModel.countDocuments({ assetPartnerId: { $exists: true, $ne: null } }),
+      VehicleModel.countDocuments({ assetPartnerId: { $exists: true, $ne: null }, assetPartnerEndedAt: null, deletedAt: null }),
     ]);
     const count = (rows: { _id: string; n: number }[]) => Object.fromEntries(rows.map((r) => [r._id, r.n]));
     return { applications: count(apps), partners: count(partners), vehicles };

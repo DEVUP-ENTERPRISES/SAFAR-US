@@ -51,6 +51,53 @@ export interface AgreementVersion {
   createdAt: string;
 }
 
+export interface CarMonth { trips: number; gross: number; managementFee: number; insurance: number; detailing: number; net: number }
+
+export interface PortfolioCar {
+  vehicleId: string;
+  label: string;
+  plate?: string;
+  photo?: string;
+  status: string;
+  dailyPrice: number;
+  partnerId: string;
+  partnerName: string;
+  partnerStatus: string;
+  managementFeeBps: number;
+  since?: string;
+  endedAt?: string;
+  pendingRepairs: number;
+  month?: CarMonth;
+}
+
+export interface PortfolioOverview {
+  period: string;
+  cars: { inProgramme: number; listed: number; returned: number };
+  partners: { active: number; onboarding: number };
+  month: { trips: number; gross: number; managementFee: number; insurance: number; detailing: number; partnerNet: number };
+  todo: { repairsAwaitingPartner: number; intakesAwaitingPartner: number; unpaidLastMonth: number; lastMonth: string };
+}
+
+export type RepairApproval = 'not_required' | 'pending' | 'approved' | 'declined';
+export type RepairType = 'service' | 'repair' | 'inspection' | 'cleaning';
+
+export interface PartnerRepair {
+  _id: string;
+  vehicleId: string;
+  vehicleLabel: string;
+  partnerName: string;
+  assetPartnerId: string;
+  type: RepairType;
+  scheduledFor: string;
+  cost?: number;
+  notes?: string;
+  status: 'scheduled' | 'in_progress' | 'completed';
+  approval: RepairApproval;
+  approvalThresholdCents?: number;
+  approvedAt?: string;
+  declineReason?: string;
+}
+
 /** Managing the Asset Partner programme; the operations panel calls it under /ioc, the admin console under /admin. */
 export function partnerManageApi(base: '/ioc' | '/admin') {
   return {
@@ -83,5 +130,13 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     intakeDraft: (id: string, applicationId?: string) => api.get<Partial<IntakeInput>>(`${base}/asset-partners/${id}/intakes/draft`, applicationId ? { applicationId } : {}),
     createIntake: (id: string, input: IntakeInput) => api.post<IntakeReport>(`${base}/asset-partners/${id}/intakes`, input),
     intakePdf: (id: string, intakeId: string) => api.download(`${base}/asset-partners/${id}/intakes/${intakeId}/pdf`),
+    overview: (period?: string) => api.get<PortfolioOverview>(`${base}/asset-management/overview`, period ? { period } : {}),
+    cars: (period?: string) => api.get<PortfolioCar[]>(`${base}/asset-management/cars`, period ? { period } : {}),
+    unassignedCars: () => api.get<{ vehicleId: string; label: string; plate?: string; status: string }[]>(`${base}/asset-management/unassigned-cars`),
+    assignCar: (vehicleId: string, partnerId: string) => api.post(`${base}/asset-management/cars/${vehicleId}/assign`, { partnerId }),
+    returnCar: (vehicleId: string) => api.post(`${base}/asset-management/cars/${vehicleId}/end`, {}),
+    repairs: (approval?: RepairApproval) => api.get<PartnerRepair[]>(`${base}/asset-partner-repairs`, approval ? { approval } : {}),
+    scheduleRepair: (input: { vehicleId: string; type: RepairType; scheduledFor: string; costCents?: number; notes?: string }) =>
+      api.post<PartnerRepair>(`${base}/asset-partners/maintenance`, input),
   };
 }

@@ -127,7 +127,7 @@ export default function AdminAssetPartnersPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Asset Partners"
+        eyebrow="Asset management"
         title="Partners"
         description="Programme members — managed vehicle owners paid a monthly net after the management fee, fleet insurance and detailing."
         actions={

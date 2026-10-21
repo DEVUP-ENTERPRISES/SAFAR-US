@@ -1,104 +1,101 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Car, CheckCircle2, Clock, Users } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Chip } from '@/components/ui/chip';
+import { Banknote, Car, ChevronRight, ClipboardCheck, FileText, Handshake, Percent, Wrench } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/states';
 import { StatTile } from '@/components/ui/stat-tile';
-import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { partnerManageApi } from '@/features/asset-partners/manage-api';
-import { APPLICATION_STATUS } from '@/features/asset-partners/status';
-import type { ApplicationStatus } from '@/features/asset-partners/api';
-import { formatDate } from '@/lib/utils/format';
+import { formatMoney } from '@/lib/utils/format';
 import { PartnersNav } from '~/features/partners/partners-nav';
+import { MonthSelect, monthOptions } from '~/features/partners/month-select';
 
 const manage = partnerManageApi('/ioc');
+const usd = (amount: number) => formatMoney({ amount, currency: 'USD' });
+const monthLabel = (period: string) => new Date(`${period}-15T00:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
-interface Application {
-  _id: string;
-  reference: string;
-  status: ApplicationStatus;
-  kind?: 'partner' | 'vehicle';
-  fullName: string;
-  businessName?: string;
-  email: string;
-  vehicle: { year: string; make: string; model: string };
-  createdAt: string;
+function Line({ label, value, strong, hint }: { label: string; value: string; strong?: boolean; hint?: string }) {
+  return (
+    <div className={strong ? 'flex items-baseline justify-between gap-4 border-t border-border pt-3 font-semibold' : 'flex items-baseline justify-between gap-4'}>
+      <span className="min-w-0">
+        <span className={strong ? '' : 'text-muted-foreground'}>{label}</span>
+        {hint && <span className="block text-xs text-muted-foreground">{hint}</span>}
+      </span>
+      <span className="shrink-0 tabular-nums">{value}</span>
+    </div>
+  );
 }
 
-const STATUSES: { value: ApplicationStatus | ''; label: string }[] = [
-  { value: 'submitted', label: 'New' },
-  { value: 'changes_requested', label: 'Needs changes' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'rejected', label: 'Not approved' },
-  { value: '', label: 'All' },
-];
+function Todo({ href, icon, label, count, done }: { href: string; icon: React.ReactNode; label: string; count: string; done: boolean }) {
+  return (
+    <Link href={href} className="flex items-center gap-3 px-6 py-4 transition-colors hover:bg-accent/40">
+      <span className={done ? 'text-muted-foreground' : 'text-amber-600 dark:text-amber-400'}>{icon}</span>
+      <span className="min-w-0 flex-1 text-sm">{label}</span>
+      <span className={done ? 'text-sm text-muted-foreground' : 'text-sm font-semibold'}>{count}</span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </Link>
+  );
+}
 
-export default function PartnerApplicationsPage() {
-  const [status, setStatus] = useState<ApplicationStatus | ''>('submitted');
-  const [kind, setKind] = useState<'' | 'partner' | 'vehicle'>('');
+export default function AssetOverviewPage() {
+  const months = useMemo(() => monthOptions(12, true), []);
+  const [period, setPeriod] = useState(months[0].value);
+  const q = useQuery({ queryKey: ['ioc-asset-overview', period], queryFn: () => manage.overview(period) });
   const summary = useQuery({ queryKey: ['ioc-partner-summary'], queryFn: () => manage.summary() });
-  const list = useQuery({
-    queryKey: ['ioc-partner-applications', status, kind],
-    queryFn: () => manage.applications({ status: status || undefined, kind: kind || undefined, limit: 50 }) as Promise<Application[]>,
-  });
-  const s = summary.data;
-
-  const columns: Column<Application>[] = [
-    {
-      header: 'Applicant',
-      cell: (a) => (
-        <div className="min-w-0">
-          <p className="font-medium">{a.fullName}</p>
-          <p className="truncate text-xs text-muted-foreground">{a.businessName || a.email}</p>
-        </div>
-      ),
-    },
-    {
-      header: 'Car',
-      cell: (a) => (
-        <div>
-          <p>{a.vehicle.year} {a.vehicle.make} {a.vehicle.model}</p>
-          {a.kind === 'vehicle' && <p className="text-xs text-primary">Extra car from a partner</p>}
-        </div>
-      ),
-    },
-    { header: 'Sent', cell: (a) => <span className="text-xs">{formatDate(a.createdAt)}</span> },
-    { header: 'Status', cell: (a) => <Badge tone={APPLICATION_STATUS[a.status]?.tone ?? 'muted'}>{APPLICATION_STATUS[a.status]?.label ?? a.status}</Badge> },
-    {
-      header: '',
-      className: 'text-end',
-      cell: (a) => <Link href={`/ops/partners/applications/${a._id}`} className="text-sm font-medium text-primary hover:underline">Review →</Link>,
-    },
-  ];
+  const o = q.data;
+  const waiting = (summary.data?.applications.submitted ?? 0) + (summary.data?.applications.under_review ?? 0);
 
   return (
     <div className="space-y-5">
-      <PageHeader eyebrow="Asset Partners" title="Applications" description="New partners and extra cars waiting for a decision. Approving a new partner asks them to sign the agreement before their dashboard opens." />
+      <PageHeader
+        eyebrow="Asset management"
+        title="Overview"
+        description="Partner cars, what they earned, CatoDrive’s fee and what each partner is owed. Every number comes from the partners’ own statements."
+        actions={<MonthSelect months={months} value={period} onChange={setPeriod} />}
+      />
       <PartnersNav />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile tone="warning" icon={<Clock className="h-5 w-5" />} label="Waiting for review" value={(s?.applications.submitted ?? 0) + (s?.applications.under_review ?? 0)} />
-        <StatTile icon={<Users className="h-5 w-5" />} label="Needs changes" value={s?.applications.changes_requested ?? 0} />
-        <StatTile tone="success" icon={<CheckCircle2 className="h-5 w-5" />} label="Active partners" value={s?.partners.active ?? 0} />
-        <StatTile icon={<Car className="h-5 w-5" />} label="Partner cars" value={s?.vehicles ?? 0} />
-      </div>
+      {q.isLoading ? (
+        <Skeleton className="h-96 w-full rounded-2xl" />
+      ) : q.isError || !o ? (
+        <ErrorState message="We couldn’t load the overview." retry={() => q.refetch()} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatTile icon={<Car className="h-5 w-5" />} label="Cars in the programme" value={o.cars.inProgramme} sub={`${o.cars.listed} listed${o.cars.returned ? ` · ${o.cars.returned} returned` : ''}`} href="/ops/partners/cars" />
+            <StatTile icon={<Handshake className="h-5 w-5" />} label="Partners" value={o.partners.active} sub={o.partners.onboarding ? `${o.partners.onboarding} still onboarding` : 'Active'} href="/ops/partners/members" />
+            <StatTile icon={<Banknote className="h-5 w-5" />} label="Bookings on partner cars" value={usd(o.month.gross)} sub={`${o.month.trips} trip${o.month.trips === 1 ? '' : 's'} completed`} />
+            <StatTile tone="success" icon={<Percent className="h-5 w-5" />} label="CatoDrive management fee" value={usd(o.month.managementFee)} sub="Kept from partner bookings" />
+          </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {STATUSES.map((o) => <Chip key={o.label} active={status === o.value} onClick={() => setStatus(o.value)}>{o.label}</Chip>)}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {([['', 'Everything'], ['partner', 'New partners'], ['vehicle', 'Extra cars']] as const).map(([v, label]) => (
-            <Chip key={label} active={kind === v} onClick={() => setKind(v)}>{label}</Chip>
-          ))}
-        </div>
-      </div>
+          <div className="grid gap-5 lg:grid-cols-2">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Where the money went · {monthLabel(o.period)}</CardTitle></CardHeader>
+              <CardContent className="space-y-2.5 text-sm">
+                <Line label="Bookings on partner cars" value={usd(o.month.gross)} hint="Rental, cleaning, extras and delivery. Not the guest service fee or tax." />
+                <Line label="CatoDrive management fee" value={`−${usd(o.month.managementFee)}`} />
+                <Line label="Fleet insurance" value={`−${usd(o.month.insurance)}`} hint="Per car, every month it’s in the programme" />
+                <Line label="Professional detailing" value={`−${usd(o.month.detailing)}`} hint="Per car, every month it’s in the programme" />
+                <Line label="Owed to partners" value={usd(o.month.partnerNet)} strong />
+              </CardContent>
+            </Card>
 
-      <DataTable columns={columns} rows={list.data} isLoading={list.isLoading} emptyTitle="Nothing here" emptyDescription="Applications from the partner portal appear here." />
+            <Card>
+              <CardHeader><CardTitle className="text-base">Needs doing</CardTitle></CardHeader>
+              <CardContent className="divide-y divide-border p-0">
+                <Todo href="/ops/partners/applications" icon={<FileText className="h-5 w-5" />} label="Applications waiting for review" count={String(waiting)} done={!waiting} />
+                <Todo href="/ops/partners/repairs" icon={<Wrench className="h-5 w-5" />} label="Repairs waiting for the owner’s OK" count={String(o.todo.repairsAwaitingPartner)} done={!o.todo.repairsAwaitingPartner} />
+                <Todo href="/ops/partners/members" icon={<ClipboardCheck className="h-5 w-5" />} label="Intake reports waiting for the owner" count={String(o.todo.intakesAwaitingPartner)} done={!o.todo.intakesAwaitingPartner} />
+                <Todo href="/ops/partners/payouts" icon={<Banknote className="h-5 w-5" />} label={`Still to pay for ${monthLabel(o.todo.lastMonth)}`} count={usd(o.todo.unpaidLastMonth)} done={!o.todo.unpaidLastMonth} />
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
     </div>
   );
 }

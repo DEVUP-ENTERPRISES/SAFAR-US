@@ -80,7 +80,7 @@ export default function PartnerAgreementPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader eyebrow="Asset Partners" title="Agreement & NDA" description="Approved partners read and sign both in their portal, with their own details filled in, before their dashboard opens." />
+      <PageHeader eyebrow="Asset management" title="Agreement & NDA" description="Approved partners read and sign both in their portal, with their own details filled in, before their dashboard opens." />
       <PartnersNav />
 
       {q.isLoading ? (

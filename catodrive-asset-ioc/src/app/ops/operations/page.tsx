@@ -56,7 +56,7 @@ function Maintenance() {
   const qc = useQueryClient();
   const vehicles = useMyVehicles(true);
   const list = useQuery({ queryKey: ['maintenance'], queryFn: () => hostApi.maintenance() });
-  const [form, setForm] = useState({ vehicleId: '', type: 'service', scheduledFor: '', notes: '' });
+  const [form, setForm] = useState({ vehicleId: '', type: 'service', scheduledFor: '', notes: '', cost: '' });
 
   const schedule = useMutation({
     mutationFn: () =>
@@ -65,6 +65,7 @@ function Maintenance() {
         type: form.type,
         scheduledFor: new Date(form.scheduledFor).toISOString(),
         notes: form.notes,
+        cost: form.cost ? Math.round(Number(form.cost) * 100) : undefined,
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['maintenance'] }),
   });
@@ -89,6 +90,7 @@ function Maintenance() {
           </Field>
           <Field label="Date"><Input type="date" value={form.scheduledFor} onChange={(e) => setForm({ ...form, scheduledFor: e.target.value })} /></Field>
           <Field label="Notes"><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
+          <Field label="Estimated cost ($)" hint="On a partner car above the owner’s approval line, they’re asked first."><Input type="number" min={0} step="0.01" inputMode="decimal" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} /></Field>
           <div className="sm:col-span-2">
             <Button disabled={!form.vehicleId || !form.scheduledFor} loading={schedule.isPending} onClick={() => schedule.mutate()}>Schedule</Button>
           </div>
@@ -104,7 +106,7 @@ function Maintenance() {
                   <p className="font-medium capitalize">{m.type}</p>
                   <p className="text-sm text-muted-foreground">{formatDay(m.scheduledFor)} · {m.notes}</p>
                 </div>
-                <span className="text-sm capitalize text-muted-foreground">{m.status}</span>
+                <span className="text-sm capitalize text-muted-foreground">{m.approval === 'pending' ? 'Waiting for owner' : m.approval === 'declined' ? 'Owner declined' : m.status}</span>
               </CardContent>
             </Card>
           ))}

@@ -48,7 +48,7 @@ export function HostMobileTabBar() {
     { href: '/ops/trips', label: 'Trips', icon: <CarFront /> },
     { href: '/ops/inbox', label: 'Inbox', icon: <MessageSquare />, count: unread },
     { href: '/ops/listings', label: 'Listings', icon: <ClipboardList /> },
-    { href: '/ops/partners', label: 'Partners', icon: <Handshake /> },
+    { href: '/ops/partners', label: 'Assets', icon: <Handshake /> },
   ];
 
   const isOn = (t: HostTab) =>

@@ -10,7 +10,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
-import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { StatTile } from '@/components/ui/stat-tile';
@@ -20,18 +19,10 @@ import { partnerManageApi, type PayoutRow } from '@/features/asset-partners/mana
 import { ApiError } from '@/lib/api/types';
 import { formatDate, formatMoney } from '@/lib/utils/format';
 import { PartnersNav } from '~/features/partners/partners-nav';
+import { MonthSelect, monthOptions } from '~/features/partners/month-select';
 
 const manage = partnerManageApi('/ioc');
 const usd = (amount: number) => formatMoney({ amount, currency: 'USD' });
-
-function lastMonths(n: number): { value: string; label: string }[] {
-  const now = new Date();
-  return Array.from({ length: n }, (_, i) => {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1 - i, 1));
-    const value = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-    return { value, label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }) };
-  });
-}
 
 function RecordForm({ row, period, onDone }: { row: PayoutRow; period: string; onDone: () => void }) {
   const toast = useToast();
@@ -58,7 +49,7 @@ function RecordForm({ row, period, onDone }: { row: PayoutRow; period: string; o
 }
 
 export default function PartnerPayoutsPage() {
-  const months = useMemo(() => lastMonths(12), []);
+  const months = useMemo(() => monthOptions(12, false), []);
   const [period, setPeriod] = useState(months[0].value);
   const [open, setOpen] = useState<string | null>(null);
   const qc = useQueryClient();
@@ -77,14 +68,10 @@ export default function PartnerPayoutsPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Asset Partners"
+        eyebrow="Asset management"
         title="Payouts"
         description="What each partner earned in a finished month, where to send it, and a record of every payment. Partners are told when you record one."
-        actions={
-          <Select size="sm" wrapperClassName="w-48" value={period} onChange={(e) => { setPeriod(e.target.value); setOpen(null); }} aria-label="Month">
-            {months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-          </Select>
-        }
+        actions={<MonthSelect months={months} value={period} onChange={(v) => { setPeriod(v); setOpen(null); }} />}
       />
       <PartnersNav />
 

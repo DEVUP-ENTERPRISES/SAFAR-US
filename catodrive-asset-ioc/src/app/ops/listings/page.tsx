@@ -14,6 +14,9 @@ import { formatMoney } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import { useMyVehicles } from '@/features/vehicles/hooks';
 import { hostTripsApi } from '~/features/host/trips.api';
+import { partnerManageApi } from '@/features/asset-partners/manage-api';
+
+const manage = partnerManageApi('/ioc');
 
 type TripStatus = '' | 'on_trip' | 'available';
 
@@ -23,10 +26,14 @@ const short = (d: string) =>
 export default function HostListingsPage() {
   const vehicles = useMyVehicles(true);
   const booked = useQuery({ queryKey: ['host-trips', 'booked'], queryFn: () => hostTripsApi.booked() });
+  const partnerCars = useQuery({ queryKey: ['ioc-asset-cars', 'live'], queryFn: () => manage.cars() });
+  const ownerOf = useMemo(() => new Map((partnerCars.data ?? []).filter((c) => !c.endedAt).map((c) => [c.vehicleId, c] as const)), [partnerCars.data]);
+  const owners = useMemo(() => [...new Map([...ownerOf.values()].map((c) => [c.partnerId, c.partnerName])).entries()].sort((a, b) => a[1].localeCompare(b[1])), [ownerOf]);
 
   const [q, setQ] = useState('');
   const [tripStatus, setTripStatus] = useState<TripStatus>('');
   const [listingStatus, setListingStatus] = useState('');
+  const [owner, setOwner] = useState('');
   const [grid, setGrid] = useState(true);
 
   /** Which cars are out on a trip right now, and until when. */
@@ -51,9 +58,13 @@ export default function HostListingsPage() {
       if (tripStatus === 'on_trip' && !onTrip.has(v._id)) return false;
       if (tripStatus === 'available' && onTrip.has(v._id)) return false;
       if (listingStatus && v.status !== listingStatus) return false;
+      const partner = ownerOf.get(v._id);
+      if (owner === 'catodrive' && partner) return false;
+      if (owner === 'partners' && !partner) return false;
+      if (owner && !['catodrive', 'partners'].includes(owner) && partner?.partnerId !== owner) return false;
       return true;
     });
-  }, [vehicles.data, q, tripStatus, listingStatus, onTrip]);
+  }, [vehicles.data, q, tripStatus, listingStatus, onTrip, owner, ownerOf]);
 
   if (vehicles.isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
 
@@ -103,6 +114,19 @@ export default function HostListingsPage() {
           <option value="listed">Listed</option>
           <option value="unlisted">Unlisted</option>
           <option value="draft">Draft</option>
+        </Select>
+        <Select
+          size="sm"
+          wrapperClassName="w-auto"
+          value={owner}
+          onChange={(e) => setOwner(e.target.value)}
+          className="rounded-full bg-card font-medium"
+          aria-label="Owner"
+        >
+          <option value="">Owner</option>
+          <option value="catodrive">CatoDrive’s own</option>
+          <option value="partners">All partner cars</option>
+          {owners.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
         </Select>
 
         <Link
@@ -199,6 +223,7 @@ export default function HostListingsPage() {
                             <> · <span className="font-mono">{v.registrationNumber}</span></>
                           )}
                         </p>
+                        {ownerOf.get(v._id) && <p className="mt-0.5 truncate text-xs font-medium text-primary">Partner car · {ownerOf.get(v._id)!.partnerName}</p>}
                       </div>
                       {v.ratingCount > 0 && (
                         <span className="flex shrink-0 items-center gap-1 text-sm font-medium">
