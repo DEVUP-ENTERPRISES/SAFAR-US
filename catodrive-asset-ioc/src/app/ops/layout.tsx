@@ -42,7 +42,7 @@ function HostShell({ children }: { children: ReactNode }) {
    * marketplace-seller plumbing a Vehicle hangs off (see AssetPartnerModel's
    * doc comment) - so hostQuery succeeds for them exactly like it does for a
    * genuine self-serve host, and without this check they land in the full
-   * self-serve shell below: Listings, Fleet, Operations, Captains.
+   * self-serve shell below: Listings, Operations, Captains.
    *
    * That is not just the wrong dashboard, it is a real data-integrity hole:
    * "Add a car" here creates a Vehicle with no assetPartnerId, which bills as

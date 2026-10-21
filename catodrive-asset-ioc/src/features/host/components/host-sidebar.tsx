@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, Car, TrendingUp, Layers, Wrench, User, LayoutGrid, Store, Route, BarChart3, Users, Milestone, Handshake, Inbox } from 'lucide-react';
+import { LayoutDashboard, Car, TrendingUp, Wrench, User, LayoutGrid, Store, Route, BarChart3, Users, Milestone, Handshake, Inbox } from 'lucide-react';
 import { PanelSidebar } from '@/components/layout/panel-sidebar';
 import { useHostMe } from '~/features/host/hooks';
 
@@ -11,7 +11,6 @@ export const ICONS = {
   listings: Car,
   performance: BarChart3,
   earnings: TrendingUp,
-  fleet: Layers,
   operations: Wrench,
   team: Users,
   tolls: Milestone,
@@ -24,7 +23,6 @@ export const NAV = [
   { slug: 'trips', label: 'Trips', path: '/ops/trips', group: 'Overview' },
   { slug: 'inbox', label: 'Inbox', path: '/ops/inbox', group: 'Overview' },
   { slug: 'listings', label: 'Listings', path: '/ops/listings', group: 'Manage' },
-  { slug: 'fleet', label: 'Fleet', path: '/ops/fleet', group: 'Manage', mobile: false },
   { slug: 'operations', label: 'Operations', path: '/ops/operations', group: 'Manage', mobile: false },
   { slug: 'partners', label: 'Asset Partners', path: '/ops/partners', group: 'Manage', mobile: false },
   { slug: 'team', label: 'Captains', path: '/ops/team', group: 'Manage', mobile: false },

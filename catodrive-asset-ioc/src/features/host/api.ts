@@ -88,67 +88,6 @@ export interface UploadTarget {
   publicUrl: string;
 }
 
-export interface FleetDeliveryPolicy {
-  airport?: boolean;
-  home?: boolean;
-  hotel?: boolean;
-  business?: boolean;
-  fee?: number;
-}
-
-export interface FleetLocationPolicy {
-  lat: number;
-  lng: number;
-  address: string;
-  city: string;
-}
-
-export interface Fleet {
-  _id: string;
-  name: string;
-  region?: string;
-  group?: string;
-  defaultDelivery?: FleetDeliveryPolicy;
-  defaultLocation?: FleetLocationPolicy;
-}
-
-export interface FleetDashboard {
-  fleetId: string;
-  name: string;
-  totalVehicles: number;
-  listedVehicles: number;
-  totalTrips: number;
-  avgRating: number;
-  occupancyPct: number;
-  revenue: number;
-}
-
-export interface VehiclePnl {
-  vehicleId: string;
-  label: string;
-  trips: number;
-  grossRevenue: number;
-  commission: number;
-  hostEarnings: number;
-  maintenanceCost: number;
-  netProfit: number;
-}
-
-export interface FleetProfitability {
-  fleetId: string;
-  name: string;
-  currency: string;
-  totals: {
-    grossRevenue: number;
-    commission: number;
-    hostEarnings: number;
-    maintenanceCost: number;
-    netProfit: number;
-    marginBps: number;
-  };
-  vehicles: VehiclePnl[];
-}
-
 export interface MaintenanceRecord {
   _id: string;
   vehicleId: string;
@@ -280,17 +219,6 @@ export const hostApi = {
   // The byte size of every file is signed into its link, so storage refuses a body of any other length.
   uploadUrls: (category: UploadCategory, files: { size: number }[], contentType = 'image/jpeg') =>
     api.post<UploadTarget[]>('/media/upload-urls', { category, sizes: files.map((f) => f.size), contentType }),
-
-  fleets: () => api.get<Fleet[]>('/fleets'),
-  createFleet: (name: string, region?: string) => api.post<Fleet>('/fleets', { name, region }),
-  fleetDashboard: (id: string) => api.get<FleetDashboard>(`/fleets/${id}/dashboard`),
-  fleetProfitability: (id: string) => api.get<FleetProfitability>(`/fleets/${id}/profitability`),
-  assignToFleet: (fleetId: string, vehicleId: string) =>
-    api.post<{ assigned: boolean }>(`/fleets/${fleetId}/vehicles`, { vehicleId }),
-  updateFleetPolicy: (fleetId: string, patch: { delivery?: FleetDeliveryPolicy; location?: FleetLocationPolicy }) =>
-    api.patch<Fleet>(`/fleets/${fleetId}/policy`, patch),
-  applyFleetPolicy: (fleetId: string) =>
-    api.post<{ applied: number; failed: number }>(`/fleets/${fleetId}/policy/apply`, {}),
 
   maintenance: (vehicleId?: string) =>
     api.get<MaintenanceRecord[]>('/maintenance', vehicleId ? { vehicleId } : undefined),
