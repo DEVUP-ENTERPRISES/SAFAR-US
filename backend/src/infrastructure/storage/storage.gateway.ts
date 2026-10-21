@@ -19,7 +19,9 @@ export type UploadCategory =
   | 'insurance'
   | 'kyc'
   | 'claim'
-  | 'recall_receipt';
+  | 'recall_receipt'
+  | 'w9' // Asset Partner tax form
+  | 'title'; // vehicle title or loan papers
 
 export const UPLOAD_CATEGORIES = [
   'vehicle_photo',
@@ -31,6 +33,8 @@ export const UPLOAD_CATEGORIES = [
   'kyc',
   'claim',
   'recall_receipt',
+  'w9',
+  'title',
 ] as const;
 
 /**
@@ -70,6 +74,8 @@ export const PRIVATE_CATEGORIES: UploadCategory[] = [
   'kyc',
   'claim',
   'recall_receipt',
+  'w9',
+  'title',
 ];
 
 export function isPrivateCategory(category: string): boolean {
@@ -82,6 +88,8 @@ export const PRIVATE_CATEGORY_PERMISSION: Record<string, string> = {
   claim: 'claim:manage',
   registration: 'vehicle:verify',
   insurance: 'vehicle:verify',
+  w9: 'host:manage',
+  title: 'host:manage',
 };
 
 /**

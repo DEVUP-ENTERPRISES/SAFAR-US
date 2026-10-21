@@ -50,6 +50,8 @@ export interface PartnerAgreementSignature {
   signedAt: Date;
   ip?: string;
   userAgent?: string;
+  /** The details filled into the text; the licence is kept as state and last four digits only. */
+  fields?: Record<string, string>;
 }
 export type PayoutMethod = 'check' | 'zelle';
 
@@ -106,11 +108,16 @@ export interface AssetPartnerDoc {
     mailingAddress?: string;
     /** Required once payoutMethod is 'zelle' — the email or phone it's sent to. */
     zelleHandle?: string;
+    /** What the partner chose in the agreement (Exhibit B); ops can still override it in terms. */
+    method?: PayoutMethod;
+    zelleName?: string;
+    payableTo?: string;
   };
 
   /** Partners approved through the portal sign the agreement there; ones added directly signed outside it. */
   agreementRequired?: boolean;
   agreement?: PartnerAgreementSignature;
+  nda?: PartnerAgreementSignature;
 
   /** Programme milestones, for the partner's own status tracker. */
   approvedAt?: Date;
@@ -123,6 +130,11 @@ export interface AssetPartnerDoc {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const signatureSchema = new Schema(
+  { version: Number, bodyHash: String, signedName: String, signedAt: Date, ip: String, userAgent: String, fields: { type: Map, of: String } },
+  { _id: false },
+);
 
 const schema = new Schema<AssetPartnerDoc>(
   {
@@ -155,13 +167,14 @@ const schema = new Schema<AssetPartnerDoc>(
     payoutDetails: {
       mailingAddress: String,
       zelleHandle: String,
+      method: { type: String, enum: ['check', 'zelle'] },
+      zelleName: String,
+      payableTo: String,
     },
 
     agreementRequired: Boolean,
-    agreement: {
-      type: new Schema({ version: Number, bodyHash: String, signedName: String, signedAt: Date, ip: String, userAgent: String }, { _id: false }),
-      default: undefined,
-    },
+    agreement: { type: signatureSchema, default: undefined },
+    nda: { type: signatureSchema, default: undefined },
 
     approvedAt: Date,
     onboardedAt: Date,

@@ -5,7 +5,7 @@ export interface DocumentDoc {
   _id: string;
   ownerId: string;
   vehicleId?: string;
-  category: 'registration' | 'insurance' | 'pollution' | 'fitness' | 'kyc' | 'claim' | 'recall_receipt';
+  category: 'registration' | 'insurance' | 'pollution' | 'fitness' | 'kyc' | 'claim' | 'recall_receipt' | 'w9' | 'title';
   url: string;
   key?: string;
   expiresAt?: Date;

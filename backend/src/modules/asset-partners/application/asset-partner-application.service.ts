@@ -65,7 +65,7 @@ function fieldsFrom(dto: PortalApplicationDto) {
 
 export type ReviewDecision = 'approved' | 'changes_requested' | 'rejected';
 
-export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'agreement' | 'payout' | 'ready';
+export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'agreement' | 'documents' | 'payout' | 'ready';
 
 export interface PartnerOnboarding {
   stage: OnboardingStage;
@@ -73,8 +73,11 @@ export interface PartnerOnboarding {
   emailVerified: boolean;
   application?: AssetPartnerApplicationDoc;
   partner?: { displayName: string; status: string };
-  /** Null while CatoDrive has not published an agreement yet. */
+  /** Each is null while CatoDrive has not published it yet; the texts already carry the partner's details. */
   agreement?: { version: number; title: string; body: string } | null;
+  nda?: { version: number; title: string; body: string } | null;
+  prefill?: Record<string, string>;
+  documents?: { category: string; label: string; hint: string; uploaded: boolean; status?: string }[];
   payoutMethod?: 'check' | 'zelle';
 }
 
@@ -206,8 +209,11 @@ export class AssetPartnerApplicationService {
       const stage = await assetPartnerService.portalStage(partner);
       const summary = { displayName: partner.displayName, status: partner.status };
       if (stage === 'agreement') {
-        const agreement = await assetPartnerAgreementService.current();
-        return { ...base, stage, partner: summary, agreement: agreement ? { version: agreement.version, title: agreement.title, body: agreement.body } : null };
+        const docs = await assetPartnerAgreementService.forPartner(partner);
+        return { ...base, stage, partner: summary, agreement: docs.agreement, nda: docs.nda, prefill: docs.prefill };
+      }
+      if (stage === 'documents') {
+        return { ...base, stage, partner: summary, documents: await assetPartnerService.documentChecklist(partner) };
       }
       if (stage === 'payout') {
         const { payoutMethod } = await assetPartnerService.termsFor(partner);

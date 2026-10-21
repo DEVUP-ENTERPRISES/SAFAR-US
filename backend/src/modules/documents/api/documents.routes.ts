@@ -16,7 +16,7 @@ const router = Router();
 
 const createSchema = z.object({
   vehicleId: z.string().optional(),
-  category: z.enum(['registration', 'insurance', 'pollution', 'fitness', 'kyc', 'claim', 'recall_receipt']),
+  category: z.enum(['registration', 'insurance', 'pollution', 'fitness', 'kyc', 'claim', 'recall_receipt', 'w9', 'title']),
   // A server-issued upload key (or the URL it produced); the stored URL is always derived from the key.
   url: z.string().max(2048).optional(),
   key: z.string().max(512).optional(),

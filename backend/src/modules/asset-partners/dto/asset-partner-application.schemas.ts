@@ -71,10 +71,21 @@ export type CreateApplicationDto = z.infer<typeof createApplicationSchema>;
 export const portalApplicationSchema = createApplicationSchema.omit({ email: true });
 export type PortalApplicationDto = z.infer<typeof portalApplicationSchema>;
 
+const mustAccept = z.literal(true, { errorMap: () => ({ message: 'Required' }) });
+
 export const signAgreementSchema = z.object({
-  version: z.number().int().min(1),
+  agreementVersion: z.number().int().min(1),
+  ndaVersion: z.number().int().min(1),
   signedName: z.string().trim().min(2).max(120),
-  accept: z.literal(true, { errorMap: () => ({ message: 'Required' }) }),
+  licenceNumber: z.string().trim().min(4).max(30),
+  licenceState: z.string().trim().length(2),
+  payout: z.discriminatedUnion('method', [
+    z.object({ method: z.literal('zelle'), zelleHandle: z.string().trim().min(5).max(120), zelleName: z.string().trim().min(2).max(120) }),
+    z.object({ method: z.literal('check'), payableTo: z.string().trim().min(2).max(120), mailingAddress: z.string().trim().min(8).max(300) }),
+  ]),
+  acceptAgreement: mustAccept,
+  acceptNda: mustAccept,
+  acknowledgeDeductibles: mustAccept,
 });
 
 export const reviewApplicationSchema = z.object({

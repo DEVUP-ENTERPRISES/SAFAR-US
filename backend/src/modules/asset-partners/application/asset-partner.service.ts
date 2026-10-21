@@ -12,6 +12,18 @@ import { AppError, NotFoundError, ConflictError, ForbiddenError } from '../../..
 import { logger } from '../../../infrastructure/logging/logger';
 import { AssetPartnerApplicationModel } from '../infrastructure/asset-partner-application.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
+import { DocumentModel } from '../../documents/infrastructure/document.model';
+
+export type PartnerDocCategory = 'w9' | 'kyc' | 'title' | 'insurance' | 'registration';
+
+/** What the agreement's onboarding checklist asks every new partner to send. */
+export const PARTNER_DOCS: { category: PartnerDocCategory; label: string; hint: string }[] = [
+  { category: 'w9', label: 'Tax form', hint: 'IRS Form W-9, or W-8BEN if you are not a U.S. person' },
+  { category: 'kyc', label: 'Driver’s licence or ID', hint: 'A clear photo of the front' },
+  { category: 'title', label: 'Vehicle title or loan papers', hint: 'Financed: the loan statement with the lender’s details' },
+  { category: 'insurance', label: 'Insurance declarations page', hint: 'Your current personal auto policy' },
+  { category: 'registration', label: 'Registration and inspection', hint: 'Current Texas registration and state inspection' },
+];
 
 /**
  * Asset Partner programme membership: who is in it, what stage they are at,
@@ -219,12 +231,26 @@ export class AssetPartnerService {
   }
 
   /** Where an enrolled partner is in getting started; anything but 'ready' keeps the full portal locked. */
-  async portalStage(partner: AssetPartnerDoc): Promise<'agreement' | 'payout' | 'ready'> {
+  async portalStage(partner: AssetPartnerDoc): Promise<'agreement' | 'documents' | 'payout' | 'ready'> {
     if (!partner.agreementRequired) return 'ready';
-    if (!partner.agreement?.signedAt) return 'agreement';
+    if (!partner.agreement?.signedAt || !partner.nda?.signedAt) return 'agreement';
+    if ((await this.documentChecklist(partner)).some((d) => !d.uploaded)) return 'documents';
     const { payoutMethod } = await this.termsFor(partner);
     const paid = payoutMethod === 'zelle' ? partner.payoutDetails?.zelleHandle : partner.payoutDetails?.mailingAddress;
     return paid?.trim() ? 'ready' : 'payout';
+  }
+
+  /** The onboarding papers (agreement Exhibit E) and whether each has been uploaded and not rejected. */
+  async documentChecklist(partner: AssetPartnerDoc): Promise<{ category: PartnerDocCategory; label: string; hint: string; uploaded: boolean; status?: string }[]> {
+    const docs = await DocumentModel.find({ ownerId: partner.userId, category: { $in: PARTNER_DOCS.map((d) => d.category) }, deletedAt: null })
+      .sort({ createdAt: -1 })
+      .select('category verification')
+      .lean<{ category: PartnerDocCategory; verification?: { status: string } }[]>();
+    return PARTNER_DOCS.map((d) => {
+      const latest = docs.find((x) => x.category === d.category);
+      const status = latest?.verification?.status;
+      return { ...d, uploaded: !!latest && status !== 'rejected', status };
+    });
   }
 
   async requirePortalReady(userId: string): Promise<AssetPartnerDoc> {
@@ -271,7 +297,7 @@ export class AssetPartnerService {
       deductibleCapCents: o.deductibleCapCents ?? d.deductibleCapCents,
       maintenanceApprovalCents: o.maintenanceApprovalCents ?? d.maintenanceApprovalCents,
       payoutDayOfMonth: o.payoutDayOfMonth ?? d.payoutDayOfMonth,
-      payoutMethod: o.payoutMethod ?? d.payoutMethod,
+      payoutMethod: o.payoutMethod ?? partner.payoutDetails?.method ?? d.payoutMethod,
       negotiated: Object.values(o).some((v) => v !== undefined && v !== null),
     };
   }

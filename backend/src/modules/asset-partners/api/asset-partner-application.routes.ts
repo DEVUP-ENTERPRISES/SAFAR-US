@@ -12,6 +12,7 @@ import { authLimiter } from '../../../shared/middleware/auth-rate-limit';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import { ForbiddenError } from '../../../core/errors/app-error';
+import { notificationService } from '../../notifications/application/notification.service';
 
 const router = Router();
 
@@ -74,7 +75,34 @@ router.post(
     const partner = await assetPartnerService.getByUserId(req.principal!.userId);
     if (!partner) throw new ForbiddenError('Not an Asset Partner');
     const signed = await assetPartnerAgreementService.sign(partner, req.body, { ip: req.ip, userAgent: req.header('user-agent') });
-    sendSuccess(res, { agreement: signed.agreement });
+    void notificationService
+      .send({
+        userId: partner.userId,
+        priority: 'normal',
+        deepLink: '/asset-partners/documents',
+        templateKey: 'account.asset_partner_signed',
+        title: 'Your signed agreement and NDA',
+        body: 'Thanks for signing. Your copies are on the Documents page of your partner portal whenever you need them.',
+        data: { partnerId: partner._id },
+      })
+      .catch(() => undefined);
+    sendSuccess(res, { agreement: signed.agreement, nda: signed.nda });
+  }),
+);
+
+/** The partner's own signed copy, as a PDF. */
+router.get(
+  '/asset-partners/me/signed/:kind',
+  authenticate,
+  validate({ params: z.object({ kind: z.enum(['agreement', 'nda']) }) }),
+  asyncHandler(async (req, res) => {
+    const partner = await assetPartnerService.getByUserId(req.principal!.userId);
+    if (!partner) throw new ForbiddenError('Not an Asset Partner');
+    const { pdf, filename } = await assetPartnerAgreementService.signedPdf(partner, req.params.kind as 'agreement' | 'nda');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(pdf);
   }),
 );
 

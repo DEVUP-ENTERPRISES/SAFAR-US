@@ -7,7 +7,8 @@ jest.mock('../../vehicles/application/vin-decode.service', () => ({
 
 import { assetPartnerApplicationService } from './asset-partner-application.service';
 import { assetPartnerService } from './asset-partner.service';
-import { assetPartnerAgreementService } from './asset-partner-agreement.service';
+import { assetPartnerAgreementService, type SignInput } from './asset-partner-agreement.service';
+import { DocumentModel } from '../../documents/infrastructure/document.model';
 import { AssetPartnerModel } from '../infrastructure/asset-partner.model';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
@@ -19,7 +20,12 @@ afterAll(disconnectTestDb);
 beforeEach(clearTestDb);
 
 const OPS = 'house-fleet-1';
-const AGREEMENT = { title: 'Asset Partner Agreement', body: 'The partner places the vehicle with CatoDrive, which manages and rents it out on these terms.' };
+const AGREEMENT = { title: 'Asset Partner Agreement', body: 'The partner places the vehicle with CatoDrive, which manages and rents it out on these terms.\nVehicle: {{vehicle}}, VIN {{vin}}, owned by {{partner_name}}.\nLicence: {{licence}}' };
+const NDA = { kind: 'nda' as const, title: 'Non-Disclosure Agreement', body: 'The recipient keeps CatoDrive’s confidential information private for three years. Signed by {{signed_name}}.' };
+const SIGN: SignInput = {
+  agreementVersion: 1, ndaVersion: 2, signedName: 'Jordan Ramirez', licenceNumber: 'D12345678', licenceState: 'tx',
+  payout: { method: 'zelle', zelleHandle: 'jordan@example.com', zelleName: 'Jordan Ramirez' },
+};
 
 function dto(vin = '1HGCM82633A004352'): PortalApplicationDto {
   return {
@@ -86,30 +92,70 @@ describe('getting started on the partner portal', () => {
     await expect(assetPartnerApplicationService.resubmit('someone-else', app._id, dto())).rejects.toThrow();
   });
 
-  it('keeps the dashboard locked until the agreement is signed and payout details are in', async () => {
+  it('signs the NDA and agreement together, fills in the partner, then asks for the papers', async () => {
     const userId = await approvedApplicant();
     expect(notificationService.send).toHaveBeenLastCalledWith(expect.objectContaining({ userId, templateKey: 'account.asset_partner_application_approved' }));
-    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'agreement', agreement: null });
+    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'agreement', agreement: null, nda: null });
     await expect(assetPartnerService.requirePortalReady(userId)).rejects.toThrow('Finish getting started');
 
     const partner = (await assetPartnerService.getByUserId(userId))!;
-    await expect(assetPartnerAgreementService.sign(partner, { version: 1, signedName: 'Jordan Ramirez' }, {})).rejects.toThrow('still being prepared');
-    const v1 = await assetPartnerAgreementService.publish(OPS, AGREEMENT);
-    await assetPartnerAgreementService.publish(OPS, { ...AGREEMENT, body: `${AGREEMENT.body} Revised.` });
-    await expect(assetPartnerAgreementService.sign(partner, { version: v1.version, signedName: 'Jordan Ramirez' }, {})).rejects.toThrow('updated');
+    const sign = (over: Partial<SignInput> = {}) => assetPartnerAgreementService.sign(partner, { ...SIGN, ...over }, { ip: '203.0.113.9' });
+    await expect(sign()).rejects.toThrow('still being prepared');
 
-    const signed = await assetPartnerAgreementService.sign(partner, { version: 2, signedName: '  Jordan   Ramirez ' }, { ip: '203.0.113.9' });
-    expect(signed.agreement).toMatchObject({ version: 2, signedName: 'Jordan Ramirez', ip: '203.0.113.9' });
-    expect(signed.agreement?.bodyHash).toHaveLength(64);
+    const a1 = await assetPartnerAgreementService.publish(OPS, AGREEMENT);
+    await expect(sign({ agreementVersion: a1.version })).rejects.toThrow('still being prepared');
+    const nda = await assetPartnerAgreementService.publish(OPS, NDA);
+    const a2 = await assetPartnerAgreementService.publish(OPS, { ...AGREEMENT, body: `${AGREEMENT.body} Revised.` });
+    expect([a1.version, nda.version, a2.version]).toEqual([1, 2, 3]);
 
-    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'payout', payoutMethod: 'check' });
-    await assetPartnerService.setPayoutDetails(userId, { mailingAddress: '1 Main St, Dallas TX 75201' });
+    const view = await assetPartnerApplicationService.onboarding(userId);
+    expect(view.agreement?.body).toContain('Vehicle: 2024 BMW 5 Series, VIN 1HGCM82633A004352, owned by Jordan Ramirez.');
+    expect(view.agreement?.body).toContain('Licence: ________');
+    expect(view.nda?.version).toBe(nda.version);
+
+    await expect(sign({ agreementVersion: a1.version, ndaVersion: nda.version })).rejects.toThrow('updated');
+    await expect(sign({ agreementVersion: a2.version, ndaVersion: nda.version, licenceState: 'Texas' })).rejects.toThrow('licence');
+
+    const signed = await sign({ agreementVersion: a2.version, ndaVersion: nda.version, signedName: '  Jordan   Ramirez ' });
+    expect(signed.agreement).toMatchObject({ version: a2.version, signedName: 'Jordan Ramirez', ip: '203.0.113.9' });
+    expect(signed.nda).toMatchObject({ version: nda.version, signedName: 'Jordan Ramirez' });
+    expect(signed.agreement?.fields).toMatchObject({ licence: 'TX •••• 5678', payout_method: 'Zelle', zelle_handle: 'jordan@example.com' });
+    expect(JSON.stringify(signed)).not.toContain('D12345678');
+    expect(signed.payoutDetails).toMatchObject({ method: 'zelle', zelleHandle: 'jordan@example.com', zelleName: 'Jordan Ramirez' });
+
+    const pdf = await assetPartnerAgreementService.signedPdf(signed, 'agreement');
+    expect(pdf.pdf.subarray(0, 4).toString()).toBe('%PDF');
+    expect(pdf.filename).toBe('CatoDrive-Asset-Partner-Agreement-Jordan-Ramirez.pdf');
+
+    const docsStep = await assetPartnerApplicationService.onboarding(userId);
+    expect(docsStep.stage).toBe('documents');
+    expect(docsStep.documents?.map((d) => d.category)).toEqual(['w9', 'kyc', 'title', 'insurance', 'registration']);
+    await expect(assetPartnerService.requirePortalReady(userId)).rejects.toThrow('Finish getting started');
+
+    for (const category of ['w9', 'kyc', 'title', 'insurance', 'registration']) {
+      await DocumentModel.create({ ownerId: userId, category, url: `https://cdn.example.com/${category}.pdf` });
+    }
     expect((await assetPartnerApplicationService.onboarding(userId)).stage).toBe('ready');
     await expect(assetPartnerService.requirePortalReady(userId)).resolves.toBeTruthy();
 
+    // A paper CatoDrive sends back locks the dashboard again until it is replaced.
+    await DocumentModel.updateOne({ ownerId: userId, category: 'w9' }, { $set: { verification: { status: 'rejected', reason: 'Unsigned' } } });
+    expect((await assetPartnerApplicationService.onboarding(userId)).stage).toBe('documents');
+
     // A later version never rewrites what was signed.
     await assetPartnerAgreementService.publish(OPS, { ...AGREEMENT, body: `${AGREEMENT.body} Third.` });
-    expect((await AssetPartnerModel.findOne({ userId }).lean())?.agreement?.version).toBe(2);
+    expect((await AssetPartnerModel.findOne({ userId }).lean())?.agreement?.version).toBe(a2.version);
+  });
+
+  it('pays by the method the partner chose unless ops set one', async () => {
+    const userId = await approvedApplicant();
+    await assetPartnerAgreementService.publish(OPS, AGREEMENT);
+    await assetPartnerAgreementService.publish(OPS, NDA);
+    const partner = (await assetPartnerService.getByUserId(userId))!;
+    const signed = await assetPartnerAgreementService.sign(partner, { ...SIGN, agreementVersion: 1, ndaVersion: 2, payout: { method: 'check', payableTo: 'Jordan Ramirez', mailingAddress: '1 Main St, Dallas TX 75201' } }, {});
+    expect((await assetPartnerService.termsFor(signed)).payoutMethod).toBe('check');
+    await AssetPartnerModel.updateOne({ userId }, { $set: { 'terms.payoutMethod': 'zelle' } });
+    expect((await assetPartnerService.termsFor((await assetPartnerService.getByUserId(userId))!)).payoutMethod).toBe('zelle');
   });
 
   it('lets a ready partner offer another car without a second membership', async () => {

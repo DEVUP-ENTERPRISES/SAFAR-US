@@ -9,7 +9,9 @@ export type UploadCategory =
   | 'registration'
   | 'insurance'
   | 'kyc'
-  | 'claim';
+  | 'claim'
+  | 'w9'
+  | 'title';
 
 export interface UploadTarget {
   key: string;
@@ -18,6 +20,8 @@ export interface UploadTarget {
 }
 
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+// Papers can be PDFs; photos-only surfaces never ask for these categories.
+const DOC_CATEGORIES: UploadCategory[] = ['registration', 'insurance', 'kyc', 'claim', 'w9', 'title'];
 
 /**
  * The real upload flow, in one place: presign → PUT the bytes to storage →
@@ -38,8 +42,8 @@ export async function uploadFiles(
   if (files.length === 0) return [];
 
   for (const f of files) {
-    if (!ALLOWED.includes(f.type)) {
-      throw new Error(`${f.name}: use a JPG, PNG or WebP image.`);
+    if (!ALLOWED.includes(f.type) && !(f.type === 'application/pdf' && DOC_CATEGORIES.includes(category))) {
+      throw new Error(DOC_CATEGORIES.includes(category) ? `${f.name}: use a PDF, JPG, PNG or WebP file.` : `${f.name}: use a JPG, PNG or WebP image.`);
     }
     if (f.size <= 0) {
       throw new Error(`${f.name}: the file is empty.`);
