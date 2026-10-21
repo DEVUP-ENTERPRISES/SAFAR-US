@@ -60,7 +60,7 @@ export default function HostDashboardPage() {
       {/* Greeting. Compact - the page is a workspace, not a landing page. */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">Host</p>
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">Operations</p>
           <h1 className="display mt-1 truncate text-display-sm">{host.data?.displayName ?? 'Your dashboard'}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {host.data && (
@@ -69,7 +69,7 @@ export default function HostDashboardPage() {
               </Badge>
             )}
             {host.data?.isSuperhost && (
-              <Badge tone="default"><Award className="me-1 h-3 w-3" /> All-Star Host</Badge>
+              <Badge tone="default"><Award className="me-1 h-3 w-3" /> All-Star rating</Badge>
             )}
             <span className="text-sm text-muted-foreground">
               {cars.length} car{cars.length === 1 ? '' : 's'}

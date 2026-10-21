@@ -196,7 +196,7 @@ export default function NewListingPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="display text-display-sm">List your vehicle</h1>
+      <h1 className="display text-display-sm">Add a car</h1>
 
       {/* Stepper */}
       <div className="flex items-center gap-2">

@@ -1,12 +1,13 @@
 'use client';
 
-import { LayoutDashboard, Car, TrendingUp, Layers, Wrench, User, LayoutGrid, Store, Route, BarChart3, Users, Milestone, Handshake } from 'lucide-react';
+import { LayoutDashboard, Car, TrendingUp, Layers, Wrench, User, LayoutGrid, Store, Route, BarChart3, Users, Milestone, Handshake, Inbox } from 'lucide-react';
 import { PanelSidebar } from '@/components/layout/panel-sidebar';
 import { useHostMe } from '~/features/host/hooks';
 
-const ICONS = {
+export const ICONS = {
   dashboard: LayoutDashboard,
   trips: Route,
+  inbox: Inbox,
   listings: Car,
   performance: BarChart3,
   earnings: TrendingUp,
@@ -18,7 +19,7 @@ const ICONS = {
   profile: User,
 };
 
-const NAV = [
+export const NAV = [
   { slug: 'dashboard', label: 'Dashboard', path: '/ops', group: 'Overview' },
   { slug: 'trips', label: 'Trips', path: '/ops/trips', group: 'Overview' },
   { slug: 'inbox', label: 'Inbox', path: '/ops/inbox', group: 'Overview' },
@@ -38,8 +39,8 @@ export function HostSidebar() {
 
   return (
     <PanelSidebar
-      title={host.data?.displayName ?? 'Host'}
-      subtitle={host.data?.isSuperhost ? 'Superhost' : 'Host dashboard'}
+      title={host.data?.displayName ?? 'CatoDrive'}
+      subtitle="Operations panel"
       icon={Store}
       items={NAV}
       icons={ICONS}

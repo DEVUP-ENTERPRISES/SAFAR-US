@@ -73,7 +73,7 @@ function HostShell({ children }: { children: ReactNode }) {
   if (hostQuery.isError && !notAHost) {
     return (
       <ErrorState
-        message="Couldn't load your host profile. Check your connection and try again."
+        message="Couldn't load the operations panel. Check your connection and try again."
         retry={() => hostQuery.refetch()}
       />
     );
@@ -111,13 +111,6 @@ function HostShell({ children }: { children: ReactNode }) {
 }
 
 export default function HostLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  // The House Fleet bridge renders bare
-  // - they're the pages that STORE the session, so guarding them would bounce
-  // them before they can run.
-  if (pathname === '/ops/bridge') {
-    return <>{children}</>;
-  }
   return (
     <AuthGuard loginPath="/sign-in">
       <HostShell>{children}</HostShell>

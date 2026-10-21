@@ -97,7 +97,7 @@ export default function FleetPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
               <Metric label="Gross revenue" value={usd(pnl.data.totals.grossRevenue)} />
               <Metric label="Platform commission" value={`−${usd(pnl.data.totals.commission)}`} />
-              <Metric label="Host earnings" value={usd(pnl.data.totals.hostEarnings)} />
+              <Metric label="After commission" value={usd(pnl.data.totals.hostEarnings)} />
               <Metric label="Maintenance cost" value={`−${usd(pnl.data.totals.maintenanceCost)}`} />
               <Metric
                 label={`Net profit · ${(pnl.data.totals.marginBps / 100).toFixed(1)}% margin`}
@@ -113,7 +113,7 @@ export default function FleetPage() {
                     <tr className="border-b border-border text-start text-muted-foreground">
                       <th className="px-3 py-2 font-medium">Vehicle</th>
                       <th className="px-3 py-2 font-medium">Trips</th>
-                      <th className="px-3 py-2 font-medium">Host earnings</th>
+                      <th className="px-3 py-2 font-medium">After commission</th>
                       <th className="px-3 py-2 font-medium">Maintenance</th>
                       <th className="px-3 py-2 text-end font-medium">Net profit</th>
                     </tr>

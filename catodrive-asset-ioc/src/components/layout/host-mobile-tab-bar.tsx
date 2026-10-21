@@ -1,8 +1,11 @@
 'use client';
 
+import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, CarFront, ClipboardList, Wallet, MessageSquare, User } from 'lucide-react';
+import { LayoutGrid, CarFront, ClipboardList, MessageSquare, Handshake, Menu } from 'lucide-react';
+import { NavSheet, type NavSheetItem } from '@/components/layout/nav-sheet';
+import { ICONS, NAV } from '~/features/host/components/host-sidebar';
 import { cn } from '@/lib/utils/cn';
 import { useAuthStore } from '@/features/auth/store';
 import { useUnreadMessages } from '@/features/messaging/hooks';
@@ -32,6 +35,8 @@ export function HostMobileTabBar() {
   const pathname = usePathname() ?? '';
   const user = useAuthStore((s) => s.user);
   const unread = useUnreadMessages(!!user).data?.count ?? 0;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   // Full-height workspaces and the host sign-in render without the bar.
   const hidden =
@@ -41,21 +46,22 @@ export function HostMobileTabBar() {
   const tabs: HostTab[] = [
     { href: '/ops', label: 'Dashboard', icon: <LayoutGrid />, exact: true },
     { href: '/ops/trips', label: 'Trips', icon: <CarFront /> },
-    { href: '/ops/listings', label: 'Listings', icon: <ClipboardList /> },
-    { href: '/ops/earnings', label: 'Earnings', icon: <Wallet /> },
     { href: '/ops/inbox', label: 'Inbox', icon: <MessageSquare />, count: unread },
-    { href: '/ops/profile', label: 'Menu', icon: <User /> },
+    { href: '/ops/listings', label: 'Listings', icon: <ClipboardList /> },
+    { href: '/ops/partners', label: 'Partners', icon: <Handshake /> },
   ];
 
   const isOn = (t: HostTab) =>
     t.exact ? pathname === t.href : pathname === t.href || pathname.startsWith(`${t.href}/`);
+  const inMenu = (n: NavSheetItem) => (n.path === '/ops' ? pathname === '/ops' : pathname === n.path || pathname.startsWith(`${n.path}/`));
+  const menuActive = !tabs.some(isOn);
 
   return (
     <>
       <div aria-hidden className="h-[calc(4rem+env(safe-area-inset-bottom))] lg:hidden" />
 
       <nav
-        aria-label="Host"
+        aria-label="Operations"
         className="fixed inset-x-0 bottom-0 z-50 lg:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
@@ -63,8 +69,20 @@ export function HostMobileTabBar() {
           {tabs.map((t) => (
             <Tab key={t.href} {...t} on={isOn(t)} />
           ))}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={menuOpen}
+            className={cn('relative flex flex-1 flex-col items-center justify-center gap-1 transition-colors', menuActive ? 'text-primary' : 'text-muted-foreground')}
+          >
+            <Menu className="h-[1.4rem] w-[1.4rem]" />
+            <span className="text-[10px] font-semibold tracking-tight">More</span>
+            {menuActive && <span className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-primary" />}
+          </button>
         </div>
       </nav>
+      <NavSheet open={menuOpen} onClose={closeMenu} title="Operations" items={NAV} icons={ICONS} fallbackIcon={LayoutGrid} isActive={inMenu} className="lg:hidden" />
     </>
   );
 }

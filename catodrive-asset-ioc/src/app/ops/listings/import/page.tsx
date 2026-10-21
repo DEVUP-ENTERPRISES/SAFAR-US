@@ -61,7 +61,7 @@ export default function ImportPage() {
       </Link>
 
       <PageHeader
-        title="Import your fleet"
+        title="Import cars"
         description="Set your address once, then paste one line per car. We decode the rest from the VIN."
       />
 

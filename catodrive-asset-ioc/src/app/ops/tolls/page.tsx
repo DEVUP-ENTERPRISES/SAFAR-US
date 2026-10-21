@@ -24,7 +24,7 @@ export default function TollAccountsPage() {
 
       {isLoading && <Skeleton className="h-28 w-full rounded-2xl" />}
       {!isLoading && !data?.length && (
-        <EmptyState title="No toll accounts linked" description="Link your NTTA account to start billing guests for their tolls." />
+        <EmptyState title="No toll accounts linked" description="Link CatoDrive’s NTTA account to bill guests for the tolls on their trips." />
       )}
 
       {(data ?? []).map((a) => (
