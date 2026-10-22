@@ -128,7 +128,7 @@ describe('intake report (Exhibit A)', () => {
   const INPUT = {
     vehicle: { year: '2024', make: 'BMW', model: '5 Series', trim: '530i', color: 'Black', vin: 'wba53bj09rwx12345', plate: 'lux7' },
     odometer: 18_420, intakeDate: new Date('2026-10-20T15:00:00Z'), location: 'DFW Airport lot C', fuelLevel: 'full' as const,
-    preExistingDamage: 'Small scratch on the rear bumper', signedName: 'Syed Ali Iqbal', signedTitle: 'CEO',
+    preExistingDamage: 'Small scratch on the rear bumper', signedName: 'Casey Morgan', signedTitle: 'Fleet Operations Manager',
   };
 
   it('counts the objection window in business days', () => {
