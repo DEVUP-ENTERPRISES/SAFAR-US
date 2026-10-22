@@ -153,6 +153,7 @@ export const config = Object.freeze({
     hostWebUrl: (env.HOST_WEB_URL ?? '').replace(/\/+$/, ''),
     partnerWebUrl: (env.PARTNER_WEB_URL ?? '').replace(/\/+$/, ''),
     insuranceWebUrl: (env.INSURANCE_WEB_URL ?? '').replace(/\/+$/, ''),
+    iocWebUrl: (env.ASSET_IOC_WEB_URL ?? '').replace(/\/+$/, ''),
     companyAddress: env.COMPANY_ADDRESS,
     supportEmail: env.SUPPORT_EMAIL,
     emailApiEnabled: !!(env.EMAIL_API_URL && env.EMAIL_API_KEY && env.EMAIL_FROM),

@@ -159,7 +159,12 @@ Locked down like the admin console:
   spot, and the check repeats at every token refresh.
 - New Vercel project, root `catodrive-asset-ioc/`, domain `housefleet.yourdomain.com`
   (moves here from the host project), same environment variables as the host
-  site plus `CATODRIVE_ASSET_IOC_SLUG`. Put Cloudflare Access in front of it.
+  site plus `CATODRIVE_ASSET_IOC_SLUG`. Put Cloudflare Access in front of it,
+  with a policy that also lets House Fleet Captains in (for example an email
+  one-time PIN for their addresses), or their invite links won't open.
+- Backend: set `ASSET_IOC_WEB_URL` to the panel's full address **including** the
+  slug, so House Fleet Captain invites open the panel's own invite page
+  (`/captain/accept-invite`). Unset, they fall back to the host site.
 - The admin console no longer has a House Fleet sign-in; remove
   `NEXT_PUBLIC_CATODRIVE_ASSET_IOC_SLUG` and `NEXT_PUBLIC_CATODRIVE_ASSET_IOC_HOST` from the admin project.
 - Asset Partner applications, partners and the partner agreement are managed here (Asset Partners).

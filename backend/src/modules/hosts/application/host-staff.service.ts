@@ -16,6 +16,7 @@ import { config } from '../../../config';
 import { logger } from '../../../infrastructure/logging/logger';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { webLink } from '../../../shared/http/site-links';
+import { HOUSE_FLEET_ROLE } from '../../../shared/constants/rbac';
 
 /**
  * Captains — a host's staff, and the authority checks that make them safe.
@@ -56,11 +57,15 @@ async function hostFor(userId: string): Promise<HostDoc> {
   return host;
 }
 
-function acceptUrl(token: string): string {
+// House Fleet Captains work from the operations panel; everyone else from the host site.
+async function acceptUrl(token: string, host: Pick<HostDoc, 'userId'>): Promise<string> {
+  const owner = config.notifications.iocWebUrl ? await userRepository.findById(host.userId) : null;
+  if (owner?.roles?.includes(HOUSE_FLEET_ROLE)) return `${config.notifications.iocWebUrl}/captain/accept-invite?token=${token}`;
   return webLink(`/host/accept-invite?token=${token}`);
 }
 
-async function sendInviteEmail(staff: HostStaffDoc, fleetName: string): Promise<void> {
+async function sendInviteEmail(staff: HostStaffDoc, host: Pick<HostDoc, 'userId' | 'displayName'>): Promise<void> {
+  const fleetName = host.displayName;
   const res = await channelProviders.email.send({
     target: { userId: '', email: staff.email },
     templateKey: 'host.captain_invite',
@@ -70,7 +75,7 @@ async function sendInviteEmail(staff: HostStaffDoc, fleetName: string): Promise<
       'Captains handle pickups and returns for the cars assigned to them. ' +
       'Open the link below to set your password and see your first jobs.',
     actionLabel: 'Accept your invite',
-    deepLink: acceptUrl(staff.inviteToken!),
+    deepLink: await acceptUrl(staff.inviteToken!, host),
   });
   if (!res.ok) logger.error({ email: staff.email, error: res.error }, 'captain invite email failed');
 }
@@ -128,7 +133,7 @@ export const hostStaffService = {
 
     // Fire-and-forget: a mail outage must not lose the invite, which is the
     // durable thing. The host can resend; they cannot un-lose a record.
-    void sendInviteEmail(staff.toObject(), host.displayName).catch(() => undefined);
+    void sendInviteEmail(staff.toObject(), host).catch(() => undefined);
     return withoutToken(staff.toObject());
   },
 
@@ -145,7 +150,7 @@ export const hostStaffService = {
     staff.invitedAt = new Date();
     await staff.save();
 
-    await sendInviteEmail(staff.toObject(), host.displayName);
+    await sendInviteEmail(staff.toObject(), host);
     return withoutToken(staff.toObject());
   },
 
@@ -318,5 +323,101 @@ export const hostStaffService = {
       fleetName: host?.displayName ?? 'the fleet',
       trips: trips.map((t) => ({ ...t, vehicle: byId.get(t.vehicleId) ?? null })),
     };
+  },
+
+  /** A Captain's day: pickups and returns on their cars for the next week, who's out now, and each car's state. */
+  async captainDashboard(userId: string, now = new Date()) {
+    const staff = await HostStaffModel.findOne({ userId, status: 'active' }).lean<HostStaffDoc>();
+    if (!staff) return null;
+    const { BookingModel } = await import('../../bookings/infrastructure/booking.model');
+    const { UserModel } = await import('../../users/infrastructure/user.model');
+
+    const carFilter = staff.vehicleIds.length ? { _id: { $in: staff.vehicleIds } } : { hostId: staff.hostId };
+    const cars = await VehicleModel.find({ ...carFilter, deletedAt: null, status: { $ne: 'delisted' } })
+      .select('_id make model year registrationNumber photos status location.address')
+      .sort({ make: 1, model: 1 })
+      .limit(200)
+      .lean<{ _id: string; make: string; model: string; year: number; registrationNumber?: string; photos?: { url: string; isCover?: boolean }[]; status: string; location?: { address?: string } }[]>();
+    const carIds = cars.map((c) => c._id);
+    const week = new Date(now.getTime() + 7 * 86_400_000);
+
+    const bookings = await BookingModel.find({
+      vehicleId: { $in: carIds },
+      $or: [
+        { status: { $in: ['confirmed', 'paid'] }, 'period.start': { $lt: week }, 'period.end': { $gt: now } },
+        { status: 'in_progress' },
+      ],
+    })
+      .select('_id code guestId vehicleId status period delivery')
+      .sort({ 'period.start': 1 })
+      .limit(300)
+      .lean<{ _id: string; code: string; guestId: string; vehicleId: string; status: string; period: { start: Date; end: Date }; delivery?: { mode: string; address: string; flightNumber?: string; terminal?: string } }[]>();
+
+    const guests = await UserModel.find({ _id: { $in: [...new Set(bookings.map((b) => b.guestId))] } }).select('_id firstName phone').lean<{ _id: string; firstName?: string; phone?: string }[]>();
+    const guestById = new Map(guests.map((g) => [g._id, g]));
+    const carById = new Map(cars.map((c) => [c._id, c]));
+    const canSeePhone = staff.abilities.includes('trip:handover');
+
+    const job = (b: (typeof bookings)[number], kind: 'pickup' | 'return') => {
+      const c = carById.get(b.vehicleId);
+      const g = guestById.get(b.guestId);
+      return {
+        kind,
+        bookingId: b._id,
+        code: b.code,
+        at: kind === 'pickup' ? b.period.start : b.period.end,
+        overdue: kind === 'return' && new Date(b.period.end) < now,
+        guestName: g?.firstName ?? 'Guest',
+        ...(canSeePhone && g?.phone ? { guestPhone: g.phone } : {}),
+        where: b.delivery?.address ?? c?.location?.address,
+        delivery: b.delivery ? { mode: b.delivery.mode, flightNumber: b.delivery.flightNumber, terminal: b.delivery.terminal } : undefined,
+        vehicle: c ? { _id: c._id, label: `${c.year} ${c.make} ${c.model}`, plate: c.registrationNumber, photo: (c.photos?.find((p) => p.isCover) ?? c.photos?.[0])?.url } : null,
+      };
+    };
+
+    const pickups = bookings.filter((b) => b.status !== 'in_progress').map((b) => job(b, 'pickup'));
+    const out = bookings.filter((b) => b.status === 'in_progress');
+    const returns = out.filter((b) => new Date(b.period.end) < week).map((b) => job(b, 'return'));
+    const jobs = [...pickups, ...returns].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
+    const outBy = new Map(out.map((b) => [b.vehicleId, b]));
+    const nextBy = new Map<string, Date>();
+    for (const b of bookings) if (b.status !== 'in_progress' && !nextBy.has(b.vehicleId)) nextBy.set(b.vehicleId, b.period.start);
+
+    const host = await HostModel.findOne({ _id: staff.hostId }).select('displayName').lean<{ displayName?: string }>();
+    return {
+      staff: withoutToken(staff),
+      fleetName: host?.displayName ?? 'the fleet',
+      jobs,
+      counts: {
+        today: jobs.filter((j) => new Date(j.at).toDateString() === now.toDateString() || j.overdue).length,
+        overdue: jobs.filter((j) => j.overdue).length,
+        out: out.length,
+        cars: cars.length,
+      },
+      cars: cars.map((c) => ({
+        _id: c._id,
+        label: `${c.year} ${c.make} ${c.model}`,
+        plate: c.registrationNumber,
+        photo: (c.photos?.find((p) => p.isCover) ?? c.photos?.[0])?.url,
+        listed: c.status === 'listed',
+        outUntil: outBy.get(c._id)?.period.end,
+        nextPickup: nextBy.get(c._id),
+      })),
+    };
+  },
+
+  /** A Captain with "Block dates" takes one of their cars off the calendar, e.g. for servicing. */
+  async captainBlockDates(userId: string, vehicleId: string, input: { start: Date; end: Date; action: 'block' | 'unblock' }) {
+    const car = await VehicleModel.findOne({ _id: vehicleId, deletedAt: null }).select('hostId').lean<{ hostId: string }>();
+    if (!car) throw new NotFoundError('Car');
+    const { allowed } = await this.can(userId, 'calendar:manage', car.hostId, vehicleId);
+    if (!allowed) throw new ForbiddenError('You can’t change the calendar for this car');
+    if (input.end <= input.start) throw new ValidationError('The end has to be after the start');
+    const { availabilityService } = await import('../../availability/application/availability.service');
+    if (input.action === 'unblock') await availabilityService.unblock(vehicleId, input.start, input.end);
+    else await availabilityService.block(vehicleId, input.start, input.end);
+    logger.info({ userId, vehicleId, action: input.action }, 'Captain changed a car calendar');
+    return { updated: true };
   },
 };

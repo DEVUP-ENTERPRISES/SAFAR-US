@@ -209,7 +209,9 @@ export class MessageService {
     const isGuest = booking.guestId === userId;
     const host = await hostService.getById(booking.hostId).catch(() => null);
     const isHost = !!host && host.userId === userId;
-    if (!isGuest && !isHost) throw new ForbiddenError('Not part of this conversation');
+    // A Captain with "Message guests" speaks for the host on their assigned cars.
+    const isCaptain = !isGuest && !isHost && (await (await import('../../hosts/application/host-staff.service')).hostStaffService.can(userId, 'trip:message', booking.hostId, booking.vehicleId)).allowed;
+    if (!isGuest && !isHost && !isCaptain) throw new ForbiddenError('Not part of this conversation');
     const counterpartUserId = isGuest ? host?.userId ?? '' : booking.guestId;
     return { booking, counterpartUserId };
   }

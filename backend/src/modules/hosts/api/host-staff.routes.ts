@@ -132,4 +132,21 @@ router.get(
   }),
 );
 
+router.get(
+  '/staff/me/dashboard',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await hostStaffService.captainDashboard(req.principal!.userId));
+  }),
+);
+
+router.post(
+  '/staff/me/vehicles/:vehicleId/availability',
+  authenticate,
+  validate({ body: z.object({ start: z.coerce.date(), end: z.coerce.date(), action: z.enum(['block', 'unblock']).default('block') }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await hostStaffService.captainBlockDates(req.principal!.userId, req.params.vehicleId, req.body));
+  }),
+);
+
 export const hostStaffRoutes = router;

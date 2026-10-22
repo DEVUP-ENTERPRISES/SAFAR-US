@@ -41,11 +41,14 @@ export function useRegister(opts?: { redirectTo?: string }) {
   });
 }
 
+// The partner, operations and insurance sites name their page /sign-in; /login there would hand off to the guest site.
+const SIGN_IN_PATH = ['partner', 'ioc', 'insurance'].includes(process.env.NEXT_PUBLIC_APP_SURFACE ?? '') ? '/sign-in' : '/login';
+
 export function useLogout() {
   const router = useRouter();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => signOutEverywhere(qc),
-    onSuccess: () => router.push('/login'),
+    onSuccess: () => router.push(SIGN_IN_PATH),
   });
 }

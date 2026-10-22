@@ -161,6 +161,8 @@ export const envSchema = z.object({
   PARTNER_WEB_URL: optional(z.string()),
   /** The insurance partner portal, including its secret path; kept out of the repo. Falls back to WEB_URL. */
   INSURANCE_WEB_URL: optional(z.string()),
+  /** The operations panel, including its secret path; House Fleet Captain invites open here. Falls back to HOST_WEB_URL. */
+  ASSET_IOC_WEB_URL: optional(z.string()),
   /**
    * Postal address in the email footer.
    *

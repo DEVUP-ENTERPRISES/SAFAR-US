@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -49,6 +49,11 @@ export default function HostTripDetailPage() {
   const confirm = useConfirm();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('details');
+  // A Captain's dashboard links straight to the messages or help tab.
+  useEffect(() => {
+    const want = new URLSearchParams(window.location.search).get('tab');
+    if (want === 'messages' || want === 'help') setTab(want);
+  }, []);
 
   const [odoStart, setOdoStart] = useState('');
   const [odoEnd, setOdoEnd] = useState('');

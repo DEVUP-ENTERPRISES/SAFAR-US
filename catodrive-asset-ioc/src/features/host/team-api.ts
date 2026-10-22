@@ -103,4 +103,28 @@ export const captainApi = {
       { token, password },
     ),
   queue: () => api.get<CaptainQueue | null>('/hosts/staff/me/queue'),
+  dashboard: () => api.get<CaptainDashboard | null>('/hosts/staff/me/dashboard'),
+  blockDates: (vehicleId: string, body: { start: string; end: string; action: 'block' | 'unblock' }) =>
+    api.post<{ updated: boolean }>(`/hosts/staff/me/vehicles/${vehicleId}/availability`, body),
 };
+
+export interface CaptainJob {
+  kind: 'pickup' | 'return';
+  bookingId: string;
+  code: string;
+  at: string;
+  overdue: boolean;
+  guestName: string;
+  guestPhone?: string;
+  where?: string;
+  delivery?: { mode: string; flightNumber?: string; terminal?: string };
+  vehicle: { _id: string; label: string; plate?: string; photo?: string } | null;
+}
+
+export interface CaptainDashboard {
+  staff: Omit<Captain, 'hostId'>;
+  fleetName: string;
+  jobs: CaptainJob[];
+  counts: { today: number; overdue: number; out: number; cars: number };
+  cars: { _id: string; label: string; plate?: string; photo?: string; listed: boolean; outUntil?: string; nextPickup?: string }[];
+}

@@ -18,7 +18,7 @@ import { goToSite } from '@/lib/sites';
 import { cn } from '@/lib/utils/cn';
 
 // Full-screen pages: sign-in, the cross-site handoff, House Fleet's bridge and a captain's invite.
-const BARE = ['/sign-in', '/handoff'];
+const BARE = ['/sign-in', '/handoff', '/captain/accept-invite'];
 
 /** CatoDrive's operations panel frame: Host and Captain when the account is both, a way back to catodrive.com, and sign out. */
 export function IocChrome({ children }: { children: ReactNode }) {
