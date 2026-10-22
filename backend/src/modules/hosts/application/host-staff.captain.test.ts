@@ -26,6 +26,12 @@ beforeEach(async () => {
 
 const IOC = 'https://ops.example.com/secret-path';
 
+// The invite email is sent without awaiting it, so wait for it rather than for a fixed time.
+async function until(ok: () => boolean, ms = 3000) {
+  const end = Date.now() + ms;
+  while (!ok() && Date.now() < end) await new Promise((r) => setTimeout(r, 10));
+}
+
 async function fleet(roles: string[] = ['host', 'house_fleet']) {
   const owner = await userRepository.create({ email: `owner-${roles.length}@x.com`, passwordHash: 'x', firstName: 'Owner', roles } as never);
   await HostModel.collection.insertOne({ _id: 'host-1', userId: owner._id, displayName: 'CatoDrive House Fleet', deletedAt: null } as never);
@@ -62,14 +68,14 @@ describe('Captain invite link', () => {
     const owner = await fleet();
     await hostStaffService.invite(owner._id, { name: 'Sam', email: 'sam@x.com' });
     const send = channelProviders.email.send as jest.Mock;
-    await new Promise((r) => setTimeout(r, 50));
+    await until(() => (channelProviders.email.send as jest.Mock).mock.calls.length > 0);
     expect(send.mock.calls[0][0].deepLink).toMatch(new RegExp(`^${IOC}/captain/accept-invite\\?token=`));
 
     await clearTestDb();
     send.mockClear();
     const host = await fleet(['host']);
     await hostStaffService.invite(host._id, { name: 'Ana', email: 'ana@x.com' });
-    await new Promise((r) => setTimeout(r, 50));
+    await until(() => (channelProviders.email.send as jest.Mock).mock.calls.length > 0);
     expect(send.mock.calls[0][0].deepLink).toContain('/host/accept-invite?token=');
   });
 });
