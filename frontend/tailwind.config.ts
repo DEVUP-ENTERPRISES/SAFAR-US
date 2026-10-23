@@ -46,6 +46,9 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontSize: {
+        // Product type scale: 12 / 13 / 14 / 16 / 20 / 24 / 32.
+        label: ['0.8125rem', { lineHeight: '1.125rem' }],
+        '3xl': ['2rem', { lineHeight: '2.5rem' }],
         // Marketing display scale - fluid, so it reads big on desktop
         // without blowing out on mobile.
         'display-sm': ['clamp(2rem,1.4rem + 2.6vw,2.75rem)', { lineHeight: '1.15', letterSpacing: '-0.03em' }],

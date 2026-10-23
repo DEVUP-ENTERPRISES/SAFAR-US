@@ -45,11 +45,18 @@
   --border: 39 20% 86%;
   --input: 39 20% 86%;
   --ring: 180 82% 31%;
-  --radius: 0.85rem;
+  --radius: 0.75rem;
 
   /* Ink scale - high-contrast marketing surfaces (asphalt) */
   --ink: 30 18% 7%;
   --ink-foreground: 38 31% 93%;
+
+  /* Chart series, in this order; identity is always repeated in a label */
+  --chart-1: 158 83% 34%;
+  --chart-2: 239 84% 67%;
+  --chart-3: 38 92% 50%;
+  --chart-4: 350 89% 60%;
+  --chart-5: 189 94% 43%;
 }
 
 /* ── Design tokens (dark) ─────────────────────────────────────────────
@@ -86,6 +93,12 @@
 
   --ink: 30 15% 10%;
   --ink-foreground: 38 31% 93%;
+
+  --chart-1: 158 60% 45%;
+  --chart-2: 239 84% 74%;
+  --chart-3: 38 92% 58%;
+  --chart-4: 350 89% 68%;
+  --chart-5: 189 80% 50%;
 }
 
 * {

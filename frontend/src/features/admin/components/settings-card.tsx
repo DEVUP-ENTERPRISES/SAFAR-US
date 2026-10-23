@@ -44,7 +44,7 @@ export function SettingsCard({ title, about, affects, example, changes, saving, 
   };
 
   return (
-    <Card className="rounded-2xl">
+    <Card className="rounded-lg">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-lg">{title}</CardTitle>

@@ -41,8 +41,8 @@ export function StatTile({
   const body = (
     <div
       className={cn(
-        'group relative h-full overflow-hidden rounded-[2rem] border bg-card p-6 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300',
-        href && 'cursor-pointer hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_12px_48px_-12px_rgba(0,0,0,0.12)]',
+        'group relative h-full overflow-hidden rounded-lg border bg-card p-6 transition-colors',
+        href && 'cursor-pointer hover:border-primary/40 focus-within:ring-2 focus-within:ring-ring',
         emphasis ? 'border-primary/40 ring-1 ring-primary/40' : 'border-border/60',
         className,
       )}
@@ -58,9 +58,9 @@ export function StatTile({
         )}
       </div>
 
-      <p className="mt-5 text-[15px] font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1.5 truncate text-3xl font-black tracking-tighter text-foreground">{value}</p>
-      {sub && <p className="mt-2 truncate text-sm font-medium text-muted-foreground/70">{sub}</p>}
+      <p className="mt-4 text-label font-semibold text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-2xl font-bold tracking-tight tabular-nums text-foreground">{value}</p>
+      {sub && <p className="mt-2 truncate text-label text-muted-foreground">{sub}</p>}
     </div>
   );
 

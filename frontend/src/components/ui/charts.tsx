@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils/cn';
 // Categorical palette - validated for the light surface (CVD normal-vision
 // floor ≥ 15, chroma floor met). Identity is always reinforced with a label,
 // which is what makes the floor band legal.
-export const SERIES = ['#0f9d6a', '#6366f1', '#f59e0b', '#f43f5e', '#06b6d4'] as const;
+export const SERIES = [1, 2, 3, 4, 5].map((n) => `hsl(var(--chart-${n}))`);
 
 const AXIS = 'hsl(var(--muted-foreground))';
 
@@ -55,11 +55,20 @@ export function BarChart({
   const max = Math.max(1, ...data.map((d) => d.value));
   const fmt = currency ? (v: number) => money(v, currency) : format;
 
-  if (data.length === 0) return <Empty height={height} />;
+  if (data.length === 0 || data.every((d) => d.value === 0)) return <Empty height={height} />;
 
   return (
     <div className={cn('relative', className)}>
-      <div className="flex items-end gap-1.5" style={{ height }}>
+      <div className="relative" style={{ height }}>
+        <div className="pointer-events-none absolute inset-0 flex flex-col justify-between" aria-hidden>
+          {[max, max / 2, 0].map((v, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="w-10 shrink-0 text-end text-xs tabular-nums text-muted-foreground">{compact(v, currency)}</span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          ))}
+        </div>
+      <div className="absolute inset-y-0 end-0 start-12 flex items-end gap-1.5">
         {data.map((d, i) => {
           const h = Math.max((d.value / max) * 100, d.value > 0 ? 2 : 0);
           const on = hover === i;
@@ -70,6 +79,8 @@ export function BarChart({
               style={{ height: '100%' }}
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
+              onFocus={() => setHover(i)}
+              onBlur={() => setHover(null)}
               aria-label={`${d.label}: ${fmt(d.value)}`}
             >
               <span
@@ -88,9 +99,10 @@ export function BarChart({
           );
         })}
       </div>
-      <div className="mt-2 flex gap-1.5">
+      </div>
+      <div className="mt-2 flex gap-1.5 ps-12">
         {data.map((d, i) => (
-          <span key={i} className="flex-1 truncate text-center text-[10px] tabular-nums text-muted-foreground">
+          <span key={i} className="flex-1 truncate text-center text-xs tabular-nums text-muted-foreground">
             {d.label}
           </span>
         ))}
@@ -233,7 +245,7 @@ export function Donut({
                 ? money(total, currency)
                 : total}
           </span>
-          <span className="max-w-[70%] truncate text-[11px] text-muted-foreground">
+          <span className="max-w-[70%] truncate text-xs text-muted-foreground">
             {hover != null ? data[hover].label : 'Total'}
           </span>
         </div>
@@ -289,6 +301,13 @@ export function Sparkline({ data, className }: { data: number[]; className?: str
       />
     </svg>
   );
+}
+
+/** Axis labels: short, e.g. 1.2k or $3k. */
+function compact(v: number, currency?: string): string {
+  const n = currency ? v / 100 : v;
+  const s = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(Math.round(n * 10) / 10);
+  return currency ? new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(0).replace(/0/, s) : s;
 }
 
 function Empty({ height }: { height: number }) {

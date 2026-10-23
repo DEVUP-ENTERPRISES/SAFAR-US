@@ -28,7 +28,7 @@ export const CONTROL_PADDING: Record<ControlSize, string> = {
 
 /** Border, fill, focus ring - everything except size. */
 export const CONTROL_SURFACE = cn(
-  'w-full rounded-xl border border-input/60 bg-muted/30 font-medium shadow-sm transition-all',
+  'w-full rounded-sm border border-input bg-muted/30 font-medium transition-colors',
   'placeholder:text-muted-foreground/70',
   'focus-visible:outline-none focus-visible:border-primary/50 focus-visible:bg-background',
   'focus-visible:ring-[4px] focus-visible:ring-primary/10',

@@ -27,7 +27,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center rounded-2xl border border-border/70 bg-card/40 px-6 py-16 text-center',
+        'flex flex-col items-center justify-center rounded-lg border border-border bg-card/40 px-6 py-16 text-center',
         className,
       )}
     >
@@ -55,7 +55,7 @@ export function ErrorState({ message, retry }: { message: string; retry?: () => 
   return (
     <div
       role="alert"
-      className="flex flex-col items-center justify-center rounded-2xl border border-destructive/25 bg-destructive/5 px-6 py-16 text-center"
+      className="flex flex-col items-center justify-center rounded-lg border border-destructive/25 bg-destructive/5 px-6 py-16 text-center"
     >
       <div className="relative grid h-16 w-16 place-items-center">
         <span className="absolute inset-0 rounded-full bg-destructive/10" />
