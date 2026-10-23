@@ -48,6 +48,12 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Sticky bars below the header (search filters) read this to move up when the header slides away.
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-nav-hidden', hidden && !mobileMenuOpen);
+    return () => document.documentElement.removeAttribute('data-nav-hidden');
+  }, [hidden, mobileMenuOpen]);
+
   // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);

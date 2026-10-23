@@ -278,7 +278,7 @@ function SearchInner() {
       </div>
 
       {/* ── Filter pills + view toggle ────────────────────────────────── */}
-      <div className="sticky top-16 z-30 -mx-4 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6">
+      <div className="sticky top-16 z-30 -mx-4 border-b border-border bg-background px-4 py-3 transition-[top] duration-300 sm:-mx-6 sm:px-6 [[data-nav-hidden]_&]:top-0">
         <div className="flex items-center gap-2">
           <div className="hide-scrollbar flex flex-1 items-center gap-2 overflow-x-auto">
             {/* All filters */}
