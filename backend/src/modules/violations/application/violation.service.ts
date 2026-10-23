@@ -208,13 +208,18 @@ export class ViolationService {
     return ViolationModel.find({ bookingId, deletedAt: null }).sort({ createdAt: -1 }).lean<ViolationDoc[]>();
   }
 
-  async adminList(opts: { status?: string; limit?: number } = {}): Promise<ViolationDoc[]> {
+  async adminList(opts: { status?: string; limit?: number; skip?: number } = {}): Promise<{ items: ViolationDoc[]; total: number }> {
     const filter: Record<string, unknown> = { deletedAt: null };
     if (opts.status) filter.status = opts.status;
-    return ViolationModel.find(filter)
-      .sort({ createdAt: -1 })
-      .limit(Math.min(opts.limit ?? 50, 100))
-      .lean<ViolationDoc[]>();
+    const [items, total] = await Promise.all([
+      ViolationModel.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(Math.max(0, opts.skip ?? 0))
+        .limit(Math.min(opts.limit ?? 50, 100))
+        .lean<ViolationDoc[]>(),
+      ViolationModel.countDocuments(filter),
+    ]);
+    return { items, total };
   }
 
   private async getDoc(id: string): Promise<ViolationDoc> {

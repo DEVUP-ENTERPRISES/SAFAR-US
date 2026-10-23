@@ -19,13 +19,12 @@ router.get(
   '/violations',
   authorize('claim:manage'),
   asyncHandler(async (req, res) => {
-    sendSuccess(
-      res,
-      await violationService.adminList({
-        status: req.query.status as string,
-        limit: req.query.limit ? Number(req.query.limit) : undefined,
-      }),
-    );
+    const result = await violationService.adminList({
+      status: req.query.status as string,
+      limit: req.query.limit ? Number(req.query.limit) : undefined,
+      skip: req.query.skip ? Number(req.query.skip) : undefined,
+    });
+    sendSuccess(res, result.items, 200, { total: result.total });
   }),
 );
 
