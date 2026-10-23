@@ -15,7 +15,7 @@ export default function CaptainQueuePage() {
     queryFn: () => captainApi.queue(),
   });
 
-  if (isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (isError) {
     return <ErrorState message="Couldn't load your queue. Check your connection and try again." retry={() => refetch()} />;
   }
@@ -26,7 +26,7 @@ export default function CaptainQueuePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+        <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <ShieldCheck className="h-6 w-6" />
         </span>
         <div>

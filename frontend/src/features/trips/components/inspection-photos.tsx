@@ -59,7 +59,7 @@ export function InspectionPhotos({
     }
   }, [openSignal, canShoot, nextAngle]);
 
-  if (isLoading || !state || !win) return <Skeleton className="h-40 w-full rounded-2xl" />;
+  if (isLoading || !state || !win) return <Skeleton className="h-40 w-full rounded-lg" />;
 
   const angle = angles.find((a) => a.id === angleId);
   // Photos under an angle this guide no longer lists (from an older app version) stay visible.
@@ -159,7 +159,7 @@ export function InspectionPhotos({
                       disabled={!canAdd}
                       onClick={() => setAngleId(a.id)}
                       className={cn(
-                        'flex flex-col rounded-2xl border bg-card p-3 text-left transition-colors',
+                        'flex flex-col rounded-lg border bg-card p-3 text-left transition-colors',
                         done ? 'border-success/50' : 'border-border',
                         canAdd ? 'hover:border-primary/50' : 'cursor-default',
                       )}
@@ -168,7 +168,7 @@ export function InspectionPhotos({
                         <Camera className="h-4 w-4 text-muted-foreground" />
                         <span
                           className={cn(
-                            'flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold',
+                            'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold',
                             done ? 'bg-success text-white' : 'bg-muted text-muted-foreground',
                           )}
                         >
@@ -183,15 +183,15 @@ export function InspectionPhotos({
                           <ShotDiagram angle={a.id} className="h-full w-full text-muted-foreground" />
                         )}
                         {(need !== 1 && shots.length > 0) && (
-                          <span className="absolute bottom-1.5 end-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">
+                          <span className="absolute bottom-1.5 end-1.5 rounded-full bg-black/70 px-2 py-0.5 text-xs font-bold text-white">
                             {need > 0 ? `${shots.length} of ${need}` : `${shots.length} taken`}
                           </span>
                         )}
                       </div>
                       <span className="text-[15px] font-bold leading-snug">{a.label}</span>
                       {a.hint && <span className="mt-0.5 text-xs leading-snug text-muted-foreground">{a.hint}</span>}
-                      {cover && <span className="mt-1 text-[11px] font-semibold text-success">{cover.role === 'host' ? 'Host' : 'Guest'} photo</span>}
-                      {need === 0 && !shots.length && <span className="mt-1 text-[11px] font-semibold text-muted-foreground">Only if the car has marks</span>}
+                      {cover && <span className="mt-1 text-xs font-semibold text-success">{cover.role === 'host' ? 'Host' : 'Guest'} photo</span>}
+                      {need === 0 && !shots.length && <span className="mt-1 text-xs font-semibold text-muted-foreground">Only if the car has marks</span>}
                     </button>
                   );
                 })}

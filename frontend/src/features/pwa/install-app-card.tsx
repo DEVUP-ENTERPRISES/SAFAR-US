@@ -14,10 +14,10 @@ export function InstallAppCard() {
   if (!ready || state === 'installed') return null;
 
   return (
-    <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 sm:p-8">
+    <section className="rounded-lg border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div className="flex min-w-0 items-start gap-4">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
             <Smartphone className="h-6 w-6" />
           </span>
           <div className="min-w-0">

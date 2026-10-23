@@ -12,7 +12,7 @@ const POINTS = [
 export default function EntryLayout({ children }: { children: ReactNode }) {
   return (
     <div className="grid w-full grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-14">
-      <section className="hidden rounded-3xl bg-gradient-to-br from-primary/15 via-background to-background p-10 lg:block">
+      <section className="hidden rounded-lg bg-gradient-to-br from-primary/15 via-background to-background p-10 lg:block">
         <div className="flex items-center gap-3">
           <Logo className="h-11 w-11" />
           <span className="display text-2xl">CatoDrive</span>

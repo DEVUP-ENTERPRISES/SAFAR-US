@@ -36,7 +36,7 @@ export function TripQuotes({ className }: { className?: string }) {
 
   return (
     <div
-      className={cn('relative mt-3 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/15 via-primary/5 to-amber-400/10 px-4 py-3.5', className)}
+      className={cn('relative mt-3 overflow-hidden rounded-lg border border-primary/20 bg-gradient-to-br from-primary/15 via-primary/5 to-amber-400/10 px-4 py-3.5', className)}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       aria-live="polite"

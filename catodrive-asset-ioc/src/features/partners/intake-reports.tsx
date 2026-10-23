@@ -120,7 +120,7 @@ export function IntakeReports({ partnerId, applications }: { partnerId: string; 
       </CardHeader>
       <CardContent className="space-y-4">
         {open && (
-          <div className="space-y-4 rounded-2xl border border-border p-4">
+          <div className="space-y-4 rounded-lg border border-border p-4">
             {approved.length > 0 && (
               <Field label="Car">
                 <Select value={appId} onChange={(e) => setAppId(e.target.value)}>
@@ -174,7 +174,7 @@ export function IntakeReports({ partnerId, applications }: { partnerId: string; 
         {list.isLoading && <Skeleton className="h-20 w-full" />}
         {list.isError && <ErrorState message="We couldn’t load intake reports." retry={() => void list.refetch()} />}
         {list.data?.length ? (
-          <div className="divide-y divide-border rounded-2xl border border-border">
+          <div className="divide-y divide-border rounded-lg border border-border">
             {list.data.map((r) => (
               <div key={r._id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">

@@ -142,10 +142,10 @@ export function InstallPrompt() {
       <div
         role="dialog"
         aria-label="Install CatoDrive"
-        className="animate-slide-up w-full max-w-[24rem] overflow-hidden rounded-2xl bg-[#17130f] text-white shadow-2xl shadow-black/50 ring-1 ring-white/10"
+        className="animate-slide-up w-full max-w-[24rem] overflow-hidden rounded-lg bg-[#17130f] text-white ring-1 ring-white/10"
       >
         <div className="flex items-center gap-3.5 px-4 pt-4">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[0.85rem] bg-black/50 ring-1 ring-white/10">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-black/50 ring-1 ring-white/10">
             <Logo className="h-8 w-8" />
           </span>
           <div className="min-w-0 flex-1">

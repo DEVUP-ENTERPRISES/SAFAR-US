@@ -63,7 +63,7 @@ export default function PricingDiscountsPage() {
     onError: (e) => notify({ tone: 'error', title: 'Could not save pricing', description: e instanceof ApiError ? e.message : 'Please try again.' }),
   });
 
-  if (vPending || pPending) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (vPending || pPending) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (vError || !v) return <ErrorState message="Couldn't load this vehicle." retry={() => refetchV()} />;
   if (pError || !preview) return <ErrorState message="Couldn't load pricing." retry={() => refetchP()} />;
 
@@ -119,8 +119,8 @@ export default function PricingDiscountsPage() {
                           'h-1.5 flex-1 rounded-full',
                           i <= rating
                             ? rating >= 3
-                              ? 'bg-emerald-500'
-                              : 'bg-amber-500'
+                              ? 'bg-success'
+                              : 'bg-warning'
                             : 'bg-muted',
                         )}
                       />

@@ -1,5 +1,6 @@
 'use client';
 
+import { useDebouncedValue } from '@/lib/utils/use-debounced-value';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, Search } from 'lucide-react';
@@ -16,10 +17,11 @@ export function LocationSearch({ onPick, placeholder = 'Search a city or place',
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
+  const term = useDebouncedValue(q.trim());
   const suggestions = useQuery({
-    queryKey: ['ac', q],
-    queryFn: () => mapsApi.autocomplete(q),
-    enabled: q.length >= 2,
+    queryKey: ['ac', term],
+    queryFn: () => mapsApi.autocomplete(term),
+    enabled: term.length >= 2,
   });
 
   useEffect(() => {

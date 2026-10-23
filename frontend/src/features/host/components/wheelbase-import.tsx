@@ -71,7 +71,7 @@ export function WheelbaseImport() {
             <ul className="divide-y divide-border rounded-xl border border-border">
               {preview.rows.map((r) => (
                 <li key={r.listingId} className="flex flex-wrap items-start gap-3 p-3 text-sm">
-                  {r.action === 'update' ? <CheckCircle2 className="mt-0.5 h-4 w-4 text-success" /> : r.action === 'create' ? <PlusCircle className="mt-0.5 h-4 w-4 text-primary" /> : <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600" />}
+                  {r.action === 'update' ? <CheckCircle2 className="mt-0.5 h-4 w-4 text-success" /> : r.action === 'create' ? <PlusCircle className="mt-0.5 h-4 w-4 text-primary" /> : <AlertTriangle className="mt-0.5 h-4 w-4 text-warning" />}
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">
                       {r.name}
@@ -83,7 +83,7 @@ export function WheelbaseImport() {
                       </p>
                     ))}
                     {r.action === 'create' && <p className="text-xs text-muted-foreground">Not on CatoDrive yet: a new draft will be created.</p>}
-                    {r.note && <p className="text-xs text-amber-700 dark:text-amber-400">{r.note}</p>}
+                    {r.note && <p className="text-xs text-warning">{r.note}</p>}
                   </div>
                 </li>
               ))}

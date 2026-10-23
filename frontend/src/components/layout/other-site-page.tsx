@@ -22,5 +22,5 @@ export function OtherSitePage({ site, path }: { site: Site; path: string[] }) {
     if (target) void goToSite(target, `${full}${window.location.search}`);
   }, [target, full]);
   if (!target) notFound();
-  return <Skeleton className="mx-auto mt-10 h-32 max-w-md rounded-2xl" />;
+  return <Skeleton className="mx-auto mt-10 h-32 max-w-md rounded-lg" />;
 }

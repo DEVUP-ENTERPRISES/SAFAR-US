@@ -19,7 +19,7 @@ function PartnerRouter() {
   }, [target, router]);
 
   if (q.isError) return <ErrorState message="We couldn’t load your account." retry={() => q.refetch()} />;
-  return <Skeleton className="h-48 w-full rounded-2xl" />;
+  return <Skeleton className="h-48 w-full rounded-lg" />;
 }
 
 export default function PartnerHome() {

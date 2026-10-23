@@ -159,7 +159,7 @@ export default function AssetCarsPage() {
       </div>
 
       {q.isLoading ? (
-        <Skeleton className="h-72 w-full rounded-2xl" />
+        <Skeleton className="h-72 w-full rounded-lg" />
       ) : q.isError ? (
         <ErrorState message="We couldn’t load the cars." retry={() => q.refetch()} />
       ) : !rows.length ? (

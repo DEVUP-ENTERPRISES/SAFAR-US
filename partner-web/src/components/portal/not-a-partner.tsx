@@ -10,7 +10,7 @@ export function NotAPartner() {
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-        <span className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+        <span className="grid h-14 w-14 place-items-center rounded-lg bg-primary/10 text-primary">
           <Car className="h-7 w-7" />
         </span>
         <div>

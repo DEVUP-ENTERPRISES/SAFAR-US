@@ -12,7 +12,7 @@ type Filters = Record<string, string | number | boolean | undefined>;
  * uses: skip/limit with a total, and a "next cursor". Changing a filter goes
  * back to page 1; the previous rows stay on screen while the next page loads.
  */
-export function useAdminList<T extends { _id: string }>(path: string, filters: Filters = {}, pageSize = 25) {
+export function useAdminList<T>(path: string, filters: Filters = {}, pageSize = 25) {
   const [page, setPage] = useState(0);
   const [cursors, setCursors] = useState<(string | null)[]>([null]);
   const filterKey = JSON.stringify(filters);

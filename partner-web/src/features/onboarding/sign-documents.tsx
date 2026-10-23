@@ -32,7 +32,7 @@ function DocumentText({ doc, values, read, onRead }: { doc: SignableDocument; va
     <div>
       <article
         ref={box}
-        className="max-h-[26rem] overflow-y-auto rounded-2xl border border-border bg-muted/30 p-4 text-sm leading-relaxed sm:p-5"
+        className="max-h-[26rem] overflow-y-auto rounded-lg border border-border bg-muted/30 p-4 text-sm leading-relaxed sm:p-5"
         tabIndex={0}
         aria-label={doc.title}
         onScroll={(e) => {

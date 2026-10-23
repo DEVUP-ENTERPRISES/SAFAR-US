@@ -51,7 +51,7 @@ export function GuestIdentityCard({ bookingId }: { bookingId: string }) {
   const opensAt = new Date(s.opensAt).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
 
   return (
-    <div className="mt-6 space-y-4 rounded-2xl border border-border bg-card p-5">
+    <div className="mt-6 space-y-4 rounded-lg border border-border bg-card p-5">
       <div className="flex items-start gap-3">
         <ScanFace className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
         <div className="min-w-0">
@@ -109,7 +109,7 @@ export function GuestIdentityCard({ bookingId }: { bookingId: string }) {
 
       {reporting && createPortal(
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-4 sm:items-center" role="dialog" aria-modal="true">
-          <div className="w-full max-w-md space-y-4 rounded-2xl bg-background p-5 shadow-xl">
+          <div className="w-full max-w-md space-y-4 rounded-lg bg-background p-5">
             <p className="text-lg font-semibold">Not the same person?</p>
             <p className="text-sm text-muted-foreground">The trip goes on hold and our team is alerted right away. Don’t hand over the keys until we confirm.</p>
             <Textarea rows={3} maxLength={300} placeholder="What didn’t match? (optional)" value={note} onChange={(e) => setNote(e.target.value)} />

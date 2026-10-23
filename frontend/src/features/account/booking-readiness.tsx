@@ -80,7 +80,7 @@ export function BookingReadiness({ className, hideWhenReady = true }: { classNam
   const other = q.data.messages.filter((_, i) => !['email_unverified', 'phone_unverified'].includes(b[i]) && !b[i].startsWith('identity_') && b[i] !== 'licence_expired');
 
   return (
-    <section className={cn('rounded-2xl border border-warning/40 bg-warning/5 p-5', className)}>
+    <section className={cn('rounded-lg border border-warning/40 bg-warning/5 p-5', className)}>
       <p className="font-bold">{q.data.eligible ? 'You are ready to drive' : 'Finish these to get your car'}</p>
       <p className="mt-0.5 text-sm text-muted-foreground">Your trip is held while you do. Each step takes under a minute.</p>
       <ol className="mt-4 space-y-4">

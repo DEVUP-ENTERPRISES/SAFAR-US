@@ -13,7 +13,7 @@ export function CompareBar() {
 
   return (
     <div className="fixed inset-x-0 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-4 lg:bottom-4">
-      <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2.5 shadow-lift">
+      <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2.5">
         <GitCompare className="h-5 w-5 text-primary" />
         <span className="text-sm font-medium">{ids.length} car{ids.length > 1 ? 's' : ''} to compare</span>
         <Button size="sm" disabled={ids.length < 2} onClick={() => router.push(`/compare?ids=${ids.join(',')}`)}>

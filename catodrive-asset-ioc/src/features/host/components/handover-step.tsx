@@ -33,7 +33,7 @@ export function HandoverStep({
     <section
       id={id}
       className={cn(
-        'scroll-mt-4 rounded-2xl border bg-card p-4',
+        'scroll-mt-4 rounded-lg border bg-card p-4',
         status === 'active' ? 'border-primary/50' : 'border-border',
         (locked || status === 'na') && 'bg-muted/30',
       )}
@@ -41,7 +41,7 @@ export function HandoverStep({
       <div className="flex items-center gap-3">
         <span
           className={cn(
-            'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold',
+            'grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold',
             status === 'done' && 'bg-success text-white',
             status === 'active' && 'bg-primary text-primary-foreground',
             (locked || status === 'na') && 'bg-muted text-muted-foreground',

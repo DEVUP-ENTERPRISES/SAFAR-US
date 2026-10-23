@@ -150,7 +150,7 @@ export default function AssetPartnersPage() {
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-8 flex flex-wrap gap-4 sm:mt-10">
-              <Link href="/asset-partners/apply" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
+              <Link href="/asset-partners/apply" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
                 Apply Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <a href="#numbers" className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10 sm:h-14 sm:px-7 sm:text-base">
@@ -220,7 +220,7 @@ export default function AssetPartnersPage() {
 
           <div className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_1fr]">
             <Reveal>
-              <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-card">
+              <div className="overflow-hidden rounded-lg border border-border bg-card">
                 <div className="divide-y divide-border px-6">
                   {ECONOMICS.map((e) => (
                     <div key={e.label} className="flex items-center justify-between py-3.5 text-sm">
@@ -241,7 +241,7 @@ export default function AssetPartnersPage() {
 
             <Reveal delay={100}>
               <div className="flex h-full flex-col gap-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
                   What partners actually earn, by vehicle
                 </p>
                 {TIERS.map((t) => (
@@ -261,7 +261,7 @@ export default function AssetPartnersPage() {
 
           <div className="mt-12 grid gap-4 lg:grid-cols-2">
             <Reveal>
-              <div className="h-full rounded-3xl border border-border bg-card p-7 shadow-card">
+              <div className="h-full rounded-lg border border-border bg-card p-7">
                 <ul className="space-y-3 text-sm text-foreground">
                   <li className="flex items-start gap-2.5">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-success" />
@@ -276,7 +276,7 @@ export default function AssetPartnersPage() {
                     <span><span className="font-semibold">Kia Sportage / Buick Envista</span> - conservative, ~$1,029/mo net</span>
                   </li>
                 </ul>
-                <div className="mt-6 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/15">
+                <div className="mt-6 rounded-lg bg-primary/5 p-4 ring-1 ring-primary/15">
                   <p className="text-xs font-bold uppercase tracking-wider text-primary">Sweet spot vehicles</p>
                   <p className="mt-1.5 text-sm text-muted-foreground">
                     AWD SUVs and crossovers, 5–7 seats, leather interiors, Apple CarPlay - 2018 or newer, under
@@ -287,8 +287,8 @@ export default function AssetPartnersPage() {
             </Reveal>
 
             <Reveal delay={100}>
-              <div className="h-full rounded-3xl border border-border bg-card p-7 shadow-card">
-                <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground">Fleet revenue growth</p>
+              <div className="h-full rounded-lg border border-border bg-card p-7">
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">Fleet revenue growth</p>
                 <div className="mt-4 flex items-end justify-between gap-4">
                   {GROWTH.map((g, i) => (
                     <div key={g.year} className="flex flex-1 flex-col items-center gap-2">
@@ -320,7 +320,7 @@ export default function AssetPartnersPage() {
           <div className="mt-12 grid gap-4 sm:grid-cols-2">
             {REQUIREMENTS.map((r, i) => (
               <Reveal key={r.label} delay={i * 60}>
-                <div className="flex items-start gap-3.5 rounded-2xl border border-border bg-card p-5 shadow-card">
+                <div className="flex items-start gap-3.5 rounded-lg border border-border bg-card p-5">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
                     <r.icon className="h-5 w-5" />
                   </span>
@@ -332,7 +332,7 @@ export default function AssetPartnersPage() {
               </Reveal>
             ))}
             <Reveal delay={REQUIREMENTS.length * 60}>
-              <div className="flex items-start gap-3.5 rounded-2xl border border-primary/20 bg-primary/5 p-5">
+              <div className="flex items-start gap-3.5 rounded-lg border border-primary/20 bg-primary/5 p-5">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
                   <Star className="h-5 w-5" />
                 </span>
@@ -359,7 +359,7 @@ export default function AssetPartnersPage() {
             <SectionEyebrow>Risk &amp; responsibility</SectionEyebrow>
             <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Every risk has an owner. Most of them are us.</h2>
           </Reveal>
-          <div className="mt-12 overflow-hidden rounded-3xl border border-border">
+          <div className="mt-12 overflow-hidden rounded-lg border border-border">
             {RISKS.map((r, i) => (
               <Reveal key={r.scenario} delay={i * 60}>
                 <RiskRow {...r} first={i === 0} />
@@ -389,7 +389,7 @@ export default function AssetPartnersPage() {
             <SectionEyebrow>Asset Partner FAQ</SectionEyebrow>
             <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Common questions from prospective partners.</h2>
           </Reveal>
-          <div className="mx-auto mt-12 max-w-3xl divide-y divide-border overflow-hidden rounded-3xl border border-border">
+          <div className="mx-auto mt-12 max-w-3xl divide-y divide-border overflow-hidden rounded-lg border border-border">
             {FAQ.map((f, i) => (
               <FaqRow key={f.q} {...f} defaultOpen={i === 0} />
             ))}
@@ -403,7 +403,7 @@ export default function AssetPartnersPage() {
             <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Talk to the partnerships team.</h2>
           </Reveal>
           <Reveal delay={80}>
-            <div className="mt-10 grid gap-px overflow-hidden rounded-3xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
               <ContactCell icon={Phone} label="Call / Text" value="(214) 814-0402" href="tel:+12148140402" />
               <ContactCell icon={Mail} label="Email" value="shoaib@catodrive.com" href="mailto:shoaib@catodrive.com" />
               <ContactCell icon={Clock} label="Response Time" value="We review every application and respond within 2–3 business days." />
@@ -419,7 +419,7 @@ export default function AssetPartnersPage() {
 
         {/* ── CLOSING CTA ────────────────────────────────────────────── */}
         <Reveal>
-          <section className="relative isolate overflow-hidden rounded-[2rem] px-5 py-16 text-center sm:px-12 sm:py-24">
+          <section className="relative isolate overflow-hidden rounded-lg px-5 py-16 text-center sm:px-12 sm:py-24">
             <Image
               src="/newsections/become_asset_partner.webp"
               alt=""
@@ -437,7 +437,7 @@ export default function AssetPartnersPage() {
                 List the vehicle you already own - {BRAND} does the rest.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-4">
-                <Link href="/asset-partners/apply" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
+                <Link href="/asset-partners/apply" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
                   Apply Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
@@ -455,7 +455,7 @@ function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label,
   prefix?: string; value: number; suffix?: string; decimals?: number; comma?: boolean; label: string; raw?: boolean;
 }) {
   return (
-    <div className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10 sm:p-6">
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card p-5 transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 sm:p-6">
       <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/10 blur-2xl transition-opacity duration-500 group-hover:opacity-80" />
       <p className="numeric text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
         {raw ? prefix : <>{prefix}<CountUp value={value} decimals={decimals} comma={comma} />{suffix}</>}
@@ -469,9 +469,9 @@ function StepRow({ n, icon: Icon, title, body, tag, last }: {
   n: string; icon: typeof Car; title: string; body: string; tag?: string; last: boolean;
 }) {
   return (
-    <div className="group relative flex gap-5 rounded-3xl border border-border bg-card p-6 shadow-card transition-all duration-500 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 sm:p-7">
+    <div className="group relative flex gap-5 rounded-lg border border-border bg-card p-6 transition-all duration-500 hover:border-primary/40 sm:p-7">
       <div className="relative flex flex-col items-center">
-        <span className="numeric flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-lg font-black text-primary-foreground shadow-lg shadow-primary/25">
+        <span className="numeric flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary text-lg font-black text-primary-foreground">
           {n}
         </span>
         {!last && <span className="mt-2 hidden w-px flex-1 bg-gradient-to-b from-primary/40 to-transparent sm:block" />}
@@ -498,7 +498,7 @@ function TierRow({ tier, amount, vehicles, tone }: { tier: string; amount: strin
     success: 'bg-success/10 text-success ring-1 ring-success/20',
   } as const;
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card px-5 py-4 shadow-card">
+    <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card px-5 py-4">
       <div>
         <p className="text-sm font-semibold text-foreground">{tier}</p>
         <p className="text-xs text-muted-foreground">{vehicles}</p>
@@ -524,7 +524,7 @@ function RiskRow({ scenario, detail, owner, first }: {
         className={`inline-flex shrink-0 items-center gap-1.5 self-start rounded-full px-3.5 py-1.5 text-xs font-bold sm:self-center ${
           isCato
             ? 'bg-success/10 text-success ring-1 ring-success/20'
-            : 'bg-amber-500/10 text-amber-600 ring-1 ring-amber-500/20 dark:text-amber-400'
+            : 'bg-warning/10 text-warning ring-1 ring-warning/20 dark:text-warning'
         }`}
       >
         <ShieldCheck className="h-3.5 w-3.5" /> {isCato ? `${BRAND} covers this` : 'Shared responsibility'}
@@ -543,7 +543,7 @@ function RiskRow({ scenario, detail, owner, first }: {
  */
 function AnswerCard({ q, a }: { q: string; a: string }) {
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-7 shadow-soft">
+    <div className="flex h-full flex-col rounded-lg border border-border bg-card p-7">
       <h3 className="text-base font-semibold text-foreground">{q}</h3>
       <p className="mt-3 flex-1 text-[15px] leading-relaxed text-muted-foreground">{a}</p>
     </div>

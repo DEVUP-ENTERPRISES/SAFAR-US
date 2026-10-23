@@ -365,7 +365,7 @@ export default function NewListingPage() {
                           onClick={() => set('photos', d.photos.map((x, j) => ({ ...x, isCover: j === i })))}
                           className="absolute inset-0 flex items-end justify-center bg-black/0 pb-2 opacity-0 transition-all hover:bg-black/35 hover:opacity-100 focus-visible:bg-black/35 focus-visible:opacity-100"
                         >
-                          <span className="rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-foreground">
+                          <span className="rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-foreground">
                             Make cover
                           </span>
                         </button>
@@ -387,7 +387,7 @@ export default function NewListingPage() {
                       </button>
 
                       {isCover && (
-                        <span className="pointer-events-none absolute bottom-1 start-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                        <span className="pointer-events-none absolute bottom-1 start-1 rounded bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground">
                           Cover
                         </span>
                       )}
@@ -489,7 +489,7 @@ export default function NewListingPage() {
           {step === 5 && (
             <div className="space-y-5">
               <div className="flex flex-col items-center gap-3 py-4 text-center">
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <span className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <ShieldCheck className="h-7 w-7" />
                 </span>
                 <h2 className="display text-xl">Safety &amp; quality standards</h2>

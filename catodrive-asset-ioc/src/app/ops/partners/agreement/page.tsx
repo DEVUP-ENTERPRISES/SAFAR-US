@@ -84,7 +84,7 @@ export default function PartnerAgreementPage() {
       <PartnersNav />
 
       {q.isLoading ? (
-        <Skeleton className="h-96 w-full rounded-2xl" />
+        <Skeleton className="h-96 w-full rounded-lg" />
       ) : q.isError ? (
         <ErrorState message="We couldn’t load the documents." retry={() => q.refetch()} />
       ) : (
@@ -130,7 +130,7 @@ export default function PartnerAgreementPage() {
                   {(placeholders.data ?? []).map((p) => (
                     <button key={p.key} type="button" onClick={() => insert(p.key)} className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-start text-sm hover:bg-accent">
                       <span className="min-w-0 truncate">{p.label}</span>
-                      <span className="flex shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground">
+                      <span className="flex shrink-0 items-center gap-1 font-mono text-xs text-muted-foreground">
                         {copied === p.key ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
                         {`{{${p.key}}}`}
                       </span>

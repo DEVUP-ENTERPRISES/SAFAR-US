@@ -53,7 +53,7 @@ export default function EarningsPage() {
       </div>
 
       {/* Instant payout */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card className="rounded-lg">
         <CardHeader><CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-primary" /> Instant payout</CardTitle></CardHeader>
         <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -98,7 +98,7 @@ export default function EarningsPage() {
         )}
       </Card>
 
-      <Card className="rounded-2xl shadow-soft">
+      <Card className="rounded-lg">
         <CardHeader><CardTitle>Revenue - last {data.monthly.length} months</CardTitle></CardHeader>
         <CardContent>
           <BarChart
@@ -120,7 +120,7 @@ export default function EarningsPage() {
               <div>
                 <p className="font-medium flex items-center gap-1.5">
                   {formatMoney({ amount: p.amount, currency: p.currency })}
-                  {p.instant && <span className="inline-flex items-center gap-0.5 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary"><Zap className="h-2.5 w-2.5" /> instant</span>}
+                  {p.instant && <span className="inline-flex items-center gap-0.5 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary"><Zap className="h-2.5 w-2.5" /> instant</span>}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {p.status === 'paid' && p.paidAt ? `Paid ${formatDate(p.paidAt)}` : `Scheduled ${formatDate(p.scheduledFor)}`}

@@ -51,7 +51,7 @@ function InquiryThreadScreen() {
                 <div key={m._id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
                   <div
                     className={cn(
-                      'max-w-[80%] rounded-2xl px-3.5 py-2 text-[14.5px]',
+                      'max-w-[80%] rounded-lg px-3.5 py-2 text-[14.5px]',
                       mine ? 'rounded-br-md bg-primary text-primary-foreground' : 'rounded-bl-md bg-muted text-foreground',
                     )}
                   >
@@ -76,7 +76,7 @@ function InquiryThreadScreen() {
               }
             }}
             placeholder="Reply…"
-            className="min-w-0 max-h-32 flex-1 resize-none rounded-2xl border border-border bg-background px-3.5 py-2 text-[14.5px] outline-none placeholder:text-muted-foreground"
+            className="min-w-0 max-h-32 flex-1 resize-none rounded-lg border border-border bg-background px-3.5 py-2 text-[14.5px] outline-none placeholder:text-muted-foreground"
           />
           <button
             onClick={submit}

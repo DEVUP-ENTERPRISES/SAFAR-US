@@ -73,8 +73,8 @@ export default function PartnerProfilePage() {
   if (dashLoading || me.isLoading) {
     return (
       <div className="space-y-6 py-8">
-        <Skeleton className="h-20 w-full rounded-2xl" />
-        <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-20 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
   }

@@ -70,7 +70,7 @@ export default function AboutPage() {
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-8 flex flex-wrap gap-4 sm:mt-10">
-              <Link href="/search" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
+              <Link href="/search" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
                 Book a car <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link href="/asset-partners" className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10 sm:h-14 sm:px-7 sm:text-base">
@@ -90,7 +90,7 @@ export default function AboutPage() {
           instead of squashing into a thin strip on small screens. */}
       <div className="relative z-10 mx-auto -mt-10 max-w-6xl px-4 sm:-mt-20 sm:px-6">
         <Reveal delay={300}>
-          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.75rem] border border-border shadow-2xl shadow-black/20 sm:aspect-[16/9] lg:aspect-[21/9]">
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-border sm:aspect-[16/9] lg:aspect-[21/9]">
             <Image
               src="/newsections/cato-hero-people.webp"
               alt="CatoDrive concierge delivering a car to a traveler at the terminal"
@@ -174,7 +174,7 @@ export default function AboutPage() {
               The owner never files a claim directly.
             </p>
           </Reveal>
-          <div className="mt-12 overflow-hidden rounded-3xl border border-border">
+          <div className="mt-12 overflow-hidden rounded-lg border border-border">
             {RISKS.map((r, i) => (
               <Reveal key={r.scenario} delay={i * 60}>
                 <RiskRow {...r} first={i === 0} />
@@ -185,7 +185,7 @@ export default function AboutPage() {
 
         {/* ── CLOSING CTA (image background) ─────────────────────────── */}
         <Reveal>
-          <section className="relative isolate overflow-hidden rounded-[2rem] px-5 py-16 text-center sm:px-12 sm:py-24">
+          <section className="relative isolate overflow-hidden rounded-lg px-5 py-16 text-center sm:px-12 sm:py-24">
             <Image
               src="/newsections/become_asset_partner.webp"
               alt=""
@@ -203,7 +203,7 @@ export default function AboutPage() {
                 List the vehicle you already own, or book a car delivered to your terminal. Either way, {BRAND} does the work.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-3">
-                <Link href="/asset-partners" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
+                <Link href="/asset-partners" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
                   Become an Asset Partner <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
                 <Link href="/search" className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-6 py-3 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/20 sm:h-14 sm:px-7 sm:text-base">
@@ -222,11 +222,11 @@ export default function AboutPage() {
 
 function FrameCard({ n, icon: Icon, title, body }: { n: string; icon: typeof Car; title: string; body: string }) {
   return (
-    <article className="group relative h-full overflow-hidden rounded-3xl border border-border bg-card p-7 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10">
+    <article className="group relative h-full overflow-hidden rounded-lg border border-border bg-card p-7 transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40">
       <span className="numeric pointer-events-none absolute -right-2 -top-5 text-[7rem] font-black leading-none text-foreground/[0.04] transition-colors duration-500 group-hover:text-primary/10">
         {n}
       </span>
-      <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
+      <span className="relative flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
         <Icon className="h-6 w-6" />
       </span>
       <h3 className="display relative mt-5 text-xl">{title}</h3>
@@ -239,9 +239,9 @@ function StepRow({ n, icon: Icon, title, body, tag, last }: {
   n: string; icon: typeof Car; title: string; body: string; tag: string; last: boolean;
 }) {
   return (
-    <div className="group relative flex gap-5 rounded-3xl border border-border bg-card p-6 shadow-card transition-all duration-500 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 sm:p-7">
+    <div className="group relative flex gap-5 rounded-lg border border-border bg-card p-6 transition-all duration-500 hover:border-primary/40 sm:p-7">
       <div className="relative flex flex-col items-center">
-        <span className="numeric flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-lg font-black text-primary-foreground shadow-lg shadow-primary/25">
+        <span className="numeric flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary text-lg font-black text-primary-foreground">
           {n}
         </span>
         {!last && <span className="mt-2 hidden w-px flex-1 bg-gradient-to-b from-primary/40 to-transparent sm:block" />}
@@ -273,7 +273,7 @@ function RiskRow({ scenario, detail, owner, first }: {
         className={`inline-flex shrink-0 items-center gap-1.5 self-start rounded-full px-3.5 py-1.5 text-xs font-bold sm:self-center ${
           isCato
             ? 'bg-success/10 text-success ring-1 ring-success/20'
-            : 'bg-amber-500/10 text-amber-600 ring-1 ring-amber-500/20 dark:text-amber-400'
+            : 'bg-warning/10 text-warning ring-1 ring-warning/20 dark:text-warning'
         }`}
       >
         <ShieldCheck className="h-3.5 w-3.5" /> {isCato ? `${BRAND} covers this` : 'Owner’s cost'}

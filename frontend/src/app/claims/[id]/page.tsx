@@ -23,7 +23,7 @@ function ClaimDetail() {
     queryFn: () => claimsApi.get(id),
   });
 
-  if (isLoading) return <Skeleton className="h-[60vh] w-full rounded-2xl" />;
+  if (isLoading) return <Skeleton className="h-[60vh] w-full rounded-lg" />;
   if (isError || !c) return <ErrorState message="Claim not found." />;
 
   const photos = c.evidence.filter((e) => e.kind === 'image');

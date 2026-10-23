@@ -240,8 +240,8 @@ export function AvailabilityCalendar({
                 }
                 className={cn(
                   'flex h-11 flex-col items-center justify-center rounded-lg border text-sm transition-all sm:h-12 sm:rounded-xl',
-                  open && !marked && 'border-border bg-card hover:border-primary hover:shadow-sm',
-                  marked && 'border-primary bg-primary text-primary-foreground shadow-sm',
+                  open && !marked && 'border-border bg-card hover:border-primary',
+                  marked && 'border-primary bg-primary text-primary-foreground',
                   d.state === 'past' && 'border-transparent text-muted-foreground/35',
                   d.state === 'booked' && 'border-transparent bg-muted/70 text-muted-foreground/60 line-through',
                   // Free but unusable reads as a warning, not as availability.

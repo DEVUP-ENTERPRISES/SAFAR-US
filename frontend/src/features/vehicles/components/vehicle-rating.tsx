@@ -29,7 +29,7 @@ export function VehicleRating({ vehicle, className }: { vehicle: RatingFields; c
 
 export function FleetBadge({ className }: { className?: string }) {
   return (
-    <span className={cn('inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-primary', className)}>
+    <span className={cn('inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold tracking-wide text-primary', className)}>
       <ShieldCheck className="h-3.5 w-3.5" /> CatoDrive Fleet
     </span>
   );

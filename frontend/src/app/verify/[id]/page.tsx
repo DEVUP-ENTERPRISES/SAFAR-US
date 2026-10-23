@@ -35,9 +35,9 @@ export default function VerifyReceiptPage() {
       {isError && !data ? (
           <ErrorState message="We couldn’t check this receipt." retry={() => void refetch()} />
         ) : isLoading ? (
-        <Skeleton className="h-72 w-full rounded-3xl" />
+        <Skeleton className="h-72 w-full rounded-lg" />
       ) : data?.valid ? (
-        <div className="w-full overflow-hidden rounded-3xl border border-border bg-card shadow-xl shadow-black/5">
+        <div className="w-full overflow-hidden rounded-lg border border-border bg-card">
           <div className="flex flex-col items-center gap-2 border-b border-border bg-success/5 px-6 py-8">
             <BadgeCheck className="h-14 w-14 text-success" />
             <p className="text-lg font-bold text-foreground">Genuine receipt</p>
@@ -62,7 +62,7 @@ export default function VerifyReceiptPage() {
           </dl>
         </div>
       ) : (
-        <div className="w-full rounded-3xl border border-border bg-card px-6 py-10 shadow-xl shadow-black/5">
+        <div className="w-full rounded-lg border border-border bg-card px-6 py-10">
           <XCircle className="mx-auto h-14 w-14 text-destructive" />
           <p className="mt-3 text-lg font-bold">Receipt not found</p>
           <p className="mt-1 text-sm text-muted-foreground">

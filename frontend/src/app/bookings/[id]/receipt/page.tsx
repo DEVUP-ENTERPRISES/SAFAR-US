@@ -26,7 +26,7 @@ function Line({ label, value, muted, strong }: { label: string; value: string; m
 function ReceiptCard({ r, currency, paid, hidden, onPrint }: { r: ReceiptData; currency: string; paid: boolean; hidden: boolean; onPrint: () => void }) {
   const m = (amount: number) => formatMoney({ amount: Math.abs(amount), currency });
   return (
-    <div id={r.receiptNo} className={`overflow-hidden rounded-2xl border border-border bg-card print:break-inside-avoid ${hidden ? 'print:hidden' : ''}`}>
+    <div id={r.receiptNo} className={`overflow-hidden rounded-lg border border-border bg-card print:break-inside-avoid ${hidden ? 'print:hidden' : ''}`}>
       <div className="border-b border-border bg-subtle px-6 py-5">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -72,7 +72,7 @@ function Receipt() {
     enabled: !!b?.vehicleId,
   });
 
-  if (booking.isLoading || receipts.isLoading) return <Skeleton className="h-[70vh] w-full rounded-2xl" />;
+  if (booking.isLoading || receipts.isLoading) return <Skeleton className="h-[70vh] w-full rounded-lg" />;
   if (booking.isError || receipts.isError || !b || !receipts.data) return <ErrorState message="Booking not found." />;
 
   const { receipts: list, summary, currency } = receipts.data;
@@ -100,7 +100,7 @@ function Receipt() {
         </Button>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card px-6 py-5">
+      <div className="rounded-lg border border-border bg-card px-6 py-5">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Booking</p>
@@ -121,7 +121,7 @@ function Receipt() {
 
       {/* The whole trip in one place: every receipt above adds up to this total. */}
       {list.length > 1 && (
-        <div className={`overflow-hidden rounded-2xl border border-border bg-card px-6 py-2 ${only !== null ? 'print:hidden' : ''}`}>
+        <div className={`overflow-hidden rounded-lg border border-border bg-card px-6 py-2 ${only !== null ? 'print:hidden' : ''}`}>
           <p className="pt-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Final summary · {summary.days} days</p>
           {list.map((r) => (
             <Line key={r.receiptNo} label={`${r.receiptNo} · ${r.kind === 'original' ? 'Original booking' : 'Extension'}`} value={formatMoney(r.total)} muted />
@@ -133,7 +133,7 @@ function Receipt() {
       )}
 
       {(pb.surgeDays || pb.delivery?.amount || (pb.memberSavings && pb.memberSavings.amount > 0)) && (
-        <div className="rounded-2xl border border-border bg-subtle px-6 py-4 text-xs text-muted-foreground">
+        <div className="rounded-lg border border-border bg-subtle px-6 py-4 text-xs text-muted-foreground">
           {pb.surgeDays ? (
             <p>Demand pricing applied on {pb.surgeDays} day{pb.surgeDays === 1 ? '' : 's'}{pb.surgeSource && pb.surgeSource !== 'none' ? ` (${pb.surgeSource})` : ''}.</p>
           ) : null}

@@ -102,7 +102,7 @@ export function Navbar() {
         {pathname !== '/' && !isSearch && (
           <Link
             href="/search"
-            className="hidden flex-1 items-center gap-2 rounded-full border border-border/50 bg-background/40 px-4 py-1.5 text-sm text-muted-foreground shadow-sm transition-all hover:bg-background/80 hover:shadow-md md:flex md:max-w-xs"
+            className="hidden flex-1 items-center gap-2 rounded-full border border-border/50 bg-background/40 px-4 py-1.5 text-sm text-muted-foreground transition-all hover:bg-background/80 md:flex md:max-w-xs"
           >
             <Search className="h-4 w-4 text-primary" />
             <span className="font-medium">Search cars</span>
@@ -184,7 +184,7 @@ export function Navbar() {
               {/* One entry point, not two - /login itself offers "New to CatoDrive?
                   Sign up" for anyone who isn't a returning user yet. */}
               <Link href="/login">
-                <Button size="sm" className="rounded-full px-5 font-semibold shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5">Log in</Button>
+                <Button size="sm" className="rounded-full px-5 font-semibold transition-transform hover:-translate-y-0.5">Log in</Button>
               </Link>
             </div>
           )}

@@ -98,7 +98,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {/* Brand */}
         <div className="relative z-10 flex items-center p-10">
           <Link href="/" className="flex items-center gap-2.5 text-white transition-transform hover:scale-105">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white p-1 shadow-lg">
+            <span className="grid h-11 w-11 place-items-center rounded-lg bg-white p-1">
               <Logo className="h-9 w-9" />
             </span>
             <span className="display text-2xl tracking-tight">{config.appName}</span>

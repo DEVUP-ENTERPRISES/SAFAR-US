@@ -41,7 +41,7 @@ function AcceptInner() {
   });
 
   if (!token) return <ErrorState message="This link is missing its invite code. Open the link from your email again." />;
-  if (preview.isPending) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (preview.isPending) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (preview.isError) {
     return (
       <ErrorState
@@ -64,7 +64,7 @@ function AcceptInner() {
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center py-8">
       <div className="mb-6 flex flex-col items-center gap-3 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+        <span className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <ShieldCheck className="h-7 w-7" />
         </span>
         <div>
@@ -168,7 +168,7 @@ function AcceptInner() {
 
 export default function AcceptInvitePage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 w-full rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
       <AcceptInner />
     </Suspense>
   );

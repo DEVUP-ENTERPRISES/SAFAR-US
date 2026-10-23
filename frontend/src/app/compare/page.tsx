@@ -38,12 +38,12 @@ function renderValue(val: CompareValue): React.ReactNode {
         {val.tags.map((f) => (
           <span
             key={f}
-            className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-foreground"
+            className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-xs font-medium text-foreground"
           >
             {f}
           </span>
         ))}
-        {val.more > 0 && <span className="text-[11px] text-muted-foreground">+{val.more} more</span>}
+        {val.more > 0 && <span className="text-xs text-muted-foreground">+{val.more} more</span>}
       </div>
     );
   }
@@ -80,7 +80,7 @@ function CompareInner() {
     return (
       <div className="space-y-4">
         <Skeleton className="h-10 w-48 rounded-xl" />
-        <Skeleton className="h-[600px] w-full rounded-2xl" />
+        <Skeleton className="h-[600px] w-full rounded-lg" />
       </div>
     );
   }
@@ -114,7 +114,7 @@ function CompareInner() {
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
 
@@ -200,7 +200,7 @@ function CompareInner() {
                     <Link href={`/vehicles/${c._id}`}>
                       <Button
                         size="lg"
-                        className="w-full rounded-xl font-bold shadow-sm"
+                        className="w-full rounded-xl font-bold"
                       >
                         Book this car
                       </Button>
@@ -218,7 +218,7 @@ function CompareInner() {
 
 export default function ComparePage() {
   return (
-    <Suspense fallback={<Skeleton className="h-[600px] w-full rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-[600px] w-full rounded-lg" />}>
       <CompareInner />
     </Suspense>
   );

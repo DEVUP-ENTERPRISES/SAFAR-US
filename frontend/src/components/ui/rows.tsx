@@ -25,7 +25,7 @@ export function SectionLabel({ children, className }: { children: ReactNode; cla
 /** A group of rows with hairline dividers, on a card surface. */
 export function RowGroup({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('overflow-hidden rounded-2xl border border-border bg-card', className)}>
+    <div className={cn('overflow-hidden rounded-lg border border-border bg-card', className)}>
       <div className="divide-y divide-border">{children}</div>
     </div>
   );
@@ -160,16 +160,16 @@ export function ActionSheet({
 /** Trip timing pill: green = starting, red = ending, muted = ended. */
 export function StatusPill({ tone, children }: { tone: 'start' | 'end' | 'done' | 'live' | 'complete' | 'off' | 'warn'; children: ReactNode }) {
   const tones: Record<string, string> = {
-    start: 'bg-success/15 text-success dark:bg-success/20 dark:text-success',
-    end: 'bg-destructive/15 text-destructive dark:bg-[#451a1a] dark:text-[#ff6b6b]',
+    start: 'bg-success/15 text-success',
+    end: 'bg-destructive/15 text-destructive',
     live: 'bg-primary/15 text-primary',
     done: 'text-muted-foreground',
-    complete: 'bg-success/15 text-success dark:bg-success/20 dark:text-success',
+    complete: 'bg-success/15 text-success',
     off: 'bg-muted text-muted-foreground',
     warn: 'bg-warning/15 text-warning-foreground dark:text-warning',
   };
   return (
-    <span className={cn('inline-flex rounded-[6px] px-2.5 py-1 text-[13px] font-bold tracking-wide', tones[tone])}>
+    <span className={cn('inline-flex rounded-sm px-2.5 py-1 text-[13px] font-bold tracking-wide', tones[tone])}>
       {children}
     </span>
   );

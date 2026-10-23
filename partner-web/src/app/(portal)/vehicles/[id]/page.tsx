@@ -40,8 +40,8 @@ export default function PartnerVehicleDetailPage({
   if (isLoading) {
     return (
       <div className="space-y-6 py-8">
-        <Skeleton className="h-52 w-full rounded-2xl" />
-        <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-52 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
   }

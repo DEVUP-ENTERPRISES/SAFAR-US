@@ -77,7 +77,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
         </span>
         <div>
           <p className="text-sm font-bold leading-tight">Messages</p>
-          <p className="text-[11px] text-muted-foreground">Private to this trip</p>
+          <p className="text-xs text-muted-foreground">Private to this trip</p>
         </div>
       </div>
 
@@ -93,7 +93,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
 
           {!isLoading && messages.length === 0 && (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-              <span className="grid h-14 w-14 place-items-center rounded-2xl bg-muted">
+              <span className="grid h-14 w-14 place-items-center rounded-lg bg-muted">
                 <MessagesSquare className="h-7 w-7 text-muted-foreground" />
               </span>
               <p className="mt-1 text-sm font-semibold text-foreground">Start the conversation</p>
@@ -107,7 +107,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
             if (m.senderId === SYSTEM_SENDER) {
               return (
                 <div key={m._id} className="flex justify-center py-1">
-                  <span className="rounded-full bg-muted/80 px-3 py-1 text-center text-[11px] font-medium text-muted-foreground backdrop-blur">
+                  <span className="rounded-full bg-muted/80 px-3 py-1 text-center text-xs font-medium text-muted-foreground backdrop-blur">
                     {m.body}
                   </span>
                 </div>
@@ -118,7 +118,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
               <div key={m._id} className={cn('flex flex-col', mine ? 'items-end' : 'items-start')}>
                 <div
                   className={cn(
-                    'max-w-[80%] overflow-hidden rounded-2xl text-[14.5px] shadow-sm',
+                    'max-w-[80%] overflow-hidden rounded-lg text-[14.5px]',
                     mine
                       ? 'rounded-br-md bg-primary text-primary-foreground'
                       : 'rounded-bl-md bg-card text-foreground ring-1 ring-border',
@@ -136,7 +136,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
                   {m.body && <p className="whitespace-pre-wrap break-words px-3.5 py-2 leading-snug">{m.body}</p>}
                 </div>
                 {mine && m._id === lastMineId && (
-                  <span className="mt-0.5 flex items-center gap-0.5 pe-1 text-[11px] text-muted-foreground">
+                  <span className="mt-0.5 flex items-center gap-0.5 pe-1 text-xs text-muted-foreground">
                     {seenByCounterpart ? (
                       <><CheckCheck className="h-3 w-3 text-primary" /> Seen</>
                     ) : (
@@ -173,7 +173,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
           className="hidden"
           onChange={(e) => sendPhoto(e.target.files)}
         />
-        <div className="flex min-w-0 flex-1 items-end gap-1 rounded-[1.4rem] border border-border bg-background ps-1.5 pe-2">
+        <div className="flex min-w-0 flex-1 items-end gap-1 rounded-lg border border-border bg-background ps-1.5 pe-2">
           <button
             aria-label="Send a photo"
             disabled={uploading}
@@ -201,7 +201,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
           onClick={submit}
           disabled={!text.trim()}
           aria-label="Send"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-40"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-40"
         >
           <Send className="h-[18px] w-[18px]" />
         </button>

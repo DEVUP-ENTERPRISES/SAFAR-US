@@ -80,7 +80,7 @@ export function TripDatesField({
                 open && 'bg-muted/50',
               )}
             >
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Trip {which}
               </span>
               <span className="flex items-center gap-1.5 truncate text-sm font-medium">
@@ -96,7 +96,7 @@ export function TripDatesField({
       {open && (
         // Anchored to the panel rather than the field, so it cannot spill off
         // the side of a phone. The panel itself is only 400px on desktop.
-        <div className="absolute inset-x-0 top-full z-40 mt-2 rounded-2xl border border-border bg-card p-4 shadow-2xl">
+        <div className="absolute inset-x-0 top-full z-40 mt-2 rounded-lg border border-border bg-card p-4 shadow-2xl">
           <DateRangePicker compact earliest={earliest} from={dateOf(start)} to={dateOf(end)} onChange={setDates} />
 
           <div className="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-3">

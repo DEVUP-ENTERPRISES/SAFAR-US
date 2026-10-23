@@ -210,7 +210,7 @@ function MonthlyBars({ data }: { data: VehicleInsights['earnings']['byMonth'] })
     <div className="mt-4 flex items-end gap-2" style={{ height: 140 }}>
       {shown.map((m) => (
         <div key={m.month} className="group flex flex-1 flex-col items-center gap-1.5">
-          <span className="text-[10px] font-medium tabular-nums text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+          <span className="text-xs font-medium tabular-nums text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
             {money(m.amount)}
           </span>
           <div
@@ -218,7 +218,7 @@ function MonthlyBars({ data }: { data: VehicleInsights['earnings']['byMonth'] })
             style={{ height: `${Math.max(4, (m.amount / max) * 100)}%` }}
             title={`${monthLabel(m.month)} - ${money(m.amount)} across ${m.trips} trip${m.trips === 1 ? '' : 's'}`}
           />
-          <span className="text-[10px] text-muted-foreground">{monthLabel(m.month)}</span>
+          <span className="text-xs text-muted-foreground">{monthLabel(m.month)}</span>
         </div>
       ))}
     </div>

@@ -57,7 +57,7 @@ export default function HostListingsPage() {
 
   if (vehicles.isError && !vehicles.data) return <ErrorState message="We couldn’t load your cars." retry={() => void vehicles.refetch()} />;
 
-  if (vehicles.isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (vehicles.isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
 
   return (
     <div className="space-y-5">
@@ -153,7 +153,7 @@ export default function HostListingsPage() {
               <Link key={v._id} href={`/host/listings/${v._id}`} className="group block">
                 <article
                   className={cn(
-                    'overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-card',
+                    'overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/40',
                     !grid && 'flex gap-4 p-3',
                   )}
                 >
@@ -178,7 +178,7 @@ export default function HostListingsPage() {
                     {grid && (
                       <span
                         className={cn(
-                          'absolute start-3 top-3 rounded-md px-2 py-1 text-[11px] font-bold uppercase',
+                          'absolute start-3 top-3 rounded-md px-2 py-1 text-xs font-bold uppercase',
                           v.status === 'listed'
                             ? 'bg-success text-success-foreground'
                             : 'bg-foreground/80 text-background',

@@ -71,7 +71,7 @@ export function UserMenu() {
         aria-label={unread > 0 ? `Account - ${unread} unread messages` : 'Account'}
         className={cn(
           'relative flex items-center gap-2 rounded-full border border-border bg-card py-1 ps-1 pe-2.5',
-          'shadow-soft transition-all hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          ' transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         )}
       >
         <span className="relative grid h-7 w-7 place-items-center rounded-full brand-gradient text-xs font-bold text-white">
@@ -108,7 +108,7 @@ export function UserMenu() {
               >
                 <it.icon className="h-4 w-4 text-muted-foreground" /> {it.label}
                 {it.href === '/messages' && unread > 0 && (
-                  <span className="ms-auto grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
+                  <span className="ms-auto grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-primary px-1 text-xs font-bold text-primary-foreground">
                     {unread > 9 ? '9+' : unread}
                   </span>
                 )}

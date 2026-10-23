@@ -1,5 +1,7 @@
 'use client';
 
+import { useAdminList } from '@/features/admin/hooks/use-admin-list';
+import { Pager } from '@/features/admin/components/data-table';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,7 +21,7 @@ import { BarChart } from '@/components/ui/charts';
 import { useToast } from '@/components/ui/toast';
 import { formatDate, formatDateRange, formatMoney } from '@/lib/utils/format';
 import { ApiError } from '@/lib/api/types';
-import { INSURER_STATUS, PLAN_REVIEW, insurerApi, type Insurer, type InsurerPlan, type InsurerPlanInput } from '@/features/insurers/api';
+import { INSURER_STATUS, PLAN_REVIEW, insurerApi, type Insurer, type InsurerPlan, type InsurerPlanInput, type InsurerPolicy } from '@/features/insurers/api';
 import { PlanEditor } from '@/features/insurers/components/plan-editor';
 
 type Tab = 'overview' | 'plans' | 'policies' | 'payouts' | 'profile';
@@ -37,7 +39,7 @@ function InsurerPortal() {
   const me = useQuery({ queryKey: ['insurer-me'], queryFn: () => insurerApi.me() });
   const [tab, setTab] = useState<Tab>('overview');
 
-  if (me.isLoading) return <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6"><Skeleton className="h-64 w-full rounded-2xl" /></div>;
+  if (me.isLoading) return <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6"><Skeleton className="h-64 w-full rounded-lg" /></div>;
   if (me.isError) return <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6"><ErrorState message="We couldn’t load your insurer account." retry={() => me.refetch()} /></div>;
   const insurer = me.data?.insurer;
   if (!insurer || insurer.status === 'rejected') {
@@ -91,7 +93,7 @@ function InsurerPortal() {
 
 function Overview() {
   const q = useQuery({ queryKey: ['insurer-summary'], queryFn: () => insurerApi.summary() });
-  if (q.isLoading) return <Skeleton className="h-48 w-full rounded-2xl" />;
+  if (q.isLoading) return <Skeleton className="h-48 w-full rounded-lg" />;
   if (q.isError || !q.data) return <ErrorState message="We couldn’t load your numbers." retry={() => q.refetch()} />;
   const s = q.data;
   return (
@@ -142,7 +144,7 @@ function Plans({ insurer }: { insurer: Insurer }) {
   return (
     <div className="space-y-3">
       <Button className="w-full sm:w-auto" onClick={() => setEditing('new')} disabled={!canEdit}><Plus className="h-4 w-4" /> Add a plan</Button>
-      {plans.isLoading && <Skeleton className="h-32 w-full rounded-2xl" />}
+      {plans.isLoading && <Skeleton className="h-32 w-full rounded-lg" />}
       {plans.data?.length === 0 && <EmptyState title="No plans yet" description="Add a plan. CatoDrive reviews it, and once approved guests can buy it at checkout for the cars it covers." />}
       {plans.data?.map((p) => (
         <Card key={p._id}>
@@ -168,13 +170,14 @@ function Plans({ insurer }: { insurer: Insurer }) {
 }
 
 function Policies() {
-  const q = useQuery({ queryKey: ['insurer-policies'], queryFn: () => insurerApi.policies({ limit: 100 }) });
-  if (q.isLoading) return <Skeleton className="h-48 w-full rounded-2xl" />;
-  if (!q.data?.length) return <EmptyState title="No trips yet" description="Trips appear here when a guest buys one of your plans." />;
+  const q = useAdminList<InsurerPolicy>('/insurance-partners/me/policies');
+  if (q.isLoading) return <Skeleton className="h-48 w-full rounded-lg" />;
+  if (q.isError) return <ErrorState message="We couldn’t load your trips." retry={() => void q.refetch()} />;
+  if (!q.rows?.length && q.paging.page === 0) return <EmptyState title="No trips yet" description="Trips appear here when a guest buys one of your plans." />;
   return (
     <Card>
       <CardContent className="divide-y divide-border p-0">
-        {q.data.map((p) => (
+        {(q.rows ?? []).map((p) => (
           <div key={p.bookingId} className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-medium">{p.code} · {p.plan}</p>
@@ -185,10 +188,11 @@ function Policies() {
             </div>
             <div className="flex items-center gap-3">
               <Badge tone="muted">{p.status.replace(/_/g, ' ')}</Badge>
-              <span className="font-semibold">{formatMoney({ amount: p.premium, currency: p.currency })}</span>
+              <span className="font-semibold tabular-nums">{formatMoney({ amount: p.premium, currency: p.currency })}</span>
             </div>
           </div>
         ))}
+        <Pager paging={q.paging} shown={q.rows?.length ?? 0} />
       </CardContent>
     </Card>
   );
@@ -196,7 +200,8 @@ function Policies() {
 
 function Payouts() {
   const q = useQuery({ queryKey: ['insurer-payouts'], queryFn: () => insurerApi.payouts() });
-  if (q.isLoading) return <Skeleton className="h-32 w-full rounded-2xl" />;
+  if (q.isLoading) return <Skeleton className="h-32 w-full rounded-lg" />;
+  if (q.isError) return <ErrorState message="We couldn’t load your payouts." retry={() => void q.refetch()} />;
   if (!q.data?.length) return <EmptyState title="No payouts yet" description="Payouts to your bank appear here with their reference." />;
   return (
     <Card>
@@ -204,7 +209,7 @@ function Payouts() {
         {q.data.map((p) => (
           <div key={p._id} className="flex items-center justify-between p-4">
             <div>
-              <p className="font-medium">{formatMoney({ amount: p.amount, currency: p.currency })}</p>
+              <p className="font-medium tabular-nums">{formatMoney({ amount: p.amount, currency: p.currency })}</p>
               <p className="text-xs text-muted-foreground">{formatDate(p.paidAt)} · Ref {p.reference}{p.note ? ` · ${p.note}` : ''}</p>
             </div>
           </div>

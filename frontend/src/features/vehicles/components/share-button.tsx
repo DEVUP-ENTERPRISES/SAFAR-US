@@ -41,7 +41,7 @@ export function ShareButton({ title, className }: { title: string; className?: s
       aria-label="Share this listing"
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); void share(); }}
       className={cn(
-        'flex h-9 w-9 items-center justify-center rounded-full bg-background/90 shadow-soft backdrop-blur transition-transform hover:scale-110 active:scale-95',
+        'flex h-9 w-9 items-center justify-center rounded-full bg-background/90 backdrop-blur transition-transform hover:scale-110 active:scale-95',
         className,
       )}
     >

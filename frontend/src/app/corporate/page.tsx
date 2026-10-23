@@ -27,7 +27,7 @@ export default function CorporateDashboard() {
         <Skeleton className="h-12 w-72" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-36 w-full rounded-2xl" />
+            <Skeleton key={i} className="h-36 w-full rounded-lg" />
           ))}
         </div>
       </div>
@@ -64,7 +64,7 @@ export default function CorporateDashboard() {
 
       {/* Spend analytics - real data from billable bookings. */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="rounded-2xl shadow-soft">
+        <Card className="rounded-lg">
           <CardHeader><CardTitle>Spend - last 6 months</CardTitle></CardHeader>
           <CardContent>
             <BarChart
@@ -73,7 +73,7 @@ export default function CorporateDashboard() {
             />
           </CardContent>
         </Card>
-        <Card className="rounded-2xl shadow-soft">
+        <Card className="rounded-lg">
           <CardHeader><CardTitle>Spend by cost center</CardTitle></CardHeader>
           <CardContent>
             {data.spendByCostCenter?.length ? (
@@ -85,7 +85,7 @@ export default function CorporateDashboard() {
         </Card>
       </div>
 
-      <Card className="rounded-2xl shadow-soft">
+      <Card className="rounded-lg">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">

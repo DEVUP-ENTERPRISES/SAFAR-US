@@ -101,7 +101,7 @@ export default function HostDashboardPage() {
           <div className="space-y-3">
             {blockers.map((b) => (
               <Link key={b.key} href={b.href} className="block group">
-                <div className="flex items-center gap-4 rounded-3xl bg-destructive/5 p-5 transition-all group-hover:bg-destructive/10 group-active:scale-[0.98]">
+                <div className="flex items-center gap-4 rounded-lg bg-destructive/5 p-5 transition-all group-hover:bg-destructive/10 group-active:scale-[0.98]">
                   <div className="h-12 w-12 shrink-0 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
                     <Wallet className="h-6 w-6" />
                   </div>
@@ -116,7 +116,7 @@ export default function HostDashboardPage() {
 
             {actions.slice(0, 4).map((a) => (
               <Link key={a.id} href={a.href} className="block group">
-                <div className="flex items-center gap-4 rounded-3xl bg-warning/5 p-5 transition-all group-hover:bg-warning/10 group-active:scale-[0.98]">
+                <div className="flex items-center gap-4 rounded-lg bg-warning/5 p-5 transition-all group-hover:bg-warning/10 group-active:scale-[0.98]">
                   <div className="h-12 w-12 shrink-0 rounded-full bg-warning/20 flex items-center justify-center text-warning-foreground">
                     <AlertTriangle className="h-6 w-6" />
                   </div>
@@ -139,9 +139,9 @@ export default function HostDashboardPage() {
       {earnings.isError && !earnings.data ? (
           <ErrorState message="We couldn’t load your earnings." retry={() => void earnings.refetch()} />
         ) : earnings.isLoading ? (
-        <Skeleton className="h-40 w-full rounded-3xl" />
+        <Skeleton className="h-40 w-full rounded-lg" />
       ) : hasHistory ? (
-        <section className="rounded-3xl bg-muted/20 border border-border/30 overflow-hidden">
+        <section className="rounded-lg bg-muted/20 border border-border/30 overflow-hidden">
           <div className="grid sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <div className="p-8 sm:border-r border-border/40 flex flex-col justify-center">
               <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
@@ -174,7 +174,7 @@ export default function HostDashboardPage() {
         </section>
       ) : (
         // A new host does not need four zeros explained to them.
-        <section className="rounded-3xl border border-primary/20 bg-primary/5 p-6 sm:p-8">
+        <section className="rounded-lg border border-primary/20 bg-primary/5 p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="flex items-start gap-4">
               <div className="h-12 w-12 shrink-0 rounded-full bg-primary/20 flex items-center justify-center text-primary">
@@ -211,10 +211,10 @@ export default function HostDashboardPage() {
 
         {vehicles.isLoading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[0, 1, 2].map((i) => <Skeleton key={i} className="h-72 w-full rounded-[2rem]" />)}
+            {[0, 1, 2].map((i) => <Skeleton key={i} className="h-72 w-full rounded-lg" />)}
           </div>
         ) : cars.length === 0 ? (
-          <div className="rounded-[2rem] border-2 border-dashed border-border p-12 text-center">
+          <div className="rounded-lg border-2 border-dashed border-border p-12 text-center">
             <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-muted">
               <Car className="h-10 w-10 text-muted-foreground/60" />
             </span>
@@ -260,7 +260,7 @@ function FleetCard({ v }: { v: Vehicle }) {
 
   return (
     <Link href={`/host/listings/${v._id}`} className="group block h-full">
-      <div className="flex flex-col h-full overflow-hidden rounded-[2rem] bg-card transition-all duration-500 group-hover:-translate-y-2 group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border border-border/40 hover:border-primary/30">
+      <div className="flex flex-col h-full overflow-hidden rounded-lg bg-card transition-all duration-500 group-hover:-translate-y-2 border border-border/40 hover:border-primary/30">
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
           {photo ? (
             // eslint-disable-next-line @next/next/no-img-element

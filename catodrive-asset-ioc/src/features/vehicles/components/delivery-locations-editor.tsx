@@ -64,7 +64,7 @@ export function DeliveryLocationsEditor({
       <DeliveryLocationsMap home={home} locations={value} className="h-56" />
 
       {home && (
-        <div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-4">
           <Car className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
           <div>
             <p className="font-semibold">{home.address || home.city}</p>
@@ -94,7 +94,7 @@ export function DeliveryLocationsEditor({
       )}
 
       {picking ? (
-        <div className="rounded-2xl border border-dashed border-border p-4">
+        <div className="rounded-lg border border-dashed border-border p-4">
           <p className="mb-3 text-sm font-medium">What kind of location?</p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {(Object.keys(KIND_META) as DeliveryLocationKind[]).map((k) => {
@@ -128,7 +128,7 @@ function LocationCard({ loc, onEdit, onRemove }: { loc: DeliveryLocation; onEdit
   const Icon = KIND_META[loc.kind].icon;
   const access = ACCESS_LABEL[loc.accessMethod];
   return (
-    <div className={cn('rounded-2xl border border-border bg-card p-4', !loc.enabled && 'opacity-50')}>
+    <div className={cn('rounded-lg border border-border bg-card p-4', !loc.enabled && 'opacity-50')}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <Icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
@@ -189,7 +189,7 @@ function LocationEditRow({
   const canSave = value.kind === 'custom' ? name.trim() : name.trim() && address.trim();
 
   return (
-    <div className="rounded-2xl border border-primary/40 bg-card p-4 space-y-3">
+    <div className="rounded-lg border border-primary/40 bg-card p-4 space-y-3">
       <div className="flex items-center gap-2 text-sm font-semibold text-primary">
         <M className="h-4 w-4" /> {KIND_META[value.kind].label}
       </div>

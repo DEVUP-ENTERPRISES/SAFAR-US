@@ -133,10 +133,10 @@ function BookingDetail({ id }: { id: string }) {
   if (booking.isLoading) {
     return (
       <div className="mx-auto max-w-6xl space-y-6 py-6">
-        <Skeleton className="h-52 w-full rounded-2xl" />
+        <Skeleton className="h-52 w-full rounded-lg" />
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="space-y-6 lg:col-span-2"><Skeleton className="h-64 w-full rounded-2xl" /></div>
-          <Skeleton className="h-72 w-full rounded-2xl" />
+          <div className="space-y-6 lg:col-span-2"><Skeleton className="h-64 w-full rounded-lg" /></div>
+          <Skeleton className="h-72 w-full rounded-lg" />
         </div>
       </div>
     );
@@ -470,7 +470,7 @@ function BookingDetail({ id }: { id: string }) {
 function DateBlock({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="mt-0.5 font-semibold">{value}</p>
     </div>
   );

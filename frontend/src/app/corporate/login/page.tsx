@@ -22,7 +22,7 @@ export default function CorporateLoginPage() {
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center py-8">
       <div className="mb-6 flex flex-col items-center gap-3 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+        <span className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Building2 className="h-7 w-7" />
         </span>
         <div>

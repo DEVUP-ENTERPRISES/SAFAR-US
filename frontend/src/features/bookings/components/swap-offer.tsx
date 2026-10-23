@@ -30,10 +30,10 @@ export function SwapOffer({ booking }: { booking: Booking }) {
   const offer = booking.swapOffer;
   if (offer?.status !== 'open') return null;
   return (
-    <Card className="border-amber-500/40 bg-amber-500/5">
+    <Card className="border-warning/40 bg-warning/5">
       <CardContent className="space-y-3 py-4">
         <div className="flex items-start gap-3">
-          <Shuffle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <Shuffle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
           <div className="text-sm">
             <p className="font-semibold">Your car may not be back in time</p>
             <p className="mt-0.5 text-muted-foreground">

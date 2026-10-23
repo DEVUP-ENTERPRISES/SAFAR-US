@@ -45,7 +45,7 @@ export function NavSheet({ open, onClose, title, items, icons, fallbackIcon: Fal
   return (
     <div className={cn('fixed inset-0 z-[60]', className ?? 'md:hidden')} role="dialog" aria-modal="true" aria-label={`${title} menu`}>
       <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-border bg-background pb-safe">
+      <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-lg border-t border-border bg-background pb-safe">
         <div className="sticky top-0 flex items-center justify-between border-b border-border bg-background px-5 py-4">
           <p className="text-base font-bold">{title}</p>
           <button type="button" onClick={onClose} aria-label="Close menu" className="grid h-9 w-9 place-items-center rounded-full hover:bg-accent">
@@ -55,7 +55,7 @@ export function NavSheet({ open, onClose, title, items, icons, fallbackIcon: Fal
         <div className="space-y-5 px-3 py-4">
           {groups.map((g) => (
             <div key={g.name}>
-              <p className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{g.name}</p>
+              <p className="px-3 pb-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">{g.name}</p>
               <div className="grid grid-cols-2 gap-1.5">
                 {g.items.map((n) => {
                   const NavIcon = icons[n.slug] ?? FallbackIcon;

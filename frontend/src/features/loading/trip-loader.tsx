@@ -71,7 +71,7 @@ export function TripLoader({
 
   return (
     <div className="fixed inset-0 z-[80] grid place-items-center bg-background/85 backdrop-blur-md">
-      <div className="animate-scale-in rounded-[1.75rem] border border-border bg-card px-6 shadow-2xl shadow-black/20">{scene}</div>
+      <div className="animate-scale-in rounded-lg border border-border bg-card px-6">{scene}</div>
     </div>
   );
 }

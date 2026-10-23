@@ -104,7 +104,7 @@ export default function ApplyPage() {
       ) : me.isError && !me.data ? (
           <ErrorState message="We couldn’t load your application." retry={() => void me.refetch()} />
         ) : me.isLoading ? (
-        <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       ) : insurer && !canApply ? (
         <Card>
           <CardContent className="space-y-3 p-6">

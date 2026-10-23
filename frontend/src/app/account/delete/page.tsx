@@ -56,7 +56,7 @@ function DeleteAccount() {
       </Link>
       <PageHeader title="Delete account" description="Permanently remove your CatoDrive account." />
       {eligibility.isLoading ? (
-        <Skeleton className="h-48 w-full rounded-2xl" />
+        <Skeleton className="h-48 w-full rounded-lg" />
       ) : eligibility.isError || !eligibility.data ? (
         <ErrorState message="We couldn’t check your account just now." retry={() => eligibility.refetch()} />
       ) : !eligibility.data.eligible ? (

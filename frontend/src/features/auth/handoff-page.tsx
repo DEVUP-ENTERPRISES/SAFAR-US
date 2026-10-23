@@ -51,5 +51,5 @@ export function HandoffPage({ loginPath = '/login' }: { loginPath?: string }) {
       </div>
     );
   }
-  return <Skeleton className="mx-auto mt-16 h-32 max-w-md rounded-2xl" />;
+  return <Skeleton className="mx-auto mt-16 h-32 max-w-md rounded-lg" />;
 }

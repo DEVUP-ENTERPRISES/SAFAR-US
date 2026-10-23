@@ -31,7 +31,7 @@ function ReadyGate({ children }: { children: ReactNode }) {
     if (q.data && !ready) router.replace('/onboarding');
   }, [q.data, ready, router]);
   // If the check itself fails, the pages still load and show their own errors.
-  if (!ready && !q.isError) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (!ready && !q.isError) return <Skeleton className="h-96 w-full rounded-lg" />;
   return <>{children}</>;
 }
 

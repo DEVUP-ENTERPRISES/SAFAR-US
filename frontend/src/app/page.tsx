@@ -97,7 +97,7 @@ export default function HomePage() {
         <h1 className="sr-only">CatoDrive: rent premium cars delivered to you</h1>
 
         <div className="relative mx-auto max-w-7xl">
-        <div className="relative isolate aspect-[3/2] overflow-hidden rounded-[1.75rem] shadow-2xl shadow-black/40 ring-1 ring-white/10 sm:aspect-auto sm:h-[56vh] sm:min-h-[380px] sm:rounded-[2.25rem] lg:h-[62vh] lg:max-h-[640px]">
+        <div className="relative isolate aspect-[3/2] overflow-hidden rounded-lg ring-1 ring-white/10 sm:aspect-auto sm:h-[56vh] sm:min-h-[380px] sm:rounded-lg lg:h-[62vh] lg:max-h-[640px]">
           <Image
             src="/catodrive/catodrive-hit-the-road.webp"
             alt=""
@@ -161,7 +161,7 @@ export default function HomePage() {
           {trending.isLoading ? (
             <div className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 sm:grid sm:grid-cols-2 sm:gap-6 sm:pb-0 lg:grid-cols-4">
               {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-80 w-[85vw] shrink-0 snap-center rounded-2xl sm:w-auto" />
+                <Skeleton key={i} className="h-80 w-[85vw] shrink-0 snap-center rounded-lg sm:w-auto" />
               ))}
             </div>
           ) : trending.data && trending.data.length > 0 ? (
@@ -182,7 +182,7 @@ export default function HomePage() {
               </div>
             </>
           ) : (
-            <div className="rounded-2xl border border-dashed border-border py-16 text-center">
+            <div className="rounded-lg border border-dashed border-border py-16 text-center">
               <p className="text-muted-foreground">
                 No vehicles available right now -{' '}
                 <Link href="/contact" className="font-medium text-primary underline underline-offset-4">
@@ -215,7 +215,7 @@ export default function HomePage() {
                   </span>
                   <span className="h-px flex-1 bg-border" />
                 </div>
-                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border/50 shadow-sm mb-5">
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-border/50 mb-5">
                   <Image
                     src={s.image}
                     alt={s.title}
@@ -242,7 +242,7 @@ export default function HomePage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {WHY_ITEMS.map((w, i) => (
               <Reveal key={w.title} delay={i * 80}>
-                <div className="group flex h-full flex-col rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-primary/40 hover:shadow-md">
+                <div className="group flex h-full flex-col rounded-lg border border-border bg-card p-6 transition-all duration-300 hover:border-primary/40">
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
                     <w.icon className="h-5 w-5" />
                   </span>
@@ -258,7 +258,7 @@ export default function HomePage() {
         <ReservationFlowSection />
 
         {/* ── Trust strip ──────────────────────────────────────────────── */}
-        <section className="rounded-2xl border border-border bg-card p-8 sm:p-10">
+        <section className="rounded-lg border border-border bg-card p-8 sm:p-10">
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-10">
             {[
               { icon: ShieldCheck, stat: 'Professionally Maintained', label: 'Every vehicle is owned, serviced, and detailed by our team before every trip.' },
@@ -279,10 +279,10 @@ export default function HomePage() {
         </section>
 
         {/* ── Asset Partner CTA ──────────────────────────────────────────── */}
-        <Reveal as="section" className="relative isolate grain overflow-hidden rounded-3xl hero-mesh">
+        <Reveal as="section" className="relative isolate grain overflow-hidden rounded-lg hero-mesh">
           <div className="grid items-center gap-10 px-8 py-14 sm:px-14 sm:py-16 lg:grid-cols-[1fr_1.05fr] lg:gap-16">
             <div className="max-w-lg">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-widest text-white/80 backdrop-blur-sm">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-white/80 backdrop-blur-sm">
                 Asset Partner Programme
               </span>
               <h2 className="display mt-5 text-[2.2rem] leading-[1.05] text-white sm:text-[3rem]">
@@ -315,7 +315,7 @@ export default function HomePage() {
                 width={1200}
                 height={800}
                 sizes="(min-width: 1024px) 50vw, 100vw"
-                className="h-auto w-full rounded-2xl object-cover shadow-2xl ring-1 ring-white/15"
+                className="h-auto w-full rounded-lg object-cover ring-1 ring-white/15"
               />
             </div>
           </div>
@@ -359,7 +359,7 @@ function ReservationFlowSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative isolate overflow-clip rounded-3xl hero-mesh min-h-[calc(100vh+28rem)] px-6 py-8 sm:px-10 sm:py-10 lg:px-14"
+      className="relative isolate overflow-clip rounded-lg hero-mesh min-h-[calc(100vh+28rem)] px-6 py-8 sm:px-10 sm:py-10 lg:px-14"
     >
       <div className="sticky top-20 flex min-h-[calc(100vh-6rem)] flex-col justify-center sm:top-24 sm:min-h-[calc(100vh-8rem)]">
 
@@ -395,7 +395,7 @@ function ReservationFlowSection() {
               return (
                 <article
                   key={step.label}
-                  className="w-[min(80vw,20rem)] shrink-0 overflow-hidden rounded-2xl p-5 backdrop-blur-sm sm:w-[21rem] transition-all duration-300"
+                  className="w-[min(80vw,20rem)] shrink-0 overflow-hidden rounded-lg p-5 backdrop-blur-sm sm:w-[21rem] transition-all duration-300"
                   style={{
                     transform: `scale(${scale})`,
                     opacity,
@@ -423,7 +423,7 @@ function ReservationFlowSection() {
                     </span>
                     <div>
                       <p
-                        className="text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-300"
+                        className="text-xs font-black uppercase tracking-[0.2em] transition-colors duration-300"
                         style={{ color: isActive ? 'hsl(var(--primary))' : 'rgba(255,255,255,0.28)' }}
                       >
                         {step.label}
@@ -459,7 +459,7 @@ function ReservationFlowSection() {
           </div>
           <Link
             href="/search"
-            className="group inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-7 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:brightness-110 active:scale-95"
+            className="group inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-7 text-sm font-bold text-primary-foreground transition-all hover:brightness-110 active:scale-95"
           >
             Book Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>

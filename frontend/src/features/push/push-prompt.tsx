@@ -34,7 +34,7 @@ export function PushPrompt({ title, detail }: { title: string; detail: string })
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-4">
       <BellRing className="h-5 w-5 shrink-0 text-primary" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">{title}</p>

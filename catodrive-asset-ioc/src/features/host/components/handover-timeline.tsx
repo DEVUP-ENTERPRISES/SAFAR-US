@@ -10,7 +10,7 @@ export function HandoverTimeline({ timeline }: { timeline?: TimelineStep[] | nul
   if (!timeline || timeline.length === 0) return null;
 
   return (
-    <ol className="rounded-2xl border border-border bg-card p-4">
+    <ol className="rounded-lg border border-border bg-card p-4">
       {timeline.map((s, i) => {
         const muted = s.state === 'todo' || s.state === 'locked';
         return (
@@ -18,7 +18,7 @@ export function HandoverTimeline({ timeline }: { timeline?: TimelineStep[] | nul
             {i < timeline.length - 1 && <span className="absolute start-[11px] top-6 h-[calc(100%-1.5rem)] w-px bg-border" />}
             <span
               className={cn(
-                'z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[11px] font-bold',
+                'z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full border text-xs font-bold',
                 s.state === 'done' && 'border-success bg-success text-white',
                 s.state === 'current' && 'border-primary bg-primary text-primary-foreground',
                 muted && 'border-border bg-muted text-muted-foreground',

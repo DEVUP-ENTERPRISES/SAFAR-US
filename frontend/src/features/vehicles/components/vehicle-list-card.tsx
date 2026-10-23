@@ -36,7 +36,7 @@ export function VehicleListCard({
   return (
     <Link
       href={`/vehicles/${vehicle._id}`}
-      className={cn('group block overflow-hidden rounded-2xl border border-border bg-card transition-shadow hover:shadow-lg', className)}
+      className={cn('group block overflow-hidden rounded-lg border border-border bg-card transition-shadow', className)}
     >
       <div className="flex flex-col sm:h-[13.5rem] sm:flex-row">
         {/*
@@ -62,7 +62,7 @@ export function VehicleListCard({
             </div>
           )}
           {unlimited && (
-            <span className="absolute start-3 top-3 rounded-md bg-background/90 px-2 py-1 text-[11px] font-bold text-foreground shadow-sm backdrop-blur">
+            <span className="absolute start-3 top-3 rounded-md bg-background/90 px-2 py-1 text-xs font-bold text-foreground shadow-sm backdrop-blur">
               Unlimited miles
             </span>
           )}
@@ -84,7 +84,7 @@ export function VehicleListCard({
                 <>
                   <span>·</span>
                   <span className="inline-flex items-center gap-1 font-medium text-foreground">
-                    <Award className="h-3.5 w-3.5 text-amber-500" /> Superhost
+                    <Award className="h-3.5 w-3.5 text-warning" /> Superhost
                   </span>
                 </>
               )}
@@ -98,7 +98,7 @@ export function VehicleListCard({
               </p>
             )}
             {vehicle.listing.instantBook && (
-              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
                 <Zap className="h-3 w-3 fill-current" /> Instant Book
               </span>
             )}

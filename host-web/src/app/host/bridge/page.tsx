@@ -43,12 +43,12 @@ function BridgeInner() {
       <ErrorState message="That House Fleet link is missing its session. Launch it again from the admin console." />
     );
   }
-  return <Skeleton className="h-64 w-full rounded-2xl" />;
+  return <Skeleton className="h-64 w-full rounded-lg" />;
 }
 
 export default function HostBridgePage() {
   return (
-    <Suspense fallback={<Skeleton className="h-64 w-full rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-64 w-full rounded-lg" />}>
       <BridgeInner />
     </Suspense>
   );

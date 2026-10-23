@@ -59,7 +59,7 @@ export function LocationMap({
           zoom,
           attributionControl: false,
         });
-        new mb.Marker({ color: '#1f8f8a' }).setLngLat([lng, lat]).addTo(map);
+        new mb.Marker({ color: '#0c7979' }).setLngLat([lng, lat]).addTo(map);
       })
       .catch((err: Error) => setError(err.message));
 
@@ -71,7 +71,7 @@ export function LocationMap({
 
   if (error) {
     return (
-      <div className={`flex flex-col items-center justify-center gap-2 rounded-3xl border border-border bg-muted/30 p-10 text-center ${className ?? ''}`}>
+      <div className={`flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-muted/30 p-10 text-center ${className ?? ''}`}>
         <MapPin className="h-6 w-6 text-muted-foreground" />
         <p className="text-sm font-medium text-foreground">{label}</p>
         <p className="text-xs text-muted-foreground">Map unavailable: {error}</p>
@@ -79,5 +79,5 @@ export function LocationMap({
     );
   }
 
-  return <div ref={ref} className={`overflow-hidden rounded-3xl border border-border ${className ?? ''}`} />;
+  return <div ref={ref} className={`overflow-hidden rounded-lg border border-border ${className ?? ''}`} />;
 }

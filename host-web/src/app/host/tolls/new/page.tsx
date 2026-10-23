@@ -49,7 +49,7 @@ export default function LinkTollAccountPage() {
       {step === 'agency' ? (
         <>
           <h1 className="display text-2xl">Choose your toll agency</h1>
-          <div className="divide-y divide-border rounded-2xl border border-border bg-card">
+          <div className="divide-y divide-border rounded-lg border border-border bg-card">
             {TOLL_AGENCIES.map((a) => (
               <label
                 key={a.id}
@@ -70,7 +70,7 @@ export default function LinkTollAccountPage() {
               </label>
             ))}
           </div>
-          <p className="flex items-start gap-3 rounded-2xl bg-primary/10 p-4 text-sm">
+          <p className="flex items-start gap-3 rounded-lg bg-primary/10 p-4 text-sm">
             <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             For transponders that work across several agencies, choose the main agency of the account you use to manage invoices and payments.
           </p>
@@ -101,7 +101,7 @@ export default function LinkTollAccountPage() {
               <Input value={nickname} placeholder={defaultNickname} onChange={(e) => setNickname(e.target.value)} />
             </Field>
           </div>
-          <p className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4 text-sm">
+          <p className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-sm">
             <Lock className="mt-0.5 h-5 w-5 shrink-0" />
             Your account details are stored encrypted and never shown again. By linking your toll account, you authorize CatoDrive to retrieve toll transactions for your vehicles with CatoDrive trips.
           </p>

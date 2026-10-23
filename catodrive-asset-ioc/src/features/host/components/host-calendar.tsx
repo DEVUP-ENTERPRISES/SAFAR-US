@@ -33,7 +33,7 @@ export function HostCalendar() {
   const start = useMemo(() => addDays(new Date(), offset * DAYS), [offset]);
   const days = useMemo(() => Array.from({ length: DAYS }, (_, i) => addDays(start, i)), [start]);
 
-  if (vehicles.isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (vehicles.isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (!vehicles.data || vehicles.data.length === 0) {
     return <EmptyState title="No vehicles" description="List a car to see its calendar." />;
   }
@@ -76,7 +76,7 @@ export function HostCalendar() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border">

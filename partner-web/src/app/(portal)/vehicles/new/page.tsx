@@ -19,7 +19,7 @@ function AddCar() {
   const editId = useSearchParams().get('edit');
   const q = useQuery({ queryKey: ['asset-partner-dashboard'], queryFn: () => assetPartnerApi.dashboard() });
 
-  if (q.isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (q.isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (q.isError || !q.data) return <ErrorState message="We couldn’t load your details." retry={() => q.refetch()} />;
 
   const apps = q.data.applications as PartnerApplicationDetail[];

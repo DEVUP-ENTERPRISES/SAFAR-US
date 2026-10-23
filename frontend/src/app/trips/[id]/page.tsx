@@ -38,7 +38,7 @@ function TripDashboard() {
   const tracking = useTrackingState(trip?.bookingId ?? '');
   useLocationStreaming(trip?.bookingId ?? '', !!tracking.data?.trackingEnabled && tracking.data.broadcasters.includes('guest'));
 
-  if (isLoading) return <Skeleton className="h-[70vh] w-full rounded-[2rem]" />;
+  if (isLoading) return <Skeleton className="h-[70vh] w-full rounded-lg" />;
   if (isError || !trip) return <ErrorState message="Trip not found." retry={() => refetch()} />;
 
   const returnPhotoCount = (trip.photos ?? []).filter((p) => p.phase === 'post').length;
@@ -74,7 +74,7 @@ function TripDashboard() {
           <section className="fixed bottom-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl border-t border-border/50 p-4 pb-safe sm:pb-4 lg:relative lg:border-none lg:p-0 lg:bg-transparent lg:backdrop-blur-none shadow-[0_-8px_30px_rgba(0,0,0,0.04)] lg:shadow-none">
             <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto lg:max-w-none">
               {!trip.checkin && (
-                <Button size="lg" className="flex-1 font-semibold text-base rounded-full shadow-md" loading={checkIn.isPending} onClick={() => checkIn.mutate()}>
+                <Button size="lg" className="flex-1 font-semibold text-base rounded-full" loading={checkIn.isPending} onClick={() => checkIn.mutate()}>
                   <KeyRound className="h-5 w-5 mr-2" /> Check-in now
                 </Button>
               )}
@@ -82,7 +82,7 @@ function TripDashboard() {
                 <Button
                   size="lg"
                   variant="primary"
-                  className="flex-1 font-semibold text-base rounded-full shadow-md"
+                  className="flex-1 font-semibold text-base rounded-full"
                   loading={complete.isPending}
                   disabled={returnPhotoCount < minReturnPhotos}
                   title={returnPhotoCount < minReturnPhotos ? `Take at least ${minReturnPhotos} return photos first` : undefined}
@@ -104,7 +104,7 @@ function TripDashboard() {
         )}
 
         {isCompleted && trip.returnConfirmed === false && (
-          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
             <p className="font-bold">Waiting for your host to confirm</p>
             <p className="text-sm text-muted-foreground">Your deposit is released once your host confirms the car came back.</p>
           </div>
@@ -113,7 +113,7 @@ function TripDashboard() {
         {/* Critical Panels */}
         <div className="space-y-4">
           {isActive && post?.open && returnPhotoCount < minReturnPhotos && (
-            <div className="flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-bold">Take your return photos</p>
                 <p className="text-sm text-muted-foreground">
@@ -166,7 +166,7 @@ function TripDashboard() {
 
         {/* Return Details Form */}
         {isActive && trip.checkin && (
-          <section className="bg-muted/30 rounded-3xl p-5 sm:p-6 border border-border/40">
+          <section className="bg-muted/30 rounded-lg p-5 sm:p-6 border border-border/40">
             <h2 className="text-xl font-bold mb-5">Return details</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <label className="block">
@@ -196,7 +196,7 @@ function TripDashboard() {
               </label>
             </div>
             {returnPhotoCount < minReturnPhotos && (
-              <p className="mt-5 text-sm font-medium text-amber-600 flex items-center gap-2 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
+              <p className="mt-5 text-sm font-medium text-warning flex items-center gap-2 bg-warning/10 p-3 rounded-xl border border-warning/20">
                 <Camera className="h-4 w-4" /> Take at least {minReturnPhotos} return photos below to complete the trip ({returnPhotoCount} taken).
               </p>
             )}
@@ -220,7 +220,7 @@ function TripDashboard() {
 
 
         {/* Damage Reporting */}
-        <section className="bg-muted/30 rounded-3xl p-5 sm:p-6 border border-border/40">
+        <section className="bg-muted/30 rounded-lg p-5 sm:p-6 border border-border/40">
           <h2 className="text-xl font-bold mb-4">Report damage</h2>
           <div className="flex flex-col sm:flex-row gap-3">
             <Input 
@@ -261,7 +261,7 @@ function TripDashboard() {
 
       {/* Chat Sidebar */}
       <div className="w-full lg:w-[380px] xl:w-[420px] shrink-0">
-        <div className="sticky top-24 h-[calc(100vh-8rem)] rounded-3xl overflow-hidden border border-border/40 shadow-xl bg-card">
+        <div className="sticky top-24 h-[calc(100vh-8rem)] rounded-lg overflow-hidden border border-border/40 shadow-xl bg-card">
           <ChatPanel bookingId={trip.bookingId} />
         </div>
       </div>
@@ -271,7 +271,7 @@ function TripDashboard() {
 
 function MetricBox({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex flex-col p-4 bg-muted/30 rounded-2xl border border-border/40 transition-colors hover:bg-muted/50">
+    <div className="flex flex-col p-4 bg-muted/30 rounded-lg border border-border/40 transition-colors hover:bg-muted/50">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-2">
         <span className="text-primary [&>svg]:w-4 [&>svg]:h-4">{icon}</span> {label}
       </div>
@@ -283,7 +283,7 @@ function MetricBox({ icon, label, value }: { icon: React.ReactNode; label: strin
 export default function TripPage() {
   return (
     <AuthGuard>
-      <Suspense fallback={<Skeleton className="h-[70vh] w-full rounded-[2rem]" />}>
+      <Suspense fallback={<Skeleton className="h-[70vh] w-full rounded-lg" />}>
         <TripDashboard />
       </Suspense>
     </AuthGuard>

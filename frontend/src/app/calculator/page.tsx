@@ -238,7 +238,7 @@ export default function CarculatorPage() {
 
           <SiteLink
             path="/host/listings/new"
-            className="inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+            className="inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <Calculator className="h-4 w-4" /> List this car <ArrowRight className="h-4 w-4" />
           </SiteLink>

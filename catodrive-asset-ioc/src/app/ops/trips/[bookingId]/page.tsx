@@ -169,7 +169,7 @@ export default function HostTripDetailPage() {
     if (ok) cancelBooking.mutate(reason);
   };
 
-  if (isLoading) return <Skeleton className="h-[70vh] w-full rounded-2xl" />;
+  if (isLoading) return <Skeleton className="h-[70vh] w-full rounded-lg" />;
   if (isError || !t) return <ErrorState message="Trip not found." />;
 
   const doDecline = async () => {
@@ -247,7 +247,7 @@ export default function HostTripDetailPage() {
       </div>
 
       {t.status === 'pending_approval' && (
-        <div className="mb-5 rounded-2xl border border-warning/40 bg-warning/10 p-4">
+        <div className="mb-5 rounded-lg border border-warning/40 bg-warning/10 p-4">
           <p className="font-semibold">{t.guest.name} wants to book your {t.vehicle.make} {t.vehicle.model}</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {formatDate(t.period.start)} – {formatDate(t.period.end)} · You earn{' '}
@@ -285,7 +285,7 @@ export default function HostTripDetailPage() {
           )}
           <div className="mt-4"><DepositCard bookingId={bookingId} isGuest={false} /></div>
           {/* Dates */}
-          <div className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-card p-5">
+          <div className="mt-6 flex items-center justify-between rounded-lg border border-border bg-card p-5">
             <div>
               <p className="text-lg font-bold">{formatDate(t.period.start)}</p>
               <p className="text-sm text-muted-foreground">
@@ -438,7 +438,7 @@ export default function HostTripDetailPage() {
       {/* ── HELP ────────────────────────────────────────────────────── */}
       {tab === 'help' && (
         <div className="space-y-1">
-          <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+          <div className="mt-6 rounded-lg border border-border bg-card p-5">
             <p className="font-semibold">Get help</p>
             <p className="mt-1 text-sm text-muted-foreground">Help centre and contact support</p>
             <Button className="mt-4 w-full" onClick={() => router.push('/support')}>

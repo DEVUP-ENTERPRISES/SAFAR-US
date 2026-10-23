@@ -41,7 +41,7 @@ function Rewards() {
       <h1 className="display text-display-sm">CatoDrive Rewards</h1>
 
       {/* Hero card */}
-      <div className={`overflow-hidden rounded-2xl bg-gradient-to-br ${TIER_COLOR[data.tier.key] ?? 'from-primary to-primary'} p-6 text-white shadow-lift`}>
+      <div className={`overflow-hidden rounded-lg bg-gradient-to-br ${TIER_COLOR[data.tier.key] ?? 'from-primary to-primary'} p-6 text-white`}>
         <div className="flex items-center justify-between">
           <div>
             <p className="flex items-center gap-1 text-sm text-white/80"><Sparkles className="h-4 w-4" /> {data.tier.label} member</p>

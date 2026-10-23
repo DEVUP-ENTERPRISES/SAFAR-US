@@ -246,7 +246,7 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
   return (
     <div ref={top} className="scroll-mt-24 space-y-5">
       {reviewNote && (
-        <div className="flex gap-3 rounded-2xl border border-warning/40 bg-warning/5 p-4 text-sm">
+        <div className="flex gap-3 rounded-lg border border-warning/40 bg-warning/5 p-4 text-sm">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <div><p className="font-semibold">What CatoDrive needs you to change</p><p className="mt-1 text-muted-foreground">{reviewNote}</p></div>
         </div>
@@ -255,7 +255,7 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
       <ol className="grid grid-cols-2 gap-2 sm:flex sm:gap-3" aria-label="Steps">
         {steps.map((s, i) => (
           <li key={s} className={cn('flex min-w-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold sm:flex-1', i === stepIdx ? 'border-primary bg-primary/10 text-primary' : i < stepIdx ? 'border-border text-foreground' : 'border-border text-muted-foreground')}>
-            <span className={cn('grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px]', i < stepIdx ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+            <span className={cn('grid h-5 w-5 shrink-0 place-items-center rounded-full text-xs', i < stepIdx ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
               {i < stepIdx ? <Check className="h-3 w-3" /> : i + 1}
             </span>
             <span className="truncate">{STEPS[s]}</span>
@@ -368,13 +368,13 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
                 <Choice value={d.availability} onChange={(v) => set('availability', v)} options={[{ value: 'fulltime', label: 'Full time' }, { value: 'parttime', label: 'Part time' }, { value: 'seasonal', label: 'Seasonal' }]} />
               </Field>
               <Field label="Anything else we should know?" htmlFor="notes" hint="Optional"><Textarea id="notes" rows={3} maxLength={1000} value={d.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
-              <dl className="grid grid-cols-1 gap-3 rounded-2xl bg-muted/50 p-4 text-sm sm:grid-cols-2">
+              <dl className="grid grid-cols-1 gap-3 rounded-lg bg-muted/50 p-4 text-sm sm:grid-cols-2">
                 {mode === 'partner' && <Summary label="You" value={`${d.fullName}${d.businessName && d.partnerType !== 'individual' ? ` · ${d.businessName}` : ''}`} />}
                 <Summary label="Car" value={`${d.year} ${d.make} ${d.model}${d.trim ? ` ${d.trim}` : ''}`} />
                 <Summary label="VIN" value={d.vin} mono />
                 <Summary label="Mileage" value={d.mileage ? `${Number(d.mileage).toLocaleString('en-US')} mi` : ''} />
               </dl>
-              <label className={cn('flex cursor-pointer gap-3 rounded-2xl border p-4 text-sm', errors.confirmed ? 'border-destructive' : 'border-border')}>
+              <label className={cn('flex cursor-pointer gap-3 rounded-lg border p-4 text-sm', errors.confirmed ? 'border-destructive' : 'border-border')}>
                 <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-primary" checked={d.confirmed} onChange={(e) => set('confirmed', e.target.checked)} />
                 <span>I confirm these details are accurate, I can place this car with CatoDrive, and I agree to a physical inspection before it goes live.</span>
               </label>

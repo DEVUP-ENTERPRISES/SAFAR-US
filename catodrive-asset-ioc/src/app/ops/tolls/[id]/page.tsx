@@ -68,7 +68,7 @@ export default function TollAccountPage() {
 
   if (account.isError && !account.data) return <ErrorState message="We couldn’t load this toll account." retry={() => void account.refetch()} />;
 
-  if (account.isLoading) return <Skeleton className="mx-auto h-64 max-w-2xl rounded-2xl" />;
+  if (account.isLoading) return <Skeleton className="mx-auto h-64 max-w-2xl rounded-lg" />;
   const a = account.data;
   if (!a) return null;
 
@@ -82,7 +82,7 @@ export default function TollAccountPage() {
         </span>
       </button>
 
-      <div className="space-y-4 rounded-2xl border border-border bg-card p-4">
+      <div className="space-y-4 rounded-lg border border-border bg-card p-4">
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Linked to this toll account</p>
           <TollStatusPill status={a.status} />
@@ -125,7 +125,7 @@ export default function TollAccountPage() {
         )}
       </div>
 
-      <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
         {cars.isLoading && <Skeleton className="h-24 w-full" />}
         {cars.isError && <ErrorState message="We couldn’t load the cars." retry={() => void cars.refetch()} />}
         {!cars.isLoading && !linked.length && <p className="p-4 text-sm text-muted-foreground">No cars linked yet. Tap Edit to choose them.</p>}

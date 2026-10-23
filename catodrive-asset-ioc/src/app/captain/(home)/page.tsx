@@ -29,7 +29,7 @@ function dayLabel(d: string, now = new Date()): string {
 }
 
 const LINK_BTN = {
-  primary: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm',
+  primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
   outline: 'border border-input bg-background hover:bg-accent',
   ghost: 'hover:bg-accent',
 };
@@ -41,7 +41,7 @@ function LinkButton({ href, variant = 'primary', external, children }: { href: s
 
 function Stat({ label, value, tone }: { label: string; value: number; tone?: 'warning' }) {
   return (
-    <div className={cn('rounded-2xl border p-4', tone && value ? 'border-amber-500/40 bg-amber-500/10' : 'border-border bg-card')}>
+    <div className={cn('rounded-lg border p-4', tone && value ? 'border-warning/40 bg-warning/10' : 'border-border bg-card')}>
       <p className="text-2xl font-bold tabular-nums">{value}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
@@ -157,7 +157,7 @@ export default function CaptainDashboardPage() {
     return [...map.entries()];
   }, [data?.jobs]);
 
-  if (isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (isError) return <ErrorState message="Couldn’t load your jobs. Check your connection and try again." retry={() => refetch()} />;
   if (!data) return <ErrorState message="You’re not on the team yet. Ask the operations team to send you a new invite." />;
 
@@ -166,7 +166,7 @@ export default function CaptainDashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <ShieldCheck className="h-6 w-6" />
         </span>
         <div className="min-w-0">
@@ -207,7 +207,7 @@ export default function CaptainDashboardPage() {
         <Cars data={data} can={can} />
       )}
 
-      <div className="rounded-2xl border border-border p-4">
+      <div className="rounded-lg border border-border p-4">
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">What you can do</p>
         <ul className="mt-2 flex flex-wrap gap-2">
           {data.staff.abilities.map((a) => <li key={a}><Badge tone="muted">{ABILITY_LABELS[a].label}</Badge></li>)}

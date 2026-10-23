@@ -19,5 +19,5 @@ export default function InsuranceHome() {
   }, [target, router]);
 
   if (me.isError) return <div className="mx-auto max-w-xl px-4 py-12"><ErrorState message="We couldn’t load your account." retry={() => me.refetch()} /></div>;
-  return <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6"><Skeleton className="h-64 w-full rounded-2xl" /></div>;
+  return <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6"><Skeleton className="h-64 w-full rounded-lg" /></div>;
 }

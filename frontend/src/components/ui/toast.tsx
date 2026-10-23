@@ -70,7 +70,7 @@ function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
     <div
       role={toast.tone === 'error' ? 'alert' : 'status'}
       className={cn(
-        'pointer-events-auto flex animate-slide-up items-start gap-3 rounded-xl border bg-card p-4 shadow-float',
+        'pointer-events-auto flex animate-slide-up items-start gap-3 rounded-xl border bg-card p-4',
         toast.tone === 'error' ? 'border-destructive/40' : 'border-border',
       )}
     >

@@ -278,7 +278,7 @@ export function LiveCamera({
             {!shot && ready && guide && hasOutline(guide) && (
               <div className="pointer-events-none absolute flex w-[86%] max-w-xl items-center justify-center">
                 <FrameCorners className="absolute inset-0 h-full w-full text-white/80" />
-                <AngleGuide angle={guide} className="w-[88%] text-white/50 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]" />
+                <AngleGuide angle={guide} className="w-[88%] text-white/50 drop-" />
               </div>
             )}
             {shot && (

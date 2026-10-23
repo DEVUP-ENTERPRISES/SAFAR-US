@@ -42,7 +42,7 @@ export function SimilarCars({
   if (isLoading) {
     return (
       <div className="flex gap-5 overflow-hidden">
-        {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-72 w-[300px] shrink-0 rounded-2xl" />)}
+        {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-72 w-[300px] shrink-0 rounded-lg" />)}
       </div>
     );
   }
@@ -79,7 +79,7 @@ function SimilarCard({ car, days }: { car: Vehicle; days?: number }) {
 
   return (
     <Link href={`/vehicles/${car._id}`} className="group w-[280px] shrink-0 snap-start sm:w-[300px]">
-      <div className="aspect-[16/11] overflow-hidden rounded-2xl bg-muted">
+      <div className="aspect-[16/11] overflow-hidden rounded-lg bg-muted">
         {cover?.url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover.url} alt={`${car.make} ${car.model}`} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />

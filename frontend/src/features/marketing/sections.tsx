@@ -85,7 +85,7 @@ function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label,
     <div className="group relative flex min-w-0 flex-col items-center sm:items-start text-center sm:text-left py-6 transition-transform duration-500 hover:-translate-y-1">
       <div className="pointer-events-none absolute -left-4 top-0 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-opacity duration-500 group-hover:bg-primary/10" />
       {/* Sized to the column on wide screens so a long figure ($766,143+) never runs into the next one. */}
-      <p className="numeric max-w-full whitespace-nowrap text-4xl font-extrabold tracking-tight text-primary sm:text-5xl lg:text-[clamp(2rem,2.9vw,2.85rem)] drop-shadow-sm">
+      <p className="numeric max-w-full whitespace-nowrap text-4xl font-extrabold tracking-tight text-primary sm:text-5xl lg:text-[clamp(2rem,2.9vw,2.85rem)] drop-">
         {prefix}
         <CountUp value={value} decimals={decimals} comma={comma} />
         {suffix}
@@ -140,7 +140,7 @@ function AudienceCard({ icon: Icon, image, title, body, href, cta }: {
       href={href}
       className="group flex h-full flex-col transition-all duration-500"
     >
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl shadow-md border border-border/40 mb-6">
+      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-border/40 mb-6">
         <Image
           src={image}
           alt={title}

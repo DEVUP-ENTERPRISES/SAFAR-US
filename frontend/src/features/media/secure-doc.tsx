@@ -24,7 +24,7 @@ export function SecureDoc({
   }
   if (denied) {
     return (
-      <span className={`grid place-items-center text-[10px] text-destructive ${className ?? ''}`}>
+      <span className={`grid place-items-center text-xs text-destructive ${className ?? ''}`}>
         no access
       </span>
     );

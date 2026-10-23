@@ -57,11 +57,11 @@ export default function PartnerDashboardPage() {
   if (isLoading) {
     return (
       <div className="space-y-6 py-8">
-        <Skeleton className="h-20 w-full rounded-2xl" />
+        <Skeleton className="h-20 w-full rounded-lg" />
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-[2rem]" />)}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-lg" />)}
         </div>
-        <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
   }
@@ -121,7 +121,7 @@ function NotAppliedYet() {
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-        <span className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+        <span className="grid h-14 w-14 place-items-center rounded-lg bg-primary/10 text-primary">
           <FileText className="h-7 w-7" />
         </span>
         <div>

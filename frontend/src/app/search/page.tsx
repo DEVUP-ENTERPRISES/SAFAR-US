@@ -97,7 +97,7 @@ function FilterDropdown({
       {open && pos && createPortal(
         <div
           ref={panelRef}
-          className="fixed z-[60] animate-slide-up rounded-2xl border border-border bg-card p-4 shadow-xl"
+          className="fixed z-[60] animate-slide-up rounded-lg border border-border bg-card p-4 shadow-xl"
           style={{ top: pos.top, left: pos.left, width: Math.min(width, window.innerWidth * 0.92) }}
         >
           {children(() => setOpen(false))}
@@ -414,7 +414,7 @@ function SearchInner() {
               onClick={() => setInstantBook((v) => !v)}
               className={cn(
                 'flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition-colors',
-                instantBook ? 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-500' : 'border-border bg-card hover:border-foreground/50',
+                instantBook ? 'border-warning/50 bg-warning/10 text-warning' : 'border-border bg-card hover:border-foreground/50',
               )}
             >
               <Zap className="h-4 w-4" /> Instant Book
@@ -491,7 +491,7 @@ function SearchInner() {
                 <VehicleListCard key={v._id} vehicle={v} days={days} dateLabel={dateLabel} />
               ))}
             </div>
-            <div className="sticky top-32 h-[calc(100vh-9rem)] overflow-hidden rounded-2xl border border-border hidden md:block">
+            <div className="sticky top-32 h-[calc(100vh-9rem)] overflow-hidden rounded-lg border border-border hidden md:block">
               <MapboxPanel lat={coords!.lat} lng={coords!.lng} label={areaLabel} count={data.length} vehicles={data} />
             </div>
             {/* Mobile Map Render when view is map */}
@@ -514,7 +514,7 @@ function SearchInner() {
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 md:hidden">
         <button
           onClick={() => setView(view === 'grid' ? 'map' : 'grid')}
-          className="flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background shadow-2xl hover:bg-foreground/90 transition-transform active:scale-95"
+          className="flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-bold text-background hover:bg-foreground/90 transition-transform active:scale-95"
         >
           {view === 'grid' ? (
             <><MapIcon className="h-5 w-5" /> Map</>

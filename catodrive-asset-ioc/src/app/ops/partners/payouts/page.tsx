@@ -76,7 +76,7 @@ export default function PartnerPayoutsPage() {
       <PartnersNav />
 
       {q.isLoading ? (
-        <Skeleton className="h-72 w-full rounded-2xl" />
+        <Skeleton className="h-72 w-full rounded-lg" />
       ) : q.isError || !q.data ? (
         <ErrorState message="We couldn’t load this month." retry={() => q.refetch()} />
       ) : (

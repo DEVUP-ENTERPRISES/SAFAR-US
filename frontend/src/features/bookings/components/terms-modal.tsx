@@ -54,7 +54,7 @@ export function TermsModal({
         role="dialog"
         aria-modal="true"
         aria-label="Terms and Conditions"
-        className="animate-slide-up flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-card shadow-2xl sm:rounded-3xl"
+        className="animate-slide-up flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-lg bg-card sm:rounded-lg"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
@@ -64,7 +64,7 @@ export function TermsModal({
             </span>
             <div>
               <p className="text-[15px] font-bold leading-tight">Terms &amp; Conditions</p>
-              {version && <p className="text-[11px] text-muted-foreground">Version {version}</p>}
+              {version && <p className="text-xs text-muted-foreground">Version {version}</p>}
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">

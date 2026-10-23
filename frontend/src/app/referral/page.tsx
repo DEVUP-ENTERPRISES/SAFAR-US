@@ -27,7 +27,7 @@ function ReferralInner() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="text-center">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Gift className="h-7 w-7" /></span>
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 text-primary"><Gift className="h-7 w-7" /></span>
         <h1 className="display mt-3 text-display-sm">Give {formatMoney({ amount: data.rewardPerReferral.friendGetsCents, currency: 'USD' })}, get {formatMoney({ amount: data.rewardPerReferral.youGetCents, currency: 'USD' })}</h1>
         <p className="mt-1 text-muted-foreground">Your friend gets credit on signup. You earn when they take their first trip.</p>
       </div>

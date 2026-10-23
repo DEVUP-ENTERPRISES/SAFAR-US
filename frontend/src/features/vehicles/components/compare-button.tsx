@@ -14,7 +14,7 @@ export function CompareButton({ vehicleId }: { vehicleId: string }) {
       aria-pressed={active}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(vehicleId); }}
       className={cn(
-        'flex h-9 w-9 items-center justify-center rounded-full shadow-soft backdrop-blur transition-transform hover:scale-110 active:scale-95',
+        'flex h-9 w-9 items-center justify-center rounded-full backdrop-blur transition-transform hover:scale-110 active:scale-95',
         active ? 'bg-primary text-primary-foreground' : 'bg-background/90 text-foreground',
       )}
     >

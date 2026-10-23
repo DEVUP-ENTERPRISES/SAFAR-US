@@ -39,7 +39,7 @@ function Tracker({ stage }: { stage: OnboardingStage }) {
       {TRACK.map((t, i) => (
         <li key={t.label} className="min-w-0">
           <div className={cn('h-1.5 rounded-full', i < at ? 'bg-primary' : i === at ? 'bg-primary/60' : 'bg-muted')} />
-          <p className={cn('mt-2 truncate text-[11px] font-semibold sm:text-xs', i === at ? 'text-primary' : i < at ? 'text-foreground' : 'text-muted-foreground')}>
+          <p className={cn('mt-2 truncate text-xs font-semibold sm:text-xs', i === at ? 'text-primary' : i < at ? 'text-foreground' : 'text-muted-foreground')}>
             {i < at && <Check className="me-1 inline h-3 w-3" />}
             {t.label}
           </p>
@@ -101,7 +101,7 @@ function InReview({ data }: { data: PartnerOnboarding }) {
             <p className="text-sm text-muted-foreground">A partner manager will contact you to arrange the inspection. We’ll email you at every step.</p>
           </div>
         </div>
-        <dl className="grid grid-cols-1 gap-3 rounded-2xl bg-muted/50 p-4 text-sm sm:grid-cols-3">
+        <dl className="grid grid-cols-1 gap-3 rounded-lg bg-muted/50 p-4 text-sm sm:grid-cols-3">
           <div><dt className="text-xs text-muted-foreground">Reference</dt><dd className="font-mono font-semibold">{app.reference}</dd></div>
           <div><dt className="text-xs text-muted-foreground">Car</dt><dd className="font-medium">{app.vehicle.year} {app.vehicle.make} {app.vehicle.model}</dd></div>
           <div><dt className="text-xs text-muted-foreground">Sent</dt><dd className="font-medium">{formatDate(app.createdAt)}</dd></div>
@@ -149,7 +149,7 @@ function GettingStarted() {
     if (q.data?.stage === 'ready') router.replace('/dashboard');
   }, [q.data?.stage, router]);
 
-  if (q.isLoading || q.data?.stage === 'ready') return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (q.isLoading || q.data?.stage === 'ready') return <Skeleton className="h-96 w-full rounded-lg" />;
   if (q.isError || !q.data) return <ErrorState message="We couldn’t load your progress." retry={() => q.refetch()} />;
   const data = q.data;
   const app = data.application;

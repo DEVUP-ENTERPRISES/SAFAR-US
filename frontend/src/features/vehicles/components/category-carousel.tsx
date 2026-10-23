@@ -108,30 +108,30 @@ export function CategoryCarousel({ city }: { city: string }) {
 
               {available ? (
                 <div className="relative z-10 flex translate-y-1 flex-col gap-0.5 p-4 transition-transform duration-500 group-hover:translate-y-0">
-                  <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-white/80 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-white/80 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
                     <Sparkles className="h-2.5 w-2.5" /> Explore
                   </span>
                   <h3 className="display text-lg leading-tight text-white">{t.label}</h3>
-                  <p className="text-[11px] font-medium text-white/65">{t.description}</p>
-                  <p className="numeric mt-0.5 text-[10px] font-semibold text-white/60">
+                  <p className="text-xs font-medium text-white/65">{t.description}</p>
+                  <p className="numeric mt-0.5 text-xs font-semibold text-white/60">
                     {t.cat!.vehicles} car{t.cat!.vehicles === 1 ? '' : 's'}
                     {t.cat!.fromPrice > 0 && ` · from ${formatMoney({ amount: t.cat!.fromPrice, currency })}`}
                   </p>
                 </div>
               ) : (
                 <div className="relative z-10 flex flex-col gap-0.5 p-4">
-                  <span className="inline-flex w-fit items-center rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-white/90 backdrop-blur-sm">
+                  <span className="inline-flex w-fit items-center rounded-full bg-white/15 px-2 py-0.5 text-xs font-bold uppercase tracking-widest text-white/90 backdrop-blur-sm">
                     Coming soon
                   </span>
                   <h3 className="display mt-1.5 text-lg leading-tight text-white/85">{t.label}</h3>
-                  <p className="text-[11px] font-medium text-white/55">{t.description}</p>
+                  <p className="text-xs font-medium text-white/55">{t.description}</p>
                 </div>
               )}
             </>
           );
 
           const shell =
-            'group animate-slide-up relative flex h-[204px] w-[150px] shrink-0 snap-start flex-col justify-end overflow-hidden rounded-xl shadow-lift transition-all duration-500 sm:w-[165px]';
+            'group animate-slide-up relative flex h-[204px] w-[150px] shrink-0 snap-start flex-col justify-end overflow-hidden rounded-xl transition-all duration-500 sm:w-[165px]';
           const style = { animationDelay: `${i * 70}ms`, animationFillMode: 'backwards' as const };
 
           return available ? (
@@ -139,7 +139,7 @@ export function CategoryCarousel({ city }: { city: string }) {
               key={t.key}
               href={`/search?city=${encodeURIComponent(city)}&category=${t.key}`}
               style={style}
-              className={cn(shell, 'hover:-translate-y-1 hover:shadow-2xl')}
+              className={cn(shell, 'hover:-translate-y-1')}
             >
               {inner}
             </Link>
@@ -155,13 +155,13 @@ export function CategoryCarousel({ city }: { city: string }) {
         <Link
           href={config.assetPartnersOnly ? '/asset-partners' : '/host'}
           style={{ animationDelay: `${tiles.length * 70}ms`, animationFillMode: 'backwards' }}
-          className="group animate-slide-up flex h-[204px] w-[150px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card p-4 text-center transition-all duration-500 hover:border-primary/50 hover:shadow-lg sm:w-[165px]"
+          className="group animate-slide-up flex h-[204px] w-[150px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card p-4 text-center transition-all duration-500 hover:border-primary/50 sm:w-[165px]"
         >
           <span className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-primary transition-transform duration-500 group-hover:scale-110">
             <ArrowRight className="h-4 w-4" />
           </span>
           <p className="text-sm font-bold leading-tight">List your car</p>
-          <p className="text-[11px] text-muted-foreground">Fill a style, start earning</p>
+          <p className="text-xs text-muted-foreground">Fill a style, start earning</p>
         </Link>
       </div>
       {arrow('r', right)}

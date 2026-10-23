@@ -105,7 +105,7 @@ export function PanelSidebar({
     >
       {/* Panel brand header - makes it unmistakable which panel you're in. */}
       <div className="mb-5 flex items-center gap-3 px-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0">
@@ -116,7 +116,7 @@ export function PanelSidebar({
 
       {groups.map((g) => (
         <div key={g.name} className="mb-4">
-          <p className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">
+          <p className="px-3 pb-1.5 text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground/60">
             {g.name}
           </p>
           <nav className="space-y-0.5">
@@ -133,7 +133,7 @@ export function PanelSidebar({
                   className={cn(
                     'relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all',
                     active
-                      ? 'bg-primary/10 text-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] ring-1 ring-primary/20'
+                      ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   )}
                 >
@@ -144,7 +144,7 @@ export function PanelSidebar({
                   <NavIcon className={cn('h-4.5 w-4.5 shrink-0', active ? 'text-primary' : 'text-muted-foreground/70')} />
                   <span className="truncate">{n.label}</span>
                   {typeof n.count === 'number' && n.count > 0 && (
-                    <span className="ms-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                    <span className="ms-auto rounded-full bg-primary px-1.5 py-0.5 text-xs font-bold text-primary-foreground">
                       {n.count > 99 ? '99+' : n.count}
                     </span>
                   )}
@@ -225,7 +225,7 @@ export function PanelSidebar({
                   own but adds up with everything else that didn't match. */}
               <NavIcon className="h-[1.4rem] w-[1.4rem]" />
               {typeof n.count === 'number' && n.count > 0 && (
-                <span className="absolute -end-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                <span className="absolute -end-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-xs font-bold text-primary-foreground">
                   {n.count > 99 ? '99+' : n.count}
                 </span>
               )}
@@ -250,7 +250,7 @@ export function PanelSidebar({
               weight - bold read heavier/denser next to it for no reason tied
               to this bar being any more important.
             */}
-            <span className="w-full truncate text-center text-[10px] font-semibold tracking-tight">
+            <span className="w-full truncate text-center text-xs font-semibold tracking-tight">
               {n.mobileLabel ?? n.label}
             </span>
             {/* Active-tab indicator, the same top underline the guest bar
@@ -270,7 +270,7 @@ export function PanelSidebar({
           className={cn('relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 transition-colors', moreActive ? 'text-primary' : 'text-muted-foreground/70 hover:text-foreground')}
         >
           <LayoutGrid className="h-[1.4rem] w-[1.4rem]" />
-          <span className="w-full truncate text-center text-[10px] font-semibold tracking-tight">More</span>
+          <span className="w-full truncate text-center text-xs font-semibold tracking-tight">More</span>
           {moreActive && <span className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-primary" />}
         </button>
       )}

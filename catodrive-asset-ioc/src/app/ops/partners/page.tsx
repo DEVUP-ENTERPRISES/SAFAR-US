@@ -33,7 +33,7 @@ function Line({ label, value, strong, hint }: { label: string; value: string; st
 function Todo({ href, icon, label, count, done }: { href: string; icon: React.ReactNode; label: string; count: string; done: boolean }) {
   return (
     <Link href={href} className="flex items-center gap-3 px-6 py-4 transition-colors hover:bg-accent/40">
-      <span className={done ? 'text-muted-foreground' : 'text-amber-600 dark:text-amber-400'}>{icon}</span>
+      <span className={done ? 'text-muted-foreground' : 'text-warning'}>{icon}</span>
       <span className="min-w-0 flex-1 text-sm">{label}</span>
       <span className={done ? 'text-sm text-muted-foreground' : 'text-sm font-semibold'}>{count}</span>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -60,7 +60,7 @@ export default function AssetOverviewPage() {
       <PartnersNav />
 
       {q.isLoading ? (
-        <Skeleton className="h-96 w-full rounded-2xl" />
+        <Skeleton className="h-96 w-full rounded-lg" />
       ) : q.isError || !o ? (
         <ErrorState message="We couldn’t load the overview." retry={() => q.refetch()} />
       ) : (

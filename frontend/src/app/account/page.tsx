@@ -103,11 +103,11 @@ function Account() {
       />
 
       {/* Identity verification */}
-      <section className="bg-muted/30 rounded-3xl p-6 sm:p-8 border border-border/40">
+      <section className="bg-muted/30 rounded-lg p-6 sm:p-8 border border-border/40">
         <h2 className="flex items-center gap-2 text-xl font-bold mb-6"><ShieldCheck className="h-6 w-6 text-primary" /> Identity verification</h2>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div>
-            <Badge tone={kycTone} className="mb-2 uppercase tracking-widest text-[10px]">{kyc.data?.status ?? '…'}</Badge>
+            <Badge tone={kycTone} className="mb-2 uppercase tracking-widest text-xs">{kyc.data?.status ?? '…'}</Badge>
             {kyc.data?.reason && <p className="mt-1 text-sm font-semibold text-destructive">{kyc.data.reason}</p>}
             <p className="mt-1 text-base font-medium text-muted-foreground">Driver license + selfie verification for booking trust.</p>
           </div>
@@ -122,7 +122,7 @@ function Account() {
       </section>
 
       {/* Profile */}
-      <section className="bg-muted/30 rounded-3xl p-6 sm:p-8 border border-border/40">
+      <section className="bg-muted/30 rounded-lg p-6 sm:p-8 border border-border/40">
         <h2 className="text-xl font-bold mb-6">Profile details</h2>
         <div className="space-y-8">
           <AvatarUpload
@@ -145,13 +145,13 @@ function Account() {
       </section>
 
       {/* Saved addresses */}
-      <section className="bg-muted/30 rounded-3xl p-6 sm:p-8 border border-border/40">
+      <section className="bg-muted/30 rounded-lg p-6 sm:p-8 border border-border/40">
         <h2 className="flex items-center gap-2 text-xl font-bold mb-6"><MapPin className="h-6 w-6 text-primary" /> Saved addresses</h2>
         <div className="space-y-5">
           {me.data.addresses.map((a) => (
-            <div key={a.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl bg-background p-5 gap-4 border border-border/40 shadow-sm">
+            <div key={a.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg bg-background p-5 gap-4 border border-border/40">
               <div className="min-w-0">
-                <p className="text-base font-bold flex flex-wrap items-center gap-x-2 gap-y-1">{a.line1}{a.line2 ? `, ${a.line2}` : ''} {a.isDefault && <Badge tone="success" className="ms-3 text-[10px] uppercase tracking-widest">Default</Badge>}</p>
+                <p className="text-base font-bold flex flex-wrap items-center gap-x-2 gap-y-1">{a.line1}{a.line2 ? `, ${a.line2}` : ''} {a.isDefault && <Badge tone="success" className="ms-3 text-xs uppercase tracking-widest">Default</Badge>}</p>
                 <p className="mt-1.5 text-sm font-medium text-muted-foreground">{[a.city, [a.state, a.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -191,11 +191,11 @@ function Account() {
       </section>
 
       {/* Emergency contacts */}
-      <section className="bg-muted/30 rounded-3xl p-6 sm:p-8 border border-border/40">
+      <section className="bg-muted/30 rounded-lg p-6 sm:p-8 border border-border/40">
         <h2 className="flex items-center gap-2 text-xl font-bold mb-6"><Phone className="h-6 w-6 text-primary" /> Emergency contacts</h2>
         <div className="space-y-4">
           {me.data.emergencyContacts.map((c) => (
-            <div key={c.id} className="flex items-center justify-between rounded-2xl bg-background p-4 gap-4 border border-border/40 shadow-sm">
+            <div key={c.id} className="flex items-center justify-between rounded-lg bg-background p-4 gap-4 border border-border/40">
               <div className="min-w-0"><p className="text-base font-bold">{c.name}</p><p className="text-sm font-medium text-muted-foreground mt-0.5">{c.phone}{c.relation ? ` · ${c.relation}` : ''}</p></div>
               <Button size="icon" variant="ghost" className="text-destructive rounded-full hover:bg-destructive/10 shrink-0" onClick={async () => { const { ok } = await confirm({ title: `Remove ${c.name}?`, description: 'This emergency contact will no longer be notified during a trip SOS.', confirmLabel: 'Remove contact', tone: 'destructive' }); if (ok) removeContact.mutate(c.id); }}><Trash2 className="h-4 w-4" /></Button>
             </div>
@@ -210,12 +210,12 @@ function Account() {
       </section>
 
       {/* Two-factor authentication */}
-      <section className="bg-muted/30 rounded-3xl p-6 sm:p-8 border border-border/40">
+      <section className="bg-muted/30 rounded-lg p-6 sm:p-8 border border-border/40">
         <h2 className="flex items-center gap-2 text-xl font-bold mb-6"><KeyRound className="h-6 w-6 text-primary" /> Two-factor authentication</h2>
         <div className="space-y-4">
           {mfa.data?.enabled ? (
             <div className="space-y-4">
-              <Badge tone="success" className="px-3 py-1 uppercase tracking-widest text-[10px]">Enabled</Badge>
+              <Badge tone="success" className="px-3 py-1 uppercase tracking-widest text-xs">Enabled</Badge>
               <p className="text-base font-medium text-muted-foreground">Enter a code from your authenticator app to disable.</p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Input className="h-12 rounded-xl text-lg tracking-widest" value={mfaToken} onChange={(e) => setMfaToken(e.target.value)} placeholder="000000" maxLength={6} />
@@ -225,7 +225,7 @@ function Account() {
           ) : mfaSetup ? (
             <div className="space-y-4">
               <p className="text-base font-medium text-muted-foreground">Add this secret to your authenticator app (Google Authenticator, Authy), then enter a code to confirm.</p>
-              <code className="block break-all rounded-xl bg-background p-4 text-base font-mono border border-border/40 shadow-sm">{mfaSetup.secret}</code>
+              <code className="block break-all rounded-xl bg-background p-4 text-base font-mono border border-border/40">{mfaSetup.secret}</code>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Input className="h-12 rounded-xl text-lg tracking-widest" value={mfaToken} onChange={(e) => setMfaToken(e.target.value)} placeholder="000000" maxLength={6} />
                 <Button size="lg" className="rounded-xl font-bold" disabled={mfaToken.length !== 6} loading={enableMfa.isPending} onClick={() => enableMfa.mutate()}>Confirm &amp; enable</Button>
@@ -242,7 +242,7 @@ function Account() {
       </section>
 
       {/* Notifications */}
-      <section className="bg-muted/30 rounded-3xl p-6 sm:p-8 border border-border/40">
+      <section className="bg-muted/30 rounded-lg p-6 sm:p-8 border border-border/40">
         <h2 className="flex items-center gap-2 text-xl font-bold mb-6"><Bell className="h-6 w-6 text-primary" /> Notifications</h2>
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -261,13 +261,13 @@ function Account() {
       <InstallAppCard />
 
       {/* Payment methods */}
-      <section className="bg-muted/30 rounded-3xl p-6 sm:p-8 border border-border/40">
+      <section className="bg-muted/30 rounded-lg p-6 sm:p-8 border border-border/40">
         <h2 className="flex items-center gap-2 text-xl font-bold mb-6"><CreditCard className="h-6 w-6 text-primary" /> Payment methods</h2>
         <div className="space-y-4">
           {cards.data?.map((c) => (
-            <div key={c._id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl bg-background p-5 gap-4 border border-border/40 shadow-sm">
+            <div key={c._id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg bg-background p-5 gap-4 border border-border/40">
               <div className="min-w-0">
-                <p className="text-base font-bold capitalize flex flex-wrap items-center gap-x-2 gap-y-1">{c.brand} •••• {c.last4} {c.isDefault && <Badge tone="success" className="ms-3 text-[10px] uppercase tracking-widest">Default</Badge>}</p>
+                <p className="text-base font-bold capitalize flex flex-wrap items-center gap-x-2 gap-y-1">{c.brand} •••• {c.last4} {c.isDefault && <Badge tone="success" className="ms-3 text-xs uppercase tracking-widest">Default</Badge>}</p>
                 <p className="mt-1 text-sm font-medium text-muted-foreground">Expires {c.expMonth}/{c.expYear}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -283,18 +283,18 @@ function Account() {
       </section>
 
       {/* Security / devices */}
-      <section className="bg-muted/30 rounded-3xl p-6 sm:p-8 border border-border/40">
+      <section className="bg-muted/30 rounded-lg p-6 sm:p-8 border border-border/40">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 mb-6">
           <h2 className="flex items-center gap-2 text-xl font-bold"><Monitor className="h-6 w-6 text-primary" /> Devices &amp; sessions</h2>
           <Button size="sm" variant="outline" className="rounded-full font-bold w-full sm:w-auto" loading={logoutOthers.isPending} onClick={async () => { const { ok } = await confirm({ title: 'Log out all other devices?', description: 'Every other session will be signed out immediately. This device stays signed in.', confirmLabel: 'Log out others', tone: 'destructive' }); if (ok) logoutOthers.mutate(); }}>Log out other devices</Button>
         </div>
         <div className="space-y-3">
-          {sessions.isLoading && <Skeleton className="h-20 w-full rounded-2xl" />}
+          {sessions.isLoading && <Skeleton className="h-20 w-full rounded-lg" />}
           {sessions.data?.map((s) => (
-            <div key={s.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl bg-background p-5 gap-4 border border-border/40 shadow-sm">
+            <div key={s.id} className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg bg-background p-5 gap-4 border border-border/40">
               <div className="min-w-0">
                 <p className="text-base font-bold flex flex-wrap items-center gap-x-2 gap-y-1">
-                  {shortUa(s.userAgent)} {s.current && <Badge tone="success" className="ms-3 text-[10px] uppercase tracking-widest"><Star className="me-1 h-3 w-3 inline" /> This device</Badge>}
+                  {shortUa(s.userAgent)} {s.current && <Badge tone="success" className="ms-3 text-xs uppercase tracking-widest"><Star className="me-1 h-3 w-3 inline" /> This device</Badge>}
                 </p>
                 {/* No raw IP address - it overflows on mobile and is data we
                     don't need to put on screen. Just when the session started. */}
@@ -307,7 +307,7 @@ function Account() {
       </section>
 
       {/* Store rule: deletion must be reachable from inside the account. */}
-      <section className="rounded-3xl border border-destructive/30 p-6 sm:p-8">
+      <section className="rounded-lg border border-destructive/30 p-6 sm:p-8">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
           <div>
             <h2 className="flex items-center gap-2 text-xl font-bold"><Trash2 className="h-6 w-6 text-destructive" /> Delete account</h2>

@@ -153,7 +153,7 @@ export default function PartnerRepairsPage() {
       </div>
 
       {q.isLoading ? (
-        <Skeleton className="h-60 w-full rounded-2xl" />
+        <Skeleton className="h-60 w-full rounded-lg" />
       ) : q.isError ? (
         <ErrorState message="We couldn’t load repairs." retry={() => q.refetch()} />
       ) : !q.data?.length ? (

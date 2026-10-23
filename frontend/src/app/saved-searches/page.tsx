@@ -50,7 +50,7 @@ function SavedSearches() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)}</div>
+        <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}</div>
       ) : isError ? (
         <ErrorState message="Couldn’t load your saved searches." retry={() => refetch()} />
       ) : !data || data.length === 0 ? (

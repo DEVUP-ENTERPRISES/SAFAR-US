@@ -156,7 +156,7 @@ export default function ManageListingPage() {
     }
   };
 
-  if (isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (isError || !v) return <ErrorState message="Listing not found." />;
 
   const photos = v.photos ?? [];
@@ -213,7 +213,7 @@ export default function ManageListingPage() {
   return (
     <div className="space-y-1 pb-6">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-muted">
+      <div className="relative overflow-hidden rounded-lg bg-muted">
         <div className="aspect-[16/9] w-full">
           {cover?.url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -227,7 +227,7 @@ export default function ManageListingPage() {
         </div>
         <span
           className={cn(
-            'absolute start-4 top-4 flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold uppercase',
+            'absolute start-4 top-4 flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold uppercase',
             v.status === 'listed' ? 'bg-success text-success-foreground' : 'bg-foreground/80 text-background',
           )}
         >
@@ -410,7 +410,7 @@ export default function ManageListingPage() {
                           <img src={p.url} alt="" className="h-full w-full object-cover" />
 
                           {isCover && (
-                            <span className="absolute start-1 top-1 flex items-center gap-1 rounded bg-foreground/80 px-1.5 py-0.5 text-[10px] font-bold uppercase text-background">
+                            <span className="absolute start-1 top-1 flex items-center gap-1 rounded bg-foreground/80 px-1.5 py-0.5 text-xs font-bold uppercase text-background">
                               <Check className="h-3 w-3" /> Cover
                             </span>
                           )}

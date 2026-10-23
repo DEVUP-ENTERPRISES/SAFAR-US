@@ -128,7 +128,7 @@ function HostShell({ children }: { children: ReactNode }) {
         </div>
 
         {/* Form */}
-        <Card className="rounded-[2.5rem] shadow-soft bg-card/80 backdrop-blur border-border/50">
+        <Card className="rounded-lg bg-card/80 backdrop-blur border-border/50">
           <CardHeader>
             <CardTitle>Become a CatoDrive host</CardTitle>
           </CardHeader>

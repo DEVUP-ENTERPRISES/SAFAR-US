@@ -14,9 +14,9 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
 
   return (
     <Link href={`/vehicles/${vehicle._id}`} className={cn("group block", className)}>
-      <article className="lift relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card p-2 shadow-card hover:border-primary/40 sm:rounded-[2rem] sm:p-2.5">
+      <article className="lift relative flex h-full flex-col overflow-hidden rounded-lg border border-border/70 bg-card p-2 hover:border-primary/40 sm:rounded-lg sm:p-2.5">
         {/* Image Wrapper */}
-        <div className="photo-scrim relative aspect-[4/3] w-full overflow-hidden rounded-xl sm:rounded-[1.5rem] bg-muted">
+        <div className="photo-scrim relative aspect-[4/3] w-full overflow-hidden rounded-xl sm:rounded-lg bg-muted">
           {cover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -38,10 +38,10 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
 
           {/* Actions */}
           <div className="absolute end-3 top-3 flex flex-col gap-2 scale-90 sm:scale-100 origin-top-right z-20">
-            <div className="rounded-full bg-black/20 backdrop-blur-md shadow-sm border border-white/10 transition-transform hover:scale-110 hover:bg-black/40">
+            <div className="rounded-full bg-black/20 backdrop-blur-md border border-white/10 transition-transform hover:scale-110 hover:bg-black/40">
               <WishlistButton vehicleId={vehicle._id} />
             </div>
-            <div className="rounded-full bg-black/20 backdrop-blur-md shadow-sm border border-white/10 transition-transform hover:scale-110 hover:bg-black/40">
+            <div className="rounded-full bg-black/20 backdrop-blur-md border border-white/10 transition-transform hover:scale-110 hover:bg-black/40">
               <CompareButton vehicleId={vehicle._id} />
             </div>
           </div>
@@ -49,15 +49,15 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
           {/* Status chips: a fixed gap on the right keeps them clear of the save/compare buttons at any card width. */}
           <div className="absolute start-2 end-12 top-2 z-20 flex flex-wrap gap-1.5 sm:start-3 sm:end-16 sm:top-3 sm:gap-2">
             {vehicle.fleetOwned && (
-              <FleetBadge className="whitespace-nowrap border-white/20 bg-black/55 px-2 py-0.5 text-[10px] text-white backdrop-blur-md sm:px-2.5 sm:py-1 sm:text-[11px]" />
+              <FleetBadge className="whitespace-nowrap border-white/20 bg-black/55 px-2 py-0.5 text-xs text-white backdrop-blur-md sm:px-2.5 sm:py-1 sm:text-xs" />
             )}
             {vehicle.hostIsSuperhost && (
-              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-black/40 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-sm backdrop-blur-md sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-[11px]">
-                <Award className="h-3 w-3 text-yellow-400 sm:h-3.5 sm:w-3.5" /> Superhost
+              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-black/40 px-2 py-0.5 text-xs font-semibold tracking-wide text-white backdrop-blur-md sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs">
+                <Award className="h-3 w-3 text-warning sm:h-3.5 sm:w-3.5" /> Superhost
               </span>
             )}
             {vehicle.listing.instantBook && (
-              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-black/55 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-sm backdrop-blur-md sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-[11px]">
+              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-black/55 px-2 py-0.5 text-xs font-semibold tracking-wide text-white backdrop-blur-md sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs">
                 <Zap className="h-3 w-3 fill-current sm:h-3.5 sm:w-3.5" /> Instant
               </span>
             )}

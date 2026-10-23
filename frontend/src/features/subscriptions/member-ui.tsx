@@ -9,7 +9,7 @@ import { useMembership, useMemberDailyPrice } from './hooks';
 /** A small gold "PRO" mark for anyone with a live membership. */
 export function ProBadge({ className, label = 'PRO' }: { className?: string; label?: string }) {
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 px-2 py-0.5 text-[10px] font-extrabold tracking-widest text-amber-950 shadow-sm', className)}>
+    <span className={cn('inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 px-2 py-0.5 text-xs font-extrabold tracking-widest text-amber-950', className)}>
       <Crown className="h-3 w-3" /> {label}
     </span>
   );

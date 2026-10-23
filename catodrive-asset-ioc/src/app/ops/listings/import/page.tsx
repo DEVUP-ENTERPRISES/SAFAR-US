@@ -94,7 +94,7 @@ export default function ImportPage() {
               />
             </Field>
           ) : (
-            <div className="flex items-start justify-between gap-3 rounded-2xl border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-3 rounded-lg border border-border bg-card p-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Address</p>
                 <p className="font-medium">{address}</p>

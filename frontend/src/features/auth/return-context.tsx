@@ -34,7 +34,7 @@ export function ReturnContext({ next }: { next: string | null }) {
   const cover = v.photos?.find((p) => p.isCover)?.url ?? v.photos?.[0]?.url;
 
   return (
-    <div className="mb-8 flex items-center gap-3.5 rounded-2xl border border-border bg-card p-3 shadow-soft">
+    <div className="mb-8 flex items-center gap-3.5 rounded-lg border border-border bg-card p-3">
       {cover ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -50,7 +50,7 @@ export function ReturnContext({ next }: { next: string | null }) {
       )}
 
       <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-primary">
+        <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
           <ShieldCheck className="h-3.5 w-3.5" /> Your trip is saved
         </p>
         <p className="mt-0.5 truncate text-[15px] font-semibold">

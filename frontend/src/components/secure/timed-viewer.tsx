@@ -135,7 +135,7 @@ export function TimedViewer({ title, subtitle, seconds, items, load, onClose }: 
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex select-none flex-col bg-neutral-950 text-white [-webkit-touch-callout:none]"
+      className="fixed inset-0 z-[100] flex select-none flex-col bg-ink text-white [-webkit-touch-callout:none]"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -149,7 +149,7 @@ export function TimedViewer({ title, subtitle, seconds, items, load, onClose }: 
           <p className="text-xs text-white/60">{subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className={cn('rounded-full px-3 py-1 font-mono text-sm tabular-nums', left <= 15 ? 'bg-red-600' : 'bg-white/10')} aria-live="polite">
+          <span className={cn('rounded-full px-3 py-1 font-mono text-sm tabular-nums', left <= 15 ? 'bg-destructive' : 'bg-white/10')} aria-live="polite">
             {mm}:{ss}
           </span>
           <Button variant="outline" size="sm" className="border-white/20 bg-transparent text-white hover:bg-white/10" onClick={close} aria-label="Close">
@@ -188,7 +188,7 @@ export function TimedViewer({ title, subtitle, seconds, items, load, onClose }: 
         {covered && (
           <button
             type="button"
-            className="fixed inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-neutral-950 text-center"
+            className="fixed inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-ink text-center"
             onClick={() => setCovered(false)}
           >
             <ShieldCheck className="h-8 w-8 text-primary" />

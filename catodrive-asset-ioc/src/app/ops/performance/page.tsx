@@ -22,9 +22,9 @@ export default function HostPerformancePage() {
       <div className="space-y-6">
         <Skeleton className="h-12 w-72" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 rounded-2xl" />)}
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 rounded-lg" />)}
         </div>
-        <Skeleton className="h-72 rounded-2xl" />
+        <Skeleton className="h-72 rounded-lg" />
       </div>
     );
   }
@@ -64,7 +64,7 @@ export default function HostPerformancePage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="rounded-2xl shadow-soft">
+        <Card className="rounded-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Earnings trend</CardTitle>
           </CardHeader>
@@ -73,7 +73,7 @@ export default function HostPerformancePage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-soft">
+        <Card className="rounded-lg">
           <CardHeader><CardTitle>Revenue by vehicle</CardTitle></CardHeader>
           <CardContent>
             {data.perVehicle.length ? (
@@ -86,7 +86,7 @@ export default function HostPerformancePage() {
       </div>
 
       {/* Per-vehicle table */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card className="rounded-lg">
         <CardHeader><CardTitle>Per-vehicle breakdown</CardTitle></CardHeader>
         <CardContent>
           {data.perVehicle.length === 0 ? (

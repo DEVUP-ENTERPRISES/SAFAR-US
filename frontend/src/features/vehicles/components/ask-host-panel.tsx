@@ -38,7 +38,7 @@ export function AskHostPanel({ vehicleId, hostName }: { vehicleId: string; hostN
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-2 text-start"
@@ -61,7 +61,7 @@ export function AskHostPanel({ vehicleId, hostName }: { vehicleId: string; hostN
                   <div key={m._id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
                     <div
                       className={cn(
-                        'max-w-[85%] rounded-2xl px-3 py-2 text-sm',
+                        'max-w-[85%] rounded-lg px-3 py-2 text-sm',
                         mine ? 'rounded-br-md bg-primary text-primary-foreground' : 'rounded-bl-md bg-muted text-foreground',
                       )}
                     >

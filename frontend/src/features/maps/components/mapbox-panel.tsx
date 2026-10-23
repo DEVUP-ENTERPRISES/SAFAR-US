@@ -275,7 +275,7 @@ function VehicleSheet({ vehicle: v, onClose }: { vehicle: Vehicle; onClose: () =
     <div className="absolute inset-x-3 bottom-3 z-10">
       <Link
         href={`/vehicles/${v._id}`}
-        className="flex gap-3 rounded-2xl border border-border bg-card p-3 shadow-[0_8px_30px_rgb(0,0,0,0.18)] transition-transform hover:scale-[1.01]"
+        className="flex gap-3 rounded-lg border border-border bg-card p-3 transition-transform hover:scale-[1.01]"
       >
         {photo ? (
           <img src={photo} alt={`${v.make} ${v.model}`} className="h-20 w-24 shrink-0 rounded-xl object-cover" />
@@ -338,7 +338,7 @@ function pinEl(
   el.title = `${p.name ?? ''}${p.rating ? ` · ${p.rating}★` : ''} - $${p.price}/day`;
 
   const bolt = p.instant
-    ? '<span class="absolute -end-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-[#0e918c] text-[9px] text-white ring-2 ring-white">\u26A1</span>'
+    ? '<span class="absolute -end-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-[#0c7979] text-xs text-white ring-2 ring-white">\u26A1</span>'
     : '';
 
   // A photo is dropped when the map is busy, and when the car has none - an
@@ -346,8 +346,8 @@ function pinEl(
   const showPhoto = !compact && !!p.photo;
 
   el.innerHTML = `
-    <span class="relative flex items-center rounded-2xl bg-[#141210] shadow-[0_3px_12px_rgba(0,0,0,.35)]
-                 ring-2 ring-white transition-colors duration-150 group-hover:ring-[#0e918c]
+    <span class="relative flex items-center rounded-lg bg-[#141210]
+                 ring-2 ring-white transition-colors duration-150 group-hover:ring-[#0c7979]
                  ${showPhoto ? 'gap-1.5 p-1 pe-2.5' : 'px-2.5 py-1'}">
       ${showPhoto ? `<img src="${p.photo}" alt="" loading="lazy" class="h-9 w-12 shrink-0 rounded-xl object-cover" />` : ''}
       <span class="text-[13px] font-bold leading-none text-white">$${p.price}</span>
@@ -372,11 +372,11 @@ function clusterEl(count: number, onClick: () => void): HTMLButtonElement {
   // A soft halo behind the bubble reads as density without needing a heat map,
   // and tells the eye which clusters are worth zooming into.
   el.innerHTML = `
-    <span class="absolute inset-0 rounded-full bg-[#0e918c] opacity-20"></span>
-    <span class="absolute inset-[15%] rounded-full bg-[#0e918c] opacity-30"></span>
-    <span class="relative grid h-[70%] w-[70%] place-items-center rounded-full bg-[#0e918c]
+    <span class="absolute inset-0 rounded-full bg-[#0c7979] opacity-20"></span>
+    <span class="absolute inset-[15%] rounded-full bg-[#0c7979] opacity-30"></span>
+    <span class="relative grid h-[70%] w-[70%] place-items-center rounded-full bg-[#0c7979]
                  text-[13px] font-bold text-white ring-2 ring-white
-                 shadow-[0_2px_10px_rgba(0,0,0,.3)] transition-transform duration-150
+                  transition-transform duration-150
                  group-hover:scale-110">${count}</span>`;
   el.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
   return el;

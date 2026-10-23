@@ -95,7 +95,7 @@ export function NotificationBell({ linkFor = notificationLink }: { linkFor?: (n:
          * sm and up: back to the original anchored-dropdown feel, `absolute
          * end-0` off the bell, with real room for a fixed 420px panel.
          */
-        <div className="fixed inset-x-4 top-[4.75rem] z-50 sm:absolute sm:inset-x-auto sm:top-auto sm:end-0 sm:mt-3 w-auto sm:w-[420px] origin-top-right animate-scale-in overflow-hidden rounded-[1.5rem] border border-border/60 bg-card shadow-[0_12px_48px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 dark:ring-white/10">
+        <div className="fixed inset-x-4 top-[4.75rem] z-50 sm:absolute sm:inset-x-auto sm:top-auto sm:end-0 sm:mt-3 w-auto sm:w-[420px] origin-top-right animate-scale-in overflow-hidden rounded-lg border border-border/60 bg-card shadow-[0_12px_48px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 dark:ring-white/10">
           <div className="flex items-center justify-between border-b border-border/40 bg-muted/20 px-5 py-4 backdrop-blur-sm">
             <p className="text-[17px] font-bold tracking-tight">Notifications</p>
             {unread.length > 0 && (
@@ -137,7 +137,7 @@ export function NotificationBell({ linkFor = notificationLink }: { linkFor?: (n:
                   <div className="mt-1 shrink-0">
                     <span className={cn(
                       'grid h-10 w-10 place-items-center rounded-full transition-colors',
-                      n.readAt ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary shadow-sm'
+                      n.readAt ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'
                     )}>
                       <Bell className="h-4.5 w-4.5" />
                     </span>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useDebouncedValue } from '@/lib/utils/use-debounced-value';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
@@ -17,10 +18,11 @@ export default function HelpCentre() {
   const [q, setQ] = useState('');
   const [category, setCategory] = useState<string | null>(null);
 
+  const term = useDebouncedValue(q.trim());
   const categories = useQuery({ queryKey: ['kb-categories'], queryFn: () => kbApi.categories() });
   const articles = useQuery({
-    queryKey: ['kb-articles', q, category],
-    queryFn: () => kbApi.list({ q: q.trim() || undefined, category: category ?? undefined }),
+    queryKey: ['kb-articles', term, category],
+    queryFn: () => kbApi.list({ q: term || undefined, category: category ?? undefined }),
   });
 
   return (

@@ -70,7 +70,7 @@ export default function ForgotPasswordPage() {
       ) : (
         <form onSubmit={(e) => { e.preventDefault(); if (code.trim() && password.length >= 8) reset.mutate(); }} className="space-y-6">
           {devCode && (
-            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+            <p className="rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
               Email isn’t configured yet, so here’s your code for testing: <span className="font-mono font-bold">{devCode}</span>
             </p>
           )}

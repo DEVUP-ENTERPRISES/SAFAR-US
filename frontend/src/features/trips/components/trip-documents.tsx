@@ -67,7 +67,7 @@ export function TripDocuments({ bookingId }: { bookingId: string }) {
           {s.documents.map((d) => (
             <li key={d.category} className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm">
               <span className="truncate">{d.label}</span>
-              <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-xs font-medium', d.available ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400')}>
+              <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-xs font-medium', d.available ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning')}>
                 {d.available ? 'On file' : d.expired ? 'Expired' : 'Missing'}
               </span>
             </li>
@@ -96,7 +96,7 @@ export function TripDocuments({ bookingId }: { bookingId: string }) {
 
       {confirming && anyOnFile && createPortal(
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-4 sm:items-center" role="dialog" aria-modal="true">
-          <div className="w-full max-w-md space-y-4 rounded-2xl bg-background p-5 shadow-xl">
+          <div className="w-full max-w-md space-y-4 rounded-lg bg-background p-5">
             <p className="text-lg font-semibold">Show the car&apos;s documents?</p>
             <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               <li>Show them only to a law-enforcement officer.</li>

@@ -112,7 +112,7 @@ export function DateRangePicker({
             {/* Day-of-week headers */}
             <div className="mb-1 grid grid-cols-7">
               {DOW.map((d, i) => (
-                <div key={i} className="flex h-9 items-center justify-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <div key={i} className="flex h-9 items-center justify-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {d}
                 </div>
               ))}
@@ -153,7 +153,7 @@ export function DateRangePicker({
                       className={cn(
                         'absolute inset-0 m-auto grid h-9 w-9 place-items-center rounded-full text-sm font-medium',
                         /* start / end circles */
-                        (isStart || isEnd) && 'bg-primary font-bold text-primary-foreground shadow-md shadow-primary/30',
+                        (isStart || isEnd) && 'bg-primary font-bold text-primary-foreground',
                         /* today indicator when not selected */
                         isToday && !isStart && !isEnd && 'ring-1 ring-primary/50 font-semibold text-primary',
                         /* default day */

@@ -39,7 +39,7 @@ export default function InvoicesPage() {
       )}
 
       {data.lines.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-soft">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-start text-muted-foreground">

@@ -104,7 +104,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           />
 
           {/* Panel */}
-          <div className="relative w-full max-w-md animate-scale-in overflow-hidden rounded-2xl border border-border bg-card shadow-float">
+          <div className="relative w-full max-w-md animate-scale-in overflow-hidden rounded-lg border border-border bg-card">
             <button
               onClick={() => close(false)}
               aria-label="Close"

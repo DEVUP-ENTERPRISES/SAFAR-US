@@ -20,7 +20,7 @@ export default function PhotoGuidePage() {
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {TIPS.map((t) => (
-          <div key={t.title} className="rounded-2xl border border-border bg-card p-4">
+          <div key={t.title} className="rounded-lg border border-border bg-card p-4">
             <p className="font-bold">{t.title}</p>
             <p className="mt-1 text-sm text-muted-foreground">{t.body}</p>
           </div>
@@ -52,7 +52,7 @@ export default function PhotoGuidePage() {
         ))}
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
         <h2 className="text-xl font-bold">If there is an accident, add these before anything moves</h2>
         <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {ACCIDENT.map((a) => (

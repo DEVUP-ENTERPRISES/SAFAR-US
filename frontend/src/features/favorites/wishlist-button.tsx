@@ -25,11 +25,11 @@ export function WishlistButton({ vehicleId, className }: { vehicleId: string; cl
         toggle.mutate({ vehicleId, next: !active });
       }}
       className={cn(
-        'flex h-9 w-9 items-center justify-center rounded-full bg-background/90 shadow-soft backdrop-blur transition-transform hover:scale-110 active:scale-95',
+        'flex h-9 w-9 items-center justify-center rounded-full bg-background/90 backdrop-blur transition-transform hover:scale-110 active:scale-95',
         className,
       )}
     >
-      <Heart className={cn('h-5 w-5', active ? 'fill-rose-500 text-rose-500' : 'text-foreground')} />
+      <Heart className={cn('h-5 w-5', active ? 'fill-destructive text-destructive' : 'text-foreground')} />
     </button>
   );
 }

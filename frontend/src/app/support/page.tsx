@@ -112,7 +112,7 @@ function Support() {
                   const mine = m.authorId === me?.id;
                   return (
                     <div key={i} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
-                      <div className={cn('max-w-[75%] rounded-2xl px-3.5 py-2 text-sm', mine ? 'rounded-ee-sm bg-primary text-primary-foreground' : 'rounded-es-sm bg-muted')}>{m.body}</div>
+                      <div className={cn('max-w-[75%] rounded-lg px-3.5 py-2 text-sm', mine ? 'rounded-ee-sm bg-primary text-primary-foreground' : 'rounded-es-sm bg-muted')}>{m.body}</div>
                     </div>
                   );
                 })}

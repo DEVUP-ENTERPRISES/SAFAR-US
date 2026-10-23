@@ -34,7 +34,7 @@ export function DepositCard({ bookingId, isGuest }: { bookingId: string; isGuest
   const canPlace = isGuest && !d.held && (!d.opensAt || new Date(d.opensAt).getTime() <= Date.now());
 
   return (
-    <section className="rounded-2xl border border-border p-4">
+    <section className="rounded-lg border border-border p-4">
       <p className="flex items-center gap-2 font-semibold">
         {d.held ? <ShieldCheck className="h-5 w-5 text-success" /> : <Lock className="h-5 w-5 text-primary" />}
         Security deposit {formatMoney(d.amount)}

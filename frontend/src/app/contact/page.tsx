@@ -87,8 +87,8 @@ function ContactForm() {
           <div className="grid gap-4 sm:grid-cols-3">
             {INFO_CARDS.map((c, i) => (
               <Reveal key={c.title} delay={i * 80}>
-                <div className="h-full rounded-3xl border border-border bg-card p-7 shadow-2xl shadow-black/5">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20">
+                <div className="h-full rounded-lg border border-border bg-card p-7">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
                     <c.icon className="h-6 w-6" />
                   </span>
                   <h3 className="display mt-5 text-xl">{c.title}</h3>
@@ -113,7 +113,7 @@ function ContactForm() {
           <div className="mt-12 grid gap-6 lg:grid-cols-[1fr_1.4fr]">
             {/* Quick-reference sidebar */}
             <Reveal>
-              <div className="h-full space-y-4 rounded-3xl border border-border bg-card p-7 shadow-card">
+              <div className="h-full space-y-4 rounded-lg border border-border bg-card p-7">
                 <SidebarRow icon={Phone} label="Phone" value="(214) 814-0402" href="tel:+12148140402" />
                 <SidebarRow icon={Mail} label="Email" value="shoaib@catodrive.com" href="mailto:shoaib@catodrive.com" />
                 <SidebarRow icon={MapPin} label="Location" value="Dallas/Fort Worth, TX" />
@@ -124,7 +124,7 @@ function ContactForm() {
             {/* The form itself */}
             <Reveal delay={80}>
               {sent ? (
-                <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-success/30 bg-success/5 p-10 text-center">
+                <div className="flex h-full flex-col items-center justify-center rounded-lg border border-success/30 bg-success/5 p-10 text-center">
                   <span className="grid h-14 w-14 place-items-center rounded-full bg-success/10 text-success ring-1 ring-success/20">
                     <CheckCircle2 className="h-7 w-7" />
                   </span>
@@ -134,7 +134,7 @@ function ContactForm() {
                   </p>
                 </div>
               ) : (
-                <div className="rounded-3xl border border-border bg-card p-7 shadow-card">
+                <div className="rounded-lg border border-border bg-card p-7">
                   <div className="grid gap-5 sm:grid-cols-2">
                     <Field label="Full Name" error={errors.has('fullName') ? 'Required.' : undefined}>
                       <Input value={fullName} onChange={(e) => { setFullName(e.target.value); errors.delete('fullName'); }} placeholder="Full Name" />
@@ -176,7 +176,7 @@ function ContactForm() {
             <SectionEyebrow>Quick Answers</SectionEyebrow>
             <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Common questions we get.</h2>
           </Reveal>
-          <div className="mx-auto mt-12 max-w-3xl divide-y divide-border overflow-hidden rounded-3xl border border-border">
+          <div className="mx-auto mt-12 max-w-3xl divide-y divide-border overflow-hidden rounded-lg border border-border">
             {FAQ_ITEMS.map((item) => (
               <FaqRow key={item.q} {...item} />
             ))}

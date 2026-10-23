@@ -42,7 +42,7 @@ export function UploadDocuments({ documents, onChange }: { documents: Onboarding
           </div>
           <Badge tone={done === documents.length ? 'success' : 'warning'}>{done}/{documents.length} uploaded</Badge>
         </div>
-        <ul className="divide-y divide-border rounded-2xl border border-border">
+        <ul className="divide-y divide-border rounded-lg border border-border">
           {documents.map((d) => {
             const rejected = d.status === 'rejected';
             return (

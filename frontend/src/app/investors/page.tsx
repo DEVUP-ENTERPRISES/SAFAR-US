@@ -209,7 +209,7 @@ export default function InvestorsPage() {
   return (
     <div className="-mt-6">
       {/* Compliance strip */}
-      <div className="full-bleed flex items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.15em] text-amber-600 dark:text-amber-400">
+      <div className="full-bleed flex items-center justify-center gap-2 border-b border-warning/20 bg-warning/10 px-4 py-2.5 text-center text-xs font-bold uppercase tracking-[0.15em] text-warning">
         <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
         Expression of interest only - not an offer of securities
       </div>
@@ -248,7 +248,7 @@ export default function InvestorsPage() {
                   email that only ever lives in an inbox. */}
               <Link
                 href="/contact?interest=investor"
-                className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base"
+                className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base"
               >
                 Request the Full Deck{" "}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -283,7 +283,7 @@ export default function InvestorsPage() {
           <div className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {ROUND_TERMS.map((t, i) => (
               <Reveal key={t.label} delay={i * 80}>
-                <div className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10 sm:p-6">
+                <div className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card p-5 transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 sm:p-6">
                   <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/10 blur-2xl transition-opacity duration-500 group-hover:opacity-80" />
                   <p className="numeric text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
                     {t.value}
@@ -311,7 +311,7 @@ export default function InvestorsPage() {
           <div className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {TRACTION.map((s, i) => (
               <Reveal key={s.label} delay={i * 90}>
-                <div className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10 sm:p-6">
+                <div className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card p-5 transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 sm:p-6">
                   <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/10 blur-2xl transition-opacity duration-500 group-hover:opacity-80" />
                   <p className="numeric text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
                     {s.prefix}
@@ -347,7 +347,7 @@ export default function InvestorsPage() {
           </Reveal>
 
           <Reveal delay={100}>
-            <div className="mt-12 rounded-3xl border border-border bg-card p-4 shadow-card sm:p-8">
+            <div className="mt-12 rounded-lg border border-border bg-card p-4 sm:p-8">
               <div
                 className="flex items-end gap-2 sm:gap-8"
                 style={{ height: 220 }}
@@ -390,8 +390,8 @@ export default function InvestorsPage() {
           <div className="mt-12 grid gap-4 sm:grid-cols-2">
             {VISION.map((v, i) => (
               <Reveal key={v.title} delay={i * 80}>
-                <div className="group flex h-full flex-col rounded-3xl border border-border bg-card p-7 shadow-card transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
+                <div className="group flex h-full flex-col rounded-lg border border-border bg-card p-7 transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 transition-transform duration-500 group-hover:scale-110">
                     <v.icon className="h-6 w-6" />
                   </span>
                   <h3 className="display mt-5 text-xl">{v.title}</h3>
@@ -418,7 +418,7 @@ export default function InvestorsPage() {
           <div className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {FIN_STATS.map((s, i) => (
               <Reveal key={s.label} delay={i * 70}>
-                <div className="h-full rounded-2xl border border-border bg-card p-5 shadow-card">
+                <div className="h-full rounded-lg border border-border bg-card p-5">
                   <p className="numeric text-2xl font-extrabold tracking-tight text-foreground sm:text-[1.7rem]">
                     {s.value}
                   </p>
@@ -437,7 +437,7 @@ export default function InvestorsPage() {
               them - reads top-to-bottom on a phone, left-to-right on desktop,
               instead of an arrow-separated run-on sentence. */}
           <Reveal delay={280}>
-            <div className="mt-6 flex flex-col items-stretch gap-2 rounded-2xl border border-border bg-card p-5 shadow-card sm:flex-row sm:items-center sm:gap-3">
+            <div className="mt-6 flex flex-col items-stretch gap-2 rounded-lg border border-border bg-card p-5 sm:flex-row sm:items-center sm:gap-3">
               {TRAJECTORY.map((t, i) => (
                 <div
                   key={t.value}
@@ -464,8 +464,8 @@ export default function InvestorsPage() {
 
           {/* Use of funds */}
           <Reveal delay={100}>
-            <div className="mt-12 rounded-3xl border border-border bg-card p-7 shadow-card">
-              <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+            <div className="mt-12 rounded-lg border border-border bg-card p-7">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
                 Use of the $504,000
               </p>
               <div className="mt-4 flex h-3.5 overflow-hidden rounded-full bg-muted">
@@ -505,14 +505,14 @@ export default function InvestorsPage() {
 
           {/* Exit scenarios */}
           <div className="mt-12">
-            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
               Illustrative 5-year exit scenarios at 3% equity
             </p>
             <div className="mt-5 grid gap-4 sm:grid-cols-3">
               {EXITS.map((e, i) => (
                 <Reveal key={e.label} delay={i * 80}>
                   <div
-                    className={`h-full rounded-3xl border p-6 shadow-card ${e.strong ? "border-primary/40 bg-primary/[0.04]" : "border-border bg-card"}`}
+                    className={`h-full rounded-lg border p-6 ${e.strong ? "border-primary/40 bg-primary/[0.04]" : "border-border bg-card"}`}
                   >
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       {e.label}
@@ -536,13 +536,13 @@ export default function InvestorsPage() {
 
           {/* Investor rights */}
           <div className="mt-12">
-            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
               Investor rights
             </p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               {RIGHTS.map((r, i) => (
                 <Reveal key={r.title} delay={i * 60}>
-                  <div className="flex items-start gap-3.5 rounded-2xl border border-border bg-card p-5 shadow-card">
+                  <div className="flex items-start gap-3.5 rounded-lg border border-border bg-card p-5">
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
                       <r.icon className="h-5 w-5" />
                     </span>
@@ -572,7 +572,7 @@ export default function InvestorsPage() {
 
           <div className="mt-10 grid gap-4 lg:grid-cols-[1.1fr_1fr]">
             <Reveal>
-              <div className="flex h-full flex-col justify-between rounded-3xl border border-border bg-card p-7 shadow-card">
+              <div className="flex h-full flex-col justify-between rounded-lg border border-border bg-card p-7">
                 <div>
                   <p className="text-lg font-bold text-foreground">
                     Shoaib Mirza Baig
@@ -625,7 +625,7 @@ export default function InvestorsPage() {
               Common questions from prospective investors.
             </h2>
           </Reveal>
-          <div className="mx-auto mt-12 max-w-3xl divide-y divide-border overflow-hidden rounded-3xl border border-border">
+          <div className="mx-auto mt-12 max-w-3xl divide-y divide-border overflow-hidden rounded-lg border border-border">
             {FAQ_ITEMS.map((item) => (
               <FaqRow key={item.q} {...item} />
             ))}
@@ -687,12 +687,12 @@ function LiveTicker() {
   });
 
   return (
-    <div className="mt-14 max-w-xl rounded-3xl border border-white/15 bg-white/[0.06] p-7 backdrop-blur">
+    <div className="mt-14 max-w-xl rounded-lg border border-white/15 bg-white/[0.06] p-7 backdrop-blur">
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold uppercase tracking-[0.15em] text-white/60">
           2026 Revenue Pace
         </span>
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-success">
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-success">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-70" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
@@ -728,7 +728,7 @@ function GrowthBar({
   return (
     <div className="flex h-full flex-1 flex-col items-center justify-end gap-1.5 sm:gap-2.5">
       <span
-        className={`numeric whitespace-nowrap text-[11px] font-bold sm:text-sm ${target ? "text-primary" : "text-foreground"}`}
+        className={`numeric whitespace-nowrap text-xs font-bold sm:text-sm ${target ? "text-primary" : "text-foreground"}`}
       >
         {display}
       </span>
@@ -740,7 +740,7 @@ function GrowthBar({
         }
         style={{ height: `${heightPct}%` }}
       />
-      <span className="whitespace-nowrap text-[10px] text-muted-foreground sm:text-xs">
+      <span className="whitespace-nowrap text-xs text-muted-foreground sm:text-xs">
         {year}
       </span>
     </div>
@@ -750,11 +750,11 @@ function GrowthBar({
 /** CatoDrive's own Reg D Notice, verbatim - not paraphrased. */
 function RegDNotice() {
   return (
-    <div className="flex h-full flex-col rounded-3xl border border-amber-500/25 bg-amber-500/[0.05] p-7">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+    <div className="flex h-full flex-col rounded-lg border border-warning/25 bg-warning/[0.05] p-7">
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/15 text-warning">
         <AlertTriangle className="h-5 w-5" />
       </span>
-      <p className="mt-4 text-sm font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+      <p className="mt-4 text-sm font-bold uppercase tracking-wider text-warning">
         Reg D Notice
       </p>
       <p className="mt-2 text-[15px] leading-relaxed text-foreground">

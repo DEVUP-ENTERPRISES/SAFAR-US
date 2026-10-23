@@ -37,7 +37,7 @@ function Wallet() {
       <h1 className="display text-display-sm">CatoDrive Wallet</h1>
 
       {/* Balance hero */}
-      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-indigo-600 p-6 text-white shadow-lift">
+      <div className="overflow-hidden rounded-lg bg-gradient-to-br from-primary to-indigo-600 p-6 text-white">
         <div className="flex items-center justify-between">
           <div>
             <p className="flex items-center gap-1 text-sm text-white/80"><WalletIcon className="h-4 w-4" /> Available balance</p>

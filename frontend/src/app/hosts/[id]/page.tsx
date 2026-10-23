@@ -38,8 +38,8 @@ export default function HostProfilePage() {
   if (isPending) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-32 w-full rounded-2xl" />
-        <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-32 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
   }
@@ -68,7 +68,7 @@ export default function HostProfilePage() {
 
       {/* Headline numbers - each one omitted rather than faked when absent. */}
       <section className="grid gap-4 sm:grid-cols-3">
-        <Card className="rounded-2xl">
+        <Card className="rounded-lg">
           <CardContent className="pt-6">
             <p className="text-2xl font-bold">
               {h.ratingAvg !== null ? h.ratingAvg.toFixed(1) : '-'}
@@ -79,13 +79,13 @@ export default function HostProfilePage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="rounded-2xl">
+        <Card className="rounded-lg">
           <CardContent className="pt-6">
             <p className="text-2xl font-bold">{h.totalTrips}</p>
             <p className="text-sm text-muted-foreground">Trip{h.totalTrips === 1 ? '' : 's'} hosted</p>
           </CardContent>
         </Card>
-        <Card className="rounded-2xl">
+        <Card className="rounded-lg">
           <CardContent className="pt-6">
             <p className="text-2xl font-bold">{h.listedVehicles}</p>
             <p className="text-sm text-muted-foreground">Car{h.listedVehicles === 1 ? '' : 's'} listed</p>
@@ -107,7 +107,7 @@ export default function HostProfilePage() {
         </h2>
         {vehicles.isPending ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-72 rounded-2xl" />)}
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-72 rounded-lg" />)}
           </div>
         ) : vehicles.data && vehicles.data.length > 0 ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -132,7 +132,7 @@ export default function HostProfilePage() {
         {reviews.data && reviews.data.length > 0 ? (
           <div className="space-y-4">
             {reviews.data.map((r) => (
-              <Card key={r._id} className="rounded-2xl">
+              <Card key={r._id} className="rounded-lg">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-2">
                     <span className="flex items-center gap-0.5">

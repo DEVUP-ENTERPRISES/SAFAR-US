@@ -89,7 +89,7 @@ export function AddCard({ onSaved }: { onSaved?: () => void }) {
           variables: {
             // Matched to the app's own tokens so the iframe does not read as a
             // third-party panel dropped into the page.
-            colorPrimary: '#0d8f88',
+            colorPrimary: '#0c7979',
             borderRadius: '12px',
             fontFamily: 'inherit',
           },

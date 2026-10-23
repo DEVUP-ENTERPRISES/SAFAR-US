@@ -27,7 +27,7 @@ export default function TripPhotosPage() {
     queryFn: () => hostTripsApi.one(bookingId),
   });
 
-  if (isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (isError || !t) return <ErrorState message="Trip not found." />;
 
   return (

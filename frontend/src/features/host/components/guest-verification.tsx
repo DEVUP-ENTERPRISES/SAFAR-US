@@ -8,7 +8,7 @@ import type { HostTrip } from '../trips.api';
 function Fact({ label, value, tone }: { label: string; value: string; tone?: 'ok' | 'bad' }) {
   return (
     <div>
-      <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</dt>
+      <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</dt>
       <dd className={`mt-0.5 text-sm font-semibold ${tone === 'ok' ? 'text-success' : tone === 'bad' ? 'text-destructive' : ''}`}>{value}</dd>
     </div>
   );
@@ -38,7 +38,7 @@ export function GuestVerification({
   const blocked = known && (!verified || expired);
 
   return (
-    <div className="space-y-4 rounded-2xl border border-border bg-card p-4">
+    <div className="space-y-4 rounded-lg border border-border bg-card p-4">
       <div className="flex items-center gap-3">
         {guest.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

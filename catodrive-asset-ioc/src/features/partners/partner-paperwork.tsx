@@ -77,7 +77,7 @@ export function PartnerPaperwork({ partnerId, signed }: { partnerId: string; sig
     <Card>
       <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><FileSignature className="h-5 w-5 text-primary" /> Paperwork</CardTitle></CardHeader>
       <CardContent className="space-y-5">
-        <div className="divide-y divide-border rounded-2xl border border-border">
+        <div className="divide-y divide-border rounded-lg border border-border">
           {signedRows.map((r) => (
             <div key={r.kind} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
@@ -95,7 +95,7 @@ export function PartnerPaperwork({ partnerId, signed }: { partnerId: string; sig
 
         <div>
           <p className="mb-2 text-sm font-semibold">Onboarding papers</p>
-          <div className="divide-y divide-border rounded-2xl border border-border">
+          <div className="divide-y divide-border rounded-lg border border-border">
             {(docs.data?.checklist ?? []).map((c) => {
               const doc = docs.data?.documents.find((d) => d.category === c.category);
               const status = doc?.verification?.status;

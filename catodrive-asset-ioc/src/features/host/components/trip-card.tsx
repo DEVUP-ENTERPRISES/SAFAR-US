@@ -13,7 +13,7 @@ export function TripCard({ trip }: { trip: HostTrip }) {
 
   return (
     <Link href={`/ops/trips/${trip.bookingId}`} className="group block">
-      <article className="flex gap-4 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40">
+      <article className="flex gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/40">
         <div className="min-w-0 flex-1">
           <StatusPill tone={t.tone}>{t.label}</StatusPill>
 
@@ -48,7 +48,7 @@ export function TripCard({ trip }: { trip: HostTrip }) {
 
         {/* Vehicle thumb + plate */}
         <div className="shrink-0 text-center">
-          <div className="h-16 w-20 overflow-hidden rounded-[8px] bg-muted shadow-sm">
+          <div className="h-16 w-20 overflow-hidden rounded-sm bg-muted">
             {trip.vehicle.photoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={trip.vehicle.photoUrl} alt="" className="h-full w-full object-cover" />

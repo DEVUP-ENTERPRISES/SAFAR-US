@@ -22,7 +22,7 @@ export default function TollAccountsPage() {
         </p>
       </div>
 
-      {isLoading && <Skeleton className="h-28 w-full rounded-2xl" />}
+      {isLoading && <Skeleton className="h-28 w-full rounded-lg" />}
 
       {isError && <ErrorState message="We couldn’t load toll accounts." retry={() => void refetch()} />}
       {!isLoading && !data?.length && (
@@ -30,7 +30,7 @@ export default function TollAccountsPage() {
       )}
 
       {(data ?? []).map((a) => (
-        <Link key={a._id} href={`/host/tolls/${a._id}`} className="block rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/50">
+        <Link key={a._id} href={`/host/tolls/${a._id}`} className="block rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/50">
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-2">
               <TollStatusPill status={a.status} />

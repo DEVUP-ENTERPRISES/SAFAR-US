@@ -156,7 +156,7 @@ export function TripLiveMap({
   if (!MAPBOX_TOKEN || error) {
     return (
       <div
-        className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-gradient-to-br from-primary/10 to-accent p-6 text-center"
+        className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-gradient-to-br from-primary/10 to-accent p-6 text-center"
         style={{ height }}
       >
         <MapPin className="h-8 w-8 text-muted-foreground" />
@@ -166,7 +166,7 @@ export function TripLiveMap({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border" style={{ height }}>
+    <div className="relative overflow-hidden rounded-lg border border-border" style={{ height }}>
       <div ref={ref} className="h-full w-full" />
       {!seen && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3">
@@ -214,7 +214,7 @@ class MarkerAnimator {
          </div>`
       // The person meeting the car is deliberately a different shape, not just
       // a different colour - colour alone fails for a colour-blind viewer.
-      : `<span class="block h-4 w-4 rounded-full border-2 border-white bg-slate-800 shadow-lg"></span>`;
+      : `<span class="block h-4 w-4 rounded-full border-2 border-white bg-slate-800"></span>`;
 
     this.el = wrap;
     this.marker = new mb.Marker({ element: wrap, anchor: 'center' }).setLngLat([0, 0]).addTo(map);
@@ -259,7 +259,7 @@ class MarkerAnimator {
 function placePin(mb: MbNamespace, map: MbMap, c: LngLat) {
   const el = document.createElement('div');
   el.innerHTML =
-    `<span class="block h-3.5 w-3.5 rounded-full border-[3px] border-white bg-slate-900 shadow-lg"></span>`;
+    `<span class="block h-3.5 w-3.5 rounded-full border-[3px] border-white bg-slate-900"></span>`;
   new mb.Marker({ element: el, anchor: 'center' }).setLngLat(c).addTo(map);
 }
 

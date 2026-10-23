@@ -115,7 +115,7 @@ export function SearchBarFields({
     if (id === 'place') {
       return (
         <Panel flow={flow} phone={phone} onClose={() => setOpen(null)} wide={false} anchorEl={anchorEl}>
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Select a city
           </p>
           {cities.length === 0 ? (
@@ -184,7 +184,7 @@ export function SearchBarFields({
 
       return (
         <Panel flow={flow} phone={phone} onClose={() => setOpen(null)} wide={false} anchorEl={anchorEl}>
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {label}
           </p>
           <ul className="max-h-64 overflow-y-auto -mx-1">
@@ -277,7 +277,7 @@ export function SearchBarFields({
       <div
         className={cn(
           'grid grid-cols-2 items-stretch bg-card',
-          'overflow-hidden rounded-2xl border border-border/50 shadow-2xl',
+          'overflow-hidden rounded-lg border border-border/50',
           'sm:flex sm:h-[72px] sm:flex-row sm:rounded-full',
         )}
       >
@@ -419,7 +419,7 @@ function Seg({
         <span
           className={cn(
             'block font-bold uppercase tracking-[0.13em] text-muted-foreground',
-            bar ? 'text-[10px]' : 'text-[8px]',
+            bar ? 'text-xs' : 'text-[8px]',
           )}
         >
           {label}
@@ -459,7 +459,7 @@ function Panel({
           data-lenis-prevent
           role="dialog"
           aria-modal="true"
-          className="fixed inset-x-0 bottom-0 z-[91] max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-border bg-card p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl"
+          className="fixed inset-x-0 bottom-0 z-[91] max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain rounded-t-lg border-t border-border bg-card p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl"
         >
           <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" aria-hidden />
           {children}
@@ -483,7 +483,7 @@ function Panel({
       data-search-panel
       role="dialog"
       className={cn(
-        'z-50 mt-3 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-5 shadow-2xl ring-1 ring-black/5',
+        'z-50 mt-3 overflow-y-auto overscroll-contain rounded-lg border border-border bg-card p-5 shadow-2xl ring-1 ring-black/5',
         'max-h-[min(36rem,calc(100dvh-8rem))]',
         wide ? 'w-fit' : 'min-w-[16rem] w-[min(22rem,calc(100vw-2rem))]',
       )}
@@ -554,7 +554,7 @@ function PortaledOverlay({
         role="dialog"
         aria-modal="true"
         style={style}
-        className="max-h-[min(42rem,calc(100dvh-8rem))] overflow-y-auto overscroll-contain rounded-2xl border border-border bg-card p-5 shadow-2xl transition-opacity duration-100"
+        className="max-h-[min(42rem,calc(100dvh-8rem))] overflow-y-auto overscroll-contain rounded-lg border border-border bg-card p-5 transition-opacity duration-100"
       >
         {children}
       </div>

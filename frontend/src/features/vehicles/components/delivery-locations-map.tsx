@@ -40,7 +40,7 @@ const PIN_GLYPH: Record<DeliveryLocation['kind'] | 'home', string> = {
 function makePin(kind: DeliveryLocation['kind'] | 'home', highlight: boolean): HTMLElement {
   const el = document.createElement('div');
   el.className = [
-    'flex h-9 w-9 items-center justify-center rounded-full border-2 shadow-lg',
+    'flex h-9 w-9 items-center justify-center rounded-full border-2',
     highlight
       ? 'bg-[var(--primary)] border-white text-white'
       : 'bg-white border-[var(--primary)] text-[var(--primary)]',
@@ -127,11 +127,11 @@ export function DeliveryLocationsMap({
 
   if (failed) {
     return (
-      <div className={`flex items-center justify-center gap-2 rounded-2xl border border-border bg-muted/30 py-8 text-sm text-muted-foreground ${className ?? ''}`}>
+      <div className={`flex items-center justify-center gap-2 rounded-lg border border-border bg-muted/30 py-8 text-sm text-muted-foreground ${className ?? ''}`}>
         <MapPin className="h-4 w-4" /> Add a location to see it on the map
       </div>
     );
   }
 
-  return <div ref={ref} className={`overflow-hidden rounded-2xl border border-border ${className ?? ''}`} />;
+  return <div ref={ref} className={`overflow-hidden rounded-lg border border-border ${className ?? ''}`} />;
 }

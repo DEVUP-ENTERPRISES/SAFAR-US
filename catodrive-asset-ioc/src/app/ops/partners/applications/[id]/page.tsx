@@ -76,7 +76,7 @@ export default function ApplicationDetailPage() {
     if (ok) review.mutate({ decision, notes: reason || undefined });
   };
 
-  if (isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (isError || !a) return <ErrorState message="Application not found." />;
 
   const decided = a.status === 'approved' || a.status === 'rejected';

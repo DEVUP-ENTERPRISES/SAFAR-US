@@ -346,7 +346,7 @@ export default function VehicleDetailPage() {
 
       {/* 1. Photo header */}
       <div className="-mx-4 sm:mx-0">
-        <div className="relative overflow-hidden bg-background sm:rounded-[2rem]">
+        <div className="relative overflow-hidden bg-background sm:rounded-lg">
           {/*
             The desktop grid is explicitly two rows. It was cols-4 with the hero
             spanning two rows and no row definition, so the secondary photos
@@ -428,10 +428,10 @@ export default function VehicleDetailPage() {
           )}
 
           <div className="absolute end-4 top-4 z-10 flex items-center gap-2">
-            <div className="bg-background/90 backdrop-blur-md rounded-full shadow-float hover:scale-105 transition-transform overflow-hidden">
+            <div className="bg-background/90 backdrop-blur-md rounded-full hover:scale-105 transition-transform overflow-hidden">
               <ShareButton title={`${v.year} ${v.make} ${v.model}`} />
             </div>
-            <div className="bg-background/90 backdrop-blur-md rounded-full shadow-float hover:scale-105 transition-transform overflow-hidden">
+            <div className="bg-background/90 backdrop-blur-md rounded-full hover:scale-105 transition-transform overflow-hidden">
               <WishlistButton vehicleId={v._id} />
             </div>
           </div>
@@ -481,7 +481,7 @@ export default function VehicleDetailPage() {
 
         {/* Great deal - shown only when genuinely below the local median */}
         {isGreatDeal && (
-          <div className="rounded-2xl bg-success/10 p-4 text-success">
+          <div className="rounded-lg bg-success/10 p-4 text-success">
             <p className="font-bold">Great deal!</p>
             <p className="mt-0.5 text-[15px]">
               About {dealPct}% below the typical {v.category} in {v.location.city || 'this area'}.
@@ -763,14 +763,14 @@ export default function VehicleDetailPage() {
           aria-modal={sheetOpen ? true : undefined}
           aria-label="Booking options"
           className={cn(
-            'border border-border bg-card shadow-[0_8px_30px_rgb(0,0,0,0.08)]',
+            'border border-border bg-card',
             // Mobile: a bottom sheet when open, absent when closed.
             sheetOpen
-              ? 'fixed inset-x-0 bottom-0 z-[70] max-h-[88vh] animate-sheet-up overflow-y-auto rounded-t-3xl px-5 pb-safe pt-2'
+              ? 'fixed inset-x-0 bottom-0 z-[70] max-h-[88vh] animate-sheet-up overflow-y-auto rounded-t-lg px-5 pb-safe pt-2'
               : 'hidden',
             // Desktop: always a sticky card, whatever the sheet is doing.
             'lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-24 lg:z-auto lg:block lg:max-h-none',
-            'lg:animate-none lg:overflow-visible lg:rounded-3xl lg:p-6',
+            'lg:animate-none lg:overflow-visible lg:rounded-lg lg:p-6',
           )}
         >
           {/* The grab handle. Pulling or tapping it puts the sheet away. */}
@@ -798,7 +798,7 @@ export default function VehicleDetailPage() {
                 onChange={(s2, e2) => { setStart(s2); setEnd(e2); }}
               />
               <div className="p-3">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Pickup & return</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Pickup & return</label>
                 <div className="text-sm font-medium truncate">{v.location.address || v.location.city}</div>
               </div>
             </div>
@@ -1040,7 +1040,7 @@ export default function VehicleDetailPage() {
                   })()}
                 </div>
                 {quote.data.memberSavings && quote.data.memberSavings.amount > 0 && (
-                  <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-400/15 px-2.5 py-1.5 text-[13px] font-semibold text-amber-600 dark:text-amber-400">
+                  <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-warning/15 px-2.5 py-1.5 text-[13px] font-semibold text-warning">
                     <ProBadge /> You save {formatMoney(quote.data.memberSavings)} on this trip
                   </p>
                 )}

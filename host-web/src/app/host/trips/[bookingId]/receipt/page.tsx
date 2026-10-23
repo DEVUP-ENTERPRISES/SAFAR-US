@@ -43,7 +43,7 @@ function Receipt() {
       .catch(() => setQr(null));
   }, [bookingId]);
 
-  if (isLoading) return <Skeleton className="h-[80vh] w-full rounded-2xl" />;
+  if (isLoading) return <Skeleton className="h-[80vh] w-full rounded-lg" />;
   if (isError || !t) return <ErrorState message="Receipt not found." />;
 
   // The detailed breakdown is a newer API field. If the backend serving this
@@ -73,7 +73,7 @@ function Receipt() {
       </div>
 
       {/* The receipt document */}
-      <div className="overflow-hidden rounded-[1.5rem] border border-border bg-card shadow-xl shadow-black/5 print:border-0 print:shadow-none">
+      <div className="overflow-hidden rounded-lg border border-border bg-card print:border-0 print:shadow-none">
         {/* Brand header */}
         <div className="relative isolate grain overflow-hidden hero-mesh px-7 py-7 text-white">
           <div className="flex items-start justify-between gap-4">

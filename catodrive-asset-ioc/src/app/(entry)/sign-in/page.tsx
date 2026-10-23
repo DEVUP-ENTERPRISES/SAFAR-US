@@ -79,7 +79,7 @@ function SignIn() {
       </form>
 
       {who === 'captain' && (
-        <div className="mt-8 flex gap-3 rounded-2xl border border-border bg-muted/40 p-4 text-sm">
+        <div className="mt-8 flex gap-3 rounded-lg border border-border bg-muted/40 p-4 text-sm">
           <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div>
             <p className="font-medium">First time here?</p>
