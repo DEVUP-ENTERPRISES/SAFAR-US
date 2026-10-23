@@ -4,6 +4,7 @@ import { Users, BadgeCheck, Car, ShieldAlert, LifeBuoy, TrendingUp, Wallet } fro
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart } from '@/components/ui/charts';
@@ -12,15 +13,22 @@ import { adminApi } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
 
 export default function AdminDashboard() {
-  const { data, isLoading } = useQuery({ queryKey: ['admin-metrics'], queryFn: () => adminApi.metrics(), refetchInterval: 30_000 });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['admin-metrics'], queryFn: () => adminApi.metrics(), refetchInterval: 30_000 });
   const analytics = useQuery({ queryKey: ['admin-analytics'], queryFn: () => adminApi.analytics(14) });
 
+  if (isError && !data) return <ErrorState message="We couldn’t load the platform numbers." retry={() => void refetch()} />;
   if (isLoading || !data)
     return (
-      <div className="space-y-6">
+      <div className="space-y-8" aria-busy="true">
         <Skeleton className="h-12 w-72" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-2xl" />)}
+        {[0, 1].map((r) => (
+          <div key={r} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+          </div>
+        ))}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Skeleton className="h-64 w-full rounded-xl lg:col-span-2" />
+          <Skeleton className="h-64 w-full rounded-xl" />
         </div>
       </div>
     );
@@ -64,21 +72,28 @@ export default function AdminDashboard() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="rounded-2xl shadow-soft lg:col-span-2">
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Bookings — last 14 days</CardTitle>
+            <CardTitle>Bookings per day, last 14 days</CardTitle>
           </CardHeader>
           <CardContent>
-            <BarChart
-              data={(analytics.data?.series ?? []).map((d) => ({ label: d.day.slice(5), value: d.bookings }))}
-              height={180}
-            />
+            {analytics.isLoading ? (
+              <Skeleton className="h-[180px] w-full" />
+            ) : analytics.isError ? (
+              <ErrorState message="We couldn’t load bookings per day." retry={() => void analytics.refetch()} />
+            ) : (
+              <BarChart
+                data={(analytics.data?.series ?? []).map((d) => ({ label: d.day.slice(5), value: d.bookings }))}
+                height={180}
+                format={(v) => `${v} booking${v === 1 ? '' : 's'}`}
+              />
+            )}
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-soft">
+        <Card>
           <CardHeader>
-            <CardTitle>Bookings by status</CardTitle>
+            <CardTitle>Where every booking stands</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {data.bookings.byStatus.length === 0 && (
