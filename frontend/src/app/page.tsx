@@ -116,7 +116,7 @@ export default function HomePage() {
         {/* Search bar: across the photo's bottom edge on phones, centred on the photo from tablet up */}
         <Reveal delay={60} className="relative z-10 -mt-10 sm:pointer-events-none sm:absolute sm:inset-0 sm:mt-0 sm:flex sm:items-center sm:justify-center sm:px-8">
           <div className="relative mx-auto w-[min(100%,60rem)] px-1 sm:pointer-events-auto sm:px-0">
-            <div aria-hidden className="search-halo-glow pointer-events-none absolute -inset-6 -z-10 rounded-[3rem] blur-3xl" />
+            <div aria-hidden className="search-halo-glow pointer-events-none absolute -inset-6 -z-10 hidden rounded-[3rem] blur-3xl sm:block" />
             <div className="search-halo">
               <SearchBarFields calendarPlacement="overlay" />
             </div>

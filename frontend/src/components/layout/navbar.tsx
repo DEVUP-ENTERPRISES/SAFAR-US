@@ -70,18 +70,18 @@ export function Navbar() {
         isSearch ? 'max-w-7xl' : 'max-w-6xl',
         hidden && !mobileMenuOpen && '-translate-y-24 opacity-0',
       )}>
-        <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="flex h-14 items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6">
         {/* Left: Mobile Menu Toggle & Wordmark */}
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <button 
-            className="sm:hidden p-1 -ms-1 text-foreground transition-transform hover:scale-110" 
+            className="xl:hidden p-1 -ms-1 text-foreground" 
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
           </button>
           
-          <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2.5 transition-transform hover:scale-105">
+          <Link href="/" className="flex min-w-0 items-center gap-2.5">
             <Logo className="h-9 w-9 shrink-0" />
             {/* `xs:` isn't a breakpoint this project defines, so this was
                 permanently hidden regardless of screen size - `sm:` matches
@@ -116,13 +116,13 @@ export function Navbar() {
             <>
               <Link
                 href="/search"
-                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
+                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary xl:block"
               >
                 Explore
               </Link>
               <Link
                 href="/about"
-                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block"
+                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary xl:block"
               >
                 How it works
               </Link>
@@ -131,11 +131,11 @@ export function Navbar() {
                   this goes straight to the partner's own dashboard rather
                   than the public pitch they no longer need. */}
               {isAssetPartner ? (
-                <SiteLink path="/asset-partners/dashboard" className="hidden rounded-full px-4 py-1.5 text-sm font-semibold text-primary transition-all hover:bg-primary/10 sm:block">
+                <SiteLink path="/asset-partners/dashboard" className="hidden rounded-full px-4 py-1.5 text-sm font-semibold text-primary transition-all hover:bg-primary/10 xl:block">
                   Partner dashboard
                 </SiteLink>
               ) : (
-                <Link href="/asset-partners" className="hidden rounded-full px-4 py-1.5 text-sm font-semibold text-primary transition-all hover:bg-primary/10 sm:block">
+                <Link href="/asset-partners" className="hidden rounded-full px-4 py-1.5 text-sm font-semibold text-primary transition-all hover:bg-primary/10 xl:block">
                   Asset Partners
                 </Link>
               )}
@@ -154,7 +154,7 @@ export function Navbar() {
                 booking instead of running it through their actual terms.
               */}
               {(isHost || !config.assetPartnersOnly) && !isAssetPartner ? (
-                <SiteLink path="/host" className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary sm:block">
+                <SiteLink path="/host" className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary xl:block">
                   {isHost ? 'Host dashboard' : 'Become a host'}
                 </SiteLink>
               ) : null}
@@ -162,14 +162,14 @@ export function Navbar() {
                   doesn't crowd the primary consumer/partner links. */}
               <Link
                 href="/investors"
-                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary lg:block"
+                className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary xl:block"
               >
                 Investors
               </Link>
             </>
           )}
 
-          <div className="flex items-center justify-center h-8 w-8 rounded-full hover:bg-accent transition-colors ms-1">
+          <div className="hidden h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-accent sm:flex ms-1">
             <ThemeToggle />
           </div>
 
@@ -184,7 +184,7 @@ export function Navbar() {
               {/* One entry point, not two - /login itself offers "New to CatoDrive?
                   Sign up" for anyone who isn't a returning user yet. */}
               <Link href="/login">
-                <Button size="sm" className="rounded-full px-5 font-semibold transition-transform hover:-translate-y-0.5">Log in</Button>
+                <Button size="sm" className="rounded-full px-5 font-semibold">Log in</Button>
               </Link>
             </div>
           )}
@@ -194,7 +194,7 @@ export function Navbar() {
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex sm:hidden">
+        <div className="fixed inset-0 z-50 flex xl:hidden">
           {/* Backdrop */}
           <div 
             className="fixed inset-0 bg-background/80 backdrop-blur-sm" 
