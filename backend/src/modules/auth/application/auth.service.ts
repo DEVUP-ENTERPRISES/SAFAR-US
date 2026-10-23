@@ -274,7 +274,7 @@ export class AuthService {
     if (!config.google.enabled) {
       throw new AppError({ code: 'OAUTH_DISABLED', message: 'Google login is not configured', httpStatus: 501 });
     }
-    const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+    const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new UnauthorizedError('Invalid Google token');
     const info = (await res.json()) as { aud?: string; email?: string; email_verified?: string };
     if (info.aud !== config.google.clientId || !info.email) throw new UnauthorizedError('Google token rejected');

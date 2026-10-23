@@ -73,7 +73,7 @@ class StripeIdentityProvider implements IdentityProvider {
     const fileId = kind === 'selfie' ? report.selfie?.selfie : report.document?.files?.[kind === 'licence_front' ? 0 : 1];
     if (!fileId) return null;
     // File bytes come from files.stripe.com, which the SDK does not wrap.
-    const res = await fetch(`https://files.stripe.com/v1/files/${encodeURIComponent(fileId)}/contents`, { headers: { Authorization: `Bearer ${this.readKey}` } });
+    const res = await fetch(`https://files.stripe.com/v1/files/${encodeURIComponent(fileId)}/contents`, { headers: { Authorization: `Bearer ${this.readKey}` }, signal: AbortSignal.timeout(20_000) });
     if (!res.ok) throw new ExternalServiceError(`Stripe file ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
   }

@@ -51,6 +51,7 @@ class HttpEmailProvider implements ChannelProvider {
     try {
       const res = await fetch(`${config.notifications.emailApiUrl}/send`, {
         method: 'POST',
+        signal: AbortSignal.timeout(10_000),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${config.notifications.emailApiKey}`,
@@ -214,6 +215,7 @@ class SmsProvider implements ChannelProvider {
         `https://api.twilio.com/2010-04-01/Accounts/${config.notifications.smsAccountSid}/Messages.json`,
         {
           method: 'POST',
+          signal: AbortSignal.timeout(10_000),
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             Authorization: `Basic ${auth}`,
@@ -284,6 +286,7 @@ class FcmV1PushProvider implements ChannelProvider {
 
     const res = await fetch(this.sa.tokenUri, {
       method: 'POST',
+      signal: AbortSignal.timeout(10_000),
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
@@ -320,6 +323,7 @@ class FcmV1PushProvider implements ChannelProvider {
         try {
           const res = await fetch(url, {
             method: 'POST',
+            signal: AbortSignal.timeout(10_000),
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${accessToken}`,

@@ -1,6 +1,9 @@
 import { config } from '../../../config';
 import { logger } from '../../../infrastructure/logging/logger';
 
+// A slow maps provider fails the request after 5 s instead of holding it open for minutes.
+const MAPS_TIMEOUT_MS = 5000;
+
 export interface GeoResult {
   lat: number;
   lng: number;
@@ -26,7 +29,7 @@ class GoogleMapsProvider implements MapsProvider {
 
   async geocode(query: string): Promise<GeoResult[]> {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${this.key}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(MAPS_TIMEOUT_MS) });
     const json = (await res.json()) as {
       results?: {
         geometry: { location: { lat: number; lng: number } };
@@ -44,14 +47,14 @@ class GoogleMapsProvider implements MapsProvider {
 
   async reverseGeocode(lat: number, lng: number): Promise<string | null> {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${this.key}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(MAPS_TIMEOUT_MS) });
     const json = (await res.json()) as { results?: { formatted_address: string }[] };
     return json.results?.[0]?.formatted_address ?? null;
   }
 
   async autocomplete(query: string): Promise<Suggestion[]> {
     const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${this.key}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(MAPS_TIMEOUT_MS) });
     const json = (await res.json()) as { predictions?: { description: string; place_id: string }[] };
     return (json.predictions ?? []).map((p) => ({ description: p.description, placeId: p.place_id }));
   }
@@ -70,7 +73,7 @@ class MapboxProvider implements MapsProvider {
 
   async geocode(query: string): Promise<GeoResult[]> {
     const url = `${this.base}/${encodeURIComponent(query)}.json?access_token=${this.token}&country=us,ca&limit=5`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(MAPS_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`Mapbox geocode ${res.status}`);
     const json = (await res.json()) as { features?: MapboxFeature[] };
     return (json.features ?? []).map((f) => ({
@@ -83,7 +86,7 @@ class MapboxProvider implements MapsProvider {
 
   async reverseGeocode(lat: number, lng: number): Promise<string | null> {
     const url = `${this.base}/${lng},${lat}.json?access_token=${this.token}&limit=1`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(MAPS_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`Mapbox reverse ${res.status}`);
     const json = (await res.json()) as { features?: MapboxFeature[] };
     return json.features?.[0]?.place_name ?? null;
@@ -91,7 +94,7 @@ class MapboxProvider implements MapsProvider {
 
   async autocomplete(query: string): Promise<Suggestion[]> {
     const url = `${this.base}/${encodeURIComponent(query)}.json?access_token=${this.token}&country=us,ca&autocomplete=true&limit=5`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(MAPS_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`Mapbox autocomplete ${res.status}`);
     const json = (await res.json()) as { features?: MapboxFeature[] };
     return (json.features ?? []).map((f) => ({ description: f.place_name, placeId: f.id }));

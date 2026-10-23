@@ -72,7 +72,7 @@ async function copyPhotos(urls: string[], ownerId: string): Promise<{ url: strin
       const body = Buffer.from(await res.arrayBuffer());
       if (!body.byteLength || body.byteLength > MAX_PHOTO_BYTES) throw new Error('photo size');
       const [target] = await storageGateway.createUploadTargets({ ownerId, category: 'vehicle_photo', contentType: type, sizes: [body.byteLength] });
-      const put = await fetch(target.uploadUrl, { method: 'PUT', body, headers: { 'Content-Type': type } });
+      const put = await fetch(target.uploadUrl, { method: 'PUT', body, headers: { 'Content-Type': type }, signal: AbortSignal.timeout(30_000) });
       if (!put.ok) throw new Error(`upload ${put.status}`);
       out.push({ url: target.publicUrl, key: target.key, isCover: i === 0 });
     } catch (err) {
