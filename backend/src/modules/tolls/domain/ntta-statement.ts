@@ -80,7 +80,7 @@ function splitRow(line: string, sep: string): string[] {
 
 /** Read an NTTA statement (tab- or comma-separated, header row first) into tolls. */
 export function parseNttaStatement(text: string): NttaParseResult {
-  const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim());
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter((l) => l.trim());
   const headerAt = lines.findIndex((l) => /transaction id/i.test(l));
   if (headerAt < 0) return { tolls: [], skipped: 0, errors: [{ line: 1, reason: 'No header row with “Transaction ID” found. Paste the statement with its header.' }] };
   const sep = lines[headerAt].includes('\t') ? '\t' : ',';
