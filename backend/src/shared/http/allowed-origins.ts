@@ -6,7 +6,7 @@ const ALWAYS_ALLOWED = [
   'https://catodrive.com',
   'https://host.catodrive.com',
   'https://partners.catodrive.com',
-  'https://housefleet.catodrive.com',
+  'https://assets-ioc.catodrive.com',
   'https://integratedoperationscenter.catodrive.com',
 ];
 

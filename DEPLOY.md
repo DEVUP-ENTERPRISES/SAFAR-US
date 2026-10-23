@@ -157,7 +157,7 @@ Locked down like the admin console:
   The server lets only the House Fleet account and its active captains sign in
   (the panel sends `x-portal: ioc`); anyone else's new session is revoked on the
   spot, and the check repeats at every token refresh.
-- New Vercel project, root `catodrive-asset-ioc/`, domain `housefleet.yourdomain.com`
+- New Vercel project, root `catodrive-asset-ioc/`, domain `assets-ioc.yourdomain.com`
   (moves here from the host project), same environment variables as the host
   site plus `CATODRIVE_ASSET_IOC_SLUG`. Put Cloudflare Access in front of it,
   with a policy that also lets House Fleet Captains in (for example an email
@@ -177,7 +177,7 @@ send their company details and licence, and set up their plans. CatoDrive
 approves each company and each plan in the **main admin console** (Insurers);
 guests see a plan only when both are approved.
 
-- New Vercel project, root `insurance-web/`, on a hard-to-guess subdomain.
+- New Vercel project, root `insurance-web/`, on `insurers.catodrive.com` (the secret path keeps it private).
   **Keep that name and the slug out of this repo** (it is public).
 - Environment variables: `NEXT_PUBLIC_API_URL` and `CATODRIVE_INSURANCE_SLUG`
   (the secret path; every page lives under `/<slug>`, and a production build
@@ -199,7 +199,7 @@ Moving between sites keeps people signed in with a one-time, 60-second code
 | A | `api` | EC2 elastic IP | **DNS only (grey cloud)** at first, so Certbot can issue; proxy on afterwards |
 | CNAME | `@` / `www` | Vercel's target (from the Vercel dashboard) | per Vercel's instructions |
 | CNAME | `host` | Vercel's target for the host project | per Vercel's instructions |
-| CNAME | `housefleet` | Vercel's target for the operations panel project | per Vercel's instructions |
+| CNAME | `assets-ioc` | Vercel's target for the operations panel project | per Vercel's instructions |
 | CNAME | `partners` | Vercel's target for the partner project | per Vercel's instructions |
 
 If you proxy `api` through Cloudflare (orange cloud), set SSL/TLS mode to **Full
