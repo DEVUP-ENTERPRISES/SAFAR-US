@@ -85,9 +85,10 @@ No billing data or cloud console access was available, so no cost figures are cl
 | `npx tsc --noEmit` in all 6 web apps and the backend | pass |
 | `next build` guest site | pass (48 pages) |
 | Jest: maps, notifications, auth, kyc suites | 91 / 91, notifications 3 / 3 |
+| Jest: full backend suite (after all changes) | 589 / 589, 88 suites |
 | CI YAML parse | valid |
 
-Not run: full backend suite after the timeout change (affected suites only), GitHub Actions itself, load tests, Lighthouse.
+Not run: GitHub Actions itself, load tests, Lighthouse, real-browser checks against production data.
 
 ### 9. Deployment and rollback
 
