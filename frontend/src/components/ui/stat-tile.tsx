@@ -41,7 +41,7 @@ export function StatTile({
   const body = (
     <div
       className={cn(
-        'group relative h-full overflow-hidden rounded-lg border bg-card p-6 transition-colors',
+        'group relative h-full overflow-hidden rounded-lg border bg-card p-4 transition-colors sm:p-6',
         href && 'cursor-pointer hover:border-primary/40 focus-within:ring-2 focus-within:ring-ring',
         emphasis ? 'border-primary/40 ring-1 ring-primary/40' : 'border-border/60',
         className,

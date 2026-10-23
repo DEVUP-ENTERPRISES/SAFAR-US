@@ -26,7 +26,7 @@ export default function AdminDashboard() {
             {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-lg" />)}
           </div>
         ))}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
           <Skeleton className="h-64 w-full rounded-lg lg:col-span-2" />
           <Skeleton className="h-64 w-full rounded-lg" />
         </div>
@@ -52,7 +52,7 @@ export default function AdminDashboard() {
       {/* Business health */}
       <section className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Business</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           <StatTile tone="primary" icon={<TrendingUp className="h-5 w-5" />} label="GMV" value={formatMoney({ amount: data.bookings.gmv, currency: cur })} sub={`${data.bookings.total} bookings`} href={adminPath('reports?tab=money')} />
           <StatTile tone="primary" icon={<Wallet className="h-5 w-5" />} label="Platform revenue" value={formatMoney({ amount: data.revenue.platform, currency: cur })} sub="Commission + protection" href={adminPath('reports?tab=sources')} />
           <StatTile icon={<Users className="h-5 w-5" />} label="Users" value={data.users.total.toLocaleString()} href={adminPath('users')} sub={`+${data.users.newThisWeek} this week`} />
@@ -63,7 +63,7 @@ export default function AdminDashboard() {
       {/* Action queues — emphasised when non-zero so work never hides. */}
       <section className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Action queues</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           <StatTile tone={data.hosts.pending ? 'warning' : 'default'} emphasis={data.hosts.pending > 0} icon={<BadgeCheck className="h-5 w-5" />} label="Hosts pending" value={data.hosts.pending} href={adminPath('hosts?status=pending')} />
           <StatTile tone={data.vehicles.pendingVerification ? 'warning' : 'default'} emphasis={data.vehicles.pendingVerification > 0} icon={<Car className="h-5 w-5" />} label="Vehicles to verify" value={data.vehicles.pendingVerification} href={adminPath('vehicles?verification=pending')} />
           <StatTile tone={data.claims.open ? 'destructive' : 'default'} emphasis={data.claims.open > 0} icon={<ShieldAlert className="h-5 w-5" />} label="Open claims" value={data.claims.open} href={adminPath('claims')} />
@@ -71,8 +71,8 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
+        <Card className="min-w-0 lg:col-span-2">
           <CardHeader>
             <CardTitle>Bookings per day, last 14 days</CardTitle>
           </CardHeader>
@@ -83,7 +83,7 @@ export default function AdminDashboard() {
               <ErrorState message="We couldn’t load bookings per day." retry={() => void analytics.refetch()} />
             ) : (
               <BarChart
-                data={(analytics.data?.series ?? []).map((d) => ({ label: d.day.slice(5), value: d.bookings }))}
+                data={(analytics.data?.series ?? []).map((d) => ({ label: String(Number(d.day.slice(8))), value: d.bookings }))}
                 height={180}
                 format={(v) => `${v} booking${v === 1 ? '' : 's'}`}
               />

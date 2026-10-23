@@ -58,7 +58,7 @@ export function BarChart({
   if (data.length === 0 || data.every((d) => d.value === 0)) return <Empty height={height} />;
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative min-w-0', className)}>
       <div className="relative" style={{ height }}>
         <div className="pointer-events-none absolute inset-0 flex flex-col justify-between" aria-hidden>
           {[max, max / 2, 0].map((v, i) => (
@@ -75,7 +75,7 @@ export function BarChart({
           return (
             <button
               key={`${d.label}-${i}`}
-              className="group relative flex flex-1 flex-col items-center justify-end"
+              className="group relative flex min-w-0 flex-1 flex-col items-center justify-end focus-visible:outline-none"
               style={{ height: '100%' }}
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
@@ -102,7 +102,7 @@ export function BarChart({
       </div>
       <div className="mt-2 flex gap-1.5 ps-12">
         {data.map((d, i) => (
-          <span key={i} className="flex-1 truncate text-center text-xs tabular-nums text-muted-foreground">
+          <span key={i} className="min-w-0 flex-1 truncate text-center text-xs tabular-nums text-muted-foreground">
             {d.label}
           </span>
         ))}

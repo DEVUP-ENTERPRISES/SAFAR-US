@@ -8,13 +8,15 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { formatDate } from '@/lib/utils/format';
+import { useDebouncedValue } from '@/lib/utils/use-debounced-value';
 import { adminApi, type AdminFleet } from '@/features/admin/api';
 
 export default function AdminFleetsPage() {
   const [search, setSearch] = useState('');
+  const term = useDebouncedValue(search.trim());
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['admin-fleets', search],
-    queryFn: () => adminApi.fleets(search || undefined),
+    queryKey: ['admin-fleets', term],
+    queryFn: () => adminApi.fleets(term || undefined),
   });
 
   const totalVehicles = (data ?? []).reduce((s, f) => s + f.vehicles, 0);
