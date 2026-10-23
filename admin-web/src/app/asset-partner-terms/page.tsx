@@ -48,7 +48,7 @@ export default function AdminAssetPartnerTermsPage() {
     },
   });
 
-  if (isLoading || !draft || !data) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (isLoading || !draft || !data) return <Skeleton className="h-96 w-full rounded-lg" />;
 
   const ap = draft.assetPartner;
   const dirty = JSON.stringify(draft.assetPartner) !== JSON.stringify(data.assetPartner);

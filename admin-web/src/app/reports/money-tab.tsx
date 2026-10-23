@@ -28,9 +28,9 @@ export function AdminFinancePage() {
       <div className="space-y-6">
         <Skeleton className="h-12 w-72" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36 rounded-2xl" />)}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36 rounded-lg" />)}
         </div>
-        <Skeleton className="h-72 rounded-2xl" />
+        <Skeleton className="h-72 rounded-lg" />
       </div>
     );
   }
@@ -70,13 +70,13 @@ export function AdminFinancePage() {
 
       {/* GMV + revenue trends */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="rounded-2xl shadow-soft">
+        <Card>
           <CardHeader><CardTitle>GMV — last {months} months</CardTitle></CardHeader>
           <CardContent>
             <LineChart data={data.gmvByMonth.map((d) => ({ label: monthLabel(d.month), value: d.amount }))} currency={cur} />
           </CardContent>
         </Card>
-        <Card className="rounded-2xl shadow-soft">
+        <Card>
           <CardHeader><CardTitle>Platform revenue — last {months} months</CardTitle></CardHeader>
           <CardContent>
             <BarChart data={data.revenueByMonth.map((d) => ({ label: monthLabel(d.month), value: d.amount }))} currency={cur} />
@@ -86,7 +86,7 @@ export function AdminFinancePage() {
 
       {/* Revenue mix + supplementary income */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="rounded-2xl shadow-soft">
+        <Card>
           <CardHeader><CardTitle>Where revenue comes from</CardTitle></CardHeader>
           <CardContent>
             {data.revenueMix.length ? (
@@ -96,7 +96,7 @@ export function AdminFinancePage() {
             )}
           </CardContent>
         </Card>
-        <Card className="rounded-2xl shadow-soft">
+        <Card>
           <CardHeader><CardTitle>Insurance & delivery</CardTitle></CardHeader>
           <CardContent className="space-y-4 pt-2">
             <div className="flex items-center gap-3">

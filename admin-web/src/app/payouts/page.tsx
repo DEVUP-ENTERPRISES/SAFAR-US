@@ -22,7 +22,7 @@ export default function AdminPayoutsPage() {
   const toast = useToast();
   const [status, setStatus] = useState('');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-payouts', status],
     queryFn: () => adminApi.payoutQueue(status || undefined),
   });
@@ -136,6 +136,8 @@ export default function AdminPayoutsPage() {
         columns={columns}
         rows={data?.rows}
         isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
         emptyTitle="No payouts"
         emptyDescription="Completed trips schedule a payout to the host."
       />

@@ -23,7 +23,7 @@ export default function AssetPartnersOverviewPage() {
         description="Reviewing applications, partners and the agreement happens in the CatoDrive operations panel."
       />
       {q.isLoading ? (
-        <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       ) : q.isError || !q.data ? (
         <ErrorState message="Couldn’t load the numbers." retry={() => q.refetch()} />
       ) : (

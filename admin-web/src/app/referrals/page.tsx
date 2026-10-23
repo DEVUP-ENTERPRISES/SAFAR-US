@@ -22,7 +22,7 @@ export default function AdminReferralsPage() {
     <div className="space-y-6">
       <PageHeader eyebrow="Money in" title="Referrals" description="Set what Refer a friend pays out, and see how many referrals turn into trips." />
 
-      {config.data ? <ReferralRewards cfg={config.data} /> : <Skeleton className="h-56 w-full rounded-2xl" />}
+      {config.data ? <ReferralRewards cfg={config.data} /> : <Skeleton className="h-56 w-full rounded-lg" />}
 
       <h2 className="pt-2 text-lg font-bold">How it’s going</h2>
 

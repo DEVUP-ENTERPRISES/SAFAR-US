@@ -82,7 +82,7 @@ export default function FailuresPage() {
         </div>
       )}
 
-      <DataTable columns={columns} rows={q.data?.items} isLoading={q.isLoading} emptyTitle="No failures in this window" emptyDescription="Good news: every booking, payment and identity attempt went through." />
+      <DataTable columns={columns} rows={q.data?.items} isLoading={q.isLoading} isError={q.isError} onRetry={() => void q.refetch()} emptyTitle="No failures in this window" emptyDescription="Good news: every booking, payment and identity attempt went through." />
     </div>
   );
 }

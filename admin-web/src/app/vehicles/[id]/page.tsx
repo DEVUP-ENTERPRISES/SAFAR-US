@@ -40,7 +40,7 @@ export default function VehicleReviewPage() {
     mutationFn: (action: 'approve' | 'reject') => adminApi.vehicleAction(id, action),
     onSuccess: (_r, action) => {
       notify({ tone: 'success', title: action === 'approve' ? 'Vehicle approved' : 'Vehicle rejected' });
-      qc.invalidateQueries({ queryKey: ['admin-vehicles'] });
+      qc.invalidateQueries({ queryKey: ['admin-list', '/admin/vehicles'] });
       qc.invalidateQueries({ queryKey: ['admin-vehicle-review', id] });
       router.push(adminPath('vehicles'));
     },
@@ -86,7 +86,7 @@ export default function VehicleReviewPage() {
     if (ok) act.mutate(action);
   };
 
-  if (isPending) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (isPending) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (isError) return <ErrorState message="Couldn't load this vehicle." retry={() => refetch()} />;
 
   const { vehicle: v, documents, host, checks, vinMismatches, readyToApprove } = data;

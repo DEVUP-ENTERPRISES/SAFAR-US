@@ -60,7 +60,7 @@ function AccountCard({ account, cars, loginStorage }: { account: TollAccount; ca
 
   const s = STATUS[account.status];
   return (
-    <div className="space-y-3 rounded-2xl border border-border p-4">
+    <div className="space-y-3 rounded-lg border border-border p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <Badge tone={s.tone}>{s.label}</Badge>
@@ -250,7 +250,7 @@ export default function TollsPage() {
         description="Toll charges from your NTTA accounts are matched to the trip they happened on and charged to that guest once the trip has finished."
       />
 
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Milestone className="h-5 w-5 text-primary" /> Toll accounts</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           {accounts.isLoading && <Skeleton className="h-28 w-full rounded-xl" />}
@@ -267,7 +267,7 @@ export default function TollsPage() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5 text-primary" /> Import an NTTA statement</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">Download the transaction history from the NTTA account (CSV, or copy the table) and add it here. A toll already imported is never added twice.</p>
@@ -296,7 +296,7 @@ export default function TollsPage() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader className="space-y-3">
           <CardTitle>Tolls</CardTitle>
           <div className="flex flex-wrap gap-2">
@@ -312,7 +312,7 @@ export default function TollsPage() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle>Cars and TollTags</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">Tolls are matched by licence plate. Add a car’s TollTag ID to match by tag as well.</p>
@@ -324,7 +324,7 @@ export default function TollsPage() {
       </Card>
 
       {settings && (
-        <Card className="rounded-2xl shadow-soft">
+        <Card>
           <CardHeader><CardTitle>Toll settings</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

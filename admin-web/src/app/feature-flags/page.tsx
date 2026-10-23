@@ -101,7 +101,7 @@ export default function AdminSettingsPage() {
       />
 
       {creating && (
-        <Card className="animate-scale-in rounded-2xl shadow-soft">
+        <Card className="animate-scale-in ">
           <CardHeader>
             <CardTitle>Create a feature flag</CardTitle>
           </CardHeader>
@@ -138,7 +138,7 @@ export default function AdminSettingsPage() {
         </Card>
       )}
 
-      {isLoading && <Skeleton className="h-40 w-full rounded-2xl" />}
+      {isLoading && <Skeleton className="h-40 w-full rounded-lg" />}
 
       {data && data.length === 0 && !creating && (
         <EmptyState
@@ -158,7 +158,7 @@ export default function AdminSettingsPage() {
           {data.map((f) => {
             const pct = f.rollout?.percentage ?? 100;
             return (
-              <Card key={f._id} className="rounded-2xl shadow-soft">
+              <Card key={f._id}>
                 <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">

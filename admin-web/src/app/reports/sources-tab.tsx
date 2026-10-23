@@ -26,7 +26,7 @@ export function RevenueBySourcePage() {
       <div className="space-y-6">
         <Skeleton className="h-12 w-72" />
         <div className="grid gap-4 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 rounded-2xl" />)}
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 rounded-lg" />)}
         </div>
       </div>
     );
@@ -47,7 +47,7 @@ export function RevenueBySourcePage() {
           const Icon = ICON[s.label] ?? Car;
           const share = totalGmv > 0 ? Math.round((s.gmv / totalGmv) * 100) : 0;
           return (
-            <Card key={s.label} className="rounded-2xl shadow-soft">
+            <Card key={s.label}>
               <CardContent className="space-y-3 py-5">
                 <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
                   <Icon className="h-5 w-5" />
@@ -69,7 +69,7 @@ export function RevenueBySourcePage() {
         })}
       </div>
 
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader><CardTitle>Share of GMV by source</CardTitle></CardHeader>
         <CardContent>
           {totalGmv > 0 ? (

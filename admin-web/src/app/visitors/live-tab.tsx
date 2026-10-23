@@ -58,9 +58,9 @@ export function LiveTrafficPage() {
       {isLoading || !data ? (
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-2xl" />)}
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-lg" />)}
           </div>
-          <Skeleton className="h-72 w-full rounded-2xl" />
+          <Skeleton className="h-72 w-full rounded-lg" />
         </div>
       ) : (
         <>
@@ -87,19 +87,19 @@ export function LiveTrafficPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="rounded-2xl shadow-soft">
+            <Card>
               <CardHeader><CardTitle>Traffic sources</CardTitle></CardHeader>
               <CardContent>
                 <Ranked rows={data.bySource.map((s) => ({ label: SOURCE_LABEL[s.source], count: s.count }))} />
               </CardContent>
             </Card>
-            <Card className="rounded-2xl shadow-soft">
+            <Card>
               <CardHeader><CardTitle>Top referrers</CardTitle></CardHeader>
               <CardContent>
                 <Ranked rows={data.topReferrers.map((r) => ({ label: r.domain, count: r.count }))} />
               </CardContent>
             </Card>
-            <Card className="rounded-2xl shadow-soft">
+            <Card>
               <CardHeader><CardTitle>Top pages</CardTitle></CardHeader>
               <CardContent>
                 <Ranked rows={data.topPages.map((p) => ({ label: p.path, count: p.count }))} />
@@ -107,7 +107,7 @@ export function LiveTrafficPage() {
             </Card>
           </div>
 
-          <Card className="rounded-2xl shadow-soft">
+          <Card>
             <CardHeader><CardTitle>Recent visits</CardTitle></CardHeader>
             <CardContent>
               {data.recent.length === 0 ? (

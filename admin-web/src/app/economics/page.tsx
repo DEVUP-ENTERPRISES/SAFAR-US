@@ -48,7 +48,7 @@ const TABS = [
 
 export default function AdminEconomicsPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 w-full rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
       <Economics />
     </Suspense>
   );
@@ -82,7 +82,7 @@ function Economics() {
     },
   });
 
-  if (isLoading || !draft || !data) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (isLoading || !draft || !data) return <Skeleton className="h-96 w-full rounded-lg" />;
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(data);
 
@@ -171,7 +171,7 @@ function Economics() {
         them is expensive: commission comes OUT of what the host is paid, this
         goes ON TOP of what the guest pays.
       */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Percent className="h-5 w-5 text-primary" /> Guest service fee
@@ -217,7 +217,7 @@ function Economics() {
       {tab === 'safety' && (
         <>
       {draft.appRelease && (
-        <Card className="rounded-2xl shadow-soft">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Smartphone className="h-5 w-5 text-primary" /> Mobile apps</CardTitle>
             <p className="text-sm text-muted-foreground">An app older than the minimum version must update before it can be used. Older than the latest version, it shows an "update available" banner.</p>
@@ -253,7 +253,7 @@ function Economics() {
       {tab === 'checks' && (
         <>
       {/* Legal & eligibility */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Scale className="h-5 w-5 text-primary" /> Legal &amp; eligibility</CardTitle>
         </CardHeader>
@@ -287,7 +287,7 @@ function Economics() {
         <>
       {/* Security deposit — the hold taken before pickup and released after the trip */}
       {draft.deposit && (
-        <Card className="rounded-2xl shadow-soft">
+        <Card>
           <CardHeader>
             <CardTitle>Security deposit</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">A hold on the guest’s card, not a charge. Placed at pickup (or by the guest from their booking), taken only for evidenced damage, released automatically after the trip.</p>
@@ -315,7 +315,7 @@ function Economics() {
       {tab === 'checks' && (
         <>
       {/* Verification services — when each check runs, who runs it, how often */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><IdCard className="h-5 w-5 text-primary" /> Verification services</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -397,7 +397,7 @@ function Economics() {
         <>
       {/* Cancellations & no-shows — what a guest gets back, and what a host pays for cancelling */}
       {draft.cancellation && (
-        <Card className="rounded-2xl shadow-soft">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><RotateCcw className="h-5 w-5 text-primary" /> Cancellations &amp; no-shows</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -505,7 +505,7 @@ function Economics() {
       {tab === 'rules' && (
         <>
       {/* Booking timing — how long each stage may wait before it is released */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Booking timing</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -656,7 +656,7 @@ function Economics() {
       {tab === 'rules' && (
         <>
       {/* Condition photos */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Car className="h-5 w-5 text-primary" /> Trip condition photos</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -702,7 +702,7 @@ function Economics() {
       {tab === 'safety' && (
         <>
       {/* Abuse limits */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Abuse limits</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -747,7 +747,7 @@ function Economics() {
       {tab === 'rules' && (
         <>
       {/* Handover rules */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Handover rules</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -792,7 +792,7 @@ function Economics() {
       {tab === 'rules' && (
         <>
       {/* Extensions & swaps */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Extensions &amp; swaps</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -837,7 +837,7 @@ function Economics() {
       {tab === 'payouts' && (
         <>
       {/* Payouts */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Host payouts</CardTitle>
         </CardHeader>
@@ -862,7 +862,7 @@ function Economics() {
       {tab === 'fees' && (
         <>
       {/* Post-trip charges */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Post-trip charges</CardTitle>
         </CardHeader>
@@ -903,7 +903,7 @@ function Economics() {
       {tab === 'fees' && (
         <>
       {/* Protection */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Protection plans</CardTitle>
         </CardHeader>
@@ -932,7 +932,7 @@ function Economics() {
         <>
       {/* Growth levers */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="rounded-2xl shadow-soft">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5 text-primary" /> Rewards</CardTitle>
           </CardHeader>
@@ -955,7 +955,7 @@ function Economics() {
       {tab === 'history' && (
         <>
       {/* Config history & rollback */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><History className="h-5 w-5 text-primary" /> Change history</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">

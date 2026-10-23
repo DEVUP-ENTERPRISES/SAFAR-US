@@ -9,6 +9,7 @@ import { Chip } from '@/components/ui/chip';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
+import { useAdminList } from '@/features/admin/hooks/use-admin-list';
 import { adminApi } from '@/features/admin/api';
 import { formatDate } from '@/lib/utils/format';
 import { adminPath } from '@/lib/admin-path';
@@ -38,10 +39,7 @@ export default function ContactInquiriesPage() {
   const [status, setStatus] = useState('');
   const [interest, setInterest] = useState('');
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['contact-inquiries', status, interest],
-    queryFn: () => adminApi.contactInquiries({ status: status || undefined, interest: interest || undefined }) as Promise<Inquiry[]>,
-  });
+  const list = useAdminList<Inquiry>('/admin/contact-inquiries', { status: status || undefined, interest: interest || undefined });
   const { data: counts } = useQuery({
     queryKey: ['contact-inquiry-counts'],
     queryFn: () => adminApi.contactInquiryCounts(),
@@ -113,7 +111,7 @@ export default function ContactInquiriesPage() {
         ))}
       </div>
 
-      <DataTable columns={columns} rows={data} isLoading={isLoading} emptyTitle="No inquiries" emptyDescription="Contact-page and deck-request submissions appear here." />
+      <DataTable columns={columns} rows={list.rows} isLoading={list.isLoading} isError={list.isError} onRetry={() => void list.refetch()} paging={list.paging} emptyTitle="No inquiries" emptyDescription="Contact-page and deck-request submissions appear here." />
     </div>
   );
 }

@@ -82,9 +82,9 @@ export function AdminAnalyticsPage() {
       {isLoading || !data ? (
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-2xl" />)}
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-lg" />)}
           </div>
-          <Skeleton className="h-72 w-full rounded-2xl" />
+          <Skeleton className="h-72 w-full rounded-lg" />
         </div>
       ) : (
         <>
@@ -118,7 +118,7 @@ export function AdminAnalyticsPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="rounded-2xl shadow-soft">
+            <Card>
               <CardHeader><CardTitle>Bookings per day</CardTitle></CardHeader>
               <CardContent>
                 <BarChart
@@ -128,7 +128,7 @@ export function AdminAnalyticsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl shadow-soft">
+            <Card>
               <CardHeader><CardTitle>GMV per day</CardTitle></CardHeader>
               <CardContent>
                 <LineChart
@@ -141,17 +141,17 @@ export function AdminAnalyticsPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="rounded-2xl shadow-soft">
+            <Card>
               <CardHeader><CardTitle>Top cities</CardTitle></CardHeader>
               <CardContent><Ranked rows={data.cities} currency={cur} /></CardContent>
             </Card>
 
-            <Card className="rounded-2xl shadow-soft">
+            <Card>
               <CardHeader><CardTitle>Top categories</CardTitle></CardHeader>
               <CardContent><Ranked rows={data.categories} currency={cur} /></CardContent>
             </Card>
 
-            <Card className="rounded-2xl shadow-soft">
+            <Card>
               <CardHeader><CardTitle>Booking outcomes</CardTitle></CardHeader>
               <CardContent className="flex justify-center">
                 {data.byStatus.length === 0 ? (
@@ -167,7 +167,7 @@ export function AdminAnalyticsPage() {
             </Card>
           </div>
 
-          <Card className="rounded-2xl shadow-soft">
+          <Card>
             <CardHeader><CardTitle>New users per day</CardTitle></CardHeader>
             <CardContent>
               <LineChart

@@ -107,7 +107,7 @@ export default function AdminMembershipsPage() {
       </div>
 
       {/* New plan */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader><CardTitle>Add a plan</CardTitle></CardHeader>
         <CardContent className="flex flex-wrap items-end gap-3">
           <Field label="Plan code" hint="Lowercase, e.g. plus, pro">
@@ -117,7 +117,7 @@ export default function AdminMembershipsPage() {
         </CardContent>
       </Card>
 
-      {plans.isLoading && <Skeleton className="h-64 w-full rounded-2xl" />}
+      {plans.isLoading && <Skeleton className="h-64 w-full rounded-lg" />}
 
       {plans.data && plans.data.length === 0 && (
         <EmptyState icon={<Star className="h-10 w-10" />} title="No membership plans yet" description="Create a plan above to start selling memberships." />
@@ -129,7 +129,7 @@ export default function AdminMembershipsPage() {
           const dirty = !!draft[p.code] && JSON.stringify(draft[p.code]) !== JSON.stringify(p);
           const stat = stats.data?.find((s) => s.planCode === p.code);
           return (
-            <Card key={p.code} className="rounded-2xl shadow-soft">
+            <Card key={p.code}>
               <CardHeader className="flex-row items-center justify-between space-y-0">
                 <CardTitle className="flex items-center gap-2">
                   <Star className="h-5 w-5 text-primary" /> {d.name}

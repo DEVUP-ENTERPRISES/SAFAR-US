@@ -9,6 +9,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import Link from 'next/link';
 import { Rating } from '@/components/ui/rating';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
+import { useAdminList } from '@/features/admin/hooks/use-admin-list';
 import { adminApi } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
 import { PageHeader } from '@/components/ui/page-header';
@@ -21,13 +22,10 @@ export default function AdminHostsPage() {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const [status, setStatus] = useState('');
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-hosts', status],
-    queryFn: () => adminApi.hosts({ status: status || undefined }),
-  });
+  const list = useAdminList<any>('/admin/hosts', { status: status || undefined });
   const setVerification = useMutation({
     mutationFn: ({ id, s }: { id: string; s: string }) => adminApi.setHostVerification(id, s),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-hosts'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-list', '/admin/hosts'] }),
   });
 
   const decide = async (h: any, verified: boolean) => {
@@ -77,7 +75,7 @@ export default function AdminHostsPage() {
           <Chip key={s || 'all'} active={status === s} onClick={() => setStatus(s)} className="capitalize">{s || 'All'}</Chip>
         ))}
       </div>
-      <DataTable columns={columns} rows={data} isLoading={isLoading} emptyTitle="No hosts found" />
+      <DataTable columns={columns} rows={list.rows} isLoading={list.isLoading} isError={list.isError} onRetry={() => void list.refetch()} paging={list.paging} emptyTitle="No hosts found" />
     </div>
   );
 }

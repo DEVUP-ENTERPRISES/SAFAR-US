@@ -33,7 +33,7 @@ export default function InsurerPage({ params }: { params: Promise<{ id: string }
   const q = useQuery({ queryKey: ['admin-insurer', id], queryFn: () => adminApi.insurer(id) });
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['admin-insurer', id] });
-    void qc.invalidateQueries({ queryKey: ['admin-insurers'] });
+    void qc.invalidateQueries({ queryKey: ['admin-list', '/admin/insurance-partners'] });
   };
   const fail = (e: unknown) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'That didn’t work' });
 
@@ -70,7 +70,7 @@ export default function InsurerPage({ params }: { params: Promise<{ id: string }
     onError: fail,
   });
 
-  if (q.isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (q.isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (q.isError || !q.data) return <ErrorState message="Couldn’t load this insurer." retry={() => q.refetch()} />;
   const { insurer, plans, summary, payouts, commissionBps } = q.data;
 

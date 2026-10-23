@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,8 @@ import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
 import { PageHeader } from '@/components/ui/page-header';
+import { useAdminList } from '@/features/admin/hooks/use-admin-list';
+import { useDebouncedValue } from '@/lib/utils/use-debounced-value';
 
 const STATUS_TONE: Record<string, 'success' | 'warning' | 'destructive' | 'muted'> = {
   active: 'success', suspended: 'warning', banned: 'destructive',
@@ -23,16 +25,15 @@ export default function AdminUsersPage() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-users', q, status],
-    queryFn: () => adminApi.users({ q: q || undefined, status: status || undefined }),
-  });
+  const search = useDebouncedValue(q.trim());
+  const list = useAdminList<any>('/admin/users', { q: search || undefined, status: status || undefined });
 
   const setUserStatus = useMutation({
     mutationFn: ({ id, s }: { id: string; s: string }) => adminApi.setUserStatus(id, s),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-list', '/admin/users'] }),
   });
 
+  const busy = (id: string) => setUserStatus.isPending && setUserStatus.variables?.id === id;
   const label = (u: any) => u.email ?? u.phone ?? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() ?? u._id;
 
   const suspend = async (u: any) => {
@@ -87,19 +88,19 @@ export default function AdminUsersPage() {
       <span className="text-xs text-muted-foreground">{u.emailVerified ? 'email ' : ''}{u.phoneVerified ? 'phone' : ''}{!u.emailVerified && !u.phoneVerified ? '—' : ''}</span>
     ) },
     { header: 'Status', cell: (u) => <Badge tone={STATUS_TONE[u.status] ?? 'muted'}>{u.status}</Badge> },
-    { header: 'Actions', className: 'text-end', cell: (u) => (
+    { header: '', className: 'text-end', cell: (u) => (
       <div className="flex justify-end gap-2">
         <Link href={adminPath(`kyc?user=${u._id}`)}>
           <Button size="sm" variant="outline">KYC</Button>
         </Link>
         {u.status !== 'active' && (
-          <Button size="sm" loading={setUserStatus.isPending} onClick={() => activate(u)}>Activate</Button>
+          <Button size="sm" loading={busy(u._id)} onClick={() => activate(u)}>Activate</Button>
         )}
         {u.status !== 'suspended' && u.status !== 'banned' && (
-          <Button size="sm" variant="outline" loading={setUserStatus.isPending} onClick={() => suspend(u)}>Suspend</Button>
+          <Button size="sm" variant="outline" loading={busy(u._id)} onClick={() => suspend(u)}>Suspend</Button>
         )}
         {u.status !== 'banned' && (
-          <Button size="sm" variant="ghost" className="text-destructive" loading={setUserStatus.isPending} onClick={() => ban(u)}>Ban</Button>
+          <Button size="sm" variant="ghost" className="text-destructive" loading={busy(u._id)} onClick={() => ban(u)}>Ban</Button>
         )}
       </div>
     ) },
@@ -109,14 +110,24 @@ export default function AdminUsersPage() {
     <div className="space-y-5">
       <PageHeader eyebrow="People & cars" title="Users" description="Every account on CatoDrive. Search for someone, then suspend or ban them if needed." />
       <div className="flex flex-wrap items-center gap-3">
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name / email / phone…" className="max-w-xs" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email or phone" aria-label="Search users" className="max-w-xs" />
         <div className="flex flex-wrap gap-2">
           {['', 'active', 'suspended', 'banned'].map((s) => (
             <Chip key={s || 'all'} active={status === s} onClick={() => setStatus(s)} className="capitalize">{s || 'All'}</Chip>
           ))}
         </div>
       </div>
-      <DataTable columns={columns} rows={data} isLoading={isLoading} emptyTitle="No users found" />
+      <DataTable
+        columns={columns}
+        rows={list.rows}
+        isLoading={list.isLoading}
+        isError={list.isError}
+        onRetry={() => void list.refetch()}
+        errorMessage="We couldn’t load users."
+        paging={list.paging}
+        emptyTitle={search || status ? 'No users match' : 'No users yet'}
+        emptyDescription={search || status ? 'Try another search or filter.' : undefined}
+      />
     </div>
   );
 }

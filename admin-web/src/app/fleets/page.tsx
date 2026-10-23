@@ -12,7 +12,7 @@ import { adminApi, type AdminFleet } from '@/features/admin/api';
 
 export default function AdminFleetsPage() {
   const [search, setSearch] = useState('');
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-fleets', search],
     queryFn: () => adminApi.fleets(search || undefined),
   });
@@ -69,6 +69,8 @@ export default function AdminFleetsPage() {
         columns={columns}
         rows={data}
         isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
         emptyTitle="No fleets"
         emptyDescription="Hosts who group vehicles into fleets appear here."
       />

@@ -18,7 +18,7 @@ export default function AdminCorporatePage() {
   const confirm = useConfirm();
   const [status, setStatus] = useState('');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-orgs', status],
     queryFn: () => adminApi.orgs(status || undefined),
   });
@@ -117,6 +117,8 @@ export default function AdminCorporatePage() {
         columns={columns}
         rows={data}
         isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
         emptyTitle="No corporate accounts"
         emptyDescription="Companies that create a workspace appear here."
       />

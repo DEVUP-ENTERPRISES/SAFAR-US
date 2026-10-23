@@ -11,7 +11,7 @@ export default function VisitorsPage() {
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Overview" title="Visitors" description="Who is on the website right now, and where visitors come from." />
-      <Suspense fallback={<Skeleton className="h-96 w-full rounded-2xl" />}>
+      <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
         <PageTabs
           tabs={[
             { key: 'live', label: 'Right now', render: () => <LiveTrafficPage /> },

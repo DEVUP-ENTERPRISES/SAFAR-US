@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Select } from '@/components/ui/select';
@@ -170,7 +170,7 @@ export default function AdminCommissionPage() {
 
       {/* Create */}
       {creating && (
-        <Card className="animate-scale-in rounded-2xl shadow-soft">
+        <Card className="animate-scale-in ">
           <CardHeader><CardTitle>New commission rule</CardTitle></CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Field label="Name">
@@ -221,7 +221,7 @@ export default function AdminCommissionPage() {
       )}
 
       {/* Simulator */}
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FlaskConical className="h-5 w-5 text-primary" /> Rate simulator
@@ -245,7 +245,9 @@ export default function AdminCommissionPage() {
 
       {/* Rules */}
       {rules.isLoading ? (
-        <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+      ) : rules.isError ? (
+        <ErrorState message="We couldn’t load the rules." retry={() => void rules.refetch()} />
       ) : rules.data && rules.data.length === 0 ? (
         <EmptyState
           icon={<Percent className="h-10 w-10" />}

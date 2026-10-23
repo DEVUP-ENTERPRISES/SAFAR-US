@@ -109,7 +109,7 @@ function GeoHeatmap({ entries }: { entries: GeoSummaryEntry[] }) {
 
   if (failed) {
     return (
-      <div className="flex h-[420px] flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-muted/30 text-center text-sm text-muted-foreground">
+      <div className="flex h-[420px] flex-col items-center justify-center gap-2 rounded-lg border border-border bg-muted/30 text-center text-sm text-muted-foreground">
         <Globe2 className="h-6 w-6" />
         {entries.length === 0 ? 'No located visits in this window yet.' : 'Map unavailable — check NEXT_PUBLIC_MAPBOX_TOKEN.'}
       </div>
@@ -118,8 +118,8 @@ function GeoHeatmap({ entries }: { entries: GeoSummaryEntry[] }) {
 
   return (
     <div className="relative">
-      <div ref={ref} className="h-[420px] w-full overflow-hidden rounded-2xl border border-border" />
-      <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-lg bg-background/90 px-3 py-1.5 text-xs font-medium shadow-soft backdrop-blur">
+      <div ref={ref} className="h-[420px] w-full overflow-hidden rounded-lg border border-border" />
+      <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-lg bg-background/90 px-3 py-1.5 text-xs font-medium backdrop-blur">
         <span>Visitor density:</span>
         <span className="text-muted-foreground">Low</span>
         <span className="h-2 w-24 rounded-full bg-gradient-to-r from-[#1f8f8a] via-[#f59e0b] to-[#ef4444]" />
@@ -198,9 +198,9 @@ export function GeoIntelligencePage() {
       {isLoading ? (
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-2xl" />)}
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-lg" />)}
           </div>
-          <Skeleton className="h-[420px] w-full rounded-2xl" />
+          <Skeleton className="h-[420px] w-full rounded-lg" />
         </div>
       ) : (
         <>
@@ -223,7 +223,7 @@ export function GeoIntelligencePage() {
             />
           </div>
 
-          <Card className="rounded-2xl shadow-soft">
+          <Card>
             <CardHeader><CardTitle>Demand heatmap</CardTitle></CardHeader>
             <CardContent>
               <GeoHeatmap entries={entries} />
@@ -231,11 +231,11 @@ export function GeoIntelligencePage() {
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="rounded-2xl shadow-soft">
+            <Card>
               <CardHeader><CardTitle>Top countries</CardTitle></CardHeader>
               <CardContent><Ranked rows={byCountry} /></CardContent>
             </Card>
-            <Card className="rounded-2xl shadow-soft">
+            <Card>
               <CardHeader><CardTitle>Top cities</CardTitle></CardHeader>
               <CardContent><Ranked rows={byCity} /></CardContent>
             </Card>

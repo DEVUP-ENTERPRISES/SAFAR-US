@@ -46,12 +46,12 @@ export default function ContactInquiryDetailPage() {
     mutationFn: () => adminApi.respondContactInquiry(id, notes || undefined),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['contact-inquiry', id] });
-      qc.invalidateQueries({ queryKey: ['contact-inquiries'] });
+      qc.invalidateQueries({ queryKey: ['admin-list', '/admin/contact-inquiries'] });
       qc.invalidateQueries({ queryKey: ['contact-inquiry-counts'] });
     },
   });
 
-  if (isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (isError || !i) return <ErrorState message="Inquiry not found." />;
 
   return (

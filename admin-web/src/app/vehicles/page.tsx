@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
+import { useAdminList } from '@/features/admin/hooks/use-admin-list';
 import { formatMoney } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
@@ -23,7 +24,7 @@ function ExternalRatingCell({ v }: { v: any }) {
   const [trips, setTrips] = useState(String(v.externalRating?.trips ?? ''));
   const save = useMutation({
     mutationFn: () => adminApi.setExternalRating(v._id, rating === '' ? { clear: true as const } : { rating: Number(rating), trips: Number(trips || 0), source: 'Turo' }),
-    onSuccess: () => { toast({ tone: 'success', title: 'Saved' }); qc.invalidateQueries({ queryKey: ['admin-vehicles'] }); },
+    onSuccess: () => { toast({ tone: 'success', title: 'Saved' }); qc.invalidateQueries({ queryKey: ['admin-list', '/admin/vehicles'] }); },
     onError: (e) => toast({ tone: 'error', title: 'Could not save', description: e instanceof Error ? e.message : undefined }),
   });
   const bad = rating !== '' && !(Number(rating) >= 1 && Number(rating) <= 5);
@@ -41,13 +42,10 @@ export default function AdminVehiclesPage() {
   const router = useRouter();
   const confirm = useConfirm();
   const [verification, setVerification] = useState('');
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-vehicles', verification],
-    queryFn: () => adminApi.vehicles({ verification: verification || undefined }),
-  });
+  const list = useAdminList<any>('/admin/vehicles', { verification: verification || undefined });
   const action = useMutation({
     mutationFn: ({ id, a }: { id: string; a: 'approve' | 'suspend' | 'reject' }) => adminApi.vehicleAction(id, a),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-vehicles'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-list', '/admin/vehicles'] }),
   });
 
   const COPY = {
@@ -122,7 +120,7 @@ export default function AdminVehiclesPage() {
           <Chip key={s || 'all'} active={verification === s} onClick={() => setVerification(s)} className="capitalize">{s || 'All'}</Chip>
         ))}
       </div>
-      <DataTable columns={columns} rows={data} isLoading={isLoading} emptyTitle="No vehicles found" />
+      <DataTable columns={columns} rows={list.rows} isLoading={list.isLoading} isError={list.isError} onRetry={() => void list.refetch()} paging={list.paging} emptyTitle="No vehicles found" />
     </div>
   );
 }

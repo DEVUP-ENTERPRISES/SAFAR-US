@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
+import { useAdminList } from '@/features/admin/hooks/use-admin-list';
 import { BookingStatusBadge } from '@/features/bookings/components/status-badge';
 import { formatMoney, formatDateRange } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
@@ -43,13 +44,10 @@ export default function AdminBookingsPage() {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const [status, setStatus] = useState('');
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-bookings', status],
-    queryFn: () => adminApi.bookings({ status: status || undefined }),
-  });
+  const list = useAdminList<any>('/admin/bookings', { status: status || undefined });
   const cancel = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => adminApi.cancelBooking(id, reason),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-bookings'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-list', '/admin/bookings'] }),
   });
 
   // Irreversible + moves real money → confirm, force a typed ack, and record a
@@ -100,7 +98,7 @@ export default function AdminBookingsPage() {
           <Chip key={s || 'all'} active={status === s} onClick={() => setStatus(s)} className="capitalize">{s ? s.replace(/_/g, ' ') : 'All'}</Chip>
         ))}
       </div>
-      <DataTable columns={columns} rows={data} isLoading={isLoading} emptyTitle="No bookings found" />
+      <DataTable columns={columns} rows={list.rows} isLoading={list.isLoading} isError={list.isError} onRetry={() => void list.refetch()} paging={list.paging} emptyTitle="No bookings found" />
     </div>
   );
 }

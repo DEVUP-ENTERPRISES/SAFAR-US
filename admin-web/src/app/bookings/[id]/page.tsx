@@ -57,7 +57,7 @@ export default function AdminBookingDetailPage() {
     onError: (e) => toast({ tone: 'error', title: errorText(e) }),
   });
 
-  if (isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (isError || !o) return <ErrorState message="Booking not found." retry={() => refetch()} />;
 
   const g = o.guest;

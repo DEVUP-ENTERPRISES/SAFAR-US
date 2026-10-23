@@ -12,6 +12,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { Select } from '@/components/ui/select';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
+import { useAdminList } from '@/features/admin/hooks/use-admin-list';
 import { adminApi, type Coupon } from '@/features/admin/api';
 import { PageHeader } from '@/components/ui/page-header';
 
@@ -39,11 +40,8 @@ export default function AdminCouponsPage() {
     validTo: '',
   });
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ['admin-coupons'] });
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-coupons', status],
-    queryFn: () => adminApi.coupons({ status: status || undefined }),
-  });
+  const refresh = () => qc.invalidateQueries({ queryKey: ['admin-list', '/admin/coupons'] });
+  const list = useAdminList<any>('/admin/coupons', { status: status || undefined });
 
   const create = useMutation({
     mutationFn: () =>
@@ -225,8 +223,11 @@ export default function AdminCouponsPage() {
 
       <DataTable
         columns={columns}
-        rows={data ?? []}
-        isLoading={isLoading}
+        rows={list.rows}
+        isLoading={list.isLoading}
+        isError={list.isError}
+        onRetry={() => void list.refetch()}
+        paging={list.paging}
         emptyTitle="No promo codes yet"
         emptyDescription="Create one to run a campaign — budgets and per-guest limits are enforced automatically."
       />

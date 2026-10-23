@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Chip } from '@/components/ui/chip';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
+import { useAdminList } from '@/features/admin/hooks/use-admin-list';
 import { CaseFilePanel } from '@/features/ai/components/case-file-panel';
 import { FileSearch } from 'lucide-react';
 import { formatDate, formatMoney } from '@/lib/utils/format';
@@ -24,21 +25,18 @@ export default function AdminClaimsPage() {
   const [status, setStatus] = useState('');
   const [settling, setSettling] = useState<{ id: string; dollars: string; currency: string } | null>(null);
   const [caseFileFor, setCaseFileFor] = useState<string | null>(null);
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-claims', status],
-    queryFn: () => adminApi.claims({ status: status || undefined }),
-  });
-  const assign = useMutation({ mutationFn: (id: string) => adminApi.assignClaim(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-claims'] }) });
+  const list = useAdminList<any>('/admin/claims', { status: status || undefined });
+  const assign = useMutation({ mutationFn: (id: string) => adminApi.assignClaim(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-list', '/admin/claims'] }) });
   const resolve = useMutation({
     // Note is now the adjuster's real note, not a canned string.
     mutationFn: ({ id, d, note }: { id: string; d: string; note: string }) => adminApi.resolveClaim(id, d, note),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-claims'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-list', '/admin/claims'] }),
   });
 
   const settle = useMutation({
     mutationFn: ({ id, cents, note }: { id: string; cents: number; note: string }) =>
       adminApi.settleClaim(id, { amountApproved: cents, note }),
-    onSuccess: () => { setSettling(null); qc.invalidateQueries({ queryKey: ['admin-claims'] }); },
+    onSuccess: () => { setSettling(null); qc.invalidateQueries({ queryKey: ['admin-list', '/admin/claims'] }); },
   });
 
   const startSettle = (c: any) =>
@@ -127,7 +125,7 @@ export default function AdminClaimsPage() {
         </div>
       )}
       {caseFileFor && <CaseFilePanel key={caseFileFor} claimId={caseFileFor} />}
-      <DataTable columns={columns} rows={data} isLoading={isLoading} emptyTitle="No claims filed" />
+      <DataTable columns={columns} rows={list.rows} isLoading={list.isLoading} isError={list.isError} onRetry={() => void list.refetch()} paging={list.paging} emptyTitle="No claims filed" />
     </div>
   );
 }

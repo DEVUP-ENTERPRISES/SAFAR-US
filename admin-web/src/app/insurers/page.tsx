@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
+import { useAdminList } from '@/features/admin/hooks/use-admin-list';
 import { adminApi } from '@/features/admin/api';
 import { INSURER_STATUS, type Insurer } from '@/features/insurers/api';
 import { formatDate } from '@/lib/utils/format';
@@ -23,7 +24,7 @@ const STATUSES = ['', 'pending', 'approved', 'suspended', 'rejected'];
 /** Insurance partners: approve applications, and set the commission CatoDrive keeps on premiums by default. */
 export default function InsurersPage() {
   const [status, setStatus] = useState('pending');
-  const list = useQuery({ queryKey: ['admin-insurers', status], queryFn: () => adminApi.insurers({ status: status || undefined }) });
+  const list = useAdminList<Insurer>('/admin/insurance-partners', { status: status || undefined });
 
   const columns: Column<Insurer>[] = [
     {
@@ -65,7 +66,7 @@ export default function InsurersPage() {
           </Chip>
         ))}
       </div>
-      <DataTable columns={columns} rows={list.data} isLoading={list.isLoading} emptyTitle="No insurers" emptyDescription="Applications from insurers appear here." />
+      <DataTable columns={columns} rows={list.rows} isLoading={list.isLoading} isError={list.isError} onRetry={() => void list.refetch()} paging={list.paging} emptyTitle="No insurers" emptyDescription="Applications from insurers appear here." />
     </div>
   );
 }

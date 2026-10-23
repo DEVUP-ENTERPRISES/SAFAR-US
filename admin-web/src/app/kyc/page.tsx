@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Chip } from '@/components/ui/chip';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
+import { useAdminList } from '@/features/admin/hooks/use-admin-list';
 import { formatDate } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
 import { adminPath } from '@/lib/admin-path';
@@ -23,15 +24,12 @@ export default function AdminKycPage() {
   // in every status; otherwise the status filter drives the queue.
   const userId = useSearchParams().get('user') ?? undefined;
   const [status, setStatus] = useState('pending');
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-kyc', status, userId],
-    queryFn: () => adminApi.kyc(userId ? { userId } : { status }),
-  });
+  const list = useAdminList<any>('/admin/kyc', userId ? { userId } : { status });
   const review = useMutation({
     // The backend accepts a reason — we now actually send it so rejections are explainable.
     mutationFn: ({ id, d, reason }: { id: string; d: 'approved' | 'rejected'; reason?: string }) =>
       adminApi.reviewKyc(id, d, reason),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-kyc'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-list', '/admin/kyc'] }),
   });
 
   const approve = async (k: any) => {
@@ -94,7 +92,7 @@ export default function AdminKycPage() {
           ))}
         </div>
       )}
-      <DataTable columns={columns} rows={data} isLoading={isLoading} emptyTitle="No KYC submissions" />
+      <DataTable columns={columns} rows={list.rows} isLoading={list.isLoading} isError={list.isError} onRetry={() => void list.refetch()} paging={list.paging} emptyTitle="No KYC submissions" />
     </div>
   );
 }

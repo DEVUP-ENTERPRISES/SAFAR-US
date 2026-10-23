@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -183,7 +183,7 @@ export default function AdminSurgePage() {
       </div>
 
       {creating && (
-        <Card className="animate-scale-in rounded-2xl shadow-soft">
+        <Card className="animate-scale-in ">
           <CardHeader><CardTitle>New surge rule</CardTitle></CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Field label="Name">
@@ -219,7 +219,9 @@ export default function AdminSurgePage() {
       )}
 
       {rules.isLoading ? (
-        <Skeleton className="h-56 w-full rounded-2xl" />
+        <Skeleton className="h-56 w-full rounded-lg" />
+      ) : rules.isError ? (
+        <ErrorState message="We couldn’t load the rules." retry={() => void rules.refetch()} />
       ) : rules.data && rules.data.length === 0 ? (
         <EmptyState
           icon={<TrendingUp className="h-10 w-10" />}

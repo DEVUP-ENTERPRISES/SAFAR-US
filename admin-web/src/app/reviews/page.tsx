@@ -18,7 +18,7 @@ export default function AdminReviewsPage() {
   const [status, setStatus] = useState('');
   const [lowOnly, setLowOnly] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-reviews', status, lowOnly],
     queryFn: () => adminApi.reviews({ status: status || undefined, minRating: lowOnly ? 2 : undefined }),
   });
@@ -115,6 +115,8 @@ export default function AdminReviewsPage() {
         columns={columns}
         rows={data}
         isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
         emptyTitle="No reviews"
         emptyDescription="Reviews left after completed trips appear here."
       />

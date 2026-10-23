@@ -13,6 +13,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { Textarea } from '@/components/ui/textarea';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
+import { useAdminList } from '@/features/admin/hooks/use-admin-list';
 import { formatDate } from '@/lib/utils/format';
 import { adminApi, type KbArticle } from '@/features/admin/api';
 
@@ -26,14 +27,11 @@ export default function AdminKbPage() {
   const [draft, setDraft] = useState({ title: '', summary: '', category: 'general', body: '' });
 
   const refresh = () => {
-    qc.invalidateQueries({ queryKey: ['admin-kb'] });
+    qc.invalidateQueries({ queryKey: ['admin-list', '/admin/kb/articles'] });
     qc.invalidateQueries({ queryKey: ['admin-kb-stats'] });
   };
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-kb', status],
-    queryFn: () => adminApi.kbArticles({ status: status || undefined }),
-  });
+  const list = useAdminList<any>('/admin/kb/articles', { status: status || undefined });
   const stats = useQuery({ queryKey: ['admin-kb-stats'], queryFn: () => adminApi.kbStats() });
 
   const create = useMutation({
@@ -191,8 +189,11 @@ export default function AdminKbPage() {
 
       <DataTable
         columns={columns}
-        rows={data ?? []}
-        isLoading={isLoading}
+        rows={list.rows}
+        isLoading={list.isLoading}
+        isError={list.isError}
+        onRetry={() => void list.refetch()}
+        paging={list.paging}
         emptyTitle="No articles yet"
         emptyDescription="Write the first one — a good article is what stops a ticket being filed."
       />

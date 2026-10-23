@@ -92,7 +92,7 @@ export default function InsurancePage() {
         description="Each car’s insurance as Wheelbase reports it. Checked every 6 hours; if Wheelbase can’t be reached, cars keep their last known status."
       />
 
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Umbrella className="h-5 w-5 text-primary" /> Wheelbase connection &amp; rules</CardTitle>
         </CardHeader>
@@ -118,7 +118,7 @@ export default function InsurancePage() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl shadow-soft">
+      <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <div>
             <CardTitle>Cars</CardTitle>

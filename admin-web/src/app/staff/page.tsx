@@ -80,7 +80,7 @@ export default function AdminStaffPage() {
                   onClick={() => setRole(r.value)}
                   aria-pressed={role === r.value}
                   className={cn(
-                    'rounded-2xl border p-3 text-start transition-colors',
+                    'rounded-lg border p-3 text-start transition-colors',
                     role === r.value ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40',
                   )}
                 >
@@ -125,7 +125,7 @@ export default function AdminStaffPage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-bold">Your team</h2>
-        {staff.isLoading && <Skeleton className="h-24 w-full rounded-2xl" />}
+        {staff.isLoading && <Skeleton className="h-24 w-full rounded-lg" />}
         {staff.data?.map((u) => {
           const main = u.roles.includes('super_admin');
           const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;

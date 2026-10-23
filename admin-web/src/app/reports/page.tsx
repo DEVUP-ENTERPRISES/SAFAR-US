@@ -12,7 +12,7 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Overview" title="Reports" description="All the numbers in one place: the money, where it came from, and how bookings and sign-ups are going." />
-      <Suspense fallback={<Skeleton className="h-96 w-full rounded-2xl" />}>
+      <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
         <PageTabs
           tabs={[
             { key: 'money', label: 'Money', render: () => <AdminFinancePage /> },
