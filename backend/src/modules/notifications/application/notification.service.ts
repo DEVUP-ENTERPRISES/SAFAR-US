@@ -22,6 +22,8 @@ import { logger } from '../../../infrastructure/logging/logger';
  * learned a booking request had arrived, and the 24-hour expiry job then
  * killed those requests against hosts who were never told.
  */
+const loadUser = (userId: string) => UserModel.findOne({ _id: userId }).lean();
+
 export class NotificationService {
   async send(input: {
     userId: string;
@@ -186,6 +188,7 @@ export class NotificationService {
 
     let retried = 0;
     for (const n of pending) {
+      let user: Awaited<ReturnType<typeof loadUser>> | undefined;
       const schedule = RETRY_SCHEDULE[n.priority ?? 'normal'];
       const byChannel = new Map<string, NonNullable<NotificationDoc['attempts']>>();
       for (const a of n.attempts ?? []) byChannel.set(a.channel, [...(byChannel.get(a.channel) ?? []), a]);
@@ -195,7 +198,8 @@ export class NotificationService {
         if (tries.some((t) => t.ok) || !last.retryable) continue;
         const wait = schedule[tries.length - 1];
         if (wait === undefined || now.getTime() - new Date(last.at).getTime() < wait) continue;
-        const user = await UserModel.findOne({ _id: n.userId }).lean();
+        // One lookup per notification, not one per channel retried.
+        if (user === undefined) user = await loadUser(n.userId);
         if (!user) break;
         await this.deliver(n._id, user, channel as Exclude<Channel, 'inapp'>, n);
         retried++;

@@ -7,9 +7,9 @@ name: CI
 
 on:
   push:
-    branches: [main, 'main-checkpoint-*']
+    branches: [main, 'main-checkpoint-*', 'release/**']
   pull_request:
-    branches: [main, 'main-checkpoint-*']
+    branches: [main, 'main-checkpoint-*', 'release/**']
 
 # A newer push to the same branch cancels the older in-flight run.
 concurrency:
@@ -114,6 +114,36 @@ jobs:
         env:
           NEXT_PUBLIC_ADMIN_SLUG: ci-build-slug
 
+  sites:
+    name: ${{ matrix.app }} — typecheck · build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [host-web, partner-web, catodrive-asset-ioc, insurance-web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            ${{ matrix.app }}/package-lock.json
+      # Like the admin app, each site compiles shared source from ../frontend/src.
+      - run: npm ci
+        working-directory: frontend
+      - run: npm ci
+        working-directory: ${{ matrix.app }}
+      - run: npm run typecheck
+        working-directory: ${{ matrix.app }}
+      - run: npm run build
+        working-directory: ${{ matrix.app }}
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+          CATODRIVE_ASSET_IOC_SLUG: ci-build-slug
+          CATODRIVE_INSURANCE_SLUG: ci-build-slug
+
   security:
     name: Dependency audit
     runs-on: ubuntu-latest
@@ -122,11 +152,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      # Fail the build on a CRITICAL advisory. Not "high", deliberately: the one
-      # known high is a build-time PostCSS issue reachable only through a Next
-      # major upgrade, tracked separately — blocking every deploy on it would
-      # stop the pipeline doing its actual job. New criticals still hard-fail.
-      - run: npm audit --audit-level=critical
-        working-directory: backend
-      - run: npm audit --audit-level=critical
-        working-directory: frontend
+      # Shipped (production) dependencies fail on HIGH or CRITICAL; all seven apps were at 0 on 2026-10-23.
+      # Dev-only tooling (Jest, Tailwind 3 file watchers) still fails only on CRITICAL: its open highs need major upgrades.
+      - name: Audit shipped dependencies
+        shell: bash
+        run: |
+          for app in backend frontend admin-web host-web partner-web catodrive-asset-ioc insurance-web; do
+            echo "::group::$app"
+            (cd "$app" && npm audit --omit=dev --audit-level=high) || exit 1
+            echo "::endgroup::"
+          done
+      - name: Audit all dependencies (critical only)
+        shell: bash
+        run: |
+          for app in backend frontend admin-web host-web partner-web catodrive-asset-ioc insurance-web; do
+            (cd "$app" && npm audit --audit-level=critical) || exit 1
+          done
