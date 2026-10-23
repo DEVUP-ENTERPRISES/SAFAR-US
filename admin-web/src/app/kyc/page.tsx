@@ -79,7 +79,7 @@ export default function AdminKycPage() {
       <PageHeader eyebrow="People & cars" title="ID checks" description="Guests’ driving licence and selfie checks. Review the ones the automatic check couldn’t decide." />
       {userId && <VerificationChecks userId={userId} />}
       {userId ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3 text-sm">
           <span className="text-muted-foreground">
             Showing KYC for user <span className="font-mono text-foreground">{userId.slice(0, 8)}</span> — every status.
           </span>

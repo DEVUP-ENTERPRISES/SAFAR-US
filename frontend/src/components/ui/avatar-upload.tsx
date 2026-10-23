@@ -121,8 +121,8 @@ export function AvatarUpload({
       <div className="min-w-0">
         <p className="flex items-center gap-2 text-sm font-medium">
           Profile photo
-          {required && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-destructive">Required</span>}
-          {optional && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Optional</span>}
+          {required && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-destructive">Required</span>}
+          {optional && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">Optional</span>}
         </p>
         <p className="text-xs text-muted-foreground">
           {hint ?? 'A clear photo of your face helps guests trust you. JPG, PNG or WebP, up to 8 MB.'}

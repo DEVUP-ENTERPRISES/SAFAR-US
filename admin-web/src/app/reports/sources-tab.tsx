@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Car, Handshake, Warehouse } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/states';
 import { TabIntro } from '@/features/admin/components/page-tabs';
 import { Donut } from '@/components/ui/charts';
 import { formatMoney } from '@/lib/utils/format';
@@ -16,11 +17,12 @@ const ICON: Record<string, typeof Car> = {
 };
 
 export function RevenueBySourcePage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-revenue-source'],
     queryFn: () => adminApi.revenueBySource(),
   });
 
+  if (isError && !data) return <ErrorState message="We couldn’t load revenue sources." retry={() => void refetch()} />;
   if (isLoading || !data) {
     return (
       <div className="space-y-6">
@@ -49,7 +51,7 @@ export function RevenueBySourcePage() {
           return (
             <Card key={s.label}>
               <CardContent className="space-y-3 py-5">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                <span className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
                   <Icon className="h-5 w-5" />
                 </span>
                 <div>

@@ -31,7 +31,7 @@ export interface TablePaging {
 
 type Sort = { col: number; dir: 1 | -1 } | null;
 
-function Pager({ paging, shown }: { paging: TablePaging; shown: number }) {
+export function Pager({ paging, shown }: { paging: TablePaging; shown: number }) {
   const from = paging.page * paging.pageSize + (shown ? 1 : 0);
   const to = paging.page * paging.pageSize + shown;
   return (

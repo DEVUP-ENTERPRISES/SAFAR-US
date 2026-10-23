@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Globe2, MapPin, Flag } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/states';
 import { TabIntro } from '@/features/admin/components/page-tabs';
 import { StatTile } from '@/components/ui/stat-tile';
 import { MAPBOX_TOKEN } from '@/features/maps/api';
@@ -151,7 +152,7 @@ function Ranked({ rows }: { rows: { label: string; count: number }[] }) {
 
 export function GeoIntelligencePage() {
   const [days, setDays] = useState(30);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-geo', days],
     queryFn: () => adminApi.trafficGeo(days),
   });
@@ -195,7 +196,9 @@ export function GeoIntelligencePage() {
         }
       />
 
-      {isLoading ? (
+      {isError ? (
+        <ErrorState message="We couldn’t load visitor places." retry={() => void refetch()} />
+      ) : isLoading ? (
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-lg" />)}

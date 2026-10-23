@@ -69,7 +69,7 @@ export function ReferralRewards({ cfg }: { cfg: PlatformConfig }) {
           : <>Refer a friend is off: it’s hidden from guests and codes entered at sign-up are ignored.</>)
         : <span className="text-destructive">Amounts can’t be negative, and the limit must be at least 1.</span>}
     >
-      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3 text-sm">
+      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 text-sm">
         <input type="checkbox" className="h-4 w-4 accent-primary" checked={v.on} onChange={(e) => setV({ ...v, on: e.target.checked })} />
         <span className="font-medium">Refer a friend is on</span>
       </label>

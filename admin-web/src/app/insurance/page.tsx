@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { Field } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/types';
@@ -134,18 +135,19 @@ export default function InsurancePage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {o?.error && (
-            <p className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" /> {o.error}
+            <p className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" /> {o.error}
             </p>
           )}
           {o && !o.dealerId && <p className="text-sm text-muted-foreground">Enter the Wheelbase dealer ID above to connect.</p>}
-          {overview.isLoading && <Skeleton className="h-40 w-full rounded-xl" />}
+          {overview.isLoading && <Skeleton className="h-40 w-full rounded-lg" />}
+          {overview.isError && <ErrorState message="We couldn’t load fleet cover." retry={() => void overview.refetch()} />}
 
           {cars.map((c) => {
             const wb = c.wheelbase;
             const options = o?.listings ?? [];
             return (
-              <div key={c._id} className="flex flex-wrap items-center gap-4 rounded-xl border border-border p-3">
+              <div key={c._id} className="flex flex-wrap items-center gap-4 rounded-lg border border-border p-3">
                 <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-muted">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {c.photoUrl && <img src={c.photoUrl} alt="" className="h-full w-full object-cover" />}
@@ -178,7 +180,7 @@ export default function InsurancePage() {
                     ))}
                   </Select>
                 </div>
-                {wb?.linkedBy === 'auto' && <span className="text-[11px] text-muted-foreground">matched automatically</span>}
+                {wb?.linkedBy === 'auto' && <span className="text-xs text-muted-foreground">matched automatically</span>}
               </div>
             );
           })}

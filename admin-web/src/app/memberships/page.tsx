@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -98,7 +98,7 @@ export default function AdminMembershipsPage() {
         title="Memberships"
         description="Monthly plans guests pay for. Members get a booking discount and extra reward points automatically, and keep the benefits they signed up with if a plan changes later."
       />
-      <p className="rounded-xl bg-primary/5 px-4 py-3 text-sm"><span className="font-semibold">Example:</span> A member on a plan with 10% off saves $10 on a $100 rental (fees aren’t discounted), and earns reward points faster by the plan’s multiplier.</p>
+      <p className="rounded-lg bg-primary/5 px-4 py-3 text-sm"><span className="font-semibold">Example:</span> A member on a plan with 10% off saves $10 on a $100 rental (fees aren’t discounted), and earns reward points faster by the plan’s multiplier.</p>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatTile tone="primary" icon={<Users className="h-5 w-5" />} label="Active members" value={totalMembers} />
@@ -118,6 +118,7 @@ export default function AdminMembershipsPage() {
       </Card>
 
       {plans.isLoading && <Skeleton className="h-64 w-full rounded-lg" />}
+      {plans.isError && <ErrorState message="We couldn’t load the plans." retry={() => void plans.refetch()} />}
 
       {plans.data && plans.data.length === 0 && (
         <EmptyState icon={<Star className="h-10 w-10" />} title="No membership plans yet" description="Create a plan above to start selling memberships." />

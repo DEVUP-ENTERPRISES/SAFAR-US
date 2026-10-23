@@ -69,7 +69,7 @@ export default function AdminPayoutsPage() {
         <span className="flex items-center gap-1.5 font-semibold tabular-nums">
           {formatMoney({ amount: p.amount, currency: p.currency })}
           {p.instant && (
-            <span className="inline-flex items-center gap-0.5 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+            <span className="inline-flex items-center gap-0.5 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
               <Zap className="h-2.5 w-2.5" /> instant
             </span>
           )}

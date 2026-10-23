@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { Field } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/types';
@@ -82,7 +83,7 @@ function AccountCard({ account, cars, loginStorage }: { account: TollAccount; ca
       </div>
 
       {mode === 'login' && (
-        <div className="space-y-3 rounded-xl bg-muted/40 p-3">
+        <div className="space-y-3 rounded-lg bg-muted/40 p-3">
           <Field label="Account number or username"><Input value={username} autoComplete="off" onChange={(e) => setUsername(e.target.value)} /></Field>
           <Field label="Password"><Input type="password" value={password} autoComplete="new-password" onChange={(e) => setPassword(e.target.value)} /></Field>
           <p className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -93,7 +94,7 @@ function AccountCard({ account, cars, loginStorage }: { account: TollAccount; ca
       )}
 
       {mode === 'cars' && (
-        <div className="space-y-2 rounded-xl bg-muted/40 p-3">
+        <div className="space-y-2 rounded-lg bg-muted/40 p-3">
           <div className="max-h-72 space-y-1 overflow-y-auto">
             {cars.map((c) => (
               <label key={c._id} className="flex cursor-pointer items-center gap-2 text-sm">
@@ -138,7 +139,7 @@ function TollRow({ t, cars }: { t: TollTransaction; cars: Map<string, Car> }) {
   });
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border p-3 text-sm">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3 text-sm">
       <div className="min-w-[9rem]">
         <p className="font-semibold">{usd(t.amountCents)}</p>
         <p className="text-xs text-muted-foreground">{at(t.occurredAt)}</p>
@@ -200,7 +201,7 @@ export default function TollsPage() {
   const qc = useQueryClient();
   const toast = useToast();
   const accounts = useQuery({ queryKey: ['toll-accounts'], queryFn: () => adminApi.tollAccounts() });
-  const carsQ = useQuery({ queryKey: ['toll-cars'], queryFn: () => adminApi.vehicles({ limit: 500 }) as Promise<Car[]> });
+  const carsQ = useQuery({ queryKey: ['toll-cars'], queryFn: () => adminApi.allVehicles() as Promise<Car[]> });
   const cfg = useQuery({ queryKey: ['platform-config'], queryFn: () => adminApi.config() });
   const [tab, setTab] = useState<TollStatus>('matched');
   const tolls = useQuery({ queryKey: ['tolls', tab], queryFn: () => adminApi.tollTransactions(tab) });
@@ -253,9 +254,10 @@ export default function TollsPage() {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Milestone className="h-5 w-5 text-primary" /> Toll accounts</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {accounts.isLoading && <Skeleton className="h-28 w-full rounded-xl" />}
+          {accounts.isLoading && <Skeleton className="h-28 w-full rounded-lg" />}
+          {accounts.isError && <ErrorState message="We couldn’t load toll accounts." retry={() => void accounts.refetch()} />}
           {accounts.data && !accounts.data.loginStorage && (
-            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs">
+            <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs">
               Saving logins needs a TOLL_CREDENTIALS_KEY on the server. Statements can still be imported below.
             </p>
           )}
@@ -290,7 +292,7 @@ export default function TollsPage() {
             onChange={(e) => setText(e.target.value)}
             rows={6}
             placeholder="…or paste the statement here, header row included"
-            className="w-full rounded-xl border border-input bg-background p-3 font-mono text-xs"
+            className="w-full rounded-lg border border-input bg-background p-3 font-mono text-xs"
           />
           <Button disabled={!text.trim()} loading={importIt.isPending} onClick={() => importIt.mutate()}>Import tolls</Button>
         </CardContent>
@@ -306,8 +308,9 @@ export default function TollsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
-          {tolls.isLoading && <Skeleton className="h-24 w-full rounded-xl" />}
-          {!tolls.isLoading && !(tolls.data ?? []).length && <p className="text-sm text-muted-foreground">No tolls here.</p>}
+          {tolls.isLoading && <Skeleton className="h-24 w-full rounded-lg" />}
+          {tolls.isError && <ErrorState message="We couldn’t load tolls." retry={() => void tolls.refetch()} />}
+          {!tolls.isLoading && !tolls.isError && !(tolls.data ?? []).length && <p className="text-sm text-muted-foreground">No tolls here.</p>}
           {(tolls.data ?? []).map((t) => <TollRow key={t._id} t={t} cars={carMap} />)}
         </CardContent>
       </Card>
@@ -318,7 +321,8 @@ export default function TollsPage() {
           <p className="mt-1 text-sm text-muted-foreground">Tolls are matched by licence plate. Add a car’s TollTag ID to match by tag as well.</p>
         </CardHeader>
         <CardContent>
-          {carsQ.isLoading && <Skeleton className="h-24 w-full rounded-xl" />}
+          {carsQ.isLoading && <Skeleton className="h-24 w-full rounded-lg" />}
+          {carsQ.isError && <ErrorState message="We couldn’t load the cars." retry={() => void carsQ.refetch()} />}
           {cars.map((c) => <CarTag key={c._id} car={c} />)}
         </CardContent>
       </Card>
@@ -342,7 +346,7 @@ export default function TollsPage() {
                 <Input type="number" min={1} value={settings.billingWindowDays} onChange={(e) => setSettings({ ...settings, billingWindowDays: Number(e.target.value) || 1 })} />
               </Field>
             </div>
-            <div className="space-y-3 rounded-xl border border-border p-3">
+            <div className="space-y-3 rounded-lg border border-border p-3">
               <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
                 <input type="checkbox" className="accent-[hsl(var(--primary))]" checked={settings.passEnabled} onChange={(e) => setSettings({ ...settings, passEnabled: e.target.checked })} />
                 Offer a toll pass at checkout

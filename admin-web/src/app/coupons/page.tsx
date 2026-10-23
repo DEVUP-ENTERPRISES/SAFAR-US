@@ -163,7 +163,7 @@ export default function AdminCouponsPage() {
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Money in" title="Promo codes" description="Discount codes guests enter at checkout. Each code has its own amount, limits and dates." actions={<Button onClick={() => setComposing((v) => !v)}>{composing ? 'Cancel' : 'New code'}</Button>} />
-      <p className="rounded-xl bg-primary/5 px-4 py-3 text-sm"><span className="font-semibold">Example:</span> A 10% code with a $20 cap on a $300 trip saves the guest $20, not $30. The discount comes off the trip price, so the host’s earnings and CatoDrive’s commission are both worked out on the lower price.</p>
+      <p className="rounded-lg bg-primary/5 px-4 py-3 text-sm"><span className="font-semibold">Example:</span> A 10% code with a $20 cap on a $300 trip saves the guest $20, not $30. The discount comes off the trip price, so the host’s earnings and CatoDrive’s commission are both worked out on the lower price.</p>
 
       {composing && (
         <Card>

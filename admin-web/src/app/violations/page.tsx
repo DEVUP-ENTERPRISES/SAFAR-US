@@ -12,6 +12,8 @@ import { EmptyState, ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs } from '@/components/ui/rows';
 import { useToast } from '@/components/ui/toast';
+import { useAdminList } from '@/features/admin/hooks/use-admin-list';
+import { Pager } from '@/features/admin/components/data-table';
 import { adminApi, type Violation } from '@/features/admin/api';
 
 const money = (c: number) => `$${(c / 100).toFixed(2)}`;
@@ -38,16 +40,13 @@ export default function ViolationsPage() {
   const [waiving, setWaiving] = useState<string | null>(null);
   const [reason, setReason] = useState('');
 
-  const list = useQuery({
-    queryKey: ['admin-violations', tab],
-    queryFn: () => adminApi.violations({ status: tab || undefined, limit: 100 }),
-  });
+  const list = useAdminList<Violation>('/admin/violations', { status: tab || undefined });
 
   const done = (msg: string) => {
     toast({ tone: 'success', title: msg });
     setWaiving(null);
     setReason('');
-    qc.invalidateQueries({ queryKey: ['admin-violations'] });
+    qc.invalidateQueries({ queryKey: ['admin-list', '/admin/violations'] });
   };
 
   const charge = useMutation({
@@ -73,7 +72,7 @@ export default function ViolationsPage() {
         <div className="space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-28 w-full" />)}</div>
       ) : list.isError ? (
         <ErrorState message="Couldn't load citations." retry={() => list.refetch()} />
-      ) : (list.data?.length ?? 0) === 0 ? (
+      ) : (list.rows?.length ?? 0) === 0 && list.paging.page === 0 ? (
         <EmptyState
           icon={<FileWarning className="h-8 w-8" />}
           title={tab === 'reported' ? 'Nothing waiting on you' : 'Nothing here'}
@@ -81,7 +80,7 @@ export default function ViolationsPage() {
         />
       ) : (
         <div className="space-y-3">
-          {list.data!.map((v) => (
+          {(list.rows ?? []).map((v) => (
             <Row
               key={v._id}
               v={v}
@@ -95,6 +94,7 @@ export default function ViolationsPage() {
               onWaive={() => waive.mutate({ id: v._id, resolution: reason })}
             />
           ))}
+          <div className="overflow-hidden rounded-lg border border-border"><Pager paging={list.paging} shown={list.rows?.length ?? 0} /></div>
         </div>
       )}
     </div>

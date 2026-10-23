@@ -23,12 +23,12 @@ export default function AdminDashboard() {
         <Skeleton className="h-12 w-72" />
         {[0, 1].map((r) => (
           <div key={r} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-lg" />)}
           </div>
         ))}
         <div className="grid gap-6 lg:grid-cols-3">
-          <Skeleton className="h-64 w-full rounded-xl lg:col-span-2" />
-          <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-lg lg:col-span-2" />
+          <Skeleton className="h-64 w-full rounded-lg" />
         </div>
       </div>
     );

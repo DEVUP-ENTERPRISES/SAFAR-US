@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { adminApi } from '@/features/admin/api';
@@ -109,7 +110,7 @@ export default function AdminStaffPage() {
             </div>
             <dl className="grid gap-3 sm:grid-cols-2">
               {(['username', 'password'] as const).map((k) => (
-                <div key={k} className="min-w-0 rounded-xl bg-background p-3">
+                <div key={k} className="min-w-0 rounded-lg bg-background p-3">
                   <dt className="text-xs uppercase tracking-wide text-muted-foreground">{k}</dt>
                   <dd className="mt-1 break-all font-mono text-sm font-semibold">{creds[k]}</dd>
                 </div>
@@ -126,6 +127,7 @@ export default function AdminStaffPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-bold">Your team</h2>
         {staff.isLoading && <Skeleton className="h-24 w-full rounded-lg" />}
+        {staff.isError && <ErrorState message="We couldn’t load staff accounts." retry={() => void staff.refetch()} />}
         {staff.data?.map((u) => {
           const main = u.roles.includes('super_admin');
           const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;

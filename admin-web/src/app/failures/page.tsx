@@ -75,7 +75,7 @@ export default function FailuresPage() {
                   <span className="text-2xl font-bold">{s.count}</span>
                 </div>
                 <p className="line-clamp-2 text-xs text-muted-foreground">{s.message}</p>
-                <p className="text-[11px] capitalize text-muted-foreground">{s.area} · last {new Date(s.lastAt).toLocaleTimeString()}</p>
+                <p className="text-xs capitalize text-muted-foreground">{s.area} · last {new Date(s.lastAt).toLocaleTimeString()}</p>
               </CardContent>
             </Card>
           ))}

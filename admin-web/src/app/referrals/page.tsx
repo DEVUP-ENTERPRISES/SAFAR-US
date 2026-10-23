@@ -5,14 +5,14 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { adminApi } from '@/features/admin/api';
 import { ReferralRewards } from './rewards-card';
 
 export default function AdminReferralsPage() {
   const [days, setDays] = useState(30);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-referrals', days],
     queryFn: () => adminApi.referralStats(days),
   });
@@ -32,7 +32,9 @@ export default function AdminReferralsPage() {
         ))}
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <ErrorState message="We couldn’t load referral numbers." retry={() => void refetch()} />
+      ) : isLoading ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
       ) : !data ? (
         <EmptyState title="No referral data" description="Nothing has been referred yet." />

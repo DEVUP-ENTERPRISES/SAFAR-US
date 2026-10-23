@@ -231,7 +231,7 @@ export default function AdminCommissionPage() {
           <Field label="Category"><Input value={sim.category} onChange={(e) => setSim({ ...sim, category: e.target.value })} placeholder="luxury" /></Field>
           <Field label="Host tier"><Input value={sim.hostTier} onChange={(e) => setSim({ ...sim, hostTier: e.target.value })} placeholder="superhost" /></Field>
           <Field label="Host ID"><Input value={sim.hostId} onChange={(e) => setSim({ ...sim, hostId: e.target.value })} placeholder="optional" /></Field>
-          <div className="rounded-xl border border-border bg-subtle p-4">
+          <div className="rounded-lg border border-border bg-subtle p-4">
             <p className="text-xs text-muted-foreground">Resolved rate</p>
             <p className="text-2xl font-bold tracking-tight">
               {preview.data ? pct(preview.data.bps) : '—'}

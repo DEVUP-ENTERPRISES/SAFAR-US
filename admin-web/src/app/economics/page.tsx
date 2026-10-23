@@ -325,7 +325,7 @@ function Economics() {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-6 rounded-xl border border-border p-3 text-sm">
+          <div className="flex flex-wrap gap-6 rounded-lg border border-border p-3 text-sm">
             <label className="flex cursor-pointer items-center gap-2">
               <input type="checkbox" checked={draft.contactVerification?.requireEmail ?? true} className="accent-[hsl(var(--primary))]"
                 onChange={(e) => set((d) => { d.contactVerification = { requireEmail: e.target.checked, requirePhone: d.contactVerification?.requirePhone ?? true }; })} />
@@ -346,7 +346,7 @@ function Economics() {
             const meta = VERIFICATION_META[k];
             const pol = draft.verification[k];
             return (
-              <div key={k} className="rounded-xl border border-border/60 bg-muted/20 p-4">
+              <div key={k} className="rounded-lg border border-border/60 bg-muted/20 p-4">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
                     <meta.icon className="h-5 w-5 text-primary" />
@@ -420,7 +420,7 @@ function Economics() {
               const hrs = r.fullBeforeHours;
               const when = hrs % 24 === 0 && hrs > 0 ? `${hrs / 24} day${hrs === 24 ? '' : 's'}` : `${hrs} hours`;
               return (
-                <div key={p} className="rounded-xl border border-border p-4">
+                <div key={p} className="rounded-lg border border-border p-4">
                   <p className="font-semibold capitalize">{p}</p>
                   <div className="mt-3 grid gap-4 sm:grid-cols-2">
                     <Field label="Full refund if cancelled at least (hours before pickup)">
@@ -454,7 +454,7 @@ function Economics() {
             )}
 
             {draft.rebookingProtection && (
-              <div className="space-y-4 rounded-xl border border-border p-4">
+              <div className="space-y-4 rounded-lg border border-border p-4">
                 <p className="font-semibold">When a host cancels</p>
                 <label className="flex cursor-pointer items-center gap-2 text-sm">
                   <input type="checkbox" checked={draft.rebookingProtection.hostPenalty.enabled} className="accent-[hsl(var(--primary))]"
@@ -909,7 +909,7 @@ function Economics() {
         </CardHeader>
         <CardContent className="space-y-3">
           {draft.protection.map((p, i) => (
-            <div key={p.code} className="grid items-end gap-3 rounded-xl border border-border p-3 sm:grid-cols-4">
+            <div key={p.code} className="grid items-end gap-3 rounded-lg border border-border p-3 sm:grid-cols-4">
               <Field label="Code"><Input value={p.code} disabled /></Field>
               <Field label="Label">
                 <Input value={p.label} onChange={(e) => set((d) => { d.protection[i].label = e.target.value; })} />
@@ -964,14 +964,14 @@ function Economics() {
           </p>
         </CardHeader>
         <CardContent className="space-y-2">
-          {versions.isLoading && <Skeleton className="h-24 w-full rounded-xl" />}
+          {versions.isLoading && <Skeleton className="h-24 w-full rounded-lg" />}
           {versions.data?.length === 0 && (
             <p className="text-sm text-muted-foreground">No versions yet — your next save creates version 1.</p>
           )}
           {versions.data?.map((v) => {
             const isCurrent = v.version === data.configVersion;
             return (
-              <div key={v._id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 p-3">
+              <div key={v._id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border/60 p-3">
                 <span className="numeric flex h-9 min-w-9 items-center justify-center rounded-lg bg-muted px-2 text-sm font-bold">
                   v{v.version}
                 </span>

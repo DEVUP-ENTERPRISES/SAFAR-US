@@ -19,8 +19,8 @@ import { adminPath } from '@/lib/admin-path';
 const HOST_FIXABLE = new Set<string>(['photos', 'registration', 'insurance', 'vin', 'pricing', 'location']);
 
 const STATE_STYLES: Record<ReviewCheck['state'], { icon: typeof Check; className: string }> = {
-  ok: { icon: Check, className: 'text-emerald-600' },
-  attention: { icon: AlertTriangle, className: 'text-amber-600' },
+  ok: { icon: Check, className: 'text-success' },
+  attention: { icon: AlertTriangle, className: 'text-warning' },
   missing: { icon: X, className: 'text-destructive' },
 };
 
@@ -122,7 +122,7 @@ export default function VehicleReviewPage() {
       </div>
 
       {v.recallHold && (
-        <p className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">
+        <p className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
           On recall hold — paused after its last trip over an open NHTSA recall. Bookable again once a
           repair receipt is verified below.
@@ -130,9 +130,9 @@ export default function VehicleReviewPage() {
       )}
 
       {(!readyToApprove || hostTodo.length > 0) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
           <p className="flex min-w-0 flex-1 items-start gap-2">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
             {readyToApprove
               ? `Some details need the host's attention: ${hostTodo.map((c) => c.label).join(', ')}.`
               : 'Something required is still missing. You can still approve, but the listing goes live as-is.'}
@@ -199,7 +199,7 @@ export default function VehicleReviewPage() {
                   <img
                     src={p.url}
                     alt={`Photo ${i + 1}`}
-                    className="h-28 w-full rounded-xl border border-border/60 object-cover"
+                    className="h-28 w-full rounded-lg border border-border/60 object-cover"
                   />
                   {p.isCover && (
                     <Badge className="absolute start-2 top-2" tone="success">
@@ -223,7 +223,7 @@ export default function VehicleReviewPage() {
               {documents.map((d) => (
                 <div
                   key={d._id}
-                  className="flex items-center gap-3 rounded-xl border border-border/60 px-3 py-2.5 text-sm"
+                  className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2.5 text-sm"
                 >
                   <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <a href={d.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 hover:underline">

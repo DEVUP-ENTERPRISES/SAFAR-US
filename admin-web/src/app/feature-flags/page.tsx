@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { adminApi, type FeatureFlag } from '@/features/admin/api';
@@ -34,7 +34,7 @@ export default function AdminSettingsPage() {
   const [form, setForm] = useState({ key: '', description: '', percentage: 100 });
   const [creating, setCreating] = useState(false);
 
-  const { data, isLoading } = useQuery({ queryKey: ['admin-flags'], queryFn: () => adminApi.featureFlags() });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['admin-flags'], queryFn: () => adminApi.featureFlags() });
 
   const save = useMutation({
     mutationFn: ({ key, body }: { key: string; body: Parameters<typeof adminApi.saveFlag>[1] }) =>
@@ -139,6 +139,7 @@ export default function AdminSettingsPage() {
       )}
 
       {isLoading && <Skeleton className="h-40 w-full rounded-lg" />}
+      {isError && <ErrorState message="We couldn’t load the feature flags." retry={() => void refetch()} />}
 
       {data && data.length === 0 && !creating && (
         <EmptyState
@@ -164,7 +165,7 @@ export default function AdminSettingsPage() {
                     <div className="flex items-center gap-2">
                       <p className="font-mono text-sm font-semibold">{f._id}</p>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        className={`rounded-full px-2 py-0.5 text-xs font-bold uppercase ${
                           f.enabled ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
                         }`}
                       >

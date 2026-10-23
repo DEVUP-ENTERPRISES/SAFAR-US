@@ -492,6 +492,17 @@ export const adminApi = {
     api.post(`/admin/contact-inquiries/${id}/respond`, { notes }),
 
   vehicles: (q: Q = {}) => api.get<any[]>('/admin/vehicles', q),
+  /** Every car, page by page; the server returns at most 50 at a time. */
+  allVehicles: async (q: Q = {}) => {
+    const all: any[] = [];
+    for (let skip = 0; skip < 5000; skip += 50) {
+      const res = await api.raw<any[]>('/admin/vehicles', { method: 'GET', query: { ...q, limit: 50, skip } });
+      all.push(...res.data);
+      const total = typeof res.meta?.total === 'number' ? res.meta.total : undefined;
+      if (res.data.length < 50 || (total !== undefined && all.length >= total)) break;
+    }
+    return all;
+  },
   vehicleReview: (id: string) => api.get<VehicleReview>(`/admin/vehicles/${id}/review`),
   vehiclePhotoCheck: (id: string) => api.post<VehicleReview>(`/admin/vehicles/${id}/photo-check`),
   vehicleRemindHost: (id: string, note?: string) =>

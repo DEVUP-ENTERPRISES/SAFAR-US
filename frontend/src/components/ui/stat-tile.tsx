@@ -9,7 +9,7 @@ const TONES: Record<Tone, string> = {
   default: 'bg-muted text-muted-foreground',
   primary: 'bg-primary/10 text-primary',
   success: 'bg-success/10 text-success',
-  warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  warning: 'bg-warning/10 text-warning',
   destructive: 'bg-destructive/10 text-destructive',
 };
 

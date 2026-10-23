@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Chip } from '@/components/ui/chip';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { cn } from '@/lib/utils/cn';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { StatTile } from '@/components/ui/stat-tile';
@@ -128,6 +128,7 @@ export default function AdminSupportPage() {
         {/* Queue */}
         <div className="space-y-2">
           {list.isLoading && <Skeleton className="h-64 w-full" />}
+          {list.isError && <ErrorState message="We couldn’t load tickets." retry={() => void list.refetch()} />}
           {list.data && list.data.length === 0 && <EmptyState title="No tickets" />}
           {list.data?.map((t: any) => (
             <button key={t._id} onClick={() => setSelected(t._id)} className="w-full text-start">
@@ -158,8 +159,8 @@ export default function AdminSupportPage() {
               </CardHeader>
               <CardContent className="flex-1 space-y-3 overflow-y-auto p-4">
                 {ticket.data.messages.map((m: any, i: number) => (
-                  <div key={i} className={cn('rounded-lg p-3 text-sm', m.internal ? 'border border-dashed border-amber-400/50 bg-amber-500/5' : 'bg-muted')}>
-                    {m.internal && <span className="mb-1 block text-[10px] font-semibold uppercase text-amber-600">Internal note</span>}
+                  <div key={i} className={cn('rounded-lg p-3 text-sm', m.internal ? 'border border-dashed border-warning/50 bg-warning/5' : 'bg-muted')}>
+                    {m.internal && <span className="mb-1 block text-xs font-semibold uppercase text-warning">Internal note</span>}
                     {m.body}
                   </div>
                 ))}

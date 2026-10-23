@@ -25,7 +25,7 @@
      The warmth lives in the page behind the cards, never under a photograph. */
   --card: 0 0% 100%;
   --card-foreground: 38 21% 7%;
-  --primary: 180 82% 31%;          /* meridian teal */
+  --primary: 180 82% 26%;          /* meridian teal, dark enough for 4.5:1 text on paper */
   --primary-foreground: 0 0% 100%;
   --primary-soft: 180 40% 93%;
   --secondary: 40 24% 93%;
@@ -40,11 +40,11 @@
   --success-foreground: 0 0% 100%;
   /* Amber, kept clear of the teal brand so "needs attention" never reads as
      "on brand". Dark enough to pass on the warm paper ground. */
-  --warning: 32 88% 40%;
+  --warning: 32 88% 34%;
   --warning-foreground: 0 0% 100%;
   --border: 39 20% 86%;
   --input: 39 20% 86%;
-  --ring: 180 82% 31%;
+  --ring: 180 82% 26%;
   --radius: 0.75rem;
 
   /* Ink scale - high-contrast marketing surfaces (asphalt) */

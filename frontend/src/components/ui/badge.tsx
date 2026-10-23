@@ -6,7 +6,7 @@ type Tone = 'default' | 'success' | 'warning' | 'destructive' | 'muted';
 const tones: Record<Tone, string> = {
   default: 'bg-primary/10 text-primary',
   success: 'bg-success/10 text-success',
-  warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  warning: 'bg-warning/10 text-warning',
   destructive: 'bg-destructive/10 text-destructive',
   muted: 'bg-muted text-muted-foreground',
 };

@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, Users, Receipt, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { TabIntro } from '@/features/admin/components/page-tabs';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart, LineChart, Donut } from '@/components/ui/charts';
@@ -50,7 +50,7 @@ function Ranked({
 
 export function AdminAnalyticsPage() {
   const [days, setDays] = useState(30);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-analytics', days],
     queryFn: () => adminApi.analytics(days),
     refetchInterval: 60_000,
@@ -79,7 +79,9 @@ export function AdminAnalyticsPage() {
         }
       />
 
-      {isLoading || !data ? (
+      {isError && !data ? (
+        <ErrorState message="We couldn’t load activity." retry={() => void refetch()} />
+      ) : isLoading || !data ? (
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-lg" />)}

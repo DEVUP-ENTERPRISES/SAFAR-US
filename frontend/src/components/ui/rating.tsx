@@ -16,7 +16,7 @@ export function Rating({
   if (!value) return <span className={cn('text-sm text-muted-foreground', className)}>New</span>;
   return (
     <span className={cn('inline-flex items-center gap-1', className)}>
-      <Star className={cn(dim, 'fill-amber-400 text-amber-400')} />
+      <Star className={cn(dim, 'fill-amber-400 text-warning')} />
       <span className="text-sm font-medium">{value.toFixed(1)}</span>
       {count !== undefined && count > 0 && (
         <span className="text-sm text-muted-foreground">({count})</span>

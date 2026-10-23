@@ -115,7 +115,7 @@ export default function AdminClaimsPage() {
         ))}
       </div>
       {settling && (
-        <div className="flex flex-wrap items-end gap-2 rounded-xl border border-border p-4">
+        <div className="flex flex-wrap items-end gap-2 rounded-lg border border-border p-4">
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Payout amount ({settling.currency})</label>
             <Input type="number" min={0} step="0.01" value={settling.dollars} onChange={(e) => setSettling({ ...settling, dollars: e.target.value })} />

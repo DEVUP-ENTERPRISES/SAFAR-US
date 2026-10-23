@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, Wallet, Users, Truck, ShieldCheck, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/states';
 import { TabIntro } from '@/features/admin/components/page-tabs';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart, LineChart, Donut } from '@/components/ui/charts';
@@ -18,11 +19,12 @@ const monthLabel = (m: string) => {
 
 export function AdminFinancePage() {
   const [months, setMonths] = useState(6);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-finance', months],
     queryFn: () => adminApi.finance(months),
   });
 
+  if (isError && !data) return <ErrorState message="We couldn’t load the money report." retry={() => void refetch()} />;
   if (isLoading || !data) {
     return (
       <div className="space-y-6">
@@ -100,21 +102,21 @@ export function AdminFinancePage() {
           <CardHeader><CardTitle>Insurance & delivery</CardTitle></CardHeader>
           <CardContent className="space-y-4 pt-2">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><ShieldCheck className="h-5 w-5" /></span>
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary"><ShieldCheck className="h-5 w-5" /></span>
               <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Protection revenue</p>
                 <p className="text-xl font-bold">{m(t.protection)}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><Truck className="h-5 w-5" /></span>
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary"><Truck className="h-5 w-5" /></span>
               <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Delivery fees (host income)</p>
                 <p className="text-xl font-bold">{m(t.delivery)}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-muted-foreground"><Wallet className="h-5 w-5" /></span>
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-muted text-muted-foreground"><Wallet className="h-5 w-5" /></span>
               <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Tax collected</p>
                 <p className="text-xl font-bold">{m(t.tax)}</p>

@@ -4,7 +4,7 @@ import { Radio, Eye, Fingerprint } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { TabIntro } from '@/features/admin/components/page-tabs';
 import { StatTile } from '@/components/ui/stat-tile';
 import { adminApi, type TrafficSource } from '@/features/admin/api';
@@ -43,7 +43,7 @@ export function LiveTrafficPage() {
   // Polling rather than a socket push: visitor volume here is low enough
   // that a 5s refresh reads as "live" without adding a second realtime
   // transport just for this one screen.
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-live-traffic'],
     queryFn: () => adminApi.liveTraffic(),
     refetchInterval: 5_000,
@@ -55,7 +55,9 @@ export function LiveTrafficPage() {
         description="Who's on the site right now, where they came from, and what they're looking at. Updates every 5 seconds."
       />
 
-      {isLoading || !data ? (
+      {isError && !data ? (
+        <ErrorState message="We couldn’t load live traffic." retry={() => void refetch()} />
+      ) : isLoading || !data ? (
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-lg" />)}

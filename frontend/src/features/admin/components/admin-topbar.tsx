@@ -36,8 +36,8 @@ export function AdminTopbar() {
         {/* Environment badge - the cheapest way to stop someone running a
             destructive action against the wrong environment. */}
         <span
-          className={`hidden rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider sm:inline ${
-            isProd ? 'bg-destructive/15 text-destructive' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+          className={`hidden rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider sm:inline ${
+            isProd ? 'bg-destructive/15 text-destructive' : 'bg-warning/15 text-warning'
           }`}
         >
           {isProd ? 'production' : 'development'}
@@ -60,7 +60,7 @@ export function AdminTopbar() {
             </span>
             <div className="hidden min-w-0 max-w-[10rem] leading-tight sm:block">
               <p className="truncate text-xs font-semibold">{user?.email?.split('@')[0] ?? 'Staff'}</p>
-              <p className="truncate text-[11px] text-muted-foreground">
+              <p className="truncate text-xs text-muted-foreground">
                 {user?.roles?.filter((r) => r !== 'guest').join(', ') || 'staff'}
               </p>
             </div>
