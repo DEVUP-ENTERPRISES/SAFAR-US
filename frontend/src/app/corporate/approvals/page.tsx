@@ -8,7 +8,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Chip } from '@/components/ui/chip';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { formatMoney, formatDateRange } from '@/lib/utils/format';
 import { corporateApi, REQUEST_TONE as TONE } from '@/features/corporate/api';
 
@@ -80,6 +80,8 @@ export default function ApprovalsPage() {
       </div>
 
       {requests.isLoading && <Skeleton className="h-40 w-full" />}
+
+      {requests.isError && <ErrorState message="We couldn’t load trip requests." retry={() => void requests.refetch()} />}
       {requests.data && requests.data.length === 0 && <EmptyState title="No requests" description="Employee trip requests appear here." />}
       {requests.data && requests.data.length > 0 && (
         <div className="space-y-3">

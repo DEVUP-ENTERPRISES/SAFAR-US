@@ -7,7 +7,7 @@ import { Search, ChevronRight, LifeBuoy, MessageSquareText } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils/cn';
 import { kbApi } from '@/features/kb/api';
@@ -49,7 +49,9 @@ export default function HelpCentre() {
       )}
 
       {/* Results */}
-      {articles.isLoading ? (
+      {articles.isError && !articles.data ? (
+          <ErrorState message="We couldn’t load help articles." retry={() => void articles.refetch()} />
+        ) : articles.isLoading ? (
         <div className="space-y-3">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
       ) : (articles.data?.length ?? 0) === 0 ? (
         <EmptyState

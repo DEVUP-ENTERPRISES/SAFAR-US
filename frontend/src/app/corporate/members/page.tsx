@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select } from '@/components/ui/select';
 import { corporateApi } from '@/features/corporate/api';
+import { ErrorState } from '@/components/ui/states';
 
 export default function MembersPage() {
   const qc = useQueryClient();
@@ -43,6 +44,8 @@ export default function MembersPage() {
       </Card>
 
       {members.isLoading && <Skeleton className="h-40 w-full" />}
+
+      {members.isError && <ErrorState message="We couldn’t load members." retry={() => void members.refetch()} />}
       {members.data && (
         <div className="space-y-2">
           {members.data.map((m) => (

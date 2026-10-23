@@ -1,5 +1,7 @@
 'use client';
 
+import { ErrorState } from '@/components/ui/states';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Download, Eye, FileSignature, RotateCcw } from 'lucide-react';
@@ -116,7 +118,8 @@ export function PartnerPaperwork({ partnerId, signed }: { partnerId: string; sig
                 </div>
               );
             })}
-            {docs.isLoading && <p className="p-4 text-sm text-muted-foreground">Loading…</p>}
+            {docs.isLoading && <div className="space-y-2 p-4">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>}
+            {docs.isError && <div className="p-4"><ErrorState message="We couldn’t load the papers." retry={() => void docs.refetch()} /></div>}
           </div>
         </div>
       </CardContent>

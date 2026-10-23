@@ -9,7 +9,7 @@ import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils/cn';
 import { formatMoney } from '@/lib/utils/format';
@@ -31,6 +31,8 @@ function Rebook({ id }: { id: string }) {
     },
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not rebook' }),
   });
+
+  if (data.isError && !data.data) return <ErrorState message="We couldn’t load other cars for this trip." retry={() => void data.refetch()} />;
 
   if (data.isLoading) {
     return <div className="mx-auto max-w-3xl space-y-4 py-6"><Skeleton className="h-28 w-full" /><Skeleton className="h-64 w-full" /></div>;

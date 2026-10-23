@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { formatMoney } from '@/lib/utils/format';
 import { corporateApi } from '@/features/corporate/api';
 
@@ -34,6 +34,8 @@ export default function CostCentersPage() {
       </Card>
 
       {centers.isLoading && <Skeleton className="h-40 w-full" />}
+
+      {centers.isError && <ErrorState message="We couldn’t load cost centres." retry={() => void centers.refetch()} />}
       {centers.data && centers.data.length === 0 && <EmptyState title="No cost centers yet" description="Create budget buckets to track team spend." />}
       {centers.data && centers.data.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

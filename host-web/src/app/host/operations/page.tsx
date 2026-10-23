@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { Select } from '@/components/ui/select';
 import { formatDateRange, formatDay } from '@/lib/utils/format';
 import { bookingApi } from '@/features/bookings/api';
@@ -27,6 +27,8 @@ function TripApprovals() {
   });
 
   const pending = bookings.data?.filter((b) => b.status === 'pending_approval') ?? [];
+
+  if (bookings.isError && !bookings.data) return <ErrorState message="We couldn’t load trip requests." retry={() => void bookings.refetch()} />;
 
   if (bookings.isLoading) return <Skeleton className="h-24 w-full" />;
   if (pending.length === 0)
@@ -95,6 +97,8 @@ function Maintenance() {
         </CardContent>
       </Card>
 
+      {list.isLoading && <Skeleton className="h-24 w-full" />}
+      {list.isError && <ErrorState message="We couldn’t load maintenance." retry={() => void list.refetch()} />}
       {list.data && list.data.length > 0 && (
         <div className="space-y-2">
           {list.data.map((m) => (

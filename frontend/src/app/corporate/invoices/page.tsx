@@ -3,12 +3,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { formatMoney, formatDate } from '@/lib/utils/format';
 import { corporateApi } from '@/features/corporate/api';
 
 export default function InvoicesPage() {
-  const { data, isLoading } = useQuery({ queryKey: ['corp-invoice'], queryFn: () => corporateApi.invoice() });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['corp-invoice'], queryFn: () => corporateApi.invoice() });
+  if (isError && !data) return <ErrorState message="We couldn’t load the invoice." retry={() => void refetch()} />;
   if (isLoading || !data) return <Skeleton className="h-72 w-full" />;
 
   return (

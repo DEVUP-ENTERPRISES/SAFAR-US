@@ -1,5 +1,6 @@
 'use client';
 
+import { ErrorState } from '@/components/ui/states';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClipboardCheck, Download } from 'lucide-react';
@@ -89,6 +90,7 @@ export function IntakeReports() {
   const q = useQuery({ queryKey: ['partner-intakes'], queryFn: () => assetPartnerApi.intakes() });
   const [open, setOpen] = useState<string | null>(null);
   const [busy, setBusy] = useState('');
+  if (q.isError) return <ErrorState message="We couldn’t load your intake reports." retry={() => void q.refetch()} />;
   if (!q.data?.length) return null;
 
   const download = async (id: string) => {

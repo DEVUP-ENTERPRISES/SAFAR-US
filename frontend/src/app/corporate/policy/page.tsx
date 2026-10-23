@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
 import { corporateApi, policyForm, policyPatch, type PolicyForm } from '@/features/corporate/api';
+import { ErrorState } from '@/components/ui/states';
 
 export default function PolicyPage() {
   const qc = useQueryClient();
@@ -22,6 +23,8 @@ export default function PolicyPage() {
     mutationFn: () => corporateApi.setPolicy(policyPatch(form)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['corp-policy'] }),
   });
+
+  if (policy.isError && !policy.data) return <ErrorState message="We couldn’t load the travel policy." retry={() => void policy.refetch()} />;
 
   if (policy.isLoading) return <Skeleton className="h-72 w-full" />;
 

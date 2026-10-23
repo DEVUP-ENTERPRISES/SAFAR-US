@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, Car } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs } from '@/components/ui/rows';
 import { TripCard } from '@/features/host/components/trip-card';
@@ -57,7 +57,9 @@ export default function HostTripsPage() {
 
       {tab === 'calendar' ? (
         <HostCalendar />
-      ) : active.isLoading ? (
+      ) : active.isError && !active.data ? (
+          <ErrorState message="We couldn’t load your trips." retry={() => void active.refetch()} />
+        ) : active.isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-32 w-full rounded-2xl" />

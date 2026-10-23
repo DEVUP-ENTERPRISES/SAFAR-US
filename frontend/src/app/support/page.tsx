@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils/cn';
 import { connectSocket } from '@/lib/realtime/socket';
@@ -76,6 +76,7 @@ function Support() {
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-2">
           {list.isLoading && <Skeleton className="h-40 w-full" />}
+          {list.isError && <ErrorState message="We couldn’t load your tickets." retry={() => void list.refetch()} />}
           {list.data && list.data.length === 0 && !creating && <EmptyState title="No tickets yet" description="Open a ticket and our team will help." />}
           {list.data?.map((t) => (
             <button key={t._id} onClick={() => { setSelected(t._id); setCreating(false); }} className="w-full text-start">

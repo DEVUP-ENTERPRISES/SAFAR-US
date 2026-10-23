@@ -53,7 +53,7 @@ export default function AdminAssetPartnersPage() {
   const qc = useQueryClient();
   const toast = useToast();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-asset-partners', status],
     queryFn: () => manage.partners({ status: status || undefined }),
   });
@@ -227,6 +227,9 @@ export default function AdminAssetPartnersPage() {
         columns={columns}
         rows={data}
         isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
+        errorMessage="We couldn’t load partners."
         emptyTitle="No Asset Partners yet"
         emptyDescription="Partners join by applying, or add an owner you already have an agreement with using Add partner."
       />

@@ -98,7 +98,7 @@ export default function PartnerApplicationsPage() {
         </div>
       </div>
 
-      <DataTable columns={columns} rows={list.data} isLoading={list.isLoading} emptyTitle="Nothing here" emptyDescription="Applications from the partner portal appear here." />
+      <DataTable columns={columns} rows={list.data} isLoading={list.isLoading} isError={list.isError} onRetry={() => void list.refetch()} errorMessage="We couldn’t load applications." emptyTitle="Nothing here" emptyDescription="Applications from the partner portal appear here." />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { ErrorState } from '@/components/ui/states';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -135,7 +136,9 @@ export default function HostDashboardPage() {
       )}
 
       {/* 2 - Money. One headline figure, the rest supporting it. */}
-      {earnings.isLoading ? (
+      {earnings.isError && !earnings.data ? (
+          <ErrorState message="We couldn’t load your earnings." retry={() => void earnings.refetch()} />
+        ) : earnings.isLoading ? (
         <Skeleton className="h-40 w-full rounded-3xl" />
       ) : hasHistory ? (
         <section className="rounded-3xl bg-muted/20 border border-border/30 overflow-hidden">

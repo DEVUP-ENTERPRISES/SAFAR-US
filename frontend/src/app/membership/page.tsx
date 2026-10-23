@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -133,7 +133,9 @@ function Membership() {
         </Card>
       )}
 
-      {plans.isLoading ? (
+      {plans.isError && !plans.data ? (
+          <ErrorState message="We couldn’t load membership plans." retry={() => void plans.refetch()} />
+        ) : plans.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2">{[0, 1].map((i) => <Skeleton key={i} className="h-64 w-full" />)}</div>
       ) : list.length === 0 ? (
         <EmptyState title="No plans available" description="Memberships are not open yet. Check back soon." />

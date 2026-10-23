@@ -5,13 +5,13 @@ import { useQuery } from '@tanstack/react-query';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { hostTollsApi, agencyLabel } from '@/features/host/tolls-api';
 import { TollStatusPill } from '@/features/host/components/toll-status';
 
 /** The host's linked toll accounts, like Turo's "Toll accounts". */
 export default function TollAccountsPage() {
-  const { data, isLoading } = useQuery({ queryKey: ['host-toll-accounts'], queryFn: () => hostTollsApi.accounts() });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['host-toll-accounts'], queryFn: () => hostTollsApi.accounts() });
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 pb-28">
@@ -23,6 +23,8 @@ export default function TollAccountsPage() {
       </div>
 
       {isLoading && <Skeleton className="h-28 w-full rounded-2xl" />}
+
+      {isError && <ErrorState message="We couldn’t load toll accounts." retry={() => void refetch()} />}
       {!isLoading && !data?.length && (
         <EmptyState title="No toll accounts linked" description="Link your NTTA account to start billing guests for their tolls." />
       )}

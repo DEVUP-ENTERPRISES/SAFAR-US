@@ -10,7 +10,7 @@ import { AuthGuard } from '@/components/layout/auth-guard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { Tabs } from '@/components/ui/rows';
 import { cn } from '@/lib/utils/cn';
 import { hostApi, type HostActionItem } from '~/features/host/api';
@@ -89,7 +89,9 @@ function HostInbox() {
       />
 
       {tab === 'actions' && (
-        inbox.isLoading ? (
+        inbox.isError && !inbox.data ? (
+          <ErrorState message="We couldn’t load the inbox." retry={() => void inbox.refetch()} />
+        ) : inbox.isLoading ? (
           <div className="space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
         ) : items.length === 0 ? (
           <EmptyState

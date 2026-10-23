@@ -15,6 +15,7 @@ import { useHostMe } from '~/features/host/hooks';
 import { useMyVehicles } from '@/features/vehicles/hooks';
 import { hostTollsApi, agencyLabel, TOLL_CAR_STATUS as STATUS_LABEL } from '~/features/host/tolls-api';
 import { TollStatusPill } from '~/features/host/components/toll-status';
+import { ErrorState } from '@/components/ui/states';
 
 
 /** One linked toll account: who it belongs to, its login, and the cars tracked on it. */
@@ -64,6 +65,8 @@ export default function TollAccountPage() {
 
   const all = cars.data ?? [];
   const linked = useMemo(() => all.filter((c) => (editing ? true : account.data?.vehicleIds.includes(c._id))), [all, editing, account.data]);
+
+  if (account.isError && !account.data) return <ErrorState message="We couldn’t load this toll account." retry={() => void account.refetch()} />;
 
   if (account.isLoading) return <Skeleton className="mx-auto h-64 max-w-2xl rounded-2xl" />;
   const a = account.data;
@@ -124,6 +127,7 @@ export default function TollAccountPage() {
 
       <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
         {cars.isLoading && <Skeleton className="h-24 w-full" />}
+        {cars.isError && <ErrorState message="We couldn’t load the cars." retry={() => void cars.refetch()} />}
         {!cars.isLoading && !linked.length && <p className="p-4 text-sm text-muted-foreground">No cars linked yet. Tap Edit to choose them.</p>}
         {linked.map((c) => {
           const cover = c.photos?.find((p) => p.isCover)?.url ?? c.photos?.[0]?.url;

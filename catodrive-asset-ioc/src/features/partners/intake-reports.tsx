@@ -1,5 +1,7 @@
 'use client';
 
+import { ErrorState } from '@/components/ui/states';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Camera, ClipboardCheck, Download, Loader2, X } from 'lucide-react';
@@ -169,6 +171,8 @@ export function IntakeReports({ partnerId, applications }: { partnerId: string; 
           </div>
         )}
 
+        {list.isLoading && <Skeleton className="h-20 w-full" />}
+        {list.isError && <ErrorState message="We couldn’t load intake reports." retry={() => void list.refetch()} />}
         {list.data?.length ? (
           <div className="divide-y divide-border rounded-2xl border border-border">
             {list.data.map((r) => (

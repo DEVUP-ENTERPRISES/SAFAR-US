@@ -7,7 +7,7 @@ import { Plus, Search, Star, LayoutGrid, List, Car, Upload} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { Select } from '@/components/ui/select';
 import { formatMoney } from '@/lib/utils/format';
@@ -65,6 +65,8 @@ export default function HostListingsPage() {
       return true;
     });
   }, [vehicles.data, q, tripStatus, listingStatus, onTrip, owner, ownerOf]);
+
+  if (vehicles.isError && !vehicles.data) return <ErrorState message="We couldn’t load the cars." retry={() => void vehicles.refetch()} />;
 
   if (vehicles.isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
 

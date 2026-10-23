@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, Gauge, CheckCircle2, Car } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart, Donut } from '@/components/ui/charts';
@@ -13,7 +13,9 @@ import { hostApi } from '~/features/host/api';
 
 
 export default function HostPerformancePage() {
-  const { data, isLoading } = useQuery({ queryKey: ['host-performance'], queryFn: () => hostApi.performance() });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['host-performance'], queryFn: () => hostApi.performance() });
+
+  if (isError && !data) return <ErrorState message="We couldn’t load performance." retry={() => void refetch()} />;
 
   if (isLoading || !data) {
     return (

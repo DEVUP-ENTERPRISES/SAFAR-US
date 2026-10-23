@@ -1,5 +1,6 @@
 'use client';
 
+import { ErrorState } from '@/components/ui/states';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -95,6 +96,9 @@ function VerifyIdentity() {
     onSuccess: () => { setDevSession(false); refreshStatus(); },
   });
 
+  if (status.isError && !status.data) return <ErrorState message="We couldn’t load your verification status." retry={() => void status.refetch()} />;
+
+  if (me.isError && !me.data) return <ErrorState message="We couldn’t load your account." retry={() => void me.refetch()} />;
   if (status.isLoading || me.isLoading) {
     return <div className="mx-auto max-w-2xl space-y-4 py-6"><Skeleton className="h-40 w-full" /><Skeleton className="h-64 w-full" /></div>;
   }

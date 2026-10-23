@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Logo } from '@/components/layout/logo';
 import { bookingApi } from '@/features/bookings/api';
 import { formatMoney, formatDateRange, formatDate } from '@/lib/utils/format';
+import { ErrorState } from '@/components/ui/states';
 
 /**
  * Public receipt verification - the page a CatoDrive receipt's QR code opens.
@@ -18,7 +19,7 @@ import { formatMoney, formatDateRange, formatDate } from '@/lib/utils/format';
  */
 export default function VerifyReceiptPage() {
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['verify-receipt', id],
     queryFn: () => bookingApi.verify(id),
     retry: false,
@@ -31,7 +32,9 @@ export default function VerifyReceiptPage() {
         <span className="display text-xl tracking-tight">CatoDrive</span>
       </Link>
 
-      {isLoading ? (
+      {isError && !data ? (
+          <ErrorState message="We couldn’t check this receipt." retry={() => void refetch()} />
+        ) : isLoading ? (
         <Skeleton className="h-72 w-full rounded-3xl" />
       ) : data?.valid ? (
         <div className="w-full overflow-hidden rounded-3xl border border-border bg-card shadow-xl shadow-black/5">

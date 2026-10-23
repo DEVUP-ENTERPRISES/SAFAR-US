@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils/cn';
 import { formatMoney } from '@/lib/utils/format';
@@ -53,6 +53,8 @@ export default function FleetPage() {
       </Card>
 
       {fleets.isLoading && <Skeleton className="h-24 w-full" />}
+
+      {fleets.isError && <ErrorState message="We couldn’t load your fleets." retry={() => void fleets.refetch()} />}
       {fleets.data && fleets.data.length === 0 && (
         <EmptyState title="No fleets yet" description="Group your vehicles into fleets to track occupancy and revenue." />
       )}

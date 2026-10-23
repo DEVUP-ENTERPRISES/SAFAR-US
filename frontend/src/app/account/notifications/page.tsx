@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils/cn';
 import { accountApi, type NotificationPrefs, type NotificationCategory } from '@/features/account/api';
 import { NOTIFICATION_CHANNELS, NOTIFICATION_TOPICS } from '@/features/account/notification-options';
+import { ErrorState } from '@/components/ui/states';
 
 const ICON = { push: Smartphone, email: Mail, sms: MessageSquare };
 const CHANNELS = NOTIFICATION_CHANNELS.map((c) => ({ ...c, icon: ICON[c.key] }));
@@ -39,6 +40,8 @@ function NotificationSettings() {
     setDraft((d) => ({ ...d, [k]: v }));
   const setTopic = (k: NotificationCategory, v: boolean) =>
     setDraft((d) => ({ ...d, categories: { ...d.categories, [k]: v } }));
+
+  if (prefs.isError && !prefs.data) return <ErrorState message="We couldn’t load your notification settings." retry={() => void prefs.refetch()} />;
 
   if (prefs.isLoading) {
     return <div className="mx-auto max-w-2xl space-y-4 py-6"><Skeleton className="h-40 w-full" /><Skeleton className="h-56 w-full" /></div>;

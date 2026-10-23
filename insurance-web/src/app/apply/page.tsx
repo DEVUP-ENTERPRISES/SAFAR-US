@@ -19,6 +19,7 @@ import { DOC_ACCEPT } from '@/lib/upload-formats';
 import { US_STATES } from '@/lib/data/us-states';
 import { ApiError } from '@/lib/api/types';
 import { INSURER_STATUS, insurerApi, type InsurerApplicationInput } from '@/features/insurers/api';
+import { ErrorState } from '@/components/ui/states';
 
 const STEPS = [
   { icon: FileCheck2, title: 'Your company', body: 'Tell us who you are and where you are licensed, and upload your licence.' },
@@ -100,7 +101,9 @@ export default function ApplyPage() {
             </Link>
           </CardContent>
         </Card>
-      ) : me.isLoading ? (
+      ) : me.isError && !me.data ? (
+          <ErrorState message="We couldn’t load your application." retry={() => void me.refetch()} />
+        ) : me.isLoading ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : insurer && !canApply ? (
         <Card>

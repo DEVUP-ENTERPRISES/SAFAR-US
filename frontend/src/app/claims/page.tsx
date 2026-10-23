@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate } from '@/lib/utils/format';
@@ -55,6 +55,8 @@ function Claims() {
       )}
 
       {list.isLoading && <Skeleton className="h-40 w-full" />}
+
+      {list.isError && <ErrorState message="We couldn’t load your claims." retry={() => void list.refetch()} />}
       {list.data && list.data.length === 0 && <EmptyState title="No claims" description="Filed claims appear here with live status." />}
       {list.data && list.data.length > 0 && (
         <div className="space-y-3">

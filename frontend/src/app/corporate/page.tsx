@@ -10,13 +10,16 @@ import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart, Donut } from '@/components/ui/charts';
 import { formatMoney, monthShort } from '@/lib/utils/format';
 import { corporateApi } from '@/features/corporate/api';
+import { ErrorState } from '@/components/ui/states';
 
 export default function CorporateDashboard() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['corp-dashboard'],
     queryFn: () => corporateApi.dashboard(),
     refetchInterval: 30_000,
   });
+
+  if (isError && !data) return <ErrorState message="We couldn’t load your company overview." retry={() => void refetch()} />;
 
   if (isLoading || !data)
     return (

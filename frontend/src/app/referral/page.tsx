@@ -11,11 +11,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatMoney } from '@/lib/utils/format';
 import { usePrograms, usePlatformConfig } from '@/features/platform/config';
 import { ProgramPaused } from '@/features/platform/program-paused';
+import { ErrorState } from '@/components/ui/states';
 
 
 function ReferralInner() {
-  const { data, isLoading } = useQuery({ queryKey: ['referral'], queryFn: () => referralApi.mine() });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['referral'], queryFn: () => referralApi.mine() });
   const [copied, setCopied] = useState(false);
+
+  if (isError && !data) return <ErrorState message="We couldn’t load your referral details." retry={() => void refetch()} />;
 
   if (isLoading || !data) return <Skeleton className="h-80 w-full" />;
   const link = typeof window !== 'undefined' ? `${window.location.origin}/register?ref=${data.code}` : `/register?ref=${data.code}`;

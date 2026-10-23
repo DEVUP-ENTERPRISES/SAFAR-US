@@ -12,6 +12,7 @@ import { formatMoney, formatDate } from '@/lib/utils/format';
 import { rewardsApi } from '@/features/rewards/api';
 import { usePrograms, usePlatformConfig } from '@/features/platform/config';
 import { ProgramPaused } from '@/features/platform/program-paused';
+import { ErrorState } from '@/components/ui/states';
 
 const TIER_COLOR: Record<string, string> = {
   bronze: 'from-amber-700 to-amber-500',
@@ -22,12 +23,14 @@ const TIER_COLOR: Record<string, string> = {
 
 function Rewards() {
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ['rewards'], queryFn: () => rewardsApi.summary() });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['rewards'], queryFn: () => rewardsApi.summary() });
   const [points, setPoints] = useState(100);
   const redeem = useMutation({
     mutationFn: () => rewardsApi.redeem(points),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rewards'] }),
   });
+
+  if (isError && !data) return <ErrorState message="We couldn’t load your rewards." retry={() => void refetch()} />;
 
   if (isLoading || !data) return <Skeleton className="h-96 w-full" />;
   const pct = data.nextTier ? Math.min(100, Math.round((data.lifetime / data.nextTier.min) * 100)) : 100;
