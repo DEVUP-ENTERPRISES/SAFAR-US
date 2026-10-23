@@ -1,7 +1,7 @@
 import { formatMoney, FUEL_LABEL } from '@/lib/utils/format';
 import type { Vehicle } from './types';
 
-export const MAX_COMPARE = 3;
+export const MAX_COMPARE = 4;
 
 /** Add or remove a car; a fourth pushes out the oldest. */
 export function toggleCompare(cur: string[], id: string): string[] {
@@ -16,7 +16,7 @@ export type CompareValue = { text: string; muted?: boolean; strong?: boolean; ca
 export const COMPARE_ROWS: { label: string; get: (v: Vehicle) => CompareValue }[] = [
   { label: 'Price / day', get: (v) => ({ text: formatMoney({ amount: v.pricing.dailyPrice, currency: v.pricing.currency }), strong: true }) },
   { label: 'Rating', get: (v) => (v.ratingCount ? { rating: v.ratingAvg, count: v.ratingCount } : { text: 'New', muted: true }) },
-  { label: 'Category', get: (v) => ({ text: v.category, capitalize: true }) },
+  { label: 'Category', get: (v) => (v.category === 'suv' ? { text: 'SUV' } : { text: v.category, capitalize: true }) },
   { label: 'Year', get: (v) => ({ text: String(v.year) }) },
   { label: 'Seats', get: (v) => ({ text: `${v.seats} seats` }) },
   { label: 'Transmission', get: (v) => ({ text: v.transmission, capitalize: true }) },
@@ -30,5 +30,5 @@ export const COMPARE_ROWS: { label: string; get: (v: Vehicle) => CompareValue }[
     },
   },
   { label: 'City', get: (v) => ({ text: v.location.city || '—' }) },
-  { label: 'Features', get: (v) => ({ tags: v.features.slice(0, 6), more: Math.max(0, v.features.length - 6) }) },
+  { label: 'Features', get: (v) => ({ tags: (v.features ?? []).slice(0, 6), more: Math.max(0, (v.features ?? []).length - 6) }) },
 ];
