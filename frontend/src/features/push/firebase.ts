@@ -1,7 +1,7 @@
 'use client';
 
-import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage, isSupported, type Messaging } from 'firebase/messaging';
+import { initializeApp, getApps, type FirebaseApp } from '@firebase/app';
+import { getMessaging, getToken, onMessage, isSupported, type Messaging } from '@firebase/messaging';
 
 /**
  * Firebase web config. All of these are public by design - the web config
