@@ -14,9 +14,9 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
 
   return (
     <Link href={`/vehicles/${vehicle._id}`} className={cn("group block", className)}>
-      <article className="lift relative flex h-full flex-col overflow-hidden rounded-lg border border-border/70 bg-card p-2 hover:border-primary/40 sm:rounded-lg sm:p-2.5">
+      <article className="relative flex h-full flex-col overflow-hidden rounded-lg border border-border/70 bg-card transition-colors hover:border-primary/40">
         {/* Image Wrapper */}
-        <div className="photo-scrim relative aspect-[4/3] w-full overflow-hidden rounded-xl sm:rounded-lg bg-muted">
+        <div className="photo-scrim relative aspect-[5/4] w-full overflow-hidden bg-muted">
           {cover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -36,36 +36,28 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
             </div>
           )}
 
-          {/* Actions */}
-          <div className="absolute end-3 top-3 flex flex-col gap-2 scale-90 sm:scale-100 origin-top-right z-20">
-            <div className="rounded-full bg-black/20 backdrop-blur-md border border-white/10 transition-transform hover:scale-110 hover:bg-black/40">
-              <WishlistButton vehicleId={vehicle._id} />
-            </div>
-            <div className="rounded-full bg-black/20 backdrop-blur-md border border-white/10 transition-transform hover:scale-110 hover:bg-black/40">
-              <CompareButton vehicleId={vehicle._id} />
-            </div>
-          </div>
-
-          {/* Status chips: a fixed gap on the right keeps them clear of the save/compare buttons at any card width. */}
-          <div className="absolute start-2 end-12 top-2 z-20 flex flex-wrap gap-1.5 sm:start-3 sm:end-16 sm:top-3 sm:gap-2">
-            {vehicle.fleetOwned && (
-              <FleetBadge className="whitespace-nowrap border-white/20 bg-black/55 px-2 py-0.5 text-xs text-white backdrop-blur-md sm:px-2.5 sm:py-1 sm:text-xs" />
-            )}
-            {vehicle.hostIsSuperhost && (
-              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-black/40 px-2 py-0.5 text-xs font-semibold tracking-wide text-white backdrop-blur-md sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs">
-                <Award className="h-3 w-3 text-warning sm:h-3.5 sm:w-3.5" /> Superhost
-              </span>
-            )}
-            {vehicle.listing.instantBook && (
-              <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-black/55 px-2 py-0.5 text-xs font-semibold tracking-wide text-white backdrop-blur-md sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs">
-                <Zap className="h-3 w-3 fill-current sm:h-3.5 sm:w-3.5" /> Instant
-              </span>
-            )}
+          <div className="absolute end-2 top-2 z-20">
+            <WishlistButton vehicleId={vehicle._id} className="h-8 w-8 [&_svg]:h-4 [&_svg]:w-4" />
           </div>
         </div>
 
         {/* Body */}
-        <div className="relative z-20 flex flex-col flex-1 px-2 py-4 sm:px-4 sm:py-5">
+        <div className="relative z-20 flex flex-1 flex-col px-3 pb-4 pt-3 sm:px-4 sm:pb-5">
+          {(vehicle.fleetOwned || vehicle.hostIsSuperhost || vehicle.listing.instantBook) && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {vehicle.fleetOwned && <FleetBadge className="px-2 py-0.5" />}
+              {vehicle.hostIsSuperhost && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">
+                  <Award className="h-3.5 w-3.5" /> Superhost
+                </span>
+              )}
+              {vehicle.listing.instantBook && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">
+                  <Zap className="h-3.5 w-3.5 fill-current text-primary" /> Instant
+                </span>
+              )}
+            </div>
+          )}
           {/* Name and tag share a line at every width; the name gives way first. */}
           <div className="flex items-start justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
@@ -78,7 +70,7 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
                 {vehicle.location.city || '-'}
               </p>
             </div>
-            <VehicleRating vehicle={vehicle} className="shrink-0 self-start text-[12px] leading-none sm:text-[13px]" />
+            <VehicleRating vehicle={vehicle} className="shrink-0 self-start text-xs leading-none sm:text-label" />
           </div>
 
           <div className="mt-auto pt-4 space-y-4">
@@ -107,10 +99,13 @@ export function VehicleCard({ vehicle, className }: { vehicle: Vehicle; classNam
 
             {/* Price */}
             <div className="flex items-end gap-1.5 border-t border-border/50 pt-3">
+              <div className="flex min-w-0 flex-1 items-end gap-1.5">
               {/* Price is data. Tabular figures keep it from shuffling
                   sideways as digits change across a grid of cards. */}
               <DailyPrice amount={vehicle.pricing.dailyPrice} currency={vehicle.pricing.currency} className="numeric text-2xl font-semibold text-foreground" />
               <span className="text-sm font-medium text-muted-foreground pb-1">/ day</span>
+              </div>
+              <CompareButton vehicleId={vehicle._id} className="self-center" />
             </div>
           </div>
         </div>
