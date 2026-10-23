@@ -51,7 +51,6 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'bookings', path: A('bookings'), apiPath: '/admin/bookings', label: 'Bookings', group: 'People & cars', permission: 'admin:read' },
   { slug: 'fleets', path: A('fleets'), apiPath: '/admin/fleets', label: 'Fleets', group: 'People & cars', permission: 'fleet:manage' },
   { slug: 'tolls', path: A('tolls'), apiPath: '/admin/tolls/accounts', label: 'Tolls', group: 'People & cars', permission: 'admin:read' },
-  { slug: 'insurance', path: A('insurance'), apiPath: '/admin/insurance/wheelbase', label: 'Fleet Cover', group: 'People & cars', permission: 'admin:read' },
 
   { slug: 'support', path: A('support'), apiPath: '/admin/tickets', label: 'Support Tickets', group: 'Help & safety', permission: 'ticket:manage' },
   { slug: 'kb', path: A('kb'), apiPath: '/admin/kb/articles', label: 'Help Articles', group: 'Help & safety', permission: 'ticket:manage' },

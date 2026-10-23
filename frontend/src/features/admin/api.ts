@@ -286,31 +286,6 @@ export interface GeoSummaryEntry {
   count: number;
 }
 
-export interface WheelbaseListingRow {
-  id: number;
-  name: string;
-  year?: number;
-  make?: string;
-  model?: string;
-  insuranceState?: string;
-  coverage?: string;
-  eligible?: boolean;
-  planLabel?: string;
-  minRenterAge?: number;
-}
-
-export interface WheelbaseCarLink {
-  rentalId: number;
-  name: string;
-  linkedBy: 'auto' | 'admin';
-  insuranceState?: string;
-  coverage?: string;
-  planLabel?: string;
-  minRenterAge?: number;
-  found: boolean;
-  syncedAt: string;
-}
-
 export interface TollAccount {
   _id: string;
   agency: 'ntta';
@@ -353,17 +328,6 @@ export interface TollImportSummary {
   skipped: number;
   errors: { line: number; reason: string }[];
 }
-
-export interface WheelbaseOverview {
-  dealerId: string;
-  error?: string;
-  listings: WheelbaseListingRow[];
-  cars: { _id: string; name: string; plate?: string; status: string; photoUrl?: string; wheelbase: WheelbaseCarLink | null; suggestions: number[] }[];
-}
-
-export type WheelbaseSyncResult =
-  | { listings: number; updated: number; autoLinked: number; unmatched: number; missing: number }
-  | { skipped: 'no_dealer' };
 
 export interface ReviewCheck {
   key: 'photos' | 'photo_match' | 'registration' | 'insurance' | 'wheelbase' | 'vin' | 'pricing' | 'location';
@@ -507,10 +471,6 @@ export const adminApi = {
   vehiclePhotoCheck: (id: string) => api.post<VehicleReview>(`/admin/vehicles/${id}/photo-check`),
   vehicleRemindHost: (id: string, note?: string) =>
     api.post<{ sent: number; items: string[] }>(`/admin/vehicles/${id}/remind-host`, note ? { note } : {}),
-  wheelbaseOverview: () => api.get<WheelbaseOverview>('/admin/insurance/wheelbase'),
-  wheelbaseSync: () => api.post<WheelbaseSyncResult>('/admin/insurance/wheelbase/sync'),
-  wheelbaseLink: (vehicleId: string, rentalId: number | null) =>
-    api.patch<{ ok: true }>(`/admin/insurance/wheelbase/vehicles/${vehicleId}`, { rentalId }),
   tollAccounts: () => api.get<{ accounts: TollAccount[]; loginStorage: boolean }>('/admin/tolls/accounts'),
   tollCreateAccount: (nickname: string) => api.post<TollAccount>('/admin/tolls/accounts', { agency: 'ntta', nickname }),
   tollUpdateAccount: (id: string, patch: { nickname?: string; vehicleIds?: string[] }) => api.patch<TollAccount>(`/admin/tolls/accounts/${id}`, patch),
