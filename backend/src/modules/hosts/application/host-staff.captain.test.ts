@@ -46,8 +46,10 @@ async function car(id: string) {
   });
 }
 
+let phoneSeq = 1000;
+
 async function captain(abilities: string[], vehicleIds: string[] = []) {
-  const user = await userRepository.create({ email: `cap-${Math.random()}@x.com`, passwordHash: 'x', firstName: 'Sam', phone: '+12145550100' } as never);
+  const user = await userRepository.create({ email: `cap-${Math.random()}@x.com`, passwordHash: 'x', firstName: 'Sam', phone: `+1214555${String(++phoneSeq).padStart(4, '0')}` } as never);
   await HostStaffModel.create({ hostId: 'host-1', userId: user._id, email: user.email, name: 'Sam Reed', abilities, vehicleIds, status: 'active', invitedAt: new Date(), acceptedAt: new Date() });
   return user;
 }
