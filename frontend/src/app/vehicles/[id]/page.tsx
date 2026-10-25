@@ -44,7 +44,7 @@ import { saveDraft, takeDraft } from '@/features/bookings/booking-draft';
 import { PhotoLightbox } from '@/features/vehicles/components/photo-lightbox';
 import { confirmCardPayment } from '@/features/payments/confirm-payment';
 import { PayNow } from '@/features/payments/pay-now';
-import { useSearchBar } from '@/features/search/search-store';
+import { useSearchBar, keepFuture } from '@/features/search/search-store';
 import { reviewsApi } from '@/features/reviews/api';
 import { bookingInput, canQuote as canQuoteChoices, type BookingChoices } from '@/features/bookings/booking-selection';
 
@@ -56,6 +56,8 @@ export default function VehicleDetailPage() {
   const { data: v, isLoading, isError } = useVehicle(id);
   const { data: hostProfile } = useHostPublicProfile(v?.hostId);
   const platformCfg = usePlatformConfig();
+  /** The soonest pickup this car allows right now: the platform notice, raised by the car's own. */
+  const earliestPickup = () => new Date(Date.now() + leadMinutes(platformCfg.data, v?.listing?.advanceNoticeHours ?? 0) * 60_000);
   const status = useAuthStore((s) => s.status);
   const { track } = useRecentlyViewed();
 
@@ -183,8 +185,9 @@ export default function VehicleDetailPage() {
     if (!id) return;
     const draft = takeDraft(id);
     if (!draft) return;
-    setStart(draft.start);
-    setEnd(draft.end);
+    const kept = keepFuture(draft.start, draft.end, earliestPickup());
+    setStart(kept.start);
+    setEnd(kept.end);
     setAddOnCodes(draft.addOnCodes ?? []);
     setProtectionPlan(draft.protectionPlan || 'basic');
     setPayWithWallet(!!draft.payWithWallet);
@@ -207,8 +210,10 @@ export default function VehicleDetailPage() {
   const searched = useSearchBar();
   useEffect(() => {
     if (start || end || !searched.fromDate || !searched.untilDate) return;
-    setStart(`${searched.fromDate}T${searched.fromTime || '10:00'}`);
-    setEnd(`${searched.untilDate}T${searched.untilTime || '10:00'}`);
+    // A pickup time from search that has already passed moves to the next valid slot instead of failing at checkout.
+    const kept = keepFuture(`${searched.fromDate}T${searched.fromTime || '10:00'}`, `${searched.untilDate}T${searched.untilTime || '10:00'}`, earliestPickup());
+    setStart(kept.start);
+    setEnd(kept.end);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 

@@ -150,9 +150,9 @@ export default function AssetPartnersPage() {
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-8 flex flex-wrap gap-4 sm:mt-10">
-              <Link href="/asset-partners/apply" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
+              <SiteLink site="partner" path="/sign-up" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
                 Apply Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
+              </SiteLink>
               <a href="#numbers" className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10 sm:h-14 sm:px-7 sm:text-base">
                 See the Numbers <ArrowDown className="h-4 w-4" />
               </a>
@@ -437,9 +437,9 @@ export default function AssetPartnersPage() {
                 List the vehicle you already own - {BRAND} does the rest.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-4">
-                <Link href="/asset-partners/apply" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
+                <SiteLink site="partner" path="/sign-up" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">
                   Apply Now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
+                </SiteLink>
               </div>
             </div>
           </section>

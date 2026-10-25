@@ -2599,7 +2599,7 @@ export class BookingService {
       throw new ValidationError('Invalid dates');
     }
     if (start >= end) throw new ValidationError('start must be before end');
-    if (start.getTime() < Date.now() - 60_000) throw new ValidationError('start must be in the future');
+    if (start.getTime() < Date.now() - 60_000) throw new ValidationError('That pickup time has already passed. Please pick a later time.');
     return { start, end };
   }
 

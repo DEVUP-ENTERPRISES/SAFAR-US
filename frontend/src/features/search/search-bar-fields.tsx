@@ -8,7 +8,8 @@ import { cn } from '@/lib/utils/cn';
 import { formatClock } from '@/lib/utils/format';
 import { useFacets } from '@/features/vehicles/hooks';
 import { DateRangePicker } from './date-range-picker';
-import { useSearchBar } from './search-store';
+import { useSearchBar, pickableTimes } from './search-store';
+import { usePlatformConfig, leadMinutes } from '@/features/platform/config';
 
 // ─── Time options (30-min slots, 6 AM → 11:30 PM) ───────────────────────────
 
@@ -47,6 +48,7 @@ export function SearchBarFields({
   const facets = useFacets();
   const cities = facets.data?.cities ?? [];
   const s = useSearchBar();
+  const platformCfg = usePlatformConfig();
   const phone = useIsPhone();
 
   const [open, setOpen] = useState<FieldId | null>(null);
@@ -166,7 +168,11 @@ export function SearchBarFields({
             from={s.fromDate}
             to={s.untilDate}
             onChange={(f, t) => {
-              s.patch({ fromDate: f, untilDate: t });
+              // Picking today moves a pickup time that has already passed to the next valid slot.
+              const earliest = new Date(Date.now() + leadMinutes(platformCfg.data) * 60_000);
+              const allowed = pickableTimes(f, TIMES, earliest);
+              const fromTime = f && !allowed.includes(s.fromTime) && allowed.length ? allowed[0] : s.fromTime;
+              s.patch({ fromDate: f, untilDate: t, fromTime });
               if (f && t) setOpen('from-time');
             }}
           />
@@ -188,7 +194,12 @@ export function SearchBarFields({
             {label}
           </p>
           <ul className="max-h-64 overflow-y-auto -mx-1">
-            {TIMES.map((t) => (
+            {(isFrom
+              ? pickableTimes(s.fromDate, TIMES, new Date(Date.now() + leadMinutes(platformCfg.data) * 60_000))
+              : s.untilDate && s.untilDate === s.fromDate
+                ? TIMES.filter((t) => t > s.fromTime)
+                : TIMES
+            ).map((t) => (
               <li key={t}>
                 <button
                   onClick={() => {
