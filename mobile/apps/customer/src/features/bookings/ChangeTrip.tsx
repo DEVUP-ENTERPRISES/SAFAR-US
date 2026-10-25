@@ -12,6 +12,7 @@ import type { Booking, CancelReasonCode, ChangeOptions, ExceptionReasonCode } fr
 import { ApiError } from '@catodrive/core/web/lib/api/types';
 import { formatDateTime, formatMoney } from '@catodrive/core/web/lib/utils/format';
 import { DateTimeSheet } from './DateTimeSheet';
+import { safeMessage } from '@catodrive/core/web/lib/utils/safe-message';
 
 const errorText = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -278,7 +279,7 @@ export function ExceptionForm({ bookingId, reasons, proofRequired, initialReason
     try {
       keys = (await uploadPhotos('claim', photos)).map((u) => u.key);
     } catch (e) {
-      setUploadError(e instanceof Error ? e.message : 'A photo didn’t upload.');
+      setUploadError(e instanceof Error ? safeMessage(e.message) : 'A photo didn’t upload.');
       setUploading(false);
       return;
     }

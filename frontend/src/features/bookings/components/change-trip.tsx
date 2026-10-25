@@ -19,6 +19,7 @@ import { bookingApi } from '../api';
 import { useMoveTrip, useRequestException, useShiftPickup, useSwitchCar } from '../queries';
 import { CANCEL_REASON_LABEL, EXCEPTION_REASON_LABEL } from '../status';
 import type { Booking, CancelReasonCode, ChangeOptions, ExceptionReasonCode } from '../types';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 const errorText = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
 const toLocalInput = (iso: string) => {
@@ -346,7 +347,7 @@ export function ExceptionForm({
       // One file per upload: each keeps its own type (PDF or photo).
       keys = (await Promise.all(files.map((f) => uploadFiles('claim', [f])))).flat().map((u) => u.key);
     } catch (e) {
-      setUploadError(e instanceof Error ? e.message : 'A file could not be uploaded.');
+      setUploadError(e instanceof Error ? safeMessage(e.message) : 'A file could not be uploaded.');
       setUploading(false);
       return;
     }
