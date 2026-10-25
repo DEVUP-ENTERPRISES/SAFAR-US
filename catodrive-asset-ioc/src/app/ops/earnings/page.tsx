@@ -33,7 +33,7 @@ export default function EarningsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Host"
+        eyebrow="Operations"
         title="Earnings"
         description={`${data.completedTrips} completed trip${data.completedTrips === 1 ? '' : 's'}. Payouts release after the trip-completion hold window.`}
       />

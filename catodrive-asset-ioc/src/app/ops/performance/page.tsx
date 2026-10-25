@@ -35,7 +35,7 @@ export default function HostPerformancePage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Host"
+        eyebrow="Operations"
         title="Performance"
         description="How your fleet is doing - earnings trend, how full your cars are, and which ones earn the most."
       />

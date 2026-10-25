@@ -73,7 +73,7 @@ export default function HostListingsPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Host"
+        eyebrow="Operations"
         title="Vehicles"
         actions={
           <Link href="/ops/listings/new">

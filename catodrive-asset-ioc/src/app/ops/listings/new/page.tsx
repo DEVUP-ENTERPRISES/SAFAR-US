@@ -522,8 +522,7 @@ export default function NewListingPage() {
                 <div>
                   <p className="font-semibold">Availability</p>
                   <p className="text-sm text-muted-foreground">
-                    Honor every confirmed booking. Cancelling on a guest after they&apos;ve booked affects your
-                    standing as a host.
+                    Honor every confirmed booking. Cancelling a guest&apos;s confirmed trip leaves them stranded, so only do it when the car truly can&apos;t go out.
                   </p>
                 </div>
               </div>

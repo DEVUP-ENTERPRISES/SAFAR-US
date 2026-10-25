@@ -8,7 +8,7 @@ import { NavSheet, type NavSheetItem } from '@/components/layout/nav-sheet';
 import { ICONS, NAV } from '~/features/host/components/host-sidebar';
 import { cn } from '@/lib/utils/cn';
 import { useAuthStore } from '@/features/auth/store';
-import { useUnreadMessages } from '@/features/messaging/hooks';
+import { useAttention } from '~/features/host/use-attention';
 
 /**
  * The HOST phone navigation bar - the mobile workspace for someone managing
@@ -34,7 +34,7 @@ interface HostTab {
 export function HostMobileTabBar() {
   const pathname = usePathname() ?? '';
   const user = useAuthStore((s) => s.user);
-  const unread = useUnreadMessages(!!user).data?.count ?? 0;
+  const attention = useAttention(!!user);
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
@@ -45,10 +45,10 @@ export function HostMobileTabBar() {
 
   const tabs: HostTab[] = [
     { href: '/ops', label: 'Dashboard', icon: <LayoutGrid />, exact: true },
-    { href: '/ops/trips', label: 'Trips', icon: <CarFront /> },
-    { href: '/ops/inbox', label: 'Inbox', icon: <MessageSquare />, count: unread },
+    { href: '/ops/trips', label: 'Trips', icon: <CarFront />, count: attention.trips },
+    { href: '/ops/inbox', label: 'Inbox', icon: <MessageSquare />, count: attention.inbox },
     { href: '/ops/listings', label: 'Listings', icon: <ClipboardList /> },
-    { href: '/ops/partners', label: 'Assets', icon: <Handshake /> },
+    { href: '/ops/partners', label: 'Assets', icon: <Handshake />, count: attention.partners },
   ];
 
   const isOn = (t: HostTab) =>

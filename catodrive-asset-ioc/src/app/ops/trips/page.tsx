@@ -43,7 +43,7 @@ export default function HostTripsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Host" title="Trips" />
+      <PageHeader eyebrow="Operations" title="Trips" />
 
       <Tabs<Tab>
         value={tab}

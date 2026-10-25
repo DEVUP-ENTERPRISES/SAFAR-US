@@ -3,6 +3,7 @@
 import { LayoutDashboard, Car, TrendingUp, Wrench, User, LayoutGrid, Store, Route, BarChart3, Users, Milestone, Handshake, Inbox } from 'lucide-react';
 import { PanelSidebar } from '@/components/layout/panel-sidebar';
 import { useHostMe } from '~/features/host/hooks';
+import { useAttention } from '~/features/host/use-attention';
 
 export const ICONS = {
   dashboard: LayoutDashboard,
@@ -34,13 +35,16 @@ export const NAV = [
 
 export function HostSidebar() {
   const host = useHostMe();
+  const attention = useAttention(!!host.data);
+  const counts: Record<string, number> = { trips: attention.trips, inbox: attention.inbox, partners: attention.partners };
+  const items = NAV.map((n) => (counts[n.slug] ? { ...n, count: counts[n.slug] } : n));
 
   return (
     <PanelSidebar
       title={host.data?.displayName ?? 'CatoDrive'}
       subtitle="Operations panel"
       icon={Store}
-      items={NAV}
+      items={items}
       icons={ICONS}
       fallbackIcon={LayoutGrid}
       exactPaths={['/ops']}

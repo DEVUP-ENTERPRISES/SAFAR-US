@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { Camera, Check, Clock, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +13,7 @@ import { tripApi, type InspectionAngle, type PhotoPhase } from '@/features/trips
 import { useInspection } from '@/features/trips/hooks';
 import { LiveCamera, type CapturedShot } from './live-camera';
 import { ShotDiagram, ShotLegend } from './shot-diagram';
+import { siteUrl } from '@/lib/sites';
 
 const GROUPS = [
   { id: 'walkaround', title: 'Walk-around' },
@@ -211,9 +211,10 @@ export function InspectionPhotos({
 
         <div className="space-y-1 text-xs text-muted-foreground">
           <p>Left and right are as if you were sitting in the driver’s seat. Card numbers match the shooting order.</p>
-          <Link href="/help/photo-guide" target="_blank" className="inline-flex font-semibold text-primary hover:underline">
+          {/* The guide lives on the public site; host and operations panels open it there in a new tab. */}
+          <a href={siteUrl('guest', '/help/photo-guide')} target="_blank" rel="noopener noreferrer" className="inline-flex font-semibold text-primary hover:underline">
             Why each shot matters
-          </Link>
+          </a>
         </div>
 
         {canShoot && nextAngle && (

@@ -10,6 +10,7 @@ import { assetPartnerIntakeService } from '../application/asset-partner-intake.s
 import { assetPartnerPortfolioService } from '../application/asset-partner-portfolio.service';
 import { assetPartnerMaintenanceService } from '../application/asset-partner-maintenance.service';
 import { DocumentModel } from '../../documents/infrastructure/document.model';
+import { AssetPartnerApplicationModel } from '../infrastructure/asset-partner-application.model';
 import { storageGateway } from '../../../infrastructure/storage/storage.provider';
 import { notificationService } from '../../notifications/application/notification.service';
 import { NotFoundError, ValidationError } from '../../../core/errors/app-error';
@@ -237,6 +238,20 @@ router.get(
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'private, no-store');
     res.send(pdf);
+  }),
+);
+
+/** Small counts for the panel's sidebar badges; cheap enough to poll every minute. */
+router.get(
+  '/attention',
+  authorize('admin:read'),
+  asyncHandler(async (_req, res) => {
+    const [applications, partnerDocuments] = await Promise.all([
+      AssetPartnerApplicationModel.countDocuments({ status: { $in: ['submitted', 'under_review'] } }),
+      DocumentModel.countDocuments({ category: { $in: PARTNER_DOCS.map((d) => d.category) }, 'verification.status': 'pending', deletedAt: null }),
+    ]);
+    res.set('Cache-Control', 'no-store');
+    sendSuccess(res, { applications, partnerDocuments });
   }),
 );
 
