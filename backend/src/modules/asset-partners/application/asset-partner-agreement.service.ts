@@ -5,6 +5,7 @@ import { AssetPartnerModel, type AssetPartnerDoc, type PartnerAgreementSignature
 import { AssetPartnerApplicationModel, type AssetPartnerApplicationDoc } from '../infrastructure/asset-partner-application.model';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
+import { notificationService } from '../../notifications/application/notification.service';
 
 const hashOf = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
 
@@ -68,11 +69,36 @@ export class AssetPartnerAgreementService {
     try {
       const doc = await AssetPartnerAgreementModel.create({ kind, version: (newest?.version ?? 0) + 1, title: input.title, body: input.body, bodyHash, publishedBy: userId });
       logger.info({ kind, version: doc.version }, 'Asset Partner document published');
+      // The waiting screen promises an email; a mail failure must not undo the publish.
+      void this.tellWaitingPartners().catch((err) => logger.warn({ err }, 'agreement ready notice failed'));
       return doc.toObject();
     } catch (err) {
       // Two people publishing at once collide on the unique version.
       if ((err as { code?: number }).code === 11000) throw new ConflictError('Someone else just published a version. Reload and try again.', 'AGREEMENT_VERSION_TAKEN');
       throw err;
+    }
+  }
+
+  /** Once both the agreement and the NDA exist, every approved partner still waiting to sign is told they can. */
+  private async tellWaitingPartners(): Promise<void> {
+    const [agreement, nda] = await Promise.all([this.current('agreement'), this.current('nda')]);
+    if (!agreement || !nda) return;
+    const waiting = await AssetPartnerModel.find({ agreementRequired: true, status: { $ne: 'exited' }, $or: [{ 'agreement.signedAt': { $exists: false } }, { 'nda.signedAt': { $exists: false } }] })
+      .select('userId')
+      .limit(1000)
+      .lean<{ userId: string }[]>();
+    for (const p of waiting) {
+      await notificationService
+        .send({
+          userId: p.userId,
+          priority: 'high',
+          deepLink: '/asset-partners/dashboard',
+          templateKey: 'account.asset_partner_agreement_ready',
+          title: 'Your partner agreement is ready to sign',
+          body: 'Your CatoDrive Asset Partner agreement and NDA are ready. Sign in to read and sign them.',
+          data: { agreementVersion: agreement.version, ndaVersion: nda.version },
+        })
+        .catch((err) => logger.warn({ err, userId: p.userId }, 'agreement ready notice failed'));
     }
   }
 

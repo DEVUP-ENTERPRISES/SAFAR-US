@@ -7,6 +7,7 @@ import { Button, Text, space, useConfirm, useTheme, useToast } from '@catodrive/
 import { pickPhotos, uploadPhotos, type PickSource } from '@catodrive/core';
 import { vehicleApi } from '@catodrive/core/web/features/vehicles/api';
 import type { Vehicle } from '@catodrive/core/web/features/vehicles/types';
+import { safeMessage } from '@catodrive/core/web/lib/utils/safe-message';
 
 /** Add photos (camera or library), choose the cover guests see in search, and delete. */
 export function PhotosPanel({ vehicle, onChanged }: { vehicle: Vehicle; onChanged: () => void }) {
@@ -36,7 +37,7 @@ export function PhotosPanel({ vehicle, onChanged }: { vehicle: Vehicle; onChange
       onChanged();
       toast({ tone: 'success', title: `${picked.length} photo${picked.length === 1 ? '' : 's'} added` });
     } catch (err) {
-      toast({ tone: 'error', title: 'Photo upload failed', body: err instanceof Error ? err.message : 'Please try again.' });
+      toast({ tone: 'error', title: 'Photo upload failed', body: err instanceof Error ? safeMessage(err.message) : 'Please try again.' });
     } finally {
       setUploading(false);
     }

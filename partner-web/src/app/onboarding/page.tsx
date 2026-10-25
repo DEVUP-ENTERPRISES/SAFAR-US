@@ -52,10 +52,17 @@ function Tracker({ stage }: { stage: OnboardingStage }) {
 function VerifyEmail({ email, onDone }: { email?: string; onDone: () => void }) {
   const [code, setCode] = useState('');
   const [devCode, setDevCode] = useState<string>();
+  const [sentTo, setSentTo] = useState<string>();
+  const [notSent, setNotSent] = useState(false);
   const send = useMutation({
     meta: { silentError: true },
     mutationFn: () => eligibilityApi.send('email'),
-    onSuccess: (r) => setDevCode(r.devCode),
+    onSuccess: (r) => {
+      setDevCode(r.devCode);
+      // A failed send still answers 200; without this the partner waits for a code that never comes.
+      setNotSent(!r.sent);
+      if (r.sent) setSentTo(r.to);
+    },
   });
   const confirm = useMutation({ meta: { silentError: true }, mutationFn: () => eligibilityApi.confirm('email', code.trim()), onSuccess: onDone });
 
@@ -69,10 +76,14 @@ function VerifyEmail({ email, onDone }: { email?: string; onDone: () => void }) 
             <p className="break-words text-sm text-muted-foreground">We’ll send a 6-digit code to {email ?? 'your email'}.</p>
           </div>
         </div>
-        {!send.isSuccess ? (
+        {notSent && (
+          <p role="alert" className="text-sm text-destructive">We couldn’t send the code just now. Wait a few minutes, then press Send code again.</p>
+        )}
+        {!send.isSuccess || notSent ? (
           <Button className="w-full sm:w-auto" loading={send.isPending} onClick={() => send.mutate()}>Send code</Button>
         ) : (
           <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (code.trim().length === 6) confirm.mutate(); }}>
+            {sentTo && <p className="text-sm text-muted-foreground">Code sent to {sentTo}. It can take a minute; check spam too.</p>}
             {devCode && <p className="rounded-xl bg-warning/10 p-3 text-sm">Email isn’t set up on this server, so here’s your code: <span className="font-mono font-bold">{devCode}</span></p>}
             <Field label="Code" htmlFor="code" error={confirm.isError ? failMessage(confirm.error, 'That code didn’t work') : undefined}>
               <Input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />

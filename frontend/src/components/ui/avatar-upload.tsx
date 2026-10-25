@@ -6,6 +6,7 @@ import { Camera, Loader2, Trash2 } from 'lucide-react';
 import { hostApi } from '@/features/host/api';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils/cn';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 /**
  * Profile photo picker: presign → PUT the bytes → hand back the public URL.
@@ -76,7 +77,7 @@ export function AvatarUpload({
       notify({
         tone: 'error',
         title: 'Photo upload failed',
-        description: err instanceof Error ? err.message : 'Please try again.',
+        description: err instanceof Error ? safeMessage(err.message) : 'Please try again.',
       });
     } finally {
       setBusy(false);

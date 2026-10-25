@@ -11,6 +11,7 @@ import { useInspection } from '../web/features/trips/hooks';
 import { formatDateTime } from '../web/lib/utils/format';
 import { ApiError } from '../web/lib/api/types';
 import { pickPhotos, uploadPhotos } from '../uploads';
+import { safeMessage } from '../web/lib/utils/safe-message';
 
 const GROUPS = [
   { id: 'walkaround', title: 'Walk-around' },
@@ -77,7 +78,7 @@ export function InspectionPhotos({ bookingId, phase }: { bookingId: string; phas
         qc.invalidateQueries({ queryKey: ['host-trip'] }),
       ]);
     } catch (err) {
-      toast({ tone: 'error', title: err instanceof ApiError || err instanceof Error ? err.message : 'That photo didn’t save. Try again.' });
+      toast({ tone: 'error', title: err instanceof ApiError || err instanceof Error ? safeMessage(err.message) : 'That photo didn’t save. Try again.' });
     } finally {
       setBusy(null);
     }

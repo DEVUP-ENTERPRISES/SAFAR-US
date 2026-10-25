@@ -20,6 +20,7 @@ import { US_STATES } from '@/lib/data/us-states';
 import { ApiError } from '@/lib/api/types';
 import { INSURER_STATUS, insurerApi, type InsurerApplicationInput } from '@/features/insurers/api';
 import { ErrorState } from '@/components/ui/states';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 const STEPS = [
   { icon: FileCheck2, title: 'Your company', body: 'Tell us who you are and where you are licensed, and upload your licence.' },
@@ -60,7 +61,7 @@ export default function ApplyPage() {
       const [up] = await uploadFiles('insurance', [file]);
       set('licenceDoc', { url: up.url, key: up.key });
     } catch (e) {
-      toast({ tone: 'error', title: e instanceof Error ? e.message : 'Upload failed' });
+      toast({ tone: 'error', title: e instanceof Error ? safeMessage(e.message) : 'Upload failed' });
     } finally {
       setUploading(false);
     }

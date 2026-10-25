@@ -34,6 +34,7 @@ import { DeliveryLocationsEditor } from '@/features/vehicles/components/delivery
 import { VehicleHistory } from '@/features/vehicles/components/vehicle-history';
 import type { DeliveryLocation } from '@/features/vehicles/types';
 import { detailsForm, detailsPatch, fmtRange, groupRanges, listingStatusText, tripPrefsForm, tripPrefsPatch, type DetailsForm, type TripPrefsForm } from '@/features/vehicles/listing-form';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 type Panel = null | 'pricing' | 'photos' | 'availability' | 'details' | 'safety' | 'location' | 'trip';
 const PANELS: Panel[] = ['pricing', 'photos', 'availability', 'details', 'safety', 'location', 'trip'];
@@ -149,7 +150,7 @@ export default function ManageListingPage() {
       notify({
         tone: 'error',
         title: 'Photo upload failed',
-        description: err instanceof Error ? err.message : 'Please try again.',
+        description: err instanceof Error ? safeMessage(err.message) : 'Please try again.',
       });
     } finally {
       setUploading(false);

@@ -20,6 +20,7 @@ import { ApiError } from '@/lib/api/types';
 import { SignedCopies } from '~/components/portal/signed-copies';
 import { IntakeReports } from '~/components/portal/intake-reports';
 import { DOC_CATEGORY_LABEL, EXPIRY_WARNING_DAYS, PARTNER_DOC_CATEGORIES, daysUntil, type PartnerDocCategory } from '@/features/asset-partners/status';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 /**
  * The partner's own paperwork: insurance, registration, title.
@@ -69,7 +70,7 @@ export default function PartnerDocumentsPage() {
     onError: (e) =>
       toast({
         tone: 'error',
-        title: e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Upload failed',
+        title: e instanceof ApiError ? e.message : e instanceof Error ? safeMessage(e.message) : 'Upload failed',
       }),
   });
 

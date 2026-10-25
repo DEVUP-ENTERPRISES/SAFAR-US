@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { loadStripeForKey, useStripePublishableKey } from '@/features/payments/stripe-key';
 import { api } from '@/lib/api/client';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 /**
  * Adding a real card.
@@ -62,7 +63,7 @@ export function AddCard({ onSaved }: { onSaved?: () => void }) {
       }
       setClientSecret(r.clientSecret);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not start card setup');
+      setError(e instanceof Error ? safeMessage(e.message) : 'Could not start card setup');
     } finally {
       setStarting(false);
     }
@@ -145,7 +146,7 @@ function CardForm({ onSaved, onCancel }: { onSaved?: () => void; onCancel: () =>
       onSaved?.();
       onCancel();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save that card');
+      setError(e instanceof Error ? safeMessage(e.message) : 'Could not save that card');
     } finally {
       setBusy(false);
     }
