@@ -712,12 +712,27 @@ export interface ReferralStats {
 }
 
 /** One booking for staff: trip, car, host and who booked it (identity summary only, photos open separately). */
+type AdminMoney = { amount: number; currency: string };
+
 export interface AdminBookingOverview {
   booking: {
     id: string; code: string; status: string; period: { start: string; end: string }; total?: { amount: number; currency: string };
     createdAt?: string; pickupVerifiedAt?: string;
     identityCheck: { result: 'match' | 'mismatch'; at: string; by: string; note?: string; clearedAt?: string } | null;
+    instantBook: boolean;
+    cancellationPolicy?: string;
+    extensions: number;
+    delivery: { mode: string; address: string; flightNumber?: string } | null;
+    additionalDrivers: string[];
   };
+  price: {
+    days: number; base: AdminMoney; discount?: AdminMoney; cleaningFee?: AdminMoney; delivery?: AdminMoney; addOnsTotal?: AdminMoney;
+    protection?: AdminMoney; protectionPlan?: string; serviceFee?: AdminMoney; tax?: AdminMoney; taxTotal?: AdminMoney;
+    total: AdminMoney; hostEarnings: AdminMoney; commission: AdminMoney;
+  } | null;
+  payments: { id: string; type: string; amount: number; currency: string; captured: number; refunded: number; wallet: number; status: string; releasedReason?: string; createdAt: string }[];
+  cancellation: { role?: string; at: string; reason?: string; refund: AdminMoney; charged?: AdminMoney } | null;
+  history: { from: string | null; to: string; at: string; reason?: string }[];
   trip: { status: string; startedAt?: string; returnedAt?: string } | null;
   vehicle: { id: string; name: string; plate?: string } | null;
   host: { id: string; name: string; email?: string; phone?: string };

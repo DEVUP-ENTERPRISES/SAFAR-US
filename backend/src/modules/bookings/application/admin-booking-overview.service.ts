@@ -3,6 +3,7 @@ import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { HostModel } from '../../hosts/infrastructure/host.model';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { TripModel } from '../../trips/infrastructure/trip.model';
+import { PaymentModel } from '../../payments/infrastructure/payment.model';
 import { guestIdentityService, ID_PHOTO_LABEL } from '../../kyc/application/guest-identity.service';
 import type { IdPhoto } from '../../kyc/infrastructure/identity.provider';
 import { timedViewService, viewerStamp, stampForView, type Viewer } from '../../media/application/timed-view.service';
@@ -21,13 +22,19 @@ export const adminBookingOverviewService = {
   async overview(bookingId: string, canSeeId = false) {
     const b = await BookingModel.findById(bookingId).lean<BookingDoc>();
     if (!b) throw new NotFoundError('Booking');
-    const [vehicle, host, guest, trip, tripsTaken] = await Promise.all([
+    const [vehicle, host, guest, trip, tripsTaken, payments] = await Promise.all([
       VehicleModel.findById(b.vehicleId).select('year make model registrationNumber').lean<{ year?: number; make?: string; model?: string; registrationNumber?: string }>(),
       HostModel.findById(b.hostId).select('displayName userId').lean<{ displayName: string; userId: string }>(),
       UserModel.findById(b.guestId).select('firstName lastName email phone createdAt').lean<Person>(),
       TripModel.findOne({ bookingId }).select('status handover.at return.at').lean<{ status: string; handover?: { at?: Date }; return?: { at?: Date } }>(),
       BookingModel.countDocuments({ guestId: b.guestId, status: 'completed' }),
+      PaymentModel.find({ bookingId, deletedAt: null })
+        .sort({ createdAt: 1 })
+        .limit(50)
+        .select('type amount currency capturedAmount refundedAmount walletApplied status releasedReason createdAt')
+        .lean<{ _id: string; type: string; amount: number; currency: string; capturedAmount: number; refundedAmount: number; walletApplied?: number; status: string; releasedReason?: string; createdAt: Date }[]>(),
     ]);
+    const pb = b.priceBreakdown;
     const hostUser = host ? await UserModel.findById(host.userId).select('firstName lastName email phone').lean<Person>() : null;
     const identity = await guestIdentityService.summary(b.guestId);
     return {
@@ -35,7 +42,26 @@ export const adminBookingOverviewService = {
         id: b._id, code: b.code, status: b.status, period: b.period, total: b.priceBreakdown?.total,
         createdAt: (b as { createdAt?: Date }).createdAt, pickupVerifiedAt: b.pickupVerifiedAt,
         identityCheck: b.identityCheck ?? null,
+        instantBook: !!b.instantBook,
+        cancellationPolicy: b.cancellationPolicy,
+        extensions: b.extensions?.length ?? 0,
+        delivery: b.delivery?.address ? { mode: b.delivery.mode, address: b.delivery.address, flightNumber: b.delivery.flightNumber } : null,
+        additionalDrivers: (b.additionalDrivers ?? []).map((d) => d.name),
       },
+      price: pb
+        ? {
+            days: pb.days, base: pb.base, discount: pb.discount, cleaningFee: pb.cleaningFee, delivery: pb.delivery, addOnsTotal: pb.addOnsTotal,
+            protection: pb.protection, protectionPlan: pb.protectionLabel ?? pb.protectionPlan, serviceFee: (pb as { serviceFee?: typeof pb.tax }).serviceFee, tax: pb.tax, taxTotal: (pb as { taxTotal?: typeof pb.tax }).taxTotal,
+            total: pb.total, hostEarnings: pb.hostEarnings, commission: pb.commission,
+          }
+        : null,
+      // Amounts and states only; card details never leave the payment processor.
+      payments: payments.map((p) => ({
+        id: p._id, type: p.type, amount: p.amount, currency: p.currency, captured: p.capturedAmount, refunded: p.refundedAmount,
+        wallet: p.walletApplied ?? 0, status: p.status, releasedReason: p.releasedReason, createdAt: p.createdAt,
+      })),
+      cancellation: b.cancellation ? { role: b.cancellation.role, at: b.cancellation.at, reason: b.cancellation.reason, refund: b.cancellation.refund, charged: b.cancellation.charged } : null,
+      history: (b.statusHistory ?? []).slice(-30).reverse().map((h) => ({ from: h.from, to: h.to, at: h.at, reason: h.reason })),
       trip: trip ? { status: trip.status, startedAt: trip.handover?.at, returnedAt: trip.return?.at } : null,
       vehicle: vehicle ? { id: b.vehicleId, name: [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' '), plate: vehicle.registrationNumber } : null,
       host: { id: b.hostId, name: host?.displayName ?? nameOf(hostUser), email: hostUser?.email, phone: hostUser?.phone },
