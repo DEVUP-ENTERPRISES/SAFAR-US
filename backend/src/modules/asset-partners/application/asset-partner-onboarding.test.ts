@@ -125,7 +125,7 @@ describe('getting started on the partner portal', () => {
 
     const pdf = await assetPartnerAgreementService.signedPdf(signed, 'agreement');
     expect(pdf.pdf.subarray(0, 4).toString()).toBe('%PDF');
-    expect(pdf.filename).toBe('CatoDrive-Asset-Partner-Agreement-Jordan-Ramirez.pdf');
+    expect(pdf.filename).toMatch(/^CatoDrive-Asset-Partner-Agreement-Jordan-Ramirez-CD-ENV-[A-Z0-9]{4}-[A-Z0-9]{4}.pdf$/);
 
     const docsStep = await assetPartnerApplicationService.onboarding(userId);
     expect(docsStep.stage).toBe('documents');

@@ -92,6 +92,10 @@ export interface PlatformConfigDoc {
     payoutMethod: 'check' | 'zelle';
     /** Business days a partner has to object to an intake report before it stands as written. */
     intakeObjectionDays: number;
+    /** Who signs partner agreements for CatoDrive; printed on every sealed document. */
+    countersignerName: string;
+    countersignerTitle: string;
+    countersignerOrganisation: string;
   };
   /**
    * The platform's service fee, charged to the GUEST on top of the trip.
@@ -685,6 +689,9 @@ const schema = new Schema<PlatformConfigDoc>(
       payoutDayOfMonth: { type: Number, default: 5 }, // "on the 5th"
       payoutMethod: { type: String, default: 'check', enum: ['check', 'zelle'] },
       intakeObjectionDays: { type: Number, default: 3 },
+      countersignerName: { type: String, default: '' },
+      countersignerTitle: { type: String, default: '' },
+      countersignerOrganisation: { type: String, default: 'CatoDrive' },
     },
     serviceFee: {
       bps: { type: Number, default: 0 }, // off until an admin sets it

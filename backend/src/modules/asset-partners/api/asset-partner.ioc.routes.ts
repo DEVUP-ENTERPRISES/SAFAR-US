@@ -11,6 +11,10 @@ import { assetPartnerPortfolioService } from '../application/asset-partner-portf
 import { assetPartnerMaintenanceService } from '../application/asset-partner-maintenance.service';
 import { DocumentModel } from '../../documents/infrastructure/document.model';
 import { AssetPartnerApplicationModel } from '../infrastructure/asset-partner-application.model';
+import { assetPartnerEnvelopeService } from '../application/asset-partner-envelope.service';
+import { assetPartnerTermsService } from '../application/asset-partner-terms.service';
+import { assetPartnerAmendmentService } from '../application/asset-partner-amendment.service';
+import type { SignatureEnvelopeDoc } from '../infrastructure/signature-envelope.model';
 import { storageGateway } from '../../../infrastructure/storage/storage.provider';
 import { notificationService } from '../../notifications/application/notification.service';
 import { NotFoundError, ValidationError } from '../../../core/errors/app-error';
@@ -45,7 +49,7 @@ router.get(
 router.post(
   '/asset-partner-agreements',
   authorize('host:manage'),
-  validate({ body: z.object({ kind: z.enum(['agreement', 'nda']).default('agreement'), title: z.string().trim().min(3).max(160), body: z.string().trim().min(50).max(100_000) }) }),
+  validate({ body: z.object({ kind: z.enum(['agreement', 'nda', 'amendment']).default('agreement'), title: z.string().trim().min(3).max(160), body: z.string().trim().min(50).max(100_000) }) }),
   asyncHandler(async (req, res) => {
     sendCreated(res, await assetPartnerAgreementService.publish(req.principal!.userId, req.body));
   }),
@@ -63,6 +67,87 @@ router.get(
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'private, no-store');
     res.send(pdf);
+  }),
+);
+
+/** Every sealed signing for a partner, with its history. */
+router.get(
+  '/asset-partners/:id/envelopes',
+  authorize('admin:read'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerEnvelopeService.list(req.params.id));
+  }),
+);
+
+router.get(
+  '/signed-documents/:documentId',
+  authorize('admin:read'),
+  validate({ params: z.object({ documentId: z.string().regex(/^CD-DOC-[A-Z0-9]{4}-[A-Z0-9]{4}$/) }) }),
+  asyncHandler(async (req, res) => {
+    const { pdf, filename } = await assetPartnerEnvelopeService.pdf(req.params.documentId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(pdf);
+  }),
+);
+
+/** Send the partner their signed copies again. */
+router.post(
+  '/asset-partners/:id/envelopes/:envelopeId/resend',
+  authorize('host:manage'),
+  asyncHandler(async (req, res) => {
+    const envelope = (await assetPartnerEnvelopeService.list(req.params.id)).find((e) => e.envelopeId === req.params.envelopeId);
+    if (!envelope) throw new NotFoundError('Envelope');
+    await assetPartnerEnvelopeService.sendCopy(envelope as unknown as SignatureEnvelopeDoc);
+    sendSuccess(res, { sent: true });
+  }),
+);
+
+/** Every version of a partner's terms, and the change waiting for their signature if any. */
+router.get(
+  '/asset-partners/:id/terms-history',
+  authorize('admin:read'),
+  asyncHandler(async (req, res) => {
+    const [history, pending] = await Promise.all([assetPartnerTermsService.history(req.params.id), assetPartnerTermsService.pending(req.params.id)]);
+    sendSuccess(res, { history, pending });
+  }),
+);
+
+/** New terms for a partner who has signed: they take effect once the partner signs the amendment. */
+router.post(
+  '/asset-partners/:id/terms-change',
+  authorize('host:manage'),
+  validate({
+    body: z.object({
+      managementFeeBps: z.number().int().min(0).max(10_000).optional(),
+      insuranceMonthlyCents: z.number().int().min(0).optional(),
+      detailingMonthlyCents: z.number().int().min(0).optional(),
+      deductibleCapCents: z.number().int().min(0).optional(),
+      maintenanceApprovalCents: z.number().int().min(0).optional(),
+      payoutDayOfMonth: z.number().int().min(1).max(28).optional(),
+      requestedFrom: z.string().datetime({ offset: true }).optional(),
+      reason: z.string().trim().max(500).optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    const { requestedFrom, reason, ...patch } = req.body;
+    sendCreated(
+      res,
+      await assetPartnerAmendmentService.request(req.params.id, patch, {
+        requestedFrom: requestedFrom ? new Date(requestedFrom) : undefined,
+        reason,
+        actorId: req.principal!.userId,
+      }),
+    );
+  }),
+);
+
+router.post(
+  '/asset-partners/:id/terms-change/cancel',
+  authorize('host:manage'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerTermsService.close(req.params.id, 'cancelled', req.principal!.userId));
   }),
 );
 

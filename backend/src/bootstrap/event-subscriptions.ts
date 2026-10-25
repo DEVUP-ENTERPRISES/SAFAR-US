@@ -1105,6 +1105,14 @@ export function registerEventSubscribers(): void {
     const p = e.payload as { bookingId: string; hostId: string };
     await notifyHost(p.hostId, 'payout.scheduled', 'Earnings on the way', 'Your earnings from a completed trip are scheduled for payout.', { bookingId: p.bookingId });
   });
+  eventBus.subscribe(EVENTS.ASSET_PARTNER_TERMS_SIGNED, async (e) => {
+    const p = e.payload as { partnerId: string; name: string; envelopeId: string; effectiveFrom: Date | string };
+    await notifyStaff('asset_partner.terms_signed', 'Partner signed new terms', `${p.name} signed the change to their terms (${p.envelopeId}). It applies from ${fmtDay(p.effectiveFrom)}.`, p);
+  });
+  eventBus.subscribe(EVENTS.ASSET_PARTNER_TERMS_DECLINED, async (e) => {
+    const p = e.payload as { partnerId: string; name: string };
+    await notifyStaff('asset_partner.terms_declined', 'Partner declined new terms', `${p.name} declined the proposed change to their terms. Their current terms continue.`, p);
+  });
   eventBus.subscribe(EVENTS.BOOKING_SHORTENED, async (e) => {
     const p = e.payload as { bookingId: string; newEnd: Date | string };
     await postSystemNote(p.bookingId, `Trip shortened — the new return date is ${fmtDay(p.newEnd)}.`);

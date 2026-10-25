@@ -7,6 +7,7 @@ import { AuthGuard } from '@/components/layout/auth-guard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { assetPartnerApi } from '@/features/asset-partners/api';
 import { PartnerSidebar } from '~/components/portal/partner-sidebar';
+import { AmendmentBanner } from '~/components/portal/amendment-banner';
 
 /**
  * The Asset Partner portal shell.
@@ -50,7 +51,7 @@ export default function AssetPartnerPortalLayout({ children }: { children: React
       */}
       <div className="flex gap-8 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
         <PartnerSidebar />
-        <div className="min-w-0 flex-1">{children}</div>
+        <div className="min-w-0 flex-1"><AmendmentBanner />{children}</div>
       </div>
       </ReadyGate>
     </AuthGuard>

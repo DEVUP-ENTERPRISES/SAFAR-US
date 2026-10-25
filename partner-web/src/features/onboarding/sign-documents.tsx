@@ -64,12 +64,22 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
   const [mailingAddress, setMailingAddress] = useState(prefill.partner_address ?? '');
   const [signedName, setSignedName] = useState('');
   const [accepts, setAccepts] = useState({ agreement: false, nda: false, deductibles: false });
-  const markRead = useCallback(() => setRead((r) => (r[tab] ? r : { ...r, [tab]: true })), [tab]);
+  const markRead = useCallback(() => setRead((r) => {
+    if (r[tab]) return r;
+    void assetPartnerApi.signingEvent('onboarding', tab === 'agreement' ? 'read_agreement' : 'read_nda');
+    return { ...r, [tab]: true };
+  }), [tab]);
+  // The audit trail starts when the documents are actually in front of the partner.
+  const docsShown = !!data.agreement && !!data.nda;
+  useEffect(() => {
+    if (docsShown) void assetPartnerApi.signingEvent('onboarding', 'opened');
+  }, [docsShown]);
 
   const sign = useMutation({
     meta: { silentError: true },
-    mutationFn: () =>
-      assetPartnerApi.signDocuments({
+    mutationFn: async () => {
+      await assetPartnerApi.signingEvent('onboarding', 'consented');
+      return assetPartnerApi.signDocuments({
         agreementVersion: data.agreement!.version,
         ndaVersion: data.nda!.version,
         signedName,
@@ -79,7 +89,8 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
         acceptAgreement: true,
         acceptNda: true,
         acknowledgeDeductibles: true,
-      }),
+      });
+    },
     onSuccess: onDone,
   });
 

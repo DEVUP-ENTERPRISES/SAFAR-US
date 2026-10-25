@@ -105,6 +105,9 @@ router.put(
           payoutDayOfMonth: z.number().int().min(1).max(28).optional(),
           payoutMethod: z.enum(['check', 'zelle']).optional(),
           intakeObjectionDays: z.number().int().min(1).max(30).optional(),
+          countersignerName: z.string().trim().max(120).optional(),
+          countersignerTitle: z.string().trim().max(120).optional(),
+          countersignerOrganisation: z.string().trim().max(120).optional(),
         })
         .optional(),
       // Charged to the guest on top; commission above comes out of host pay.

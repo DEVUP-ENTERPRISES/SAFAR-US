@@ -21,7 +21,8 @@ import { formatDate } from '@/lib/utils/format';
 import { PartnersNav } from '~/features/partners/partners-nav';
 
 const manage = partnerManageApi('/ioc');
-const DEFAULT_TITLE: Record<AgreementKind, string> = { agreement: 'CatoDrive Asset Partner Agreement', nda: 'CatoDrive Non-Disclosure Agreement' };
+const DEFAULT_TITLE: Record<AgreementKind, string> = { agreement: 'CatoDrive Asset Partner Agreement', nda: 'CatoDrive Non-Disclosure Agreement', amendment: 'Amendment to the Asset Partner Agreement' };
+const KIND_LABEL: Record<AgreementKind, string> = { agreement: 'Asset Partner Agreement', nda: 'NDA', amendment: 'Rate change (optional)' };
 
 export default function PartnerAgreementPage() {
   const qc = useQueryClient();
@@ -32,7 +33,11 @@ export default function PartnerAgreementPage() {
   const placeholders = useQuery({ queryKey: ['ioc-agreement-placeholders'], queryFn: () => manage.placeholders(), staleTime: Infinity });
   const versions = (q.data ?? []).filter((v) => (v.kind ?? 'agreement') === kind);
   const current = versions[0];
-  const published = { agreement: (q.data ?? []).some((v) => (v.kind ?? 'agreement') === 'agreement'), nda: (q.data ?? []).some((v) => v.kind === 'nda') };
+  const published = {
+    agreement: (q.data ?? []).some((v) => (v.kind ?? 'agreement') === 'agreement'),
+    nda: (q.data ?? []).some((v) => v.kind === 'nda'),
+    amendment: (q.data ?? []).some((v) => v.kind === 'amendment'),
+  };
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [copied, setCopied] = useState('');
@@ -95,13 +100,18 @@ export default function PartnerAgreementPage() {
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-            {(['agreement', 'nda'] as const).map((k) => (
+            {(['agreement', 'nda', 'amendment'] as const).map((k) => (
               <Chip key={k} active={kind === k} onClick={() => setKind(k)}>
                 {published[k] && <Check className="me-1 h-3.5 w-3.5" />}
-                {k === 'agreement' ? 'Asset Partner Agreement' : 'NDA'}
+                {KIND_LABEL[k]}
               </Chip>
             ))}
           </div>
+          {kind === 'amendment' && (
+            <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">
+              The text a partner signs when you change their rate after they have signed. If you never publish one, a standard text is used. Use {'{{changes_table}}'} where the list of old and new terms should go and {'{{changes_effective}}'} for the start date.
+            </p>
+          )}
 
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_20rem]">
             <Card>

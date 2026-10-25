@@ -9,7 +9,11 @@ import { assetPartnerIntakeService } from '../application/asset-partner-intake.s
 import { createApplicationSchema, portalApplicationSchema, signAgreementSchema } from '../dto/asset-partner-application.schemas';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate, authenticateOptional } from '../../../shared/middleware/authenticate';
-import { authLimiter } from '../../../shared/middleware/auth-rate-limit';
+import { authLimiter, lookupLimiter } from '../../../shared/middleware/auth-rate-limit';
+import { assetPartnerEnvelopeService } from '../application/asset-partner-envelope.service';
+import { assetPartnerAmendmentService } from '../application/asset-partner-amendment.service';
+import { assetPartnerTermsService } from '../application/asset-partner-terms.service';
+import { ENVELOPE_ID_PATTERN } from '../domain/envelope-id';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import { ForbiddenError } from '../../../core/errors/app-error';
@@ -145,6 +149,114 @@ router.get(
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'private, no-store');
     res.send(pdf);
+  }),
+);
+
+const partnerOf = async (userId: string) => {
+  const partner = await assetPartnerService.getByUserId(userId);
+  if (!partner) throw new ForbiddenError('Not an Asset Partner');
+  return partner;
+};
+const ctxOf = (req: { ip?: string; header(name: string): string | undefined }) => ({ ip: req.ip, userAgent: req.header('user-agent') });
+const sendPdf = (res: import('express').Response, pdf: Buffer, filename: string) => {
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.send(pdf);
+};
+
+/** Steps the signer takes before signing (opened, read each document to the end, agreed): the audit trail. */
+router.post(
+  '/asset-partners/me/signing-events',
+  authenticate,
+  validate({
+    body: z.object({
+      purpose: z.enum(['onboarding', 'amendment']),
+      type: z.enum(['opened', 'read_agreement', 'read_nda', 'read_amendment', 'consented']),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    const partner = await partnerOf(req.principal!.userId);
+    const termsVersionId = req.body.purpose === 'amendment' ? (await assetPartnerTermsService.pending(partner._id))?._id : undefined;
+    if (req.body.purpose === 'amendment' && !termsVersionId) {
+      sendSuccess(res, { recorded: false });
+      return;
+    }
+    await assetPartnerEnvelopeService.recordEvent(partner._id, req.body.purpose, req.body.type, ctxOf(req), { termsVersionId });
+    sendSuccess(res, { recorded: true });
+  }),
+);
+
+/** Every completed signing for this partner: envelope IDs, documents and history. */
+router.get(
+  '/asset-partners/me/envelopes',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const partner = await partnerOf(req.principal!.userId);
+    sendSuccess(res, await assetPartnerEnvelopeService.list(partner._id));
+  }),
+);
+
+router.get(
+  '/asset-partners/me/signed-documents/:documentId',
+  authenticate,
+  validate({ params: z.object({ documentId: z.string().regex(/^CD-DOC-[A-Z0-9]{4}-[A-Z0-9]{4}$/) }) }),
+  asyncHandler(async (req, res) => {
+    const partner = await partnerOf(req.principal!.userId);
+    const { pdf, filename } = await assetPartnerEnvelopeService.pdf(req.params.documentId, partner._id);
+    sendPdf(res, pdf, filename);
+  }),
+);
+
+/** A change to the partner's terms waiting for their signature, as they will read it. */
+router.get(
+  '/asset-partners/me/amendment',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const partner = await partnerOf(req.principal!.userId);
+    sendSuccess(res, await assetPartnerAmendmentService.forPartner(partner));
+  }),
+);
+
+router.post(
+  '/asset-partners/me/amendment/sign',
+  authenticate,
+  validate({ body: z.object({ versionId: z.string().min(1), signedName: z.string().trim().min(2).max(120), templateVersion: z.number().int().min(0) }) }),
+  asyncHandler(async (req, res) => {
+    const partner = await partnerOf(req.principal!.userId);
+    sendSuccess(res, await assetPartnerAmendmentService.sign(partner, req.body, ctxOf(req)));
+  }),
+);
+
+router.post(
+  '/asset-partners/me/amendment/decline',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const partner = await partnerOf(req.principal!.userId);
+    await assetPartnerAmendmentService.decline(partner, ctxOf(req));
+    sendSuccess(res, { declined: true });
+  }),
+);
+
+/** Public: is this envelope genuine? Answers with initials and dates only. */
+router.get(
+  '/agreements/verify/:envelopeId',
+  lookupLimiter,
+  validate({ params: z.object({ envelopeId: z.string().trim().toUpperCase().regex(ENVELOPE_ID_PATTERN) }) }),
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    sendSuccess(res, await assetPartnerEnvelopeService.verify(req.params.envelopeId));
+  }),
+);
+
+/** Public: does this file's fingerprint (computed in the visitor's browser) match a sealed document? */
+router.get(
+  '/agreements/verify-file/:sha256',
+  lookupLimiter,
+  validate({ params: z.object({ sha256: z.string().regex(/^[a-f0-9]{64}$/) }) }),
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    sendSuccess(res, await assetPartnerEnvelopeService.verifyFile(req.params.sha256));
   }),
 );
 

@@ -237,6 +237,16 @@ export default function AdminAssetPartnerTermsPage() {
                 })}
               />
             </Field>
+
+            <Field label="Countersigned by (name)" hint="Printed as CatoDrive’s signature on every agreement a partner signs from now on. Blank uses the company name.">
+              <Input maxLength={120} value={ap.countersignerName ?? ''} onChange={(e) => set((d) => { d.assetPartner.countersignerName = e.target.value; })} />
+            </Field>
+            <Field label="Countersigner’s title" hint="e.g. Chief Executive Officer. Blank shows “Authorised signatory”.">
+              <Input maxLength={120} value={ap.countersignerTitle ?? ''} onChange={(e) => set((d) => { d.assetPartner.countersignerTitle = e.target.value; })} />
+            </Field>
+            <Field label="Company name on agreements">
+              <Input maxLength={120} value={ap.countersignerOrganisation ?? 'CatoDrive'} onChange={(e) => set((d) => { d.assetPartner.countersignerOrganisation = e.target.value; })} />
+            </Field>
           </CardContent>
         </Card>
 

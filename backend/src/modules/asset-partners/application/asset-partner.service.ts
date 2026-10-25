@@ -13,6 +13,7 @@ import { logger } from '../../../infrastructure/logging/logger';
 import { AssetPartnerApplicationModel } from '../infrastructure/asset-partner-application.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { DocumentModel } from '../../documents/infrastructure/document.model';
+import { assetPartnerTermsService, TERM_FIELDS } from './asset-partner-terms.service';
 
 export type PartnerDocCategory = 'w9' | 'kyc' | 'title' | 'insurance' | 'registration';
 
@@ -287,18 +288,14 @@ export class AssetPartnerService {
    * overrides laid on top. One resolver, so the dashboard, the statement and
    * the admin view can never quote a partner different numbers.
    */
-  async termsFor(partner: AssetPartnerDoc): Promise<ResolvedPartnerTerms> {
+  /** The terms in force at `at` (now by default): the signed version then, or the draft before signing. */
+  async termsFor(partner: AssetPartnerDoc, at = new Date()): Promise<ResolvedPartnerTerms> {
     const d = (await platformConfigService.get()).assetPartner;
-    const o = partner.terms ?? {};
+    const t = await assetPartnerTermsService.at(partner, at);
     return {
-      managementFeeBps: o.managementFeeBps ?? d.managementFeeBps,
-      insuranceMonthlyCents: o.insuranceMonthlyCents ?? d.insuranceMonthlyCents,
-      detailingMonthlyCents: o.detailingMonthlyCents ?? d.detailingMonthlyCents,
-      deductibleCapCents: o.deductibleCapCents ?? d.deductibleCapCents,
-      maintenanceApprovalCents: o.maintenanceApprovalCents ?? d.maintenanceApprovalCents,
-      payoutDayOfMonth: o.payoutDayOfMonth ?? d.payoutDayOfMonth,
-      payoutMethod: o.payoutMethod ?? partner.payoutDetails?.method ?? d.payoutMethod,
-      negotiated: Object.values(o).some((v) => v !== undefined && v !== null),
+      ...t,
+      payoutMethod: partner.terms?.payoutMethod ?? partner.payoutDetails?.method ?? d.payoutMethod,
+      negotiated: TERM_FIELDS.some((k) => t[k] !== d[k]),
     };
   }
 
@@ -329,9 +326,16 @@ export class AssetPartnerService {
     return this.getById(partnerId);
   }
 
-  /** Negotiate terms for one partner. Undefined fields fall back to platform. */
+  /**
+   * Negotiate terms for one partner. Before they sign, this edits the draft they will sign. After they
+   * have signed, money terms can only change through an amendment they sign (assetPartnerTermsService);
+   * here only the payout method, which is their own choice, still applies directly.
+   */
   async setTerms(partnerId: string, terms: AssetPartnerDoc['terms']): Promise<AssetPartnerDoc> {
-    await this.getById(partnerId); // 404s if unknown
+    const partner = await this.getById(partnerId);
+    if (partner.agreement?.signedAt && TERM_FIELDS.some((k) => terms?.[k] !== undefined && terms[k] !== partner.terms?.[k])) {
+      throw new ConflictError('This partner has signed. Send the new terms as a change for them to sign.', 'SIGNED_TERMS');
+    }
     await AssetPartnerModel.updateOne({ _id: partnerId }, { terms });
     logger.info({ partnerId, terms }, 'Asset Partner terms updated');
     return this.getById(partnerId);

@@ -71,6 +71,8 @@ export const EVENTS = {
   VEHICLE_UNAVAILABLE: 'vehicle.unavailable',
   VERIFICATION_CHECK_PASSED: 'verification.check_passed',
   WALLET_TOPPED_UP: 'wallet.topped_up',
+  ASSET_PARTNER_TERMS_SIGNED: 'asset_partner.terms_signed',
+  ASSET_PARTNER_TERMS_DECLINED: 'asset_partner.terms_declined',
   PLATFORM_CONFIG_UPDATED: 'platform.config_updated',
 
   PAYOUT_SCHEDULED: 'payout.scheduled',
