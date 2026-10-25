@@ -152,6 +152,22 @@ export class WalletService {
     }
   }
 
+  /** A platform-funded credit (e.g. the bonus for keeping a refund as credit); a retry under the same txnId credits once. */
+  async grantCredit(userId: string, amount: number, opts: { txnId: string; refType: string; refId: string; description: string }): Promise<void> {
+    if (!Number.isInteger(amount) || amount <= 0) return;
+    await ledgerService.post({
+      txnId: opts.txnId,
+      refType: opts.refType,
+      refId: opts.refId,
+      currency: 'USD',
+      description: opts.description,
+      legs: [
+        { account: Account.promoExpense(), direction: 'debit', amount },
+        { account: Account.userWallet(userId), direction: 'credit', amount },
+      ],
+    });
+  }
+
   // ── Admin / support ─────────────────────────────────────────────────
 
   /**

@@ -22,6 +22,7 @@ import { PickupCodeCard } from '@/features/trips/PickupCodeCard';
 import { SwapOfferCard } from '@/features/trips/SwapOfferCard';
 import { TripDocumentsCard } from '@/features/trips/TripDocumentsCard';
 import { TripProgressCard } from '@/features/trips/TripProgressCard';
+import { TripChangesCard } from '@/features/trips/TripChangesCard';
 
 const TONE: Record<string, BadgeTone> = { default: 'primary', success: 'success', warning: 'warning', destructive: 'destructive', muted: 'neutral' };
 
@@ -39,16 +40,6 @@ function BookingDetail({ id }: { id: string }) {
   const cancelPreview = useQuery({ queryKey: ['cancellation-preview', id], queryFn: () => bookingApi.cancellationPreview(id), enabled: !!booking.data && DETAIL_CANCELLABLE.includes(booking.data.status), retry: false });
   const settlement = useQuery({ queryKey: ['settlement', id], queryFn: () => claimsApi.settlement(id), enabled: booking.data?.status === 'completed', retry: false });
 
-  const cancel = useMutation({
-    meta: { silentError: true },
-    mutationFn: (reason: string) => bookingApi.cancel(id, reason),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['booking', id] });
-      void qc.invalidateQueries({ queryKey: ['bookings'] });
-      toast({ tone: 'success', title: 'Booking cancelled' });
-    },
-    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not cancel' }),
-  });
   const noShow = useMutation({
     meta: { silentError: true },
     mutationFn: () => bookingApi.noShow(id, 'host'),
@@ -85,19 +76,6 @@ function BookingDetail({ id }: { id: string }) {
   const canCancel = DETAIL_CANCELLABLE.includes(b.status);
   const canReportNoShow = b.status === 'paid' && !b.tripId && new Date(b.period.start).getTime() < Date.now();
 
-  const onCancel = async () => {
-    const preview = await bookingApi.cancellationPreview(id).catch(() => null);
-    const { ok, reason } = await confirm({
-      title: 'Cancel this trip?',
-      description: preview
-        ? `You’d be refunded ${formatMoney(preview.refund)} of ${formatMoney(preview.total)}.${preview.nonRefundable.amount > 0 ? ` We will charge you ${formatMoney(preview.nonRefundable)} for this cancellation.` : ''} This cannot be undone.`
-        : 'This cannot be undone.',
-      confirmLabel: 'Cancel trip',
-      tone: 'destructive',
-      reason: { label: 'Reason', placeholder: 'e.g. Plans changed', required: true },
-    });
-    if (ok && reason) cancel.mutate(reason);
-  };
   const onNoShow = async () => {
     const { ok } = await confirm({
       title: 'Report that the host didn’t show up?',
@@ -173,6 +151,7 @@ function BookingDetail({ id }: { id: string }) {
       {['paid', 'confirmed', 'in_progress'].includes(String(b.status)) ? <PickupCodeCard bookingId={id} /> : null}
       {b.status === 'paid' && !b.tripId ? <InspectionPhotos bookingId={id} phase="pre" /> : null}
 
+      <TripChangesCard booking={b} />
       <ExtensionHistory bookingId={id} extensions={b.extensions} />
       {['paid', 'in_progress'].includes(b.status) ? (
         <Card>
@@ -238,7 +217,7 @@ function BookingDetail({ id }: { id: string }) {
           ) : null}
           <Button title="Get help" variant="outline" onPress={() => router.push({ pathname: '/support', params: { bookingId: id } })} />
           {canReportNoShow ? <Button title="Host didn’t show up" variant="outline" loading={noShow.isPending} onPress={() => void onNoShow()} /> : null}
-          {canCancel ? <Button title="Cancel trip" variant="outline" icon={<XCircle size={18} color={c.foreground} />} loading={cancel.isPending} onPress={() => void onCancel()} /> : null}
+          {canCancel ? <Button title="Cancel or change trip" variant="outline" icon={<XCircle size={18} color={c.foreground} />} onPress={() => router.push(`/bookings/${id}/change`)} /> : null}
           {canCancel && cancelPreview.data ? (
             <Text variant="caption" tone="muted">
               {cancelPreview.data.nonRefundable.amount > 0 ? `If you cancel now, we will charge you ${formatMoney(cancelPreview.data.nonRefundable)} for this cancellation.` : 'If you cancel now, you get a full refund.'} Please refer{' '}

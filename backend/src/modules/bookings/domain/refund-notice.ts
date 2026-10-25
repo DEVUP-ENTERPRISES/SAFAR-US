@@ -9,6 +9,10 @@ export interface CancellationNoticeInput {
   explained?: RefundExplanation;
   toCard?: number;
   toWallet?: number;
+  /** Extra credit for keeping the refund with CatoDrive, on top of toWallet. */
+  creditBonus?: number;
+  /** Cancelled inside the free window right after booking. */
+  undo?: boolean;
   policyUrl?: string;
 }
 
@@ -36,7 +40,13 @@ export function cancellationNotice(n: CancellationNoticeInput): CancellationNoti
   const cur = n.currency;
   const where: string[] = [];
   if (n.toCard) where.push(`${money(n.toCard, cur)} goes back to your card and usually shows within 5–10 business days.`);
-  if (n.toWallet) where.push(`${money(n.toWallet, cur)} is back in your CatoDrive wallet now.`);
+  if (n.toWallet) {
+    where.push(
+      n.creditBonus
+        ? `${money(n.toWallet + n.creditBonus, cur)} is in your CatoDrive wallet now, including a ${money(n.creditBonus, cur)} bonus for keeping it as credit.`
+        : `${money(n.toWallet, cur)} is back in your CatoDrive wallet now.`,
+    );
+  }
   if (!where.length && n.refunded > 0) where.push('It usually reaches your card within 5–10 business days.');
   const policyLink = n.policyUrl ? ` Full policy: ${n.policyUrl}` : '';
 
@@ -52,6 +62,14 @@ export function cancellationNotice(n: CancellationNoticeInput): CancellationNoti
     ...(n.toCard ? [{ label: 'To your card', value: money(n.toCard, cur) }] : []),
     ...(n.toWallet ? [{ label: 'To your wallet', value: money(n.toWallet, cur) }] : []),
   ];
+
+  if (n.undo) {
+    return {
+      title: `Booking cancelled · full refund`,
+      body: `You cancelled right after booking, so you get everything back: ${money(n.refunded, cur)}. ${where.join(' ')}`.trim(),
+      facts,
+    };
+  }
 
   if (n.cancelledBy === 'host' || n.cancelledBy === 'system') {
     const who = n.cancelledBy === 'host' ? 'Your host' : 'CatoDrive';

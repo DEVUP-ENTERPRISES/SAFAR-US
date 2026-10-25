@@ -9,6 +9,9 @@ import { sendSuccess } from '../../../shared/http/api-response';
 import { adminBookingOverviewService } from '../../bookings/application/admin-booking-overview.service';
 import { guestIdentityCheckService } from '../../trips/application/guest-identity-check.service';
 import { viewerOf, noStore } from '../../../shared/http/viewer';
+import { tripChangeService } from '../../bookings/application/trip-change.service';
+import { storageGateway } from '../../../infrastructure/storage/storage.provider';
+import { NotFoundError } from '../../../core/errors/app-error';
 
 const router = Router();
 
@@ -22,6 +25,48 @@ router.get(
       skip: req.query.skip ? Number(req.query.skip) : undefined,
     });
     sendSuccess(res, result.items, 200, { total: result.total });
+  }),
+);
+
+/** Late cancellations guests asked us to review; a refund decision, so it sits with whoever can refund. */
+router.get(
+  '/bookings/exceptions',
+  authorize('payment:refund'),
+  validate({ query: z.object({ status: z.enum(['pending', 'decided']).default('pending') }) }),
+  asyncHandler(async (req, res) => {
+    noStore(res);
+    const status = (req.query as { status?: 'pending' | 'decided' }).status ?? 'pending';
+    sendSuccess(res, await tripChangeService.listExceptions(status));
+  }),
+);
+
+/** Short-lived links to the proof on one request; only files attached to that request can be opened here. */
+router.get(
+  '/bookings/:id/exception/proof',
+  authorize('payment:refund'),
+  asyncHandler(async (req, res) => {
+    noStore(res);
+    const booking = await bookingService.getDoc(req.params.id);
+    if (!booking.exception) throw new NotFoundError('Exception request');
+    const files = await Promise.all(
+      booking.exception.proofKeys.map(async (key) => ({ key, url: await storageGateway.createDownloadUrl(key) })),
+    );
+    sendSuccess(res, files);
+  }),
+);
+
+router.post(
+  '/bookings/:id/exception/decide',
+  authorize('payment:refund'),
+  validate({
+    body: z.object({
+      decision: z.enum(['approved', 'partial', 'rejected']),
+      amountCents: z.number().int().min(1).optional(),
+      note: z.string().trim().max(1000).optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripChangeService.decideException(req.principal!.userId, req.params.id, req.body));
   }),
 );
 

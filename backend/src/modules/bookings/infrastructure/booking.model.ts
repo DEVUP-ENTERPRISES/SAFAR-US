@@ -1,3 +1,4 @@
+import { CANCEL_REASONS, EXCEPTION_REASONS, type CancelReasonCode, type ExceptionReasonCode } from '../domain/trip-change-rules';
 import { Schema, model } from 'mongoose';
 import { uuid } from '../../../shared/utils/uuid';
 import type { BookingStatus } from '../domain/booking-status';
@@ -39,11 +40,38 @@ export interface BookingSwap {
   fromHostId: string;
   toVehicleId: string;
   toHostId: string;
-  reason: 'extension' | 'late_return';
+  reason: 'extension' | 'late_return' | 'guest_switch';
   at: Date;
   extendedByBookingId?: string;
   /** The trip whose late return caused a guest-accepted move. */
   lateBookingId?: string;
+}
+
+export interface BookingChange {
+  kind: 'pickup_shift' | 'move' | 'switch_car';
+  at: Date;
+  by: string;
+  from: { start: Date; end: Date; vehicleId: string };
+  to: { start: Date; end: Date; vehicleId: string };
+  /** Positive: the guest paid more; negative: refunded. */
+  difference?: MoneyField;
+  paymentId?: string;
+}
+
+export interface TripException {
+  status: 'pending' | 'approved' | 'partial' | 'rejected';
+  reasonCode: ExceptionReasonCode;
+  note?: string;
+  proofKeys: string[];
+  requestedAt: Date;
+  /** Repeat requester, or proof seen on another request. */
+  flagged?: boolean;
+  flagReason?: string;
+  decidedAt?: Date;
+  decidedBy?: string;
+  decisionNote?: string;
+  /** What the decision returned on top of the original cancellation refund. */
+  refund?: MoneyField;
 }
 
 export interface BookingDoc {
@@ -164,7 +192,24 @@ export interface BookingDoc {
   instantBook: boolean;
   approvalDeadline?: Date;
   /** `charged` is what the guest paid and did not get back (absent on cancellations recorded before it existed). */
-  cancellation?: { by: string; role?: 'guest' | 'host' | 'admin' | 'system'; at: Date; reason: string; refund: MoneyField; charged?: MoneyField };
+  cancellation?: {
+    by: string;
+    role?: 'guest' | 'host' | 'admin' | 'system';
+    at: Date;
+    reason: string;
+    refund: MoneyField;
+    charged?: MoneyField;
+    reasonCode?: CancelReasonCode;
+    /** Where the refund went: the card, or CatoDrive credit (with its bonus). */
+    choice?: 'refund' | 'credit';
+    creditBonus?: MoneyField;
+    /** Cancelled inside the free undo window after booking. */
+    undo?: boolean;
+  };
+  /** Every guest change before pickup: pickup shifts, date moves and car switches. */
+  changes?: BookingChange[];
+  /** A late cancellation the guest asked us to review (flight, weather, health). */
+  exception?: TripException;
   /**
    * Set when this booking replaces one the host cancelled. `coveredDifference`
    * is what the rebooking guarantee paid so the guest kept their original
@@ -358,6 +403,42 @@ const schema = new Schema<BookingDoc>(
       reason: String,
       refund: moneySchema,
       charged: moneySchema,
+      reasonCode: { type: String, enum: CANCEL_REASONS },
+      choice: { type: String, enum: ['refund', 'credit'] },
+      creditBonus: moneySchema,
+      undo: Boolean,
+    },
+    changes: {
+      type: [
+        {
+          _id: false,
+          kind: { type: String, enum: ['pickup_shift', 'move', 'switch_car'], required: true },
+          at: Date,
+          by: String,
+          from: { type: { _id: false, start: Date, end: Date, vehicleId: String } },
+          to: { type: { _id: false, start: Date, end: Date, vehicleId: String } },
+          difference: { type: { _id: false, amount: Number, currency: String } },
+          paymentId: String,
+        },
+      ],
+      default: undefined,
+    },
+    exception: {
+      type: {
+        _id: false,
+        status: { type: String, enum: ['pending', 'approved', 'partial', 'rejected'], required: true },
+        reasonCode: { type: String, enum: EXCEPTION_REASONS, required: true },
+        note: String,
+        proofKeys: { type: [String], default: [] },
+        requestedAt: Date,
+        flagged: Boolean,
+        flagReason: String,
+        decidedAt: Date,
+        decidedBy: String,
+        decisionNote: String,
+        refund: { type: { _id: false, amount: Number, currency: String } },
+      },
+      default: undefined,
     },
     tripId: String,
     extensions: {
@@ -389,7 +470,7 @@ const schema = new Schema<BookingDoc>(
         fromHostId: String,
         toVehicleId: String,
         toHostId: String,
-        reason: { type: String, enum: ['extension', 'late_return'] },
+        reason: { type: String, enum: ['extension', 'late_return', 'guest_switch'] },
         at: Date,
         extendedByBookingId: String,
         lateBookingId: String,
@@ -444,6 +525,8 @@ schema.index({ hostId: 1, status: 1, createdAt: -1 });
 schema.index({ 'priceBreakdown.protectionInsurer.id': 1, createdAt: -1 }, { sparse: true });
 schema.index({ vehicleId: 1, 'period.start': 1, 'period.end': 1 });
 schema.index({ status: 1, approvalDeadline: 1 });
+schema.index({ 'exception.status': 1, 'exception.requestedAt': 1 }, { sparse: true });
+schema.index({ guestId: 1, 'cancellation.at': -1 }, { sparse: true });
 schema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });
 
 export const BookingModel = model<BookingDoc>('Booking', schema);

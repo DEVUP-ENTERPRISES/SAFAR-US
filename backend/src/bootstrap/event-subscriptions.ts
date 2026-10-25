@@ -745,7 +745,7 @@ export function registerEventSubscribers(): void {
       bookingId: string; guestId: string; hostId: string; cancelledBy?: string;
       refund: { amount: number; currency?: string };
       charged?: { amount: number; currency?: string };
-      explained?: RefundExplanation; toCard?: number; toWallet?: number;
+      explained?: RefundExplanation; toCard?: number; toWallet?: number; creditBonus?: number; undo?: boolean;
     };
     const cancellationUrl = (await platformConfigService.get()).legal.cancellationUrl;
     const notice = cancellationNotice({
@@ -756,6 +756,8 @@ export function registerEventSubscribers(): void {
       explained: p.explained,
       toCard: p.toCard,
       toWallet: p.toWallet,
+      creditBonus: p.creditBonus,
+      undo: p.undo,
       policyUrl: cancellationUrl ? webLink(cancellationUrl) : undefined,
     });
     // A late guest cancel keeps part of the money; the host's share of it is theirs.
@@ -1071,9 +1073,9 @@ export function registerEventSubscribers(): void {
       toVehicleId: string;
       toHostId: string;
       extensionEarnings?: { amount: number; currency: string };
-      reason?: 'extension' | 'late_return';
+      reason?: 'extension' | 'late_return' | 'guest_switch';
     };
-    const chosen = p.reason === 'late_return';
+    const chosen = p.reason === 'late_return' || p.reason === 'guest_switch';
     const car = await vehicleService.getById(p.toVehicleId).then((v) => `${v.make} ${v.model} ${v.year}`, () => 'a similar car');
     await postSystemNote(p.bookingId, `Your trip moved to ${car} — same dates, same price.`);
     await notificationService
@@ -1088,7 +1090,7 @@ export function registerEventSubscribers(): void {
       })
       .catch((err) => logger.warn({ err, bookingId: p.bookingId }, 'swap guest notification failed'));
     const earns = p.extensionEarnings ? ` You earn ${formatAmount(p.extensionEarnings.amount, p.extensionEarnings.currency)} from the extension.` : '';
-    await notifyHost(p.fromHostId, 'booking.swapped_out', 'An upcoming booking moved', chosen ? 'Your car was late back from a trip, so the next guest chose a similar car instead.' : `A guest extended their trip on your car, so an upcoming booking was moved to a similar car.${earns}`, { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
+    await notifyHost(p.fromHostId, 'booking.swapped_out', 'An upcoming booking moved', p.reason === 'guest_switch' ? 'Your guest switched to a different car for this trip, so these dates are free again.' : chosen ? 'Your car was late back from a trip, so the next guest chose a similar car instead.' : `A guest extended their trip on your car, so an upcoming booking was moved to a similar car.${earns}`, { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
     await notifyHost(p.toHostId, 'booking.swapped_in', 'New booking on your car', `A confirmed booking was placed on ${car}. It is already paid.`, { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
   });
   eventBus.subscribe(EVENTS.BOOKING_SWAP_FAILED, async (e) => {
@@ -1104,6 +1106,65 @@ export function registerEventSubscribers(): void {
   eventBus.subscribe(EVENTS.PAYOUT_SCHEDULED, async (e) => {
     const p = e.payload as { bookingId: string; hostId: string };
     await notifyHost(p.hostId, 'payout.scheduled', 'Earnings on the way', 'Your earnings from a completed trip are scheduled for payout.', { bookingId: p.bookingId });
+  });
+  eventBus.subscribe(EVENTS.BOOKING_PICKUP_SHIFTED, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string; hostId: string; to: Date | string };
+    const zone = await bookingService.getDoc(p.bookingId).then((b) => tripTimeZone(b.vehicleId), () => 'UTC');
+    const when = fmtWhen(new Date(p.to), zone);
+    await postSystemNote(p.bookingId, `Pickup moved to ${when}. The return time is unchanged.`);
+    await notifyHost(p.hostId, 'booking.pickup_shifted', 'Pickup time changed', `Your guest will now pick up at ${when}. The return time and your earnings are unchanged.`, { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
+    await notificationService
+      .send({ userId: p.guestId, templateKey: 'booking.pickup_shifted', title: 'Pickup time changed', body: `Your new pickup time is ${when}.`, deepLink: `/bookings/${p.bookingId}`, data: { bookingId: p.bookingId }, priority: 'high' })
+      .catch((err) => logger.warn({ err, bookingId: p.bookingId }, 'pickup shift guest notice failed'));
+  });
+  eventBus.subscribe(EVENTS.BOOKING_MOVED, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string; hostId: string; to: { start: Date | string; end: Date | string }; difference: { amount: number; currency: string } };
+    const zone = await bookingService.getDoc(p.bookingId).then((b) => tripTimeZone(b.vehicleId), () => 'UTC');
+    const dates = `${fmtWhen(new Date(p.to.start), zone)} to ${fmtWhen(new Date(p.to.end), zone)}`;
+    const money = p.difference.amount > 0
+      ? ` We charged the difference of ${formatAmount(p.difference.amount, p.difference.currency)}.`
+      : p.difference.amount < 0
+        ? ` We are refunding ${formatAmount(-p.difference.amount, p.difference.currency)} to your card.`
+        : '';
+    await postSystemNote(p.bookingId, `Trip dates changed to ${dates}.`);
+    await notifyHost(p.hostId, 'booking.moved', 'Trip dates changed', `Your guest moved this trip to ${dates}. The old dates are free again.`, { bookingId: p.bookingId }, 'high', `/host/trips/${p.bookingId}`);
+    await notificationService
+      .send({ userId: p.guestId, templateKey: 'booking.moved', title: 'Your trip dates changed', body: `Your trip is now ${dates}.${money}`, deepLink: `/bookings/${p.bookingId}`, data: { bookingId: p.bookingId }, priority: 'high' })
+      .catch((err) => logger.warn({ err, bookingId: p.bookingId }, 'move guest notice failed'));
+  });
+  eventBus.subscribe(EVENTS.TRIP_EXCEPTION_REQUESTED, async (e) => {
+    const p = e.payload as { bookingId: string; code: string; reasonCode: string; flagged: boolean };
+    await notifyStaff(
+      'booking.exception_requested',
+      p.flagged ? 'Exception request (flagged)' : 'Exception request to review',
+      `Trip ${p.code}: the guest asks for a refund exception (${p.reasonCode.replace(/_/g, ' ')}).${p.flagged ? ' Flagged for a closer look.' : ''}`,
+      p,
+      'high',
+    );
+  });
+  eventBus.subscribe(EVENTS.TRIP_EXCEPTION_DECIDED, async (e) => {
+    const p = e.payload as { bookingId: string; guestId: string; code: string; decision: 'approved' | 'partial' | 'rejected'; refund: { amount: number; currency: string }; note?: string };
+    const body = p.decision === 'rejected'
+      ? `We reviewed your request for trip ${p.code} and could not make an exception this time.${p.note ? ` ${p.note}` : ''}`
+      : `We reviewed your request for trip ${p.code} and are refunding ${formatAmount(p.refund.amount, p.refund.currency)} to your card. It usually shows in 5–10 business days.${p.note ? ` ${p.note}` : ''}`;
+    await notificationService
+      .send({ userId: p.guestId, templateKey: 'booking.exception_decided', title: p.decision === 'rejected' ? 'About your refund request' : 'Your refund request was approved', body, deepLink: `/bookings/${p.bookingId}`, data: { bookingId: p.bookingId }, priority: 'high' })
+      .catch((err) => logger.warn({ err, bookingId: p.bookingId }, 'exception decision notice failed'));
+  });
+  /** A failed driving-record or background check: the guest cannot drive, so their upcoming trips end with a full refund. */
+  eventBus.subscribe(EVENTS.VERIFICATION_CHECK_FAILED, async (e) => {
+    const p = e.payload as { userId: string; type: 'mvr' | 'background' };
+    const label = p.type === 'mvr' ? 'driving record' : 'background';
+    const cancelled = await bookingService.cancelForFailedCheck(p.userId, label);
+    if (cancelled.length === 0) return;
+    const soon = cancelled.some((b) => new Date(b.start).getTime() - Date.now() < 2 * 3_600_000);
+    await notifyStaff(
+      'verification.check_failed',
+      soon ? 'Failed check: pickup within 2 hours' : 'Failed check cancelled trips',
+      `A guest's ${label} check failed, so ${cancelled.length} upcoming trip${cancelled.length === 1 ? ' was' : 's were'} cancelled with a full refund.${soon ? ' One picks up within 2 hours: tell the host the car is free.' : ''}`,
+      { userId: p.userId, bookings: cancelled.map((b) => b.bookingId) },
+      soon ? 'critical' : 'high',
+    );
   });
   eventBus.subscribe(EVENTS.BOOKING_SHORTENED, async (e) => {
     const p = e.payload as { bookingId: string; newEnd: Date | string };

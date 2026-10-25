@@ -116,6 +116,8 @@ export class VerificationPolicyService {
     });
     // Bookings parked on this check must move as soon as it clears, however it was recorded.
     if (input.result === 'passed') emit(EVENTS.VERIFICATION_CHECK_PASSED, userId, { userId, type });
+    // A failed screening ends the guest's upcoming trips; identity and insurance have their own flows.
+    if (input.result === 'failed' && (type === 'mvr' || type === 'background')) emit(EVENTS.VERIFICATION_CHECK_FAILED, userId, { userId, type });
     return check;
   }
 

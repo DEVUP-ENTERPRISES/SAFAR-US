@@ -146,7 +146,7 @@ export class PaymentService implements IPaymentContract {
    * came from its card back to the card, and only the wallet-funded part back
    * to the wallet, so the guest is never paid twice.
    */
-  async refundBooking(bookingId: string, amount: Money, reason: string): Promise<{ toCard: number; toWallet: number }> {
+  async refundBooking(bookingId: string, amount: Money, reason: string, opts: { toWallet?: boolean } = {}): Promise<{ toCard: number; toWallet: number }> {
     const payments = await PaymentModel.find({
       bookingId,
       type: 'booking',
@@ -164,7 +164,7 @@ export class PaymentService implements IPaymentContract {
     for (const payment of payments) {
       const take = Math.min(remaining, refundable(payment));
       if (take <= 0) continue;
-      const split = await this.refundPayment(payment, take, amount.currency, reason);
+      const split = await this.refundPayment(payment, take, amount.currency, reason, opts.toWallet === true);
       sent.toCard += split.card;
       sent.toWallet += split.wallet;
       remaining -= take;
@@ -174,7 +174,7 @@ export class PaymentService implements IPaymentContract {
     return sent;
   }
 
-  private async refundPayment(payment: PaymentDoc, take: number, currency: string, reason: string): Promise<{ card: number; wallet: number }> {
+  private async refundPayment(payment: PaymentDoc, take: number, currency: string, reason: string, cardToWallet = false): Promise<{ card: number; wallet: number }> {
     /*
      * Claim this refund step atomically before any money moves.
      *
@@ -207,7 +207,7 @@ export class PaymentService implements IPaymentContract {
 
     try {
       // Deterministic key — NOT Date.now(): a retry of this exact step reuses it.
-      if (cardPart > 0) {
+      if (cardPart > 0 && !cardToWallet) {
         await paymentGateway.refund(payment.intentId, { amount: cardPart, currency }, `refund_${payment.intentId}_${priorRefunded}`);
       }
 
@@ -233,6 +233,13 @@ export class PaymentService implements IPaymentContract {
           { account: Account.userWallet(payment.userId), direction: 'credit', amount: walletPart },
         );
       }
+      // Kept as CatoDrive credit: booked as a refund to the card that is topped straight back into the wallet.
+      if (cardToWallet && cardPart > 0) {
+        legs.push(
+          { account: Account.cardFunding(), direction: 'debit', amount: cardPart },
+          { account: Account.userWallet(payment.userId), direction: 'credit', amount: cardPart },
+        );
+      }
       await ledgerService.post({
         txnId: `refund_${payment._id}_${priorRefunded}`,
         refType: 'refund',
@@ -241,7 +248,9 @@ export class PaymentService implements IPaymentContract {
         description: `Refund: ${reason}`,
         legs,
       });
-      return { card: cardPart, wallet: walletBack ? walletPart : 0 };
+      return cardToWallet
+        ? { card: 0, wallet: cardPart + (walletBack ? walletPart : 0) }
+        : { card: cardPart, wallet: walletBack ? walletPart : 0 };
     } catch (err) {
       // Money did not move — release the claim so the step can be retried; the
       // deterministic keys make a retry safe even if Stripe had partially succeeded.

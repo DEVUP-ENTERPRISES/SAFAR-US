@@ -509,6 +509,32 @@ export interface PlatformConfigDoc {
     /** A guest past the return time may still extend for this many hours; the late time already passed is charged. 0 = not once late. */
     lateExtendHours: number;
   };
+  /** What a guest can do instead of a plain cancellation, and the guard rails on each option. */
+  tripChanges: {
+    /** Free cancellation this many minutes after booking (0 = off). */
+    undoWindowMinutes: number;
+    /** No undo window when pickup is closer than this. */
+    undoMinLeadHours: number;
+    /** Undo cancellations allowed per guest in 30 days, so cars cannot be held for free. */
+    undoPer30Days: number;
+    /** Longest free pickup shift, in hours (0 = off). */
+    pickupShiftMaxHours: number;
+    pickupShiftsPerTrip: number;
+    /** Date moves per trip at no change fee (0 = off). */
+    freeMovesPerTrip: number;
+    /** Moving dates closes this many hours before pickup. */
+    moveMinLeadHours: number;
+    switchCarEnabled: boolean;
+    /** Extra value when the guest takes CatoDrive credit instead of a card refund (bps of the refund; 0 = credit offered at par). */
+    creditBonusBps: number;
+    creditEnabled: boolean;
+    exceptionsEnabled: boolean;
+    exceptionProofRequired: boolean;
+    /** A guest may still ask for an exception this long after cancelling. */
+    exceptionFileWindowHours: number;
+    /** Exceptions by one guest in 90 days before the request is flagged for review. */
+    exceptionFlagAfter: number;
+  };
   /** Lines that rotate above the booking calendar; edited in admin, never hardcoded in the app. */
   /** Guest programmes that can be paused while a decision is pending. */
   programs: {
@@ -883,6 +909,22 @@ const schema = new Schema<PlatformConfigDoc>(
       swapPriceToleranceBps: { type: Number, default: 1500 },
       swapMaxAbsorbCents: { type: Number, default: 5000 },
       lateExtendHours: { type: Number, default: 6 },
+    },
+    tripChanges: {
+      undoWindowMinutes: { type: Number, default: 10 },
+      undoMinLeadHours: { type: Number, default: 2 },
+      undoPer30Days: { type: Number, default: 2 },
+      pickupShiftMaxHours: { type: Number, default: 3 },
+      pickupShiftsPerTrip: { type: Number, default: 1 },
+      freeMovesPerTrip: { type: Number, default: 1 },
+      moveMinLeadHours: { type: Number, default: 24 },
+      switchCarEnabled: { type: Boolean, default: true },
+      creditBonusBps: { type: Number, default: 2000 },
+      creditEnabled: { type: Boolean, default: true },
+      exceptionsEnabled: { type: Boolean, default: true },
+      exceptionProofRequired: { type: Boolean, default: true },
+      exceptionFileWindowHours: { type: Number, default: 48 },
+      exceptionFlagAfter: { type: Number, default: 2 },
     },
     programs: {
       rewardsEnabled: { type: Boolean, default: false },

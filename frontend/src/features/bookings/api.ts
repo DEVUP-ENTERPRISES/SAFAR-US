@@ -1,5 +1,5 @@
 import { api } from '@/lib/api/client';
-import type { Booking, PriceBreakdown, QuoteInput, Money } from './types';
+import type { Booking, PriceBreakdown, QuoteInput, Money, ChangeOptions, MovePreview, CancelReasonCode, ExceptionReasonCode } from './types';
 import type { Vehicle } from '@/features/vehicles/types';
 
 export interface CancellationPreview {
@@ -93,7 +93,17 @@ export const bookingApi = {
     api.get<CancellationPreview>(`/bookings/${id}/cancellation-preview`),
   extensionPreview: (id: string, newEnd: string) =>
     api.get<ExtensionPreview>(`/bookings/${id}/extension-preview`, { newEnd }),
-  cancel: (id: string, reason: string) => api.post<Booking>(`/bookings/${id}/cancel`, { reason }),
+  cancel: (id: string, reason: string, opts: { reasonCode?: CancelReasonCode; choice?: 'refund' | 'credit' } = {}) =>
+    api.post<Booking>(`/bookings/${id}/cancel`, { reason, ...opts }),
+  /** Every option on the "Cancel or change trip" screen, for this moment. */
+  changeOptions: (id: string) => api.get<ChangeOptions>(`/bookings/${id}/change-options`),
+  shiftPickup: (id: string, start: string) => api.post<Booking>(`/bookings/${id}/shift-pickup`, { start }),
+  movePreview: (id: string, start: string, end: string) => api.get<MovePreview>(`/bookings/${id}/move-preview`, { start, end }),
+  move: (id: string, start: string, end: string) => api.post<Booking>(`/bookings/${id}/move`, { start, end }),
+  switchOptions: (id: string) => api.get<{ available: boolean; reason?: string; vehicles: Vehicle[] }>(`/bookings/${id}/switch-options`),
+  switchCar: (id: string, vehicleId: string) => api.post<Booking>(`/bookings/${id}/switch`, { vehicleId }),
+  requestException: (id: string, input: { reasonCode: ExceptionReasonCode; note?: string; proofKeys: string[] }) =>
+    api.post<Booking>(`/bookings/${id}/exception`, input),
   acceptSwapOffer: (id: string) => api.post<Booking>(`/bookings/${id}/swap-offer/accept`),
   declineSwapOffer: (id: string) => api.post<{ declined: true }>(`/bookings/${id}/swap-offer/decline`),
   extend: (id: string, newEnd: string) => api.post<Booking>(`/bookings/${id}/extend`, { newEnd }),

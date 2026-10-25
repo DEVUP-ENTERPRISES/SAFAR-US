@@ -41,6 +41,10 @@ export const EVENTS = {
   BOOKING_REMINDER: 'booking.reminder',
   BOOKING_EXTENDED: 'booking.extended',
   BOOKING_SHORTENED: 'booking.shortened',
+  BOOKING_PICKUP_SHIFTED: 'booking.pickup_shifted',
+  BOOKING_MOVED: 'booking.moved',
+  TRIP_EXCEPTION_REQUESTED: 'booking.exception_requested',
+  TRIP_EXCEPTION_DECIDED: 'booking.exception_decided',
   /** A booking was moved to a comparable car to make room for another guest's extension. */
   BOOKING_SWAPPED: 'booking.swapped',
   /** A swap left something half-done that staff must reconcile. */
@@ -70,6 +74,7 @@ export const EVENTS = {
   BOOKING_OVERDUE: 'booking.overdue',
   VEHICLE_UNAVAILABLE: 'vehicle.unavailable',
   VERIFICATION_CHECK_PASSED: 'verification.check_passed',
+  VERIFICATION_CHECK_FAILED: 'verification.check_failed',
   WALLET_TOPPED_UP: 'wallet.topped_up',
   PLATFORM_CONFIG_UPDATED: 'platform.config_updated',
 

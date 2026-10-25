@@ -1,5 +1,5 @@
 // Generated from frontend/src/features/bookings/status.ts by mobile/tools/sync-web.js. Edit the web file, then run `npm run sync:api`.
-import type { BookingStatus } from './types';
+import type { BookingStatus, CancelReasonCode, ExceptionReasonCode, TripException } from './types';
 
 export type StatusTone = 'default' | 'success' | 'warning' | 'destructive' | 'muted';
 
@@ -115,3 +115,32 @@ export const INCIDENTAL_LABEL: Record<string, string> = {
   fine: 'Fine',
   other: 'Other',
 };
+
+/** Why a guest is cancelling, in their words; the order is the order shown. */
+export const CANCEL_REASON_LABEL: Record<CancelReasonCode, string> = {
+  plans_changed: 'My plans changed',
+  flight_delayed: 'My flight is delayed or I’m running late',
+  found_other_car: 'I need a different car',
+  flight_cancelled: 'My flight was cancelled',
+  weather: 'Bad weather',
+  health: 'Illness or emergency',
+  price: 'I found a better price',
+  other: 'Something else',
+};
+
+export const EXCEPTION_REASON_LABEL: Record<ExceptionReasonCode, string> = {
+  flight_cancelled: 'My flight was cancelled',
+  weather: 'Bad weather made travel unsafe',
+  health: 'Illness or emergency',
+  other: 'Something else outside my control',
+};
+
+export const EXCEPTION_STATUS_LABEL: Record<TripException['status'], string> = {
+  pending: 'We’re reviewing your request',
+  approved: 'Refund approved',
+  partial: 'Partial refund approved',
+  rejected: 'No exception this time',
+};
+
+/** Reasons a late cancellation can be reviewed for. */
+export const EXCEPTION_ELIGIBLE: CancelReasonCode[] = ['flight_cancelled', 'weather', 'health'];

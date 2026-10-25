@@ -42,6 +42,7 @@ import { PayNow } from '@/features/payments/pay-now';
 import { DepositCard } from '@/features/payments/deposit-card';
 import { usePlatformConfig } from '@/features/platform/config';
 import { BOOKING_STATE, CHATTABLE, DETAIL_CANCELLABLE } from '@/features/bookings/status';
+import { TripChangesCard } from '@/features/bookings/components/trip-changes-card';
 
 /** How each state reads to the guest, and what it means for them. */
 
@@ -80,16 +81,6 @@ function BookingDetail({ id }: { id: string }) {
     queryFn: () => claimsApi.settlement(id),
     enabled: booking.data?.status === 'completed',
     retry: false,
-  });
-
-  const cancel = useMutation({
-    mutationFn: (reason: string) => bookingApi.cancel(id, reason),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['booking', id] });
-      qc.invalidateQueries({ queryKey: ['bookings'] });
-      toast({ tone: 'success', title: 'Booking cancelled' });
-    },
-    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'Could not cancel' }),
   });
 
   const completePayment = useCompletePayment();
@@ -155,20 +146,6 @@ function BookingDetail({ id }: { id: string }) {
   const v = vehicle.data;
   const canCancel = DETAIL_CANCELLABLE.includes(b.status);
   const canChat = CHATTABLE.includes(b.status);
-
-  const onCancel = async () => {
-    const preview = await bookingApi.cancellationPreview(id).catch(() => null);
-    const { ok, reason } = await confirm({
-      title: 'Cancel this trip?',
-      description: preview
-        ? `You’d be refunded ${formatMoney(preview.refund)} of ${formatMoney(preview.total)}.${preview.nonRefundable.amount > 0 ? ` We will charge you ${formatMoney(preview.nonRefundable)} for this cancellation.` : ''} This cannot be undone.`
-        : 'This cannot be undone.',
-      confirmLabel: 'Cancel trip',
-      tone: 'destructive',
-      reason: { label: 'Reason', placeholder: 'e.g. Plans changed', required: true },
-    });
-    if (ok && reason) cancel.mutate(reason);
-  };
 
   const canReportNoShow = b.status === 'paid' && !b.tripId && new Date(b.period.start).getTime() < Date.now();
 
@@ -425,13 +402,8 @@ function BookingDetail({ id }: { id: string }) {
                 </Button>
               )}
               {canCancel && (
-                <Button
-                  variant="outline"
-                  className="w-full text-destructive hover:text-destructive"
-                  loading={cancel.isPending}
-                  onClick={onCancel}
-                >
-                  <XCircle className="h-4 w-4" /> Cancel trip
+                <Button variant="outline" className="w-full" onClick={() => router.push(`/bookings/${id}/change`)}>
+                  <XCircle className="h-4 w-4" /> Cancel or change trip
                 </Button>
               )}
               {canCancel && cancelPreview.data && (
@@ -460,6 +432,7 @@ function BookingDetail({ id }: { id: string }) {
               )}
             </CardContent>
           </Card>
+          <TripChangesCard booking={b} />
         </aside>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { bookingApi } from './api';
 import { useAuthStore } from '@/features/auth/store';
-import type { QuoteInput } from './types';
+import type { QuoteInput, CancelReasonCode, ExceptionReasonCode } from './types';
 
 export function useMyBookings(role: 'guest' | 'host' = 'guest') {
   // Gated on being signed in: the tab bar shows a trip count on every screen, and a signed-out request can only 401.
@@ -49,7 +49,43 @@ export function useCreateBooking(coords: () => Promise<{ lat: number; lng: numbe
 export function useCancelBooking() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => bookingApi.cancel(id, reason),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
+    mutationFn: ({ id, reason, reasonCode, choice }: { id: string; reason: string; reasonCode?: CancelReasonCode; choice?: 'refund' | 'credit' }) =>
+      bookingApi.cancel(id, reason, { reasonCode, choice }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      qc.invalidateQueries({ queryKey: ['booking', v.id] });
+      qc.invalidateQueries({ queryKey: ['change-options', v.id] });
+      qc.invalidateQueries({ queryKey: ['wallet'] });
+    },
   });
 }
+
+/** The "Cancel or change trip" screen's options; always fresh, because the money depends on the minute. */
+export function useChangeOptions(id: string, enabled = true) {
+  return useQuery({
+    queryKey: ['change-options', id],
+    queryFn: () => bookingApi.changeOptions(id),
+    enabled: enabled && !!id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+}
+
+/** Every trip change refreshes the trip, the list and the options together. */
+function useTripChange<V>(id: string, run: (v: V) => Promise<unknown>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: run,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      qc.invalidateQueries({ queryKey: ['booking', id] });
+      qc.invalidateQueries({ queryKey: ['change-options', id] });
+    },
+  });
+}
+
+export const useShiftPickup = (id: string) => useTripChange(id, (start: string) => bookingApi.shiftPickup(id, start));
+export const useMoveTrip = (id: string) => useTripChange(id, (v: { start: string; end: string }) => bookingApi.move(id, v.start, v.end));
+export const useSwitchCar = (id: string) => useTripChange(id, (vehicleId: string) => bookingApi.switchCar(id, vehicleId));
+export const useRequestException = (id: string) =>
+  useTripChange(id, (v: { reasonCode: ExceptionReasonCode; note?: string; proofKeys: string[] }) => bookingApi.requestException(id, v));
