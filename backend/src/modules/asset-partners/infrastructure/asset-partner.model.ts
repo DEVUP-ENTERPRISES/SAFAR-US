@@ -52,6 +52,8 @@ export interface PartnerAgreementSignature {
   userAgent?: string;
   /** The details filled into the text; the licence is kept as state and last four digits only. */
   fields?: Record<string, string>;
+  /** The sealed envelope this signature belongs to. */
+  envelopeId?: string;
 }
 export type PayoutMethod = 'check' | 'zelle';
 
@@ -132,7 +134,7 @@ export interface AssetPartnerDoc {
 }
 
 const signatureSchema = new Schema(
-  { version: Number, bodyHash: String, signedName: String, signedAt: Date, ip: String, userAgent: String, fields: { type: Map, of: String } },
+  { version: Number, bodyHash: String, signedName: String, signedAt: Date, ip: String, userAgent: String, fields: { type: Map, of: String }, envelopeId: String },
   { _id: false },
 );
 

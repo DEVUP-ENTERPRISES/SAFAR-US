@@ -1,11 +1,17 @@
 import { createHash } from 'node:crypto';
-import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
 import { AssetPartnerAgreementModel, type AgreementKind, type AssetPartnerAgreementDoc } from '../infrastructure/asset-partner-agreement.model';
 import { AssetPartnerModel, type AssetPartnerDoc, type PartnerAgreementSignature } from '../infrastructure/asset-partner.model';
 import { AssetPartnerApplicationModel, type AssetPartnerApplicationDoc } from '../infrastructure/asset-partner-application.model';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
+import { buildTextPdf } from './text-pdf';
+
+export { buildTextPdf, type PdfOptions } from './text-pdf';
 import { notificationService } from '../../notifications/application/notification.service';
+import { assetPartnerTermsService } from './asset-partner-terms.service';
+import { assetPartnerEnvelopeService } from './asset-partner-envelope.service';
+import { SignatureEnvelopeModel } from '../infrastructure/signature-envelope.model';
+import type { ResolvedTermsSnapshot } from '../infrastructure/asset-partner-terms.model';
 
 const hashOf = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
 
@@ -26,7 +32,49 @@ export const AGREEMENT_PLACEHOLDERS: { key: string; label: string }[] = [
   { key: 'check_payable_to', label: 'Check payable to' },
   { key: 'check_address', label: 'Check mailing address' },
   { key: 'signed_name', label: 'Signature (typed name)' },
+  { key: 'management_fee', label: 'Management fee (e.g. 20%)' },
+  { key: 'insurance_monthly', label: 'Insurance per car per month' },
+  { key: 'detailing_monthly', label: 'Detailing per car per month' },
+  { key: 'deductible_cap', label: 'Damage cap per incident' },
+  { key: 'maintenance_approval', label: 'Repairs above this need approval' },
+  { key: 'payout_day', label: 'Payout day of the month' },
+  { key: 'changes_table', label: 'Rate change only: list of old → new terms' },
+  { key: 'changes_effective', label: 'Rate change only: date the new terms start' },
 ];
+
+const usd = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`;
+
+/** A partner's terms as the words that go into the agreement text. */
+export function termFields(t: ResolvedTermsSnapshot): Record<string, string> {
+  return {
+    management_fee: `${t.managementFeeBps / 100}%`,
+    insurance_monthly: usd(t.insuranceMonthlyCents),
+    detailing_monthly: usd(t.detailingMonthlyCents),
+    deductible_cap: usd(t.deductibleCapCents),
+    maintenance_approval: usd(t.maintenanceApprovalCents),
+    payout_day: `the ${ordinal(t.payoutDayOfMonth)} of each month`,
+  };
+}
+
+const TERM_LABEL: Record<keyof ReturnType<typeof termFields>, string> = {
+  management_fee: 'Management fee',
+  insurance_monthly: 'Insurance per car per month',
+  detailing_monthly: 'Detailing per car per month',
+  deductible_cap: 'Damage cap per incident',
+  maintenance_approval: 'Repairs needing your approval above',
+  payout_day: 'Payout day',
+};
+
+/** "Management fee: 20% → 25%", one line per term that changes. */
+export function changesTable(from: ResolvedTermsSnapshot, to: ResolvedTermsSnapshot): string {
+  const a = termFields(from);
+  const b = termFields(to);
+  return (Object.keys(TERM_LABEL) as (keyof typeof TERM_LABEL)[])
+    .filter((k) => a[k] !== b[k])
+    .map((k) => `${TERM_LABEL[k]}: ${a[k]} -> ${b[k]}`)
+    .join('\n');
+}
 
 const BLANK = '________';
 
@@ -70,7 +118,7 @@ export class AssetPartnerAgreementService {
       const doc = await AssetPartnerAgreementModel.create({ kind, version: (newest?.version ?? 0) + 1, title: input.title, body: input.body, bodyHash, publishedBy: userId });
       logger.info({ kind, version: doc.version }, 'Asset Partner document published');
       // The waiting screen promises an email; a mail failure must not undo the publish.
-      void this.tellWaitingPartners().catch((err) => logger.warn({ err }, 'agreement ready notice failed'));
+      if (kind !== 'amendment') void this.tellWaitingPartners().catch((err) => logger.warn({ err }, 'agreement ready notice failed'));
       return doc.toObject();
     } catch (err) {
       // Two people publishing at once collide on the unique version.
@@ -84,10 +132,11 @@ export class AssetPartnerAgreementService {
     const [agreement, nda] = await Promise.all([this.current('agreement'), this.current('nda')]);
     if (!agreement || !nda) return;
     const waiting = await AssetPartnerModel.find({ agreementRequired: true, status: { $ne: 'exited' }, $or: [{ 'agreement.signedAt': { $exists: false } }, { 'nda.signedAt': { $exists: false } }] })
-      .select('userId')
+      .select('_id userId')
       .limit(1000)
-      .lean<{ userId: string }[]>();
+      .lean<{ _id: string; userId: string }[]>();
     for (const p of waiting) {
+      await assetPartnerEnvelopeService.recordEvent(p._id, 'onboarding', 'sent', {}).catch(() => undefined);
       await notificationService
         .send({
           userId: p.userId,
@@ -125,6 +174,7 @@ export class AssetPartnerAgreementService {
       vehicle: v ? [v.year, v.make, v.model, v.trim].filter(Boolean).join(' ') : '',
       vin: v?.vin ?? '',
       plate: v ? `${v.plate}${app?.state ? ` (${app.state})` : ''}` : '',
+      ...termFields(await assetPartnerTermsService.at(partner)),
     };
   }
 
@@ -168,8 +218,24 @@ export class AssetPartnerAgreementService {
       check_address: p.method === 'check' ? tidy(p.mailingAddress) : '',
       signed_name: signedName,
     };
+    // The terms they read are the terms they sign: the same draft that filled the text.
+    const terms = await assetPartnerTermsService.at(partner, now);
+    Object.assign(fields, termFields(terms));
+    const envelope = await assetPartnerEnvelopeService.seal({
+      partner,
+      purpose: 'onboarding',
+      docs: [
+        { kind: 'agreement', title: agreement.title, version: agreement.version, text: renderAgreement(agreement.body, fields) },
+        { kind: 'nda', title: nda.title, version: nda.version, text: renderAgreement(nda.body, fields) },
+      ],
+      signerName: signedName,
+      signerEmail: partner.email,
+      terms,
+      ctx,
+      at: now,
+    });
     const signature = (doc: AssetPartnerAgreementDoc): PartnerAgreementSignature => ({
-      version: doc.version, bodyHash: doc.bodyHash, signedName, signedAt: now, ip: ctx.ip, userAgent: ctx.userAgent, fields,
+      version: doc.version, bodyHash: doc.bodyHash, signedName, signedAt: now, ip: ctx.ip, userAgent: ctx.userAgent, fields, envelopeId: envelope.envelopeId,
     });
     const payoutDetails = {
       ...(partner.payoutDetails ?? {}),
@@ -184,14 +250,54 @@ export class AssetPartnerAgreementService {
       { $set: { agreement: signature(agreement), nda: signature(nda), payoutDetails } },
       { new: true },
     ).lean<AssetPartnerDoc>();
-    logger.info({ partnerId: partner._id, agreement: agreement.version, nda: nda.version }, 'Asset Partner documents signed');
+    logger.info({ partnerId: partner._id, agreement: agreement.version, nda: nda.version, envelopeId: envelope.envelopeId }, 'Asset Partner documents signed');
+    if (doc) {
+      await assetPartnerTermsService.writeBaseline(doc, terms, now, envelope.envelopeId);
+      void assetPartnerEnvelopeService.sendCopy(envelope, ctx);
+    }
     return doc ?? (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!;
   }
 
-  /** The signed document as a PDF, rebuilt from the exact version and details that were signed. */
-  async signedPdf(partner: AssetPartnerDoc, kind: AgreementKind): Promise<{ pdf: Buffer; filename: string }> {
+  /** A partner who signed before envelopes existed: seal what they signed, from the record of that signing, once. */
+  private async sealEarlierSigning(partner: AssetPartnerDoc): Promise<{ envelopeId: string } | null> {
+    const a = partner.agreement;
+    const n = partner.nda;
+    if (!a?.signedAt || !n?.signedAt) return null;
+    const existing = await SignatureEnvelopeModel.findOne({ partnerId: partner._id, purpose: 'onboarding' }).select('envelopeId').lean<{ envelopeId: string }>();
+    if (existing) return existing;
+    const [aDoc, nDoc] = await Promise.all([
+      AssetPartnerAgreementModel.findOne({ version: a.version }).lean<AssetPartnerAgreementDoc>(),
+      AssetPartnerAgreementModel.findOne({ version: n.version }).lean<AssetPartnerAgreementDoc>(),
+    ]);
+    if (!aDoc || !nDoc) return null;
+    const fieldsOf = (s: PartnerAgreementSignature) => Object.fromEntries(Object.entries(s.fields ?? {}));
+    const envelope = await assetPartnerEnvelopeService.seal({
+      partner,
+      purpose: 'onboarding',
+      docs: [
+        { kind: 'agreement', title: aDoc.title, version: aDoc.version, text: renderAgreement(aDoc.body, fieldsOf(a)) },
+        { kind: 'nda', title: nDoc.title, version: nDoc.version, text: renderAgreement(nDoc.body, fieldsOf(n)) },
+      ],
+      signerName: a.signedName,
+      signerEmail: partner.email,
+      ctx: { ip: a.ip, userAgent: a.userAgent },
+      at: new Date(a.signedAt),
+      legacy: true,
+    });
+    await AssetPartnerModel.updateOne({ _id: partner._id }, { $set: { 'agreement.envelopeId': envelope.envelopeId, 'nda.envelopeId': envelope.envelopeId } });
+    return envelope;
+  }
+
+  /** The signed document as a PDF: the sealed copy; only a record that cannot be sealed falls back to a rebuild. */
+  async signedPdf(partner: AssetPartnerDoc, kind: 'agreement' | 'nda'): Promise<{ pdf: Buffer; filename: string }> {
     const sig = kind === 'nda' ? partner.nda : partner.agreement;
     if (!sig?.signedAt) throw new NotFoundError('Signed document');
+    const envelopeId = sig.envelopeId ?? (await this.sealEarlierSigning(partner))?.envelopeId;
+    if (envelopeId) {
+      const envelope = await SignatureEnvelopeModel.findOne({ envelopeId }).select('documents.documentId documents.kind').lean<{ documents: { documentId: string; kind: string }[] }>();
+      const documentId = envelope?.documents.find((d) => d.kind === kind)?.documentId;
+      if (documentId) return assetPartnerEnvelopeService.pdf(documentId, partner._id);
+    }
     const source = await AssetPartnerAgreementModel.findOne({ version: sig.version }).lean<AssetPartnerAgreementDoc>();
     if (!source) throw new NotFoundError('Signed document');
     const fields = Object.fromEntries(Object.entries(sig.fields ?? {}));
@@ -204,65 +310,6 @@ export class AssetPartnerAgreementService {
     const name = (fields.partner_name || partner.displayName).replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
     return { pdf, filename: `CatoDrive-${kind === 'nda' ? 'NDA' : 'Asset-Partner-Agreement'}-${name || 'partner'}.pdf` };
   }
-}
-
-const SWAPS: Record<string, string> = { '□': '[ ]', '☐': '[ ]', '☑': '[x]', 'ʺ': '"', '≥': '>=', '≤': '<=', '→': '->', '\t': '    ' };
-
-/** Keeps only characters the standard PDF font can draw, swapping the common ones for look-alikes. */
-function drawable(font: PDFFont, text: string, cache: Map<string, string>): string {
-  let out = '';
-  for (const ch of text) {
-    let ok = cache.get(ch);
-    if (ok === undefined) {
-      try {
-        font.widthOfTextAtSize(ch, 10);
-        ok = ch;
-      } catch {
-        ok = SWAPS[ch] ?? '?';
-      }
-      cache.set(ch, ok);
-    }
-    out += ok;
-  }
-  return out;
-}
-
-export async function buildTextPdf(title: string, body: string, footer: string[]): Promise<Buffer> {
-  const doc = await PDFDocument.create();
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const cache = new Map<string, string>();
-  const W = 612, H = 792, M = 54, size = 10, lead = 14;
-  let page = doc.addPage([W, H]);
-  let y = H - M;
-  const newPage = () => { page = doc.addPage([W, H]); y = H - M; };
-  const line = (text: string, f: PDFFont, s = size, color = rgb(0.1, 0.1, 0.12)) => {
-    if (y < M + lead) newPage();
-    page.drawText(text, { x: M, y, size: s, font: f, color });
-    y -= s === size ? lead : s + 8;
-  };
-  const wrap = (text: string, f: PDFFont, s = size) => {
-    const clean = drawable(f, text, cache);
-    if (!clean.trim()) { y -= lead / 2; return; }
-    let current = '';
-    for (const word of clean.split(/\s+/)) {
-      const next = current ? `${current} ${word}` : word;
-      if (f.widthOfTextAtSize(next, s) > W - 2 * M && current) {
-        line(current, f, s);
-        current = word;
-      } else {
-        current = next;
-      }
-    }
-    if (current) line(current, f, s);
-  };
-
-  wrap(title, bold, 16);
-  y -= 6;
-  for (const para of body.replace(/\r\n/g, '\n').split('\n')) wrap(para, font);
-  y -= lead;
-  for (const f of footer) wrap(f, font, 8);
-  return Buffer.from(await doc.save());
 }
 
 export const assetPartnerAgreementService = new AssetPartnerAgreementService();

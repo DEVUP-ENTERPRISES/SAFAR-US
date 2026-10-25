@@ -18,6 +18,10 @@ import { formatMoney, formatDate } from '@/lib/utils/format';
 import { partnerManageApi } from '@/features/asset-partners/manage-api';
 import { PartnerPaperwork } from '~/features/partners/partner-paperwork';
 import { IntakeReports } from '~/features/partners/intake-reports';
+import { PartnerEnvelopes } from '~/features/partners/partner-envelopes';
+import { TermsHistory } from '~/features/partners/terms-history';
+import { ApiError } from '@/lib/api/types';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 const manage = partnerManageApi('/ioc');
 
@@ -89,6 +93,16 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     onError: () => toast({ tone: 'error', title: 'Could not save terms' }),
   });
 
+  const proposeTerms = useMutation({
+    mutationFn: (input: Parameters<typeof manage.proposeTerms>[1]) => manage.proposeTerms(id, input),
+    onSuccess: () => {
+      setDraft({});
+      qc.invalidateQueries({ queryKey: ['ioc-terms-history', id] });
+      toast({ tone: 'success', title: 'Sent to the partner to sign', description: 'Nothing changes until they sign it.' });
+    },
+    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? safeMessage(e.message) : 'Could not send the change' }),
+  });
+
   const [draft, setDraft] = useState<Record<string, string>>({});
 
   if (isLoading) return <Skeleton className="h-96 w-full" />;
@@ -119,17 +133,36 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   };
 
   /** Only send fields the operator actually typed — the rest stay inherited. */
-  const submitTerms = () => {
+  // After signing, money terms change only through an amendment the partner signs; the payout method stays theirs to pick.
+  const signed = !!partner.agreement?.signedAt;
+  const submitTerms = async () => {
     const out: Record<string, number | string | undefined> = {};
     for (const [k, v] of Object.entries(draft)) {
-      if (v === '') continue;
+      if (v === '' || k === 'requestedFrom' || k === 'reason') continue;
       out[k] = k === 'payoutMethod' ? v : Number(v);
     }
     if (Object.keys(out).length === 0) {
       toast({ tone: 'error', title: 'Nothing to save' });
       return;
     }
-    saveTerms.mutate(out);
+    if (!signed) {
+      saveTerms.mutate(out);
+      return;
+    }
+    const { payoutMethod, ...money } = out;
+    if (payoutMethod) saveTerms.mutate({ payoutMethod });
+    if (Object.keys(money).length === 0) return;
+    const { ok } = await confirm({
+      title: 'Send this change to the partner?',
+      description: 'They review and sign it in their portal. It starts on the date you chose, or when they sign if that is later. Past trips keep their old terms.',
+      confirmLabel: 'Send for signature',
+    });
+    if (!ok) return;
+    proposeTerms.mutate({
+      ...(money as Record<string, number>),
+      ...(draft.requestedFrom ? { requestedFrom: new Date(`${draft.requestedFrom}T00:00:00`).toISOString() } : {}),
+      ...(draft.reason?.trim() ? { reason: draft.reason.trim() } : {}),
+    });
   };
 
   return (
@@ -185,6 +218,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
       <PartnerPaperwork partnerId={id} signed={{ agreement: partner.agreement, nda: partner.nda }} />
 
+      <PartnerEnvelopes partnerId={id} />
+
       <IntakeReports partnerId={id} applications={data.applications ?? []} />
 
       {/* Terms in force — resolved, so this is what the statement uses. */}
@@ -192,7 +227,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <CardHeader>
           <CardTitle className="text-lg">Terms in force</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            Leave a field blank to inherit the platform default. Only what you type is negotiated.
+            {signed
+              ? 'These are the terms the partner signed. A change is sent to them to review and sign, and only applies once signed.'
+              : 'Leave a field blank to use the platform default. What you set here goes into the agreement the partner signs.'}
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -291,11 +328,23 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               </Select>
             </Field>
           </div>
-          <Button loading={saveTerms.isPending} onClick={submitTerms}>
-            Save negotiated terms
+          {signed && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Starts on" hint="Today or later. If the partner signs after this date, it starts when they sign.">
+                <Input type="date" min={new Date().toISOString().slice(0, 10)} value={draft.requestedFrom ?? ''} onChange={(e) => setDraft({ ...draft, requestedFrom: e.target.value })} />
+              </Field>
+              <Field label="Note to the partner (optional)">
+                <Input maxLength={500} value={draft.reason ?? ''} onChange={(e) => setDraft({ ...draft, reason: e.target.value })} />
+              </Field>
+            </div>
+          )}
+          <Button loading={saveTerms.isPending || proposeTerms.isPending} onClick={() => void submitTerms()}>
+            {signed ? 'Send change for signature' : 'Save terms for the agreement'}
           </Button>
         </CardContent>
       </Card>
+
+      <TermsHistory partnerId={id} />
 
       {/* Their cars — ops had no way to see these from the partner record. */}
       <Card>

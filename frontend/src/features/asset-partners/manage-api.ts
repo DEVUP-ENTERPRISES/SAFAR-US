@@ -1,5 +1,5 @@
 import { api } from '@/lib/api/client';
-import type { FuelLevel, IntakeReport } from './api';
+import type { FuelLevel, IntakeReport, SignatureEnvelope } from './api';
 
 type Q = Record<string, string | number | boolean | undefined>;
 export type ReviewDecision = 'approved' | 'changes_requested' | 'rejected';
@@ -10,7 +10,21 @@ export interface ProgrammeSummary {
   vehicles: number;
 }
 
-export type AgreementKind = 'agreement' | 'nda';
+export type AgreementKind = 'agreement' | 'nda' | 'amendment';
+
+/** One version of a partner's terms; amounts in cents, fee in basis points. */
+export interface TermsVersion {
+  _id: string;
+  terms: { managementFeeBps: number; insuranceMonthlyCents: number; detailingMonthlyCents: number; deductibleCapCents: number; maintenanceApprovalCents: number; payoutDayOfMonth: number };
+  effectiveFrom: string;
+  requestedFrom: string;
+  status: 'pending_signature' | 'active' | 'cancelled' | 'declined';
+  kind: 'baseline' | 'amendment';
+  envelopeId?: string;
+  reason?: string;
+  createdAt: string;
+  activatedAt?: string;
+}
 
 export interface PayoutRow {
   partnerId: string;
@@ -117,6 +131,13 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     placeholders: () => api.get<{ key: string; label: string }[]>(`${base}/asset-partner-agreements/placeholders`),
     publishAgreement: (input: { kind: AgreementKind; title: string; body: string }) => api.post<AgreementVersion>(`${base}/asset-partner-agreements`, input),
     signedCopy: (id: string, kind: AgreementKind) => api.download(`${base}/asset-partners/${id}/signed/${kind}`),
+    envelopes: (id: string) => api.get<SignatureEnvelope[]>(`${base}/asset-partners/${id}/envelopes`),
+    sealedDocument: (documentId: string) => api.download(`${base}/signed-documents/${documentId}`),
+    resendCopy: (id: string, envelopeId: string) => api.post<{ sent: boolean }>(`${base}/asset-partners/${id}/envelopes/${envelopeId}/resend`),
+    termsHistory: (id: string) => api.get<{ history: TermsVersion[]; pending: TermsVersion | null }>(`${base}/asset-partners/${id}/terms-history`),
+    proposeTerms: (id: string, input: Partial<Record<'managementFeeBps' | 'insuranceMonthlyCents' | 'detailingMonthlyCents' | 'deductibleCapCents' | 'maintenanceApprovalCents' | 'payoutDayOfMonth', number>> & { requestedFrom?: string; reason?: string }) =>
+      api.post<TermsVersion>(`${base}/asset-partners/${id}/terms-change`, input),
+    cancelTermsChange: (id: string) => api.post<TermsVersion>(`${base}/asset-partners/${id}/terms-change/cancel`),
     partnerDocuments: (id: string) => api.get<{ checklist: { category: string; label: string; hint: string; uploaded: boolean; status?: string }[]; documents: { _id: string; category: string; createdAt: string; verification?: { status: string; reason?: string } }[] }>(`${base}/asset-partners/${id}/documents`),
     viewDocument: (id: string, docId: string) => api.get<{ url: string }>(`${base}/asset-partners/${id}/documents/${docId}/view`),
     reviewDocument: (id: string, docId: string, decision: 'verified' | 'rejected', reason?: string) => api.post(`${base}/asset-partners/${id}/documents/${docId}/review`, { decision, reason }),

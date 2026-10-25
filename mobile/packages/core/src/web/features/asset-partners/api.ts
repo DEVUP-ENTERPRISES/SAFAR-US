@@ -335,6 +335,18 @@ export const assetPartnerApi = {
   resubmitApplication: (id: string, input: PortalApplicationInput) => api.patch<PartnerApplicationDetail>(`/asset-partners/me/applications/${id}`, input),
   signDocuments: (input: SignDocumentsInput) => api.post('/asset-partners/me/agreement', input),
   downloadSigned: (kind: 'agreement' | 'nda') => api.download(`/asset-partners/me/signed/${kind}`),
+  /** Audit trail: steps the signer takes before signing. Best effort; never blocks signing. */
+  signingEvent: (purpose: EnvelopePurpose, type: 'opened' | 'read_agreement' | 'read_nda' | 'read_amendment' | 'consented') =>
+    api.post<{ recorded: boolean }>('/asset-partners/me/signing-events', { purpose, type }).catch(() => undefined),
+  envelopes: () => api.get<SignatureEnvelope[]>('/asset-partners/me/envelopes'),
+  downloadSealed: (documentId: string) => api.download(`/asset-partners/me/signed-documents/${documentId}`),
+  amendment: () => api.get<TermsAmendment | null>('/asset-partners/me/amendment'),
+  signAmendment: (input: { versionId: string; signedName: string; templateVersion: number }) =>
+    api.post<{ envelopeId: string; effectiveFrom: string }>('/asset-partners/me/amendment/sign', input),
+  declineAmendment: () => api.post<{ declined: true }>('/asset-partners/me/amendment/decline'),
+  /** Public: anyone can check an envelope ID or a file's fingerprint. */
+  verifyEnvelope: (envelopeId: string) => api.get<EnvelopeCheck>(`/agreements/verify/${encodeURIComponent(envelopeId)}`, undefined, false),
+  verifyFile: (sha256: string) => api.get<EnvelopeCheck & { documentId?: string }>(`/agreements/verify-file/${sha256}`, undefined, false),
   intakes: () => api.get<IntakeReport[]>('/asset-partners/me/intakes'),
   respondIntake: (id: string, body: { kind: 'acknowledged'; signedName: string } | { kind: 'objected'; objection: string }) =>
     api.post<IntakeReport>(`/asset-partners/me/intakes/${id}/respond`, body),
@@ -353,4 +365,66 @@ export const assetPartnerApi = {
     api.post<MaintenanceRequest>(`/asset-partners/maintenance/${id}/approve`),
   declineMaintenance: (id: string, reason?: string) =>
     api.post<MaintenanceRequest>(`/asset-partners/maintenance/${id}/decline`, { reason }),
+};
+
+export type EnvelopePurpose = 'onboarding' | 'amendment';
+export type SigningEventType = 'sent' | 'opened' | 'read_agreement' | 'read_nda' | 'read_amendment' | 'consented' | 'signed' | 'countersigned' | 'completed' | 'copy_sent' | 'declined';
+
+export interface SigningEvent {
+  type: SigningEventType;
+  at: string;
+  ip?: string;
+  detail?: string;
+}
+
+/** One sealed signing: its ID, the documents in it, and every step. */
+export interface SignatureEnvelope {
+  envelopeId: string;
+  purpose: EnvelopePurpose;
+  completedAt: string;
+  documents: { documentId: string; kind: 'agreement' | 'nda' | 'amendment'; title: string; version: number; textHash: string; pdfHash: string }[];
+  signer: { name: string; email?: string; ip?: string };
+  countersigner: { name: string; title: string; organisation: string };
+  events: SigningEvent[];
+  /** Steps after sealing, e.g. copies sent. */
+  after: SigningEvent[];
+}
+
+export interface TermsAmendment {
+  versionId: string;
+  title: string;
+  version: number;
+  body: string;
+  from: Record<string, string>;
+  to: Record<string, string>;
+  requestedFrom: string;
+  reason?: string;
+}
+
+export interface EnvelopeCheck {
+  valid: boolean;
+  envelope?: { envelopeId: string; purpose: EnvelopePurpose; completedAt: string; signer: string; countersignedBy: string; documents: { documentId: string; title: string; version: number }[] };
+}
+
+export const SIGNING_EVENT_LABEL: Record<SigningEventType, string> = {
+  sent: 'Ready to sign',
+  opened: 'Opened',
+  read_agreement: 'Agreement read to the end',
+  read_nda: 'NDA read to the end',
+  read_amendment: 'Change read to the end',
+  consented: 'Agreed to sign electronically',
+  signed: 'Signed',
+  countersigned: 'Countersigned by CatoDrive',
+  completed: 'Completed and sealed',
+  copy_sent: 'Copy sent',
+  declined: 'Declined',
+};
+
+export const TERM_LABEL: Record<string, string> = {
+  management_fee: 'Management fee',
+  insurance_monthly: 'Insurance per car per month',
+  detailing_monthly: 'Detailing per car per month',
+  deductible_cap: 'Damage cap per incident',
+  maintenance_approval: 'Repairs needing approval above',
+  payout_day: 'Payout day',
 };

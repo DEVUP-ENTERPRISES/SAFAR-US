@@ -1,6 +1,7 @@
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { assetPartnerService, type ResolvedPartnerTerms } from './asset-partner.service';
+import { assetPartnerTermsService } from './asset-partner-terms.service';
 import type { AssetPartnerDoc } from '../infrastructure/asset-partner.model';
 import { AssetPartnerPayoutModel } from '../infrastructure/asset-partner-payout.model';
 
@@ -57,6 +58,8 @@ export interface PartnerStatement {
   payoutMethod: string;
   /** False while the month is still running — the figures can still move. */
   final: boolean;
+  /** Every management-fee rate applied this month, in basis points. */
+  managementFeeBpsUsed: number[];
   /** Set once CatoDrive has recorded sending this month's money. */
   paid?: { amount: number; method: string; reference: string; paidAt: Date };
 }
@@ -82,8 +85,12 @@ export class AssetPartnerStatementService {
    * hiding them would make a negative month look like a break-even one.
    */
   async statement(partner: AssetPartnerDoc, period = currentPeriod()): Promise<PartnerStatement> {
-    const terms = await assetPartnerService.termsFor(partner);
     const { start, end } = monthBounds(period);
+    // Fixed monthly charges follow the terms at the start of the month; each trip's fee follows the rate on the day it ended.
+    const [terms, rateAt] = await Promise.all([
+      assetPartnerService.termsFor(partner, new Date(Math.min(start.getTime(), Date.now()))),
+      assetPartnerTermsService.timeline(partner),
+    ]);
 
     const vehicles = (await VehicleModel.find({ assetPartnerId: partner._id })
       .select('_id year make model trim createdAt assetPartnerSince assetPartnerEndedAt')
@@ -91,30 +98,32 @@ export class AssetPartnerStatementService {
       // A car counts for a month only if it was in the programme during it.
       .filter((v) => new Date(v.assetPartnerSince ?? v.createdAt) < end && (!v.assetPartnerEndedAt || new Date(v.assetPartnerEndedAt) >= start));
 
-    const revenue = await BookingModel.aggregate<{ _id: string; trips: number; gross: number }>([
-      {
-        $match: {
-          vehicleId: { $in: vehicles.map((v) => v._id) },
-          status: 'completed',
-          'period.end': { $gte: start, $lt: end },
-        },
-      },
-      {
-        $group: {
-          _id: '$vehicleId',
-          trips: { $sum: 1 },
-          gross: { $sum: '$priceBreakdown.subtotal.amount' },
-        },
-      },
-    ]).exec();
+    const trips = await BookingModel.find({
+      vehicleId: { $in: vehicles.map((v) => v._id) },
+      status: 'completed',
+      'period.end': { $gte: start, $lt: end },
+    })
+      .select('vehicleId period.end priceBreakdown.subtotal.amount')
+      .lean<{ vehicleId: string; period: { end: Date }; priceBreakdown: { subtotal?: { amount: number } } }[]>();
 
-    const byVehicle = new Map(revenue.map((r) => [r._id, r]));
+    const byVehicle = new Map<string, { trips: number; gross: number; fee: number }>();
+    const ratesUsed = new Set<number>();
+    for (const t of trips) {
+      const gross = t.priceBreakdown.subtotal?.amount ?? 0;
+      const bps = rateAt(new Date(t.period.end)).managementFeeBps;
+      ratesUsed.add(bps);
+      const row = byVehicle.get(t.vehicleId) ?? { trips: 0, gross: 0, fee: 0 };
+      row.trips += 1;
+      row.gross += gross;
+      row.fee += Math.round((gross * bps) / 10_000);
+      byVehicle.set(t.vehicleId, row);
+    }
 
     const lines: StatementLine[] = vehicles
       .map((v) => {
         const r = byVehicle.get(v._id);
         const gross = r?.gross ?? 0;
-        const managementFee = Math.round((gross * terms.managementFeeBps) / 10_000);
+        const managementFee = r?.fee ?? 0;
         const insurance = terms.insuranceMonthlyCents;
         const detailing = terms.detailingMonthlyCents;
         return {
@@ -140,6 +149,8 @@ export class AssetPartnerStatementService {
       period,
       currency: 'USD',
       terms,
+      // More than one value means the rate changed during this month.
+      managementFeeBpsUsed: [...ratesUsed].sort((a, b) => a - b),
       lines,
       totals: {
         trips: sum((l) => l.trips),

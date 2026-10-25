@@ -62,6 +62,10 @@ export interface PlatformConfig {
     payoutDayOfMonth: number;
     payoutMethod: 'check' | 'zelle';
     intakeObjectionDays?: number;
+    /** Who signs partner agreements for CatoDrive; printed on every sealed document. */
+    countersignerName?: string;
+    countersignerTitle?: string;
+    countersignerOrganisation?: string;
   };
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };
   /** Post-trip charges: the combined ceiling per booking (bps of the booking total) and the guest's dispute window. */
