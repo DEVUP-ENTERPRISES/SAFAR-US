@@ -21,6 +21,7 @@ import { useCheckout } from '@/features/bookings/checkout-store';
 import { usePayments } from '@/features/payments/usePayments';
 import { VehicleCalendar } from '@/features/vehicles/VehicleCalendar';
 import { TimeSheet } from '@/features/search/TimeSheet';
+import { safeMessage } from '@catodrive/core/web/lib/utils/safe-message';
 
 /** Where the guest is, only if location was already allowed: the risk check is best effort and never prompts at checkout. */
 async function knownCoords(): Promise<{ lat: number; lng: number } | undefined> {
@@ -135,7 +136,7 @@ function Checkout() {
   };
 
   const addCardThenBook = async () => {
-    const saved = await payments.saveCard().catch((e: unknown) => ({ ok: false as const, cancelled: false, message: e instanceof Error ? e.message : undefined }));
+    const saved = await payments.saveCard().catch((e: unknown) => ({ ok: false as const, cancelled: false, message: e instanceof Error ? safeMessage(e.message) : undefined }));
     if (saved.ok) {
       createBooking.reset();
       toast({ tone: 'success', title: 'Card saved' });

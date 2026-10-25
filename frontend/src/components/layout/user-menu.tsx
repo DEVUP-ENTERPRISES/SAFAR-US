@@ -133,7 +133,7 @@ export function UserMenu() {
                 <Car className="h-4 w-4 text-primary" /> Partner dashboard
               </SiteLink>
             )}
-            {!config.assetPartnersOnly && !isAssetPartner && (
+            {!config.assetPartnersOnly && !isAssetPartner && !user?.roles?.includes('house_fleet') && (
               <>
                 <SiteLink path="/host" onNavigate={() => setOpen(false)} role="menuitem" className="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-accent">
                   <Car className="h-4 w-4 text-primary" /> Host dashboard

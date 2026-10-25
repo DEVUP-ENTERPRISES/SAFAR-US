@@ -4,6 +4,7 @@ import { AlertTriangle, Banknote, CheckCircle2, ExternalLink } from 'lucide-reac
 import { Badge, Button, Card, Skeleton, Text, space, useTheme, useToast } from '@catodrive/ui';
 import { openInAppBrowser } from '@catodrive/core';
 import { connectApi, humaniseRequirement } from '@catodrive/core/web/features/host/payouts';
+import { safeMessage } from '@catodrive/core/web/lib/utils/safe-message';
 
 /** Connecting a bank account through Stripe's hosted onboarding; status is re-read when the host comes back. */
 export function PayoutConnect() {
@@ -17,7 +18,7 @@ export function PayoutConnect() {
       await openInAppBrowser(r.url);
       void status.refetch();
     },
-    onError: (e) => toast({ tone: 'error', title: 'Could not start payout setup', body: e instanceof Error ? e.message : undefined }),
+    onError: (e) => toast({ tone: 'error', title: 'Could not start payout setup', body: e instanceof Error ? safeMessage(e.message) : undefined }),
   });
   const dashboard = useMutation({
     meta: { silentError: true },

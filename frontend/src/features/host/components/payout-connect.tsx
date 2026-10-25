@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { connectApi, humaniseRequirement as humanise } from '../payouts';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 /**
  * Connecting a bank account.
@@ -37,7 +38,7 @@ export function PayoutConnect() {
     mutationFn: () => connectApi.onboard('/host/earnings'),
     // Stripe's flow replaces the page; coming back re-reads status.
     onSuccess: (r) => { window.location.href = r.url; },
-    onError: (e) => toast({ tone: 'error', title: 'Could not start payout setup', description: e instanceof Error ? e.message : undefined }),
+    onError: (e) => toast({ tone: 'error', title: 'Could not start payout setup', description: e instanceof Error ? safeMessage(e.message) : undefined }),
   });
 
   const dashboard = useMutation({

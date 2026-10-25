@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ErrorState } from '@/components/ui/states';
+import { EmptyState, ErrorState } from '@/components/ui/states';
+import { useAuthStore } from '@/features/auth/store';
 import { useHostMe, useOnboardHost, isNotAHost } from '@/features/host/hooks';
 import { useIsAssetPartner } from '@/features/asset-partners/hooks';
 import { HostSidebar } from '@/features/host/components/host-sidebar';
@@ -23,6 +24,7 @@ function HostShell({ children }: { children: ReactNode }) {
   const hostQuery = useHostMe();
   const isAssetPartner = useIsAssetPartner();
   const onboard = useOnboardHost();
+  const isHouseFleet = useAuthStore((s) => s.user?.roles?.includes('house_fleet') ?? false);
   const [displayName, setDisplayName] = useState('');
 
   const notAHost = isNotAHost(hostQuery.error);
@@ -66,6 +68,19 @@ function HostShell({ children }: { children: ReactNode }) {
 
   if (isAssetPartner || isAssetPartner === undefined) {
     return <Skeleton className="h-64 w-full" />;
+  }
+
+  // CatoDrive's own fleet is run from the operations panel; its address is private, so it is not linked here.
+  if (isHouseFleet) {
+    return (
+      <div className="mx-auto max-w-lg py-16">
+        <EmptyState
+          icon={<Store className="h-6 w-6" />}
+          title="This account is managed in the operations panel"
+          description="CatoDrive Fleet cars, trips and messages are run from the operations panel. Open it from your saved link."
+        />
+      </div>
+    );
   }
 
   // Still deciding. `isPending` covers the first load; `isFetching` covers a

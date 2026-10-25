@@ -6,6 +6,7 @@ import { Badge, Button, Card, EmptyState, Screen, ScreenHeader, Skeleton, Text, 
 import { RequireAuth } from '@catodrive/core';
 import { accountApi } from '@catodrive/core/web/features/account/api';
 import { usePayments } from '@/features/payments/usePayments';
+import { safeMessage } from '@catodrive/core/web/lib/utils/safe-message';
 
 function Payments() {
   const { c } = useTheme();
@@ -27,7 +28,7 @@ function Payments() {
         refresh();
       } else if (!r.cancelled) toast({ tone: 'error', title: r.message ?? 'That card could not be saved' });
     },
-    onError: (e) => toast({ tone: 'error', title: e instanceof Error ? e.message : 'Could not save that card' }),
+    onError: (e) => toast({ tone: 'error', title: e instanceof Error ? safeMessage(e.message) : 'Could not save that card' }),
   });
 
   return (

@@ -21,6 +21,8 @@ import { SearchBarFields } from '@/features/search/search-bar-fields';
 
 export function Navbar() {
   const { status } = useAuthStore();
+  // CatoDrive's own fleet is run from the operations panel, never the host site.
+  const isHouseFleet = useAuthStore((s) => s.user?.roles?.includes('house_fleet') ?? false);
   const pathname = usePathname();
   const authed = status === 'authenticated';
   const { isMember } = useMembership();
@@ -159,7 +161,7 @@ export function Navbar() {
                 with no assetPartnerId and bills it as an ordinary host
                 booking instead of running it through their actual terms.
               */}
-              {(isHost || !config.assetPartnersOnly) && !isAssetPartner ? (
+              {(isHost || !config.assetPartnersOnly) && !isAssetPartner && !isHouseFleet ? (
                 <SiteLink path="/host" className="hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all hover:bg-primary/10 hover:text-primary xl:block">
                   {isHost ? 'Host dashboard' : 'Become a host'}
                 </SiteLink>
@@ -245,7 +247,7 @@ export function Navbar() {
                   </Link>
                 )}
                 {/* See the desktop link above for why !isAssetPartner matters here. */}
-                {(isHost || !config.assetPartnersOnly) && !isAssetPartner && (
+                {(isHost || !config.assetPartnersOnly) && !isAssetPartner && !isHouseFleet && (
                   <SiteLink path="/host" className="flex items-center gap-3 px-4 py-3 text-base font-medium rounded-xl hover:bg-accent" onNavigate={() => setMobileMenuOpen(false)}>
                     <Car className="h-5 w-5 text-muted-foreground" />
                     {isHost ? 'Host dashboard' : 'Become a host'}

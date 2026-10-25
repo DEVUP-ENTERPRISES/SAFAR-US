@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils/cn';
 import { tripApi } from '@/features/trips/api';
 import { claimsApi } from '@/features/claims/api';
 import { uploadFiles } from '@/features/media/upload';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 /**
  * A host files a damage claim on a finished trip.
@@ -70,7 +71,7 @@ export function FileDamageClaim({
       const uploaded = await uploadFiles('trip_photo', Array.from(files));
       setCloseups((prev) => [...prev, ...uploaded]);
     } catch (err) {
-      notify({ tone: 'error', title: 'Upload failed', description: err instanceof Error ? err.message : '' });
+      notify({ tone: 'error', title: 'Upload failed', description: err instanceof Error ? safeMessage(err.message) : '' });
     } finally {
       setUploading(false);
     }

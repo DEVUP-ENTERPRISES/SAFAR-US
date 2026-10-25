@@ -6,6 +6,7 @@ import { Button, Text, space, useTheme, useToast } from '@catodrive/ui';
 import { pickPhotos, uploadPhotos, type PickSource } from '@catodrive/core';
 import { withCover } from '@catodrive/core/web/features/vehicles/new-listing';
 import { useListingDraft } from './draft-store';
+import { safeMessage } from '@catodrive/core/web/lib/utils/safe-message';
 
 /** Add photos (duplicates skipped by content), pick the cover, remove; the cover moves on when it is removed. */
 export function PhotosStep({ minPhotos, errors }: { minPhotos: number; errors: Record<string, string> }) {
@@ -28,7 +29,7 @@ export function PhotosStep({ minPhotos, errors }: { minPhotos: number; errors: R
       if (duplicates > 0) toast({ tone: 'error', title: `${duplicates} photo${duplicates === 1 ? ' was' : 's were'} already added`, body: 'Skipped the duplicates - pick different shots of the car.' });
       patch((prev) => ({ ...prev, photos: withCover([...prev.photos, ...fresh.map((u) => ({ url: u.url, key: u.key, isCover: false, fingerprint: u.sha256 }))]) }));
     } catch (err) {
-      toast({ tone: 'error', title: 'Photo upload failed', body: err instanceof Error ? err.message : 'Please try again.' });
+      toast({ tone: 'error', title: 'Photo upload failed', body: err instanceof Error ? safeMessage(err.message) : 'Please try again.' });
     } finally {
       setUploading(false);
     }

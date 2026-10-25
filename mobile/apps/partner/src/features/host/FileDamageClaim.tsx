@@ -7,6 +7,7 @@ import { Button, Card, Checkbox, Input, Text, space, useConfirm, useTheme, useTo
 import { pickPhotos, uploadPhotos, type PickSource } from '@catodrive/core';
 import { claimsApi } from '@catodrive/core/web/features/claims/api';
 import { tripApi } from '@catodrive/core/web/features/trips/api';
+import { safeMessage } from '@catodrive/core/web/lib/utils/safe-message';
 
 /** A host files a damage claim on a finished trip, with the return photos pre-selected as evidence. */
 export function FileDamageClaim({ bookingId, tripId, currency = 'USD' }: { bookingId: string; tripId: string; currency?: string }) {
@@ -37,7 +38,7 @@ export function FileDamageClaim({ bookingId, tripId, currency = 'USD' }: { booki
       const uploaded = await uploadPhotos('trip_photo', picked);
       setCloseups((prev) => [...prev, ...uploaded.map((u) => ({ url: u.url, key: u.key }))]);
     } catch (err) {
-      toast({ tone: 'error', title: 'Upload failed', body: err instanceof Error ? err.message : undefined });
+      toast({ tone: 'error', title: 'Upload failed', body: err instanceof Error ? safeMessage(err.message) : undefined });
     } finally {
       setUploading(false);
     }

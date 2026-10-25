@@ -6,6 +6,7 @@ import { useAuthStore } from '../web/features/auth/store';
 import { SYSTEM_SENDER, useMessages } from '../web/features/messaging/hooks';
 import { pickPhotos, uploadPhotos } from '../uploads';
 import { SecureImage } from './SecureImage';
+import { safeMessage } from '../web/lib/utils/safe-message';
 
 const QUICK_REPLIES = ['On my way 👍', 'Running a few minutes late', 'Where should I park?', 'Thanks!', 'Sounds good'];
 
@@ -38,7 +39,7 @@ export function ChatPanel({ bookingId, height = 420 }: { bookingId: string; heig
       const [uploaded] = await uploadPhotos('message', picked.slice(0, 1));
       send('', [{ url: uploaded.url, kind: 'image' }]);
     } catch (err) {
-      toast({ tone: 'error', title: 'Couldn’t send photo', body: err instanceof Error ? err.message : 'Try again.' });
+      toast({ tone: 'error', title: 'Couldn’t send photo', body: err instanceof Error ? safeMessage(err.message) : 'Try again.' });
     } finally {
       setUploading(false);
     }

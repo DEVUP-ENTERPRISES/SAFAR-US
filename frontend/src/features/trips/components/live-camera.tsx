@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, Loader2, MapPinOff, RefreshCw, VideoOff, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AngleGuide, FrameCorners, hasOutline } from './angle-guide';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 /** What is burned into every photo and shown live in the viewfinder. */
 export interface PhotoStamp {
@@ -235,7 +236,7 @@ export function LiveCamera({
     try {
       await onUse(shot.data);
     } catch (e) {
-      setUploadError(e instanceof Error ? e.message : 'Upload failed. Try again.');
+      setUploadError(e instanceof Error ? safeMessage(e.message) : 'Upload failed. Try again.');
       setBusy(false);
     }
   };

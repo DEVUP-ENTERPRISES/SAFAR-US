@@ -19,6 +19,7 @@ import { partnerManageApi, type IntakeInput } from '@/features/asset-partners/ma
 import { ApiError } from '@/lib/api/types';
 import { formatDate } from '@/lib/utils/format';
 import { saveFile } from '@/lib/utils/save-file';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 const manage = partnerManageApi('/ioc');
 
@@ -94,7 +95,7 @@ export function IntakeReports({ partnerId, applications }: { partnerId: string; 
       const ups = await uploadFiles('vehicle_photo', Array.from(files).slice(0, 20));
       setForm((f) => ({ ...f, photos: [...(f.photos ?? []), ...ups.map((u) => ({ url: u.url, key: u.key }))].slice(0, 40) }));
     } catch (e) {
-      toast({ tone: 'error', title: e instanceof Error ? e.message : 'Upload failed' });
+      toast({ tone: 'error', title: e instanceof Error ? safeMessage(e.message) : 'Upload failed' });
     } finally {
       setUploading(false);
     }

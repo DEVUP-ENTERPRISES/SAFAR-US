@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/toast';
 import { uploadFiles } from '@/features/media/upload';
 import { SecureDoc } from '@/features/media/secure-doc';
 import { useMessages, SYSTEM_SENDER } from './hooks';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 /** Canned openers so coordinating a trip is one tap, not a paragraph. */
 const QUICK_REPLIES = [
@@ -61,7 +62,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
       const [uploaded] = await uploadFiles('message', [file]);
       send('', [{ url: uploaded.url, kind: 'image' }]);
     } catch (err) {
-      notify({ tone: 'error', title: 'Couldn’t send photo', description: err instanceof Error ? err.message : 'Try again.' });
+      notify({ tone: 'error', title: 'Couldn’t send photo', description: err instanceof Error ? safeMessage(err.message) : 'Try again.' });
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';

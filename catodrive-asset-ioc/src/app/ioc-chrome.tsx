@@ -4,9 +4,10 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { NotificationBell } from '@/components/layout/notification-bell';
+import { iocNotificationLink } from '~/features/notifications/ioc-link';
 import { HostMobileTabBar } from '~/components/layout/host-mobile-tab-bar';
 import { RouteProgress } from '@/components/layout/route-progress';
 import { PageTransition } from '@/components/layout/page-transition';
@@ -14,7 +15,6 @@ import { useAuthStore } from '@/features/auth/store';
 import { useLogout } from '@/features/auth/hooks';
 import { useIsHost } from '~/features/host/hooks';
 import { captainApi } from '~/features/host/team-api';
-import { goToSite } from '@/lib/sites';
 import { cn } from '@/lib/utils/cn';
 
 // Full-screen pages: sign-in, the cross-site handoff, House Fleet's bridge and a captain's invite.
@@ -63,14 +63,7 @@ export function IocChrome({ children }: { children: ReactNode }) {
             </nav>
           )}
           <div className="flex items-center gap-1 sm:gap-2">
-            <button
-              type="button"
-              onClick={() => void goToSite('guest', '/')}
-              className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium hover:bg-accent sm:inline-flex"
-            >
-              catodrive.com <ExternalLink className="h-3.5 w-3.5" />
-            </button>
-            {signedIn && <NotificationBell />}
+            {signedIn && <NotificationBell linkFor={iocNotificationLink} />}
             {signedIn && (
               <button type="button" onClick={() => logout.mutate()} aria-label="Sign out" className="grid h-9 w-9 place-items-center rounded-full hover:bg-accent">
                 <LogOut className="h-4 w-4" />

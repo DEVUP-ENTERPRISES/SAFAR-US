@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/toast';
 import { authApi } from './api';
 import { usePlatformConfig } from '@/features/platform/config';
 import type { AuthResult } from './types';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 export const APPLE_CLIENT_ID = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID ?? '';
@@ -67,7 +68,7 @@ export function SocialSignIn({ onSuccess }: { onSuccess: (r: AuthResult) => void
           try {
             onSuccess(await authApi.google(credential));
           } catch (err) {
-            toast({ tone: 'error', title: err instanceof Error ? err.message : 'Google sign-in failed' });
+            toast({ tone: 'error', title: err instanceof Error ? safeMessage(err.message) : 'Google sign-in failed' });
           }
         },
       });
@@ -121,7 +122,7 @@ export function SocialSignIn({ onSuccess }: { onSuccess: (r: AuthResult) => void
       onSuccess(await authApi.apple(res.authorization.id_token));
     } catch (err) {
       // A cancelled popup rejects too - don't toast that as an error.
-      const msg = err instanceof Error ? err.message : '';
+      const msg = err instanceof Error ? safeMessage(err.message) : '';
       if (msg && msg !== 'popup_closed_by_user') {
         toast({ tone: 'error', title: 'Apple sign-in failed' });
       }
@@ -135,7 +136,7 @@ export function SocialSignIn({ onSuccess }: { onSuccess: (r: AuthResult) => void
       setSent(true);
       toast({ tone: 'success', title: `Code sent to ${phone}` });
     } catch (err) {
-      toast({ tone: 'error', title: err instanceof Error ? err.message : 'Could not send the code' });
+      toast({ tone: 'error', title: err instanceof Error ? safeMessage(err.message) : 'Could not send the code' });
     } finally {
       setBusy(false);
     }
@@ -146,7 +147,7 @@ export function SocialSignIn({ onSuccess }: { onSuccess: (r: AuthResult) => void
     try {
       onSuccess(await authApi.verifyPhoneOtp(phone.trim(), code.trim()));
     } catch (err) {
-      toast({ tone: 'error', title: err instanceof Error ? err.message : 'That code didn’t work' });
+      toast({ tone: 'error', title: err instanceof Error ? safeMessage(err.message) : 'That code didn’t work' });
     } finally {
       setBusy(false);
     }

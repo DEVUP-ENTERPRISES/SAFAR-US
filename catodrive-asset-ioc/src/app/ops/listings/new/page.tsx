@@ -29,6 +29,7 @@ import {
   ADDON_PRESETS, BODY_TYPE_OPTIONS, CATEGORY_OPTIONS, FUEL_OPTIONS, INITIAL_LISTING_DRAFT, LISTING_STEPS, TRANSMISSION_OPTIONS,
   applyVinDecode, createListingInput, listingBlockers, listingStepErrors, type ListingDraft,
 } from '~/features/vehicles/new-listing';
+import { safeMessage } from '@/lib/utils/safe-message';
 
 const STEPS = LISTING_STEPS;
 
@@ -150,7 +151,7 @@ export default function NewListingPage() {
       notify({
         tone: 'error',
         title: 'Photo upload failed',
-        description: err instanceof Error ? err.message : 'Please try again.',
+        description: err instanceof Error ? safeMessage(err.message) : 'Please try again.',
       });
     } finally {
       setUploading(false);

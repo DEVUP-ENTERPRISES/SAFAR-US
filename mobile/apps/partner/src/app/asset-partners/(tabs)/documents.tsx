@@ -9,6 +9,7 @@ import { EXPIRY_WARNING_DAYS, PARTNER_DOC_CATEGORIES, daysUntil, type PartnerDoc
 import { ApiError } from '@catodrive/core/web/lib/api/types';
 import { formatDay } from '@catodrive/core/web/lib/utils/format';
 import { DocumentRow } from '@/features/asset-partners/DocumentRow';
+import { safeMessage } from '@catodrive/core/web/lib/utils/safe-message';
 
 /** The website's /asset-partners/documents: upload insurance and registration, see what is about to lapse. */
 export default function PartnerDocumentsScreen() {
@@ -34,7 +35,7 @@ export default function PartnerDocumentsScreen() {
       setExpiresAt('');
       toast({ tone: 'success', title: 'Document uploaded' });
     },
-    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Upload failed' }),
+    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : e instanceof Error ? safeMessage(e.message) : 'Upload failed' }),
   });
 
   const data = q.data;
