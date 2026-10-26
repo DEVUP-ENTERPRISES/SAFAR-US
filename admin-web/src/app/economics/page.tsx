@@ -97,6 +97,7 @@ function Economics() {
         ...(draft.identityViewing ? { identityViewing: draft.identityViewing } : {}),
         inspection: draft.inspection,
         extension: draft.extension,
+        ...(draft.tripChanges ? { tripChanges: draft.tripChanges } : {}),
         handover: draft.handover,
         security: draft.security,
         ...(draft.programs ? { programs: draft.programs } : {}),

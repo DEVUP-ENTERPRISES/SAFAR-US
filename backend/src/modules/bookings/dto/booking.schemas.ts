@@ -1,3 +1,4 @@
+import { CANCEL_REASONS, EXCEPTION_REASONS } from '../domain/trip-change-rules';
 import { z } from 'zod';
 
 const isoDate = z.string().datetime().or(z.coerce.date());
@@ -63,6 +64,17 @@ export const createBookingSchema = quoteSchema.extend({
 
 export const cancelSchema = z.object({
   reason: z.string().max(300).default('Cancelled by user'),
+  reasonCode: z.enum(CANCEL_REASONS).optional(),
+  choice: z.enum(['refund', 'credit']).optional(),
+});
+
+export const shiftPickupSchema = z.object({ start: isoDate });
+export const moveDatesSchema = z.object({ start: isoDate, end: isoDate });
+export const switchCarSchema = z.object({ vehicleId: z.string().trim().min(1).max(64) });
+export const exceptionSchema = z.object({
+  reasonCode: z.enum(EXCEPTION_REASONS),
+  note: z.string().trim().max(1000).optional(),
+  proofKeys: z.array(z.string().min(3).max(512)).max(5).default([]),
 });
 
 export const extendSchema = z.object({

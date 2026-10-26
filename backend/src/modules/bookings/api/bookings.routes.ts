@@ -11,7 +11,8 @@ import { authenticate, authenticateOptional } from '../../../shared/middleware/a
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
-import { quoteSchema, createBookingSchema, cancelSchema, extendSchema } from '../dto/booking.schemas';
+import { quoteSchema, createBookingSchema, cancelSchema, extendSchema, shiftPickupSchema, moveDatesSchema, switchCarSchema, exceptionSchema } from '../dto/booking.schemas';
+import { tripChangeService } from '../application/trip-change.service';
 import { listProtectionPlans } from '../../pricing/domain/protection-plans';
 import { approachService } from '../../trips/application/approach.service';
 import { trackingNoticeService } from '../../trips/application/tracking-notice.service';
@@ -206,8 +207,78 @@ router.post(
   authorize('booking:cancel:own'),
   validate({ body: cancelSchema }),
   asyncHandler(async (req, res) => {
-    const booking = await bookingService.cancel(req.principal!, req.params.id, req.body.reason);
+    const booking = await bookingService.cancel(req.principal!, req.params.id, req.body.reason, {
+      reasonCode: req.body.reasonCode,
+      choice: req.body.choice,
+    });
     sendSuccess(res, booking);
+  }),
+);
+
+/** Every option on the "Cancel or change trip" screen, worked out by the server for this moment. */
+router.get(
+  '/:id/change-options',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripChangeService.options(req.principal!, req.params.id));
+  }),
+);
+
+router.post(
+  '/:id/shift-pickup',
+  authenticate,
+  authorize('booking:cancel:own'),
+  validate({ body: shiftPickupSchema }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.shiftPickup(req.principal!.userId, req.params.id, req.body.start));
+  }),
+);
+
+router.get(
+  '/:id/move-preview',
+  authenticate,
+  validate({ query: moveDatesSchema }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.movePreview(req.principal!.userId, req.params.id, String(req.query.start), String(req.query.end)));
+  }),
+);
+
+router.post(
+  '/:id/move',
+  authenticate,
+  authorize('booking:cancel:own'),
+  cardLimiter,
+  validate({ body: moveDatesSchema }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.moveDates(req.principal!.userId, req.params.id, req.body.start, req.body.end));
+  }),
+);
+
+router.get(
+  '/:id/switch-options',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.switchOptions(req.principal!.userId, req.params.id));
+  }),
+);
+
+router.post(
+  '/:id/switch',
+  authenticate,
+  authorize('booking:cancel:own'),
+  validate({ body: switchCarSchema }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingService.switchCar(req.principal!.userId, req.params.id, req.body.vehicleId));
+  }),
+);
+
+/** After a late cancellation: ask us to review it (flight cancelled, weather, health) with proof. */
+router.post(
+  '/:id/exception',
+  authenticate,
+  validate({ body: exceptionSchema }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await tripChangeService.fileException(req.principal!.userId, req.params.id, req.body));
   }),
 );
 

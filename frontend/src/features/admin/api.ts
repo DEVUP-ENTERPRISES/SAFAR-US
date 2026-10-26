@@ -1,5 +1,6 @@
 import { api } from '@/lib/api/client';
 import type { Insurer, InsurerPayout, InsurerPlan, InsurerSummary } from '@/features/insurers/api';
+import type { Booking } from '@/features/bookings/types';
 
 export interface AdminMetrics {
   users: { total: number; active: number; suspended: number; newThisWeek: number };
@@ -103,6 +104,23 @@ export interface PlatformConfig {
     swapPriceToleranceBps: number;
     swapMaxAbsorbCents: number;
     lateExtendHours?: number;
+  };
+  /** What a guest can do instead of a plain cancellation, and the guard rails on each option. */
+  tripChanges?: {
+    undoWindowMinutes: number;
+    undoMinLeadHours: number;
+    undoPer30Days: number;
+    pickupShiftMaxHours: number;
+    pickupShiftsPerTrip: number;
+    freeMovesPerTrip: number;
+    moveMinLeadHours: number;
+    switchCarEnabled: boolean;
+    creditBonusBps: number;
+    creditEnabled: boolean;
+    exceptionsEnabled: boolean;
+    exceptionProofRequired: boolean;
+    exceptionFileWindowHours: number;
+    exceptionFlagAfter: number;
   };
   /** Guest-cancel refunds per listing policy: full refund at least `fullBeforeHours` before pickup, else `partialBps`. */
   cancellation?: Record<'flexible' | 'moderate' | 'strict', { fullBeforeHours: number; partialBps: number }>;
@@ -499,6 +517,11 @@ export const adminApi = {
 
   bookings: (q: Q = {}) => api.get<any[]>('/admin/bookings', q),
   cancelBooking: (id: string, reason: string) => api.post(`/admin/bookings/${id}/cancel`, { reason }),
+  /** Late cancellations guests asked us to review. */
+  tripExceptions: (status: 'pending' | 'decided') => api.get<Booking[]>('/admin/bookings/exceptions', { status }),
+  tripExceptionProof: (id: string) => api.get<{ key: string; url: string }[]>(`/admin/bookings/${id}/exception/proof`),
+  decideTripException: (id: string, input: { decision: 'approved' | 'partial' | 'rejected'; amountCents?: number; note?: string }) =>
+    api.post<Booking>(`/admin/bookings/${id}/exception/decide`, input),
   bookingOverview: (id: string) => api.get<AdminBookingOverview>(`/admin/bookings/${id}/overview`),
   openGuestId: (id: string, reason: string) => api.post<{ token: string; expiresAt: string; viewSeconds: number; items: { id: string; label: string }[] }>(`/admin/bookings/${id}/guest-id/open`, { reason }),
   guestIdFile: (id: string, token: string, kind: string) => api.post<{ contentType: 'image/jpeg' | 'application/pdf'; data: string }>(`/admin/bookings/${id}/guest-id/file`, { token, kind }),

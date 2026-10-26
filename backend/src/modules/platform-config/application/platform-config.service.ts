@@ -194,6 +194,14 @@ export class PlatformConfigService {
         enabled: true, maxDays: 30, swapPolicy: 'auto' as const, swapPriceToleranceBps: 1500, swapMaxAbsorbCents: 5000, lateExtendHours: 6,
         ...(doc.extension ?? {}),
       },
+      tripChanges: {
+        undoWindowMinutes: 10, undoMinLeadHours: 2, undoPer30Days: 2,
+        pickupShiftMaxHours: 3, pickupShiftsPerTrip: 1,
+        freeMovesPerTrip: 1, moveMinLeadHours: 24, switchCarEnabled: true,
+        creditBonusBps: 2000, creditEnabled: true,
+        exceptionsEnabled: true, exceptionProofRequired: true, exceptionFileWindowHours: 48, exceptionFlagAfter: 2,
+        ...(doc.tripChanges ?? {}),
+      },
       violations: {
         reportingWindowDays: 90, disputeWindowDays: 7, adminFeeCents: 1500, requireEvidence: true,
         ...(doc.violations ?? {}),

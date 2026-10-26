@@ -1,11 +1,12 @@
 import { createHmac, randomInt, timingSafeEqual } from 'crypto';
 import { config } from '../../../config';
-import { BookingModel, type BookingDoc, type BookingExtension } from '../infrastructure/booking.model';
+import { BookingModel, type BookingDoc, type BookingExtension, type BookingChange } from '../infrastructure/booking.model';
 import { PaymentModel, type PaymentDoc } from '../../payments/infrastructure/payment.model';
 import type { AvailabilityDoc } from '../../availability/infrastructure/availability.model';
 import { canTransition, type BookingStatus } from '../domain/booking-status';
 import { lateFeeCents, dayPriceCents } from '../domain/late-fee';
 import { computeRefund, explainRefund, serviceFeeOf, type RefundExplanation } from '../domain/cancellation-policy';
+import { undoWindowEndsAt, inUndoWindow, creditBonus, pickupShiftChoices, scaleSplit, type CancelReasonCode } from '../domain/trip-change-rules';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { wheelbaseInsuranceService } from '../../insurance/application/wheelbase-insurance.service';
 import { documentComplianceService } from '../../documents/application/document-compliance.service';
@@ -87,10 +88,16 @@ interface SwapOption {
 
 /** Why a booking is being moved to another car, and the booking that caused it. */
 interface SwapContext {
-  reason: 'extension' | 'late_return';
+  reason: 'extension' | 'late_return' | 'guest_switch';
   causeBookingId: string;
   extensionEarnings?: Money;
 }
+
+const SWAP_NOTE: Record<SwapContext['reason'], string> = {
+  extension: 'Moved to a similar car so another guest could extend their trip',
+  late_return: 'Guest chose a similar car because the booked car was late back',
+  guest_switch: 'Guest switched to a similar car at the same price',
+};
 
 interface SwapPlan {
   blocker: BookingDoc;
@@ -758,6 +765,29 @@ export class BookingService {
     return cancelled;
   }
 
+  /** A required screening check failed: every upcoming trip this guest holds is ended with a full refund. Returns those trips. */
+  async cancelForFailedCheck(guestId: string, checkLabel: string): Promise<{ bookingId: string; start: Date }[]> {
+    const upcoming = await BookingModel.find({
+      guestId,
+      deletedAt: null,
+      tripId: { $exists: false },
+      status: { $in: ['pending_verification', 'pending_approval', 'pending_payment', 'confirmed', 'paid'] },
+      'period.end': { $gt: new Date() },
+    })
+      .select('_id period')
+      .lean<Pick<BookingDoc, '_id' | 'period'>[]>();
+    const cancelled: { bookingId: string; start: Date }[] = [];
+    for (const b of upcoming) {
+      try {
+        await this.systemCancel(b._id, `Your ${checkLabel} check was not successful, so this trip was cancelled with a full refund.`);
+        cancelled.push({ bookingId: b._id, start: b.period.start });
+      } catch (err) {
+        logger.error({ err, bookingId: b._id, guestId }, 'could not cancel trip after a failed check');
+      }
+    }
+    return cancelled;
+  }
+
   /** Bookings parked waiting on this guest's identity check. */
   async listHeldForVerification(guestId: string): Promise<BookingDoc[]> {
     return BookingModel.find({ guestId, status: 'pending_verification' }).lean<BookingDoc[]>();
@@ -809,8 +839,34 @@ export class BookingService {
     return toPublicBooking(await this.getDoc(bookingId));
   }
 
+  /** When this guest's free undo window closes for a booking, or null when there is none. */
+  async undoWindowFor(booking: Pick<BookingDoc, 'guestId' | 'createdAt' | 'period'>): Promise<Date | null> {
+    const rules = (await platformConfigService.get()).tripChanges;
+    if (rules.undoWindowMinutes <= 0) return null;
+    const used = await BookingModel.countDocuments({
+      guestId: booking.guestId,
+      'cancellation.undo': true,
+      'cancellation.at': { $gte: new Date(Date.now() - 30 * 24 * HOUR_MS) },
+    });
+    return undoWindowEndsAt({ createdAt: new Date(booking.createdAt), start: booking.period.start }, rules, used);
+  }
+
+  /** What a guest cancelling right now gets back: the undo window refunds in full, otherwise the policy decides. */
+  private async guestRefundNow(booking: BookingDoc): Promise<{ refund: Money; explained?: RefundExplanation; undo: boolean }> {
+    const total = booking.priceBreakdown.total;
+    if (inUndoWindow(await this.undoWindowFor(booking))) return { refund: { ...total }, undo: true };
+    const cancelCfg = (await platformConfigService.get()).cancellation;
+    const explained = explainRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg, new Date(), serviceFeeOf(booking.priceBreakdown));
+    return { refund: explained.refund, explained, undo: false };
+  }
+
   /** Guest or host cancels; refund computed by policy. */
-  async cancel(principal: Principal, bookingId: string, reason: string): Promise<BookingDoc> {
+  async cancel(
+    principal: Principal,
+    bookingId: string,
+    reason: string,
+    opts: { reasonCode?: CancelReasonCode; choice?: 'refund' | 'credit' } = {},
+  ): Promise<BookingDoc> {
     const booking = await this.getDoc(bookingId);
     const isGuest = booking.guestId === principal.userId;
     const isHost = await this.isHostOwner(principal.userId, booking.hostId);
@@ -832,7 +888,11 @@ export class BookingService {
     const total = booking.priceBreakdown.total;
     let refund = { amount: 0, currency: total.currency };
     let explained: RefundExplanation | undefined;
+    let undo = false;
+    let creditBonusCents = 0;
     let sent = { toCard: 0, toWallet: 0 };
+    const changeRules = (await platformConfigService.get()).tripChanges;
+    const asCredit = isGuest && opts.choice === 'credit' && changeRules.creditEnabled;
     // Only money actually taken can be kept; a held-but-uncaptured card is released in full.
     const captured = booking.status === 'paid' || booking.status === 'confirmed';
 
@@ -842,15 +902,13 @@ export class BookingService {
       if (booking.status === 'paid' || booking.status === 'confirmed') {
         // Host and admin cancellations refund in full — the guest did nothing
         // wrong and is being stranded. Only a guest cancellation is policy-bound.
-        const cancelCfg = (await platformConfigService.get()).cancellation;
         if (isGuest) {
-          explained = explainRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg, new Date(), serviceFeeOf(booking.priceBreakdown));
-          refund = explained.refund;
+          ({ refund, explained, undo } = await this.guestRefundNow(booking));
         } else {
           refund = { ...total };
         }
         if (refund.amount > 0) {
-          sent = (await paymentService.refundBooking(bookingId, refund, reason)) ?? sent;
+          sent = (await paymentService.refundBooking(bookingId, refund, reason, { toWallet: asCredit })) ?? sent;
         }
       } else {
         await paymentService.cancelAuthorization(bookingId);
@@ -860,8 +918,25 @@ export class BookingService {
       throw err;
     }
 
+    // The bonus is a promise made on the cancel screen; the refund already landed, so a failure here goes to staff, not the guest.
+    if (asCredit && sent.toWallet > 0) {
+      creditBonusCents = creditBonus(sent.toWallet, changeRules.creditBonusBps);
+      await walletService
+        .grantCredit(booking.guestId, creditBonusCents, {
+          txnId: `credit_bonus_${bookingId}`,
+          refType: 'cancel_credit_bonus',
+          refId: bookingId,
+          description: `Bonus for keeping the refund of ${booking.code} as CatoDrive credit`,
+        })
+        .catch((err) => {
+          creditBonusCents = 0;
+          logger.error({ err, bookingId }, 'cancel credit bonus failed');
+        });
+    }
+
     await availabilityService.releaseBooking(bookingId);
     if (booking.holdId) await availabilityService.releaseHold(booking.holdId);
+    await depositService.release(bookingId, 'Trip cancelled').catch(() => undefined);
 
     await BookingModel.updateOne(
       { _id: bookingId },
@@ -873,6 +948,10 @@ export class BookingService {
           reason,
           refund,
           charged: { amount: captured ? Math.max(0, total.amount - refund.amount) : 0, currency: total.currency },
+          ...(opts.reasonCode ? { reasonCode: opts.reasonCode } : {}),
+          ...(isGuest && captured && refund.amount > 0 ? { choice: asCredit ? 'credit' : 'refund' } : {}),
+          ...(creditBonusCents > 0 ? { creditBonus: { amount: creditBonusCents, currency: total.currency } } : {}),
+          ...(undo ? { undo: true } : {}),
         },
       },
     );
@@ -883,7 +962,7 @@ export class BookingService {
       cancelledBy: isHost ? 'host' : isGuest ? 'guest' : 'system',
       refund,
       charged: { amount: captured ? Math.max(0, total.amount - refund.amount) : 0, currency: total.currency },
-      ...(captured ? { explained, toCard: sent.toCard, toWallet: sent.toWallet } : {}),
+      ...(captured ? { explained, toCard: sent.toCard, toWallet: sent.toWallet, creditBonus: creditBonusCents, undo } : {}),
     });
     // A host cancel strands the guest — offer rebooking on a similar free car,
     // and make the cancellation cost the host something.
@@ -1388,7 +1467,7 @@ export class BookingService {
     const cancelCfg = (await platformConfigService.get()).cancellation;
     const refund =
       isGuest && (booking.status === 'paid' || booking.status === 'confirmed')
-        ? computeRefund(booking.cancellationPolicy, total, booking.period.start, cancelCfg, new Date(), serviceFeeOf(booking.priceBreakdown))
+        ? (await this.guestRefundNow(booking)).refund
         : { ...total };
 
     const hoursFull = cancelCfg[booking.cancellationPolicy].fullBeforeHours;
@@ -1853,7 +1932,7 @@ export class BookingService {
               to: blocker.status,
               at,
               by: 'system',
-              reason: ctx.reason === 'extension' ? 'Moved to a similar car so another guest could extend their trip' : 'Guest chose a similar car because the booked car was late back',
+              reason: SWAP_NOTE[ctx.reason],
             },
           },
         },
@@ -1879,7 +1958,7 @@ export class BookingService {
         refType: 'booking_swap',
         refId: blocker._id,
         currency: payment.currency,
-        description: ctx.reason === 'extension' ? `Booking ${blocker.code} moved to a similar car for another guest's extension` : `Booking ${blocker.code} moved to a similar car because the booked car was late back`,
+        description: `Booking ${blocker.code}: ${SWAP_NOTE[ctx.reason].toLowerCase()}`,
         legs: legs.filter((l) => l.amount > 0),
       });
 
@@ -2461,6 +2540,353 @@ export class BookingService {
       const res = await BookingModel.updateOne({ _id: b._id, 'swapOffer.status': 'open' }, { $set: { 'swapOffer.status': 'expired', 'swapOffer.respondedAt': new Date() } });
       if (res.modifiedCount) emit(EVENTS.NEXT_BOOKING_CLEARED, b._id, { bookingId: b._id, guestId: b.guestId });
     }
+  }
+
+  // ── Guest changes before pickup: shift pickup, move dates, switch car ──
+
+  /** One change at a time per booking, so a double tap cannot charge, refund or move twice. */
+  private async withChangeLock<T>(bookingId: string, run: () => Promise<T>): Promise<T> {
+    const key = `lock:booking-change:${bookingId}`;
+    if (!(await kv().acquire(key, 60))) {
+      throw new ConflictError('Another change to this trip is in progress. Try again in a moment.', 'CHANGE_IN_PROGRESS');
+    }
+    try {
+      return await run();
+    } finally {
+      await kv().del(key);
+    }
+  }
+
+  private changesOf(booking: BookingDoc, kinds: BookingChange['kind'][]): number {
+    return (booking.changes ?? []).filter((c) => kinds.includes(c.kind)).length;
+  }
+
+  /** The later pickup times this guest may pick right now, or why there are none. */
+  async pickupShiftOptions(userId: string, bookingId: string): Promise<{ available: boolean; reason?: string; choices: string[] }> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== userId) throw new ForbiddenError('Not your booking');
+    const block = await this.pickupShiftBlock(booking);
+    if (block) return { available: false, reason: block, choices: [] };
+    const cfg = await platformConfigService.get();
+    const vehicle = await vehicleService.getForBooking(booking.vehicleId);
+    const choices = pickupShiftChoices(booking.period.start, booking.period.end, cfg.tripChanges.pickupShiftMaxHours, vehicle.minTripHours);
+    if (choices.length === 0) return { available: false, reason: 'Your trip is too short to start any later.', choices: [] };
+    return { available: true, choices: choices.map((d) => d.toISOString()) };
+  }
+
+  async pickupShiftBlock(booking: BookingDoc): Promise<string | null> {
+    const cfg = await platformConfigService.get();
+    const rules = cfg.tripChanges;
+    if (rules.pickupShiftMaxHours <= 0 || rules.pickupShiftsPerTrip <= 0) return 'Changing the pickup time is not available right now.';
+    if (!['paid', 'confirmed'].includes(booking.status) || booking.tripId) return 'Only a confirmed trip that has not started can change its pickup time.';
+    if (booking.delivery) return 'This trip is delivered to you, so the pickup time is arranged with our team. Message support to change it.';
+    if (this.changesOf(booking, ['pickup_shift']) >= rules.pickupShiftsPerTrip) return 'You have already changed the pickup time for this trip.';
+    // Past the no-show grace the car may already have been released.
+    if (Date.now() > booking.period.start.getTime() + cfg.noShow.graceHours * HOUR_MS) return 'The pickup time has passed.';
+    return null;
+  }
+
+  /** Start the trip later the same way it was booked: same car, same return time, same price. */
+  async shiftPickup(userId: string, bookingId: string, newStartIso: string): Promise<BookingDoc> {
+    return this.withChangeLock(bookingId, async () => {
+      const booking = await this.getDoc(bookingId);
+      if (booking.guestId !== userId) throw new ForbiddenError('Not your booking');
+      const block = await this.pickupShiftBlock(booking);
+      if (block) throw new ConflictError(block, 'SHIFT_NOT_ALLOWED');
+      const cfg = await platformConfigService.get();
+      const vehicle = await vehicleService.getForBooking(booking.vehicleId);
+      const newStart = new Date(newStartIso);
+      const allowed = pickupShiftChoices(booking.period.start, booking.period.end, cfg.tripChanges.pickupShiftMaxHours, vehicle.minTripHours);
+      if (isNaN(newStart.getTime()) || !allowed.some((d) => d.getTime() === newStart.getTime())) {
+        throw new ValidationError('Pick one of the offered pickup times.');
+      }
+      const at = new Date();
+      // The booked days stay held: a later start sits inside them, so no other guest is affected.
+      const res = await BookingModel.updateOne(
+        { _id: bookingId, version: booking.version, status: booking.status },
+        {
+          $set: { 'period.start': newStart },
+          $unset: { reminderSentAt: 1 },
+          $inc: { version: 1 },
+          $push: {
+            changes: {
+              kind: 'pickup_shift',
+              at,
+              by: userId,
+              from: { start: booking.period.start, end: booking.period.end, vehicleId: booking.vehicleId },
+              to: { start: newStart, end: booking.period.end, vehicleId: booking.vehicleId },
+            },
+            statusHistory: { from: booking.status, to: booking.status, at, by: userId, reason: `Pickup moved to ${newStart.toISOString()}` },
+          },
+        },
+      );
+      if (res.matchedCount === 0) throw new ConflictError('This trip changed while you were choosing. Please try again.', 'VERSION_CONFLICT');
+      emit(EVENTS.BOOKING_PICKUP_SHIFTED, bookingId, {
+        bookingId, guestId: booking.guestId, hostId: booking.hostId, from: booking.period.start, to: newStart,
+      });
+      return toPublicBooking(await this.getDoc(bookingId));
+    });
+  }
+
+  /** Why these dates cannot be moved, or null. Settles everything that does not need a price. */
+  async moveBlock(booking: BookingDoc): Promise<{ reason: string; payment?: undefined } | { reason?: undefined; payment: PaymentDoc }> {
+    const rules = (await platformConfigService.get()).tripChanges;
+    if (rules.freeMovesPerTrip <= 0) return { reason: 'Changing dates online is not available right now.' };
+    if (!['paid', 'confirmed'].includes(booking.status) || booking.tripId) return { reason: 'Only a confirmed trip that has not started can change dates.' };
+    if (booking.delivery) return { reason: 'This trip is delivered to you. Message support to change its dates.' };
+    if ((booking.extensions?.length ?? 0) > 0) return { reason: 'This trip was extended, so its dates can only be changed by our team.' };
+    if (this.changesOf(booking, ['move', 'switch_car']) >= rules.freeMovesPerTrip) return { reason: 'You have already changed this trip once. To change it again, cancel and book new dates.' };
+    if (booking.period.start.getTime() - Date.now() < rules.moveMinLeadHours * HOUR_MS) {
+      return { reason: `Dates can be changed up to ${rules.moveMinLeadHours} hours before pickup.` };
+    }
+    // One settled payment keeps the price difference exact on the receipt, the payout and the books.
+    const payments = await PaymentModel.find({ bookingId: booking._id, type: 'booking' }).lean<PaymentDoc[]>();
+    const [payment] = payments;
+    if (payments.length !== 1 || payment.status !== 'succeeded' || !payment.ledgerTxnId || payment.refundedAmount > 0 || (payment.walletApplied ?? 0) > 0) {
+      return { reason: 'This trip’s payment can’t be adjusted online. Message support and we’ll change it for you.' };
+    }
+    return { payment };
+  }
+
+  private async moveQuote(booking: BookingDoc, start: Date, end: Date): Promise<PriceBreakdown> {
+    const pb = booking.priceBreakdown;
+    const base = {
+      vehicleId: booking.vehicleId,
+      start,
+      end,
+      guestId: booking.guestId,
+      protectionPlan: pb.protectionPlan,
+      addOnCodes: (pb.selectedAddOns ?? []).map((a) => a.code),
+    };
+    // A coupon that was valid at booking keeps applying; one that no longer prices just drops off.
+    if (booking.couponCode) {
+      try {
+        return await pricingService.quote({ ...base, couponCode: booking.couponCode });
+      } catch {
+        /* priced without it below */
+      }
+    }
+    return pricingService.quote(base);
+  }
+
+  private async validateMoveDates(booking: BookingDoc, startIso: string, endIso: string): Promise<{ start: Date; end: Date }> {
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) throw new ValidationError('Pick a return time after the pickup time.');
+    if (start.getTime() === booking.period.start.getTime() && end.getTime() === booking.period.end.getTime()) {
+      throw new ValidationError('Pick dates different from your current trip.');
+    }
+    const cfg = await platformConfigService.get();
+    if (start.getTime() - Date.now() < cfg.booking.minLeadMinutes * 60_000) throw new ValidationError('The new pickup is too soon. Pick a later time.');
+    await this.assertBookableWindow(booking.vehicleId, start, end);
+    const eligibility = await eligibilityService.evaluate(booking.guestId, end);
+    if (!eligibility.eligible) throw new ConflictError('Your verification does not cover the new dates. Update your documents first.', 'NOT_ELIGIBLE');
+    return { start, end };
+  }
+
+  /** The price difference for new dates on the same car, without moving anything. */
+  async movePreview(
+    userId: string,
+    bookingId: string,
+    startIso: string,
+    endIso: string,
+  ): Promise<{ available: boolean; reason?: string; newTotal?: Money; difference?: Money; start: string; end: string }> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== userId) throw new ForbiddenError('Not your booking');
+    const block = await this.moveBlock(booking);
+    if (block.reason !== undefined) return { available: false, reason: block.reason, start: startIso, end: endIso };
+    try {
+      const { start, end } = await this.validateMoveDates(booking, startIso, endIso);
+      const free = (await availabilityService.blockingRows(booking.vehicleId, start, end, { excludeBookingId: booking._id })).length === 0;
+      if (!free) return { available: false, reason: 'The car is not free on those dates. Try other dates or switch to a similar car.', start: startIso, end: endIso };
+      const quote = await this.moveQuote(booking, start, end);
+      const currency = quote.total.currency;
+      return {
+        available: true,
+        newTotal: quote.total,
+        difference: { amount: quote.total.amount - booking.priceBreakdown.total.amount, currency },
+        start: start.toISOString(),
+        end: end.toISOString(),
+      };
+    } catch (err) {
+      if (err instanceof ValidationError || err instanceof ConflictError) return { available: false, reason: err.message, start: startIso, end: endIso };
+      throw err;
+    }
+  }
+
+  /**
+   * Move the trip to new dates on the same car. The new days are held before the old ones are let go,
+   * the difference is charged or refunded, and the booking only changes once the money has moved.
+   */
+  async moveDates(userId: string, bookingId: string, startIso: string, endIso: string): Promise<BookingDoc> {
+    return this.withChangeLock(bookingId, async () => {
+      const booking = await this.getDoc(bookingId);
+      if (booking.guestId !== userId) throw new ForbiddenError('Not your booking');
+      const block = await this.moveBlock(booking);
+      if (block.reason !== undefined) throw new ConflictError(block.reason, 'MOVE_NOT_ALLOWED');
+      const { payment } = block;
+      const { start, end } = await this.validateMoveDates(booking, startIso, endIso);
+      const quote = await this.moveQuote(booking, start, end);
+      const pb = booking.priceBreakdown;
+      const diff = quote.total.amount - pb.total.amount;
+      const currency = pb.total.currency;
+      const nth = this.changesOf(booking, ['move', 'switch_car']) + 1;
+
+      const detached = await availabilityService.detachBooking(bookingId);
+      let holdId: string;
+      try {
+        holdId = await availabilityService.placeHold(booking.vehicleId, start, end);
+      } catch (err) {
+        await availabilityService.restoreRows(detached);
+        if ((err as { code?: string }).code === 'NOT_AVAILABLE') {
+          throw new ConflictError('The car is not free on those dates any more. Try other dates.', 'NOT_AVAILABLE');
+        }
+        throw err;
+      }
+
+      const undo = async () => {
+        await availabilityService.releaseHold(holdId).catch(() => undefined);
+        await availabilityService.restoreRows(detached).catch((err) => logger.error({ err, bookingId }, 'could not restore trip days after a failed move'));
+      };
+
+      // Host, platform and tax keep the same shares of what the guest pays, so the payout matches the books exactly.
+      const paidSplit = { hostEarnings: payment.hostEarnings, commission: payment.commission, tax: payment.tax };
+      let hostEarnings = pb.hostEarnings.amount;
+      let paymentId: string | undefined;
+      try {
+        if (diff > 0) {
+          const part = scaleSplit(paidSplit, payment.amount, diff);
+          const key = `${bookingId}-move-${nth}`;
+          const charge = await paymentService.chargeForBooking({
+            bookingId,
+            guestId: booking.guestId,
+            hostId: booking.hostId,
+            capture: true,
+            total: { amount: diff, currency },
+            hostEarnings: { amount: part.hostEarnings, currency },
+            commission: { amount: part.commission, currency },
+            tax: { amount: part.tax, currency },
+            ...(payment.insurerId ? { insurer: { id: payment.insurerId, share: Math.round((diff * (payment.insurerShare ?? 0)) / payment.amount) } } : {}),
+            idempotencyKey: key,
+          });
+          if (charge.status !== 'succeeded') {
+            await paymentService.cancelByKey(key).catch(() => undefined);
+            throw new ConflictError('We couldn’t charge the difference to your card, so your trip was not changed. Check your card and try again.', 'PAYMENT_INCOMPLETE');
+          }
+          paymentId = charge.paymentId;
+          hostEarnings += part.hostEarnings;
+        } else if (diff < 0) {
+          await paymentService.refundBooking(bookingId, { amount: -diff, currency }, `Trip ${booking.code} moved to dates that cost less`);
+          hostEarnings -= Math.round((-diff * payment.hostEarnings) / payment.amount);
+        }
+      } catch (err) {
+        await undo();
+        throw err;
+      }
+
+      await availabilityService.confirmHold(holdId, bookingId);
+      const at = new Date();
+      const res = await BookingModel.updateOne(
+        { _id: bookingId, version: booking.version },
+        {
+          $set: {
+            'period.start': start,
+            'period.end': end,
+            priceBreakdown: { ...quote, hostEarnings: { amount: Math.max(0, hostEarnings), currency } },
+          },
+          $unset: { reminderSentAt: 1, returnRemindersSent: 1, nextBookingAlertedAt: 1 },
+          $inc: { version: 1 },
+          $push: {
+            changes: {
+              kind: 'move',
+              at,
+              by: userId,
+              from: { start: booking.period.start, end: booking.period.end, vehicleId: booking.vehicleId },
+              to: { start, end, vehicleId: booking.vehicleId },
+              difference: { amount: diff, currency },
+              ...(paymentId ? { paymentId } : {}),
+            },
+            statusHistory: { from: booking.status, to: booking.status, at, by: userId, reason: `Dates moved to ${start.toISOString()} – ${end.toISOString()}` },
+          },
+        },
+      );
+      if (res.matchedCount === 0) {
+        // The money and days already moved; staff reconcile rather than the guest being charged and left on old dates.
+        logger.error({ bookingId, diff }, 'trip move committed money but the booking changed underneath it');
+        emit(EVENTS.BOOKING_SWAP_FAILED, bookingId, { bookingId, extenderBookingId: bookingId, stage: 'move_dates', error: 'version conflict after payment' });
+      }
+      // A deposit held for the old dates would lapse before the new pickup; it is taken again at handover.
+      await depositService.release(bookingId, 'Trip dates changed').catch(() => undefined);
+      emit(EVENTS.BOOKING_MOVED, bookingId, {
+        bookingId,
+        guestId: booking.guestId,
+        hostId: booking.hostId,
+        from: booking.period,
+        to: { start, end },
+        difference: { amount: diff, currency },
+      });
+      return toPublicBooking(await this.getDoc(bookingId));
+    });
+  }
+
+  /** Similar cars free on the same dates at the same price, for a guest who wants a different car. */
+  async switchOptions(userId: string, bookingId: string): Promise<{ available: boolean; reason?: string; vehicles: VehicleDoc[] }> {
+    const booking = await this.getDoc(bookingId);
+    if (booking.guestId !== userId) throw new ForbiddenError('Not your booking');
+    const reason = await this.switchBlock(booking);
+    if (reason) return { available: false, reason, vehicles: [] };
+    const plan = await this.swapPlanFor(booking, await this.switchPolicy(), true);
+    if (!plan) return { available: false, reason: 'No similar car is free on your dates at the same price right now.', vehicles: [] };
+    return { available: true, vehicles: plan.options.slice(0, 6).map((o) => o.candidate) };
+  }
+
+  async switchBlock(booking: BookingDoc): Promise<string | null> {
+    const rules = (await platformConfigService.get()).tripChanges;
+    if (!rules.switchCarEnabled) return 'Switching cars online is not available right now.';
+    if (!['paid', 'confirmed'].includes(booking.status) || booking.tripId) return 'Only a confirmed trip that has not started can switch cars.';
+    if (this.changesOf(booking, ['move', 'switch_car']) >= Math.max(1, rules.freeMovesPerTrip)) return 'You have already changed this trip once.';
+    if (booking.period.start.getTime() - Date.now() < rules.moveMinLeadHours * HOUR_MS) {
+      return `Cars can be switched up to ${rules.moveMinLeadHours} hours before pickup.`;
+    }
+    return null;
+  }
+
+  /** The same price band the platform already uses when it moves a guest: the guest never pays more. */
+  private async switchPolicy() {
+    const ext = (await platformConfigService.get()).extension;
+    return { swapPolicy: 'auto' as const, swapPriceToleranceBps: ext.swapPriceToleranceBps, swapMaxAbsorbCents: ext.swapMaxAbsorbCents };
+  }
+
+  async switchCar(userId: string, bookingId: string, vehicleId: string): Promise<BookingDoc> {
+    return this.withChangeLock(bookingId, async () => {
+      const booking = await this.getDoc(bookingId);
+      if (booking.guestId !== userId) throw new ForbiddenError('Not your booking');
+      const reason = await this.switchBlock(booking);
+      if (reason) throw new ConflictError(reason, 'SWITCH_NOT_ALLOWED');
+      const plan = await this.swapPlanFor(booking, await this.switchPolicy(), true);
+      const chosen = plan?.options.find((o) => o.candidate._id === vehicleId);
+      if (!plan || !chosen) throw new ConflictError('That car is no longer available for your dates. Pick another.', 'NOT_AVAILABLE');
+      // Only the car the guest picked: never a different one behind their back.
+      await this.moveVehicle({ ...plan, options: [chosen] }, { reason: 'guest_switch', causeBookingId: bookingId }, async () => undefined);
+      const at = new Date();
+      await BookingModel.updateOne(
+        { _id: bookingId },
+        {
+          $push: {
+            changes: {
+              kind: 'switch_car',
+              at,
+              by: userId,
+              from: { start: booking.period.start, end: booking.period.end, vehicleId: booking.vehicleId },
+              to: { start: booking.period.start, end: booking.period.end, vehicleId },
+              difference: { amount: 0, currency: booking.priceBreakdown.total.currency },
+            },
+          },
+        },
+      );
+      await depositService.release(bookingId, 'Guest switched cars').catch(() => undefined);
+      return toPublicBooking(await this.getDoc(bookingId));
+    });
   }
 
   // ── internals ────────────────────────────────────────────────────────

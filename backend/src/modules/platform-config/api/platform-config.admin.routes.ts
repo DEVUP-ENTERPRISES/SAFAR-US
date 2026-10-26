@@ -180,6 +180,24 @@ router.put(
           lateExtendHours: z.number().int().min(0).max(72).optional(),
         })
         .optional(),
+      tripChanges: z
+        .object({
+          undoWindowMinutes: z.number().int().min(0).max(120).optional(),
+          undoMinLeadHours: z.number().int().min(0).max(72).optional(),
+          undoPer30Days: z.number().int().min(0).max(20).optional(),
+          pickupShiftMaxHours: z.number().int().min(0).max(24).optional(),
+          pickupShiftsPerTrip: z.number().int().min(0).max(5).optional(),
+          freeMovesPerTrip: z.number().int().min(0).max(5).optional(),
+          moveMinLeadHours: z.number().int().min(0).max(168).optional(),
+          switchCarEnabled: z.boolean().optional(),
+          creditBonusBps: z.number().int().min(0).max(5000).optional(),
+          creditEnabled: z.boolean().optional(),
+          exceptionsEnabled: z.boolean().optional(),
+          exceptionProofRequired: z.boolean().optional(),
+          exceptionFileWindowHours: z.number().int().min(0).max(720).optional(),
+          exceptionFlagAfter: z.number().int().min(1).max(50).optional(),
+        })
+        .optional(),
       noShow: z
         .object({ graceHours: z.number().int().min(0).max(72).optional(), guestForfeitBps: bps.optional() })
         .optional(),

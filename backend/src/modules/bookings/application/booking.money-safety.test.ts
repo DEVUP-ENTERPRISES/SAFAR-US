@@ -12,6 +12,8 @@ const mockConfig = {
   booking: { maxOpenPendingPerGuest: 3, checkoutHoldMinutes: 15 },
   handover: { maxCodeAttempts: 5 },
   extension: { enabled: true, maxDays: 30, swapPolicy: 'auto', swapPriceToleranceBps: 1500, swapMaxAbsorbCents: 5000 },
+  // The undo window has its own tests; here every cancel follows the policy.
+  tripChanges: { undoWindowMinutes: 0, undoMinLeadHours: 2, undoPer30Days: 2, creditEnabled: true, creditBonusBps: 2000 },
 };
 jest.mock('../../platform-config/application/platform-config.service', () => ({
   platformConfigService: { get: jest.fn(async () => mockConfig) },

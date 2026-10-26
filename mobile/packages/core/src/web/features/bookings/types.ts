@@ -113,7 +113,73 @@ export interface Booking {
   tripId?: string;
   createdAt: string;
   /** `charged` is what the guest paid and did not get back; older cancellations only carry the refund. */
-  cancellation?: { role?: 'guest' | 'host' | 'admin' | 'system'; at: string; reason?: string; refund: Money; charged?: Money };
+  cancellation?: {
+    role?: 'guest' | 'host' | 'admin' | 'system';
+    at: string;
+    reason?: string;
+    refund: Money;
+    charged?: Money;
+    reasonCode?: CancelReasonCode;
+    choice?: 'refund' | 'credit';
+    creditBonus?: Money;
+    undo?: boolean;
+  };
+  changes?: BookingChange[];
+  exception?: TripException;
+}
+
+export type CancelReasonCode = 'plans_changed' | 'found_other_car' | 'flight_delayed' | 'flight_cancelled' | 'weather' | 'health' | 'price' | 'other';
+export type ExceptionReasonCode = 'flight_cancelled' | 'weather' | 'health' | 'other';
+
+export interface BookingChange {
+  kind: 'pickup_shift' | 'move' | 'switch_car';
+  at: string;
+  from: { start: string; end: string; vehicleId: string };
+  to: { start: string; end: string; vehicleId: string };
+  difference?: Money;
+}
+
+export interface TripException {
+  status: 'pending' | 'approved' | 'partial' | 'rejected';
+  reasonCode: ExceptionReasonCode;
+  note?: string;
+  proofKeys: string[];
+  requestedAt: string;
+  flagged?: boolean;
+  flagReason?: string;
+  decidedAt?: string;
+  decisionNote?: string;
+  refund?: Money;
+}
+
+/** Everything the "Cancel or change trip" screen can offer, worked out by the server for right now. */
+export interface ChangeOptions {
+  bookingId: string;
+  status: string;
+  reasons: CancelReasonCode[];
+  cancel: {
+    cancellable: boolean;
+    total: Money;
+    refund: Money;
+    nonRefundable: Money;
+    isFullRefund: boolean;
+    fullRefundUntil: string | null;
+    undo: { active: boolean; endsAt: string | null };
+    credit: { enabled: boolean; amount: Money; bonus: Money };
+  };
+  shift: { available: boolean; reason?: string; choices: string[] };
+  move: { available: boolean; reason?: string };
+  switchCar: { available: boolean; reason?: string };
+  exception: { enabled: boolean; reasons: ExceptionReasonCode[]; proofRequired: boolean };
+}
+
+export interface MovePreview {
+  available: boolean;
+  reason?: string;
+  newTotal?: Money;
+  difference?: Money;
+  start: string;
+  end: string;
 }
 
 export type DeliveryMode = 'airport' | 'home' | 'hotel' | 'business';

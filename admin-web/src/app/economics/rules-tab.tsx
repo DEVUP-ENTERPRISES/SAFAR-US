@@ -308,6 +308,65 @@ export function RulesTab({ draft, set }: TabProps) {
         </CardContent>
       </Card>
         </>
+      {draft.tripChanges && <TripChangesCard draft={draft} set={set} />}
     </>
+  );
+}
+
+/** Undo window, pickup shifts, date moves, car switches, credit and exceptions. */
+function TripChangesCard({ draft, set }: TabProps) {
+  const t = draft.tripChanges!;
+  const num = (key: keyof typeof t) => (e: React.ChangeEvent<HTMLInputElement>) => set((d) => { (d.tripChanges as Record<string, unknown>)[key] = Number(e.target.value); });
+  const flag = (key: keyof typeof t) => (e: React.ChangeEvent<HTMLInputElement>) => set((d) => { (d.tripChanges as Record<string, unknown>)[key] = e.target.checked; });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Car className="h-5 w-5 text-primary" /> Cancel &amp; change trip</CardTitle>
+        <p className="mt-1 text-sm text-muted-foreground">
+          What guests see before they cancel: a free undo right after booking, moving the pickup, new dates, a
+          similar car, CatoDrive credit, and a review for late cancellations outside their control. 0 turns a
+          number off.
+        </p>
+      </CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Field label="Free undo (minutes after booking)" hint="Full refund this long after booking. 0 = off.">
+          <Input type="number" min={0} max={120} value={t.undoWindowMinutes} onChange={num('undoWindowMinutes')} />
+        </Field>
+        <Field label="Undo needs pickup at least (hours)" hint="No free undo when pickup is closer than this.">
+          <Input type="number" min={0} max={72} value={t.undoMinLeadHours} onChange={num('undoMinLeadHours')} />
+        </Field>
+        <Field label="Free undos per guest (30 days)" hint="Stops holding cars for free.">
+          <Input type="number" min={0} max={20} value={t.undoPer30Days} onChange={num('undoPer30Days')} />
+        </Field>
+        <Field label="Pickup shift up to (hours)" hint="Guest can start later, same price. 0 = off.">
+          <Input type="number" min={0} max={24} value={t.pickupShiftMaxHours} onChange={num('pickupShiftMaxHours')} />
+        </Field>
+        <Field label="Pickup shifts per trip">
+          <Input type="number" min={0} max={5} value={t.pickupShiftsPerTrip} onChange={num('pickupShiftsPerTrip')} />
+        </Field>
+        <Field label="Date or car changes per trip" hint="Moving dates or switching car. 0 = off.">
+          <Input type="number" min={0} max={5} value={t.freeMovesPerTrip} onChange={num('freeMovesPerTrip')} />
+        </Field>
+        <Field label="Changes close (hours before pickup)">
+          <Input type="number" min={0} max={168} value={t.moveMinLeadHours} onChange={num('moveMinLeadHours')} />
+        </Field>
+        <Field label="Credit bonus %" hint="Extra value when a guest keeps the refund as CatoDrive credit.">
+          <Input type="number" step="0.5" min={0} max={50} value={toPct(t.creditBonusBps)}
+            onChange={(e) => set((d) => { d.tripChanges!.creditBonusBps = toBps(e.target.value); })} />
+        </Field>
+        <Field label="Exception request window (hours)" hint="How long after cancelling a guest may ask for a review.">
+          <Input type="number" min={0} max={720} value={t.exceptionFileWindowHours} onChange={num('exceptionFileWindowHours')} />
+        </Field>
+        <Field label="Flag after (requests in 90 days)" hint="Repeat requests are flagged for a closer look.">
+          <Input type="number" min={1} max={50} value={t.exceptionFlagAfter} onChange={num('exceptionFlagAfter')} />
+        </Field>
+        <div className="flex flex-col justify-end gap-2 text-sm font-medium sm:col-span-2">
+          <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 accent-primary" checked={t.switchCarEnabled} onChange={flag('switchCarEnabled')} /> Guests may switch to a similar car</label>
+          <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 accent-primary" checked={t.creditEnabled} onChange={flag('creditEnabled')} /> Offer CatoDrive credit instead of a card refund</label>
+          <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 accent-primary" checked={t.exceptionsEnabled} onChange={flag('exceptionsEnabled')} /> Guests may ask for a review of a late cancellation</label>
+          <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 accent-primary" checked={t.exceptionProofRequired} onChange={flag('exceptionProofRequired')} /> Proof is required for a review</label>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

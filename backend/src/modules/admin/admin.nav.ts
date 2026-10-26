@@ -56,6 +56,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'kb', path: A('kb'), apiPath: '/admin/kb/articles', label: 'Help Articles', group: 'Help & safety', permission: 'ticket:manage' },
   { slug: 'contact', path: A('contact'), apiPath: '/admin/contact-inquiries', label: 'Contact Requests', group: 'Help & safety', permission: 'admin:read' },
   { slug: 'claims', path: A('claims'), apiPath: '/admin/claims', label: 'Damage Claims', group: 'Help & safety', permission: 'claim:manage' },
+  { slug: 'refund-reviews', path: A('refund-reviews'), apiPath: '/admin/bookings/exceptions', label: 'Refund Reviews', group: 'Help & safety', permission: 'payment:refund' },
   { slug: 'violations', path: A('violations'), apiPath: '/admin/violations', label: 'Traffic Tickets', group: 'Help & safety', permission: 'claim:manage' },
   { slug: 'reviews', path: A('reviews'), apiPath: '/admin/reviews', label: 'Reviews', group: 'Help & safety', permission: 'review:moderate' },
   { slug: 'failures', path: A('failures'), apiPath: '/admin/failures', label: 'Failed Actions', group: 'Help & safety', permission: 'admin:read' },
