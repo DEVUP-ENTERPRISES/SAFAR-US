@@ -11,7 +11,7 @@ export function PartnerSupport() {
     <Card>
       <Text variant="heading">Questions about your vehicle?</Text>
       <View style={{ marginTop: space.sm }}>
-        <MenuRow icon={<Phone size={20} color={c.primary} />} label="Call or text" value={CONTACT.phoneDisplay} onPress={() => void openExternal(CONTACT.phoneHref)} />
+        <MenuRow icon={<Phone size={20} color={c.primary} />} label="Asset Partner hotline" value={CONTACT.assetPartnerHotlineDisplay} onPress={() => void openExternal(CONTACT.assetPartnerHotlineHref)} />
         <MenuRow icon={<Mail size={20} color={c.primary} />} label="Email" value={CONTACT.email} onPress={() => void openExternal(`mailto:${CONTACT.email}`)} />
       </View>
     </Card>

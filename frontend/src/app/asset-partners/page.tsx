@@ -11,6 +11,7 @@ import {
 import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, CountUp, BRAND, TractionStats } from '@/features/marketing/sections';
 import { SiteLink } from '@/components/layout/site-link';
+import { CONTACT } from '@/features/contact/content';
 
 /**
  * Asset Partners - CatoDrive's primary acquisition page (v1 priority, per the
@@ -404,7 +405,7 @@ export default function AssetPartnersPage() {
           </Reveal>
           <Reveal delay={80}>
             <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
-              <ContactCell icon={Phone} label="Call / Text" value="(214) 814-0402" href="tel:+12148140402" />
+              <ContactCell icon={Phone} label="Asset Partner hotline: call or text" value={CONTACT.assetPartnerHotlineDisplay} href={CONTACT.assetPartnerHotlineHref} />
               <ContactCell icon={Mail} label="Email" value="shoaib@catodrive.com" href="mailto:shoaib@catodrive.com" />
               <ContactCell icon={Clock} label="Response Time" value="We review every application and respond within 2–3 business days." />
               <ContactCell icon={ClipboardCheck} label="Eligibility" value="2018+ · under 130,000 miles · clean title · SUV preferred" />

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList, Sparkles, LifeBuoy, Headphones, CalendarCheck, Grid2x2, Umbrella } from 'lucide-react';
+import { Users, Gauge, Fuel, Check, DoorOpen, Truck, ShieldCheck, Gauge as MileIcon, ClipboardList, Sparkles, LifeBuoy, Headphones, CalendarCheck, Grid2x2, Umbrella, CalendarX2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +28,7 @@ import { ApiError } from '@/lib/api/types';
 import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
 import { SimilarCars } from '@/features/vehicles/components/similar-cars';
-import { usePlatformConfig, describeCancellation, leadMinutes } from '@/features/platform/config';
+import { usePlatformConfig, describeCancellation, leadMinutes, bookingsOpen } from '@/features/platform/config';
 import { useRecentlyViewed } from '@/features/vehicles/recently-viewed';
 import { useQuote, useCreateBooking } from '@/features/bookings/hooks';
 import { bookingApi } from '@/features/bookings/api';
@@ -56,6 +56,7 @@ export default function VehicleDetailPage() {
   const { data: v, isLoading, isError } = useVehicle(id);
   const { data: hostProfile } = useHostPublicProfile(v?.hostId);
   const platformCfg = usePlatformConfig();
+  const bookings = bookingsOpen(platformCfg.data);
   /** The soonest pickup this car allows right now: the platform notice, raised by the car's own. */
   const earliestPickup = () => new Date(Date.now() + leadMinutes(platformCfg.data, v?.listing?.advanceNoticeHours ?? 0) * 60_000);
   const status = useAuthStore((s) => s.status);
@@ -754,6 +755,12 @@ export default function VehicleDetailPage() {
         promo code are component state, and a duplicated tree is how the two
         surfaces silently drift apart.
       */}
+      {!bookings.open ? (
+        <div role="status" className="h-fit rounded-lg border border-border bg-card p-5 lg:sticky lg:top-24 sm:p-6">
+          <p className="flex items-center gap-2 font-semibold"><CalendarX2 className="h-5 w-5 text-muted-foreground" aria-hidden />Bookings are paused</p>
+          <p className="mt-2 text-sm text-muted-foreground">{bookings.message}</p>
+        </div>
+      ) : (
       <div className="relative">
         {/* Scrim - mobile only; on desktop the panel is always visible. */}
         {sheetOpen && (
@@ -1174,6 +1181,7 @@ export default function VehicleDetailPage() {
           </div>
         </div>
       </div>
+      )}
     </div>
 
       {/*
@@ -1207,6 +1215,9 @@ export default function VehicleDetailPage() {
         </div>
         {/* Always opens the sheet - never books straight from here. The guest
             has to see what they are agreeing to and what it costs. */}
+        {!bookings.open ? (
+          <p className="max-w-[55%] text-end text-[13px] font-medium text-muted-foreground">Bookings are paused</p>
+        ) : (
         <Button
           size="lg"
           className="shrink-0 rounded-xl px-7 py-6 text-[17px] font-bold transition-transform active:scale-95"
@@ -1214,6 +1225,7 @@ export default function VehicleDetailPage() {
         >
           {quote.data ? 'Continue' : 'Select dates'}
         </Button>
+        )}
       </div>
 
       {/* Similar cars - full-width strip under the two-column layout */}

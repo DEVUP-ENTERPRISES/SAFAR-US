@@ -289,6 +289,8 @@ export class PlatformConfigService {
         checkoutHoldMinutes: 15,
         paymentPendingMinutes: 30,
         priceLockMinutes: 10,
+        guestBookingsEnabled: false,
+        guestBookingsPausedMessage: 'We’re not taking new bookings right now. Please check back soon.',
         ...(doc.booking ?? {}),
       },
       search: {

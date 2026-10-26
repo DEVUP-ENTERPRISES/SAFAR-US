@@ -114,8 +114,8 @@ function ContactForm() {
             {/* Quick-reference sidebar */}
             <Reveal>
               <div className="h-full space-y-4 rounded-lg border border-border bg-card p-7">
-                <SidebarRow icon={Phone} label="Phone" value="(214) 814-0402" href="tel:+12148140402" />
-                <SidebarRow icon={Mail} label="Email" value="shoaib@catodrive.com" href="mailto:shoaib@catodrive.com" />
+                <SidebarRow icon={Mail} label="Email" value={CONTACT.email} href={`mailto:${CONTACT.email}`} />
+                <SidebarRow icon={Phone} label="Asset Partner hotline (car owners only)" value={CONTACT.assetPartnerHotlineDisplay} href={CONTACT.assetPartnerHotlineHref} />
                 <SidebarRow icon={MapPin} label="Location" value="Dallas/Fort Worth, TX" />
                 <SidebarRow icon={Clock} label="Hours" value="Mon–Sun: 8 AM – 10 PM Central" />
               </div>
@@ -190,7 +190,7 @@ function ContactForm() {
             <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Dallas–Fort Worth.</h2>
             <p className="mt-4 text-[15px] text-muted-foreground">
               Operations centered near DFW International Airport. Office visits by appointment only -{' '}
-              <Link href="tel:+12148140402" className="font-semibold text-primary">call ahead to schedule</Link>.
+              <Link href={`mailto:${CONTACT.email}`} className="font-semibold text-primary">email us to schedule</Link>.
             </p>
           </Reveal>
           <Reveal delay={80}>

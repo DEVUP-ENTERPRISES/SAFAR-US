@@ -10,7 +10,7 @@ import { Badge, Button, Card, ErrorState, Screen, Skeleton, Text, useTheme, radi
 import { webUrl } from '@catodrive/core';
 import { useVehicle } from '@catodrive/core/web/features/vehicles/hooks';
 import { vehicleApi } from '@catodrive/core/web/features/vehicles/api';
-import { usePlatformConfig, describeCancellation } from '@catodrive/core/web/features/platform/config';
+import { usePlatformConfig, describeCancellation, bookingsOpen } from '@catodrive/core/web/features/platform/config';
 import { useHostPublicProfile } from '@catodrive/core/web/features/host/public-profile';
 import { useSearchBar } from '@catodrive/core/web/features/search/search-store';
 import { tripDays } from '@catodrive/core/web/features/bookings/booking-selection';
@@ -49,6 +49,7 @@ export default function VehicleScreen() {
   const router = useRouter();
   const { data: v, isPending, isError, refetch } = useVehicle(id);
   const cfg = usePlatformConfig().data;
+  const bookings = bookingsOpen(cfg);
   const host = useHostPublicProfile(v?.hostId).data;
   const signedIn = useAuthStore((s) => s.status === 'authenticated');
   const choices = useCheckout((s) => s.forVehicle(id));
@@ -284,7 +285,11 @@ export default function VehicleScreen() {
           </View>
           {days ? <Text variant="caption" tone="muted">{days} {days === 1 ? 'day' : 'days'} selected</Text> : <Badge label={v.listing.instantBook ? 'Instant Book' : 'Request to book'} tone="primary" />}
         </View>
-        <Button title={signedIn ? (v.listing.instantBook ? 'Book' : 'Request') : 'Sign in to book'} full={false} onPress={book} />
+        {bookings.open ? (
+          <Button title={signedIn ? (v.listing.instantBook ? 'Book' : 'Request') : 'Sign in to book'} full={false} onPress={book} />
+        ) : (
+          <Text variant="caption" tone="muted" style={{ maxWidth: '55%', textAlign: 'right' }}>{bookings.message}</Text>
+        )}
       </SafeAreaView>
     </View>
   );

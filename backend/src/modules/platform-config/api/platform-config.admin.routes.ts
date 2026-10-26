@@ -391,6 +391,8 @@ router.put(
           checkoutHoldMinutes: z.number().min(1).max(120).optional(),
           paymentPendingMinutes: z.number().min(1).max(1440).optional(),
           priceLockMinutes: z.number().min(1).max(120).optional(),
+          guestBookingsEnabled: z.boolean().optional(),
+          guestBookingsPausedMessage: z.string().trim().min(5).max(300).optional(),
         })
         .optional(),
       search: z

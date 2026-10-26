@@ -2,8 +2,9 @@ import type { ContactInterest } from './api';
 
 /** Ways to reach CatoDrive, shown on the contact page. */
 export const CONTACT = {
-  phoneDisplay: '(214) 814-0402',
-  phoneHref: 'tel:+12148140402',
+  /** For people listing their car with CatoDrive only; never shown to guests for trips. */
+  assetPartnerHotlineDisplay: '(214) 814-0402',
+  assetPartnerHotlineHref: 'tel:+12148140402',
   email: 'shoaib@catodrive.com',
   location: 'Dallas/Fort Worth, TX',
   hours: 'Mon–Sun: 8 AM – 10 PM Central',
@@ -12,8 +13,8 @@ export const CONTACT = {
 } as const;
 
 export const CONTACT_CARDS = [
-  { key: 'call', title: 'Call Us', lines: [CONTACT.phoneDisplay, 'Available 7 days a week', '8 AM – 10 PM Central'] },
-  { key: 'email', title: 'Email Us', lines: [CONTACT.email, 'Asset partner inquiries', 'Corporate accounts'] },
+  { key: 'email', title: 'Email Us', lines: [CONTACT.email, 'Questions about your account or a trip', 'Corporate accounts'] },
+  { key: 'call', title: 'Asset Partner hotline', lines: [CONTACT.assetPartnerHotlineDisplay, 'For car owners listing with CatoDrive', '8 AM – 10 PM Central'] },
   { key: 'visit', title: 'Visit Us', lines: ['Dallas/Fort Worth, TX', 'Operations near DFW Airport', 'By appointment only'] },
 ] as const;
 
@@ -27,7 +28,7 @@ export const INTEREST_OPTIONS: { value: ContactInterest; label: string }[] = [
 
 export const CONTACT_FAQ = [
   { q: 'How do I become an asset partner?', a: 'Start the intake form on the Asset Partners page - it takes about 10 minutes. Our team reviews every submission and schedules an in-person vehicle assessment within 2–3 business days.' },
-  { q: 'What’s the fastest way to reach you?', a: `Call or text ${CONTACT.phoneDisplay} - we’re available 7 days a week, 8 AM–10 PM Central. For anything that needs documents or detail attached, email is usually faster to act on.` },
+  { q: 'What’s the fastest way to reach you?', a: `Send us a message with the form below or email ${CONTACT.email}; we reply within 24 hours. Car owners interested in becoming an Asset Partner can call or text our Asset Partner hotline, ${CONTACT.assetPartnerHotlineDisplay}.` },
   { q: 'Do you offer corporate accounts?', a: 'Yes - B2B fleet accounts for enterprises and staffing agencies, with volume pricing and consolidated billing. Select "A corporate account" below and tell us your team size and use case.' },
   { q: 'Where are you located?', a: 'CatoDrive operates near DFW International Airport and Dallas Love Field, serving the greater Dallas/Fort Worth area. Our office is by appointment only - reach out to schedule a visit.' },
 ] as const;

@@ -14,13 +14,13 @@ export function PartnerSupport() {
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2">
         <a
-          href={CONTACT.phoneHref}
+          href={CONTACT.assetPartnerHotlineHref}
           className="flex items-center gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary/40"
         >
           <Phone className="h-5 w-5 shrink-0 text-primary" />
           <span className="min-w-0">
-            <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Call or text</span>
-            <span className="block truncate font-semibold">{CONTACT.phoneDisplay}</span>
+            <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Asset Partner hotline</span>
+            <span className="block truncate font-semibold">{CONTACT.assetPartnerHotlineDisplay}</span>
           </span>
         </a>
         <a

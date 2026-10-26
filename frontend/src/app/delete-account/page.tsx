@@ -38,7 +38,7 @@ export default function DeleteAccountInfoPage() {
         <h2 className="text-xl font-semibold">Can’t sign in?</h2>
         <p className="text-sm">
           Email <a href={`mailto:${CONTACT.email}?subject=Delete%20my%20account`} className="font-medium text-primary hover:underline">{CONTACT.email}</a> from
-          the address on your account, or call <a href={CONTACT.phoneHref} className="font-medium text-primary hover:underline">{CONTACT.phoneDisplay}</a>. We confirm it is you before
+          the address on your account. We confirm it is you before
           deleting anything.
         </p>
       </section>

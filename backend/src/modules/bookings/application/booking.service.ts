@@ -207,6 +207,12 @@ export class BookingService {
       coords?: { lat: number; lng: number };
     },
   ): Promise<BookingDoc> {
+    // The switch is checked on the server, so no client (old app, direct API call) can book while it is off.
+    const bookingCfg = (await platformConfigService.get()).booking;
+    if (bookingCfg.guestBookingsEnabled === false) {
+      throw new ConflictError(bookingCfg.guestBookingsPausedMessage || 'We’re not taking new bookings right now. Please check back soon.', 'BOOKINGS_PAUSED');
+    }
+
     // Namespaced by guest so one user's key can never match, or read, another user's booking.
     const scopedKey = idempotencyKey ? `${guestId}:${idempotencyKey}` : undefined;
     if (scopedKey) {

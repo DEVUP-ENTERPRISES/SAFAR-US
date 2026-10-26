@@ -69,8 +69,8 @@ export function ContactScreen() {
         <Text tone="muted">Interested in becoming an asset partner? Have questions about CatoDrive? We’re here to help.</Text>
       </View>
       <Card>
-        {row(Phone, 'Phone', CONTACT.phoneDisplay, CONTACT.phoneHref)}
         {row(Mail, 'Email', CONTACT.email, `mailto:${CONTACT.email}`)}
+        {row(Phone, 'Asset Partner hotline (car owners only)', CONTACT.assetPartnerHotlineDisplay, CONTACT.assetPartnerHotlineHref)}
         {row(MapPin, 'Location', CONTACT.location)}
         {row(Clock, 'Hours', CONTACT.hours)}
       </Card>

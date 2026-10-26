@@ -12,6 +12,28 @@ export function RulesTab({ draft, set }: TabProps) {
   return (
     <>
         <>
+      {/* Master switch: whether guests can book at all right now */}
+      <Card className={draft.booking.guestBookingsEnabled ? undefined : 'border-warning/50'}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Car className="h-5 w-5 text-primary" /> Guest bookings</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            When off, nobody can make a new booking on the website or the app (the server refuses it too). Guests can still
+            browse cars. Trips already booked carry on as normal.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <label className="flex items-center gap-2 self-start pt-2 text-sm font-medium">
+            <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.booking.guestBookingsEnabled === true}
+              onChange={(e) => set((d) => { d.booking.guestBookingsEnabled = e.target.checked; })} />
+            Guests can book trips
+          </label>
+          <Field label="Message shown while bookings are off" hint="Appears where the booking box would be.">
+            <Input maxLength={300} value={draft.booking.guestBookingsPausedMessage ?? ''}
+              onChange={(e) => set((d) => { d.booking.guestBookingsPausedMessage = e.target.value; })} />
+          </Field>
+        </CardContent>
+      </Card>
+
       {/* Booking timing — how long each stage may wait before it is released */}
       <Card>
         <CardHeader>

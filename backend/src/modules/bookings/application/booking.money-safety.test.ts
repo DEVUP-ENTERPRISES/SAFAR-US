@@ -232,6 +232,19 @@ describe('host approval and holds', () => {
     await expect(availabilityService.confirmHold('gone', 'bk')).rejects.toMatchObject({ code: 'HOLD_LOST' });
   });
 
+  it('refuses every new booking while guest bookings are switched off, before anything is held or charged', async () => {
+    const booking = mockConfig.booking as Record<string, unknown>;
+    Object.assign(booking, { guestBookingsEnabled: false, guestBookingsPausedMessage: 'Paused for now.' });
+    try {
+      const dto = { vehicleId: 'v1', start: new Date(Date.now() + 48 * HOUR).toISOString(), end: new Date(Date.now() + 72 * HOUR).toISOString() } as never;
+      await expect(bookingService.create('g1', dto, 'PAUSED')).rejects.toMatchObject({ code: 'BOOKINGS_PAUSED', message: 'Paused for now.' });
+      expect(await BookingModel.countDocuments({ guestId: 'g1' })).toBe(0);
+    } finally {
+      delete booking.guestBookingsEnabled;
+      delete booking.guestBookingsPausedMessage;
+    }
+  });
+
   it('caps open pending requests per guest', async () => {
     for (const i of [1, 2, 3]) await seedPaidBooking(`o${i}`, { status: 'pending_approval' });
     const dto = { vehicleId: 'v1', start: new Date(Date.now() + 48 * HOUR).toISOString(), end: new Date(Date.now() + 72 * HOUR).toISOString() } as never;

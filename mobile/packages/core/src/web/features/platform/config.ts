@@ -47,7 +47,7 @@ export interface PlatformPublicConfig {
     baselineRequiredForCharges: boolean;
   };
   /** Absent on a backend that predates the lead-time setting. */
-  booking?: { minLeadMinutes: number; dailyMileageMiles?: number; cancellationPolicy?: 'flexible' | 'moderate' | 'strict' };
+  booking?: { minLeadMinutes: number; dailyMileageMiles?: number; cancellationPolicy?: 'flexible' | 'moderate' | 'strict'; guestBookingsEnabled?: boolean; guestBookingsPausedMessage?: string };
 }
 
 /** Platform default when the config has not loaded or predates the setting. */
@@ -57,6 +57,14 @@ const DEFAULT_MIN_LEAD_MINUTES = 60;
 export function leadMinutes(cfg: PlatformPublicConfig | undefined, advanceNoticeHours = 0): number {
   const platform = cfg?.booking?.minLeadMinutes ?? DEFAULT_MIN_LEAD_MINUTES;
   return Math.max(platform, Math.max(0, advanceNoticeHours) * 60);
+}
+
+/** Whether guests can book right now (admin switch). Unknown counts as open: the server refuses bookings while it is off anyway. */
+export function bookingsOpen(cfg: PlatformPublicConfig | undefined): { open: boolean; message: string } {
+  return {
+    open: cfg?.booking?.guestBookingsEnabled !== false,
+    message: cfg?.booking?.guestBookingsPausedMessage || 'We’re not taking new bookings right now. Please check back soon.',
+  };
 }
 
 /** Human form of a lead time, e.g. "1 hour", "90 minutes", "2 days". */

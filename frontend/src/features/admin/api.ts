@@ -138,6 +138,9 @@ export interface PlatformConfig {
     checkoutHoldMinutes: number;
     paymentPendingMinutes: number;
     priceLockMinutes: number;
+    /** Master switch for new guest bookings. */
+    guestBookingsEnabled?: boolean;
+    guestBookingsPausedMessage?: string;
   };
   rewards: { pointValueCents: number; pointsPerDollar: number };
   referral: { referrerCreditCents: number; refereeCreditCents: number; minTripSpendCents: number; maxRewardsPerReferrer: number };

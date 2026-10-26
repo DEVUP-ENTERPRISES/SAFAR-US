@@ -16,7 +16,6 @@ import {
   ShieldCheck,
   Scale,
   TrendingUp,
-  Phone,
   Mail,
   AlertTriangle,
 } from "lucide-react";
@@ -590,15 +589,6 @@ export default function InvestorsPage() {
                       <Mail className="h-4 w-4" />
                     </span>
                     shoaib@catodrive.com
-                  </a>
-                  <a
-                    href="tel:+12148140402"
-                    className="flex items-center gap-3 rounded-xl border border-border p-3.5 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04]"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Phone className="h-4 w-4" />
-                    </span>
-                    (214) 814-0402
                   </a>
                 </div>
                 <p className="mt-5 rounded-xl bg-muted/50 p-3.5 text-xs leading-relaxed text-muted-foreground">

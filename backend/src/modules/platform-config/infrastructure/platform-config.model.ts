@@ -545,6 +545,10 @@ export interface PlatformConfigDoc {
     checkoutHoldMinutes: number;
     paymentPendingMinutes: number;
     priceLockMinutes: number;
+    /** Master switch for new guest bookings; off while trips cannot be insured. Existing trips are unaffected. */
+    guestBookingsEnabled: boolean;
+    /** Shown to guests where the booking box would be while bookings are off. */
+    guestBookingsPausedMessage: string;
   };
   /**
    * Search ranking weights. What the marketplace chooses to surface is a
@@ -916,6 +920,8 @@ const schema = new Schema<PlatformConfigDoc>(
       checkoutHoldMinutes: { type: Number, default: 15 },
       paymentPendingMinutes: { type: Number, default: 30 },
       priceLockMinutes: { type: Number, default: 10 },
+      guestBookingsEnabled: { type: Boolean, default: false },
+      guestBookingsPausedMessage: { type: String, default: 'We’re not taking new bookings right now. Please check back soon.' },
     },
     search: {
       ranking: {
