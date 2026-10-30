@@ -17,6 +17,7 @@ import { notificationService } from '../modules/notifications/application/notifi
 import { wheelbaseInsuranceService } from '../modules/insurance/application/wheelbase-insurance.service';
 import { tollService } from '../modules/tolls/application/toll.service';
 import { returnWatchService } from '../modules/trips/application/return-watch.service';
+import { assetPartnerOfferService } from '../modules/asset-partners/application/asset-partner-offer.service';
 
 const QUEUE = 'cato-maintenance';
 const MIN = 60_000;
@@ -162,6 +163,12 @@ const JOBS: JobDef[] = [
     name: 'retry-notifications',
     everyMs: 5 * MIN,
     run: async () => ({ retried: await notificationService.retryFailed() }),
+  },
+  {
+    // Partner signing windows: open the ones that should exist, remind before they end, tell partners when one ends.
+    name: 'partner-agreement-offers',
+    everyMs: 60 * MIN,
+    run: () => assetPartnerOfferService.sweep(),
   },
   {
     // Promote any config change staged for a time that has now passed, through the normal versioned publish path.

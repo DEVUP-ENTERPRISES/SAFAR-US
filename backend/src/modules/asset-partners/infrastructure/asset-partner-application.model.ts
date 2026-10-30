@@ -26,6 +26,20 @@ export type PartnerType = 'individual' | 'business' | 'fleet';
 export type OwnershipStatus = 'owned' | 'financed' | 'leased';
 export type CoverageType = 'full' | 'liability' | 'unsure';
 export type Availability = 'fulltime' | 'parttime' | 'seasonal';
+export const REJECTION_REASONS = [
+  'vehicle_age',
+  'mileage',
+  'title',
+  'accident_history',
+  'condition',
+  'insurance',
+  'documents',
+  'identity',
+  'service_area',
+  'demand',
+  'other',
+] as const;
+export type RejectionReason = (typeof REJECTION_REASONS)[number];
 
 export interface AssetPartnerApplicationDoc {
   _id: string;
@@ -107,6 +121,8 @@ export interface AssetPartnerApplicationDoc {
   reviewedBy?: string;
   reviewedAt?: Date;
   reviewNotes?: string;
+  /** Why it was declined, what would change the answer, and when they may apply again. */
+  rejection?: { reasons: RejectionReason[]; improvements?: string; reapplyAfter?: Date };
   /** Set on approval when a matching account existed and was auto-verified as
    *  a host. False/absent means ops still needs to follow up once the
    *  applicant creates an account. */
@@ -187,6 +203,10 @@ const schema = new Schema<AssetPartnerApplicationDoc>(
     reviewedBy: String,
     reviewedAt: Date,
     reviewNotes: String,
+    rejection: {
+      type: new Schema({ reasons: { type: [String], enum: REJECTION_REASONS, default: [] }, improvements: String, reapplyAfter: Date }, { _id: false }),
+      default: undefined,
+    },
     hostVerified: Boolean,
   },
   { timestamps: true, _id: false },

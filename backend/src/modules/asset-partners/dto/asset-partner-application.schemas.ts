@@ -1,3 +1,4 @@
+import { REJECTION_REASONS } from '../infrastructure/asset-partner-application.model';
 import { z } from 'zod';
 
 const yn = z.enum(['yes', 'no']);
@@ -91,4 +92,45 @@ export const signAgreementSchema = z.object({
 export const reviewApplicationSchema = z.object({
   decision: z.enum(['approved', 'changes_requested', 'rejected']),
   notes: z.string().trim().max(1000).optional(),
+  rejection: z
+    .object({
+      reasons: z.array(z.enum(REJECTION_REASONS)).min(1).max(REJECTION_REASONS.length),
+      improvements: z.string().trim().max(1000).optional(),
+      reapplyAfterDays: z.number().int().min(0).max(365).optional(),
+    })
+    .optional(),
+});
+
+const contact = z.object({
+  name: z.string().trim().min(2).max(120),
+  phone: z.string().trim().min(7).max(30),
+  relation: z.string().trim().min(2).max(60),
+  email: z.string().trim().max(160).optional().or(z.literal('')),
+});
+
+export const partnerProfileSchema = z.object({
+  emergencyContacts: z.array(contact).min(1).max(3),
+  representative: contact.nullable().optional(),
+  residency: z.enum(['citizen', 'permanent_resident', 'visa', 'other']),
+  visaExpiry: z.coerce.date().optional(),
+  preferredContact: z.enum(['call', 'text', 'email']).optional(),
+});
+
+const fuelLevel = z.enum(['full', 'three_quarters', 'half', 'quarter', 'empty']);
+const checklistKey = z.enum(['insurance_removed', 'toll_tag_removed', 'gps_removed', 'keys_returned', 'accessories_removed', 'papers_removed', 'interior_checked']);
+export const exitCarPatchSchema = z.object({
+  items: z.array(z.object({ key: checklistKey, done: z.boolean(), note: z.string().trim().max(300).optional() })).max(20).optional(),
+  odometer: z.number().int().min(0).max(1_000_000).optional(),
+  fuelLevel: fuelLevel.optional(),
+  keysReturned: z.number().int().min(0).max(10).optional(),
+  damageNotes: z.string().trim().max(2000).optional(),
+  addPhotos: z.array(z.object({ key: z.string().min(5).max(512), label: z.string().trim().max(40).optional() })).max(20).optional(),
+  removePhotoKeys: z.array(z.string().max(512)).max(40).optional(),
+});
+export const exitSubmitSchema = z.object({
+  to: z.enum(['owner', 'representative', 'estate', 'storage']),
+  receiverName: z.string().trim().max(120).default(''),
+  receiverSignature: z.string().trim().max(120).default(''),
+  location: z.string().trim().min(3).max(300),
+  ownerInsuranceConfirmed: z.boolean().default(false),
 });

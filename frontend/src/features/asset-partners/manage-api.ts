@@ -118,8 +118,9 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     summary: () => api.get<ProgrammeSummary>(`${base}/asset-partners/summary`),
     applications: (q: Q = {}) => api.get<any[]>(`${base}/asset-partner-applications`, q),
     application: (id: string) => api.get<any>(`${base}/asset-partner-applications/${id}`),
-    reviewApplication: (id: string, decision: ReviewDecision, notes?: string) =>
-      api.post(`${base}/asset-partner-applications/${id}/review`, { decision, notes }),
+    reviewApplication: (id: string, decision: ReviewDecision, notes?: string, rejection?: { reasons: string[]; improvements?: string; reapplyAfterDays?: number }) =>
+      api.post(`${base}/asset-partner-applications/${id}/review`, { decision, notes, rejection }),
+    rejectionReasons: () => api.get<{ code: string; label: string; why: string; improve: string }[]>(`${base}/asset-partner-applications/rejection-reasons`),
     partners: (q: Q = {}) => api.get<any[]>(`${base}/asset-partners`, q),
     addPartner: (input: { email: string; fullName: string; businessName?: string; phone?: string; partnerType: 'individual' | 'business' | 'fleet'; notify?: boolean }) =>
       api.post<{ partner: { _id: string; displayName: string }; alreadyExisted: boolean; accountCreated: boolean }>(`${base}/asset-partners`, input),

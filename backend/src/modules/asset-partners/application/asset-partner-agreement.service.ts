@@ -10,6 +10,8 @@ export { buildTextPdf, type PdfOptions } from './text-pdf';
 import { notificationService } from '../../notifications/application/notification.service';
 import { assetPartnerTermsService } from './asset-partner-terms.service';
 import { assetPartnerEnvelopeService } from './asset-partner-envelope.service';
+import { assetPartnerOfferService } from './asset-partner-offer.service';
+import { assetPartnerProfileService } from './asset-partner-profile.service';
 import { SignatureEnvelopeModel } from '../infrastructure/signature-envelope.model';
 import type { ResolvedTermsSnapshot } from '../infrastructure/asset-partner-terms.model';
 
@@ -132,11 +134,13 @@ export class AssetPartnerAgreementService {
     const [agreement, nda] = await Promise.all([this.current('agreement'), this.current('nda')]);
     if (!agreement || !nda) return;
     const waiting = await AssetPartnerModel.find({ agreementRequired: true, status: { $ne: 'exited' }, $or: [{ 'agreement.signedAt': { $exists: false } }, { 'nda.signedAt': { $exists: false } }] })
-      .select('_id userId')
+      .select('_id userId agreementRequired agreementOffer agreement nda')
       .limit(1000)
-      .lean<{ _id: string; userId: string }[]>();
+      .lean<AssetPartnerDoc[]>();
     for (const p of waiting) {
+      if (assetPartnerOfferService.state(p)?.expired) continue;
       await assetPartnerEnvelopeService.recordEvent(p._id, 'onboarding', 'sent', {}).catch(() => undefined);
+      const offer = assetPartnerOfferService.state(await assetPartnerOfferService.open(p).catch(() => p));
       await notificationService
         .send({
           userId: p.userId,
@@ -144,7 +148,7 @@ export class AssetPartnerAgreementService {
           deepLink: '/asset-partners/dashboard',
           templateKey: 'account.asset_partner_agreement_ready',
           title: 'Your partner agreement is ready to sign',
-          body: 'Your CatoDrive Asset Partner agreement and NDA are ready. Sign in to read and sign them.',
+          body: `Your CatoDrive Asset Partner agreement and NDA are ready. Sign in to read and sign them${offer ? ` by ${offer.expiresAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}` : ''}.`,
           data: { agreementVersion: agreement.version, ndaVersion: nda.version },
         })
         .catch((err) => logger.warn({ err, userId: p.userId }, 'agreement ready notice failed'));
@@ -189,6 +193,10 @@ export class AssetPartnerAgreementService {
   async sign(partner: AssetPartnerDoc, input: SignInput, ctx: { ip?: string; userAgent?: string }): Promise<AssetPartnerDoc> {
     if (!partner.agreementRequired) throw new ForbiddenError('There is no agreement waiting for your signature.');
     if (partner.agreement?.signedAt && partner.nda?.signedAt) return partner;
+    assetPartnerOfferService.assertSignable(partner);
+    if (!assetPartnerProfileService.isComplete(partner)) throw new ConflictError('Add your emergency contact before signing.', 'PROFILE_REQUIRED');
+    const identity = await assetPartnerProfileService.identity(partner);
+    if (identity.required && !assetPartnerProfileService.isIdentityDone(identity)) throw new ConflictError('Verify your ID before signing.', 'IDENTITY_REQUIRED');
 
     const [agreement, nda] = await Promise.all([this.current('agreement'), this.current('nda')]);
     if (!agreement || !nda) throw new ConflictError('Your agreement is still being prepared. We’ll email you when it’s ready.', 'AGREEMENT_NOT_READY');

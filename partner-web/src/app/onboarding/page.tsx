@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Clock, Mail, XCircle } from 'lucide-react';
+import { CalendarClock, Check, Clock, Mail, XCircle } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,12 +21,15 @@ import { cn } from '@/lib/utils/cn';
 import { ApplicationForm } from '~/features/onboarding/application-form';
 import { SignDocuments } from '~/features/onboarding/sign-documents';
 import { UploadDocuments } from '~/features/onboarding/upload-documents';
+import { ProfileForm } from '~/features/onboarding/profile-form';
+import { IdentityStep } from '~/features/onboarding/identity-step';
 
 const TRACK: { label: string; stages: OnboardingStage[] }[] = [
   { label: 'Email', stages: ['verify_email'] },
   { label: 'Application', stages: ['apply', 'changes', 'rejected'] },
   { label: 'Review', stages: ['review'] },
-  { label: 'Agreement', stages: ['agreement'] },
+  { label: 'You & ID', stages: ['profile', 'identity'] },
+  { label: 'Agreement', stages: ['agreement', 'agreement_expired'] },
   { label: 'Papers', stages: ['documents', 'payout'] },
 ];
 
@@ -35,7 +38,7 @@ const failMessage = (e: unknown, fallback: string) => (e instanceof ApiError ? e
 function Tracker({ stage }: { stage: OnboardingStage }) {
   const at = TRACK.findIndex((t) => t.stages.includes(stage));
   return (
-    <ol className="grid grid-cols-5 gap-1.5 sm:gap-3" aria-label="Getting started">
+    <ol className="grid grid-cols-6 gap-1.5 sm:gap-3" aria-label="Getting started">
       {TRACK.map((t, i) => (
         <li key={t.label} className="min-w-0">
           <div className={cn('h-1.5 rounded-full', i < at ? 'bg-primary' : i === at ? 'bg-primary/60' : 'bg-muted')} />
@@ -122,6 +125,85 @@ function InReview({ data }: { data: PartnerOnboarding }) {
   );
 }
 
+/** How long is left to sign, shown above the agreement. */
+function OfferDeadline({ offer }: { offer: PartnerOnboarding['offer'] }) {
+  if (!offer) return null;
+  const urgent = offer.daysLeft <= 5;
+  return (
+    <p className={cn('flex items-center gap-2 rounded-lg p-3 text-sm', urgent ? 'bg-warning/10 text-warning' : 'bg-muted/50 text-muted-foreground')} role="status">
+      <CalendarClock className="h-4 w-4 shrink-0" />
+      Please sign by {formatDate(offer.expiresAt)} ({offer.daysLeft} day{offer.daysLeft === 1 ? '' : 's'} left). After that we’ll need to send it again.
+    </p>
+  );
+}
+
+function OfferExpired({ data, onDone }: { data: PartnerOnboarding; onDone: () => void }) {
+  const ask = useMutation({ meta: { silentError: true }, mutationFn: () => assetPartnerApi.requestNewOffer(), onSuccess: onDone });
+  const asked = !!data.offer?.reissueRequestedAt || ask.isSuccess;
+  return (
+    <Card>
+      <CardContent className="space-y-4 p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-warning/10 text-warning"><CalendarClock className="h-5 w-5" /></span>
+          <div>
+            <h2 className="text-xl font-bold">Your offer to sign has ended</h2>
+            <p className="text-sm text-muted-foreground">
+              The agreement was open for signing until {data.offer ? formatDate(data.offer.expiresAt) : 'its end date'}. Ask for a new copy and we’ll send it with a fresh signing window.
+            </p>
+          </div>
+        </div>
+        {asked ? (
+          <p className="rounded-lg bg-muted/50 p-3 text-sm" role="status">We’ve got your request. We’ll email you as soon as the new copy is ready.</p>
+        ) : (
+          <Button className="w-full sm:w-auto" loading={ask.isPending} onClick={() => ask.mutate()}>Ask for a new copy</Button>
+        )}
+        {ask.isError && <p role="alert" className="text-sm text-destructive">{failMessage(ask.error, 'We couldn’t send that. Try again.')}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function Declined({ data, onReapply }: { data: PartnerOnboarding; onReapply: () => void }) {
+  const r = data.rejection;
+  const note = data.application?.reviewNotes;
+  return (
+    <Card>
+      <CardContent className="space-y-5 p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><XCircle className="h-5 w-5" /></span>
+          <div>
+            <h2 className="text-xl font-bold">We couldn’t approve this application</h2>
+            <p className="text-sm text-muted-foreground">Here’s why, and what would help next time.</p>
+          </div>
+        </div>
+        {r && r.reasons.length > 0 && (
+          <ul className="divide-y divide-border rounded-lg border border-border">
+            {r.reasons.map((x) => (
+              <li key={x.code} className="space-y-1 p-4">
+                <p className="font-semibold">{x.label}</p>
+                <p className="text-sm text-muted-foreground">{x.why}</p>
+                <p className="text-sm"><span className="font-medium">What would help:</span> {x.improve}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+        {(r?.improvements || note) && (
+          <div className="space-y-1 rounded-lg bg-muted/50 p-4 text-sm">
+            <p className="font-semibold">A note from our team</p>
+            {note && <p>{note}</p>}
+            {r?.improvements && <p>{r.improvements}</p>}
+          </div>
+        )}
+        {r && !r.canReapply && r.reapplyAfter ? (
+          <p className="text-sm text-muted-foreground" role="status">You can apply again from {formatDate(r.reapplyAfter)}.</p>
+        ) : (
+          <Button variant="outline" className="w-full sm:w-auto" onClick={onReapply}>Apply again</Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function Payout({ method, onDone }: { method: 'check' | 'zelle'; onDone: () => void }) {
   const [value, setValue] = useState('');
   const save = useMutation({
@@ -154,7 +236,7 @@ function GettingStarted() {
   const toast = useToast();
   const q = useQuery({ queryKey: ['partner-onboarding'], queryFn: () => assetPartnerApi.onboarding() });
   const [reapply, setReapply] = useState(false);
-  const refresh = () => qc.invalidateQueries({ queryKey: ['partner-onboarding'] });
+  const refresh = useCallback(() => qc.invalidateQueries({ queryKey: ['partner-onboarding'] }), [qc]);
 
   useEffect(() => {
     if (q.data?.stage === 'ready') router.replace('/dashboard');
@@ -187,21 +269,16 @@ function GettingStarted() {
           onSubmit={(input) => assetPartnerApi.resubmitApplication(app._id, input).then(sent)} />
       )}
       {data.stage === 'review' && <InReview data={data} />}
-      {data.stage === 'rejected' && !reapply && (
-        <Card>
-          <CardContent className="space-y-4 p-5 sm:p-6">
-            <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-destructive/10 text-destructive"><XCircle className="h-5 w-5" /></span>
-              <div>
-                <h2 className="text-lg font-bold">We couldn’t approve this application</h2>
-                {app?.reviewNotes && <p className="mt-1 text-sm text-muted-foreground">{app.reviewNotes}</p>}
-              </div>
-            </div>
-            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setReapply(true)}>Apply again</Button>
-          </CardContent>
-        </Card>
+      {data.stage === 'rejected' && !reapply && <Declined data={data} onReapply={() => setReapply(true)} />}
+      {data.stage === 'profile' && <ProfileForm initial={data.profile} ownPhone={data.profile?.ownPhone} onSaved={() => void refresh()} />}
+      {data.stage === 'identity' && <IdentityStep state={data.identity?.state ?? 'not_started'} reason={data.identity?.reason} onChange={refresh} />}
+      {data.stage === 'agreement_expired' && <OfferExpired data={data} onDone={() => void refresh()} />}
+      {data.stage === 'agreement' && (
+        <>
+          <OfferDeadline offer={data.offer} />
+          <SignDocuments data={data} onDone={() => void refresh()} />
+        </>
       )}
-      {data.stage === 'agreement' && <SignDocuments data={data} onDone={() => void refresh()} />}
       {data.stage === 'documents' && <UploadDocuments documents={data.documents ?? []} onChange={() => void refresh()} />}
       {data.stage === 'payout' && <Payout method={data.payoutMethod ?? 'check'} onDone={() => void refresh()} />}
     </div>

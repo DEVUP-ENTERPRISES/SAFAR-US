@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast';
 import { formatMoney } from '@/lib/utils/format';
 import { assetPartnerApi } from '@/features/asset-partners/api';
 import { ApiError } from '@/lib/api/types';
+import { ProfileForm } from '~/features/onboarding/profile-form';
 
 /**
  * Where the partner's money goes, and their programme terms.
@@ -163,7 +164,36 @@ export default function PartnerProfilePage() {
         onSave={() => savePayout.mutate()}
         saving={savePayout.isPending}
       />
+
+      <EmergencyContacts />
     </div>
+  );
+}
+
+/** Emergency contacts and residency, editable any time after signing. */
+function EmergencyContacts() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const q = useQuery({ queryKey: ['asset-partner-profile'], queryFn: () => assetPartnerApi.profile() });
+  return (
+    <section id="emergency" className="scroll-mt-24">
+      {q.isLoading ? (
+        <Skeleton className="h-72 w-full rounded-lg" />
+      ) : q.isError || !q.data ? (
+        <ErrorState message="We couldn’t load your emergency contacts." retry={() => void q.refetch()} />
+      ) : (
+        <ProfileForm
+          key={q.data.profile?.completedAt ?? 'new'}
+          initial={q.data.profile ?? undefined}
+          ownPhone={q.data.ownPhone}
+          submitLabel="Save contacts"
+          onSaved={() => {
+            void qc.invalidateQueries({ queryKey: ['asset-partner-profile'] });
+            toast({ tone: 'success', title: 'Emergency contacts saved' });
+          }}
+        />
+      )}
+    </section>
   );
 }
 

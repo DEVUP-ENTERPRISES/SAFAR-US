@@ -18,6 +18,12 @@ import { AppError, NotFoundError, ConflictError, ValidationError } from '../../.
 import { assetPartnerAgreementService } from './asset-partner-agreement.service';
 import { notificationService } from '../../notifications/application/notification.service';
 import { randomId } from '../../../shared/utils/uuid';
+import { assetPartnerProfileService, type PartnerIdentity } from './asset-partner-profile.service';
+import { assetPartnerOfferService, type OfferState } from './asset-partner-offer.service';
+import { explainRejection } from '../domain/rejection-reasons';
+import type { RejectionReason } from '../infrastructure/asset-partner-application.model';
+import type { PartnerProfile } from '../infrastructure/asset-partner.model';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /** "CD-AP-482913" — server-generated, never client-supplied. */
@@ -25,6 +31,8 @@ function generateReference(): string {
   const digits = randomId().replace(/\D/g, '').padEnd(6, '0').slice(0, 6);
   return `CD-AP-${digits}`;
 }
+
+const longDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' });
 
 const OPEN: ApplicationStatus[] = ['submitted', 'under_review', 'changes_requested'];
 
@@ -65,7 +73,14 @@ function fieldsFrom(dto: PortalApplicationDto) {
 
 export type ReviewDecision = 'approved' | 'changes_requested' | 'rejected';
 
-export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'agreement' | 'documents' | 'payout' | 'ready';
+export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'profile' | 'identity' | 'agreement' | 'agreement_expired' | 'documents' | 'payout' | 'ready';
+
+export interface RejectionInput {
+  reasons: RejectionReason[];
+  improvements?: string;
+  /** Days before they may apply again; the configured default when left out, 0 for straight away. */
+  reapplyAfterDays?: number;
+}
 
 export interface PartnerOnboarding {
   stage: OnboardingStage;
@@ -79,6 +94,10 @@ export interface PartnerOnboarding {
   prefill?: Record<string, string>;
   documents?: { category: string; label: string; hint: string; uploaded: boolean; status?: string }[];
   payoutMethod?: 'check' | 'zelle';
+  profile?: PartnerProfile & { ownPhone?: string };
+  identity?: Pick<PartnerIdentity, 'state' | 'reason'>;
+  offer?: OfferState | null;
+  rejection?: { reasons: { code: RejectionReason; label: string; why: string; improve: string }[]; improvements?: string; reapplyAfter?: Date; canReapply: boolean };
 }
 
 export interface PartnerVehicleSummary {
@@ -137,6 +156,8 @@ export class AssetPartnerApplicationService {
     }
     const open = await AssetPartnerApplicationModel.exists({ submittedByUserId: userId, kind: 'partner', status: { $in: OPEN } });
     if (open) throw new ConflictError('You already have an application with us.', 'APPLICATION_OPEN');
+    const waitUntil = await this.reapplyAfter(userId, user.email);
+    if (waitUntil) throw new ConflictError(`You can apply again from ${longDate(waitUntil)}.`, 'REAPPLY_LATER');
     return this.insert(dto, { ...ctx, userId }, { kind: 'partner', email: user.email });
   }
 
@@ -151,6 +172,18 @@ export class AssetPartnerApplicationService {
     if (!doc) throw new NotFoundError('Application');
     logger.info({ reference: doc.reference }, 'Asset Partner application resubmitted');
     return doc;
+  }
+
+  /** The date a declined applicant may apply again, or null when they can apply now. */
+  private async reapplyAfter(userId: string, email?: string): Promise<Date | null> {
+    const match: Record<string, unknown>[] = [{ submittedByUserId: userId }];
+    if (email) match.push({ email: email.toLowerCase() });
+    const last = await AssetPartnerApplicationModel.findOne({ $or: match, kind: { $in: ['partner', null] } })
+      .sort({ createdAt: -1 })
+      .select('status rejection')
+      .lean<Pick<AssetPartnerApplicationDoc, 'status' | 'rejection'>>();
+    const until = last?.status === 'rejected' ? last.rejection?.reapplyAfter : undefined;
+    return until && new Date(until) > new Date() ? new Date(until) : null;
   }
 
   async lookupVin(raw: string): Promise<{ decoded: DecodedVin | null; alreadyWithUs: boolean }> {
@@ -204,13 +237,26 @@ export class AssetPartnerApplicationService {
     if (!user) throw new NotFoundError('User');
     const base = { email: user.email, emailVerified: !!user.emailVerified };
 
-    const partner = await assetPartnerService.getByUserId(userId);
-    if (partner) {
+    const enrolled = await assetPartnerService.getByUserId(userId);
+    if (enrolled) {
+      void assetPartnerProfileService.touch(userId);
+      const partner = await assetPartnerOfferService.open(enrolled).catch(() => enrolled);
       const stage = await assetPartnerService.portalStage(partner);
       const summary = { displayName: partner.displayName, status: partner.status };
+      const offer = assetPartnerOfferService.state(partner);
+      if (stage === 'agreement_expired') return { ...base, stage, partner: summary, offer };
+      if (stage === 'profile') {
+        return { ...base, stage, partner: summary, offer, profile: { emergencyContacts: [], ...(partner.profile ?? {}), ownPhone: partner.phone } };
+      }
+      if (stage === 'identity') {
+        const identity = await assetPartnerProfileService.identity(partner, { sync: true });
+        // A result that just arrived from Stripe moves them straight on.
+        if (assetPartnerProfileService.isIdentityDone(identity)) return this.onboarding(userId);
+        return { ...base, stage, partner: summary, offer, identity: { state: identity.state, reason: identity.reason } };
+      }
       if (stage === 'agreement') {
         const docs = await assetPartnerAgreementService.forPartner(partner);
-        return { ...base, stage, partner: summary, agreement: docs.agreement, nda: docs.nda, prefill: docs.prefill };
+        return { ...base, stage, partner: summary, offer, agreement: docs.agreement, nda: docs.nda, prefill: docs.prefill };
       }
       if (stage === 'documents') {
         return { ...base, stage, partner: summary, documents: await assetPartnerService.documentChecklist(partner) };
@@ -228,7 +274,20 @@ export class AssetPartnerApplicationService {
       .lean<AssetPartnerApplicationDoc>();
     if (!application) return { ...base, stage: 'apply' };
     const stage = application.status === 'changes_requested' ? 'changes' : application.status === 'rejected' ? 'rejected' : 'review';
-    return { ...base, stage, application };
+    if (stage !== 'rejected') return { ...base, stage, application };
+    const r = application.rejection;
+    const reapplyAfter = r?.reapplyAfter ? new Date(r.reapplyAfter) : undefined;
+    return {
+      ...base,
+      stage,
+      application,
+      rejection: {
+        reasons: explainRejection(r?.reasons?.length ? r.reasons : ['other']),
+        improvements: r?.improvements,
+        reapplyAfter,
+        canReapply: !reapplyAfter || reapplyAfter <= new Date(),
+      },
+    };
   }
 
   /**
@@ -358,6 +417,7 @@ export class AssetPartnerApplicationService {
     reviewerId: string,
     decision: ReviewDecision,
     notes?: string,
+    rejection?: RejectionInput,
   ): Promise<AssetPartnerApplicationDoc> {
     const app = await AssetPartnerApplicationModel.findById(id);
     if (!app) throw new NotFoundError('Application');
@@ -366,6 +426,16 @@ export class AssetPartnerApplicationService {
     }
     if (decision !== 'approved' && !notes?.trim()) {
       throw new ValidationError('Add a note for the applicant');
+    }
+    if (decision === 'rejected') {
+      const reasons = Array.from(new Set(rejection?.reasons ?? []));
+      if (reasons.length === 0) throw new ValidationError('Pick at least one reason, so the applicant knows what to change');
+      const days = rejection?.reapplyAfterDays ?? (await platformConfigService.get()).assetPartner.reapplyAfterDays ?? 90;
+      app.rejection = {
+        reasons,
+        improvements: rejection?.improvements?.trim() || undefined,
+        reapplyAfter: days > 0 ? new Date(Date.now() + days * 24 * 3600_000) : undefined,
+      };
     }
 
     let hostVerified = app.hostVerified ?? false;
@@ -383,6 +453,8 @@ export class AssetPartnerApplicationService {
       });
       app.partnerId = partner._id;
       hostVerified = true;
+      // The signing window opens now if the agreement and NDA are already published.
+      await assetPartnerOfferService.open(partner).catch((err) => logger.warn({ err, partnerId: partner._id }, 'agreement offer not opened'));
       if (accountCreated) {
         logger.info(
           { reference: app.reference },
@@ -413,7 +485,15 @@ export class AssetPartnerApplicationService {
         ? { title: `Your ${car} is approved`, body: 'We’ll contact you to schedule the inspection and get it listed.' }
         : { title: 'You’re approved as a CatoDrive Asset Partner', body: 'Sign your agreement and add your payout details to open your dashboard.' },
       changes_requested: { title: 'Your application needs a few changes', body: notes ?? '' },
-      rejected: { title: vehicle ? `We can’t take your ${car} right now` : 'We can’t approve your application right now', body: notes ?? '' },
+      rejected: {
+        title: vehicle ? `We can’t take your ${car} right now` : 'We can’t approve your application right now',
+        body: [
+          notes ?? '',
+          app.rejection?.reasons?.length ? `Why: ${explainRejection(app.rejection.reasons).map((r) => r.label).join(', ')}.` : '',
+          app.rejection?.reapplyAfter ? `You can apply again from ${longDate(new Date(app.rejection.reapplyAfter))}.` : 'You can apply again whenever you’re ready.',
+          'Sign in to see what would help.',
+        ].filter(Boolean).join(' '),
+      },
     };
     await notificationService
       .send({

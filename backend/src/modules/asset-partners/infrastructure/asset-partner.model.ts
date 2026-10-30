@@ -57,6 +57,37 @@ export interface PartnerAgreementSignature {
 }
 export type PayoutMethod = 'check' | 'zelle';
 
+export interface PartnerContact {
+  name: string;
+  phone: string;
+  relation: string;
+  email?: string;
+}
+
+export type Residency = 'citizen' | 'permanent_resident' | 'visa' | 'other';
+
+/** Who to reach when the partner can't be reached; collected before signing. */
+export interface PartnerProfile {
+  emergencyContacts: PartnerContact[];
+  /** Someone the partner allows to decide about their car if CatoDrive cannot reach them. */
+  representative?: PartnerContact;
+  residency?: Residency;
+  /** Asked only of visa holders, so CatoDrive can plan before they may have to leave. */
+  visaExpiry?: Date;
+  preferredContact?: 'call' | 'text' | 'email';
+  completedAt?: Date;
+}
+
+/** The signing window: the offer to sign lapses after the configured number of days. */
+export interface AgreementOffer {
+  sentAt: Date;
+  expiresAt: Date;
+  remindedAt?: Date;
+  expiredNoticeAt?: Date;
+  reissueRequestedAt?: Date;
+  reissues?: number;
+}
+
 /**
  * Per-partner commercial overrides. Everything is optional: an unset field
  * falls back to the platform default, so a negotiated fleet deal only has to
@@ -120,6 +151,15 @@ export interface AssetPartnerDoc {
   agreementRequired?: boolean;
   agreement?: PartnerAgreementSignature;
   nda?: PartnerAgreementSignature;
+  agreementOffer?: AgreementOffer;
+
+  profile?: PartnerProfile;
+  /** Ops confirmed the partner's identity by hand when the automatic check could not be used. */
+  identityOverride?: { by: string; at: Date; reason: string };
+  /** Last time the partner opened their portal; how CatoDrive notices someone has gone quiet. */
+  lastSeenAt?: Date;
+  /** Payouts paused while a return case is open (unreachable partner, or an estate to confirm). */
+  payoutHold?: { reason: 'unresponsive' | 'deceased'; since: Date; exitId?: string };
 
   /** Programme milestones, for the partner's own status tracker. */
   approvedAt?: Date;
@@ -137,6 +177,8 @@ const signatureSchema = new Schema(
   { version: Number, bodyHash: String, signedName: String, signedAt: Date, ip: String, userAgent: String, fields: { type: Map, of: String }, envelopeId: String },
   { _id: false },
 );
+
+const contactSchema = new Schema({ name: String, phone: String, relation: String, email: String }, { _id: false });
 
 const schema = new Schema<AssetPartnerDoc>(
   {
@@ -177,6 +219,31 @@ const schema = new Schema<AssetPartnerDoc>(
     agreementRequired: Boolean,
     agreement: { type: signatureSchema, default: undefined },
     nda: { type: signatureSchema, default: undefined },
+    agreementOffer: {
+      type: new Schema({ sentAt: Date, expiresAt: Date, remindedAt: Date, expiredNoticeAt: Date, reissueRequestedAt: Date, reissues: Number }, { _id: false }),
+      default: undefined,
+    },
+
+    profile: {
+      type: new Schema(
+        {
+          emergencyContacts: { type: [contactSchema], default: [] },
+          representative: { type: contactSchema, default: undefined },
+          residency: { type: String, enum: ['citizen', 'permanent_resident', 'visa', 'other'] },
+          visaExpiry: Date,
+          preferredContact: { type: String, enum: ['call', 'text', 'email'] },
+          completedAt: Date,
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
+    identityOverride: { type: new Schema({ by: String, at: Date, reason: String }, { _id: false }), default: undefined },
+    lastSeenAt: Date,
+    payoutHold: {
+      type: new Schema({ reason: { type: String, enum: ['unresponsive', 'deceased'] }, since: Date, exitId: String }, { _id: false }),
+      default: undefined,
+    },
 
     approvedAt: Date,
     onboardedAt: Date,

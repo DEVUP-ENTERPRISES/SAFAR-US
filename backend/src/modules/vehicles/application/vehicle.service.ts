@@ -517,13 +517,23 @@ export class VehicleService implements IVehicleContract {
   async delist(userId: string, vehicleId: string): Promise<void> {
     const vehicle = await this.getById(vehicleId);
     await this.assertOwner(userId, vehicle);
-    // Guests hold trips on this car: pulling it would strand them with no refund path and no penalty on the host.
+    await this.retireFromMarketplace(vehicleId);
+  }
+
+  /** Trips a guest still holds on this car (booked, paying or on the road). */
+  async upcomingTrips(vehicleId: string): Promise<number> {
     const { BookingModel } = await import('../../bookings/infrastructure/booking.model');
-    const upcoming = await BookingModel.countDocuments({
+    return BookingModel.countDocuments({
       vehicleId,
       status: { $in: ['pending_verification', 'pending_approval', 'pending_payment', 'confirmed', 'paid', 'in_progress'] },
       'period.end': { $gt: new Date() },
     });
+  }
+
+  /** Takes a car off the marketplace once no guest holds a trip on it; callers authorise first. */
+  async retireFromMarketplace(vehicleId: string): Promise<void> {
+    // Guests hold trips on this car: pulling it would strand them with no refund path and no penalty on the host.
+    const upcoming = await this.upcomingTrips(vehicleId);
     if (upcoming > 0) {
       throw new ConflictError(
         `This car has ${upcoming} active or upcoming trip${upcoming === 1 ? '' : 's'}. Complete or cancel them before removing the listing.`,

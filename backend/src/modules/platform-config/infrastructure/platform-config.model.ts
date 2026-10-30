@@ -96,6 +96,26 @@ export interface PlatformConfigDoc {
     countersignerName: string;
     countersignerTitle: string;
     countersignerOrganisation: string;
+    /** Days an approved partner has to sign before the offer lapses and must be sent again. */
+    agreementValidDays: number;
+    /** A reminder goes out this many days before the offer lapses. */
+    agreementReminderDays: number;
+    /** New partners verify their ID with Stripe Identity before signing. */
+    requireIdentity: boolean;
+    /** Default wait before a declined applicant may apply again; ops can change it per decision. */
+    reapplyAfterDays: number;
+    /** Notice a partner gives before their car is returned. */
+    exitNoticeDays: number;
+    /** No portal visit for this long puts a partner on the watch list. */
+    unresponsiveAfterDays: number;
+    /** After the formal notice, how long CatoDrive waits before returning or storing the car. */
+    unresponsiveNoticeDays: number;
+    /** Recorded contact attempts needed before an unreachable partner's car can be returned. */
+    unresponsiveMinAttempts: number;
+    /** Photos per car a runner must take at return. */
+    returnPhotoMin: number;
+    /** The person who approves a return cannot be the runner who did the checklist. */
+    exitSeparateApprover: boolean;
   };
   /**
    * The platform's service fee, charged to the GUEST on top of the trip.
@@ -722,6 +742,16 @@ const schema = new Schema<PlatformConfigDoc>(
       countersignerName: { type: String, default: '' },
       countersignerTitle: { type: String, default: '' },
       countersignerOrganisation: { type: String, default: 'CatoDrive' },
+      agreementValidDays: { type: Number, default: 25 },
+      agreementReminderDays: { type: Number, default: 5 },
+      requireIdentity: { type: Boolean, default: true },
+      reapplyAfterDays: { type: Number, default: 90 },
+      exitNoticeDays: { type: Number, default: 30 },
+      unresponsiveAfterDays: { type: Number, default: 60 },
+      unresponsiveNoticeDays: { type: Number, default: 30 },
+      unresponsiveMinAttempts: { type: Number, default: 3 },
+      returnPhotoMin: { type: Number, default: 8 },
+      exitSeparateApprover: { type: Boolean, default: true },
     },
     serviceFee: {
       bps: { type: Number, default: 0 }, // off until an admin sets it

@@ -20,6 +20,7 @@ import { PartnerPaperwork } from '~/features/partners/partner-paperwork';
 import { IntakeReports } from '~/features/partners/intake-reports';
 import { PartnerEnvelopes } from '~/features/partners/partner-envelopes';
 import { TermsHistory } from '~/features/partners/terms-history';
+import { PartnerLifecycleCard } from '~/features/partners/partner-lifecycle-card';
 import { ApiError } from '@/lib/api/types';
 import { safeMessage } from '@/lib/utils/safe-message';
 
@@ -215,6 +216,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           </CardContent>
         </Card>
       )}
+
+      <PartnerLifecycleCard partnerId={id} cars={(data.vehicles ?? []).map((v: { _id: string; year: number; make: string; model: string; assetPartnerEndedAt?: string }) => ({ ...v, endedAt: v.assetPartnerEndedAt }))} />
 
       <PartnerPaperwork partnerId={id} signed={{ agreement: partner.agreement, nda: partner.nda }} />
 

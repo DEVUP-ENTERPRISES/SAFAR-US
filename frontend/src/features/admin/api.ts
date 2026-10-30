@@ -67,6 +67,16 @@ export interface PlatformConfig {
     countersignerName?: string;
     countersignerTitle?: string;
     countersignerOrganisation?: string;
+    agreementValidDays?: number;
+    agreementReminderDays?: number;
+    requireIdentity?: boolean;
+    reapplyAfterDays?: number;
+    exitNoticeDays?: number;
+    unresponsiveAfterDays?: number;
+    unresponsiveNoticeDays?: number;
+    unresponsiveMinAttempts?: number;
+    returnPhotoMin?: number;
+    exitSeparateApprover?: boolean;
   };
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };
   /** Post-trip charges: the combined ceiling per booking (bps of the booking total) and the guest's dispute window. */

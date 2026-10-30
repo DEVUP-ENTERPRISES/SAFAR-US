@@ -108,6 +108,16 @@ router.put(
           countersignerName: z.string().trim().max(120).optional(),
           countersignerTitle: z.string().trim().max(120).optional(),
           countersignerOrganisation: z.string().trim().max(120).optional(),
+          agreementValidDays: z.number().int().min(1).max(90).optional(),
+          agreementReminderDays: z.number().int().min(0).max(30).optional(),
+          requireIdentity: z.boolean().optional(),
+          reapplyAfterDays: z.number().int().min(0).max(365).optional(),
+          exitNoticeDays: z.number().int().min(0).max(180).optional(),
+          unresponsiveAfterDays: z.number().int().min(7).max(365).optional(),
+          unresponsiveNoticeDays: z.number().int().min(1).max(180).optional(),
+          unresponsiveMinAttempts: z.number().int().min(1).max(20).optional(),
+          returnPhotoMin: z.number().int().min(0).max(40).optional(),
+          exitSeparateApprover: z.boolean().optional(),
         })
         .optional(),
       // Charged to the guest on top; commission above comes out of host pay.

@@ -57,7 +57,73 @@ export type ApplicationStatus = 'submitted' | 'under_review' | 'changes_requeste
 /** From the partner portal the account's own email is used. */
 export type PortalApplicationInput = Omit<CreateAssetPartnerApplicationInput, 'email'>;
 
-export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'agreement' | 'documents' | 'payout' | 'ready';
+export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'profile' | 'identity' | 'agreement' | 'agreement_expired' | 'documents' | 'payout' | 'ready';
+
+export interface PartnerContact {
+  name: string;
+  phone: string;
+  relation: string;
+  email?: string;
+}
+
+export type Residency = 'citizen' | 'permanent_resident' | 'visa' | 'other';
+
+export interface PartnerProfile {
+  emergencyContacts: PartnerContact[];
+  representative?: PartnerContact;
+  residency?: Residency;
+  visaExpiry?: string;
+  preferredContact?: 'call' | 'text' | 'email';
+  completedAt?: string;
+}
+
+export type PartnerProfileInput = {
+  emergencyContacts: PartnerContact[];
+  representative?: PartnerContact | null;
+  residency: Residency;
+  visaExpiry?: string;
+  preferredContact?: 'call' | 'text' | 'email';
+};
+
+export type IdentityState = 'verified' | 'confirmed_by_staff' | 'pending' | 'rejected' | 'not_started';
+
+/** The window to sign: it lapses after a set number of days and has to be sent again. */
+export interface AgreementOfferState {
+  sentAt: string;
+  expiresAt: string;
+  expired: boolean;
+  daysLeft: number;
+  reissueRequestedAt?: string;
+}
+
+export interface RejectionExplained {
+  reasons: { code: string; label: string; why: string; improve: string }[];
+  improvements?: string;
+  reapplyAfter?: string;
+  canReapply: boolean;
+}
+
+export type ReturnStatus = 'requested' | 'notice' | 'scheduled' | 'in_progress' | 'submitted' | 'completed' | 'cancelled';
+export type ReturnReason = 'partner_request' | 'unresponsive' | 'deceased';
+
+export interface PartnerReturn {
+  _id: string;
+  reference: string;
+  reason: ReturnReason;
+  status: ReturnStatus;
+  cars: { vehicleId: string; label: string; plate?: string }[];
+  preferredDate?: string;
+  scheduledFor?: string;
+  handoverPreference?: 'pickup' | 'deliver';
+  deliveryAddress?: string;
+  noticeEndsAt?: string;
+  completedAt?: string;
+  cancelled?: { at: string; reason: string };
+  handover?: { to: string; receiverName: string; at: string; location: string };
+  canCancel: boolean;
+  canRespond: boolean;
+  createdAt: string;
+}
 
 
 export type FuelLevel = 'full' | 'three_quarters' | 'half' | 'quarter';
@@ -129,6 +195,10 @@ export interface PartnerOnboarding {
   prefill?: Record<string, string>;
   documents?: OnboardingDocument[];
   payoutMethod?: 'check' | 'zelle';
+  profile?: PartnerProfile & { ownPhone?: string };
+  identity?: { state: IdentityState; reason?: string };
+  offer?: AgreementOfferState | null;
+  rejection?: RejectionExplained;
 }
 
 export interface VinLookup {
@@ -334,6 +404,15 @@ export const assetPartnerApi = {
   submitApplication: (input: PortalApplicationInput) => api.post<PartnerApplicationDetail>('/asset-partners/me/applications', input),
   resubmitApplication: (id: string, input: PortalApplicationInput) => api.patch<PartnerApplicationDetail>(`/asset-partners/me/applications/${id}`, input),
   signDocuments: (input: SignDocumentsInput) => api.post('/asset-partners/me/agreement', input),
+  requestNewOffer: () => api.post<AgreementOfferState | null>('/asset-partners/me/agreement/reissue-request'),
+  profile: () => api.get<{ profile: PartnerProfile | null; ownPhone?: string; identity: { state: IdentityState; required: boolean; reason?: string } }>('/asset-partners/me/profile'),
+  saveProfile: (input: PartnerProfileInput) => api.put<PartnerProfile>('/asset-partners/me/profile', input),
+  returns: () => api.get<{ noticeDays: number; earliestDate: string; exits: PartnerReturn[] }>('/asset-partners/me/returns'),
+  requestReturn: (input: { vehicleIds: string[]; preferredDate: string; note?: string; handoverPreference: 'pickup' | 'deliver'; deliveryAddress?: string }) =>
+    api.post<PartnerReturn>('/asset-partners/me/returns', input),
+  cancelReturn: (id: string) => api.post<{ _id: string; status: ReturnStatus }>(`/asset-partners/me/returns/${id}/cancel`),
+  /** "I'm here" - an unreachable partner gets back in touch. */
+  respondToNotice: (id: string) => api.post<{ _id: string; status: ReturnStatus }>(`/asset-partners/me/returns/${id}/respond`),
   downloadSigned: (kind: 'agreement' | 'nda') => api.download(`/asset-partners/me/signed/${kind}`),
   /** Audit trail: steps the signer takes before signing. Best effort; never blocks signing. */
   signingEvent: (purpose: EnvelopePurpose, type: 'opened' | 'read_agreement' | 'read_nda' | 'read_amendment' | 'consented') =>

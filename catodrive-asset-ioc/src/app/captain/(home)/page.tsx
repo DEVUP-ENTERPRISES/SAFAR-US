@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/types';
 import { cn } from '@/lib/utils/cn';
 import { captainApi, ABILITY_LABELS, type CaptainDashboard, type CaptainJob } from '~/features/host/team-api';
+import { RunnerReturnJobs } from '~/features/partners/runner-return-jobs';
 
 const time = (d: string) => new Date(d).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 const day = (d: string) => new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -181,6 +182,8 @@ export default function CaptainDashboardPage() {
         <Stat label="Cars out now" value={data.counts.out} />
         <Stat label="Your cars" value={data.counts.cars} />
       </div>
+
+      <RunnerReturnJobs />
 
       <div role="tablist" className="grid grid-cols-2 gap-1 rounded-full border border-border p-1">
         {([['jobs', `Jobs (${data.jobs.length})`], ['cars', `Your cars (${data.cars.length})`]] as const).map(([v, label]) => (

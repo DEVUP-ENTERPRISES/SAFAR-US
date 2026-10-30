@@ -11,7 +11,8 @@ export type UploadCategory =
   | 'kyc'
   | 'claim'
   | 'w9'
-  | 'title';
+  | 'title'
+  | 'partner_exit';
 
 export interface UploadTarget {
   key: string;
@@ -21,7 +22,7 @@ export interface UploadTarget {
 
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
 // Papers can be PDFs; photos-only surfaces never ask for these categories.
-const DOC_CATEGORIES: UploadCategory[] = ['registration', 'insurance', 'kyc', 'claim', 'w9', 'title'];
+const DOC_CATEGORIES: UploadCategory[] = ['registration', 'insurance', 'kyc', 'claim', 'w9', 'title', 'partner_exit'];
 
 /**
  * The real upload flow, in one place: presign → PUT the bytes to storage →

@@ -32,6 +32,18 @@ const money = (cents: number) =>
  * businesses with different arithmetic, and an operator editing one must never
  * be able to believe they edited the other.
  */
+type LifecycleKey = 'agreementValidDays' | 'agreementReminderDays' | 'reapplyAfterDays' | 'exitNoticeDays' | 'unresponsiveAfterDays' | 'unresponsiveNoticeDays' | 'unresponsiveMinAttempts' | 'returnPhotoMin';
+const LIFECYCLE_NUMBERS: { key: LifecycleKey; label: string; hint: string; min: number; max: number; fallback: number }[] = [
+  { key: 'agreementValidDays', label: 'Days to sign the agreement', hint: 'After approval, the offer to sign lapses after this many days and has to be sent again.', min: 1, max: 90, fallback: 25 },
+  { key: 'agreementReminderDays', label: 'Reminder before the offer ends (days)', hint: '0 sends no reminder.', min: 0, max: 30, fallback: 5 },
+  { key: 'reapplyAfterDays', label: 'Wait before a declined applicant reapplies (days)', hint: 'The default; staff can change it on each decision.', min: 0, max: 365, fallback: 90 },
+  { key: 'exitNoticeDays', label: 'Notice to get a car back (days)', hint: 'The earliest return date a partner can ask for.', min: 0, max: 180, fallback: 30 },
+  { key: 'unresponsiveAfterDays', label: 'Watch list after no visit for (days)', hint: 'Partners who haven’t opened their portal this long appear on the Returns watch list.', min: 7, max: 365, fallback: 60 },
+  { key: 'unresponsiveNoticeDays', label: 'Notice to an unreachable partner (days)', hint: 'How long they have to reply before the car is returned or stored.', min: 1, max: 180, fallback: 30 },
+  { key: 'unresponsiveMinAttempts', label: 'Contact attempts before returning', hint: 'Calls, texts or emails logged on the case.', min: 1, max: 20, fallback: 3 },
+  { key: 'returnPhotoMin', label: 'Photos per car at return', hint: 'The runner can’t finish without this many.', min: 0, max: 40, fallback: 8 },
+];
+
 export default function AdminAssetPartnerTermsPage() {
   const qc = useQueryClient();
   const confirm = useConfirm();
@@ -247,6 +259,36 @@ export default function AdminAssetPartnerTermsPage() {
             <Field label="Company name on agreements">
               <Input maxLength={120} value={ap.countersignerOrganisation ?? 'CatoDrive'} onChange={(e) => set((d) => { d.assetPartner.countersignerOrganisation = e.target.value; })} />
             </Field>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Joining and leaving</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            {LIFECYCLE_NUMBERS.map((n) => (
+              <Field key={n.key} label={n.label} hint={n.hint}>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={String(n.min)}
+                  max={String(n.max)}
+                  value={String(ap[n.key] ?? n.fallback)}
+                  onChange={(e) => set((d) => {
+                    d.assetPartner[n.key] = Math.min(n.max, Math.max(n.min, Number(e.target.value) || n.min));
+                  })}
+                />
+              </Field>
+            ))}
+            <label className="flex items-start gap-3 text-sm">
+              <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" checked={ap.requireIdentity !== false} onChange={(e) => set((d) => { d.assetPartner.requireIdentity = e.target.checked; })} />
+              <span><span className="font-medium">New partners verify their ID with Stripe before signing</span><span className="block text-muted-foreground">Staff can still confirm an ID in person when Stripe can’t be used.</span></span>
+            </label>
+            <label className="flex items-start gap-3 text-sm">
+              <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" checked={ap.exitSeparateApprover !== false} onChange={(e) => set((d) => { d.assetPartner.exitSeparateApprover = e.target.checked; })} />
+              <span><span className="font-medium">A different person approves each car return</span><span className="block text-muted-foreground">The runner who did the checklist can’t approve it.</span></span>
+            </label>
           </CardContent>
         </Card>
 

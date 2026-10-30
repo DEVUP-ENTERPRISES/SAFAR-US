@@ -11,6 +11,8 @@ import { assetPartnerAgreementService, type SignInput } from './asset-partner-ag
 import { DocumentModel } from '../../documents/infrastructure/document.model';
 import { AssetPartnerModel } from '../infrastructure/asset-partner.model';
 import { UserModel } from '../../users/infrastructure/user.model';
+import { KycModel } from '../../kyc/infrastructure/kyc.model';
+import { assetPartnerProfileService } from './asset-partner-profile.service';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
 import type { PortalApplicationDto } from '../dto/asset-partner-application.schemas';
 import { notificationService } from '../../notifications/application/notification.service';
@@ -95,6 +97,11 @@ describe('getting started on the partner portal', () => {
   it('signs the NDA and agreement together, fills in the partner, then asks for the papers', async () => {
     const userId = await approvedApplicant();
     expect(notificationService.send).toHaveBeenLastCalledWith(expect.objectContaining({ userId, templateKey: 'account.asset_partner_application_approved' }));
+    // Before signing: who to call in an emergency, then a Stripe ID check.
+    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'profile', offer: null });
+    await assetPartnerProfileService.save(userId, { emergencyContacts: [{ name: 'Ana Ramirez', phone: '(214) 555-0199', relation: 'Sister' }], residency: 'citizen' });
+    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'identity', identity: { state: 'not_started' } });
+    await KycModel.create({ userId, status: 'approved', provider: 'stripe', verifiedFirstName: 'Jordan', verifiedLastName: 'Ramirez' });
     expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'agreement', agreement: null, nda: null });
     await expect(assetPartnerService.requirePortalReady(userId)).rejects.toThrow('Finish getting started');
 
@@ -151,6 +158,8 @@ describe('getting started on the partner portal', () => {
     const userId = await approvedApplicant();
     await assetPartnerAgreementService.publish(OPS, AGREEMENT);
     await assetPartnerAgreementService.publish(OPS, NDA);
+    await assetPartnerProfileService.save(userId, { emergencyContacts: [{ name: 'Ana Ramirez', phone: '2145550199', relation: 'Sister' }], residency: 'citizen' });
+    await KycModel.create({ userId, status: 'approved', provider: 'stripe' });
     const partner = (await assetPartnerService.getByUserId(userId))!;
     const signed = await assetPartnerAgreementService.sign(partner, { ...SIGN, agreementVersion: 1, ndaVersion: 2, payout: { method: 'check', payableTo: 'Jordan Ramirez', mailingAddress: '1 Main St, Dallas TX 75201' } }, {});
     expect((await assetPartnerService.termsFor(signed)).payoutMethod).toBe('check');

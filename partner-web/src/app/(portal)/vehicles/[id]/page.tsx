@@ -3,7 +3,7 @@
 import { use } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Car, Wrench, Route } from 'lucide-react';
+import { ArrowLeft, Car, Wrench, Route, Undo2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -67,6 +67,9 @@ export default function PartnerVehicleDetailPage({
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" /> Your vehicles
+      </Link>
+      <Link href="/returns" className="float-right inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+        <Undo2 className="h-4 w-4" /> Ask for this car back
       </Link>
 
       {/* Summary: the car, its state, and this month at a glance. */}

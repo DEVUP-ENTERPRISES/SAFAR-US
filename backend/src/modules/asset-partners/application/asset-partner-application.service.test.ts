@@ -106,7 +106,8 @@ describe('asset partner application', () => {
     await UserModel.create({ email: 'jordan@example.com', roles: ['guest'] });
     const app = await assetPartnerApplicationService.create(baseDto(), {});
     await expect(assetPartnerApplicationService.review(app._id, ADMIN, 'rejected')).rejects.toThrow('Add a note');
-    const reviewed = await assetPartnerApplicationService.review(app._id, ADMIN, 'rejected', 'Vehicle too old');
+    await expect(assetPartnerApplicationService.review(app._id, ADMIN, 'rejected', 'Vehicle too old')).rejects.toThrow('Pick at least one reason');
+    const reviewed = await assetPartnerApplicationService.review(app._id, ADMIN, 'rejected', 'Vehicle too old', { reasons: ['vehicle_age'] });
     expect(reviewed.status).toBe('rejected');
     expect(reviewed.hostVerified).toBe(false);
     expect(await HostModel.countDocuments({})).toBe(0);

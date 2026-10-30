@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Field } from '@/components/ui/field';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { ErrorState } from '@/components/ui/states';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { partnerManageApi, type ReviewDecision } from '@/features/asset-partners/manage-api';
@@ -15,6 +19,7 @@ import { APPLICATION_STATUS } from '@/features/asset-partners/status';
 import type { ApplicationStatus } from '@/features/asset-partners/api';
 import { formatDate, formatDateTime } from '@/lib/utils/format';
 import { safeMessage } from '@/lib/utils/safe-message';
+import { ApiError } from '@/lib/api/types';
 import { ListingCard } from '~/features/partners/listing-card';
 
 const manage = partnerManageApi('/ioc');
@@ -66,7 +71,8 @@ export default function ApplicationDetailPage() {
   });
 
   const review = useMutation({
-    mutationFn: ({ decision, notes }: { decision: ReviewDecision; notes?: string }) => manage.reviewApplication(id, decision, notes),
+    mutationFn: ({ decision, notes, rejection }: { decision: ReviewDecision; notes?: string; rejection?: { reasons: string[]; improvements?: string; reapplyAfterDays?: number } }) =>
+      manage.reviewApplication(id, decision, notes, rejection),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['asset-partner-application', id] });
       qc.invalidateQueries({ queryKey: ['ioc-partner-applications'] });
@@ -75,7 +81,10 @@ export default function ApplicationDetailPage() {
     },
   });
 
+  const [declining, setDeclining] = useState(false);
+
   const decide = async (decision: ReviewDecision) => {
+    if (decision === 'rejected') return setDeclining(true);
     const vehicle = a?.kind === 'vehicle';
     const copy: Record<ReviewDecision, { title: string; description: string; label: string }> = {
       approved: vehicle
@@ -88,7 +97,7 @@ export default function ApplicationDetailPage() {
       title: copy[decision].title,
       description: copy[decision].description,
       confirmLabel: copy[decision].label,
-      tone: decision === 'rejected' ? 'destructive' : 'default',
+      tone: 'default',
       reason: decision === 'approved' ? { label: 'Note (optional)' } : { label: 'Note for the applicant', required: true },
     });
     if (ok) review.mutate({ decision, notes: reason || undefined });
@@ -230,7 +239,16 @@ export default function ApplicationDetailPage() {
         </Section>
       )}
 
-      {!decided && (
+      {!decided && declining && (
+        <DeclinePanel
+          busy={review.isPending}
+          error={review.isError ? (review.error instanceof ApiError ? review.error.message : 'That didn’t go through.') : undefined}
+          onCancel={() => setDeclining(false)}
+          onSubmit={(input) => review.mutate({ decision: 'rejected', notes: input.note, rejection: { reasons: input.reasons, improvements: input.improvements, reapplyAfterDays: input.reapplyAfterDays } }, { onSuccess: () => setDeclining(false) })}
+        />
+      )}
+
+      {!decided && !declining && (
         <div className="sticky bottom-4 z-10 flex flex-col gap-2 rounded-lg border border-border bg-card p-3 shadow-lg sm:flex-row sm:justify-end">
           <Button variant="outline" className="text-destructive hover:text-destructive" disabled={review.isPending} onClick={() => void decide('rejected')}>
             <XCircle className="h-4 w-4" aria-hidden /> Reject
@@ -293,5 +311,56 @@ function Check2({ ok, label }: { ok?: boolean; label: string }) {
       {ok ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-label="Yes" /> : <X className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-label="No" />}
       <span>{label}</span>
     </div>
+  );
+}
+
+/** Declining: the reasons and advice the applicant will read, and when they may apply again. */
+function DeclinePanel({ busy, error, onCancel, onSubmit }: { busy: boolean; error?: string; onCancel: () => void; onSubmit: (input: { reasons: string[]; note: string; improvements?: string; reapplyAfterDays?: number }) => void }) {
+  const reasons = useQuery({ queryKey: ['ioc-rejection-reasons'], queryFn: () => manage.rejectionReasons(), staleTime: Infinity });
+  const [picked, setPicked] = useState<string[]>([]);
+  const [note, setNote] = useState('');
+  const [improvements, setImprovements] = useState('');
+  const [wait, setWait] = useState('');
+  return (
+    <Card className="border-destructive/30">
+      <CardHeader><CardTitle className="text-base">Decline this application</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">The applicant sees each reason with what would help, your note, and the date they can apply again.</p>
+        {reasons.isLoading ? (
+          <Skeleton className="h-40 w-full" />
+        ) : reasons.isError ? (
+          <ErrorState message="We couldn’t load the reasons." retry={() => void reasons.refetch()} />
+        ) : (
+          <fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <legend className="mb-2 text-label font-semibold">Why (pick at least one)</legend>
+            {(reasons.data ?? []).map((r) => (
+              <label key={r.code} className="flex items-start gap-2 rounded-lg border border-border p-3 text-sm">
+                <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" checked={picked.includes(r.code)} onChange={(e) => setPicked(e.target.checked ? [...picked, r.code] : picked.filter((x) => x !== r.code))} />
+                <span><span className="font-medium">{r.label}</span><span className="block text-xs text-muted-foreground">{r.why}</span></span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+        <Field label="Note for the applicant" htmlFor="dec-note"><Textarea id="dec-note" rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+        <Field label="What would change our answer (optional)" htmlFor="dec-improve" hint="For example: a 2018 or newer car under 80,000 miles."><Textarea id="dec-improve" rows={2} maxLength={1000} value={improvements} onChange={(e) => setImprovements(e.target.value)} /></Field>
+        <Field label="They can apply again" htmlFor="dec-wait">
+          <Select id="dec-wait" value={wait} onChange={(e) => setWait(e.target.value)}>
+            <option value="">After the usual wait (set in Partner Terms)</option>
+            <option value="0">Straight away</option>
+            <option value="30">In 30 days</option>
+            <option value="90">In 90 days</option>
+            <option value="180">In 6 months</option>
+            <option value="365">In a year</option>
+          </Select>
+        </Field>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button variant="ghost" onClick={onCancel}>Back</Button>
+          <Button variant="destructive" disabled={picked.length === 0 || note.trim().length < 3} loading={busy} onClick={() => onSubmit({ reasons: picked, note: note.trim(), improvements: improvements.trim() || undefined, reapplyAfterDays: wait === '' ? undefined : Number(wait) })}>
+            Decline application
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

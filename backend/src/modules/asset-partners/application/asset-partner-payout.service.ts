@@ -21,6 +21,8 @@ export interface PayoutRow {
   sendTo?: string;
   dueDate: Date;
   paid?: AssetPartnerPayoutDoc;
+  /** Set while payouts are paused for an open return case. */
+  hold?: { reason: string; since: Date };
 }
 
 export const assetPartnerPayoutService = {
@@ -28,7 +30,10 @@ export const assetPartnerPayoutService = {
   async month(period: string): Promise<{ period: string; rows: PayoutRow[]; totals: { due: number; paid: number; unpaid: number } }> {
     if (!/^\d{4}-\d{2}$/.test(period)) throw new ValidationError('Pick a month');
     if (period >= currentPeriod()) throw new ValidationError('A month can be paid once it has ended');
-    const partners = await AssetPartnerModel.find({ status: { $in: ['onboarding', 'active', 'suspended'] } }).lean<AssetPartnerDoc[]>();
+    // A partner who left during or after this month is still owed for it.
+    const partners = await AssetPartnerModel.find({
+      $or: [{ status: { $in: ['onboarding', 'active', 'suspended'] } }, { status: 'exited', exitedAt: { $gte: new Date(`${period}-01T00:00:00Z`) } }],
+    }).lean<AssetPartnerDoc[]>();
     const payouts = await AssetPartnerPayoutModel.find({ period, partnerId: { $in: partners.map((p) => p._id) } }).lean<AssetPartnerPayoutDoc[]>();
     const paidBy = new Map(payouts.map((p) => [p.partnerId, p]));
 
@@ -46,6 +51,7 @@ export const assetPartnerPayoutService = {
         sendTo: method === 'zelle' ? p.payoutDetails?.zelleHandle : p.payoutDetails?.mailingAddress,
         dueDate: s.payoutDate,
         paid: paidBy.get(p._id),
+        hold: p.payoutHold ? { reason: p.payoutHold.reason, since: p.payoutHold.since } : undefined,
       };
     }));
     // Partners with nothing owed and no cars that month are noise on a payout run.
@@ -61,6 +67,12 @@ export const assetPartnerPayoutService = {
     input: { partnerId: string; period: string; amount: number; method: 'zelle' | 'check'; reference: string; note?: string; paidAt?: Date },
   ): Promise<AssetPartnerPayoutDoc> {
     const partner = await assetPartnerService.getById(input.partnerId);
+    if (partner.payoutHold) {
+      throw new ConflictError(
+        partner.payoutHold.reason === 'deceased' ? 'Payouts are on hold until the estate’s papers are checked.' : 'Payouts are on hold until we reach this partner.',
+        'PAYOUT_HELD',
+      );
+    }
     if (!/^\d{4}-\d{2}$/.test(input.period) || input.period >= currentPeriod()) throw new ValidationError('A month can be paid once it has ended');
     const statement = await assetPartnerStatementService.statement(partner, input.period);
     if (statement.totals.net <= 0) throw new ConflictError('Nothing is owed for this month.', 'NOTHING_OWED');

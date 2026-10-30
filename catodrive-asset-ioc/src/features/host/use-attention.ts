@@ -12,7 +12,7 @@ export function useAttention(enabled = true) {
   const actions = useQuery({ queryKey: ['host-inbox'], queryFn: () => hostApi.inboxActions(), enabled, refetchInterval: POLL_MS, refetchOnWindowFocus: true });
   const partners = useQuery({
     queryKey: ['ioc-attention'],
-    queryFn: () => api.get<{ applications: number; partnerDocuments: number }>('/ioc/attention'),
+    queryFn: () => api.get<{ applications: number; partnerDocuments: number; returnsRequested?: number; returnsToApprove?: number; offersToResend?: number }>('/ioc/attention'),
     enabled,
     refetchInterval: POLL_MS,
     refetchOnWindowFocus: true,
@@ -23,6 +23,11 @@ export function useAttention(enabled = true) {
   return {
     trips: items.filter((i) => TRIP_KINDS.has(i.kind)).length,
     inbox: (unread.data?.count ?? 0) + items.filter((i) => i.kind === 'message').length,
-    partners: (partners.data?.applications ?? 0) + (partners.data?.partnerDocuments ?? 0),
+    partners:
+      (partners.data?.applications ?? 0) +
+      (partners.data?.partnerDocuments ?? 0) +
+      (partners.data?.returnsRequested ?? 0) +
+      (partners.data?.returnsToApprove ?? 0) +
+      (partners.data?.offersToResend ?? 0),
   };
 }

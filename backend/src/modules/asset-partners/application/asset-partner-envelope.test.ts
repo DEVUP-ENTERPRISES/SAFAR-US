@@ -14,6 +14,7 @@ import { AssetPartnerModel, type AssetPartnerDoc } from '../infrastructure/asset
 import { SignatureEnvelopeModel, SignedDocumentModel, SigningEventModel } from '../infrastructure/signature-envelope.model';
 import { AssetPartnerTermsVersionModel } from '../infrastructure/asset-partner-terms.model';
 import { UserModel } from '../../users/infrastructure/user.model';
+import { KycModel } from '../../kyc/infrastructure/kyc.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
@@ -46,8 +47,15 @@ async function approvedPartner(): Promise<AssetPartnerDoc> {
   await assetPartnerApplicationService.review(app._id, OPS, 'approved');
   await assetPartnerAgreementService.publish(OPS, { title: 'Asset Partner Agreement', body: 'CatoDrive manages the {{vehicle}} owned by {{partner_name}} for a management fee of {{management_fee}} of gross revenue, with insurance at {{insurance_monthly}} per car per month.' });
   await assetPartnerAgreementService.publish(OPS, { kind: 'nda', title: 'Non-Disclosure Agreement', body: 'The recipient keeps CatoDrive’s confidential information private for three years. Signed by {{signed_name}}.' });
+  await readyToSign(String(user._id));
   return (await assetPartnerService.getByUserId(String(user._id)))!;
 }
+
+async function readyToSign(userId: string): Promise<void> {
+  await AssetPartnerModel.updateOne({ userId }, { $set: { profile: { emergencyContacts: [{ name: 'Ana Ramirez', phone: '2145550199', relation: 'Sister' }], residency: 'citizen', completedAt: new Date() } } });
+  await KycModel.create({ userId, status: 'approved', provider: 'stripe', verifiedFirstName: 'Jordan', verifiedLastName: 'Ramirez' });
+}
+
 
 async function signed(): Promise<AssetPartnerDoc> {
   const partner = await approvedPartner();

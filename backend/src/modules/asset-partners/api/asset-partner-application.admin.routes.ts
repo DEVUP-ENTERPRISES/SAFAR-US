@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { assetPartnerApplicationService } from '../application/asset-partner-application.service';
 import { reviewApplicationSchema } from '../dto/asset-partner-application.schemas';
+import { explainRejection } from '../domain/rejection-reasons';
+import { REJECTION_REASONS } from '../infrastructure/asset-partner-application.model';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
@@ -26,6 +28,15 @@ router.get(
   }),
 );
 
+/** The decline reasons ops can pick, with the words the applicant will read. */
+router.get(
+  '/asset-partner-applications/rejection-reasons',
+  authorize('admin:read'),
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, explainRejection([...REJECTION_REASONS]));
+  }),
+);
+
 router.get(
   '/asset-partner-applications/:id',
   authorize('admin:read'),
@@ -46,6 +57,7 @@ router.post(
       req.principal!.userId,
       req.body.decision,
       req.body.notes,
+      req.body.rejection,
     );
     sendSuccess(res, app);
   }),

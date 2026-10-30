@@ -6,7 +6,10 @@ import { assetPartnerPortalService } from '../application/asset-partner-portal.s
 import { assetPartnerMaintenanceService } from '../application/asset-partner-maintenance.service';
 import { assetPartnerAgreementService } from '../application/asset-partner-agreement.service';
 import { assetPartnerIntakeService } from '../application/asset-partner-intake.service';
-import { createApplicationSchema, portalApplicationSchema, signAgreementSchema } from '../dto/asset-partner-application.schemas';
+import { createApplicationSchema, exitCarPatchSchema, exitSubmitSchema, partnerProfileSchema, portalApplicationSchema, signAgreementSchema } from '../dto/asset-partner-application.schemas';
+import { assetPartnerProfileService } from '../application/asset-partner-profile.service';
+import { assetPartnerOfferService } from '../application/asset-partner-offer.service';
+import { assetPartnerExitService } from '../application/asset-partner-exit.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authenticate, authenticateOptional } from '../../../shared/middleware/authenticate';
 import { authLimiter, lookupLimiter } from '../../../shared/middleware/auth-rate-limit';
@@ -92,6 +95,128 @@ router.post(
       })
       .catch(() => undefined);
     sendSuccess(res, { agreement: signed.agreement, nda: signed.nda });
+  }),
+);
+
+/** Who to call if CatoDrive can't reach the partner, and their ID check status. */
+router.get(
+  '/asset-partners/me/profile',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const partner = await partnerOf(req.principal!.userId);
+    const identity = await assetPartnerProfileService.identity(partner, { sync: true });
+    sendSuccess(res, { profile: partner.profile ?? null, ownPhone: partner.phone, identity: { state: identity.state, required: identity.required, reason: identity.reason } });
+  }),
+);
+
+router.put(
+  '/asset-partners/me/profile',
+  authenticate,
+  validate({ body: partnerProfileSchema }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerProfileService.save(req.principal!.userId, req.body));
+  }),
+);
+
+/** The offer to sign lapsed; the partner asks CatoDrive to send it again. */
+router.post(
+  '/asset-partners/me/agreement/reissue-request',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const partner = await partnerOf(req.principal!.userId);
+    sendSuccess(res, await assetPartnerOfferService.requestReissue(partner));
+  }),
+);
+
+/** Getting cars back: the partner's own return requests, and notices about them. */
+router.get(
+  '/asset-partners/me/returns',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerExitService.listForPartner(req.principal!.userId));
+  }),
+);
+
+router.post(
+  '/asset-partners/me/returns',
+  authenticate,
+  authLimiter,
+  validate({
+    body: z.object({
+      vehicleIds: z.array(z.string().min(1)).min(1).max(20),
+      preferredDate: z.coerce.date(),
+      note: z.string().trim().max(1000).optional(),
+      handoverPreference: z.enum(['pickup', 'deliver']),
+      deliveryAddress: z.string().trim().max(300).optional(),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendCreated(res, await assetPartnerExitService.requestByPartner(req.principal!.userId, req.body));
+  }),
+);
+
+router.post(
+  '/asset-partners/me/returns/:id/cancel',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const exit = await assetPartnerExitService.cancelByPartner(req.principal!.userId, req.params.id);
+    sendSuccess(res, { _id: exit._id, status: exit.status });
+  }),
+);
+
+/** "I'm here": an unreachable partner gets back in touch. */
+router.post(
+  '/asset-partners/me/returns/:id/respond',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const exit = await assetPartnerExitService.respondByPartner(req.principal!.userId, req.params.id);
+    sendSuccess(res, { _id: exit._id, status: exit.status });
+  }),
+);
+
+/** A runner's car-return jobs (Captains on the operations team). */
+router.get(
+  '/asset-partner-returns/mine',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerExitService.runnerJobs(req.principal!.userId));
+  }),
+);
+
+router.get(
+  '/asset-partner-returns/:id',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerExitService.runnerDetail(req.params.id, req.principal!.userId));
+  }),
+);
+
+router.post(
+  '/asset-partner-returns/:id/start',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    await assetPartnerExitService.start(req.params.id, req.principal!.userId);
+    sendSuccess(res, await assetPartnerExitService.runnerDetail(req.params.id, req.principal!.userId));
+  }),
+);
+
+router.patch(
+  '/asset-partner-returns/:id/cars/:vehicleId',
+  authenticate,
+  validate({ body: exitCarPatchSchema }),
+  asyncHandler(async (req, res) => {
+    await assetPartnerExitService.updateCar(req.params.id, req.principal!.userId, req.params.vehicleId, req.body);
+    sendSuccess(res, await assetPartnerExitService.runnerDetail(req.params.id, req.principal!.userId));
+  }),
+);
+
+router.post(
+  '/asset-partner-returns/:id/submit',
+  authenticate,
+  validate({ body: exitSubmitSchema }),
+  asyncHandler(async (req, res) => {
+    await assetPartnerExitService.submit(req.params.id, req.principal!.userId, req.body);
+    sendSuccess(res, await assetPartnerExitService.runnerDetail(req.params.id, req.principal!.userId));
   }),
 );
 
@@ -294,6 +419,7 @@ router.get(
   '/asset-partners/dashboard',
   authenticate,
   asyncHandler(async (req, res) => {
+    void assetPartnerProfileService.touch(req.principal!.userId);
     sendSuccess(res, await assetPartnerApplicationService.dashboardFor(req.principal!.userId));
   }),
 );

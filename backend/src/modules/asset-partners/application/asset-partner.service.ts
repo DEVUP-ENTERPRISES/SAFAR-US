@@ -14,8 +14,11 @@ import { AssetPartnerApplicationModel } from '../infrastructure/asset-partner-ap
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { DocumentModel } from '../../documents/infrastructure/document.model';
 import { assetPartnerTermsService, TERM_FIELDS } from './asset-partner-terms.service';
+import { assetPartnerProfileService } from './asset-partner-profile.service';
+import { assetPartnerOfferService } from './asset-partner-offer.service';
 
 export type PartnerDocCategory = 'w9' | 'kyc' | 'title' | 'insurance' | 'registration';
+export type PortalStage = 'profile' | 'identity' | 'agreement' | 'agreement_expired' | 'documents' | 'payout' | 'ready';
 
 /** What the agreement's onboarding checklist asks every new partner to send. */
 export const PARTNER_DOCS: { category: PartnerDocCategory; label: string; hint: string }[] = [
@@ -232,9 +235,15 @@ export class AssetPartnerService {
   }
 
   /** Where an enrolled partner is in getting started; anything but 'ready' keeps the full portal locked. */
-  async portalStage(partner: AssetPartnerDoc): Promise<'agreement' | 'documents' | 'payout' | 'ready'> {
+  async portalStage(partner: AssetPartnerDoc): Promise<PortalStage> {
     if (!partner.agreementRequired) return 'ready';
-    if (!partner.agreement?.signedAt || !partner.nda?.signedAt) return 'agreement';
+    if (!partner.agreement?.signedAt || !partner.nda?.signedAt) {
+      if (assetPartnerOfferService.state(partner)?.expired) return 'agreement_expired';
+      if (!assetPartnerProfileService.isComplete(partner)) return 'profile';
+      const identity = await assetPartnerProfileService.identity(partner);
+      if (identity.required && !assetPartnerProfileService.isIdentityDone(identity)) return 'identity';
+      return 'agreement';
+    }
     if ((await this.documentChecklist(partner)).some((d) => !d.uploaded)) return 'documents';
     const { payoutMethod } = await this.termsFor(partner);
     const paid = payoutMethod === 'zelle' ? partner.payoutDetails?.zelleHandle : partner.payoutDetails?.mailingAddress;
@@ -247,7 +256,10 @@ export class AssetPartnerService {
       .sort({ createdAt: -1 })
       .select('category verification')
       .lean<{ category: PartnerDocCategory; verification?: { status: string } }[]>();
+    // A passed Stripe ID check (or staff confirming the ID in person) stands in for the licence photo.
+    const idDone = assetPartnerProfileService.isIdentityDone(await assetPartnerProfileService.identity(partner));
     return PARTNER_DOCS.map((d) => {
+      if (d.category === 'kyc' && idDone) return { ...d, hint: 'Verified with your ID check', uploaded: true, status: 'verified' };
       const latest = docs.find((x) => x.category === d.category);
       const status = latest?.verification?.status;
       return { ...d, uploaded: !!latest && status !== 'rejected', status };
@@ -405,7 +417,7 @@ export class AssetPartnerService {
     const [terms, vehicles, applications] = await Promise.all([
       this.termsFor(partner),
       VehicleModel.find({ assetPartnerId: partner._id })
-        .select('_id year make model trim status vin plate photos createdAt')
+        .select('_id year make model trim status vin plate photos createdAt assetPartnerEndedAt')
         .sort({ createdAt: -1 })
         .lean(),
       appFilter.length
