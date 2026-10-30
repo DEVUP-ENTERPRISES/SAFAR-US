@@ -73,8 +73,6 @@ export interface PlatformConfig {
     reapplyAfterDays?: number;
     exitNoticeDays?: number;
     unresponsiveAfterDays?: number;
-    unresponsiveNoticeDays?: number;
-    unresponsiveMinAttempts?: number;
     returnPhotoMin?: number;
     exitSeparateApprover?: boolean;
   };

@@ -58,9 +58,9 @@ function Attempts({ d, onChange }: { d: ReturnDetail; onChange: (x: ReturnDetail
   const open = !['completed', 'cancelled'].includes(d.status);
   return (
     <Card>
-      <CardHeader><CardTitle className="text-base">Attempts to reach them <span className="font-normal text-muted-foreground tabular-nums">({d.attempts.length} of {d.rules.minAttempts} needed)</span></CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-base">Attempts to reach them <span className="font-normal text-muted-foreground tabular-nums">({d.attempts.length})</span></CardTitle></CardHeader>
       <CardContent className="space-y-4">
-        {d.noticeEndsAt && <p className="text-sm text-muted-foreground">Formal notice sent {d.noticeSentAt ? formatDate(d.noticeSentAt) : ''}. They have until {formatDate(d.noticeEndsAt)} to reply.</p>}
+        <p className="text-sm text-muted-foreground">The car keeps running and earning. Payouts are held until the partner gets in touch{d.noticeSentAt ? `; notice sent ${formatDate(d.noticeSentAt)}` : ''}. If you reach them, ask them to press “I’m here” in their portal, or cancel this case.</p>
         {d.attempts.length > 0 && (
           <ul className="divide-y divide-border rounded-lg border border-border">
             {d.attempts.map((a, i) => (
@@ -250,7 +250,7 @@ export default function ReturnCasePage() {
   const s = RETURN_STATUS[d.status];
   const open = !['completed', 'cancelled'].includes(d.status);
   const selfRunner = !d.runner?.staffId;
-  const allowed = d.reason === 'deceased' ? (['estate', 'storage'] as const) : d.reason === 'unresponsive' ? (['representative', 'owner', 'storage'] as const) : (['owner', 'representative'] as const);
+  const allowed = d.reason === 'deceased' ? (['estate', 'storage'] as const) : (['owner', 'representative'] as const);
 
   return (
     <div className="space-y-5">
@@ -260,7 +260,7 @@ export default function ReturnCasePage() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="min-w-0 space-y-5 lg:col-span-2">
-          {['requested', 'notice', 'scheduled'].includes(d.status) && <Schedule d={d} onChange={set} />}
+          {d.reason !== 'unresponsive' && ['requested', 'scheduled'].includes(d.status) && <Schedule d={d} onChange={set} />}
           {d.status === 'scheduled' && selfRunner && (
             <Card><CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm">You’re the runner. Start when you’re at the car; it comes off the marketplace straight away.</p>
@@ -279,7 +279,7 @@ export default function ReturnCasePage() {
                 ))}
                 {d.status === 'in_progress' && selfRunner && (
                   <div className="border-t border-border pt-5">
-                    <HandoverForm defaultName={d.reason === 'deceased' ? d.estate?.contact?.name : d.reason === 'partner_request' ? d.partner.displayName : d.partner.profile?.representative?.name} allowed={[...allowed]} onSubmit={async (input) => set(await manage.submit(id, input))} />
+                    <HandoverForm defaultName={d.reason === 'deceased' ? d.estate?.contact?.name : d.partner.displayName} allowed={[...allowed]} onSubmit={async (input) => set(await manage.submit(id, input))} />
                   </div>
                 )}
                 {d.status === 'in_progress' && !selfRunner && <p className="text-sm text-muted-foreground">{d.runner?.name} is filling this in from their Captain screen.</p>}

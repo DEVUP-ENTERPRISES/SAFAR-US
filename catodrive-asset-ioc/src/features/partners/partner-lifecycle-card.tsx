@@ -140,8 +140,8 @@ function StartReturn({ partnerId, cars }: { partnerId: string; cars: { _id: stri
   });
   const COPY: Record<ReturnReason, string> = {
     partner_request: 'They asked by phone or email. Logged as their request.',
-    unresponsive: 'Sends them a formal notice and holds payouts. After the notice period and enough contact attempts, a runner returns the car to their representative or into storage.',
-    deceased: 'Pauses their cars at once and holds payouts. The car goes to the estate once its papers are checked. No messages go to the partner’s account.',
+    unresponsive: 'The car keeps running and earning as normal. They get a notice, and their payouts are held until they get in touch. The car isn’t returned.',
+    deceased: 'The car keeps taking bookings and earning. Payouts are held for the estate. The car goes back only when the estate asks, once its papers are checked. No messages go to the partner’s account.',
   };
   if (cars.length === 0) return null;
   return (

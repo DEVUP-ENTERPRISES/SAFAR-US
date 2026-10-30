@@ -108,10 +108,6 @@ export interface PlatformConfigDoc {
     exitNoticeDays: number;
     /** No portal visit for this long puts a partner on the watch list. */
     unresponsiveAfterDays: number;
-    /** After the formal notice, how long CatoDrive waits before returning or storing the car. */
-    unresponsiveNoticeDays: number;
-    /** Recorded contact attempts needed before an unreachable partner's car can be returned. */
-    unresponsiveMinAttempts: number;
     /** Photos per car a runner must take at return. */
     returnPhotoMin: number;
     /** The person who approves a return cannot be the runner who did the checklist. */
@@ -748,8 +744,6 @@ const schema = new Schema<PlatformConfigDoc>(
       reapplyAfterDays: { type: Number, default: 90 },
       exitNoticeDays: { type: Number, default: 30 },
       unresponsiveAfterDays: { type: Number, default: 60 },
-      unresponsiveNoticeDays: { type: Number, default: 30 },
-      unresponsiveMinAttempts: { type: Number, default: 3 },
       returnPhotoMin: { type: Number, default: 8 },
       exitSeparateApprover: { type: Boolean, default: true },
     },

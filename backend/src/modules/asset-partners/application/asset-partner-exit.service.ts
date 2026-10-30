@@ -300,7 +300,6 @@ export class AssetPartnerExitService {
   async open(by: string, partnerId: string, input: OpsOpenInput): Promise<AssetPartnerExitDoc> {
     const partner = await assetPartnerService.getById(partnerId);
     if (partner.status === 'exited') throw new ConflictError('This partner has already left the programme.', 'PARTNER_EXITED');
-    const cfg = await this.cfg();
     const cars = await this.activeCars(partnerId, input.vehicleIds);
     const now = new Date();
     const note = tidy(input.note) || undefined;
@@ -312,14 +311,14 @@ export class AssetPartnerExitService {
     }
 
     if (input.reason === 'unresponsive') {
-      const noticeEndsAt = new Date(now.getTime() + (cfg.unresponsiveNoticeDays ?? 30) * DAY);
-      const exit = await this.create(partner, { reason: 'unresponsive', status: 'notice', cars, openedBy: by, partnerNote: note, noticeSentAt: now, noticeEndsAt });
+      // The car keeps running and earning; only the money waits for the partner.
+      const exit = await this.create(partner, { reason: 'unresponsive', status: 'notice', cars, openedBy: by, partnerNote: note, noticeSentAt: now });
       await AssetPartnerModel.updateOne({ _id: partnerId }, { $set: { payoutHold: { reason: 'unresponsive', since: now, exitId: exit._id } } });
       await this.tell(
         partner,
         'unreachable_notice',
         'Please get in touch with CatoDrive',
-        `We haven’t been able to reach you about your car. Sign in to your partner portal and press “I’m here”, or call us, by ${longDate(noticeEndsAt)}. If we don’t hear from you, we’ll end management and hand the car to your named contact or keep it in storage, as your agreement allows. Your earnings are safe and held for you.`,
+        'We haven’t been able to reach you about your car. It keeps running with CatoDrive as normal, and your earnings are safe and held for you. Sign in to your partner portal and press “I’m here”, or call us, and we’ll release them.',
         exit._id,
       );
       logger.warn({ exitId: exit._id, partnerId }, 'Unreachable-partner notice sent');
@@ -330,10 +329,8 @@ export class AssetPartnerExitService {
     if (!reportedBy) throw new ValidationError('Enter who told us, and how to reach them');
     const exit = await this.create(partner, { reason: 'deceased', status: 'requested', cars, openedBy: by, partnerNote: note, reportedBy, estate: { documents: [] } });
     await AssetPartnerModel.updateOne({ _id: partnerId }, { $set: { payoutHold: { reason: 'deceased', since: now, exitId: exit._id } } });
-    if (partner.status === 'active') await assetPartnerService.transition(partnerId, 'suspended', { reason: 'Owner passed away; estate in progress' });
-    // Authority to rent the car ended with the owner, so no new bookings; trips already booked are for ops to decide.
-    await VehicleModel.updateMany({ _id: { $in: cars.map((c) => c.vehicleId) }, status: 'listed' }, { $set: { status: 'paused' } });
-    logger.warn({ exitId: exit._id, partnerId }, 'Asset Partner reported deceased; cars paused and payouts held');
+    // The car keeps taking bookings; earnings are held for the estate until it asks for the car back.
+    logger.warn({ exitId: exit._id, partnerId }, 'Asset Partner reported deceased; payouts held for the estate');
     return exit;
   }
 
@@ -398,13 +395,9 @@ export class AssetPartnerExitService {
 
   /** Why a case can't be scheduled yet, in plain sentences; empty when it can. */
   private async scheduleBlockers(exit: AssetPartnerExitDoc): Promise<string[]> {
-    const cfg = await this.cfg();
     const out: string[] = [];
     if (exit.reason === 'unresponsive') {
-      if (exit.noticeEndsAt && new Date() < new Date(exit.noticeEndsAt)) out.push(`The notice period runs until ${longDate(exit.noticeEndsAt)}.`);
-      const min = cfg.unresponsiveMinAttempts ?? 3;
-      if (exit.attempts.length < min) out.push(`Record at least ${min} attempts to reach them (${exit.attempts.length} so far).`);
-      if (exit.attempts.some((a) => a.outcome === 'reached' && a.to === 'partner')) out.push('You reached the partner. Cancel this return, or open one as their request.');
+      out.push('A car whose partner can’t be reached isn’t returned: it keeps running and its earnings are held until they get in touch.');
     }
     if (exit.reason === 'deceased' && !exit.estate?.contact) out.push('Add the estate’s representative first.');
     return out;
@@ -693,7 +686,7 @@ export class AssetPartnerExitService {
         profile: partner.profile,
         payoutHold: partner.payoutHold,
       },
-      rules: { photoMin: cfg.returnPhotoMin ?? 8, minAttempts: cfg.unresponsiveMinAttempts ?? 3, separateApprover: cfg.exitSeparateApprover !== false },
+      rules: { photoMin: cfg.returnPhotoMin ?? 8, separateApprover: cfg.exitSeparateApprover !== false },
       scheduleBlockers,
       approveBlockers,
       reasonLabel: REASON_LABEL[exit.reason],

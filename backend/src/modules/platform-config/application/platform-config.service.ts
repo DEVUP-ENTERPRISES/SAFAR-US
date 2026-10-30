@@ -174,8 +174,6 @@ export class PlatformConfigService {
         reapplyAfterDays: 90,
         exitNoticeDays: 30,
         unresponsiveAfterDays: 60,
-        unresponsiveNoticeDays: 30,
-        unresponsiveMinAttempts: 3,
         returnPhotoMin: 8,
         exitSeparateApprover: true,
         ...(doc.assetPartner ?? {}),

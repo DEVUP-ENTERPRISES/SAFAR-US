@@ -101,7 +101,7 @@ export interface ReturnDetail {
     profile?: PartnerProfile;
     payoutHold?: { reason: string; since: string };
   };
-  rules: { photoMin: number; minAttempts: number; separateApprover: boolean };
+  rules: { photoMin: number; separateApprover: boolean };
   scheduleBlockers: string[];
   approveBlockers: string[];
   createdAt: string;
@@ -162,7 +162,7 @@ export interface RunnerReturn {
 
 export const RETURN_STATUS: Record<ReturnStatus, { label: string; tone: 'warning' | 'success' | 'destructive' | 'muted' | 'default' }> = {
   requested: { label: 'Requested', tone: 'warning' },
-  notice: { label: 'Notice period', tone: 'warning' },
+  notice: { label: 'Holding earnings', tone: 'warning' },
   scheduled: { label: 'Scheduled', tone: 'default' },
   in_progress: { label: 'Runner on it', tone: 'default' },
   submitted: { label: 'Needs approval', tone: 'warning' },

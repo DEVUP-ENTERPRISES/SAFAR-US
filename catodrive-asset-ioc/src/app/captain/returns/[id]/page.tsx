@@ -36,8 +36,8 @@ function RunnerReturn() {
   const d = q.data;
   const s = RETURN_STATUS[d.status];
   const who = d.receiver;
-  const allowed = d.reason === 'deceased' ? (['estate', 'storage'] as const) : d.reason === 'unresponsive' ? (['representative', 'owner', 'storage'] as const) : (['owner', 'representative'] as const);
-  const defaultName = d.reason === 'unresponsive' ? d.representative?.name : who?.name;
+  const allowed = d.reason === 'deceased' ? (['estate', 'storage'] as const) : (['owner', 'representative'] as const);
+  const defaultName = who?.name;
 
   return (
     <div className="space-y-5">

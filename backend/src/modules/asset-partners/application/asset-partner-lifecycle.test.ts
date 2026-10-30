@@ -298,23 +298,20 @@ describe('returning a car the partner asked for', () => {
 });
 
 describe('a partner who can’t be reached', () => {
-  it('sends a formal notice, holds payouts, and needs the notice period and enough attempts before a return', async () => {
+  it('keeps the car running, holds payouts, and never returns the car', async () => {
     const { userId, partner } = await approved();
     const v = await car(partner._id);
     const exit = await assetPartnerExitService.open(OPS, partner._id, { reason: 'unresponsive' });
     expect(exit).toMatchObject({ status: 'notice' });
-    expect(Math.round((exit.noticeEndsAt!.getTime() - exit.noticeSentAt!.getTime()) / DAY)).toBe(30);
+    expect((await VehicleModel.findById(v._id).lean())?.status).toBe('listed');
     expect(notificationService.send).toHaveBeenCalledWith(expect.objectContaining({ userId, templateKey: 'account.asset_partner_unreachable_notice' }));
     expect((await assetPartnerService.getById(partner._id)).payoutHold).toMatchObject({ reason: 'unresponsive', exitId: exit._id });
     await expect(assetPartnerPayoutService.record(OPS, { partnerId: partner._id, period: '2026-01', amount: 100, method: 'zelle', reference: 'Z1' })).rejects.toThrow('on hold');
 
-    await expect(assetPartnerExitService.schedule(exit._id, OPS, { scheduledFor: new Date() })).rejects.toThrow('notice period runs until');
-    await AssetPartnerExitModel.updateOne({ _id: exit._id }, { $set: { noticeEndsAt: new Date(Date.now() - 1000) } });
-    await expect(assetPartnerExitService.schedule(exit._id, OPS, { scheduledFor: new Date() })).rejects.toThrow('at least 3 attempts');
     for (const to of ['partner', 'emergency_contact', 'partner'] as const) await assetPartnerExitService.logAttempt(exit._id, OPS, { channel: 'call', to, outcome: 'no_answer' });
-    const scheduled = await assetPartnerExitService.schedule(exit._id, OPS, { scheduledFor: new Date() });
-    expect(scheduled.status).toBe('scheduled');
-    expect(String(v._id)).toBe(scheduled.cars[0].vehicleId);
+    await AssetPartnerExitModel.updateOne({ _id: exit._id }, { $set: { createdAt: new Date(Date.now() - 400 * DAY) } });
+    await expect(assetPartnerExitService.schedule(exit._id, OPS, { scheduledFor: new Date() })).rejects.toThrow('isn’t returned');
+    expect((await assetPartnerExitService.detail(exit._id, OPS)).attempts).toHaveLength(3);
   });
 
   it('closes the case and releases payouts when the partner presses “I’m here”', async () => {
@@ -342,7 +339,7 @@ describe('a partner who can’t be reached', () => {
 });
 
 describe('a partner who passed away', () => {
-  it('pauses the cars, holds payouts, and only completes with checked estate papers and a payee for the estate', async () => {
+  it('keeps the car earning, holds payouts for the estate, and returns it only with checked papers and an estate payee', async () => {
     const { userId, partner } = await approved();
     await AssetPartnerModel.updateOne({ _id: partner._id }, { $set: { status: 'active' } });
     const v = await car(partner._id);
@@ -350,9 +347,9 @@ describe('a partner who passed away', () => {
     await expect(assetPartnerExitService.open(OPS, partner._id, { reason: 'deceased' })).rejects.toThrow('who told us');
     (notificationService.send as jest.Mock).mockClear();
     const exit = await assetPartnerExitService.open(OPS, partner._id, { reason: 'deceased', reportedBy: { name: 'Ana Ramirez', phone: '2145550199', relation: 'Sister' } });
-    expect((await VehicleModel.findById(v._id).lean())?.status).toBe('paused');
+    expect((await VehicleModel.findById(v._id).lean())?.status).toBe('listed');
     const held = await assetPartnerService.getById(partner._id);
-    expect(held).toMatchObject({ status: 'suspended', payoutHold: { reason: 'deceased' } });
+    expect(held).toMatchObject({ status: 'active', payoutHold: { reason: 'deceased' } });
     expect(notificationService.send).not.toHaveBeenCalledWith(expect.objectContaining({ userId }));
     expect((await assetPartnerExitService.listForPartner(userId)).exits).toHaveLength(0);
 

@@ -149,7 +149,7 @@ function ReturnCard({ r, onChange }: { r: PartnerReturn; onChange: () => void })
       </dl>
       {r.canRespond && (
         <div className="space-y-2 rounded-lg bg-warning/10 p-3 text-sm">
-          <p>We haven’t been able to reach you{r.noticeEndsAt ? `. Please reply by ${formatDate(r.noticeEndsAt)}` : ''}. Press the button to let us know you’re here, and we’ll call you.</p>
+          <p>We haven’t been able to reach you. Your car is still running and your earnings are held safely for you. Press the button to let us know you’re here, and we’ll release them.</p>
           <Button size="sm" loading={respond.isPending} onClick={() => respond.mutate()}>I’m here</Button>
         </div>
       )}
