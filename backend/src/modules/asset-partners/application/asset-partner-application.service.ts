@@ -18,7 +18,7 @@ import { AppError, NotFoundError, ConflictError, ValidationError } from '../../.
 import { assetPartnerAgreementService } from './asset-partner-agreement.service';
 import { notificationService } from '../../notifications/application/notification.service';
 import { randomId } from '../../../shared/utils/uuid';
-import { assetPartnerProfileService, type PartnerIdentity } from './asset-partner-profile.service';
+import { assetPartnerProfileService, publicProfile, type PartnerIdentity } from './asset-partner-profile.service';
 import { assetPartnerOfferService, type OfferState } from './asset-partner-offer.service';
 import { explainRejection } from '../domain/rejection-reasons';
 import type { RejectionReason } from '../infrastructure/asset-partner-application.model';
@@ -246,7 +246,7 @@ export class AssetPartnerApplicationService {
       const offer = assetPartnerOfferService.state(partner);
       if (stage === 'agreement_expired') return { ...base, stage, partner: summary, offer };
       if (stage === 'profile') {
-        return { ...base, stage, partner: summary, offer, profile: { emergencyContacts: [], ...(partner.profile ?? {}), ownPhone: partner.phone } };
+        return { ...base, stage, partner: summary, offer, profile: { emergencyContacts: [], ...(publicProfile(partner.profile) ?? {}), ownPhone: partner.phone } };
       }
       if (stage === 'identity') {
         const identity = await assetPartnerProfileService.identity(partner, { sync: true });

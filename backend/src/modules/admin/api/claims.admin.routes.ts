@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { claimService } from '../../claims/application/claim.service';
+import { claimCaseService } from '../../claims/application/claim-case.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
@@ -12,13 +13,33 @@ router.get(
   '/claims',
   authorize('claim:manage'),
   asyncHandler(async (req, res) => {
-    const result = await claimService.adminList({
+    const result = await claimCaseService.list({
       status: req.query.status as string,
       type: req.query.type as string,
       limit: req.query.limit ? Number(req.query.limit) : undefined,
       skip: req.query.skip ? Number(req.query.skip) : undefined,
     });
     sendSuccess(res, result.items, 200, { total: result.total });
+  }),
+);
+
+/** One claim with the people, trip, car, deposit, photos and history around it. */
+router.get(
+  '/claims/:id',
+  authorize('claim:manage'),
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await claimCaseService.detail(req.params.id));
+  }),
+);
+
+/** Attach a claim filed without a trip to its booking, by the booking code. */
+router.post(
+  '/claims/:id/link',
+  authorize('claim:manage'),
+  validate({ body: z.object({ code: z.string().trim().min(3).max(40) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await claimCaseService.linkBooking(req.params.id, req.principal!.userId, req.body.code));
   }),
 );
 

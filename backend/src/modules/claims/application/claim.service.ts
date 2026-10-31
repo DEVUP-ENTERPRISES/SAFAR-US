@@ -1,5 +1,6 @@
 import { ClaimModel, type ClaimDoc, type ClaimStatus } from '../infrastructure/claim.model';
-import { NotFoundError, ForbiddenError, ConflictError } from '../../../core/errors/app-error';
+import { NotFoundError, ForbiddenError, ConflictError, ValidationError } from '../../../core/errors/app-error';
+import { approveBlockers } from './claim-case.service';
 import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
 import { UserModel } from '../../users/infrastructure/user.model';
@@ -26,6 +27,8 @@ export class ClaimService {
   async create(claimantId: string, rawInput: CreateClaimInput): Promise<ClaimDoc> {
     const now = new Date();
     const input = await this.scopeToParticipant(claimantId, rawInput);
+    // A claim not tied to a trip has no car, no other side and no photos to judge it by.
+    if (!input.bookingId) throw new ValidationError('Pick the trip this claim is about.');
 
     /*
      * A finished trip must actually finish.
@@ -251,6 +254,11 @@ export class ClaimService {
     note?: string,
     amountApproved?: number,
   ): Promise<ClaimDoc> {
+    if (decision !== 'rejected') {
+      const claim = await this.getDoc(claimId);
+      const blockers = approveBlockers(claim, amountApproved ?? claim.amountClaimed ?? 0, note);
+      if (blockers.length) throw new ConflictError(blockers.join(' '), 'CLAIM_NOT_READY');
+    }
     await this.transition(claimId, decision, agentId, note ?? decision, amountApproved ? { amountApproved } : {});
     return this.getDoc(claimId);
   }
@@ -279,6 +287,10 @@ export class ClaimService {
     const claim = await this.getDoc(claimId);
     if (['settled', 'rejected', 'closed'].includes(claim.status)) {
       throw new ConflictError('Claim is already resolved', 'CLAIM_CLOSED');
+    }
+    if (input.amountApproved > 0) {
+      const blockers = approveBlockers(claim, input.amountApproved, input.note);
+      if (blockers.length) throw new ConflictError(blockers.join(' '), 'CLAIM_NOT_READY');
     }
 
     // 1. Collect from the guest, then pay the claimant. Only money actually

@@ -2,6 +2,7 @@ import { BookingModel, type BookingDoc } from '../infrastructure/booking.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { HostModel } from '../../hosts/infrastructure/host.model';
 import { UserModel } from '../../users/infrastructure/user.model';
+import { personSummary } from '../../people/application/person-summary.service';
 import { TripModel } from '../../trips/infrastructure/trip.model';
 import { PaymentModel } from '../../payments/infrastructure/payment.model';
 import { guestIdentityService, ID_PHOTO_LABEL } from '../../kyc/application/guest-identity.service';
@@ -22,12 +23,10 @@ export const adminBookingOverviewService = {
   async overview(bookingId: string, canSeeId = false) {
     const b = await BookingModel.findById(bookingId).lean<BookingDoc>();
     if (!b) throw new NotFoundError('Booking');
-    const [vehicle, host, guest, trip, tripsTaken, payments] = await Promise.all([
+    const [vehicle, host, trip, payments] = await Promise.all([
       VehicleModel.findById(b.vehicleId).select('year make model registrationNumber').lean<{ year?: number; make?: string; model?: string; registrationNumber?: string }>(),
       HostModel.findById(b.hostId).select('displayName userId').lean<{ displayName: string; userId: string }>(),
-      UserModel.findById(b.guestId).select('firstName lastName email phone createdAt').lean<Person>(),
       TripModel.findOne({ bookingId }).select('status handover.at return.at').lean<{ status: string; handover?: { at?: Date }; return?: { at?: Date } }>(),
-      BookingModel.countDocuments({ guestId: b.guestId, status: 'completed' }),
       PaymentModel.find({ bookingId, deletedAt: null })
         .sort({ createdAt: 1 })
         .limit(50)
@@ -37,6 +36,7 @@ export const adminBookingOverviewService = {
     const pb = b.priceBreakdown;
     const hostUser = host ? await UserModel.findById(host.userId).select('firstName lastName email phone').lean<Person>() : null;
     const identity = await guestIdentityService.summary(b.guestId);
+    const person = await personSummary(b.guestId, { visibility: 'staff', hostId: b.hostId });
     return {
       booking: {
         id: b._id, code: b.code, status: b.status, period: b.period, total: b.priceBreakdown?.total,
@@ -66,7 +66,8 @@ export const adminBookingOverviewService = {
       vehicle: vehicle ? { id: b.vehicleId, name: [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' '), plate: vehicle.registrationNumber } : null,
       host: { id: b.hostId, name: host?.displayName ?? nameOf(hostUser), email: hostUser?.email, phone: hostUser?.phone },
       guest: {
-        id: b.guestId, name: nameOf(guest), email: guest?.email, phone: guest?.phone, memberSince: guest?.createdAt, tripsCompleted: tripsTaken,
+        id: b.guestId, name: person.name, email: person.contact?.email, phone: person.contact?.phone, memberSince: person.memberSince, tripsCompleted: person.trips.completed,
+        person,
         identity: { ...identity, dob: canSeeId ? identity.dob : undefined, photos: identity.photos.map((k) => ({ id: k, label: ID_PHOTO_LABEL[k] })) },
       },
     };

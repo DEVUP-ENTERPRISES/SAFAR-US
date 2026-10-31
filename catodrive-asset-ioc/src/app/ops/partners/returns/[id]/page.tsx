@@ -38,6 +38,7 @@ function ContactLine({ c, label }: { c: PartnerContact; label: string }) {
   return (
     <li className="text-sm">
       <span className="font-medium">{c.name}</span> <span className="text-muted-foreground">({c.relation || label})</span>
+      {c.confirmation && <Badge tone={c.confirmation.status === 'confirmed' ? 'success' : c.confirmation.status === 'pending' ? 'warning' : 'destructive'} className="ms-2">{c.confirmation.status === 'confirmed' ? 'Confirmed' : c.confirmation.status === 'pending' ? 'Not confirmed yet' : c.confirmation.status === 'declined' ? 'Declined' : 'Text failed'}</Badge>}
       <span className="block text-xs text-muted-foreground"><a className="text-primary hover:underline" href={`tel:${c.phone}`}>{c.phone}</a>{c.email ? ` · ${c.email}` : ''}</span>
     </li>
   );

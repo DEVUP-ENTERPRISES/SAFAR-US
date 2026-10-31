@@ -57,11 +57,23 @@ export interface PartnerAgreementSignature {
 }
 export type PayoutMethod = 'check' | 'zelle';
 
+export interface ContactConfirmation {
+  status: 'pending' | 'confirmed' | 'declined' | 'undeliverable';
+  /** SHA-256 of the link token; the token itself is only ever in the text and email. */
+  tokenHash: string;
+  sentAt: Date;
+  expiresAt: Date;
+  respondedAt?: Date;
+  ip?: string;
+  lastError?: string;
+}
+
 export interface PartnerContact {
   name: string;
   phone: string;
   relation: string;
   email?: string;
+  confirmation?: ContactConfirmation;
 }
 
 export type Residency = 'citizen' | 'permanent_resident' | 'visa' | 'other';
@@ -178,7 +190,11 @@ const signatureSchema = new Schema(
   { _id: false },
 );
 
-const contactSchema = new Schema({ name: String, phone: String, relation: String, email: String }, { _id: false });
+const confirmationSchema = new Schema(
+  { status: { type: String, enum: ['pending', 'confirmed', 'declined', 'undeliverable'] }, tokenHash: String, sentAt: Date, expiresAt: Date, respondedAt: Date, ip: String, lastError: String },
+  { _id: false },
+);
+const contactSchema = new Schema({ name: String, phone: String, relation: String, email: String, confirmation: { type: confirmationSchema, default: undefined } }, { _id: false });
 
 const schema = new Schema<AssetPartnerDoc>(
   {
@@ -259,5 +275,7 @@ const schema = new Schema<AssetPartnerDoc>(
 schema.index({ userId: 1 }, { unique: true });
 schema.index({ hostId: 1 });
 schema.index({ status: 1, createdAt: -1 });
+schema.index({ 'profile.emergencyContacts.confirmation.tokenHash': 1 }, { sparse: true });
+schema.index({ 'profile.representative.confirmation.tokenHash': 1 }, { sparse: true });
 
 export const AssetPartnerModel = model<AssetPartnerDoc>('AssetPartner', schema);

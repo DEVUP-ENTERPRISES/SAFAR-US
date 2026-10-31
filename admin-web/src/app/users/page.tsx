@@ -22,7 +22,7 @@ const STATUS_TONE: Record<string, 'success' | 'warning' | 'destructive' | 'muted
 export default function AdminUsersPage() {
   const qc = useQueryClient();
   const confirm = useConfirm();
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(() => (typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('q') ?? ''));
   const [status, setStatus] = useState('');
 
   const search = useDebouncedValue(q.trim());

@@ -537,8 +537,10 @@ export const adminApi = {
 
   claims: (q: Q = {}) => api.get<any[]>('/admin/claims', q),
   assignClaim: (id: string) => api.post(`/admin/claims/${id}/assign`),
-  resolveClaim: (id: string, decision: string, note?: string) =>
-    api.post(`/admin/claims/${id}/resolve`, { decision, note }),
+  resolveClaim: (id: string, decision: string, note?: string, amountApproved?: number) =>
+    api.post(`/admin/claims/${id}/resolve`, { decision, note, amountApproved }),
+  claim: (id: string) => api.get<any>(`/admin/claims/${id}`),
+  linkClaim: (id: string, code: string) => api.post<any>(`/admin/claims/${id}/link`, { code }),
 
   tickets: (q: Q = {}) => api.get<any[]>('/admin/tickets', q),
   ticket: (id: string) => api.get<any>(`/admin/tickets/${id}`),

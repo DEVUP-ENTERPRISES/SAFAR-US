@@ -110,7 +110,10 @@ export function PartnerLifecycleCard({ partnerId, cars }: { partnerId: string; c
             {profile?.emergencyContacts?.length ? (
               <ul className="space-y-2">
                 {profile.emergencyContacts.map((c, i) => (
-                  <li key={i}><span className="font-medium">{c.name}</span> <span className="text-muted-foreground">({c.relation})</span> · <a className="text-primary hover:underline" href={`tel:${c.phone}`}>{c.phone}</a></li>
+                  <li key={i}>
+                    <span className="font-medium">{c.name}</span> <span className="text-muted-foreground">({c.relation})</span> · <a className="text-primary hover:underline" href={`tel:${c.phone}`}>{c.phone}</a>
+                    {c.confirmation && <Badge tone={c.confirmation.status === 'confirmed' ? 'success' : c.confirmation.status === 'pending' ? 'warning' : 'destructive'} className="ms-2">{c.confirmation.status === 'confirmed' ? 'Confirmed' : c.confirmation.status === 'pending' ? 'Not confirmed yet' : c.confirmation.status === 'declined' ? 'Declined' : 'Text failed'}</Badge>}
+                  </li>
                 ))}
                 {profile.representative && <li>Representative: <span className="font-medium">{profile.representative.name}</span> ({profile.representative.relation}) · <a className="text-primary hover:underline" href={`tel:${profile.representative.phone}`}>{profile.representative.phone}</a></li>}
               </ul>

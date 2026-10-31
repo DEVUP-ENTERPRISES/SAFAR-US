@@ -29,6 +29,7 @@ const fontMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: 'CatoDrive Admin',
+  icons: { icon: '/icon.png', shortcut: '/icon.png' },
   // The console must never be indexed.
   robots: { index: false, follow: false },
 };

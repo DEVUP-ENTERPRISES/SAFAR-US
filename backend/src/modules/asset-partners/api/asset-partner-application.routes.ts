@@ -7,7 +7,8 @@ import { assetPartnerMaintenanceService } from '../application/asset-partner-mai
 import { assetPartnerAgreementService } from '../application/asset-partner-agreement.service';
 import { assetPartnerIntakeService } from '../application/asset-partner-intake.service';
 import { createApplicationSchema, exitCarPatchSchema, exitSubmitSchema, partnerProfileSchema, portalApplicationSchema, signAgreementSchema } from '../dto/asset-partner-application.schemas';
-import { assetPartnerProfileService } from '../application/asset-partner-profile.service';
+import { assetPartnerProfileService, publicProfile } from '../application/asset-partner-profile.service';
+import { assetPartnerContactConfirmService } from '../application/asset-partner-contact-confirm.service';
 import { assetPartnerOfferService } from '../application/asset-partner-offer.service';
 import { assetPartnerExitService } from '../application/asset-partner-exit.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
@@ -105,7 +106,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const partner = await partnerOf(req.principal!.userId);
     const identity = await assetPartnerProfileService.identity(partner, { sync: true });
-    sendSuccess(res, { profile: partner.profile ?? null, ownPhone: partner.phone, identity: { state: identity.state, required: identity.required, reason: identity.reason } });
+    sendSuccess(res, { profile: publicProfile(partner.profile), ownPhone: partner.phone, identity: { state: identity.state, required: identity.required, reason: identity.reason } });
   }),
 );
 
@@ -114,7 +115,40 @@ router.put(
   authenticate,
   validate({ body: partnerProfileSchema }),
   asyncHandler(async (req, res) => {
-    sendSuccess(res, await assetPartnerProfileService.save(req.principal!.userId, req.body));
+    sendSuccess(res, publicProfile(await assetPartnerProfileService.save(req.principal!.userId, req.body)));
+  }),
+);
+
+/** Send a contact their confirmation link again. */
+router.post(
+  '/asset-partners/me/profile/contacts/resend',
+  authenticate,
+  authLimiter,
+  validate({ body: z.discriminatedUnion('kind', [z.object({ kind: z.literal('emergency'), index: z.number().int().min(0).max(2) }), z.object({ kind: z.literal('representative') })]) }),
+  asyncHandler(async (req, res) => {
+    const c = await assetPartnerContactConfirmService.resend(req.principal!.userId, req.body);
+    sendSuccess(res, { status: c.status, sentAt: c.sentAt });
+  }),
+);
+
+/** Public: the contact opens the link from their text or email. */
+router.get(
+  '/asset-partners/contact-confirm/:token',
+  lookupLimiter,
+  validate({ params: z.object({ token: z.string().regex(/^[A-Za-z0-9_-]{20,64}$/) }) }),
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    sendSuccess(res, await assetPartnerContactConfirmService.view(req.params.token));
+  }),
+);
+
+router.post(
+  '/asset-partners/contact-confirm/:token',
+  lookupLimiter,
+  validate({ params: z.object({ token: z.string().regex(/^[A-Za-z0-9_-]{20,64}$/) }), body: z.object({ decision: z.enum(['confirmed', 'declined']) }) }),
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    sendSuccess(res, await assetPartnerContactConfirmService.respond(req.params.token, req.body.decision, { ip: req.ip }));
   }),
 );
 

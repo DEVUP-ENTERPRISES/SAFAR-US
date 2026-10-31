@@ -58,11 +58,31 @@ export type PortalApplicationInput = Omit<CreateAssetPartnerApplicationInput, 'e
 
 export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'profile' | 'identity' | 'agreement' | 'agreement_expired' | 'documents' | 'payout' | 'ready';
 
+export interface ContactConfirmation {
+  status: 'pending' | 'confirmed' | 'declined' | 'undeliverable';
+  sentAt: string;
+  expiresAt: string;
+  respondedAt?: string;
+  lastError?: string;
+}
+
 export interface PartnerContact {
   name: string;
   phone: string;
   relation: string;
   email?: string;
+  confirmation?: ContactConfirmation;
+}
+
+export type ContactSlot = { kind: 'emergency'; index: number } | { kind: 'representative' };
+
+export interface ContactConfirmView {
+  valid: boolean;
+  expired?: boolean;
+  status?: ContactConfirmation['status'];
+  partnerName?: string;
+  contactName?: string;
+  role?: 'emergency' | 'representative';
 }
 
 export type Residency = 'citizen' | 'permanent_resident' | 'visa' | 'other';
@@ -406,6 +426,11 @@ export const assetPartnerApi = {
   requestNewOffer: () => api.post<AgreementOfferState | null>('/asset-partners/me/agreement/reissue-request'),
   profile: () => api.get<{ profile: PartnerProfile | null; ownPhone?: string; identity: { state: IdentityState; required: boolean; reason?: string } }>('/asset-partners/me/profile'),
   saveProfile: (input: PartnerProfileInput) => api.put<PartnerProfile>('/asset-partners/me/profile', input),
+  resendContactLink: (slot: ContactSlot) => api.post<{ status: string; sentAt: string }>('/asset-partners/me/profile/contacts/resend', slot),
+  /** Public: the emergency contact opens the link from their text or email. */
+  contactConfirmView: (token: string) => api.get<ContactConfirmView>(`/asset-partners/contact-confirm/${encodeURIComponent(token)}`, undefined, false),
+  contactConfirmRespond: (token: string, decision: 'confirmed' | 'declined') =>
+    api.post<{ status: string }>(`/asset-partners/contact-confirm/${encodeURIComponent(token)}`, { decision }, { auth: false }),
   returns: () => api.get<{ noticeDays: number; earliestDate: string; exits: PartnerReturn[] }>('/asset-partners/me/returns'),
   requestReturn: (input: { vehicleIds: string[]; preferredDate: string; note?: string; handoverPreference: 'pickup' | 'deliver'; deliveryAddress?: string }) =>
     api.post<PartnerReturn>('/asset-partners/me/returns', input),

@@ -34,6 +34,7 @@ export { ContactScreen } from './screens/ContactScreen';
 export { PushPrompt } from './components/PushPrompt';
 export { esc, printableDocument, printHtml } from './print-html';
 export { InquiryThreadView } from './components/InquiryThreadView';
+export { PersonCard } from './components/PersonCard';
 export { usePhotoUpload } from './use-photo-upload';
 export { LocationSearch, type PickedPlace } from './components/LocationSearch';
 export { PhotoGuideScreen } from './screens/PhotoGuideScreen';

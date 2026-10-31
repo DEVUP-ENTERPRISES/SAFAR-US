@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   description: 'Run your cars, trips, earnings and team on CatoDrive.',
   applicationName: 'CatoDrive Partners',
   robots: { index: false, follow: false },
-  icons: { apple: '/icons/apple-touch-icon.png' },
+  icons: { icon: '/icon.png', shortcut: '/icon.png', apple: '/icons/apple-touch-icon.png' },
 };
 
 export const viewport: Viewport = {

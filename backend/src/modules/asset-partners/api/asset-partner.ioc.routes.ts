@@ -17,7 +17,7 @@ import { assetPartnerAmendmentService } from '../application/asset-partner-amend
 import type { SignatureEnvelopeDoc } from '../infrastructure/signature-envelope.model';
 import { storageGateway } from '../../../infrastructure/storage/storage.provider';
 import { assetPartnerExitService } from '../application/asset-partner-exit.service';
-import { assetPartnerProfileService } from '../application/asset-partner-profile.service';
+import { assetPartnerProfileService, publicProfile } from '../application/asset-partner-profile.service';
 import { assetPartnerOfferService } from '../application/asset-partner-offer.service';
 import { exitCarPatchSchema, exitSubmitSchema } from '../dto/asset-partner-application.schemas';
 import { hostService } from '../../hosts/application/host.service';
@@ -414,7 +414,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const partner = await assetPartnerService.getById(req.params.id);
     const [identity, stage] = await Promise.all([assetPartnerProfileService.identity(partner), assetPartnerService.portalStage(partner)]);
-    sendSuccess(res, { identity, offer: assetPartnerOfferService.state(partner), stage, profile: partner.profile ?? null, lastSeenAt: partner.lastSeenAt, payoutHold: partner.payoutHold ?? null });
+    sendSuccess(res, { identity, offer: assetPartnerOfferService.state(partner), stage, profile: publicProfile(partner.profile), lastSeenAt: partner.lastSeenAt, payoutHold: partner.payoutHold ?? null });
   }),
 );
 

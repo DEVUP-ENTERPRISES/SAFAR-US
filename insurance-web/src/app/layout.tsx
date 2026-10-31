@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: { default: 'Insurance partners', template: '%s · CatoDrive Insurance partners' },
   applicationName: 'CatoDrive Insurance partners',
   robots: { index: false, follow: false },
-  icons: { apple: '/icons/apple-touch-icon.png' },
+  icons: { icon: '/icon.png', shortcut: '/icon.png', apple: '/icons/apple-touch-icon.png' },
 };
 
 export const viewport: Viewport = {

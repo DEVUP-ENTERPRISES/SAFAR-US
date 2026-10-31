@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { contactInquiryService } from '../application/contact-inquiry.service';
+import { UserModel } from '../../users/infrastructure/user.model';
+import { personSummary } from '../../people/application/person-summary.service';
 import { respondContactInquirySchema } from '../dto/contact-inquiry.schemas';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
@@ -41,7 +43,11 @@ router.get(
   '/contact-inquiries/:id',
   authorize('admin:read'),
   asyncHandler(async (req, res) => {
-    sendSuccess(res, await contactInquiryService.adminOne(req.params.id));
+    const inquiry = await contactInquiryService.adminOne(req.params.id);
+    // The sender's CatoDrive account, if they have one: who signed in to send it, else the same email.
+    const userId = inquiry.submittedByUserId ?? (await UserModel.findOne({ email: inquiry.email.toLowerCase(), deletedAt: null }).select('_id').lean<{ _id: string }>())?._id;
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, { ...inquiry, account: userId ? await personSummary(userId, { visibility: 'staff' }) : null });
   }),
 );
 

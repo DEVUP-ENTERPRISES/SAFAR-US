@@ -15,6 +15,8 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { StatTile } from '@/components/ui/stat-tile';
 import { AlertTriangle, Clock, CheckCircle2 as OnTrack } from 'lucide-react';
 import { adminApi } from '@/features/admin/api';
+import Link from 'next/link';
+import { formatDate, formatDateTime } from '@/lib/utils/format';
 import { PageHeader } from '@/components/ui/page-header';
 
 const PRIORITY_TONE: Record<string, 'destructive' | 'warning' | 'muted' | 'default'> = {
@@ -136,7 +138,9 @@ export default function AdminSupportPage() {
                 <CardContent className="flex items-center justify-between pt-6">
                   <div className="min-w-0">
                     <p className="truncate font-medium">{t.subject}</p>
-                    <p className="text-xs capitalize text-muted-foreground">{t.category} · {t.status}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">{t.requester?.name ?? 'Unknown account'}</span> · {KIND_LABEL[t.requester?.kind as keyof typeof KIND_LABEL] ?? 'Customer'} · <span className="capitalize">{t.category} · {t.status}</span>
+                    </p>
                   </div>
                   <Badge tone={PRIORITY_TONE[t.priority] ?? 'muted'}>{t.priority}</Badge>
                 </CardContent>
@@ -150,17 +154,21 @@ export default function AdminSupportPage() {
           {!selected && <EmptyState title="Select a ticket" description="Open a ticket to view the conversation." />}
           {selected && ticket.data && (
             <Card className="flex h-[560px] flex-col">
-              <CardHeader className="flex-row items-center justify-between border-b border-border py-4">
+              <CardHeader className="flex-col gap-2 border-b border-border py-4 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="text-base">{ticket.data.subject}</CardTitle>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" loading={escalate.isPending} onClick={doEscalate}><ArrowUpCircle className="h-4 w-4" /> Escalate</Button>
                   <Button size="sm" loading={resolve.isPending} onClick={doResolve}><CheckCircle2 className="h-4 w-4" /> Resolve</Button>
                 </div>
               </CardHeader>
+              <Requester t={ticket.data} />
               <CardContent className="flex-1 space-y-3 overflow-y-auto p-4">
                 {ticket.data.messages.map((m: any, i: number) => (
-                  <div key={i} className={cn('rounded-lg p-3 text-sm', m.internal ? 'border border-dashed border-warning/50 bg-warning/5' : 'bg-muted')}>
-                    {m.internal && <span className="mb-1 block text-xs font-semibold uppercase text-warning">Internal note</span>}
+                  <div key={i} className={cn('rounded-lg p-3 text-sm', m.internal ? 'border border-dashed border-warning/50 bg-warning/5' : m.author?.fromCustomer ? 'bg-muted' : 'ms-8 bg-primary/10')}>
+                    <span className="mb-1 flex items-baseline justify-between gap-2 text-xs">
+                      <span className="font-semibold">{m.internal ? `Internal note · ${m.author?.name ?? 'Staff'}` : m.author?.fromCustomer ? m.author.name : `${m.author?.name ?? 'Support'} (CatoDrive)`}</span>
+                      {m.at && <span className="text-muted-foreground">{formatDateTime(m.at)}</span>}
+                    </span>
                     {m.body}
                   </div>
                 ))}
@@ -173,6 +181,33 @@ export default function AdminSupportPage() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+const KIND_LABEL = { guest: 'Guest', host: 'Host', asset_partner: 'Asset Partner', staff: 'Staff' } as const;
+const ID_LABEL = { verified: 'ID verified', pending: 'ID check in progress', not_verified: 'ID not verified' } as const;
+
+/** Who opened the ticket and how to reach them, above the conversation. */
+function Requester({ t }: { t: any }) {
+  const r = t.requester;
+  if (!r) return null;
+  return (
+    <div className="space-y-1 border-b border-border bg-subtle px-4 py-3 text-sm">
+      <p className="flex flex-wrap items-center gap-2">
+        <span className="font-semibold">{r.name}</span>
+        <Badge tone="muted">{KIND_LABEL[r.kind as keyof typeof KIND_LABEL] ?? 'Customer'}</Badge>
+        {r.identity && <Badge tone={r.identity === 'verified' ? 'success' : 'warning'}>{ID_LABEL[r.identity as keyof typeof ID_LABEL]}</Badge>}
+        {r.accountStatus && r.accountStatus !== 'active' && <Badge tone="destructive">{r.accountStatus.replace('_', ' ')}</Badge>}
+      </p>
+      <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        {r.contact?.email && <a className="text-primary hover:underline" href={`mailto:${r.contact.email}`}>{r.contact.email}</a>}
+        {r.contact?.phone && <a className="text-primary hover:underline" href={`tel:${r.contact.phone}`}>{r.contact.phone}</a>}
+        {r.memberSince && <span>Member since {formatDate(r.memberSince)}</span>}
+        {r.trips && <span className="tabular-nums">{r.trips.completed} trip{r.trips.completed === 1 ? '' : 's'} completed</span>}
+        <Link className="text-primary hover:underline" href={`/users?q=${encodeURIComponent(r.contact?.email ?? r.id)}`}>Open account</Link>
+        {t.booking && <Link className="text-primary hover:underline" href={`/bookings/${t.booking.id}`}>Booking {t.booking.code}</Link>}
+      </p>
     </div>
   );
 }

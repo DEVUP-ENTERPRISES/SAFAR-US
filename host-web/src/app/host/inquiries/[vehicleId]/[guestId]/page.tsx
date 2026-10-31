@@ -8,13 +8,15 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils/cn';
 import { useAuthStore } from '@/features/auth/store';
-import { useInquiryThread } from '@/features/messaging/inquiry-hooks';
+import { useInquiryGuest, useInquiryThread } from '@/features/messaging/inquiry-hooks';
+import { PersonCard } from '@/components/people/person-card';
 
 function InquiryThreadScreen() {
   const { vehicleId, guestId } = useParams<{ vehicleId: string; guestId: string }>();
   const router = useRouter();
   const me = useAuthStore((s) => s.user);
   const { messages, isLoading, send, markRead } = useInquiryThread(vehicleId, guestId);
+  const guest = useInquiryGuest(vehicleId, guestId);
   const [text, setText] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +41,8 @@ function InquiryThreadScreen() {
       <button onClick={() => router.push('/host/inbox')} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> All questions
       </button>
+
+      <PersonCard title="Who’s asking" person={guest.data} isLoading={guest.isLoading} isError={guest.isError} />
 
       <Card className="flex h-[70vh] max-h-[560px] flex-col overflow-hidden">
         <div className="flex-1 space-y-2.5 overflow-y-auto p-4">

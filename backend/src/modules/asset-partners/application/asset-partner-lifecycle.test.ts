@@ -10,6 +10,7 @@ import { assetPartnerProfileService, namesMatch } from './asset-partner-profile.
 import { assetPartnerOfferService } from './asset-partner-offer.service';
 import { assetPartnerExitService } from './asset-partner-exit.service';
 import { assetPartnerPayoutService } from './asset-partner-payout.service';
+import { currentPeriod } from './asset-partner-statement.service';
 import { AssetPartnerModel, type AssetPartnerDoc } from '../infrastructure/asset-partner.model';
 import { AssetPartnerExitModel } from '../infrastructure/asset-partner-exit.model';
 import { UserModel } from '../../users/infrastructure/user.model';
@@ -105,7 +106,7 @@ describe('profile and emergency contacts', () => {
     await expect(save({ residency: 'visa', visaExpiry: new Date(Date.now() - 5 * DAY) })).rejects.toThrow('passed');
 
     const profile = await save({ residency: 'visa', visaExpiry: new Date(Date.now() + 200 * DAY), representative: { name: 'Lee Park', phone: '4695550123', relation: 'Friend' } });
-    expect(profile.emergencyContacts[0]).toEqual({ name: 'Ana Ramirez', phone: '2145550199', relation: 'Sister' });
+    expect(profile.emergencyContacts[0]).toMatchObject({ name: 'Ana Ramirez', phone: '2145550199', relation: 'Sister', confirmation: { status: expect.any(String) } });
     expect(profile.representative?.name).toBe('Lee Park');
     expect(profile.completedAt).toBeInstanceOf(Date);
   });
@@ -286,9 +287,9 @@ describe('returning a car the partner asked for', () => {
   it('keeps a partner who left this month in the payout run', async () => {
     const { partner } = await approved();
     await AssetPartnerModel.updateOne({ _id: partner._id }, { $set: { status: 'exited', exitedAt: new Date() } });
-    const last = new Date();
-    last.setUTCMonth(last.getUTCMonth() - 1);
-    const period = last.toISOString().slice(0, 7);
+    // The month before the current one on the payout clock, so the test holds at a month boundary.
+    const [y, m] = currentPeriod().split('-').map(Number);
+    const period = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
     const run = await assetPartnerPayoutService.month(period);
     expect(run.rows.find((r) => r.partnerId === partner._id)).toBeUndefined();
     await AssetPartnerModel.updateOne({ _id: partner._id }, { $set: { exitedAt: new Date(`${period}-20T00:00:00Z`) } });
@@ -376,5 +377,62 @@ describe('a partner who passed away', () => {
     const released = await assetPartnerService.getById(partner._id);
     expect(released.payoutHold).toBeUndefined();
     expect(released.payoutDetails).toMatchObject({ method: 'check', payableTo: 'Estate of Jordan Ramirez' });
+  });
+});
+
+describe('emergency contacts confirm by text', () => {
+  const { channelProviders } = jest.requireActual('../../notifications/infrastructure/channel.providers') as typeof import('../../notifications/infrastructure/channel.providers');
+  let texts: { phone?: string; body: string }[] = [];
+  beforeEach(() => {
+    texts = [];
+    jest.spyOn(channelProviders.sms, 'send').mockImplementation(async (req) => {
+      texts.push({ phone: req.target.phone, body: req.body });
+      return { ok: true, providerId: 'SM1' };
+    });
+  });
+  const tokenOf = (body: string) => /contact-confirm\?t=([A-Za-z0-9_-]+)/.exec(body)![1];
+
+  it('texts each new contact a link; the contact confirms or declines; unchanged contacts are not texted again', async () => {
+    const { userId, partner } = await approved();
+    await assetPartnerProfileService.save(userId, { emergencyContacts: [CONTACT, { name: 'Ben Lee', phone: '4695550111', relation: 'Friend' }], residency: 'citizen' });
+    expect(texts.map((t) => t.phone)).toEqual(['+12145550199', '+14695550111']);
+    expect(texts[0].body).toMatch(/^Jordan R\. named you as their emergency contact/);
+    const stored = (await assetPartnerService.getById(partner._id)).profile!;
+    expect(stored.emergencyContacts.map((c) => c.confirmation?.status)).toEqual(['pending', 'pending']);
+    expect(JSON.stringify(stored)).not.toContain(tokenOf(texts[0].body));
+
+    const { assetPartnerContactConfirmService } = await import('./asset-partner-contact-confirm.service');
+    const view = await assetPartnerContactConfirmService.view(tokenOf(texts[0].body));
+    expect(view).toEqual({ valid: true, expired: false, status: 'pending', partnerName: 'Jordan R.', contactName: 'Ana', role: 'emergency' });
+    expect(await assetPartnerContactConfirmService.view('not-a-real-token-123456')).toEqual({ valid: false });
+    await assetPartnerContactConfirmService.respond(tokenOf(texts[0].body), 'confirmed', { ip: '203.0.113.5' });
+    await assetPartnerContactConfirmService.respond(tokenOf(texts[1].body), 'declined', {});
+    expect(notificationService.send).toHaveBeenLastCalledWith(expect.objectContaining({ userId, templateKey: 'account.asset_partner_contact_declined' }));
+    // Answering twice changes nothing.
+    expect(await assetPartnerContactConfirmService.respond(tokenOf(texts[0].body), 'declined', {})).toEqual({ status: 'confirmed' });
+
+    texts = [];
+    await assetPartnerProfileService.save(userId, { emergencyContacts: [CONTACT, { name: 'Cara Diaz', phone: '9725550123', relation: 'Cousin' }], residency: 'citizen' });
+    expect(texts.map((t) => t.phone)).toEqual(['+19725550123']);
+    const after = (await assetPartnerService.getById(partner._id)).profile!;
+    expect(after.emergencyContacts.map((c) => c.confirmation?.status)).toEqual(['confirmed', 'pending']);
+
+    await expect(assetPartnerContactConfirmService.resend(userId, { kind: 'emergency', index: 1 })).rejects.toThrow('wait a few minutes');
+    await expect(assetPartnerContactConfirmService.resend(userId, { kind: 'emergency', index: 0 })).rejects.toThrow('already confirmed');
+  });
+
+  it('records a text that could not be sent instead of failing the save, and refuses an expired link', async () => {
+    (channelProviders.sms.send as jest.Mock).mockResolvedValueOnce({ ok: false, error: 'destination_not_allowed', retryable: false });
+    const { userId, partner } = await approved();
+    await assetPartnerProfileService.save(userId, { emergencyContacts: [CONTACT], residency: 'citizen' });
+    expect((await assetPartnerService.getById(partner._id)).profile!.emergencyContacts[0].confirmation).toMatchObject({ status: 'undeliverable', lastError: 'destination_not_allowed' });
+
+    await AssetPartnerModel.updateOne({ _id: partner._id }, { $set: { 'profile.emergencyContacts.0.confirmation.sentAt': new Date(Date.now() - DAY) } });
+    const { assetPartnerContactConfirmService } = await import('./asset-partner-contact-confirm.service');
+    await assetPartnerContactConfirmService.resend(userId, { kind: 'emergency', index: 0 });
+    const token = tokenOf(texts[texts.length - 1].body);
+    await AssetPartnerModel.updateOne({ _id: partner._id }, { $set: { 'profile.emergencyContacts.0.confirmation.expiresAt': new Date(Date.now() - 1000) } });
+    expect((await assetPartnerContactConfirmService.view(token)).expired).toBe(true);
+    await expect(assetPartnerContactConfirmService.respond(token, 'confirmed', {})).rejects.toThrow('expired');
   });
 });

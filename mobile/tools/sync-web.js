@@ -77,6 +77,7 @@ const ENTRIES = [
   'features/documents/api.ts',
   'features/claims/api.ts',
   'features/claims/status.ts',
+  'features/claims/claim-trips.ts',
   'features/support/api.ts',
   'features/contact/api.ts',
   'features/contact/content.ts',

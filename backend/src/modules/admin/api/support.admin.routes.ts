@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { ticketService } from '../../support/application/ticket.service';
+import { withConversation, withRequesters } from '../../support/application/ticket-people.service';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
@@ -18,7 +19,7 @@ router.get(
       limit: req.query.limit ? Number(req.query.limit) : undefined,
       skip: req.query.skip ? Number(req.query.skip) : undefined,
     });
-    sendSuccess(res, result.items, 200, { total: result.total });
+    sendSuccess(res, await withRequesters(result.items), 200, { total: result.total });
   }),
 );
 
@@ -44,7 +45,7 @@ router.get(
   '/tickets/:id',
   authorize('ticket:manage'),
   asyncHandler(async (req, res) => {
-    sendSuccess(res, await ticketService.get(req.principal!.userId, req.params.id, true));
+    sendSuccess(res, await withConversation(await ticketService.get(req.principal!.userId, req.params.id, true)));
   }),
 );
 

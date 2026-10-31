@@ -25,6 +25,7 @@ import { randomId } from '../../../shared/utils/uuid';
 import { AppError, ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
 import { assetPartnerService } from './asset-partner.service';
+import { publicProfile } from './asset-partner-profile.service';
 
 const DAY = 24 * 3600_000;
 const tidy = (s?: string) => (s ?? '').trim().replace(/\s+/g, ' ');
@@ -683,7 +684,7 @@ export class AssetPartnerExitService {
         phone: partner.phone,
         status: partner.status,
         lastSeenAt: partner.lastSeenAt,
-        profile: partner.profile,
+        profile: publicProfile(partner.profile) ?? undefined,
         payoutHold: partner.payoutHold,
       },
       rules: { photoMin: cfg.returnPhotoMin ?? 8, separateApprover: cfg.exitSeparateApprover !== false },

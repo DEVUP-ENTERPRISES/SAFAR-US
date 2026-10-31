@@ -5,6 +5,7 @@ import { kycService } from '../../kyc/application/kyc.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { ForbiddenError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
+import { assetPartnerContactConfirmService } from './asset-partner-contact-confirm.service';
 
 export interface ProfileInput {
   emergencyContacts: PartnerContact[];
@@ -52,6 +53,17 @@ function cleanContact(c: PartnerContact, what: string): PartnerContact {
   return { name, phone, relation, ...(email ? { email } : {}) };
 }
 
+/** The profile as shown to the partner or staff: confirmation state without the link fingerprint. */
+export function publicProfile(profile?: PartnerProfile | null): PartnerProfile | null {
+  if (!profile) return null;
+  const clean = (c: PartnerContact): PartnerContact => {
+    if (!c.confirmation) return c;
+    const { tokenHash: _t, ip: _i, ...rest } = c.confirmation;
+    return { ...c, confirmation: rest as PartnerContact['confirmation'] };
+  };
+  return { ...profile, emergencyContacts: (profile.emergencyContacts ?? []).map(clean), ...(profile.representative ? { representative: clean(profile.representative) } : {}) };
+}
+
 export const assetPartnerProfileService = {
   isComplete(partner: Pick<AssetPartnerDoc, 'profile'>): boolean {
     return !!partner.profile?.completedAt && (partner.profile.emergencyContacts?.length ?? 0) > 0;
@@ -87,9 +99,12 @@ export const assetPartnerProfileService = {
       ...(input.preferredContact ? { preferredContact: input.preferredContact } : {}),
       completedAt: partner.profile?.completedAt ?? new Date(),
     };
+    const toConfirm = assetPartnerContactConfirmService.carryOver(partner.profile, profile);
     await AssetPartnerModel.updateOne({ _id: partner._id }, { $set: { profile } });
-    logger.info({ partnerId: partner._id, contacts: contacts.length, residency: input.residency }, 'Asset Partner profile saved');
-    return profile;
+    logger.info({ partnerId: partner._id, contacts: contacts.length, residency: input.residency, toConfirm: toConfirm.length }, 'Asset Partner profile saved');
+    // Texts go out after the save; a slow or failed text never loses what the partner typed.
+    await assetPartnerContactConfirmService.sendAll({ ...partner, profile }, toConfirm);
+    return (await AssetPartnerModel.findById(partner._id).select('profile').lean<AssetPartnerDoc>())?.profile ?? profile;
   },
 
   /** Records that the partner opened their portal, at most once an hour. */

@@ -1,4 +1,5 @@
 import { InquiryMessageModel, type InquiryMessageDoc } from '../infrastructure/inquiry-message.model';
+import { personSummaries, personSummary, visibilityFor, type PersonSummary } from '../../people/application/person-summary.service';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { hostService } from '../../hosts/application/host.service';
 import { HostModel } from '../../hosts/infrastructure/host.model';
@@ -113,6 +114,14 @@ export class InquiryService {
     );
   }
 
+  /** Who is asking: for the host of the car only, never for the guest themselves. */
+  async guestProfile(userId: string, vehicleId: string, guestId: string): Promise<PersonSummary> {
+    if (userId === guestId) throw new ForbiddenError('Not available');
+    await this.authorize(userId, vehicleId, guestId);
+    const vehicle = await VehicleModel.findById(vehicleId).select('hostId').lean<{ hostId: string }>();
+    return personSummary(guestId, { visibility: await visibilityFor(userId), hostId: vehicle!.hostId });
+  }
+
   /** A guest's own inquiry threads, across every car they've asked about. */
   async myThreads(guestId: string): Promise<InquiryThread[]> {
     return this.threadsFor({ guestId, viewerUserId: guestId });
@@ -175,6 +184,9 @@ export class InquiryService {
     ]);
     const vehicleById = new Map(vehicles.map((v) => [v._id, v]));
     const guestById = new Map(guests.map((g) => [g._id, g]));
+    // An account with no name yet still shows who it is, as much as this viewer may see.
+    const people = match.guestId ? new Map<string, PersonSummary>() : await personSummaries(guestIds, { visibility: await visibilityFor(match.viewerUserId) });
+    const guestName = (id: string) => people.get(id)?.name ?? 'New guest (no name yet)';
     const hostByVehicleHostId = new Map(hosts.map((h) => [h._id, h]));
     const unreadByKey = new Map(unreadAgg.map((u) => [`${u._id.vehicleId}:${u._id.guestId}`, u.count]));
 
@@ -191,7 +203,7 @@ export class InquiryService {
           vehicle: { title: v ? `${v.year} ${v.make} ${v.model}` : 'Vehicle', photo: v?.photos?.[0]?.url },
           counterpart: amGuest
             ? { name: h?.displayName ?? 'Host', avatar: h?.avatarUrl }
-            : { name: g?.firstName ?? 'Guest', avatar: g?.avatarUrl },
+            : { name: guestName(l._id.guestId), avatar: g?.avatarUrl },
           last: {
             preview: l.body?.trim() ? l.body.slice(0, 120) : (l.attachments?.length ? '📷 Photo' : ''),
             at: l.at,

@@ -8,7 +8,33 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { assetPartnerApi, type PartnerContact, type PartnerProfile, type Residency } from '@/features/asset-partners/api';
+import { assetPartnerApi, type ContactConfirmation, type ContactSlot, type PartnerContact, type PartnerProfile, type Residency } from '@/features/asset-partners/api';
+import { Badge } from '@/components/ui/badge';
+
+const CONFIRM: Record<ContactConfirmation['status'], { label: string; tone: 'success' | 'warning' | 'destructive' | 'muted' }> = {
+  confirmed: { label: 'Confirmed', tone: 'success' },
+  pending: { label: 'Waiting for them to confirm', tone: 'warning' },
+  declined: { label: 'Declined. Please add someone else', tone: 'destructive' },
+  undeliverable: { label: 'We couldn’t text this number', tone: 'destructive' },
+};
+
+/** Whether the saved contact has confirmed, with a way to send their link again. */
+function ConfirmStatus({ saved, current, slot }: { saved?: PartnerContact; current: PartnerContact; slot: ContactSlot }) {
+  const [sent, setSent] = useState(false);
+  const resend = useMutation({ meta: { silentError: true }, mutationFn: () => assetPartnerApi.resendContactLink(slot), onSuccess: () => setSent(true) });
+  const c = saved?.confirmation;
+  if (!c || !saved || digits(saved.phone) !== digits(current.phone)) return null;
+  const s = CONFIRM[c.status];
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <Badge tone={s.tone}>{s.label}</Badge>
+      {['pending', 'undeliverable'].includes(c.status) && (sent ? <span className="text-muted-foreground">Sent again</span> : (
+        <Button size="sm" variant="ghost" loading={resend.isPending} onClick={() => resend.mutate()}>Send their link again</Button>
+      ))}
+      {resend.isError && <span role="alert" className="text-destructive">{resend.error instanceof ApiError ? resend.error.message : 'Couldn’t send. Try again.'}</span>}
+    </div>
+  );
+}
 import { ApiError } from '@/lib/api/types';
 
 const blank = (): PartnerContact => ({ name: '', phone: '', relation: '', email: '' });
@@ -76,7 +102,7 @@ export function ProfileForm({ initial, ownPhone, submitLabel = 'Save and continu
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Users className="h-5 w-5" /></span>
           <div className="min-w-0">
             <h2 className="text-xl font-bold">Who should we call if we can’t reach you?</h2>
-            <p className="text-sm text-muted-foreground">We only use these if something happens to your car and we can’t get hold of you. We never share them.</p>
+            <p className="text-sm text-muted-foreground">We only use these if something happens to your car and we can’t get hold of you. We never share them. Each person gets a text asking them to confirm.</p>
           </div>
         </div>
 
@@ -91,6 +117,7 @@ export function ProfileForm({ initial, ownPhone, submitLabel = 'Save and continu
                   </Button>
                 )}
               </div>
+              <ConfirmStatus saved={initial?.emergencyContacts?.[i]} current={c} slot={{ kind: 'emergency', index: i }} />
               <ContactFields id={`ec-${i}`} legend={`Emergency contact ${i + 1}`} value={c} onChange={(next) => setContacts(contacts.map((x, j) => (j === i ? next : x)))} />
             </div>
           ))}
@@ -134,6 +161,7 @@ export function ProfileForm({ initial, ownPhone, submitLabel = 'Save and continu
               <span className="block text-muted-foreground">Optional. If we can’t reach you for a long time, this person can take the car back or tell us what to do with it.</span>
             </span>
           </label>
+          {hasRep && <ConfirmStatus saved={initial?.representative} current={rep} slot={{ kind: 'representative' }} />}
           {hasRep && <ContactFields id="rep" legend="Representative" value={rep} onChange={setRep} />}
         </section>
 

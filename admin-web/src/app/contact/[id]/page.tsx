@@ -1,5 +1,7 @@
 'use client';
 
+import { PersonCard } from '@/components/people/person-card';
+import type { PersonSummary } from '@/features/people/types';
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -25,6 +27,7 @@ interface Inquiry {
   respondedAt?: string;
   adminNotes?: string;
   createdAt: string;
+  account: PersonSummary | null;
 }
 
 const INTEREST_LABEL: Record<string, string> = {
@@ -81,6 +84,12 @@ export default function ContactInquiryDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {i.account ? (
+        <PersonCard title="Their CatoDrive account" person={i.account} />
+      ) : (
+        <p className="rounded-lg border border-border p-3 text-sm text-muted-foreground">No CatoDrive account uses this email, so this is someone new.</p>
+      )}
 
       <Card>
         <CardHeader><CardTitle className="text-base">Message</CardTitle></CardHeader>

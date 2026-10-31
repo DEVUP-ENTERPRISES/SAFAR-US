@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: 'CatoDrive operations: our vehicles, trips and Asset Partners.',
   applicationName: 'CatoDrive Operations',
   robots: { index: false, follow: false },
-  icons: { apple: '/icons/apple-touch-icon.png' },
+  icons: { icon: '/icon.png', shortcut: '/icon.png', apple: '/icons/apple-touch-icon.png' },
 };
 
 export const viewport: Viewport = {

@@ -58,6 +58,16 @@ router.post(
 );
 
 /** The host's side of a specific guest's thread. */
+/** Who the guest is: name, verification, trips and rating; contact details only for CatoDrive's own fleet. */
+router.get(
+  '/:vehicleId/:guestId/guest',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await inquiryService.guestProfile(req.principal!.userId, req.params.vehicleId, req.params.guestId));
+  }),
+);
+
 router.get(
   '/:vehicleId/:guestId',
   authenticate,

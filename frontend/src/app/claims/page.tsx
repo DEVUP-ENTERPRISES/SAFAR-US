@@ -16,18 +16,51 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatDate } from '@/lib/utils/format';
 import Link from 'next/link';
 import { claimsApi } from '@/features/claims/api';
+import { claimableTrips, tripLabel } from '@/features/claims/claim-trips';
+import { useMyBookings } from '@/features/bookings/queries';
+import { uploadFiles } from '@/features/media/upload';
+import { ApiError } from '@/lib/api/types';
 import { CLAIM_LIST_TONE } from '@/features/claims/status';
 
 
 function Claims() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ type: 'damage' as 'damage' | 'insurance' | 'dispute', description: '', bookingId: '' });
+  const blank = { type: 'damage' as 'damage' | 'insurance' | 'dispute', description: '', bookingId: '', amount: '' };
+  const [form, setForm] = useState(blank);
+  const [files, setFiles] = useState<{ url: string; key: string; kind: 'image' | 'file'; name: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string>();
   const list = useQuery({ queryKey: ['my-claims'], queryFn: () => claimsApi.list() });
+  const trips = useMyBookings('guest');
+  const options = claimableTrips(trips.data);
   const create = useMutation({
-    mutationFn: () => claimsApi.create({ type: form.type, description: form.description, bookingId: form.bookingId || undefined }),
-    onSuccess: () => { setOpen(false); setForm({ type: 'damage', description: '', bookingId: '' }); qc.invalidateQueries({ queryKey: ['my-claims'] }); },
+    meta: { silentError: true },
+    mutationFn: () =>
+      claimsApi.create({
+        type: form.type,
+        description: form.description.trim(),
+        bookingId: form.bookingId,
+        amountClaimed: form.amount ? Math.round(Number(form.amount) * 100) : undefined,
+        evidence: files.map((f) => ({ url: f.url, kind: f.kind })),
+      }),
+    onSuccess: () => { setOpen(false); setForm(blank); setFiles([]); qc.invalidateQueries({ queryKey: ['my-claims'] }); },
   });
+  const addFiles = async (list?: FileList | null) => {
+    if (!list?.length) return;
+    setUploading(true);
+    setUploadError(undefined);
+    try {
+      const picked = Array.from(list).slice(0, 10);
+      const ups = await uploadFiles('claim', picked);
+      setFiles((f) => [...f, ...ups.map((u, i) => ({ ...u, kind: picked[i].type === 'application/pdf' ? ('file' as const) : ('image' as const), name: picked[i].name }))].slice(0, 20));
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : 'That didn’t upload. Try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+  const needsPhoto = form.type === 'damage' && !files.some((f) => f.kind === 'image');
 
   return (
     <div className="space-y-6">
@@ -47,9 +80,35 @@ function Claims() {
                 <option value="dispute">Dispute</option>
               </Select>
             </Field>
-            <Field label="Booking ID (optional)"><Input value={form.bookingId} onChange={(e) => setForm({ ...form, bookingId: e.target.value })} /></Field>
-            <Field label="Description" className="sm:col-span-2"><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} /></Field>
-            <div className="sm:col-span-2"><Button disabled={form.description.length < 5} loading={create.isPending} onClick={() => create.mutate()}>Submit claim</Button></div>
+            <Field label="Which trip?" htmlFor="claim-trip" hint={trips.isError ? 'We couldn’t load your trips. Refresh to try again.' : options.length === 0 && !trips.isLoading ? 'You have no trips to claim about yet.' : undefined}>
+              <Select id="claim-trip" value={form.bookingId} disabled={trips.isLoading} onChange={(e) => setForm({ ...form, bookingId: e.target.value })}>
+                <option value="" disabled>{trips.isLoading ? 'Loading your trips…' : 'Choose a trip'}</option>
+                {options.map((b) => <option key={b._id} value={b._id}>{tripLabel(b)}</option>)}
+              </Select>
+            </Field>
+            <Field label="What happened" htmlFor="claim-desc" className="sm:col-span-2"><Textarea id="claim-desc" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} maxLength={2000} /></Field>
+            <Field label="Amount you’re claiming (optional, USD)" htmlFor="claim-amount"><Input id="claim-amount" type="number" inputMode="decimal" min={0} step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
+            <Field label={form.type === 'damage' ? 'Photos (at least one)' : 'Photos or papers (optional)'} htmlFor="claim-files" hint="JPG, PNG or PDF. Up to 20.">
+              <input id="claim-files" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" disabled={uploading} onChange={(e) => { void addFiles(e.target.files); e.target.value = ''; }} className="block w-full text-sm file:me-3 file:rounded-sm file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm" />
+            </Field>
+            {(files.length > 0 || uploading || uploadError) && (
+              <div className="sm:col-span-2 text-sm">
+                {uploading && <p className="text-muted-foreground">Uploading…</p>}
+                {uploadError && <p role="alert" className="text-destructive">{uploadError}</p>}
+                {files.length > 0 && (
+                  <ul className="flex flex-wrap gap-2">
+                    {files.map((f) => (
+                      <li key={f.key} className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs">
+                        {f.name}
+                        <button type="button" aria-label={`Remove ${f.name}`} className="font-semibold" onClick={() => setFiles(files.filter((x) => x.key !== f.key))}>×</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+            {create.isError && <p role="alert" className="sm:col-span-2 text-sm text-destructive">{create.error instanceof ApiError ? create.error.message : 'We couldn’t file that. Try again.'}</p>}
+            <div className="sm:col-span-2"><Button disabled={!form.bookingId || form.description.trim().length < 5 || needsPhoto || uploading} loading={create.isPending} onClick={() => create.mutate()}>Submit claim</Button></div>
           </CardContent>
         </Card>
       )}

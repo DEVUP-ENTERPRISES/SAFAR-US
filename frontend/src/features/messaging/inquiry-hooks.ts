@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
 import type { Attachment } from './hooks';
+import type { PersonSummary } from '../people/types';
 
 export interface InquiryMessage {
   _id: string;
@@ -78,5 +79,15 @@ export function useInquiryUnreadCount(enabled: boolean) {
     queryFn: () => api.get<{ count: number }>('/inquiries/unread-count'),
     enabled,
     refetchInterval: 60_000,
+  });
+}
+
+/** Who is asking: for the car's host only. CatoDrive's own team also gets their contact details. */
+export function useInquiryGuest(vehicleId: string, guestId: string) {
+  return useQuery({
+    queryKey: ['inquiry-guest', vehicleId, guestId],
+    queryFn: () => api.get<PersonSummary>(`/inquiries/${vehicleId}/${guestId}/guest`),
+    enabled: !!vehicleId && !!guestId,
+    staleTime: 60_000,
   });
 }
