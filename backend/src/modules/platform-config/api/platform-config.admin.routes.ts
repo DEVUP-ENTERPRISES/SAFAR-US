@@ -541,7 +541,7 @@ router.post(
     body: z.object({
       effectiveFrom: z.coerce.date(),
       reason: z.string().max(300).optional(),
-      patch: z.record(z.unknown()),
+      patch: z.record(z.string(), z.unknown()),
     }),
   }),
   asyncHandler(async (req, res) => {

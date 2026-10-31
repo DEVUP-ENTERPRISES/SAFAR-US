@@ -59,9 +59,9 @@ export const createApplicationSchema = z.object({
   preferredZone: z.string().trim().max(60).optional(),
   targetStartDate: z.coerce.date().optional(),
   notes: z.string().trim().max(1000).optional(),
-  acknowledgedAccurate: z.literal(true, { errorMap: () => ({ message: 'Required' }) }),
-  acknowledgedInspection: z.literal(true, { errorMap: () => ({ message: 'Required' }) }),
-  acknowledgedTerms: z.literal(true, { errorMap: () => ({ message: 'Required' }) }),
+  acknowledgedAccurate: z.literal(true, { error: 'Required' }),
+  acknowledgedInspection: z.literal(true, { error: 'Required' }),
+  acknowledgedTerms: z.literal(true, { error: 'Required' }),
   signature: z.string().trim().min(2).max(120),
   signDate: z.coerce.date(),
 });
@@ -72,7 +72,7 @@ export type CreateApplicationDto = z.infer<typeof createApplicationSchema>;
 export const portalApplicationSchema = createApplicationSchema.omit({ email: true });
 export type PortalApplicationDto = z.infer<typeof portalApplicationSchema>;
 
-const mustAccept = z.literal(true, { errorMap: () => ({ message: 'Required' }) });
+const mustAccept = z.literal(true, { error: 'Required' });
 
 export const signAgreementSchema = z.object({
   agreementVersion: z.number().int().min(1),
