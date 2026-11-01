@@ -124,18 +124,18 @@ function Decide({ c, onDone }: { c: ClaimCase; onDone: () => void }) {
           {open && (
             <>
               <Button variant="ghost" className="text-destructive" disabled={note.trim().length < 3} loading={resolve.isPending && resolve.variables === 'rejected'}
-                onClick={async () => { if (await confirm({ title: 'Reject this claim?', description: 'Both sides see your note.', confirmLabel: 'Reject', tone: 'destructive' })) resolve.mutate('rejected'); }}>
+                onClick={async () => { if ((await confirm({ title: 'Reject this claim?', description: 'Both sides see your note.', confirmLabel: 'Reject', tone: 'destructive' })).ok) resolve.mutate('rejected'); }}>
                 Reject
               </Button>
               <Button disabled={note.trim().length < 3} loading={resolve.isPending && resolve.variables === 'approved'}
-                onClick={async () => { if (await confirm({ title: `Approve ${formatMoney({ amount: cents(amount), currency })}?`, description: 'It moves to settlement, where the money is paid.', confirmLabel: 'Approve' })) resolve.mutate('approved'); }}>
+                onClick={async () => { if ((await confirm({ title: `Approve ${formatMoney({ amount: cents(amount), currency })}?`, description: 'It moves to settlement, where the money is paid.', confirmLabel: 'Approve' })).ok) resolve.mutate('approved'); }}>
                 Approve
               </Button>
             </>
           )}
           {c.status === 'approved' && (
             <Button disabled={note.trim().length < 3 || !(Number(amount) >= 0)} loading={settle.isPending}
-              onClick={async () => { if (await confirm({ title: `Settle and pay ${formatMoney({ amount: cents(amount), currency })}?`, description: 'This is taken from the guest’s deposit or card where possible and credited to the claimant’s wallet. It moves real money and can’t be undone.', confirmLabel: 'Settle & pay out', tone: 'destructive' })) settle.mutate(); }}>
+              onClick={async () => { if ((await confirm({ title: `Settle and pay ${formatMoney({ amount: cents(amount), currency })}?`, description: 'This is taken from the guest’s deposit or card where possible and credited to the claimant’s wallet. It moves real money and can’t be undone.', confirmLabel: 'Settle & pay out', tone: 'destructive' })).ok) settle.mutate(); }}>
               Settle &amp; pay out
             </Button>
           )}

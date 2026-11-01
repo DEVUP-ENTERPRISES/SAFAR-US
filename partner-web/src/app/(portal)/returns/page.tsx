@@ -159,7 +159,7 @@ function ReturnCard({ r, onChange }: { r: PartnerReturn; onChange: () => void })
           size="sm"
           loading={cancel.isPending}
           onClick={async () => {
-            if (await confirm({ title: 'Withdraw this request?', description: 'Your car stays with CatoDrive and keeps earning.', confirmLabel: 'Withdraw' })) cancel.mutate();
+            if ((await confirm({ title: 'Withdraw this request?', description: 'Your car stays with CatoDrive and keeps earning.', confirmLabel: 'Withdraw' })).ok) cancel.mutate();
           }}
         >
           <Undo2 className="h-4 w-4" /> Withdraw request

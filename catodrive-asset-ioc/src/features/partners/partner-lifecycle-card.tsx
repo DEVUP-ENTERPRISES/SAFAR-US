@@ -172,7 +172,7 @@ function StartReturn({ partnerId, cars }: { partnerId: string; cars: { _id: stri
         <Button
           variant={why === 'partner_request' ? 'primary' : 'destructive'}
           loading={open.isPending}
-          onClick={async () => { if (await confirm({ title: 'Start this return?', description: COPY[why], confirmLabel: 'Start', tone: why === 'partner_request' ? 'default' : 'destructive' })) open.mutate(); }}
+          onClick={async () => { if ((await confirm({ title: 'Start this return?', description: COPY[why], confirmLabel: 'Start', tone: why === 'partner_request' ? 'default' : 'destructive' })).ok) open.mutate(); }}
         >
           <CheckCircle2 className="h-4 w-4" /> Start return
         </Button>

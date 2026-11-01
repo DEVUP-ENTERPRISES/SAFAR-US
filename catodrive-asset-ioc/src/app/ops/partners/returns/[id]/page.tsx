@@ -215,7 +215,7 @@ function Approve({ d, onChange }: { d: ReturnDetail; onChange: (x: ReturnDetail)
           <Button
             disabled={d.approveBlockers.length > 0}
             loading={approve.isPending}
-            onClick={async () => { if (await confirm({ title: 'Approve this return?', description: 'The cars leave the programme. This can’t be undone from here.', confirmLabel: 'Approve' })) approve.mutate(); }}
+            onClick={async () => { if ((await confirm({ title: 'Approve this return?', description: 'The cars leave the programme. This can’t be undone from here.', confirmLabel: 'Approve' })).ok) approve.mutate(); }}
           >
             Approve return
           </Button>
@@ -340,7 +340,7 @@ export default function ReturnCasePage() {
                   size="sm"
                   disabled={cancelReason.trim().length < 5}
                   loading={cancel.isPending}
-                  onClick={async () => { if (await confirm({ title: 'Cancel this return?', tone: 'destructive', confirmLabel: 'Cancel return' })) cancel.mutate(cancelReason.trim()); }}
+                  onClick={async () => { if ((await confirm({ title: 'Cancel this return?', tone: 'destructive', confirmLabel: 'Cancel return' })).ok) cancel.mutate(cancelReason.trim()); }}
                 >
                   Cancel return
                 </Button>
