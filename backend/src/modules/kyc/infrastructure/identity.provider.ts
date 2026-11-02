@@ -132,6 +132,8 @@ class StripeIdentityProvider implements IdentityProvider {
     if (!event.type.startsWith('identity.verification_session.')) return null;
 
     const vs = event.data.object as Stripe.Identity.VerificationSession;
+    // CatoDrive never tags its ID checks; a tagged one belongs to another system on this Stripe account.
+    if (vs.metadata?.app) return null;
     const userId = (vs.metadata?.userId as string) ?? '';
     if (!userId) return null;
 

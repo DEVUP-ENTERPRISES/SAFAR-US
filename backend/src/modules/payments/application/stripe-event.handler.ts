@@ -28,9 +28,14 @@ export async function runStripeEvent(event: {
   try {
     const obj = event.data.object as {
       id: string;
-      metadata?: { bookingId?: string; userId?: string };
+      metadata?: { bookingId?: string; userId?: string; app?: string };
       last_payment_error?: { message?: string };
     };
+    // CatoDrive never tags its payments; a tagged one belongs to another system on this Stripe account.
+    if (event.type.startsWith('payment_intent.') && obj.metadata?.app) {
+      await WebhookEventModel.updateOne({ _id: event.id }, { status: 'processed', processedAt: new Date(), $unset: { payload: 1 } });
+      return;
+    }
     const bookingId = obj.metadata?.bookingId;
     switch (event.type) {
       case 'payment_intent.succeeded':
