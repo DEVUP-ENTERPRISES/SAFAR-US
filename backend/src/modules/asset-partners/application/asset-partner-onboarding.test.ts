@@ -1,3 +1,4 @@
+jest.mock('./asset-partner-signing-code', () => ({ assetPartnerSigningCode: { send: jest.fn(async () => ({ sentTo: 'j•••@example.com', devCode: '123456' })), verify: jest.fn(async () => 'jordan@example.com') } }));
 jest.mock('../../notifications/application/notification.service', () => ({ notificationService: { send: jest.fn(async () => undefined) } }));
 jest.mock('../../vehicles/application/vin-decode.service', () => ({
   vinDecodeService: {
@@ -27,6 +28,7 @@ const NDA = { kind: 'nda' as const, title: 'Non-Disclosure Agreement', body: 'Th
 const SIGN: SignInput = {
   agreementVersion: 1, ndaVersion: 2, signedName: 'Jordan Ramirez', licenceNumber: 'D12345678', licenceState: 'tx',
   payout: { method: 'zelle', zelleHandle: 'jordan@example.com', zelleName: 'Jordan Ramirez' },
+  emailCode: '123456',
 };
 
 function dto(vin = '1HGCM82633A004352'): PortalApplicationDto {

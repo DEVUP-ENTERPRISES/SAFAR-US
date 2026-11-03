@@ -1,4 +1,5 @@
 import type { AssetPartnerDoc } from '../infrastructure/asset-partner.model';
+import { assetPartnerSigningCode } from './asset-partner-signing-code';
 import type { AssetPartnerTermsVersionDoc } from '../infrastructure/asset-partner-terms.model';
 import { assetPartnerTermsService, type TermsPatch } from './asset-partner-terms.service';
 import { assetPartnerEnvelopeService, type Ctx } from './asset-partner-envelope.service';
@@ -88,7 +89,7 @@ export class AssetPartnerAmendmentService {
   }
 
   /** The partner signs the change: sealed in its own envelope, then brought into force. */
-  async sign(partner: AssetPartnerDoc, input: { versionId: string; signedName: string; templateVersion: number }, ctx: Ctx) {
+  async sign(partner: AssetPartnerDoc, input: { versionId: string; signedName: string; templateVersion: number; emailCode: string }, ctx: Ctx) {
     const version = await assetPartnerTermsService.pending(partner._id);
     if (!version || version._id !== input.versionId) throw new ConflictError('This change is no longer waiting for your signature.', 'CHANGE_CLOSED');
     const signedName = input.signedName.trim().replace(/\s+/g, ' ');
@@ -96,6 +97,7 @@ export class AssetPartnerAmendmentService {
     const now = new Date();
     const t = await this.text(partner, version, signedName, now);
     if (t.version !== input.templateVersion) throw new ConflictError('The text was updated. Please read it again and sign.', 'AGREEMENT_OUTDATED');
+    const provedEmail = await assetPartnerSigningCode.verify(partner, input.emailCode);
 
     const envelope = await assetPartnerEnvelopeService.seal({
       partner,
@@ -107,6 +109,7 @@ export class AssetPartnerAmendmentService {
       terms: version.terms,
       ctx,
       at: now,
+      authenticated: { at: now, email: provedEmail },
     });
     const active = await assetPartnerTermsService.activate(version._id, now, envelope.envelopeId);
     void assetPartnerEnvelopeService.sendCopy(envelope, ctx);

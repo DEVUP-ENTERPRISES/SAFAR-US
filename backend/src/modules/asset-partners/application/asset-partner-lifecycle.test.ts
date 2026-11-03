@@ -1,3 +1,4 @@
+jest.mock('./asset-partner-signing-code', () => ({ assetPartnerSigningCode: { send: jest.fn(async () => ({ sentTo: 'j•••@example.com', devCode: '123456' })), verify: jest.fn(async () => 'jordan@example.com') } }));
 jest.mock('../../notifications/application/notification.service', () => ({ notificationService: { send: jest.fn(async () => undefined) } }));
 jest.mock('../../vehicles/application/vin-decode.service', () => ({
   vinDecodeService: { decodeBatch: jest.fn(async (vins: string[]) => vins.map((vin) => ({ vin, ok: true, year: 2024, make: 'BMW', model: '5 Series' }))) },
@@ -36,6 +37,7 @@ const DAY = 24 * 3600_000;
 const SIGN: SignInput = {
   agreementVersion: 1, ndaVersion: 2, signedName: 'Jordan Ramirez', licenceNumber: 'D12345678', licenceState: 'TX',
   payout: { method: 'zelle', zelleHandle: 'jordan@example.com', zelleName: 'Jordan Ramirez' },
+  emailCode: '123456',
 };
 const CONTACT = { name: 'Ana Ramirez', phone: '(214) 555-0199', relation: 'Sister' };
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SigningCode } from './signing-code';
 import { useMutation } from '@tanstack/react-query';
 import { Check, FileSignature, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,7 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
   const [payableTo, setPayableTo] = useState(prefill.partner_name ?? '');
   const [mailingAddress, setMailingAddress] = useState(prefill.partner_address ?? '');
   const [signedName, setSignedName] = useState('');
+  const [emailCode, setEmailCode] = useState('');
   const [accepts, setAccepts] = useState({ agreement: false, nda: false, deductibles: false });
   const markRead = useCallback(() => setRead((r) => {
     if (r[tab]) return r;
@@ -89,6 +91,7 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
         acceptAgreement: true,
         acceptNda: true,
         acknowledgeDeductibles: true,
+        emailCode,
       });
     },
     onSuccess: onDone,
@@ -119,7 +122,7 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
     signed_name: signedName,
   };
   const payoutOk = method === 'zelle' ? zelleHandle.trim().length >= 5 && zelleName.trim().length >= 2 : payableTo.trim().length >= 2 && mailingAddress.trim().length >= 8;
-  const ready = read.agreement && read.nda && licenceNumber.replace(/[^A-Za-z0-9]/g, '').length >= 4 && payoutOk && signedName.trim().length >= 2 && accepts.agreement && accepts.nda && accepts.deductibles;
+  const ready = read.agreement && read.nda && licenceNumber.replace(/[^A-Za-z0-9]/g, '').length >= 4 && payoutOk && signedName.trim().length >= 2 && accepts.agreement && accepts.nda && accepts.deductibles && emailCode.length === 6;
   const doc = tab === 'agreement' ? data.agreement : data.nda;
 
   return (
@@ -186,11 +189,12 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
           <Field label="Sign by typing your full legal name" htmlFor="signedName" hint="This is your electronic signature on both documents.">
             <Input id="signedName" autoComplete="name" value={signedName} maxLength={120} onChange={(e) => setSignedName(e.target.value)} />
           </Field>
+          <SigningCode value={emailCode} onChange={setEmailCode} />
         </section>
 
         {sign.isError && <p role="alert" className="text-sm text-destructive">{sign.error instanceof ApiError ? sign.error.message : 'We couldn’t record your signature. Try again.'}</p>}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Lock className="h-3.5 w-3.5" /> We record your name, the time and your IP with the exact version you signed.</p>
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Lock className="h-3.5 w-3.5" /> We record your name, the email code, the time and your IP with the exact version you signed.</p>
           <Button className="w-full sm:w-auto" disabled={!ready} loading={sign.isPending} onClick={() => sign.mutate()}>Sign both documents</Button>
         </div>
       </CardContent>

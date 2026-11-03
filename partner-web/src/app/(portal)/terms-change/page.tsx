@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { SigningCode } from '~/features/onboarding/signing-code';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, Check, FileSignature } from 'lucide-react';
@@ -31,6 +32,7 @@ export default function TermsChangePage() {
   const [read, setRead] = useState(false);
   const [agree, setAgree] = useState(false);
   const [name, setName] = useState('');
+  const [emailCode, setEmailCode] = useState('');
   const box = useRef<HTMLElement>(null);
   const a = q.data;
 
@@ -54,7 +56,7 @@ export default function TermsChangePage() {
     meta: { silentError: true },
     mutationFn: async () => {
       await assetPartnerApi.signingEvent('amendment', 'consented');
-      return assetPartnerApi.signAmendment({ versionId: a!.versionId, signedName: name.trim(), templateVersion: a!.version });
+      return assetPartnerApi.signAmendment({ versionId: a!.versionId, signedName: name.trim(), templateVersion: a!.version, emailCode });
     },
     onSuccess: (r) => {
       toast({ tone: 'success', title: 'Signed', description: `Envelope ${r.envelopeId}. Your new terms apply from ${formatDate(r.effectiveFrom)}.` });
@@ -75,7 +77,7 @@ export default function TermsChangePage() {
   if (!a) return <EmptyState title="Nothing to sign" description="There’s no change to your terms waiting for you." action={<Button variant="outline" onClick={() => router.push('/dashboard')}>Back to dashboard</Button>} />;
 
   const changed = Object.keys(a.to).filter((k) => a.from[k] !== a.to[k]);
-  const canSign = read && agree && name.trim().length >= 2;
+  const canSign = read && agree && name.trim().length >= 2 && emailCode.length === 6;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -125,6 +127,7 @@ export default function TermsChangePage() {
           <Field label="Sign by typing your full legal name" htmlFor="signed-name">
             <Input id="signed-name" autoComplete="name" maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
+          <SigningCode value={emailCode} onChange={setEmailCode} />
           {(sign.isError || decline.isError) && (
             <p role="alert" className="text-sm text-destructive">{fail(sign.error ?? decline.error, 'That didn’t go through. Try again.')}</p>
           )}

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { assetPartnerSigningCode } from './asset-partner-signing-code';
 import { AssetPartnerAgreementModel, type AgreementKind, type AssetPartnerAgreementDoc } from '../infrastructure/asset-partner-agreement.model';
 import { AssetPartnerModel, type AssetPartnerDoc, type PartnerAgreementSignature } from '../infrastructure/asset-partner.model';
 import { AssetPartnerApplicationModel, type AssetPartnerApplicationDoc } from '../infrastructure/asset-partner-application.model';
@@ -95,6 +96,8 @@ export interface SignInput {
   licenceNumber: string;
   licenceState: string;
   payout: PayoutElection;
+  /** The one-time code emailed to the partner for this signing. */
+  emailCode: string;
 }
 
 const tidy = (s: string) => s.trim().replace(/\s+/g, ' ');
@@ -111,6 +114,8 @@ export class AssetPartnerAgreementService {
   }
 
   async publish(userId: string, input: { kind?: AgreementKind; title: string; body: string }): Promise<AssetPartnerAgreementDoc> {
+    // The standard draft carries review markers; partners must never be asked to sign one.
+    if (input.body.includes('[BEFORE PUBLISHING') || input.body.includes('[CatoDrive legal notice address]')) throw new ValidationError('Remove the BEFORE PUBLISHING line and fill in the legal notice address first.');
     const kind = input.kind ?? 'agreement';
     const latest = await this.current(kind);
     const bodyHash = hashOf(input.body);
@@ -214,6 +219,8 @@ export class AssetPartnerAgreementService {
     if (p.method === 'zelle' && (tidy(p.zelleHandle).length < 5 || tidy(p.zelleName).length < 2)) throw new ValidationError('Enter the Zelle phone or email and the name on the account');
     if (p.method === 'check' && (tidy(p.payableTo).length < 2 || tidy(p.mailingAddress).length < 8)) throw new ValidationError('Enter who the check is payable to and the mailing address');
 
+    // Checked last, so a mistake elsewhere on the form doesn't burn the code.
+    const provedEmail = await assetPartnerSigningCode.verify(partner, input.emailCode);
     const now = new Date();
     const fields: Record<string, string> = {
       ...(await this.prefill(partner)),
@@ -241,6 +248,7 @@ export class AssetPartnerAgreementService {
       terms,
       ctx,
       at: now,
+      authenticated: { at: now, email: provedEmail },
     });
     const signature = (doc: AssetPartnerAgreementDoc): PartnerAgreementSignature => ({
       version: doc.version, bodyHash: doc.bodyHash, signedName, signedAt: now, ip: ctx.ip, userAgent: ctx.userAgent, fields, envelopeId: envelope.envelopeId,

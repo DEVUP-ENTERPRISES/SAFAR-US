@@ -201,6 +201,8 @@ export interface SignDocumentsInput {
   acceptAgreement: true;
   acceptNda: true;
   acknowledgeDeductibles: true;
+  /** The one-time code emailed for this signing. */
+  emailCode: string;
 }
 
 export interface PartnerOnboarding {
@@ -515,7 +517,8 @@ export const assetPartnerApi = {
   envelopes: () => api.get<SignatureEnvelope[]>('/asset-partners/me/envelopes'),
   downloadSealed: (documentId: string) => api.download(`/asset-partners/me/signed-documents/${documentId}`),
   amendment: () => api.get<TermsAmendment | null>('/asset-partners/me/amendment'),
-  signAmendment: (input: { versionId: string; signedName: string; templateVersion: number }) =>
+  sendSigningCode: () => api.post<{ sentTo: string }>('/asset-partners/me/signing-code'),
+  signAmendment: (input: { versionId: string; signedName: string; templateVersion: number; emailCode: string }) =>
     api.post<{ envelopeId: string; effectiveFrom: string }>('/asset-partners/me/amendment/sign', input),
   declineAmendment: () => api.post<{ declined: true }>('/asset-partners/me/amendment/decline'),
   /** Public: anyone can check an envelope ID or a file's fingerprint. */

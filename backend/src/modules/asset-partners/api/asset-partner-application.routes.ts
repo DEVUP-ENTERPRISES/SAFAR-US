@@ -24,6 +24,7 @@ import { ForbiddenError } from '../../../core/errors/app-error';
 import { notificationService } from '../../notifications/application/notification.service';
 import { assetPartnerNoticeService } from '../application/asset-partner-notice.service';
 import { assetPartnerReportsService } from '../application/asset-partner-reports.service';
+import { assetPartnerSigningCode } from '../application/asset-partner-signing-code';
 import { NOTICE_TYPES } from '../infrastructure/asset-partner-notice.model';
 import { resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
 
@@ -77,6 +78,19 @@ router.patch(
   validate({ body: portalApplicationSchema }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await assetPartnerApplicationService.resubmit(req.principal!.userId, req.params.id, req.body));
+  }),
+);
+
+// The one-time code that authenticates the signer, as an e-signature service does; sent to the account email.
+router.post(
+  '/asset-partners/me/signing-code',
+  authenticate,
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const partner = await assetPartnerService.getByUserId(req.principal!.userId);
+    if (!partner) throw new ForbiddenError('Not an Asset Partner');
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await assetPartnerSigningCode.send(partner));
   }),
 );
 
@@ -384,7 +398,7 @@ router.get(
 router.post(
   '/asset-partners/me/amendment/sign',
   authenticate,
-  validate({ body: z.object({ versionId: z.string().min(1), signedName: z.string().trim().min(2).max(120), templateVersion: z.number().int().min(0) }) }),
+  validate({ body: z.object({ versionId: z.string().min(1), signedName: z.string().trim().min(2).max(120), templateVersion: z.number().int().min(0), emailCode: z.string().trim().regex(/^d{6}$/) }) }),
   asyncHandler(async (req, res) => {
     const partner = await partnerOf(req.principal!.userId);
     sendSuccess(res, await assetPartnerAmendmentService.sign(partner, req.body, ctxOf(req)));
