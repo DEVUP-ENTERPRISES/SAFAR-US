@@ -14,6 +14,10 @@ export interface MaintenanceDoc {
   cost?: number;
   notes?: string;
   status: 'scheduled' | 'in_progress' | 'completed';
+  /** When the work was finished; a partner's statement charges it in this month. */
+  completedAt?: Date;
+  /** Repairing damage from an incident: the partner pays at most their deductible cap for it. */
+  damageIncident?: boolean;
   reminded?: boolean;
 
   /**
@@ -49,6 +53,8 @@ const schema = new Schema<MaintenanceDoc>(
     cost: Number,
     notes: String,
     status: { type: String, enum: ['scheduled', 'in_progress', 'completed'], default: 'scheduled' },
+    completedAt: Date,
+    damageIncident: Boolean,
     reminded: { type: Boolean, default: false },
 
     assetPartnerId: String,

@@ -2,8 +2,11 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FileText } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Download, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/components/ui/toast';
+import { saveFile } from '@/lib/utils/save-file';
 import { Chip } from '@/components/ui/chip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/states';
@@ -23,6 +26,54 @@ import { NotAPartner } from '~/components/portal/not-a-partner';
  * the only one a partner could see was the current month, on the dashboard.
  * Twelve months back, each fully broken down and per-vehicle.
  */
+/** The year in one place, for taxes: what was earned, and what was actually paid out in that calendar year. */
+function YearSummary() {
+  const thisYear = new Date().getUTCFullYear();
+  const [year, setYear] = useState(thisYear);
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+  const q = useQuery({ queryKey: ['asset-partner-year', year], queryFn: () => assetPartnerApi.yearSummary(year) });
+  const money = (v: number) => formatMoney({ amount: v, currency: 'USD' });
+  const download = async () => {
+    setBusy(true);
+    try {
+      const { blob, filename } = await assetPartnerApi.downloadYearSummary(year);
+      saveFile(blob, filename ?? `catodrive-earnings-${year}.pdf`);
+    } catch {
+      toast({ tone: 'error', title: 'That download didn’t work. Try again.' });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Card>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+        <CardTitle className="text-lg">Year summary for taxes</CardTitle>
+        <div className="flex gap-2">
+          {[thisYear, thisYear - 1].map((y) => <Chip key={y} active={year === y} onClick={() => setYear(y)}>{y}</Chip>)}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        {q.isLoading ? (
+          <Skeleton className="h-24 w-full" />
+        ) : q.isError || !q.data ? (
+          <ErrorState message="We couldn’t load this year." retry={() => void q.refetch()} />
+        ) : (
+          <>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <StatTile label="Gross bookings" value={money(q.data.totals.gross)} sub={`${q.data.totals.trips} trips`} />
+              <StatTile label="Net earned" value={money(q.data.totals.net)} />
+              <StatTile label={`Paid to you in ${year}`} value={money(q.data.paidInYear)} sub="What your 1099 reports" />
+            </div>
+            <p className="text-xs text-muted-foreground">A month earned in December is usually paid in January, so the two can differ.</p>
+            <Button size="sm" variant="outline" loading={busy} onClick={() => void download()}><Download className="h-4 w-4" aria-hidden /> Download {year} summary (PDF)</Button>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function PartnerStatementsPage() {
   const [months, setMonths] = useState(12);
 
@@ -113,6 +164,8 @@ export default function PartnerStatementsPage() {
               </CardContent>
             </Card>
           )}
+
+          <YearSummary />
 
           <section className="space-y-4">
             <h2 className="display flex items-center gap-2 text-xl">

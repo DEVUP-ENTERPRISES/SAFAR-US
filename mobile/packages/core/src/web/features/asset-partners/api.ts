@@ -303,6 +303,8 @@ export interface StatementLine {
   managementFee: number;
   insurance: number;
   detailing: number;
+  /** Approved repairs finished this month; a damage repair counts up to the deductible cap. */
+  repairs: number;
   net: number;
 }
 
@@ -323,6 +325,9 @@ export interface PartnerStatement {
     managementFee: number;
     insurance: number;
     detailing: number;
+    repairs: number;
+    /** Tolls and tickets the partner paid that CatoDrive accepted, paid back here. */
+    noticeRefunds: number;
     net: number;
   };
   payoutDate: string;
@@ -368,7 +373,73 @@ export interface PartnerVehicleDetail extends PartnerVehicleSummary {
   recentTrips: VehicleTripSummary[];
   /** This car's net across recent months, oldest first (chart order). */
   monthly: { period: string; net: number; gross: number }[];
+  /** Trips not finished yet, soonest first; `now` marks the one out with a guest. */
+  upcoming: { code: string; start: string; end: string; now: boolean }[];
+  daysBookedThisMonth: number;
+  daysInMonth: number;
+  photos: string[];
+  rating: { average: number; count: number };
+  reviews: { rating: number; comment: string; at: string }[];
+  claims: { type: string; status: string; at: string; amountClaimed?: number; amountApproved?: number }[];
 }
+
+export type NoticeType = 'toll' | 'parking' | 'traffic' | 'impound' | 'other';
+export type NoticeStatus = 'matched' | 'needs_review' | 'absorbed' | 'rejected';
+
+export interface PartnerNoticeTrip {
+  id: string;
+  code: string;
+  start: string;
+  end: string;
+}
+
+export interface PartnerNotice {
+  _id: string;
+  vehicleId: string;
+  vehicle: { name: string; plate?: string } | null;
+  partnerName?: string;
+  type: NoticeType;
+  issuedBy: string;
+  noticeRef: string;
+  occurredDate: string;
+  occurredAt?: string;
+  amountCents: number;
+  dueDate?: string;
+  paidByPartner: boolean;
+  evidence: { url: string; kind: 'image' | 'file' }[];
+  status: NoticeStatus;
+  reviewReason?: 'no_trip' | 'several_trips' | 'too_late';
+  trip: PartnerNoticeTrip | null;
+  candidates: PartnerNoticeTrip[];
+  /** How charging the guest stands: reported, charged, charge_failed, disputed, waived. */
+  guestCharge: string | null;
+  reimburseInPeriod?: string;
+  agencyPaid?: { at: string; reference?: string };
+  resolution?: { at: string; note?: string };
+  createdAt: string;
+}
+
+export interface NoticeUploadInput {
+  vehicleId: string;
+  type: NoticeType;
+  issuedBy: string;
+  noticeRef: string;
+  occurredDate: string;
+  occurredAt?: string;
+  amountCents: number;
+  dueDate?: string;
+  paidByPartner: boolean;
+  evidence: { key: string; kind: 'image' | 'file' }[];
+}
+
+export interface PartnerYearSummary {
+  year: number;
+  months: { period: string; trips: number; gross: number; net: number }[];
+  totals: { trips: number; gross: number; managementFee: number; insurance: number; detailing: number; repairs: number; noticeRefunds: number; net: number };
+  paidInYear: number;
+}
+
+export const NOTICE_TYPE_LABEL: Record<NoticeType, string> = { toll: 'Toll', parking: 'Parking ticket', traffic: 'Traffic or camera ticket', impound: 'Towing or impound', other: 'Other' };
 
 export type MaintenanceApproval = 'not_required' | 'pending' | 'approved' | 'declined';
 
@@ -455,6 +526,11 @@ export const assetPartnerApi = {
   respondIntake: (id: string, body: { kind: 'acknowledged'; signedName: string } | { kind: 'objected'; objection: string }) =>
     api.post<IntakeReport>(`/asset-partners/me/intakes/${id}/respond`, body),
   downloadIntake: (id: string) => api.download(`/asset-partners/me/intakes/${id}/pdf`),
+  notices: () => api.get<PartnerNotice[]>('/asset-partners/notices'),
+  uploadNotice: (body: NoticeUploadInput) => api.post<PartnerNotice>('/asset-partners/notices', body),
+  downloadStatement: (period: string) => api.download(`/asset-partners/statements/${period}/pdf`),
+  yearSummary: (year: number) => api.get<PartnerYearSummary>(`/asset-partners/year-summary/${year}`),
+  downloadYearSummary: (year: number) => api.download(`/asset-partners/year-summary/${year}/pdf`),
   lookupVin: (vin: string) => api.get<VinLookup>(`/asset-partners/vin/${encodeURIComponent(vin)}`),
 
   // Self-service payout recipient details. NOT terms - see the backend route.

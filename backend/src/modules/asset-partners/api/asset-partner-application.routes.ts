@@ -22,6 +22,10 @@ import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import { ForbiddenError } from '../../../core/errors/app-error';
 import { notificationService } from '../../notifications/application/notification.service';
+import { assetPartnerNoticeService } from '../application/asset-partner-notice.service';
+import { assetPartnerReportsService } from '../application/asset-partner-reports.service';
+import { NOTICE_TYPES } from '../infrastructure/asset-partner-notice.model';
+import { resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
 
 const router = Router();
 
@@ -584,6 +588,86 @@ router.post(
         req.body.reason,
       ),
     );
+  }),
+);
+
+// Toll, parking and traffic notices that reach the partner by post, matched to the trip that had the car.
+router.get(
+  '/asset-partners/notices',
+  authenticate,
+  requirePartnerReady,
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await assetPartnerNoticeService.listForPartner(req.principal!.userId));
+  }),
+);
+
+router.post(
+  '/asset-partners/notices',
+  authenticate,
+  requirePartnerReady,
+  validate({
+    body: z.object({
+      vehicleId: z.string().min(1),
+      type: z.enum(NOTICE_TYPES),
+      issuedBy: z.string().trim().min(2).max(120),
+      noticeRef: z.string().trim().min(2).max(60),
+      occurredDate: z.string().regex(/^d{4}-d{2}-d{2}$/),
+      occurredAt: z.coerce.date().optional(),
+      amountCents: z.number().int().min(1).max(500_000),
+      dueDate: z.string().regex(/^d{4}-d{2}-d{2}$/).optional(),
+      paidByPartner: z.boolean(),
+      evidence: z.array(z.object({ key: z.string().min(1), kind: z.enum(['image', 'file']) })).min(1).max(5),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    const userId = req.principal!.userId;
+    // Only files this partner uploaded as notices can be attached.
+    const evidence = (req.body.evidence as { key: string; kind: 'image' | 'file' }[]).map((e) => ({ ...resolveOwnedUpload({ key: e.key }, userId, 'notice'), kind: e.kind }));
+    sendCreated(res, await assetPartnerNoticeService.upload(userId, { ...req.body, evidence }));
+  }),
+);
+
+/** A partner's own statement or yearly summary; the account is the only key, so no one reads another partner's. */
+async function readyPartner(userId: string) {
+  const partner = await assetPartnerService.getByUserId(userId);
+  if (!partner) throw new ForbiddenError('Not an Asset Partner');
+  return partner;
+}
+
+router.get(
+  '/asset-partners/statements/:period/pdf',
+  authenticate,
+  requirePartnerReady,
+  asyncHandler(async (req, res) => {
+    const { pdf, filename } = await assetPartnerReportsService.statementPdf(await readyPartner(req.principal!.userId), req.params.period);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(pdf);
+  }),
+);
+
+router.get(
+  '/asset-partners/year-summary/:year',
+  authenticate,
+  requirePartnerReady,
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await assetPartnerReportsService.yearSummary(await readyPartner(req.principal!.userId), Number(req.params.year)));
+  }),
+);
+
+router.get(
+  '/asset-partners/year-summary/:year/pdf',
+  authenticate,
+  requirePartnerReady,
+  asyncHandler(async (req, res) => {
+    const { pdf, filename } = await assetPartnerReportsService.yearSummaryPdf(await readyPartner(req.principal!.userId), Number(req.params.year));
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(pdf);
   }),
 );
 

@@ -1,6 +1,11 @@
 'use client';
 
-import { FileText } from 'lucide-react';
+import { useState } from 'react';
+import { Download, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/toast';
+import { assetPartnerApi } from '@/features/asset-partners/api';
+import { saveFile } from '@/lib/utils/save-file';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatMoney, formatDate } from '@/lib/utils/format';
@@ -55,6 +60,8 @@ export function StatementCard({
         />
         <StatementRow label="Fleet insurance" value={`−${money(t.insurance)}`} muted />
         <StatementRow label="Professional detailing" value={`−${money(t.detailing)}`} muted />
+        {t.repairs > 0 && <StatementRow label="Repairs" value={`−${money(t.repairs)}`} muted />}
+        {t.noticeRefunds > 0 && <StatementRow label="Tolls and tickets you paid, refunded" value={`+${money(t.noticeRefunds)}`} />}
         <div className="border-t border-border pt-2.5">
           <StatementRow label="Your net" value={money(t.net)} strong />
         </div>
@@ -80,8 +87,30 @@ export function StatementCard({
           detailing are charged monthly per vehicle while it is in the programme, whether or not it
           was booked.
         </p>
+        <DownloadStatement period={statement.period} />
       </CardContent>
     </Card>
+  );
+}
+
+function DownloadStatement({ period }: { period: string }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const download = async () => {
+    setBusy(true);
+    try {
+      const { blob, filename } = await assetPartnerApi.downloadStatement(period);
+      saveFile(blob, filename ?? `catodrive-statement-${period}.pdf`);
+    } catch {
+      toast({ tone: 'error', title: 'That download didn’t work. Try again.' });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Button size="sm" variant="outline" loading={busy} onClick={() => void download()}>
+      <Download className="h-4 w-4" aria-hidden /> Download report (PDF)
+    </Button>
   );
 }
 

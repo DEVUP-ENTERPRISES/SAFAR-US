@@ -3,6 +3,7 @@ import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { notificationService } from '../../notifications/application/notification.service';
 import { ledgerService } from '../../payments/application/ledger.service';
+import { paymentService } from '../../payments/application/payment.service';
 import { Account } from '../../payments/domain/ledger.accounts';
 import { hostService } from '../../hosts/application/host.service';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
@@ -38,6 +39,15 @@ export class ViolationService {
    * and no way to tell a real ticket from an invented one.
    */
   async report(reporterId: string, input: ReportViolationInput): Promise<ViolationDoc> {
+    return this.file(reporterId, input, { hostOnly: true });
+  }
+
+  /** A notice an Asset Partner uploaded for their own car, already matched to this trip by the notice service. */
+  async fileFromPartnerNotice(reporterId: string, input: ReportViolationInput, partnerNoticeId: string): Promise<ViolationDoc> {
+    return this.file(reporterId, input, { hostOnly: false, partnerNoticeId });
+  }
+
+  private async file(reporterId: string, input: ReportViolationInput, opts: { hostOnly: boolean; partnerNoticeId?: string }): Promise<ViolationDoc> {
     const booking = await BookingModel.findOne({ _id: input.bookingId, deletedAt: null })
       .select('_id guestId hostId period status priceBreakdown')
       .lean<{
@@ -50,9 +60,11 @@ export class ViolationService {
       } | null>();
     if (!booking) throw new NotFoundError('Booking');
 
-    const host = await hostService.getByUserId(reporterId).catch(() => null);
-    if (!host || host._id !== booking.hostId) {
-      throw new ForbiddenError('Only the host of this trip can report a citation');
+    if (opts.hostOnly) {
+      const host = await hostService.getByUserId(reporterId).catch(() => null);
+      if (!host || host._id !== booking.hostId) {
+        throw new ForbiddenError('Only the host of this trip can report a citation');
+      }
     }
 
     const cfg = (await platformConfigService.get()).violations;
@@ -91,6 +103,7 @@ export class ViolationService {
           adminFee: cfg.adminFeeCents,
           currency: booking.priceBreakdown.currency,
           reportedBy: reporterId,
+          partnerNoticeId: opts.partnerNoticeId,
         })
       ).toObject();
     } catch (err) {
@@ -154,7 +167,27 @@ export class ViolationService {
     if (v.status === 'waived') throw new ConflictError('This citation was waived', 'WAIVED');
 
     const total = v.amount + v.adminFee;
+    // The guest's saved card; the key makes a retry after a failure or a double click take the money once.
+    const taken = await paymentService.chargeGuest({ bookingId: v.bookingId, guestId: v.guestId, amount: total, currency: v.currency, idempotencyKey: `violation_${v._id}` });
+    if (!taken) {
+      await ViolationModel.updateOne({ _id: violationId }, { status: 'charge_failed', resolvedBy: staffId, resolvedAt: new Date() });
+      await notificationService
+        .send({
+          userId: v.guestId,
+          priority: 'high',
+          deepLink: `/bookings/${v.bookingId}`,
+          templateKey: 'violation.charge_failed',
+          title: 'We couldn’t charge a citation from your trip',
+          body: `${v.issuedBy}, ref ${v.citationRef}, ${(total / 100).toFixed(2)} ${v.currency}. Update your card so it can be paid.`,
+          data: { violationId: v._id },
+        })
+        .catch(() => undefined);
+      logger.warn({ violationId, total }, 'violation charge failed: no card or card declined');
+      return this.getDoc(violationId);
+    }
+
     await ledgerService.post({
+      txnId: `violation_${v._id}`,
       refType: 'violation',
       refId: v._id,
       currency: v.currency,
@@ -170,7 +203,7 @@ export class ViolationService {
 
     await ViolationModel.updateOne(
       { _id: violationId },
-      { status: 'charged', resolvedBy: staffId, resolvedAt: new Date() },
+      { status: 'charged', resolvedBy: staffId, resolvedAt: new Date(), collected: { at: new Date(), amount: total } },
     );
 
     await notificationService

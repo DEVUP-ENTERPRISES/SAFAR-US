@@ -23,6 +23,40 @@ import { TermsHistory } from '~/features/partners/terms-history';
 import { PartnerLifecycleCard } from '~/features/partners/partner-lifecycle-card';
 import { ApiError } from '@/lib/api/types';
 import { safeMessage } from '@/lib/utils/safe-message';
+import { api } from '@/lib/api/client';
+import { saveFile } from '@/lib/utils/save-file';
+
+/** The monthly partner report ops used to build by hand: pick the month, get the PDF to send. */
+function StatementDownload({ partnerId }: { partnerId: string }) {
+  const toast = useToast();
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() - i);
+    return d.toISOString().slice(0, 7);
+  });
+  const [period, setPeriod] = useState(months[1]);
+  const [busy, setBusy] = useState(false);
+  const download = async () => {
+    setBusy(true);
+    try {
+      const { blob, filename } = await api.download(`/ioc/asset-partners/${partnerId}/statements/${period}/pdf`);
+      saveFile(blob, filename ?? `catodrive-statement-${period}.pdf`);
+    } catch {
+      toast({ tone: 'error', title: 'That download didn’t work. Try again.' });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2 pt-2">
+      <Select aria-label="Month" value={period} onChange={(e) => setPeriod(e.target.value)} className="w-36">
+        {months.map((m) => <option key={m} value={m}>{m}</option>)}
+      </Select>
+      <Button size="sm" variant="outline" loading={busy} onClick={() => void download()}>Download report (PDF)</Button>
+    </div>
+  );
+}
 
 const manage = partnerManageApi('/ioc');
 
@@ -446,6 +480,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               />
               <Row label="Fleet insurance" value={`−${money(statement.data.totals.insurance)}`} />
               <Row label="Detailing" value={`−${money(statement.data.totals.detailing)}`} />
+              {statement.data.totals.repairs > 0 && <Row label="Repairs" value={`−${money(statement.data.totals.repairs)}`} />}
+              {statement.data.totals.noticeRefunds > 0 && <Row label="Tolls and tickets refunded" value={`+${money(statement.data.totals.noticeRefunds)}`} />}
               <div className="border-t border-border pt-2.5">
                 <Row label="Partner net" value={money(statement.data.totals.net)} strong />
               </div>
@@ -455,6 +491,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 {formatDate(statement.data.payoutDate)} by {statement.data.payoutMethod} ·{' '}
                 {statement.data.final ? 'final' : 'month still running'}
               </p>
+              <StatementDownload partnerId={id} />
             </>
           ) : (
             <p className="text-sm text-muted-foreground">No statement available.</p>

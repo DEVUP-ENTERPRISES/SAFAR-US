@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import {
-  LayoutDashboard, Car, FileText, Wrench, FolderLock, User, LayoutGrid, Handshake, Undo2,
+  LayoutDashboard, Car, FileText, Wrench, FolderLock, User, LayoutGrid, Handshake, Undo2, Ticket,
 } from 'lucide-react';
 import { PanelSidebar, type PanelNavItem } from '@/components/layout/panel-sidebar';
 import { assetPartnerApi } from '@/features/asset-partners/api';
@@ -15,6 +15,7 @@ const ICONS = {
   documents: FolderLock,
   profile: User,
   returns: Undo2,
+  notices: Ticket,
 };
 
 /*
@@ -32,6 +33,8 @@ const NAV: PanelNavItem[] = [
   { slug: 'vehicles', label: 'Vehicles', path: '/vehicles', group: 'Overview' },
   { slug: 'statements', label: 'Statements', mobileLabel: 'Earnings', path: '/statements', group: 'Money' },
   { slug: 'maintenance', label: 'Maintenance', mobileLabel: 'Repairs', path: '/maintenance', group: 'Vehicle care' },
+  // Phones reach it from the dashboard card; the bar is full at six.
+  { slug: 'notices', label: 'Tolls & tickets', path: '/notices', group: 'Vehicle care', mobile: false },
   {
     slug: 'documents',
     label: 'Documents',

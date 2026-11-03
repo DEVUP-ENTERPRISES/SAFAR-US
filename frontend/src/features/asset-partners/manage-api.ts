@@ -1,5 +1,5 @@
 import { api } from '@/lib/api/client';
-import type { FuelLevel, IntakeReport, SignatureEnvelope } from './api';
+import type { FuelLevel, IntakeReport, NoticeStatus, PartnerNotice, SignatureEnvelope } from './api';
 
 type Q = Record<string, string | number | boolean | undefined>;
 export type ReviewDecision = 'approved' | 'changes_requested' | 'rejected';
@@ -158,7 +158,12 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     assignCar: (vehicleId: string, partnerId: string) => api.post(`${base}/asset-management/cars/${vehicleId}/assign`, { partnerId }),
     returnCar: (vehicleId: string) => api.post(`${base}/asset-management/cars/${vehicleId}/end`, {}),
     repairs: (approval?: RepairApproval) => api.get<PartnerRepair[]>(`${base}/asset-partner-repairs`, approval ? { approval } : {}),
-    scheduleRepair: (input: { vehicleId: string; type: RepairType; scheduledFor: string; costCents?: number; notes?: string }) =>
+    scheduleRepair: (input: { vehicleId: string; type: RepairType; scheduledFor: string; costCents?: number; notes?: string; damageIncident?: boolean }) =>
       api.post<PartnerRepair>(`${base}/asset-partners/maintenance`, input),
+    notices: (status?: NoticeStatus) => api.get<PartnerNotice[]>(`${base}/asset-partner-notices`, status ? { status } : {}),
+    assignNotice: (id: string, bookingId: string) => api.post<PartnerNotice>(`${base}/asset-partner-notices/${id}/assign`, { bookingId }),
+    absorbNotice: (id: string, note: string) => api.post<PartnerNotice>(`${base}/asset-partner-notices/${id}/absorb`, { note }),
+    rejectNotice: (id: string, note: string) => api.post<PartnerNotice>(`${base}/asset-partner-notices/${id}/reject`, { note }),
+    noticeAgencyPaid: (id: string, reference?: string) => api.post<PartnerNotice>(`${base}/asset-partner-notices/${id}/agency-paid`, { reference }),
   };
 }

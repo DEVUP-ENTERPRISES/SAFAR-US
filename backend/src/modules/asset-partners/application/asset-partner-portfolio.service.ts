@@ -86,7 +86,7 @@ export const assetPartnerPortfolioService = {
           since: v.assetPartnerSince ?? v.createdAt,
           endedAt: v.assetPartnerEndedAt,
           pendingRepairs: repairsByVehicle.get(v._id) ?? 0,
-          ...(line ? { month: { trips: line.trips, gross: line.gross, managementFee: line.managementFee, insurance: line.insurance, detailing: line.detailing, net: line.net } } : {}),
+          ...(line ? { month: { trips: line.trips, gross: line.gross, managementFee: line.managementFee, insurance: line.insurance, detailing: line.detailing, repairs: line.repairs, net: line.net } } : {}),
         };
       })
       .sort((a, b) => Number(!!a.endedAt) - Number(!!b.endedAt) || a.partnerName.localeCompare(b.partnerName) || a.label.localeCompare(b.label));

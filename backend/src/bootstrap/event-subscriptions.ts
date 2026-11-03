@@ -96,7 +96,7 @@ async function bookingTerms(bookingId: string): Promise<string[] | undefined> {
       'Only the verified driver on this booking may drive. Bring the driver’s licence you verified.',
       `Shortly before pickup your host sees the photo from your ID check, to confirm it is you at the car. If they cannot, the trip is held until our team confirms your identity.`,
       'The vehicle is tracked for safety and recovery, as set out in the terms and conditions.',
-      'Return the car on time and in the condition you received it. Late returns, tolls, tickets, fuel and damage are charged as set out in the terms and conditions.',
+      'Return the car on time and in the condition you received it. Late returns, tolls, tickets, fuel and damage are charged as set out in the terms and conditions, including toll and ticket notices that arrive after your trip.',
     );
     return terms;
   } catch (err) {

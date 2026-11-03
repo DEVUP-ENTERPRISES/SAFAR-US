@@ -21,6 +21,8 @@ export interface PlatformPublicConfig {
   /** Guest programmes the admin can pause; absent on an older backend. */
   programs?: { rewardsEnabled: boolean; referralEnabled: boolean; membershipEnabled?: boolean };
   checkout?: { otherMethodsEnabled: boolean };
+  /** The published Asset Partner management fee; the owner keeps the rest. */
+  assetPartner?: { managementFeeBps: number };
   auth?: { phoneSignIn: boolean };
   /** Protection tiers a guest can buy at checkout; priced per day in cents. */
   protection: { code: string; label: string; description: string; pricePerDay: number }[];

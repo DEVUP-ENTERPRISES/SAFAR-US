@@ -22,7 +22,8 @@ export type UploadCategory =
   | 'recall_receipt'
   | 'w9' // Asset Partner tax form
   | 'title' // vehicle title or loan papers
-  | 'partner_exit'; // estate papers when a partner has died
+  | 'partner_exit' // estate papers when a partner has died
+  | 'notice'; // a toll, parking or traffic notice a partner received for their car
 
 export const UPLOAD_CATEGORIES = [
   'vehicle_photo',
@@ -37,6 +38,7 @@ export const UPLOAD_CATEGORIES = [
   'w9',
   'title',
   'partner_exit',
+  'notice',
 ] as const;
 
 /**
@@ -79,6 +81,7 @@ export const PRIVATE_CATEGORIES: UploadCategory[] = [
   'w9',
   'title',
   'partner_exit',
+  'notice',
 ];
 
 export function isPrivateCategory(category: string): boolean {

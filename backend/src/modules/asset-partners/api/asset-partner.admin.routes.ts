@@ -7,6 +7,10 @@ import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
+import { assetPartnerNoticeService } from '../application/asset-partner-notice.service';
+import { assetPartnerReportsService } from '../application/asset-partner-reports.service';
+import { AssetPartnerModel, type AssetPartnerDoc } from '../infrastructure/asset-partner.model';
+import { NotFoundError } from '../../../core/errors/app-error';
 
 const router = Router();
 
@@ -156,10 +160,69 @@ router.post(
       costCents: z.number().int().min(0).optional(),
       odometerKm: z.number().int().min(0).optional(),
       notes: z.string().max(500).optional(),
+      damageIncident: z.boolean().optional(),
     }),
   }),
   asyncHandler(async (req, res) => {
     sendCreated(res, await assetPartnerMaintenanceService.create(req.body));
+  }),
+);
+
+router.get(
+  '/asset-partner-notices',
+  validate({ query: z.object({ status: z.enum(['matched', 'needs_review', 'absorbed', 'rejected']).optional() }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerNoticeService.listForOps(req.query as never));
+  }),
+);
+
+router.post(
+  '/asset-partner-notices/:id/assign',
+  authorize('host:manage'),
+  validate({ body: z.object({ bookingId: z.string().min(1) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerNoticeService.assign(req.params.id, req.body.bookingId, req.principal!.userId));
+  }),
+);
+
+router.post(
+  '/asset-partner-notices/:id/absorb',
+  authorize('host:manage'),
+  validate({ body: z.object({ note: z.string().trim().min(2).max(500) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerNoticeService.absorb(req.params.id, req.principal!.userId, req.body.note));
+  }),
+);
+
+router.post(
+  '/asset-partner-notices/:id/reject',
+  authorize('host:manage'),
+  validate({ body: z.object({ note: z.string().trim().min(2).max(500) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerNoticeService.reject(req.params.id, req.principal!.userId, req.body.note));
+  }),
+);
+
+router.post(
+  '/asset-partner-notices/:id/agency-paid',
+  authorize('host:manage'),
+  validate({ body: z.object({ reference: z.string().trim().max(120).optional() }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerNoticeService.markAgencyPaid(req.params.id, req.principal!.userId, req.body.reference));
+  }),
+);
+
+// The monthly report ops used to build by hand, for any partner.
+router.get(
+  '/asset-partners/:partnerId/statements/:period/pdf',
+  asyncHandler(async (req, res) => {
+    const partner = await AssetPartnerModel.findById(req.params.partnerId).lean<AssetPartnerDoc>();
+    if (!partner) throw new NotFoundError('Partner');
+    const { pdf, filename } = await assetPartnerReportsService.statementPdf(partner, req.params.period);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(pdf);
   }),
 );
 

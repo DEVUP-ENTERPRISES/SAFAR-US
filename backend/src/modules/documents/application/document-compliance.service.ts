@@ -121,6 +121,9 @@ export class DocumentComplianceService {
             deepLink: `/host/listings/${d.vehicleId}`,
             data: { vehicleId: d.vehicleId, category: d.category, days },
           });
+          // A partner car is run from the fleet account, but the owner is the one who renews its papers.
+          const { assetPartnerAlertsService } = await import('../../asset-partners/application/asset-partner-alerts.service');
+          await assetPartnerAlertsService.documentExpiring(d.vehicleId, d.category, d.expiresAt, days).catch(() => undefined);
           // Marked only after the notice actually went out, so a send failure
           // is retried on the next sweep rather than silently swallowed.
           await DocumentModel.updateOne({ _id: d._id }, { $set: { expiryNoticeSentFor: days } });
