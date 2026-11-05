@@ -4,6 +4,8 @@ import { assetPartnerSigningCode } from './asset-partner-signing-code';
 import { assetPartnerService } from './asset-partner.service';
 import { assetPartnerEnvelopeService } from './asset-partner-envelope.service';
 import { UserModel } from '../../users/infrastructure/user.model';
+import { KycModel } from '../../kyc/infrastructure/kyc.model';
+import { assetPartnerAgreementService } from './asset-partner-agreement.service';
 import { channelProviders } from '../../notifications/infrastructure/channel.providers';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
 
@@ -48,5 +50,14 @@ describe('signing with an emailed one-time code', () => {
     const types = env.events.map((e) => e.type);
     expect(types.indexOf('authenticated')).toBeGreaterThanOrEqual(0);
     expect(types.indexOf('authenticated')).toBeLessThan(types.indexOf('signed'));
+  });
+});
+
+describe('the signing page asks only what it doesn’t know', () => {
+  it('takes the legal name and licence from the ID check', async () => {
+    const p = await partner();
+    await KycModel.create({ userId: 'u-sign', status: 'approved', provider: 'stripe', verifiedFirstName: 'Jordan', verifiedLastName: 'Ramirez', licenceLast4: '5678' });
+    const f = await assetPartnerAgreementService.prefill(p);
+    expect(f).toMatchObject({ signer_name: 'Jordan Ramirez', licence_last4: '5678' });
   });
 });

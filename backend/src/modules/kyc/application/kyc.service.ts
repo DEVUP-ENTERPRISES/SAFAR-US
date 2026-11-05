@@ -89,6 +89,7 @@ export class KycService {
           rejectionReason: undefined,
           ...(result.licenceExpiry ? { licenceExpiry: new Date(result.licenceExpiry) } : {}),
           ...(result.licenceNumberHash ? { licenceNumberHash: result.licenceNumberHash } : {}),
+          ...(result.licenceLast4 ? { licenceLast4: result.licenceLast4 } : {}),
           ...(result.firstName ? { verifiedFirstName: result.firstName } : {}),
           ...(result.lastName ? { verifiedLastName: result.lastName } : {}),
           ...(result.dob ? { verifiedDob: new Date(result.dob) } : {}),

@@ -78,8 +78,8 @@ export const signAgreementSchema = z.object({
   agreementVersion: z.number().int().min(1),
   ndaVersion: z.number().int().min(1),
   signedName: z.string().trim().min(2).max(120),
-  licenceNumber: z.string().trim().min(4).max(30),
-  licenceState: z.string().trim().length(2),
+  licenceNumber: z.string().trim().min(4).max(30).optional(),
+  licenceState: z.string().trim().length(2).optional(),
   payout: z.discriminatedUnion('method', [
     z.object({ method: z.literal('zelle'), zelleHandle: z.string().trim().min(5).max(120), zelleName: z.string().trim().min(2).max(120) }),
     z.object({ method: z.literal('check'), payableTo: z.string().trim().min(2).max(120), mailingAddress: z.string().trim().min(8).max(300) }),

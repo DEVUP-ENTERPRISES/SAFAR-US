@@ -56,14 +56,16 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
   const prefill = data.prefill ?? {};
   const [tab, setTab] = useState<'agreement' | 'nda'>('agreement');
   const [read, setRead] = useState({ agreement: false, nda: false });
+  const fromId = prefill.licence_last4 ?? '';
+  const [editLicence, setEditLicence] = useState(false);
   const [licenceNumber, setLicenceNumber] = useState('');
-  const [licenceState, setLicenceState] = useState('TX');
+  const [licenceState, setLicenceState] = useState(prefill.licence_state || 'TX');
   const [method, setMethod] = useState<'zelle' | 'check'>('zelle');
   const [zelleHandle, setZelleHandle] = useState(prefill.partner_email ?? '');
   const [zelleName, setZelleName] = useState(prefill.partner_name ?? '');
   const [payableTo, setPayableTo] = useState(prefill.partner_name ?? '');
   const [mailingAddress, setMailingAddress] = useState(prefill.partner_address ?? '');
-  const [signedName, setSignedName] = useState('');
+  const [signedName, setSignedName] = useState(prefill.signer_name ?? '');
   const [emailCode, setEmailCode] = useState('');
   const [accepts, setAccepts] = useState({ agreement: false, nda: false, deductibles: false });
   const markRead = useCallback(() => setRead((r) => {
@@ -85,7 +87,7 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
         agreementVersion: data.agreement!.version,
         ndaVersion: data.nda!.version,
         signedName,
-        licenceNumber,
+        licenceNumber: typedLicence ? licenceNumber : undefined,
         licenceState,
         payout: method === 'zelle' ? { method, zelleHandle, zelleName } : { method, payableTo, mailingAddress },
         acceptAgreement: true,
@@ -111,7 +113,9 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
     );
   }
 
-  const last4 = licenceNumber.replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase();
+  // The ID check already read the licence; it is only typed when there is no ID check or the partner corrects it.
+  const typedLicence = editLicence || !fromId;
+  const last4 = typedLicence ? licenceNumber.replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase() : fromId;
   const values: Record<string, string> = {
     licence: last4.length === 4 ? `${licenceState} •••• ${last4}` : '',
     payout_method: method === 'zelle' ? 'Zelle' : 'Mailed check',
@@ -122,7 +126,7 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
     signed_name: signedName,
   };
   const payoutOk = method === 'zelle' ? zelleHandle.trim().length >= 5 && zelleName.trim().length >= 2 : payableTo.trim().length >= 2 && mailingAddress.trim().length >= 8;
-  const ready = read.agreement && read.nda && licenceNumber.replace(/[^A-Za-z0-9]/g, '').length >= 4 && payoutOk && signedName.trim().length >= 2 && accepts.agreement && accepts.nda && accepts.deductibles && emailCode.length === 6;
+  const ready = read.agreement && read.nda && (!typedLicence || licenceNumber.replace(/[^A-Za-z0-9]/g, '').length >= 4) && payoutOk && signedName.trim().length >= 2 && accepts.agreement && accepts.nda && accepts.deductibles && emailCode.length === 6;
   const doc = tab === 'agreement' ? data.agreement : data.nda;
 
   return (
@@ -148,14 +152,21 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
 
         <section className="space-y-4">
           <h3 className="font-semibold">Your details</h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
-            <Field label="Driver’s licence number" htmlFor="licence" hint="Only the last 4 digits are kept on the signed copy.">
-              <Input id="licence" autoComplete="off" value={licenceNumber} maxLength={30} onChange={(e) => setLicenceNumber(e.target.value)} />
-            </Field>
-            <Field label="State" htmlFor="licenceState">
-              <Select id="licenceState" value={licenceState} onChange={(e) => setLicenceState(e.target.value)}>{US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}</Select>
-            </Field>
-          </div>
+          {fromId && !editLicence ? (
+            <p className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-subtle p-3 text-sm">
+              <span>Driver’s licence: <span className="font-medium tabular-nums">{licenceState} •••• {fromId}</span> <span className="text-muted-foreground">(from your ID check)</span></span>
+              <button type="button" className="text-sm font-medium text-primary hover:underline" onClick={() => setEditLicence(true)}>Change</button>
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
+              <Field label="Driver’s licence number" htmlFor="licence" hint="Only the last 4 digits are kept on the signed copy.">
+                <Input id="licence" autoComplete="off" value={licenceNumber} maxLength={30} onChange={(e) => setLicenceNumber(e.target.value)} />
+              </Field>
+              <Field label="State" htmlFor="licenceState">
+                <Select id="licenceState" value={licenceState} onChange={(e) => setLicenceState(e.target.value)}>{US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}</Select>
+              </Field>
+            </div>
+          )}
           <Field label="How should we pay you? (Exhibit B)">
             <div className="flex flex-wrap gap-2">
               <Chip type="button" active={method === 'zelle'} onClick={() => setMethod('zelle')}>Zelle</Chip>

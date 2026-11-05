@@ -13,6 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { uploadFiles } from '@/features/media/upload';
 import { assetPartnerApi, type PartnerApplicationDetail, type PortalApplicationInput, type VinLookup } from '@/features/asset-partners/api';
 import { US_STATES } from '@/lib/data/us-states';
+import { useQuery } from '@tanstack/react-query';
+import { authApi } from '@/features/auth/api';
 import { ApiError } from '@/lib/api/types';
 import { cn } from '@/lib/utils/cn';
 
@@ -165,6 +167,14 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
     } catch { /* storage unavailable: start from the seed */ }
     return seeded;
   });
+  // Name and phone were given at sign-up; start from them instead of asking again.
+  const me = useQuery({ queryKey: ['me'], queryFn: () => authApi.me(), staleTime: 60_000 });
+  useEffect(() => {
+    const u = me.data;
+    if (!u) return;
+    const name = [u.firstName, u.lastName].filter(Boolean).join(' ');
+    setD((p) => ({ ...p, fullName: p.fullName || name, phone: p.phone || u.phone || '' }));
+  }, [me.data]);
   const [stepIdx, setStepIdx] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState<Record<string, boolean>>({});

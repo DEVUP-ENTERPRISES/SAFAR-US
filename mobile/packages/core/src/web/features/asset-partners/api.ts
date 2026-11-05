@@ -196,8 +196,9 @@ export interface SignDocumentsInput {
   agreementVersion: number;
   ndaVersion: number;
   signedName: string;
-  licenceNumber: string;
-  licenceState: string;
+  /** Left out when the ID check already read the licence. */
+  licenceNumber?: string;
+  licenceState?: string;
   payout: PayoutElection;
   acceptAgreement: true;
   acceptNda: true;

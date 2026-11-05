@@ -14,6 +14,7 @@ import { assetPartnerEnvelopeService } from './asset-partner-envelope.service';
 import { assetPartnerOfferService } from './asset-partner-offer.service';
 import { assetPartnerProfileService } from './asset-partner-profile.service';
 import { SignatureEnvelopeModel } from '../infrastructure/signature-envelope.model';
+import { KycModel } from '../../kyc/infrastructure/kyc.model';
 import type { ResolvedTermsSnapshot } from '../infrastructure/asset-partner-terms.model';
 
 const hashOf = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
@@ -93,8 +94,9 @@ export interface SignInput {
   agreementVersion: number;
   ndaVersion: number;
   signedName: string;
-  licenceNumber: string;
-  licenceState: string;
+  /** Left out when the ID check already read the licence. */
+  licenceNumber?: string;
+  licenceState?: string;
   payout: PayoutElection;
   /** The one-time code emailed to the partner for this signing. */
   emailCode: string;
@@ -172,9 +174,17 @@ export class AssetPartnerAgreementService {
 
   /** Everything known before signing, filled into both texts; what the partner types at signing stays blank until then. */
   async prefill(partner: AssetPartnerDoc): Promise<Record<string, string>> {
-    const app = await this.applicationOf(partner);
+    const [app, kyc] = await Promise.all([
+      this.applicationOf(partner),
+      KycModel.findOne({ userId: partner.userId, status: 'approved' }).select('licenceLast4 verifiedFirstName verifiedLastName').lean<{ licenceLast4?: string; verifiedFirstName?: string; verifiedLastName?: string }>(),
+    ]);
     const v = app?.vehicle;
+    const idName = [kyc?.verifiedFirstName, kyc?.verifiedLastName].filter(Boolean).join(' ');
     return {
+      // What the ID check and the application already know, so the signing page doesn't ask again.
+      signer_name: idName || app?.fullName || partner.displayName,
+      licence_last4: kyc?.licenceLast4 ?? '',
+      licence_state: app?.state ?? '',
       effective_date: signedDate(new Date()),
       partner_name: app?.fullName ?? partner.displayName,
       partner_email: partner.email ?? app?.email ?? '',
@@ -211,8 +221,10 @@ export class AssetPartnerAgreementService {
 
     const signedName = tidy(input.signedName);
     if (signedName.length < 2) throw new ValidationError('Type your full legal name to sign');
-    const licence = input.licenceNumber.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    const state = input.licenceState.trim().toUpperCase();
+    const known = await this.prefill(partner);
+    const typed = (input.licenceNumber ?? '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const licence = typed || known.licence_last4;
+    const state = (input.licenceState?.trim() || known.licence_state).toUpperCase();
     if (licence.length < 4 || licence.length > 20 || !/^[A-Z]{2}$/.test(state)) throw new ValidationError('Enter your driver’s licence number and state');
 
     const p = input.payout;
