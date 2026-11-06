@@ -12,8 +12,8 @@ afterAll(disconnectTestDb);
 beforeEach(async () => {
   await clearTestDb();
   await VehicleModel.collection.insertMany([
-    { _id: 'car-tx', location: { state: 'TX' }, listing: { turnaroundDays: 0 } },
-    { _id: 'car-none', location: {}, listing: { turnaroundDays: 0 } },
+    { _id: 'car-tx', location: { type: 'Point', coordinates: [-96.8, 32.78], state: 'TX' }, listing: { turnaroundDays: 0 } },
+    { _id: 'car-none', location: { type: 'Point', coordinates: [0, 0] }, listing: { turnaroundDays: 0 } },
   ] as never[]);
 });
 
