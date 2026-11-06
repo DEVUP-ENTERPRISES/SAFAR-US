@@ -88,6 +88,7 @@ function Economics() {
         checkout: draft.checkout,
         deposit: draft.deposit,
         booking: draft.booking,
+        ...(draft.siteNotice ? { siteNotice: draft.siteNotice } : {}),
         ...(draft.trust ? { trust: { perks: draft.trust.perks } } : {}),
         ...(draft.cancellation ? { cancellation: draft.cancellation } : {}),
         ...(draft.noShow ? { noShow: draft.noShow } : {}),

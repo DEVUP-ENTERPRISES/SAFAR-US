@@ -565,6 +565,8 @@ export interface PlatformConfigDoc {
   };
   /** Mobile app versions: below minVersion the app blocks with "Update"; below latestVersion it shows a banner. */
   appRelease: Record<'customer' | 'partner', AppReleaseConfig>;
+  /** A notice across the top of every site, e.g. while prices are test values. Off unless switched on. */
+  siteNotice: { enabled: boolean; message: string };
   booking: {
     hostApprovalHours: number;
     verificationGraceHours: number;
@@ -969,6 +971,10 @@ const schema = new Schema<PlatformConfigDoc>(
     appRelease: {
       customer: { minVersion: String, latestVersion: String, androidUrl: String, iosUrl: String },
       partner: { minVersion: String, latestVersion: String, androidUrl: String, iosUrl: String },
+    },
+    siteNotice: {
+      enabled: { type: Boolean, default: false },
+      message: { type: String, default: '' },
     },
     booking: {
       hostApprovalHours: { type: Number, default: 24 },

@@ -34,6 +34,24 @@ export function RulesTab({ draft, set }: TabProps) {
         </CardContent>
       </Card>
 
+      <Card className={draft.siteNotice?.enabled ? 'border-primary/40' : undefined}>
+        <CardHeader>
+          <CardTitle>Notice on every page</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">A short message across the top of the guest, host and partner sites, for example while prices are test values.</p>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.siteNotice?.enabled === true}
+              onChange={(e) => set((d) => { d.siteNotice = { message: d.siteNotice?.message ?? '', enabled: e.target.checked }; })} />
+            Show the notice
+          </label>
+          <Field label="Message" hint="Up to 300 characters. Shown only while the box above is ticked.">
+            <Input maxLength={300} value={draft.siteNotice?.message ?? ''}
+              onChange={(e) => set((d) => { d.siteNotice = { enabled: d.siteNotice?.enabled ?? false, message: e.target.value }; })} />
+          </Field>
+        </CardContent>
+      </Card>
+
       {/* Booking timing — how long each stage may wait before it is released */}
       <Card>
         <CardHeader>

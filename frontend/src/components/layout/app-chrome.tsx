@@ -11,6 +11,7 @@ import { InstallPrompt } from '@/features/pwa/install-prompt';
 import { IntroSplash } from '@/features/pwa/intro-splash';
 import { RouteProgress } from './route-progress';
 import { PageTransition } from './page-transition';
+import { SiteNotice } from './site-notice';
 
 /**
  * The guest site's chrome.
@@ -31,6 +32,7 @@ export function AppChrome({ children }: { children: ReactNode }) {
       <RouteProgress />
       <Navbar />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-8 pt-24 sm:px-6">
+        <SiteNotice />
         <PageTransition>{children}</PageTransition>
       </main>
       <Footer />

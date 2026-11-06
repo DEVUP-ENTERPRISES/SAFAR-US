@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { SiteNotice } from '@/components/layout/site-notice';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ExternalLink, LogOut } from 'lucide-react';
@@ -52,6 +53,7 @@ export function PartnerChrome({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-8 pt-24 sm:px-6">
+        <SiteNotice />
         <PageTransition>{children}</PageTransition>
       </main>
     </>
