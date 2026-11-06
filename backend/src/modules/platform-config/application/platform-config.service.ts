@@ -289,6 +289,7 @@ export class PlatformConfigService {
         customer: { ...DEFAULT_APP_RELEASE, ...(doc.appRelease?.customer ?? {}) },
         partner: { ...DEFAULT_APP_RELEASE, ...(doc.appRelease?.partner ?? {}) },
       },
+      siteNotice: { enabled: doc.siteNotice?.enabled ?? true },
       booking: {
         hostApprovalHours: 24,
         verificationGraceHours: 72,

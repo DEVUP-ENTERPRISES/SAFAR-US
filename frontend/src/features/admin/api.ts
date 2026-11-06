@@ -43,6 +43,7 @@ export interface AppRelease {
 }
 
 export interface PlatformConfig {
+  siteNotice?: { enabled: boolean };
   commission: { defaultBps: number; minBps: number; maxBps: number };
   /** Charged to the guest on top; commission comes out of host earnings. */
   serviceFee: { bps: number; maxCents: number; flatCents: number };

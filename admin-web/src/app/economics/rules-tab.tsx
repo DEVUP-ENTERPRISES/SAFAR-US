@@ -34,6 +34,20 @@ export function RulesTab({ draft, set }: TabProps) {
         </CardContent>
       </Card>
 
+      <Card className={draft.siteNotice?.enabled ? 'border-primary/40' : undefined}>
+        <CardHeader>
+          <CardTitle>Notice on every page</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">Shows “We’re testing CatoDrive right now. Prices you see are test values, not our real rates.” at the top of the guest, host and partner sites.</p>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.siteNotice?.enabled === true}
+              onChange={(e) => set((d) => { d.siteNotice = { enabled: e.target.checked }; })} />
+            Show the testing notice
+          </label>
+        </CardContent>
+      </Card>
+
       {/* Booking timing — how long each stage may wait before it is released */}
       <Card>
         <CardHeader>

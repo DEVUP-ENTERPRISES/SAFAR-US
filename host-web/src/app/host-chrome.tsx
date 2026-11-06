@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { SiteNotice } from '@/components/layout/site-notice';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -85,6 +86,7 @@ export function HostChrome({ children }: { children: ReactNode }) {
         )}
       </header>
       <main className={cn('mx-auto w-full max-w-7xl flex-1 px-4 pb-8 sm:px-6', showNav ? 'pt-32 md:pt-24' : 'pt-24')}>
+        <SiteNotice />
         <PageTransition>{children}</PageTransition>
       </main>
       {isHost && inHost ? <HostMobileTabBar /> : null}

@@ -40,6 +40,7 @@ router.get(
       pricing: cfg.pricing,
       inspection: cfg.inspection,
       handover: cfg.handover,
+      siteNotice: { enabled: cfg.siteNotice?.enabled === true },
       booking: {
         minLeadMinutes: cfg.booking.minLeadMinutes,
         dailyMileageMiles: cfg.booking.dailyMileageMiles,
