@@ -74,6 +74,7 @@ export interface PlatformConfig {
     exitNoticeDays?: number;
     unresponsiveAfterDays?: number;
     returnPhotoMin?: number;
+    minSeasonMonths?: number;
     exitSeparateApprover?: boolean;
   };
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };

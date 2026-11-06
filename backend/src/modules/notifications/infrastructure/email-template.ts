@@ -47,6 +47,8 @@ export interface EmailContent {
   terms?: string[];
   /** Absolute links to the legal pages, shown in the footer of every email. */
   legalLinks?: { label: string; url: string }[];
+  /** Who it is for; partner emails leave out the guest travel banner. */
+  audience?: 'guest' | 'partner';
 }
 
 export function renderEmail(c: EmailContent): string {
@@ -55,7 +57,7 @@ export function renderEmail(c: EmailContent): string {
   // web app's /public. Falls back to text-only when no web URL is configured,
   // and the alt text covers the (common) case of a client blocking images.
   const logoUrl = config.notifications.webUrl ? `${config.notifications.webUrl}/logos/cato-logo-256.png` : '';
-  const bannerUrl = config.notifications.webUrl ? `${config.notifications.webUrl}/email/cato-hero-banner.jpg` : '';
+  const bannerUrl = config.notifications.webUrl && c.audience !== 'partner' ? `${config.notifications.webUrl}/email/cato-hero-banner.jpg` : '';
   const web = config.notifications.webUrl || '';
   const support = config.notifications.supportEmail;
   const address = config.notifications.companyAddress;

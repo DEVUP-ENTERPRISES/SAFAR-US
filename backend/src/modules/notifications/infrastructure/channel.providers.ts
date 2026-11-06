@@ -152,15 +152,23 @@ class SmtpEmailProvider implements ChannelProvider {
  */
 /** Delivery request -> email content. Links point at the web app, not the API. */
 async function toContent(req: DeliveryRequest): Promise<EmailContent> {
+  const audience = isPartnerEmail(req.templateKey) ? 'partner' : 'guest';
   return {
+    audience,
     title: req.title,
     body: req.body,
     actionUrl: req.deepLink ? webAbsolute(req.deepLink) : undefined,
     actionLabel: req.actionLabel,
     facts: req.facts,
     terms: req.terms,
-    legalLinks: await legalLinks(),
+    // A partner is not renting, so the guest cancellation policy is not theirs.
+    legalLinks: (await legalLinks())?.filter((l) => audience === 'guest' || l.label !== 'Cancellation Policy'),
   };
+}
+
+/** Emails for Asset Partners and city licence holders, recognised by their template. */
+export function isPartnerEmail(templateKey?: string): boolean {
+  return !!templateKey && (templateKey.startsWith('account.asset_partner') || templateKey.startsWith('asset_partner.'));
 }
 
 /** Terms, privacy and cancellation pages as set in admin; an email still sends if config can't be read. */

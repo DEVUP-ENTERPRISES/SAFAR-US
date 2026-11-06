@@ -98,6 +98,7 @@ router.put(
       assetPartner: z
         .object({
           managementFeeBps: bps.optional(),
+          minSeasonMonths: z.number().int().min(1).max(6).optional(),
           insuranceMonthlyCents: z.number().int().min(0).optional(),
           detailingMonthlyCents: z.number().int().min(0).optional(),
           deductibleCapCents: z.number().int().min(0).optional(),

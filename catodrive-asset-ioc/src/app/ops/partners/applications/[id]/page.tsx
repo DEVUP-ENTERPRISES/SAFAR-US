@@ -34,11 +34,11 @@ interface ApplicationDetail {
   fullName: string; businessName?: string; partnerType: string; email: string; phone: string;
   address: string; city: string; state: string; zip: string; referral?: string;
   vehicle: { year: string; make: string; model: string; trim?: string; mileage: number; exteriorColor?: string; interiorColor?: string; vin: string; plate: string };
-  ownership: string; lienholder?: string; lienAccountLast4?: string; estimatedMarketValue?: string;
-  hadAccident: boolean; accidentDetail?: string; smokeFree: boolean; petFree: boolean; hasMaintenanceRecords?: boolean;
+  ownership: string; titleStatus?: string; lienholder?: string; lienAccountLast4?: string; estimatedMarketValue?: string;
+  hadAccident: boolean; accidentDetail?: string; smokeFree?: boolean; petFree?: boolean; hasMaintenanceRecords?: boolean;
   photos: { url: string; label?: string }[];
-  insurance: { carrier: string; policyNumber: string; coverageType: string; policyExpiry?: string };
-  availability: string; preferredZone?: string; targetStartDate?: string; notes?: string;
+  insurance?: { carrier?: string; policyNumber?: string; coverageType?: string; policyExpiry?: string };
+  availability: string; seasonMonths?: number; preferredZone?: string; targetStartDate?: string; notes?: string;
   acknowledgedAccurate?: boolean; acknowledgedInspection?: boolean; acknowledgedTerms?: boolean;
   signature: string; signedAt: string;
   ip?: string; userAgent?: string;
@@ -193,6 +193,7 @@ export default function ApplicationDetailPage() {
 
         <Section title="Ownership">
           <Row label="The car is" value={OWNERSHIP[a.ownership] ?? a.ownership} />
+          {a.titleStatus && <Row label="Title" value={a.titleStatus === 'clean' ? 'Clean' : a.titleStatus} tone={a.titleStatus === 'clean' ? undefined : 'warning'} />}
           {a.lienholder && <Row label="Lienholder" value={a.lienholder} />}
           {a.lienAccountLast4 && <Row label="Loan account" value={`•••• ${a.lienAccountLast4}`} mono />}
           {a.estimatedMarketValue && <Row label="Estimated value" value={a.estimatedMarketValue} />}
@@ -201,20 +202,21 @@ export default function ApplicationDetailPage() {
         <Section title="Condition">
           <Row label="Accidents" value={a.hadAccident ? 'Yes' : 'No'} tone={a.hadAccident ? 'warning' : undefined} />
           {a.hadAccident && <Row label="What happened" value={a.accidentDetail || 'No detail given'} />}
-          <Row label="Smoke-free" value={yesNo(a.smokeFree)} tone={a.smokeFree ? undefined : 'warning'} />
-          <Row label="Pet-free" value={yesNo(a.petFree)} tone={a.petFree ? undefined : 'warning'} />
+          {a.smokeFree !== undefined && <Row label="Smoke-free" value={yesNo(a.smokeFree)} tone={a.smokeFree ? undefined : 'warning'} />}
+          {a.petFree !== undefined && <Row label="Pet-free" value={yesNo(a.petFree)} tone={a.petFree ? undefined : 'warning'} />}
           {a.hasMaintenanceRecords !== undefined && <Row label="Service records" value={yesNo(a.hasMaintenanceRecords)} />}
         </Section>
 
         <Section title="Insurance">
-          <Row label="Company" value={a.insurance.carrier} />
-          <Row label="Policy number" value={a.insurance.policyNumber} mono />
-          <Row label="Coverage" value={COVERAGE[a.insurance.coverageType] ?? a.insurance.coverageType} tone={a.insurance.coverageType === 'full' ? undefined : 'warning'} />
-          {a.insurance.policyExpiry && <Row label="Policy ends" value={formatDate(a.insurance.policyExpiry)} />}
+          {!a.insurance?.policyNumber && <Row label="Policy" value="Skipped; asked for under Documents after approval" tone="warning" />}
+          {a.insurance?.carrier && <Row label="Company" value={a.insurance.carrier} />}
+          {a.insurance?.policyNumber && <Row label="Policy number" value={a.insurance.policyNumber} mono />}
+          {a.insurance?.coverageType && <Row label="Coverage" value={COVERAGE[a.insurance.coverageType] ?? a.insurance.coverageType} tone={a.insurance.coverageType === 'full' ? undefined : 'warning'} />}
+          {a.insurance?.policyExpiry && <Row label="Policy ends" value={formatDate(a.insurance.policyExpiry)} />}
         </Section>
 
         <Section title="Availability">
-          <Row label="Car available" value={AVAILABILITY[a.availability] ?? a.availability} />
+          <Row label="Car available" value={`${AVAILABILITY[a.availability] ?? a.availability}${a.availability === 'seasonal' && a.seasonMonths ? `, ${a.seasonMonths} months` : ''}`} />
           {a.preferredZone && <Row label="Preferred area" value={a.preferredZone} />}
           {a.targetStartDate && <Row label="Can start" value={formatDate(a.targetStartDate)} />}
           {a.notes && <Row label="Notes from partner" value={a.notes} />}

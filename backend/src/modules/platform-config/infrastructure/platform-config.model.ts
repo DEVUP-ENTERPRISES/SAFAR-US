@@ -79,6 +79,8 @@ export interface PlatformConfigDoc {
   assetPartner: {
     /** Management fee on gross booking revenue. 2000 = the published 20%. */
     managementFeeBps: number;
+    /** Shortest seasonal commitment accepted, in months; seasons run up to six months or a full year. */
+    minSeasonMonths: number;
     /** Roamly fleet insurance, per vehicle per month, in minor units. */
     insuranceMonthlyCents: number;
     /** Professional detailing, per vehicle per month, in minor units. */
@@ -728,6 +730,7 @@ const schema = new Schema<PlatformConfigDoc>(
     // Defaults are the terms published on /asset-partners.
     assetPartner: {
       managementFeeBps: { type: Number, default: 2000 }, // 20%
+      minSeasonMonths: { type: Number, default: 2 },
       insuranceMonthlyCents: { type: Number, default: 13_700 }, // $137 Roamly
       detailingMonthlyCents: { type: Number, default: 5_000 }, // $50
       deductibleCapCents: { type: Number, default: 100_000 }, // $1,000 cap

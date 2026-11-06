@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AlertTriangle, Camera, Check, CheckCircle2, Loader2, Search, X } from 'lucide-react';
+import { AlertTriangle, Camera, Check, CheckCircle2, FileUp, Loader2, Search, ShieldCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
@@ -11,7 +11,10 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { uploadFiles } from '@/features/media/upload';
-import { assetPartnerApi, type PartnerApplicationDetail, type PortalApplicationInput, type VinLookup } from '@/features/asset-partners/api';
+import { assetPartnerApi, type PartnerApplicationDetail, type PortalApplicationInput, type TitleStatus, type VinLookup } from '@/features/asset-partners/api';
+import { documentsApi } from '@/features/documents/api';
+import { usePlatformConfig } from '@/features/platform/config';
+import { DOC_ACCEPT } from '@/lib/upload-formats';
 import { US_STATES } from '@/lib/data/us-states';
 import { useQuery } from '@tanstack/react-query';
 import { authApi } from '@/features/auth/api';
@@ -22,32 +25,48 @@ type YN = 'yes' | 'no' | '';
 type PartnerType = 'individual' | 'business' | 'fleet';
 type Ownership = 'owned' | 'financed' | 'leased';
 type Coverage = 'full' | 'liability' | 'unsure';
-type Availability = 'fulltime' | 'parttime' | 'seasonal';
+type Availability = 'fulltime' | 'seasonal';
 type Photo = { url: string; key?: string };
+type PaperSlot = 'title' | 'insurance';
 
 interface Draft {
   fullName: string; phone: string; partnerType: PartnerType | ''; businessName: string;
   address: string; city: string; state: string; zip: string;
   vin: string; year: string; make: string; model: string; trim: string; mileage: string; plate: string;
-  ownership: Ownership | ''; lienholder: string; photos: Record<string, Photo>;
-  accident: YN; accidentDetail: string; smokeFree: YN; petFree: YN;
-  carrier: string; policyNumber: string; coverage: Coverage | '';
-  availability: Availability | ''; notes: string; confirmed: boolean;
+  ownership: Ownership | ''; titleStatus: TitleStatus | ''; lienholder: string; photos: Record<string, Photo>;
+  accident: YN; accidentDetail: string;
+  carrier: string; policyNumber: string; policyExpiry: string; coverage: Coverage | '';
+  papers: Partial<Record<PaperSlot, string>>;
+  availability: Availability | ''; seasonMonths: string; notes: string; confirmed: boolean;
 }
 
 const BLANK: Draft = {
   fullName: '', phone: '', partnerType: '', businessName: '', address: '', city: '', state: 'TX', zip: '',
-  vin: '', year: '', make: '', model: '', trim: '', mileage: '', plate: '', ownership: '', lienholder: '', photos: {},
-  accident: '', accidentDetail: '', smokeFree: '', petFree: '', carrier: '', policyNumber: '', coverage: '',
-  availability: '', notes: '', confirmed: false,
+  vin: '', year: '', make: '', model: '', trim: '', mileage: '', plate: '', ownership: '', titleStatus: '', lienholder: '', photos: {},
+  accident: '', accidentDetail: '', carrier: '', policyNumber: '', policyExpiry: '', coverage: '', papers: {},
+  availability: '', seasonMonths: '', notes: '', confirmed: false,
 };
 
 const PHOTOS = [
   { slot: 'Front', required: true, hint: 'Front three-quarter view' },
+  { slot: 'Rear', required: true, hint: 'Rear three-quarter view' },
   { slot: 'Odometer', required: true, hint: 'Dashboard showing the mileage' },
-  { slot: 'Rear', required: false, hint: 'Rear three-quarter view' },
   { slot: 'Interior', required: false, hint: 'Front seats and dashboard' },
 ] as const;
+
+const TITLES: { value: TitleStatus; label: string }[] = [
+  { value: 'clean', label: 'Clean' }, { value: 'salvage', label: 'Salvage' }, { value: 'rebuilt', label: 'Rebuilt' },
+  { value: 'flood', label: 'Flood' }, { value: 'lemon', label: 'Lemon buyback' },
+];
+
+const OWNERSHIP_PAPERS: Record<Ownership, { label: string; hint: string }> = {
+  owned: { label: 'Vehicle title', hint: 'Front and back of the title in your name' },
+  financed: { label: 'Loan statement', hint: 'A recent loan statement or payoff letter showing the lender and the car' },
+  leased: { label: 'Lease agreement and permission', hint: 'Your lease plus the leasing company’s written OK to rent the car out' },
+};
+
+const SEASON_MAX_SHORT = 6;
+const SEASON_YEAR = 12;
 
 const STEPS = { you: 'About you', car: 'Your car', condition: 'Condition & insurance', confirm: 'Confirm' } as const;
 type Step = keyof typeof STEPS;
@@ -63,11 +82,12 @@ function fromApplication(a: PartnerApplicationDetail, withCar: boolean): Draft {
   return {
     ...person,
     vin: a.vehicle.vin, year: a.vehicle.year, make: a.vehicle.make, model: a.vehicle.model, trim: a.vehicle.trim ?? '',
-    mileage: String(a.vehicle.mileage), plate: a.vehicle.plate, ownership: a.ownership, lienholder: a.lienholder ?? '',
+    mileage: String(a.vehicle.mileage), plate: a.vehicle.plate, ownership: a.ownership, titleStatus: a.titleStatus ?? '', lienholder: a.lienholder ?? '',
     photos: Object.fromEntries(a.photos.map((p) => [p.label ?? 'Photo', { url: p.url, key: p.key }])),
-    accident: yn(a.hadAccident), accidentDetail: a.accidentDetail ?? '', smokeFree: yn(a.smokeFree), petFree: yn(a.petFree),
-    carrier: a.insurance.carrier, policyNumber: a.insurance.policyNumber, coverage: a.insurance.coverageType,
-    availability: a.availability, notes: a.notes ?? '',
+    accident: yn(a.hadAccident), accidentDetail: a.accidentDetail ?? '',
+    carrier: a.insurance?.carrier ?? '', policyNumber: a.insurance?.policyNumber ?? '', coverage: a.insurance?.coverageType ?? '',
+    policyExpiry: a.insurance?.policyExpiry?.slice(0, 10) ?? '',
+    availability: a.availability === 'parttime' ? '' : a.availability, seasonMonths: a.seasonMonths ? String(a.seasonMonths) : '', notes: a.notes ?? '',
   };
 }
 
@@ -81,14 +101,16 @@ function toInput(d: Draft): PortalApplicationInput {
     address: d.address.trim(), city: d.city.trim(), state: d.state, zip: d.zip.trim(),
     vehicle: { year: d.year.trim(), make: d.make.trim(), model: d.model.trim(), trim: opt(d.trim), mileage: Number(d.mileage), vin: d.vin.trim().toUpperCase(), plate: d.plate.trim().toUpperCase() },
     ownership: d.ownership as Ownership,
+    titleStatus: d.titleStatus as TitleStatus,
     lienholder: d.ownership === 'owned' ? undefined : opt(d.lienholder),
     accident: d.accident as 'yes' | 'no',
     accidentDetail: d.accident === 'yes' ? opt(d.accidentDetail) : undefined,
-    smokeFree: d.smokeFree as 'yes' | 'no',
-    petFree: d.petFree as 'yes' | 'no',
     photos: Object.entries(d.photos).map(([label, p]) => ({ url: p.url, key: p.key, label })),
-    insurance: { carrier: d.carrier.trim(), policyNumber: d.policyNumber.trim(), coverageType: d.coverage as Coverage },
+    insurance: d.carrier.trim() || d.policyNumber.trim() || d.coverage || d.policyExpiry
+      ? { carrier: opt(d.carrier), policyNumber: opt(d.policyNumber), coverageType: d.coverage || undefined, policyExpiry: d.policyExpiry || undefined }
+      : undefined,
     availability: d.availability as Availability,
+    seasonMonths: d.availability === 'seasonal' ? Number(d.seasonMonths) : undefined,
     notes: opt(d.notes),
     acknowledgedAccurate: true,
     acknowledgedInspection: true,
@@ -116,15 +138,17 @@ function errorsFor(step: Step, d: Draft): Record<string, string> {
     if (!d.mileage.trim() || !Number.isInteger(miles) || miles < 0 || miles > 500_000) e.mileage = 'Enter the mileage';
     need('ownership', 'Choose one');
     if (d.ownership && d.ownership !== 'owned') need('lienholder', 'Who holds the loan or lease?');
+    need('titleStatus', 'Choose one');
+    if (d.titleStatus && d.titleStatus !== 'clean') e.titleStatus = 'We can only accept cars with a clean title.';
     for (const p of PHOTOS) if (p.required && !d.photos[p.slot]) e[`photo-${p.slot}`] = 'Add this photo';
   }
   if (step === 'condition') {
-    need('accident', 'Choose one'); need('smokeFree', 'Choose one'); need('petFree', 'Choose one');
+    need('accident', 'Choose one');
     if (d.accident === 'yes') need('accidentDetail', 'Tell us briefly what happened');
-    need('carrier'); need('policyNumber'); need('coverage', 'Choose one');
   }
   if (step === 'confirm') {
     need('availability', 'Choose one');
+    if (d.availability === 'seasonal') need('seasonMonths', 'Choose how long');
     if (!d.confirmed) e.confirmed = 'Please confirm to continue';
   }
   return e;
@@ -163,12 +187,17 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
     const seeded = initial ? fromApplication(initial, mode === 'partner' || !!reviewNote) : BLANK;
     try {
       const saved = localStorage.getItem(draftKey);
-      if (saved && !reviewNote) return { ...seeded, ...(JSON.parse(saved) as Partial<Draft>), confirmed: false };
+      if (saved && !reviewNote) {
+        const draft: Draft = { ...seeded, ...(JSON.parse(saved) as Partial<Draft>), confirmed: false };
+        // A draft saved before part time was withdrawn has to choose again.
+        return (draft.availability as string) === 'parttime' ? { ...draft, availability: '' } : draft;
+      }
     } catch { /* storage unavailable: start from the seed */ }
     return seeded;
   });
   // Name and phone were given at sign-up; start from them instead of asking again.
   const me = useQuery({ queryKey: ['me'], queryFn: () => authApi.me(), staleTime: 60_000 });
+  const config = usePlatformConfig();
   useEffect(() => {
     const u = me.data;
     if (!u) return;
@@ -250,6 +279,31 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
       setSubmitting(false);
     }
   };
+
+  // Optional now; saved straight to the partner's documents so the post-approval checklist already counts it.
+  const addPaper = async (slot: PaperSlot, file?: File) => {
+    if (!file) return;
+    const key = `paper-${slot}`;
+    setUploading((u) => ({ ...u, [key]: true }));
+    setErrors((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => k !== key)));
+    try {
+      const [up] = await uploadFiles(slot, [file]);
+      await documentsApi.create({ category: slot, url: up.url, key: up.key });
+      setD((prev) => ({ ...prev, papers: { ...prev.papers, [slot]: file.name } }));
+    } catch (e) {
+      setErrors((prev) => ({ ...prev, [key]: e instanceof Error && e.message.includes('PDF') ? e.message : 'That file didn’t upload. Try again.' }));
+    } finally {
+      setUploading((u) => ({ ...u, [key]: false }));
+    }
+  };
+
+  const minSeason = config.data?.assetPartner?.minSeasonMonths ?? 2;
+  const seasonOptions = [...Array.from({ length: Math.max(0, SEASON_MAX_SHORT - minSeason + 1) }, (_, i) => minSeason + i), SEASON_YEAR]
+    .map((m) => ({ value: String(m), label: m === SEASON_YEAR ? '12 months' : `${m} months` }));
+  const later = [
+    d.ownership && !d.papers.title && OWNERSHIP_PAPERS[d.ownership].label,
+    !d.papers.insurance && 'Insurance declarations page',
+  ].filter(Boolean) as string[];
 
   const busy = Object.values(uploading).some(Boolean);
 
@@ -336,9 +390,15 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
               {d.ownership && d.ownership !== 'owned' && (
                 <Field label={d.ownership === 'leased' ? 'Leasing company' : 'Lender'} htmlFor="lienholder" error={errors.lienholder}><Input id="lienholder" value={d.lienholder} onChange={(e) => set('lienholder', e.target.value)} /></Field>
               )}
+              <Field label="Title status" error={errors.titleStatus} hint="As printed on the title. Only clean titles can join.">
+                <Choice value={d.titleStatus} onChange={(v) => set('titleStatus', v)} options={TITLES} />
+              </Field>
+              {d.ownership && (
+                <PaperUpload slot="title" {...OWNERSHIP_PAPERS[d.ownership]} fileName={d.papers.title} uploading={!!uploading['paper-title']} error={errors['paper-title']} onPick={(f) => void addPaper('title', f)} />
+              )}
               <div>
                 <p className="text-sm font-medium">Photos</p>
-                <p className="text-xs text-muted-foreground">Two are needed now; we take full photos at the inspection.</p>
+                <p className="text-xs text-muted-foreground">Front, back and odometer are needed now; we take full photos at the inspection.</p>
                 <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {PHOTOS.map((p) => (
                     <PhotoSlot key={p.slot} label={p.slot} hint={p.hint} required={p.required} photo={d.photos[p.slot]} uploading={!!uploading[p.slot]} error={errors[`photo-${p.slot}`]}
@@ -353,21 +413,25 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
           {step === 'condition' && (
             <>
               <Section title="Condition & insurance" hint="Every car is inspected before it goes live, whatever the answers here." />
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                <Field label="Any accidents?" error={errors.accident}><Choice value={d.accident} onChange={(v) => set('accident', v)} options={YES_NO} /></Field>
-                <Field label="Smoke-free?" error={errors.smokeFree}><Choice value={d.smokeFree} onChange={(v) => set('smokeFree', v)} options={YES_NO} /></Field>
-                <Field label="Pet-free?" error={errors.petFree}><Choice value={d.petFree} onChange={(v) => set('petFree', v)} options={YES_NO} /></Field>
-              </div>
+              <Field label="Any accidents?" error={errors.accident}><Choice value={d.accident} onChange={(v) => set('accident', v)} options={YES_NO} /></Field>
               {d.accident === 'yes' && (
                 <Field label="What happened?" htmlFor="accidentDetail" error={errors.accidentDetail}><Textarea id="accidentDetail" rows={3} maxLength={600} value={d.accidentDetail} onChange={(e) => set('accidentDetail', e.target.value)} /></Field>
               )}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Insurance company" htmlFor="carrier" error={errors.carrier}><Input id="carrier" value={d.carrier} onChange={(e) => set('carrier', e.target.value)} /></Field>
-                <Field label="Policy number" htmlFor="policyNumber" error={errors.policyNumber}><Input id="policyNumber" value={d.policyNumber} onChange={(e) => set('policyNumber', e.target.value)} /></Field>
+              <p className="flex items-start gap-2 rounded-lg bg-subtle p-3 text-sm">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span>Every CatoDrive car is smoke-free and pet-free. Guests agree to this in our rental terms, and we handle it if they break it.</span>
+              </p>
+              <div className="space-y-4 border-t border-border pt-5">
+                <div>
+                  <p className="text-sm font-medium">Your insurance <span className="font-normal text-muted-foreground">(optional now)</span></p>
+                  <p className="text-xs text-muted-foreground">Skip it if it isn’t handy. We’ll ask for it again in your dashboard before the car goes live.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Policy number" htmlFor="policyNumber"><Input id="policyNumber" value={d.policyNumber} maxLength={60} onChange={(e) => set('policyNumber', e.target.value)} /></Field>
+                  <Field label="Insurance company" htmlFor="carrier"><Input id="carrier" value={d.carrier} maxLength={80} onChange={(e) => set('carrier', e.target.value)} /></Field>
+                </div>
+                <PaperUpload slot="insurance" label="Declarations page" hint="The page of your policy showing the policy number and dates" fileName={d.papers.insurance} uploading={!!uploading['paper-insurance']} error={errors['paper-insurance']} onPick={(f) => void addPaper('insurance', f)} />
               </div>
-              <Field label="Coverage" error={errors.coverage} hint="CatoDrive’s commercial cover applies while the car is with us.">
-                <Choice value={d.coverage} onChange={(v) => set('coverage', v)} options={[{ value: 'full', label: 'Full coverage' }, { value: 'liability', label: 'Liability only' }, { value: 'unsure', label: 'Not sure' }]} />
-              </Field>
             </>
           )}
 
@@ -375,8 +439,13 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
             <>
               <Section title="Confirm and send" />
               <Field label="When can the car be with us?" error={errors.availability}>
-                <Choice value={d.availability} onChange={(v) => set('availability', v)} options={[{ value: 'fulltime', label: 'Full time' }, { value: 'parttime', label: 'Part time' }, { value: 'seasonal', label: 'Seasonal' }]} />
+                <Choice value={d.availability} onChange={(v) => set('availability', v)} options={[{ value: 'fulltime', label: 'Full time' }, { value: 'seasonal', label: 'Seasonal' }]} />
               </Field>
+              {d.availability === 'seasonal' && (
+                <Field label="For how long?" error={errors.seasonMonths} hint={`From ${minSeason} to ${SEASON_MAX_SHORT} months, or a full year.`}>
+                  <Choice value={d.seasonMonths} onChange={(v) => set('seasonMonths', v)} options={seasonOptions} />
+                </Field>
+              )}
               <Field label="Anything else we should know?" htmlFor="notes" hint="Optional"><Textarea id="notes" rows={3} maxLength={1000} value={d.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
               <dl className="grid grid-cols-1 gap-3 rounded-lg bg-muted/50 p-4 text-sm sm:grid-cols-2">
                 {mode === 'partner' && <Summary label="You" value={`${d.fullName}${d.businessName && d.partnerType !== 'individual' ? ` · ${d.businessName}` : ''}`} />}
@@ -384,6 +453,9 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
                 <Summary label="VIN" value={d.vin} mono />
                 <Summary label="Mileage" value={d.mileage ? `${Number(d.mileage).toLocaleString('en-US')} mi` : ''} />
               </dl>
+              {later.length > 0 && (
+                <p className="text-sm text-muted-foreground">To upload later from your dashboard: {later.join(', ')}.</p>
+              )}
               <label className={cn('flex cursor-pointer gap-3 rounded-lg border p-4 text-sm', errors.confirmed ? 'border-destructive' : 'border-border')}>
                 <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-primary" checked={d.confirmed} onChange={(e) => set('confirmed', e.target.checked)} />
                 <span>I confirm these details are accurate, I can place this car with CatoDrive, and I agree to a physical inspection before it goes live.</span>
@@ -419,6 +491,29 @@ function Summary({ label, value, mono }: { label: string; value: string; mono?: 
     <div className="min-w-0">
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className={cn('break-words font-medium', mono && 'font-mono text-xs')}>{value || '-'}</dd>
+    </div>
+  );
+}
+
+function PaperUpload({ slot, label, hint, fileName, uploading, error, onPick }: {
+  slot: PaperSlot; label: string; hint: string; fileName?: string; uploading: boolean; error?: string; onPick: (file?: File) => void;
+}) {
+  const id = `paper-${slot}`;
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="flex items-center gap-2 text-sm font-medium">
+          {fileName && <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />}
+          {label} <span className="font-normal text-muted-foreground">(optional now)</span>
+        </p>
+        <p className="text-xs text-muted-foreground">{fileName ? `Uploaded: ${fileName}` : `${hint}. You can also add it later from your dashboard.`}</p>
+        {error && <p role="alert" className="mt-1 text-xs text-destructive">{error}</p>}
+      </div>
+      <label htmlFor={id} className={cn('inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-sm border border-border px-3 py-2 text-sm font-medium hover:bg-accent/40 focus-within:ring-2 focus-within:ring-ring', uploading && 'pointer-events-none opacity-60')}>
+        <input id={id} type="file" accept={DOC_ACCEPT} className="sr-only" disabled={uploading} onChange={(e) => { onPick(e.target.files?.[0]); e.target.value = ''; }} />
+        {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
+        {uploading ? 'Uploading…' : fileName ? 'Replace' : 'Upload'}
+      </label>
     </div>
   );
 }

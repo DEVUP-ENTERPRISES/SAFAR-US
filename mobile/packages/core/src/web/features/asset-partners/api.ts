@@ -13,6 +13,8 @@ export interface AssetPartnerVehicle {
   plate: string;
 }
 
+export type TitleStatus = 'clean' | 'salvage' | 'rebuilt' | 'flood' | 'lemon';
+
 export interface CreateAssetPartnerApplicationInput {
   fullName: string;
   businessName?: string;
@@ -26,22 +28,22 @@ export interface CreateAssetPartnerApplicationInput {
   referral?: string;
   vehicle: AssetPartnerVehicle;
   ownership: 'owned' | 'financed' | 'leased';
+  titleStatus: TitleStatus;
   lienholder?: string;
   lienAccountLast4?: string;
   estimatedMarketValue?: string;
   accident: 'yes' | 'no';
   accidentDetail?: string;
-  smokeFree: 'yes' | 'no';
-  petFree: 'yes' | 'no';
   hasMaintenanceRecords?: 'yes' | 'no';
-  photos?: { url: string; key?: string; label?: string }[];
-  insurance: {
-    carrier: string;
-    policyNumber: string;
-    coverageType: 'full' | 'liability' | 'unsure';
+  photos: { url: string; key?: string; label?: string }[];
+  insurance?: {
+    carrier?: string;
+    policyNumber?: string;
+    coverageType?: 'full' | 'liability' | 'unsure';
     policyExpiry?: string;
   };
-  availability: 'fulltime' | 'parttime' | 'seasonal';
+  availability: 'fulltime' | 'seasonal';
+  seasonMonths?: number;
   preferredZone?: string;
   targetStartDate?: string;
   notes?: string;
@@ -238,7 +240,9 @@ export interface PartnerApplication {
   email: string;
   phone?: string;
   vehicle: AssetPartnerVehicle;
+  // Older applications may still say part time.
   availability: 'fulltime' | 'parttime' | 'seasonal';
+  seasonMonths?: number;
   preferredZone?: string;
   targetStartDate?: string;
   createdAt: string;
@@ -256,13 +260,14 @@ export interface PartnerApplicationDetail extends PartnerApplication {
   state: string;
   zip: string;
   ownership: 'owned' | 'financed' | 'leased';
+  titleStatus?: TitleStatus;
   lienholder?: string;
   hadAccident: boolean;
   accidentDetail?: string;
-  smokeFree: boolean;
-  petFree: boolean;
+  smokeFree?: boolean;
+  petFree?: boolean;
   photos: { url: string; key?: string; label?: string }[];
-  insurance: { carrier: string; policyNumber: string; coverageType: 'full' | 'liability' | 'unsure'; policyExpiry?: string };
+  insurance?: { carrier?: string; policyNumber?: string; coverageType?: 'full' | 'liability' | 'unsure'; policyExpiry?: string };
   notes?: string;
   signature: string;
   signedAt: string;

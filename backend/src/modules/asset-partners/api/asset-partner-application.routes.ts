@@ -398,7 +398,7 @@ router.get(
 router.post(
   '/asset-partners/me/amendment/sign',
   authenticate,
-  validate({ body: z.object({ versionId: z.string().min(1), signedName: z.string().trim().min(2).max(120), templateVersion: z.number().int().min(0), emailCode: z.string().trim().regex(/^d{6}$/) }) }),
+  validate({ body: z.object({ versionId: z.string().min(1), signedName: z.string().trim().min(2).max(120), templateVersion: z.number().int().min(0), emailCode: z.string().trim().regex(/^\d{6}$/) }) }),
   asyncHandler(async (req, res) => {
     const partner = await partnerOf(req.principal!.userId);
     sendSuccess(res, await assetPartnerAmendmentService.sign(partner, req.body, ctxOf(req)));
@@ -626,10 +626,10 @@ router.post(
       type: z.enum(NOTICE_TYPES),
       issuedBy: z.string().trim().min(2).max(120),
       noticeRef: z.string().trim().min(2).max(60),
-      occurredDate: z.string().regex(/^d{4}-d{2}-d{2}$/),
+      occurredDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       occurredAt: z.coerce.date().optional(),
       amountCents: z.number().int().min(1).max(500_000),
-      dueDate: z.string().regex(/^d{4}-d{2}-d{2}$/).optional(),
+      dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
       paidByPartner: z.boolean(),
       evidence: z.array(z.object({ key: z.string().min(1), kind: z.enum(['image', 'file']) })).min(1).max(5),
     }),

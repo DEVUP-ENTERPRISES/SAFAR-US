@@ -25,6 +25,7 @@ export type ApplicationKind = 'partner' | 'vehicle';
 export type PartnerType = 'individual' | 'business' | 'fleet';
 export type OwnershipStatus = 'owned' | 'financed' | 'leased';
 export type CoverageType = 'full' | 'liability' | 'unsure';
+/** parttime is kept only so older applications still read. */
 export type Availability = 'fulltime' | 'parttime' | 'seasonal';
 export const REJECTION_REASONS = [
   'vehicle_age',
@@ -83,26 +84,30 @@ export interface AssetPartnerApplicationDoc {
   lienholder?: string;
   lienAccountLast4?: string;
   estimatedMarketValue?: string;
+  titleStatus?: 'clean' | 'salvage' | 'rebuilt' | 'flood' | 'lemon';
 
   // Step 4 — Condition
   hadAccident: boolean;
   accidentDetail?: string;
-  smokeFree: boolean;
-  petFree: boolean;
+  /** No longer asked: CatoDrive cars are always no-smoking and no-pets. Older applications have them. */
+  smokeFree?: boolean;
+  petFree?: boolean;
   hasMaintenanceRecords?: boolean;
   /** Optional — the form itself allows emailing photos later. */
   photos: { url: string; key?: string; label?: string }[];
 
   // Step 5 — Insurance
-  insurance: {
-    carrier: string;
-    policyNumber: string;
-    coverageType: CoverageType;
+  insurance?: {
+    carrier?: string;
+    policyNumber?: string;
+    coverageType?: CoverageType;
     policyExpiry?: Date;
   };
 
   // Step 6 — Preferences & agreement
   availability: Availability;
+  /** Seasonal only: how many months the car is committed for. */
+  seasonMonths?: number;
   preferredZone?: string;
   targetStartDate?: Date;
   notes?: string;
@@ -168,11 +173,12 @@ const schema = new Schema<AssetPartnerApplicationDoc>(
     lienholder: String,
     lienAccountLast4: String,
     estimatedMarketValue: String,
+    titleStatus: { type: String, enum: ['clean', 'salvage', 'rebuilt', 'flood', 'lemon'] },
 
     hadAccident: { type: Boolean, required: true },
     accidentDetail: String,
-    smokeFree: { type: Boolean, required: true },
-    petFree: { type: Boolean, required: true },
+    smokeFree: Boolean,
+    petFree: Boolean,
     hasMaintenanceRecords: Boolean,
     photos: {
       type: [{ _id: false, url: String, key: String, label: String }],
@@ -180,13 +186,14 @@ const schema = new Schema<AssetPartnerApplicationDoc>(
     },
 
     insurance: {
-      carrier: { type: String, required: true },
-      policyNumber: { type: String, required: true },
-      coverageType: { type: String, required: true, enum: ['full', 'liability', 'unsure'] },
+      carrier: String,
+      policyNumber: String,
+      coverageType: { type: String, enum: ['full', 'liability', 'unsure'] },
       policyExpiry: Date,
     },
 
     availability: { type: String, required: true, enum: ['fulltime', 'parttime', 'seasonal'] },
+    seasonMonths: Number,
     preferredZone: String,
     targetStartDate: Date,
     notes: String,

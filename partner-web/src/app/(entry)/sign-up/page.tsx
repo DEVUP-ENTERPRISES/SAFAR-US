@@ -35,7 +35,7 @@ export default function SignUpPage() {
     <div>
       <h2 className="display text-3xl sm:text-4xl">Become a partner</h2>
       <p className="mt-2 text-muted-foreground">Create your account. Next you’ll confirm your email and tell us about your car.</p>
-      <form onSubmit={handleSubmit((v) => signUp.mutate(v))} className="mt-8 space-y-4">
+      <form onSubmit={handleSubmit((v) => signUp.mutate({ ...v, audience: 'asset_partner' }))} className="mt-8 space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="First name" htmlFor="firstName" error={formState.errors.firstName?.message}>
             <Input id="firstName" autoComplete="given-name" {...register('firstName')} />

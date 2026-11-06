@@ -21,6 +21,8 @@ import { randomId } from '../../../shared/utils/uuid';
 import { assetPartnerProfileService, publicProfile, type PartnerIdentity } from './asset-partner-profile.service';
 import { assetPartnerOfferService, type OfferState } from './asset-partner-offer.service';
 import { explainRejection } from '../domain/rejection-reasons';
+import { OWNERSHIP_PAPERS, SEASON_MAX_SHORT_MONTHS, SEASON_YEAR_MONTHS, TITLE_REFUSAL, seasonMonthsAllowed } from '../domain/application-rules';
+import { DocumentModel } from '../../documents/infrastructure/document.model';
 import type { RejectionReason } from '../infrastructure/asset-partner-application.model';
 import type { PartnerProfile } from '../infrastructure/asset-partner.model';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
@@ -52,14 +54,14 @@ function fieldsFrom(dto: PortalApplicationDto) {
     lienholder: dto.lienholder,
     lienAccountLast4: dto.lienAccountLast4,
     estimatedMarketValue: dto.estimatedMarketValue,
+    titleStatus: dto.titleStatus,
     hadAccident: dto.accident === 'yes',
     accidentDetail: dto.accidentDetail,
-    smokeFree: dto.smokeFree === 'yes',
-    petFree: dto.petFree === 'yes',
     hasMaintenanceRecords: dto.hasMaintenanceRecords ? dto.hasMaintenanceRecords === 'yes' : undefined,
     photos: dto.photos ?? [],
     insurance: dto.insurance,
     availability: dto.availability,
+    seasonMonths: dto.availability === 'seasonal' ? dto.seasonMonths : undefined,
     preferredZone: dto.preferredZone,
     targetStartDate: dto.targetStartDate,
     notes: dto.notes,
@@ -164,6 +166,7 @@ export class AssetPartnerApplicationService {
   /** Sends an application back after CatoDrive asked for changes. */
   async resubmit(userId: string, id: string, dto: PortalApplicationDto): Promise<AssetPartnerApplicationDoc> {
     const user = await this.verifiedUser(userId);
+    await this.checkRules(dto);
     const doc = await AssetPartnerApplicationModel.findOneAndUpdate(
       { _id: id, submittedByUserId: userId, status: 'changes_requested' },
       { $set: { ...fieldsFrom(dto), email: user.email, status: 'submitted' } },
@@ -209,11 +212,50 @@ export class AssetPartnerApplicationService {
     return { email: user.email.toLowerCase() };
   }
 
+  // Product rules the form also shows, checked here because the form is not the only way in.
+  private async checkRules(dto: PortalApplicationDto): Promise<void> {
+    if (dto.titleStatus !== 'clean') throw new ValidationError(TITLE_REFUSAL[dto.titleStatus]);
+    if (dto.availability !== 'seasonal') return;
+    const min = (await platformConfigService.get()).assetPartner.minSeasonMonths;
+    if (!seasonMonthsAllowed(dto.seasonMonths, min)) {
+      throw new ValidationError(`Pick how long the season is: ${min} to ${SEASON_MAX_SHORT_MONTHS} months, or ${SEASON_YEAR_MONTHS}.`);
+    }
+  }
+
+  /** Confirms the application by email and lists what was skipped, so nothing is a surprise after approval. */
+  private async confirmReceived(doc: AssetPartnerApplicationDoc): Promise<void> {
+    if (!doc.submittedByUserId) return;
+    const papers = OWNERSHIP_PAPERS[doc.ownership];
+    const has = await DocumentModel.find({ ownerId: doc.submittedByUserId, category: { $in: ['title', 'insurance'] }, deletedAt: null }).distinct('category');
+    const later = [
+      !has.includes('title') && papers.label.toLowerCase(),
+      (!has.includes('insurance') || !doc.insurance?.policyNumber) && 'insurance declarations page',
+    ].filter(Boolean);
+    const car = `${doc.vehicle.year} ${doc.vehicle.make} ${doc.vehicle.model}`;
+    const body = [
+      `We’ve got your application for the ${car} (reference ${doc.reference}). We’ll review it and email you with the next step.`,
+      later.length ? `Still to upload: ${later.join(' and ')}. You can add these from your dashboard any time; we need them before the car goes live.` : '',
+    ].filter(Boolean).join(' ');
+    await notificationService
+      .send({
+        userId: doc.submittedByUserId,
+        deepLink: '/asset-partners/dashboard',
+        actionLabel: 'Open your dashboard',
+        templateKey: 'account.asset_partner_application_received',
+        title: 'We’ve got your application',
+        body,
+        data: { applicationId: doc._id, reference: doc.reference },
+      })
+      .catch((err) => logger.warn({ err, reference: doc.reference }, 'application received notice failed'));
+  }
+
   private async insert(
     dto: PortalApplicationDto,
     ctx: { userId?: string; ip?: string; userAgent?: string },
     extra: { kind: ApplicationKind; partnerId?: string; email: string },
   ): Promise<AssetPartnerApplicationDoc> {
+    await this.checkRules(dto);
+
     let reference = generateReference();
     if (await AssetPartnerApplicationModel.exists({ reference })) reference = generateReference();
 
@@ -228,7 +270,10 @@ export class AssetPartnerApplicationService {
     });
 
     logger.info({ reference, kind: extra.kind }, '🚗 New Asset Partner application submitted');
-    return doc.toObject();
+    const saved = doc.toObject() as AssetPartnerApplicationDoc;
+    // Never blocks the submission: a failed email is only logged.
+    await this.confirmReceived(saved).catch((err) => logger.warn({ err, reference }, 'application received notice failed'));
+    return saved;
   }
 
   /** Where a signed-in account is in becoming a partner; the portal shows only this step until it is 'ready'. */

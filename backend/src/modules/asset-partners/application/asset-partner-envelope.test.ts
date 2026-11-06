@@ -37,7 +37,7 @@ function dto(): PortalApplicationDto {
   return {
     fullName: 'Jordan Ramirez', partnerType: 'individual', phone: '2145550142', address: '1 Main St', city: 'Dallas', state: 'TX', zip: '75201',
     vehicle: { year: '2024', make: 'BMW', model: '5 Series', mileage: 18400, vin: '1HGCM82633A004352', plate: 'ABC-1234' },
-    ownership: 'owned', accident: 'no', smokeFree: 'yes', petFree: 'yes',
+    ownership: 'owned', titleStatus: 'clean' as const, photos: [{ url: 'https://files.example/front.jpg', label: 'Front' }, { url: 'https://files.example/rear.jpg', label: 'Rear' }, { url: 'https://files.example/odo.jpg', label: 'Odometer' }], accident: 'no',
     insurance: { carrier: 'State Farm', policyNumber: 'SF-123', coverageType: 'full' }, availability: 'fulltime',
     acknowledgedAccurate: true, acknowledgedInspection: true, acknowledgedTerms: true, signature: 'Jordan Ramirez', signDate: new Date(),
   } as PortalApplicationDto;

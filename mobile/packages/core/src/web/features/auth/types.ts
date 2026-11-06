@@ -58,6 +58,8 @@ export interface RegisterInput {
   firstName?: string;
   lastName?: string;
   referralCode?: string;
+  /** Which site they signed up on, so the welcome email fits. */
+  audience?: 'guest' | 'asset_partner' | 'host';
 }
 
 export interface LoginInput {

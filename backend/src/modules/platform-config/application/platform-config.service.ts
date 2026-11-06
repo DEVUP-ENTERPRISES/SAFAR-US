@@ -158,6 +158,7 @@ export class PlatformConfigService {
       commission: { defaultBps: 2000, minBps: 0, maxBps: 4000, ...(doc.commission ?? {}) },
       assetPartner: {
         managementFeeBps: 2000,
+        minSeasonMonths: 2,
         insuranceMonthlyCents: 13_700,
         detailingMonthlyCents: 5_000,
         deductibleCapCents: 100_000,
