@@ -122,6 +122,23 @@ export interface PartnerTermsOverride {
   payoutDayOfMonth?: number;
 }
 
+export interface JoiningFee {
+  amountCents: number;
+  currency: string;
+  setBy?: string;
+  setAt?: Date;
+  /** The open hosted payment page, reused until it expires so a partner never gets two. */
+  sessionId?: string;
+  sessionUrl?: string;
+  attempt: number;
+  paidAt?: Date;
+  paidCents?: number;
+  intentId?: string;
+  refundedAt?: Date;
+  refundedBy?: string;
+  refundReason?: string;
+}
+
 export interface AssetPartnerDoc {
   _id: string;
   /** The CatoDrive account this partner signs in with. */
@@ -130,6 +147,8 @@ export interface AssetPartnerDoc {
   hostId: string;
   /** The approved application that admitted them to the programme. */
   applicationId?: string;
+  /** One-time joining fee; absent or 0 means none is owed. */
+  joiningFee?: JoiningFee;
   status: PartnerStatus;
   partnerType: PartnerType;
 
@@ -204,6 +223,27 @@ const schema = new Schema<AssetPartnerDoc>(
     userId: { type: String, required: true },
     hostId: { type: String, required: true },
     applicationId: String,
+    joiningFee: {
+      type: new Schema(
+        {
+          amountCents: { type: Number, required: true, min: 0 },
+          currency: { type: String, default: 'USD' },
+          setBy: String,
+          setAt: Date,
+          sessionId: String,
+          sessionUrl: String,
+          attempt: { type: Number, default: 0 },
+          paidAt: Date,
+          paidCents: Number,
+          intentId: String,
+          refundedAt: Date,
+          refundedBy: String,
+          refundReason: String,
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
     status: {
       type: String,
       required: true,
@@ -277,6 +317,8 @@ const schema = new Schema<AssetPartnerDoc>(
 // One programme membership per account.
 schema.index({ userId: 1 }, { unique: true });
 schema.index({ hostId: 1 });
+// A refund made in the Stripe dashboard arrives with only the payment id.
+schema.index({ 'joiningFee.intentId': 1 }, { sparse: true });
 schema.index({ status: 1, createdAt: -1 });
 schema.index({ 'profile.emergencyContacts.confirmation.tokenHash': 1 }, { sparse: true });
 schema.index({ 'profile.representative.confirmation.tokenHash': 1 }, { sparse: true });

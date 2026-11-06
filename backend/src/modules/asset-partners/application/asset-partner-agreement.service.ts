@@ -16,6 +16,7 @@ import { assetPartnerProfileService } from './asset-partner-profile.service';
 import { SignatureEnvelopeModel } from '../infrastructure/signature-envelope.model';
 import { KycModel } from '../../kyc/infrastructure/kyc.model';
 import type { ResolvedTermsSnapshot } from '../infrastructure/asset-partner-terms.model';
+import { feeDue } from './asset-partner-fee.service';
 
 const hashOf = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
 
@@ -212,6 +213,7 @@ export class AssetPartnerAgreementService {
     if (!assetPartnerProfileService.isComplete(partner)) throw new ConflictError('Add your emergency contact before signing.', 'PROFILE_REQUIRED');
     const identity = await assetPartnerProfileService.identity(partner);
     if (identity.required && !assetPartnerProfileService.isIdentityDone(identity)) throw new ConflictError('Verify your ID before signing.', 'IDENTITY_REQUIRED');
+    if (feeDue(partner)) throw new ConflictError('Pay the Asset Partner fee before signing.', 'FEE_REQUIRED');
 
     const [agreement, nda] = await Promise.all([this.current('agreement'), this.current('nda')]);
     if (!agreement || !nda) throw new ConflictError('Your agreement is still being prepared. We’ll email you when it’s ready.', 'AGREEMENT_NOT_READY');

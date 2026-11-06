@@ -27,6 +27,7 @@ import { notificationService } from '../../notifications/application/notificatio
 import { NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
+import { assetPartnerFeeService } from '../application/asset-partner-fee.service';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 
@@ -426,6 +427,25 @@ router.post(
   asyncHandler(async (req, res) => {
     await assetPartnerProfileService.overrideIdentity(req.params.id, req.principal!.userId, req.body.reason);
     sendSuccess(res, { confirmed: true });
+  }),
+);
+
+/** Change or waive (0) the partner's fee before they pay and sign. */
+router.patch(
+  '/asset-partners/:id/joining-fee',
+  authorize('host:manage'),
+  validate({ body: z.object({ amountCents: z.number().int().min(0).max(500_000) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerFeeService.setAmount(req.params.id, req.body.amountCents, req.principal!.userId));
+  }),
+);
+
+router.post(
+  '/asset-partners/:id/joining-fee/refund',
+  authorize('host:manage'),
+  validate({ body: z.object({ reason: z.string().trim().min(3).max(300) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerFeeService.refund(req.params.id, req.principal!.userId, req.body.reason));
   }),
 );
 

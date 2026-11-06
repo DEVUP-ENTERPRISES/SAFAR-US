@@ -61,7 +61,7 @@ async function account(emailVerified = true) {
 async function approvedApplicant() {
   const userId = await account();
   const app = await assetPartnerApplicationService.createForAccount(userId, dto(), {});
-  await assetPartnerApplicationService.review(app._id, OPS, 'approved');
+  await assetPartnerApplicationService.review(app._id, OPS, 'approved', undefined, undefined, 0); // fee waived: covered in asset-partner-fee.test
   return userId;
 }
 

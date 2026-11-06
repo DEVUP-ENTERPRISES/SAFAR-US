@@ -4,6 +4,8 @@ import type {
   CreateIntentInput,
   IntentResult,
   IntentRisk,
+  CreateCheckoutInput,
+  CheckoutState,
 } from '../domain/payment-gateway';
 
 /**
@@ -47,6 +49,28 @@ export class MockGateway implements PaymentGateway {
 
   async confirmIntent(intentId: string): Promise<IntentResult> {
     return this.retrieveIntent(intentId);
+  }
+
+  readonly checkouts = new Map<string, CheckoutState>();
+  private readonly checkoutKeys = new Map<string, string>();
+
+  async createCheckout(input: CreateCheckoutInput): Promise<{ sessionId: string; url: string }> {
+    // Like Stripe, the same idempotency key returns the same page.
+    const known = this.checkoutKeys.get(input.idempotencyKey);
+    if (known) return { sessionId: known, url: `https://checkout.mock/${known}` };
+    const sessionId = `cs_mock_${randomId()}`;
+    this.checkoutKeys.set(input.idempotencyKey, sessionId);
+    this.checkouts.set(sessionId, { status: 'open', paid: false, amountTotal: input.amountCents, metadata: input.metadata });
+    return { sessionId, url: `https://checkout.mock/${sessionId}` };
+  }
+
+  async retrieveCheckout(sessionId: string): Promise<CheckoutState> {
+    return this.checkouts.get(sessionId) ?? { status: 'expired', paid: false, amountTotal: 0, metadata: {} };
+  }
+
+  async expireCheckout(sessionId: string): Promise<void> {
+    const c = this.checkouts.get(sessionId);
+    if (c && c.status === 'open') c.status = 'expired';
   }
 
   async getIntentRisk(): Promise<IntentRisk | null> {

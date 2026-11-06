@@ -98,6 +98,8 @@ export const signAgreementSchema = z.object({
 export const reviewApplicationSchema = z.object({
   decision: z.enum(['approved', 'changes_requested', 'rejected']),
   notes: z.string().trim().max(1000).optional(),
+  // What this partner pays to join, set by ops at approval; 0 waives it, absent uses the admin default.
+  joiningFeeCents: z.number().int().min(0).max(500_000).optional(),
   rejection: z
     .object({
       reasons: z.array(z.enum(REJECTION_REASONS)).min(1).max(REJECTION_REASONS.length),

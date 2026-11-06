@@ -58,6 +58,7 @@ router.post(
       req.body.decision,
       req.body.notes,
       req.body.rejection,
+      req.body.joiningFeeCents,
     );
     sendSuccess(res, app);
   }),

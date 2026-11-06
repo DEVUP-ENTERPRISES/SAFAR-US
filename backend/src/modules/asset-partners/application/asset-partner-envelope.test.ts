@@ -46,7 +46,7 @@ function dto(): PortalApplicationDto {
 async function approvedPartner(): Promise<AssetPartnerDoc> {
   const user = await UserModel.create({ email: 'jordan@example.com', roles: ['guest'], emailVerified: true });
   const app = await assetPartnerApplicationService.createForAccount(String(user._id), dto(), {});
-  await assetPartnerApplicationService.review(app._id, OPS, 'approved');
+  await assetPartnerApplicationService.review(app._id, OPS, 'approved', undefined, undefined, 0); // fee waived: these tests are about signing
   await assetPartnerAgreementService.publish(OPS, { title: 'Asset Partner Agreement', body: 'CatoDrive manages the {{vehicle}} owned by {{partner_name}} for a management fee of {{management_fee}} of gross revenue, with insurance at {{insurance_monthly}} per car per month.' });
   await assetPartnerAgreementService.publish(OPS, { kind: 'nda', title: 'Non-Disclosure Agreement', body: 'The recipient keeps CatoDrive’s confidential information private for three years. Signed by {{signed_name}}.' });
   await readyToSign(String(user._id));

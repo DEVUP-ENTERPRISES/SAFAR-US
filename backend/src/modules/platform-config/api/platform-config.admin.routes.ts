@@ -99,6 +99,8 @@ router.put(
         .object({
           managementFeeBps: bps.optional(),
           minSeasonMonths: z.number().int().min(1).max(6).optional(),
+          joiningFeeEnabled: z.boolean().optional(),
+          joiningFeeCents: z.number().int().min(0).max(500_000).optional(),
           insuranceMonthlyCents: z.number().int().min(0).optional(),
           detailingMonthlyCents: z.number().int().min(0).optional(),
           deductibleCapCents: z.number().int().min(0).optional(),
