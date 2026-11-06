@@ -20,8 +20,8 @@ export interface PlatformPublicConfig {
   /** Guest programmes the admin can pause; absent on an older backend. */
   programs?: { rewardsEnabled: boolean; referralEnabled: boolean; membershipEnabled?: boolean };
   checkout?: { otherMethodsEnabled: boolean };
-  /** Set only while admin has the site-wide notice switched on. */
-  siteNotice?: { message: string } | null;
+  /** Whether admin has the testing notice switched on. */
+  siteNotice?: { enabled: boolean };
   auth?: { phoneSignIn: boolean };
   /** Protection tiers a guest can buy at checkout; priced per day in cents. */
   protection: { code: string; label: string; description: string; pricePerDay: number }[];

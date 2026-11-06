@@ -400,7 +400,7 @@ router.put(
       appRelease: z
         .object({ customer: appRelease.optional(), partner: appRelease.optional() })
         .optional(),
-      siteNotice: z.object({ enabled: z.boolean().optional(), message: z.string().trim().max(300).optional() }).optional(),
+      siteNotice: z.object({ enabled: z.boolean().optional() }).optional(),
       booking: z
         .object({
           hostApprovalHours: z.number().min(1).max(168).optional(),
