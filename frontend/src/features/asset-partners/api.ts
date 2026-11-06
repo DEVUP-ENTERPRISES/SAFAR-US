@@ -58,7 +58,7 @@ export type ApplicationStatus = 'submitted' | 'under_review' | 'changes_requeste
 /** From the partner portal the account's own email is used. */
 export type PortalApplicationInput = Omit<CreateAssetPartnerApplicationInput, 'email'>;
 
-export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'profile' | 'identity' | 'agreement' | 'agreement_expired' | 'documents' | 'payout' | 'ready';
+export type OnboardingStage = 'verify_email' | 'apply' | 'review' | 'changes' | 'rejected' | 'profile' | 'identity' | 'fee' | 'agreement' | 'agreement_expired' | 'documents' | 'payout' | 'ready';
 
 export interface ContactConfirmation {
   status: 'pending' | 'confirmed' | 'declined' | 'undeliverable';
@@ -212,6 +212,8 @@ export interface PartnerOnboarding {
   stage: OnboardingStage;
   email?: string;
   emailVerified: boolean;
+  /** What is owed at the fee step. */
+  fee?: { amountCents: number; currency: string };
   application?: PartnerApplicationDetail;
   partner?: { displayName: string; status: PartnerStatus };
   agreement?: SignableDocument | null;
@@ -502,6 +504,8 @@ export const assetPartnerApi = {
   submitApplication: (input: PortalApplicationInput) => api.post<PartnerApplicationDetail>('/asset-partners/me/applications', input),
   resubmitApplication: (id: string, input: PortalApplicationInput) => api.patch<PartnerApplicationDetail>(`/asset-partners/me/applications/${id}`, input),
   signDocuments: (input: SignDocumentsInput) => api.post('/asset-partners/me/agreement', input),
+  /** Stripe's hosted page for the one-time fee; `paid` when it has already gone through. */
+  joiningFeeCheckout: () => api.post<{ url?: string; paid: boolean }>('/asset-partners/me/joining-fee/checkout'),
   requestNewOffer: () => api.post<AgreementOfferState | null>('/asset-partners/me/agreement/reissue-request'),
   profile: () => api.get<{ profile: PartnerProfile | null; ownPhone?: string; identity: { state: IdentityState; required: boolean; reason?: string } }>('/asset-partners/me/profile'),
   saveProfile: (input: PartnerProfileInput) => api.put<PartnerProfile>('/asset-partners/me/profile', input),

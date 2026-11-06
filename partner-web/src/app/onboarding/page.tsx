@@ -23,13 +23,14 @@ import { SignDocuments } from '~/features/onboarding/sign-documents';
 import { UploadDocuments } from '~/features/onboarding/upload-documents';
 import { ProfileForm } from '~/features/onboarding/profile-form';
 import { IdentityStep } from '~/features/onboarding/identity-step';
+import { FeeStep } from '~/features/onboarding/fee-step';
 
 const TRACK: { label: string; stages: OnboardingStage[] }[] = [
   { label: 'Email', stages: ['verify_email'] },
   { label: 'Application', stages: ['apply', 'changes', 'rejected'] },
   { label: 'Review', stages: ['review'] },
   { label: 'You & ID', stages: ['profile', 'identity'] },
-  { label: 'Agreement', stages: ['agreement', 'agreement_expired'] },
+  { label: 'Agreement', stages: ['fee', 'agreement', 'agreement_expired'] },
   { label: 'Papers', stages: ['documents', 'payout'] },
 ];
 
@@ -272,6 +273,7 @@ function GettingStarted() {
       {data.stage === 'rejected' && !reapply && <Declined data={data} onReapply={() => setReapply(true)} />}
       {data.stage === 'profile' && <ProfileForm initial={data.profile} ownPhone={data.profile?.ownPhone} onSaved={() => void refresh()} />}
       {data.stage === 'identity' && <IdentityStep state={data.identity?.state ?? 'not_started'} reason={data.identity?.reason} onChange={refresh} />}
+      {data.stage === 'fee' && data.fee && <FeeStep amountCents={data.fee.amountCents} onPaid={() => void refresh()} />}
       {data.stage === 'agreement_expired' && <OfferExpired data={data} onDone={() => void refresh()} />}
       {data.stage === 'agreement' && (
         <>

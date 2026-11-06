@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ErrorState } from '@/components/ui/states';
@@ -71,8 +72,8 @@ export default function ApplicationDetailPage() {
   });
 
   const review = useMutation({
-    mutationFn: ({ decision, notes, rejection }: { decision: ReviewDecision; notes?: string; rejection?: { reasons: string[]; improvements?: string; reapplyAfterDays?: number } }) =>
-      manage.reviewApplication(id, decision, notes, rejection),
+    mutationFn: ({ decision, notes, rejection, joiningFeeCents }: { decision: ReviewDecision; notes?: string; rejection?: { reasons: string[]; improvements?: string; reapplyAfterDays?: number }; joiningFeeCents?: number }) =>
+      manage.reviewApplication(id, decision, notes, rejection, joiningFeeCents),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['asset-partner-application', id] });
       qc.invalidateQueries({ queryKey: ['ioc-partner-applications'] });
@@ -82,9 +83,12 @@ export default function ApplicationDetailPage() {
   });
 
   const [declining, setDeclining] = useState(false);
+  const [approving, setApproving] = useState(false);
 
   const decide = async (decision: ReviewDecision) => {
     if (decision === 'rejected') return setDeclining(true);
+    // A new partner's approval also sets their one-time fee.
+    if (decision === 'approved' && a?.kind !== 'vehicle') return setApproving(true);
     const vehicle = a?.kind === 'vehicle';
     const copy: Record<ReviewDecision, { title: string; description: string; label: string }> = {
       approved: vehicle
@@ -250,7 +254,17 @@ export default function ApplicationDetailPage() {
         />
       )}
 
-      {!decided && !declining && (
+      {!decided && approving && (
+        <ApprovePanel
+          name={a.fullName}
+          busy={review.isPending}
+          error={review.isError ? (review.error instanceof ApiError ? review.error.message : 'That didn’t go through.') : undefined}
+          onCancel={() => setApproving(false)}
+          onSubmit={(input) => review.mutate({ decision: 'approved', notes: input.note || undefined, joiningFeeCents: input.feeCents }, { onSuccess: () => setApproving(false) })}
+        />
+      )}
+
+      {!decided && !declining && !approving && (
         <div className="sticky bottom-4 z-10 flex flex-col gap-2 rounded-lg border border-border bg-card p-3 shadow-lg sm:flex-row sm:justify-end">
           <Button variant="outline" className="text-destructive hover:text-destructive" disabled={review.isPending} onClick={() => void decide('rejected')}>
             <XCircle className="h-4 w-4" aria-hidden /> Reject
@@ -317,6 +331,47 @@ function Check2({ ok, label }: { ok?: boolean; label: string }) {
 }
 
 /** Declining: the reasons and advice the applicant will read, and when they may apply again. */
+function ApprovePanel({ name, busy, error, onCancel, onSubmit }: { name: string; busy: boolean; error?: string; onCancel: () => void; onSubmit: (input: { feeCents: number; note: string }) => void }) {
+  const fallback = useQuery({ queryKey: ['ioc-fee-default'], queryFn: () => manage.joiningFeeDefault(), staleTime: 60_000 });
+  const [amount, setAmount] = useState<string>();
+  const [waive, setWaive] = useState(false);
+  const [note, setNote] = useState('');
+  const shown = amount ?? (fallback.data ? String(fallback.data.amountCents / 100) : '');
+  const cents = waive ? 0 : Math.round(Number(shown) * 100);
+  const valid = waive || (shown.trim() !== '' && Number.isFinite(cents) && cents >= 0 && cents <= 500_000);
+  return (
+    <Card className="border-primary/30">
+      <CardHeader><CardTitle className="text-base">Approve {name}</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">They become an Asset Partner. After the ID check they pay this one-time fee, then sign and add payout details. It covers every car they place.</p>
+        {fallback.isLoading ? (
+          <Skeleton className="h-16 w-full" />
+        ) : fallback.isError ? (
+          <ErrorState message="We couldn’t load the usual fee." retry={() => void fallback.refetch()} />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[12rem_1fr] sm:items-end">
+            <Field label="Asset Partner fee (USD)" htmlFor="fee" hint="Starts from the default in Partner Terms.">
+              <Input id="fee" type="number" inputMode="decimal" min="0" max="5000" step="1" disabled={waive} value={waive ? '0' : shown} onChange={(e) => setAmount(e.target.value)} className="tabular-nums" />
+            </Field>
+            <label className="flex items-center gap-2 pb-2 text-sm">
+              <input type="checkbox" className="h-4 w-4 accent-primary" checked={waive} onChange={(e) => setWaive(e.target.checked)} />
+              Waive the fee for this partner
+            </label>
+          </div>
+        )}
+        <Field label="Note (optional)" htmlFor="apr-note"><Textarea id="apr-note" rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button variant="ghost" onClick={onCancel}>Back</Button>
+          <Button disabled={!valid || fallback.isLoading} loading={busy} onClick={() => onSubmit({ feeCents: cents, note: note.trim() })}>
+            <CheckCircle2 className="h-4 w-4" aria-hidden /> {cents > 0 ? `Approve, fee ${(cents / 100).toLocaleString('en-US')}` : 'Approve, no fee'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DeclinePanel({ busy, error, onCancel, onSubmit }: { busy: boolean; error?: string; onCancel: () => void; onSubmit: (input: { reasons: string[]; note: string; improvements?: string; reapplyAfterDays?: number }) => void }) {
   const reasons = useQuery({ queryKey: ['ioc-rejection-reasons'], queryFn: () => manage.rejectionReasons(), staleTime: Infinity });
   const [picked, setPicked] = useState<string[]>([]);

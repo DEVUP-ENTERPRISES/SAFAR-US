@@ -263,6 +263,29 @@ export default function AdminAssetPartnerTermsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Asset Partner fee</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <label className="flex items-start gap-3 text-sm sm:col-span-2">
+              <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" checked={ap.joiningFeeEnabled !== false} onChange={(e) => set((d) => { d.assetPartner.joiningFeeEnabled = e.target.checked; })} />
+              <span><span className="font-medium">Charge new partners a one-time fee</span><span className="block text-muted-foreground">Paid on Stripe right after the ID check, before signing. Covers every car they place. Ops can change or waive it for each partner when approving.</span></span>
+            </label>
+            <Field label="Default fee" hint="What ops sees when approving a new partner.">
+              <Input
+                type="number"
+                step="1"
+                min="0"
+                max="5000"
+                disabled={ap.joiningFeeEnabled === false}
+                value={toDollars(ap.joiningFeeCents ?? 35_000)}
+                onChange={(e) => set((d) => { d.assetPartner.joiningFeeCents = Math.min(500_000, Math.max(0, toCents(e.target.value))); })}
+              />
+            </Field>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Joining and leaving</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">

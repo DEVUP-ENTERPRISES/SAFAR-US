@@ -430,6 +430,14 @@ router.post(
   }),
 );
 
+router.get(
+  '/asset-partner-fee/default',
+  authorize('admin:read'),
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, { amountCents: await assetPartnerFeeService.defaultCents() });
+  }),
+);
+
 /** Change or waive (0) the partner's fee before they pay and sign. */
 router.patch(
   '/asset-partners/:id/joining-fee',
