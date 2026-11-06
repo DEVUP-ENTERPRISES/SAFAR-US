@@ -34,6 +34,7 @@ const EVENT_LABEL: Record<SigningEventType, string> = {
   read_nda: 'NDA read to the end',
   read_amendment: 'Amendment read to the end',
   consented: 'Agreed to sign electronically',
+  authenticated: 'Confirmed their email with a one-time code',
   signed: 'Signed by the partner',
   countersigned: 'Countersigned for CatoDrive',
   completed: 'Completed and sealed',
@@ -103,6 +104,8 @@ export interface SealInput {
   at: Date;
   /** Older signatures sealed after the fact keep their own history line. */
   legacy?: boolean;
+  /** The signer proved the email address with a one-time code just before signing. */
+  authenticated?: { at: Date; email: string };
 }
 
 export class AssetPartnerEnvelopeService {
@@ -139,6 +142,7 @@ export class AssetPartnerEnvelopeService {
     const prior = input.legacy ? [] : await this.eventsBefore(partner._id, purpose, input.termsVersionId);
     const events: SigningEvent[] = [
       ...prior,
+      ...(input.authenticated ? [{ type: 'authenticated' as const, at: input.authenticated.at, ip: ctx.ip, detail: input.authenticated.email }] : []),
       { type: 'signed', at, ip: ctx.ip, userAgent: ctx.userAgent?.slice(0, 300), ...(input.legacy ? { detail: 'sealed from the original signing record' } : {}) },
       { type: 'countersigned', at },
       { type: 'completed', at },

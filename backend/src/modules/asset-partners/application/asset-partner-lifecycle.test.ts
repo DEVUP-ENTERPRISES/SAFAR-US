@@ -1,3 +1,4 @@
+jest.mock('./asset-partner-signing-code', () => ({ assetPartnerSigningCode: { send: jest.fn(async () => ({ sentTo: 'j•••@example.com', devCode: '123456' })), verify: jest.fn(async () => 'jordan@example.com') } }));
 jest.mock('../../notifications/application/notification.service', () => ({ notificationService: { send: jest.fn(async () => undefined) } }));
 jest.mock('../../vehicles/application/vin-decode.service', () => ({
   vinDecodeService: { decodeBatch: jest.fn(async (vins: string[]) => vins.map((vin) => ({ vin, ok: true, year: 2024, make: 'BMW', model: '5 Series' }))) },
@@ -36,6 +37,7 @@ const DAY = 24 * 3600_000;
 const SIGN: SignInput = {
   agreementVersion: 1, ndaVersion: 2, signedName: 'Jordan Ramirez', licenceNumber: 'D12345678', licenceState: 'TX',
   payout: { method: 'zelle', zelleHandle: 'jordan@example.com', zelleName: 'Jordan Ramirez' },
+  emailCode: '123456',
 };
 const CONTACT = { name: 'Ana Ramirez', phone: '(214) 555-0199', relation: 'Sister' };
 
@@ -43,7 +45,7 @@ function dto(): PortalApplicationDto {
   return {
     fullName: 'Jordan Ramirez', partnerType: 'individual', phone: '2145550142', address: '1 Main St', city: 'Dallas', state: 'TX', zip: '75201',
     vehicle: { year: '2024', make: 'BMW', model: '5 Series', mileage: 18400, vin: '1HGCM82633A004352', plate: 'ABC-1234' },
-    ownership: 'owned', accident: 'no', smokeFree: 'yes', petFree: 'yes',
+    ownership: 'owned', titleStatus: 'clean' as const, photos: [{ url: 'https://files.example/front.jpg', label: 'Front' }, { url: 'https://files.example/rear.jpg', label: 'Rear' }, { url: 'https://files.example/odo.jpg', label: 'Odometer' }], accident: 'no',
     insurance: { carrier: 'State Farm', policyNumber: 'SF-123', coverageType: 'full' }, availability: 'fulltime',
     acknowledgedAccurate: true, acknowledgedInspection: true, acknowledgedTerms: true, signature: 'Jordan Ramirez', signDate: new Date(),
   } as PortalApplicationDto;

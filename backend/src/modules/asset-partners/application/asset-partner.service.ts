@@ -16,6 +16,7 @@ import { DocumentModel } from '../../documents/infrastructure/document.model';
 import { assetPartnerTermsService, TERM_FIELDS } from './asset-partner-terms.service';
 import { assetPartnerProfileService } from './asset-partner-profile.service';
 import { assetPartnerOfferService } from './asset-partner-offer.service';
+import { OWNERSHIP_PAPERS, type Ownership } from '../domain/application-rules';
 
 export type PartnerDocCategory = 'w9' | 'kyc' | 'title' | 'insurance' | 'registration';
 export type PortalStage = 'profile' | 'identity' | 'agreement' | 'agreement_expired' | 'documents' | 'payout' | 'ready';
@@ -25,7 +26,7 @@ export const PARTNER_DOCS: { category: PartnerDocCategory; label: string; hint: 
   { category: 'w9', label: 'Tax form', hint: 'IRS Form W-9, or W-8BEN if you are not a U.S. person' },
   { category: 'kyc', label: 'Driver’s licence or ID', hint: 'A clear photo of the front' },
   { category: 'title', label: 'Vehicle title or loan papers', hint: 'Financed: the loan statement with the lender’s details' },
-  { category: 'insurance', label: 'Insurance declarations page', hint: 'Your current personal auto policy' },
+  { category: 'insurance', label: 'Insurance declarations page', hint: 'Your current personal auto policy, showing the policy number and dates' },
   { category: 'registration', label: 'Registration and inspection', hint: 'Current Texas registration and state inspection' },
 ];
 
@@ -258,12 +259,24 @@ export class AssetPartnerService {
       .lean<{ category: PartnerDocCategory; verification?: { status: string } }[]>();
     // A passed Stripe ID check (or staff confirming the ID in person) stands in for the licence photo.
     const idDone = assetPartnerProfileService.isIdentityDone(await assetPartnerProfileService.identity(partner));
+    const papers = OWNERSHIP_PAPERS[await this.ownershipOf(partner)];
     return PARTNER_DOCS.map((d) => {
       if (d.category === 'kyc' && idDone) return { ...d, hint: 'Verified with your ID check', uploaded: true, status: 'verified' };
+      if (d.category === 'title') d = { ...d, ...papers };
       const latest = docs.find((x) => x.category === d.category);
       const status = latest?.verification?.status;
       return { ...d, uploaded: !!latest && status !== 'rejected', status };
     });
+  }
+
+  /** How the partner holds the car, from their latest application; a directly-added partner defaults to owned. */
+  private async ownershipOf(partner: AssetPartnerDoc): Promise<Ownership> {
+    const or: Record<string, unknown>[] = [];
+    if (partner.applicationId) or.push({ _id: partner.applicationId });
+    if (partner.email) or.push({ email: partner.email.toLowerCase() });
+    if (!or.length) return 'owned';
+    const app = await AssetPartnerApplicationModel.findOne({ $or: or }).sort({ createdAt: -1 }).select('ownership').lean<{ ownership?: Ownership }>();
+    return app?.ownership ?? 'owned';
   }
 
   async requirePortalReady(userId: string): Promise<AssetPartnerDoc> {

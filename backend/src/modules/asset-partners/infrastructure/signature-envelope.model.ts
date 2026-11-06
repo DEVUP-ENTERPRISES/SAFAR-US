@@ -12,6 +12,7 @@ export type SigningEventType =
   | 'read_nda'
   | 'read_amendment'
   | 'consented'
+  | 'authenticated'
   | 'signed'
   | 'countersigned'
   | 'completed'

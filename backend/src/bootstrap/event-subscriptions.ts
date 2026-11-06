@@ -96,7 +96,7 @@ async function bookingTerms(bookingId: string): Promise<string[] | undefined> {
       'Only the verified driver on this booking may drive. Bring the driver’s licence you verified.',
       `Shortly before pickup your host sees the photo from your ID check, to confirm it is you at the car. If they cannot, the trip is held until our team confirms your identity.`,
       'The vehicle is tracked for safety and recovery, as set out in the terms and conditions.',
-      'Return the car on time and in the condition you received it. Late returns, tolls, tickets, fuel and damage are charged as set out in the terms and conditions.',
+      'Return the car on time and in the condition you received it. Late returns, tolls, tickets, fuel and damage are charged as set out in the terms and conditions, including toll and ticket notices that arrive after your trip.',
     );
     return terms;
   } catch (err) {
@@ -236,7 +236,35 @@ export function registerEventSubscribers(): void {
   });
 
   eventBus.subscribe(EVENTS.USER_REGISTERED, async (e) => {
-    const p = e.payload as { userId: string; email?: string; firstName?: string };
+    const p = e.payload as { userId: string; email?: string; firstName?: string; audience?: 'guest' | 'asset_partner' | 'host' };
+    const hi = `Welcome to CatoDrive${p.firstName ? `, ${p.firstName}` : ''}`;
+    // Someone who came to put their car with us is told how to do that, not how to book one.
+    if (p.audience === 'asset_partner') {
+      await notificationService.send({
+        userId: p.userId,
+        priority: 'high',
+        deepLink: '/asset-partners/dashboard',
+        actionLabel: 'Add your car',
+        templateKey: 'account.asset_partner_welcome',
+        title: hi,
+        body: 'Thanks for joining as a CatoDrive Asset Partner. Next, tell us about your car. It takes about ten minutes, and you can save and finish later. We review it and get back to you by email.',
+        data: { userId: p.userId },
+      });
+      return;
+    }
+    if (p.audience === 'host') {
+      await notificationService.send({
+        userId: p.userId,
+        priority: 'high',
+        deepLink: '/host',
+        actionLabel: 'List your car',
+        templateKey: 'account.welcome_host',
+        title: hi,
+        body: 'Your host account is ready. List your car with photos and prices, and we review it before it goes live.',
+        data: { userId: p.userId },
+      });
+      return;
+    }
     // High priority (not the 'normal' default) is what puts this on email —
     // 'normal' only reaches push/in-app, and a welcome email that never
     // arrives is the first impression of the whole product.

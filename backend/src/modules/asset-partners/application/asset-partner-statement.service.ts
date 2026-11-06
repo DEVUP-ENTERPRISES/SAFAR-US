@@ -4,6 +4,8 @@ import { assetPartnerService, type ResolvedPartnerTerms } from './asset-partner.
 import { assetPartnerTermsService } from './asset-partner-terms.service';
 import type { AssetPartnerDoc } from '../infrastructure/asset-partner.model';
 import { AssetPartnerPayoutModel } from '../infrastructure/asset-partner-payout.model';
+import { MaintenanceModel } from '../../maintenance/infrastructure/maintenance.model';
+import { assetPartnerNoticeService } from './asset-partner-notice.service';
 
 /**
  * What an Asset Partner is actually owed, worked out the way the published
@@ -36,6 +38,8 @@ export interface StatementLine {
   managementFee: number;
   insurance: number;
   detailing: number;
+  /** Approved repairs finished this month; a damage repair counts up to the deductible cap. */
+  repairs: number;
   net: number;
 }
 
@@ -51,6 +55,9 @@ export interface PartnerStatement {
     managementFee: number;
     insurance: number;
     detailing: number;
+    repairs: number;
+    /** Tolls and tickets the partner paid that CatoDrive accepted, paid back here. */
+    noticeRefunds: number;
     net: number;
   };
   /** When this month's net is scheduled to reach the partner. */
@@ -119,9 +126,30 @@ export class AssetPartnerStatementService {
       byVehicle.set(t.vehicleId, row);
     }
 
+    // Repairs count in the month they were finished; records from before completion dates existed are never charged.
+    const [repairRows, refunds] = await Promise.all([
+      MaintenanceModel.find({
+        assetPartnerId: partner._id,
+        status: 'completed',
+        completedAt: { $gte: start, $lt: end },
+        approval: { $in: ['not_required', 'approved'] },
+        type: { $ne: 'cleaning' },
+        cost: { $gt: 0 },
+      })
+        .select('vehicleId cost damageIncident')
+        .lean<{ vehicleId: string; cost: number; damageIncident?: boolean }[]>(),
+      assetPartnerNoticeService.reimbursementsFor(partner._id, period),
+    ]);
+    const repairsByVehicle = new Map<string, number>();
+    for (const m of repairRows) {
+      const charge = m.damageIncident ? Math.min(m.cost, terms.deductibleCapCents) : m.cost;
+      repairsByVehicle.set(m.vehicleId, (repairsByVehicle.get(m.vehicleId) ?? 0) + charge);
+    }
+
     const lines: StatementLine[] = vehicles
       .map((v) => {
         const r = byVehicle.get(v._id);
+        const repairs = repairsByVehicle.get(v._id) ?? 0;
         const gross = r?.gross ?? 0;
         const managementFee = r?.fee ?? 0;
         const insurance = terms.insuranceMonthlyCents;
@@ -134,7 +162,8 @@ export class AssetPartnerStatementService {
           managementFee,
           insurance,
           detailing,
-          net: gross - managementFee - insurance - detailing,
+          repairs,
+          net: gross - managementFee - insurance - detailing - repairs,
         };
       });
 
@@ -158,7 +187,9 @@ export class AssetPartnerStatementService {
         managementFee: sum((l) => l.managementFee),
         insurance: sum((l) => l.insurance),
         detailing: sum((l) => l.detailing),
-        net: sum((l) => l.net),
+        repairs: sum((l) => l.repairs),
+        noticeRefunds: refunds.amount,
+        net: sum((l) => l.net) + refunds.amount,
       },
       payoutDate,
       payoutMethod: terms.payoutMethod,

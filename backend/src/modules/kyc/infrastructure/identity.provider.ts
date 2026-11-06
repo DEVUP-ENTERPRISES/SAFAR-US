@@ -15,6 +15,8 @@ export interface IdentityResult {
   licenceExpiry?: string;
   /** Hashed before it ever leaves this layer — never stored in clear. */
   licenceNumberHash?: string;
+  /** The last four characters only, so papers can show the licence without holding the number. */
+  licenceLast4?: string;
 }
 
 export interface IdentitySession {
@@ -108,6 +110,7 @@ class StripeIdentityProvider implements IdentityProvider {
       dob: o?.dob ? `${o.dob.year}-${String(o.dob.month).padStart(2, '0')}-${String(o.dob.day).padStart(2, '0')}` : undefined,
       licenceExpiry: exp ? `${exp.year}-${String(exp.month).padStart(2, '0')}-${String(exp.day).padStart(2, '0')}` : undefined,
       licenceNumberHash: doc?.number ? hashLicence(doc.number) : undefined,
+      licenceLast4: doc?.number ? doc.number.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(-4) : undefined,
     };
   }
 

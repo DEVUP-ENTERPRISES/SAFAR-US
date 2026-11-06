@@ -64,7 +64,7 @@ router.post(
     if (!rec) throw new NotFoundError('Maintenance record');
     if (rec.approval === 'pending') throw new ConflictError('The car’s owner hasn’t approved this work yet.', 'AWAITING_APPROVAL');
     if (rec.approval === 'declined') throw new ConflictError('The car’s owner declined this work.', 'DECLINED');
-    await MaintenanceModel.updateOne({ _id: req.params.id, hostId: host._id }, { status: 'completed' });
+    await MaintenanceModel.updateOne({ _id: req.params.id, hostId: host._id }, { status: 'completed', completedAt: new Date() });
     sendSuccess(res, { completed: true });
   }),
 );

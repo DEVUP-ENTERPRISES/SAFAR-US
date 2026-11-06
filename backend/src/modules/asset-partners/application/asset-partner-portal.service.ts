@@ -6,6 +6,8 @@ import {
   type PartnerStatement,
 } from './asset-partner-statement.service';
 import { NotFoundError, ForbiddenError } from '../../../core/errors/app-error';
+import { ReviewModel } from '../../reviews/infrastructure/review.model';
+import { ClaimModel } from '../../claims/infrastructure/claim.model';
 import type { PartnerVehicleSummary } from './asset-partner-application.service';
 
 /**
@@ -35,9 +37,21 @@ export interface PartnerVehicleDetail extends PartnerVehicleSummary {
   recentTrips: VehicleTripSummary[];
   /** This car's net across recent months. */
   monthly: { period: string; net: number; gross: number }[];
+  /** Trips that haven't finished yet, soonest first; `now` marks the one out with a guest. */
+  upcoming: { code: string; start: Date; end: Date; now: boolean }[];
+  /** Days booked this calendar month, counting trips still to come. */
+  daysBookedThisMonth: number;
+  daysInMonth: number;
+  photos: string[];
+  rating: { average: number; count: number };
+  reviews: { rating: number; comment: string; at: Date }[];
+  /** Damage and other claims raised on trips in this car. */
+  claims: { type: string; status: string; at: Date; amountClaimed?: number; amountApproved?: number }[];
 }
 
 const COMPLETED = ['completed', 'in_progress', 'paid', 'confirmed'];
+const UPCOMING = ['paid', 'confirmed', 'in_progress'];
+const DAY = 86_400_000;
 
 export class AssetPartnerPortalService {
   /** 404s rather than silently returning nothing — a portal page needs to know
@@ -91,15 +105,21 @@ export class AssetPartnerPortalService {
       trim?: string;
       status: string;
       vin?: string;
-      plate?: string;
+      registrationNumber?: string;
       createdAt: Date;
       photos?: { url: string; isCover?: boolean }[];
+      ratingAvg?: number;
+      ratingCount?: number;
     }>();
     // Not-found rather than forbidden: the id might belong to someone ELSE's
     // vehicle, which must read exactly like it doesn't exist.
     if (!vehicle) throw new NotFoundError('Vehicle');
 
-    const [trips, history] = await Promise.all([
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+    const bookingIds = (await BookingModel.find({ vehicleId }).select('_id').lean<{ _id: string }[]>()).map((b) => b._id);
+    const [trips, history, coming, inMonth, reviews, claims] = await Promise.all([
       BookingModel.find({ vehicleId, status: { $in: COMPLETED } })
         .sort({ 'period.start': -1 })
         .limit(20)
@@ -108,7 +128,27 @@ export class AssetPartnerPortalService {
           { _id: string; code: string; status: string; period: { start: Date; end: Date }; priceBreakdown: { subtotal: { amount: number } } }[]
         >(),
       assetPartnerStatementService.history(partner, 6),
+      BookingModel.find({ vehicleId, status: { $in: UPCOMING }, 'period.end': { $gte: now } })
+        .sort({ 'period.start': 1 })
+        .limit(10)
+        .select('code period')
+        .lean<{ code: string; period: { start: Date; end: Date } }[]>(),
+      BookingModel.find({ vehicleId, status: { $in: COMPLETED }, 'period.start': { $lt: monthEnd }, 'period.end': { $gt: monthStart } })
+        .select('period')
+        .lean<{ period: { start: Date; end: Date } }[]>(),
+      ReviewModel.find({ vehicleId, direction: 'guest_to_host', status: 'published', deletedAt: null })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('rating comment createdAt')
+        .lean<{ rating: number; comment: string; createdAt: Date }[]>(),
+      ClaimModel.find({ bookingId: { $in: bookingIds } })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .select('type status createdAt amountClaimed amountApproved')
+        .lean<{ type: string; status: string; createdAt: Date; amountClaimed?: number; amountApproved?: number }[]>(),
     ]);
+    // Overlapping time only, so a trip running into next month counts just its days in this one.
+    const bookedMs = inMonth.reduce((sum, b) => sum + Math.max(0, Math.min(+new Date(b.period.end), +monthEnd) - Math.max(+new Date(b.period.start), +monthStart)), 0);
 
     const monthly = history
       .slice()
@@ -132,7 +172,7 @@ export class AssetPartnerPortalService {
       trim: vehicle.trim,
       status: vehicle.status,
       vin: vehicle.vin,
-      plate: vehicle.plate,
+      plate: vehicle.registrationNumber,
       createdAt: vehicle.createdAt,
       photo: (vehicle.photos ?? []).find((p) => p.isCover)?.url ?? vehicle.photos?.[0]?.url,
       trips: current?.trips ?? 0,
@@ -147,6 +187,13 @@ export class AssetPartnerPortalService {
         gross: t.priceBreakdown?.subtotal?.amount ?? 0,
       })),
       monthly,
+      upcoming: coming.map((b) => ({ code: b.code, start: b.period.start, end: b.period.end, now: new Date(b.period.start) <= now && now <= new Date(b.period.end) })),
+      daysBookedThisMonth: Math.round(bookedMs / DAY),
+      daysInMonth: Math.round((+monthEnd - +monthStart) / DAY),
+      photos: (vehicle.photos ?? []).map((p) => p.url),
+      rating: { average: vehicle.ratingAvg ?? 0, count: vehicle.ratingCount ?? 0 },
+      reviews: reviews.map((r) => ({ rating: r.rating, comment: r.comment, at: r.createdAt })),
+      claims: claims.map((c) => ({ type: c.type, status: c.status, at: c.createdAt, amountClaimed: c.amountClaimed, amountApproved: c.amountApproved })),
     };
   }
 

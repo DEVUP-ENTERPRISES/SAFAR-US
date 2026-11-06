@@ -175,6 +175,8 @@ export interface AssetPartnerDoc {
 
   /** Programme milestones, for the partner's own status tracker. */
   approvedAt?: Date;
+  /** The last month whose statement-ready message went out. */
+  statementNotifiedFor?: string;
   onboardedAt?: Date;
   activatedAt?: Date;
   suspendedAt?: Date;
@@ -262,6 +264,7 @@ const schema = new Schema<AssetPartnerDoc>(
     },
 
     approvedAt: Date,
+    statementNotifiedFor: String,
     onboardedAt: Date,
     activatedAt: Date,
     suspendedAt: Date,

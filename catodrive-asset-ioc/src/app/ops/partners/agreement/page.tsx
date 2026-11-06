@@ -19,6 +19,7 @@ import { partnerManageApi, type AgreementKind } from '@/features/asset-partners/
 import { ApiError } from '@/lib/api/types';
 import { formatDate } from '@/lib/utils/format';
 import { PartnersNav } from '~/features/partners/partners-nav';
+import { STANDARD_AGREEMENT } from '~/features/partners/agreement-template';
 
 const manage = partnerManageApi('/ioc');
 const DEFAULT_TITLE: Record<AgreementKind, string> = { agreement: 'CatoDrive Asset Partner Agreement', nda: 'CatoDrive Non-Disclosure Agreement', amendment: 'Amendment to the Asset Partner Agreement' };
@@ -75,6 +76,10 @@ export default function PartnerAgreementPage() {
 
   const changed = !!body.trim() && (body.trim() !== (current?.body ?? '') || title.trim() !== (current?.title ?? ''));
   const send = async () => {
+    if (/\[BEFORE PUBLISHING|\[CatoDrive legal notice address\]/.test(body)) {
+      toast({ tone: 'error', title: 'Finish the text first', description: 'Remove the “BEFORE PUBLISHING” line and fill in the legal notice address.' });
+      return;
+    }
     const { ok } = await confirm({
       title: `Publish this ${kind === 'nda' ? 'NDA' : 'agreement'}?`,
       description: 'Partners who already signed keep the version they signed. Everyone approved from now on signs this one.',
@@ -122,6 +127,22 @@ export default function PartnerAgreementPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {kind === 'agreement' && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-subtle p-3 text-sm">
+                    <span>Start from CatoDrive’s standard agreement, with every exhibit and the live terms as placeholders. Change anything, then publish.</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        if (body.trim() && !(await confirm({ title: 'Replace the text in the editor?', description: 'Nothing is published until you press Publish.', confirmLabel: 'Replace' })).ok) return;
+                        setTitle(STANDARD_AGREEMENT.title);
+                        setBody(STANDARD_AGREEMENT.body);
+                      }}
+                    >
+                      Use the standard agreement
+                    </Button>
+                  </div>
+                )}
                 <Field label="Title" htmlFor="title"><Input id="title" maxLength={160} value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
                 <Field label="Text" htmlFor="body" hint="Paste the full text. Line breaks are kept. Put the partner’s details where they belong with the placeholders on the right.">
                   <Textarea id="body" ref={bodyRef} rows={20} className="font-mono text-xs leading-relaxed" value={body} onChange={(e) => setBody(e.target.value)} />

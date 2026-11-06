@@ -54,6 +54,7 @@ export class AuthService {
       userId: user._id,
       email: user.email,
       firstName: user.firstName,
+      audience: dto.audience ?? 'guest',
     });
     return this.issueSession(user._id, user.email, user.roles, ctx);
   }

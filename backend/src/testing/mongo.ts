@@ -6,6 +6,8 @@ export async function connectTestDb(): Promise<void> {
   if (mongoose.connection.readyState === 0) {
     await mongoose.connect(uri);
   }
+  // Unique indexes enforce idempotency; tests must not race their background build.
+  await Promise.all(mongoose.modelNames().map((n) => mongoose.model(n).init()));
 }
 
 /** Wipe every collection between tests, so each test starts from a clean slate. */

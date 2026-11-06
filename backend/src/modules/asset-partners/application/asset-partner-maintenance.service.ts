@@ -30,6 +30,7 @@ export class AssetPartnerMaintenanceService {
     costCents?: number;
     odometerKm?: number;
     notes?: string;
+    damageIncident?: boolean;
   }): Promise<MaintenanceDoc> {
     const vehicle = await VehicleModel.findById(input.vehicleId).lean();
     if (!vehicle) throw new NotFoundError('Vehicle');
@@ -48,6 +49,7 @@ export class AssetPartnerMaintenanceService {
       type: input.type,
       scheduledFor: input.scheduledFor,
       cost: input.costCents,
+      damageIncident: input.damageIncident || undefined,
       odometerKm: input.odometerKm,
       notes: input.notes,
       assetPartnerId: partner._id,

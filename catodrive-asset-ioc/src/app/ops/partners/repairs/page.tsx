@@ -50,9 +50,10 @@ function ScheduleForm({ onDone }: { onDone: () => void }) {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [cost, setCost] = useState('');
   const [notes, setNotes] = useState('');
+  const [damage, setDamage] = useState(false);
   const save = useMutation({
     meta: { silentError: true },
-    mutationFn: () => manage.scheduleRepair({ vehicleId, type, scheduledFor: date, costCents: cost ? Math.round(Number(cost) * 100) : undefined, notes: notes.trim() || undefined }),
+    mutationFn: () => manage.scheduleRepair({ vehicleId, type, scheduledFor: date, costCents: cost ? Math.round(Number(cost) * 100) : undefined, notes: notes.trim() || undefined, damageIncident: damage || undefined }),
     onSuccess: (r) => {
       toast(r.approval === 'pending'
         ? { tone: 'success', title: 'Sent to the owner for approval', description: `It’s above their ${usd(r.approvalThresholdCents ?? 0)} line, so they’re asked first.` }
@@ -88,6 +89,10 @@ function ScheduleForm({ onDone }: { onDone: () => void }) {
         <Field label="What and why" className="sm:col-span-2">
           <Textarea rows={2} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Replace front brake pads and rotors, worn below limit" />
         </Field>
+        <label className="flex items-start gap-3 rounded-sm border border-border p-3 text-sm sm:col-span-2">
+          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" checked={damage} onChange={(e) => setDamage(e.target.checked)} />
+          <span><span className="font-medium">Repairing damage from a trip</span><span className="block text-xs text-muted-foreground">The owner pays at most their deductible for it. Any repair comes off the owner’s statement in the month it’s marked done.</span></span>
+        </label>
         <div className="sm:col-span-2">
           <Button className="w-full sm:w-auto" disabled={!vehicleId || !date || (cost !== '' && !(Number(cost) >= 0))} loading={save.isPending} onClick={() => save.mutate()}>Schedule</Button>
         </div>

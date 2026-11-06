@@ -114,6 +114,12 @@ function legacyDeliveryFrom(
   };
 }
 
+/** Tells an Asset Partner their car is live; never lets a message failure undo the listing. */
+async function partnerCarLive(vehicleId: string): Promise<void> {
+  const { assetPartnerAlertsService } = await import('../../asset-partners/application/asset-partner-alerts.service');
+  await assetPartnerAlertsService.carLive(vehicleId).catch(() => undefined);
+}
+
 export class VehicleService implements IVehicleContract {
   async create(userId: string, dto: CreateVehicleDto): Promise<VehicleDoc> {
     const host = await hostService.requireHostForUser(userId);
@@ -582,6 +588,7 @@ export class VehicleService implements IVehicleContract {
     if (input.maintenanceRisk !== undefined) update.maintenanceRisk = input.maintenanceRisk;
 
     if (Object.keys(update).length) await VehicleModel.updateOne({ _id: vehicleId }, update);
+    if (update.status === 'listed') await partnerCarLive(vehicleId);
     return this.getById(vehicleId);
   }
 
@@ -599,6 +606,7 @@ export class VehicleService implements IVehicleContract {
           ? { status: 'paused' }
           : { status: 'draft', verificationStatus: 'rejected' };
     await VehicleModel.updateOne({ _id: vehicleId }, update);
+    if (action === 'approve') await partnerCarLive(vehicleId);
     return this.getById(vehicleId);
   }
 

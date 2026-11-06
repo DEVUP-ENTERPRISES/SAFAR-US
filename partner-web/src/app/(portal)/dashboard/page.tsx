@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight, Car, Wallet, TrendingUp, CalendarClock, CheckCircle2, Clock, Wrench,
-  FileText,
+  FileText, Ticket,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils/cn';
 import { StatementCard } from '~/components/portal/statement-card';
 import { PartnerVehicleCard } from '~/components/portal/vehicle-card';
 import { PartnerSupport } from '~/components/portal/partner-support';
+import { usePlatformConfig } from '@/features/platform/config';
 import {
   assetPartnerApi,
   type PartnerApplication,
@@ -118,6 +119,7 @@ export default function PartnerDashboardPage() {
 
 /** Nothing to show - they reached this page without ever applying. */
 function NotAppliedYet() {
+  const fee = usePlatformConfig().data?.assetPartner?.managementFeeBps;
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
@@ -128,7 +130,7 @@ function NotAppliedYet() {
           <p className="display text-xl">No application yet</p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
             Put the car you already own to work. We list it, price it, deliver it, clean it and
-            service it - you keep 80% of every booking.
+            service it{fee !== undefined ? ` - you keep ${100 - fee / 100}% of every booking` : ''}.
           </p>
         </div>
         <Link href="/onboarding">
@@ -177,6 +179,23 @@ function Applied({
                   <span className="block text-sm text-muted-foreground">
                     Work above your approval line doesn’t start until you say so.
                   </span>
+                </span>
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
+      )}
+
+      {isEarning && (
+        <Link href="/notices" className="block">
+          <Card className="transition-colors hover:border-primary/40">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 py-5">
+              <span className="flex min-w-0 items-center gap-3">
+                <Ticket className="h-5 w-5 shrink-0 text-primary" />
+                <span className="min-w-0">
+                  <span className="block font-semibold">Got a toll, parking or ticket letter?</span>
+                  <span className="block text-sm text-muted-foreground">Upload it the day it arrives. We match it to the trip and charge that guest.</span>
                 </span>
               </span>
               <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />

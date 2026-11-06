@@ -18,6 +18,7 @@ import { wheelbaseInsuranceService } from '../modules/insurance/application/whee
 import { tollService } from '../modules/tolls/application/toll.service';
 import { returnWatchService } from '../modules/trips/application/return-watch.service';
 import { assetPartnerOfferService } from '../modules/asset-partners/application/asset-partner-offer.service';
+import { assetPartnerAlertsService } from '../modules/asset-partners/application/asset-partner-alerts.service';
 
 const QUEUE = 'cato-maintenance';
 const MIN = 60_000;
@@ -163,6 +164,12 @@ const JOBS: JobDef[] = [
     name: 'retry-notifications',
     everyMs: 5 * MIN,
     run: async () => ({ retried: await notificationService.retryFailed() }),
+  },
+  {
+    // Once a month closes, each partner hears their final net and payout date.
+    name: 'partner-statements-ready',
+    everyMs: 60 * MIN,
+    run: () => assetPartnerAlertsService.statementsReady(),
   },
   {
     // Partner signing windows: open the ones that should exist, remind before they end, tell partners when one ends.

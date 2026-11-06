@@ -20,6 +20,8 @@ export interface PlatformPublicConfig {
   /** Guest programmes the admin can pause; absent on an older backend. */
   programs?: { rewardsEnabled: boolean; referralEnabled: boolean; membershipEnabled?: boolean };
   checkout?: { otherMethodsEnabled: boolean };
+  /** The published Asset Partner management fee; the owner keeps the rest. */
+  assetPartner?: { managementFeeBps: number; minSeasonMonths?: number };
   /** Whether admin has the testing notice switched on. */
   siteNotice?: { enabled: boolean };
   auth?: { phoneSignIn: boolean };

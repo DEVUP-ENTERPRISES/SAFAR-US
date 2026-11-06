@@ -1,3 +1,4 @@
+jest.mock('./asset-partner-signing-code', () => ({ assetPartnerSigningCode: { send: jest.fn(async () => ({ sentTo: 'j•••@example.com', devCode: '123456' })), verify: jest.fn(async () => 'jordan@example.com') } }));
 jest.mock('../../notifications/application/notification.service', () => ({ notificationService: { send: jest.fn(async () => undefined) } }));
 jest.mock('../../vehicles/application/vin-decode.service', () => ({
   vinDecodeService: { decodeBatch: jest.fn(async (vins: string[]) => vins.map((vin) => ({ vin, ok: true, year: 2024, make: 'BMW', model: '5 Series' }))) },
@@ -29,13 +30,14 @@ const ctx = { ip: '203.0.113.9', userAgent: 'Jest' };
 const SIGN: SignInput = {
   agreementVersion: 1, ndaVersion: 2, signedName: 'Jordan Ramirez', licenceNumber: 'D12345678', licenceState: 'tx',
   payout: { method: 'zelle', zelleHandle: 'jordan@example.com', zelleName: 'Jordan Ramirez' },
+  emailCode: '123456',
 };
 
 function dto(): PortalApplicationDto {
   return {
     fullName: 'Jordan Ramirez', partnerType: 'individual', phone: '2145550142', address: '1 Main St', city: 'Dallas', state: 'TX', zip: '75201',
     vehicle: { year: '2024', make: 'BMW', model: '5 Series', mileage: 18400, vin: '1HGCM82633A004352', plate: 'ABC-1234' },
-    ownership: 'owned', accident: 'no', smokeFree: 'yes', petFree: 'yes',
+    ownership: 'owned', titleStatus: 'clean' as const, photos: [{ url: 'https://files.example/front.jpg', label: 'Front' }, { url: 'https://files.example/rear.jpg', label: 'Rear' }, { url: 'https://files.example/odo.jpg', label: 'Odometer' }], accident: 'no',
     insurance: { carrier: 'State Farm', policyNumber: 'SF-123', coverageType: 'full' }, availability: 'fulltime',
     acknowledgedAccurate: true, acknowledgedInspection: true, acknowledgedTerms: true, signature: 'Jordan Ramirez', signDate: new Date(),
   } as PortalApplicationDto;
@@ -73,7 +75,7 @@ describe('sealing at signing', () => {
     expect(env.documents.every((d) => /^CD-DOC-/.test(d.documentId))).toBe(true);
     const types = env.events.map((e) => e.type);
     expect(types.slice(-3)).toEqual(['signed', 'countersigned', 'completed']);
-    expect(new Set(types.slice(0, -3))).toEqual(new Set(['sent', 'opened', 'read_agreement']));
+    expect(new Set(types.slice(0, -3))).toEqual(new Set(['sent', 'opened', 'read_agreement', 'authenticated']));
     expect(env.signer).toMatchObject({ name: 'Jordan Ramirez', ip: '203.0.113.9' });
     expect(partner.agreement?.envelopeId).toBe(env.envelopeId);
 
@@ -171,7 +173,7 @@ describe('per-partner terms', () => {
     const view = await assetPartnerAmendmentService.forPartner(partner);
     expect(view?.body).toContain('Management fee: 20% -> 30%');
     const before = new Date(Date.now() - 60_000);
-    const res = await assetPartnerAmendmentService.sign(partner, { versionId: version._id, signedName: 'Jordan Ramirez', templateVersion: view!.version }, ctx);
+    const res = await assetPartnerAmendmentService.sign(partner, { versionId: version._id, signedName: 'Jordan Ramirez', templateVersion: view!.version, emailCode: '123456' }, ctx);
     expect(res.envelopeId).toMatch(/^CD-ENV-/);
     expect((await assetPartnerService.termsFor(partner)).managementFeeBps).toBe(3000);
     expect((await assetPartnerService.termsFor(partner, before)).managementFeeBps).toBe(2000);
@@ -204,7 +206,7 @@ describe('per-partner terms', () => {
     // A rate change effective in the future is applied by moving its start date for the test.
     const v = await assetPartnerAmendmentService.request(partner._id, { managementFeeBps: 3000 }, { actorId: OPS });
     const view = await assetPartnerAmendmentService.forPartner(partner);
-    await assetPartnerAmendmentService.sign(partner, { versionId: v._id, signedName: 'Jordan Ramirez', templateVersion: view!.version }, ctx);
+    await assetPartnerAmendmentService.sign(partner, { versionId: v._id, signedName: 'Jordan Ramirez', templateVersion: view!.version, emailCode: '123456' }, ctx);
     const changeAt = new Date(signedAt.getTime() + 2 * 3_600_000);
     await AssetPartnerTermsVersionModel.collection.updateOne({ _id: v._id } as never, { $set: { effectiveFrom: changeAt } });
 

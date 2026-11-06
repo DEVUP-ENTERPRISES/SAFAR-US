@@ -12,7 +12,7 @@ import { uuid } from '../../../shared/utils/uuid';
  * can actually raise.
  */
 export type ViolationType = 'toll' | 'parking' | 'traffic' | 'impound' | 'other';
-export type ViolationStatus = 'reported' | 'charged' | 'disputed' | 'waived' | 'resolved';
+export type ViolationStatus = 'reported' | 'charged' | 'charge_failed' | 'disputed' | 'waived' | 'resolved';
 
 export interface ViolationDoc {
   _id: string;
@@ -35,6 +35,10 @@ export interface ViolationDoc {
   evidence: { url: string; kind: 'image' | 'file'; note?: string }[];
   status: ViolationStatus;
   reportedBy: string;
+  /** Set when an Asset Partner uploaded the notice for one of their cars. */
+  partnerNoticeId?: string;
+  /** Money actually taken from the guest; 'charged' is only ever set with this. */
+  collected?: { at: Date; amount: number };
   /** The guest's side, if they dispute it. */
   disputeReason?: string;
   disputedAt?: Date;
@@ -63,8 +67,10 @@ const schema = new Schema<ViolationDoc>(
       type: [{ url: String, kind: { type: String, enum: ['image', 'file'] }, note: String }],
       default: [],
     },
-    status: { type: String, enum: ['reported', 'charged', 'disputed', 'waived', 'resolved'], default: 'reported' },
+    status: { type: String, enum: ['reported', 'charged', 'charge_failed', 'disputed', 'waived', 'resolved'], default: 'reported' },
     reportedBy: { type: String, required: true },
+    partnerNoticeId: String,
+    collected: { at: Date, amount: Number },
     disputeReason: String,
     disputedAt: Date,
     resolution: String,

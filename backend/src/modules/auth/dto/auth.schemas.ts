@@ -6,6 +6,8 @@ export const registerSchema = z.object({
   firstName: z.string().min(1).max(60).optional(),
   lastName: z.string().min(1).max(60).optional(),
   referralCode: z.string().max(24).optional(),
+  /** Which site the person signed up on, so the welcome speaks to why they came. */
+  audience: z.enum(['guest', 'asset_partner', 'host']).optional(),
 });
 
 export const loginSchema = z.object({
