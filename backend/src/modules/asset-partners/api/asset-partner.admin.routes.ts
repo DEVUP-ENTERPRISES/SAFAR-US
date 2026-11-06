@@ -170,6 +170,7 @@ router.post(
 
 router.get(
   '/asset-partner-notices',
+  authorize('admin:read'),
   validate({ query: z.object({ status: z.enum(['matched', 'needs_review', 'absorbed', 'rejected']).optional() }) }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await assetPartnerNoticeService.listForOps(req.query as never));
@@ -215,6 +216,7 @@ router.post(
 // The monthly report ops used to build by hand, for any partner.
 router.get(
   '/asset-partners/:partnerId/statements/:period/pdf',
+  authorize('admin:read'),
   asyncHandler(async (req, res) => {
     const partner = await AssetPartnerModel.findById(req.params.partnerId).lean<AssetPartnerDoc>();
     if (!partner) throw new NotFoundError('Partner');
