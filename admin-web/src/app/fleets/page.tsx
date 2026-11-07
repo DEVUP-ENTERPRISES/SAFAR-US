@@ -62,6 +62,8 @@ export default function AdminFleetsPage() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          type="search"
+          aria-label="Search fleets"
           placeholder="Fleet or operator name…"
           className="ps-9"
         />

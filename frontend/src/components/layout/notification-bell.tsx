@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Bell, CheckCheck, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { formatDate } from '@/lib/utils/format';
 import { notificationsApi, notificationLink, type Notification } from '@/features/notifications/api';
+import { useMarkNotificationsRead } from '@/features/notifications/use-mark-read';
 
 /** Relative time, coarse - matches how inbox timestamps read in the apps. */
 function ago(iso: string): string {
@@ -21,7 +22,6 @@ function ago(iso: string): string {
 /** `linkFor` lets an app (e.g. the admin console) send each notification to its own pages. */
 export function NotificationBell({ linkFor = notificationLink }: { linkFor?: (n: Notification) => string | null } = {}) {
   const router = useRouter();
-  const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -34,10 +34,7 @@ export function NotificationBell({ linkFor = notificationLink }: { linkFor?: (n:
   const items = data ?? [];
   const unread = items.filter((n) => !n.readAt);
 
-  const markRead = useMutation({
-    mutationFn: (ids: string[]) => notificationsApi.markRead(ids),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
-  });
+  const markRead = useMarkNotificationsRead();
 
   useEffect(() => {
     if (!open) return;

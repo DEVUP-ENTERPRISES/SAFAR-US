@@ -6,6 +6,28 @@ Legend: **Implemented** · **Verified** (tests / builds / scans run) · **Measur
 
 ---
 
+## UX patterns round — 2026-11-07 (admin, operations panel, partner portal)
+
+Checked the three panels against a 20-pattern SaaS UX list. Shared code lives in `frontend/src`, so each fix lands in all three.
+
+| Pattern | Before | Now |
+|---|---|---|
+| Command palette, keyboard shortcuts | Missing | **Implemented**: `components/layout/command-palette.tsx`, mounted by `PanelSidebar`. Ctrl/⌘K opens page search, `/` focuses the page's search box, `?` lists shortcuts. Same nav items as the sidebar, so it never offers a page the person can't reach |
+| Optimistic UI | Only favourites | **Implemented** where it's safe: mark-read in the bell and the ops inbox (`features/notifications/use-mark-read.ts`, rolls back on failure). The two copies of that mutation are now one. Money, identity and approval decisions stay server-confirmed on purpose |
+| Graceful error recovery | Admin had a route error screen; ops and partner had none; no offline signal; non-API errors could show raw text in toasts | **Implemented**: one shared `app/error.tsx` and `app/global-error.tsx`, re-exported by each app; `ConnectionBanner` in `Providers`; network failures toast "Couldn't save changes. Your work is safe."; other messages pass through `safeMessage` |
+| Custom 404 | Ops and partner had one; admin showed Next's default | **Implemented** `admin-web/src/app/not-found.tsx` (slug-aware link). Signed-out visitors still see only the sign-in screen, by design |
+| Search box accessibility | Fleets search had no label | **Implemented**: `type="search"` and labels on admin users, fleets and ops cars |
+| Skeletons, empty/error states, persistent sidebar, mobile layout, data table, filtering, debounce, smart validation, destructive-action confirm, onboarding capture, autosave (partner application) | Already present | No change. Spot-checked every `variant="destructive"` button: all confirm or sit behind a reasons form |
+| Bulk actions | Present where a real bulk endpoint exists (bulk VIN add, CSV listing import, mark all read) | No generic row selection added: approvals carry per-partner fees and identity checks, so bulk would be unsafe |
+| Throttling | Buttons disable while their request runs; React Query dedupes reads | No change |
+| Tier indicators, referral pages | Not applicable to staff and partner panels (the guest site has referrals) | No change |
+
+**Verified**: `tsc --noEmit` in all 6 web apps; production `next build` of guest, admin, operations and partner apps; palette ranking checked with 6 cases; headless Chromium at 375 and 1280 px showed the offline and back-online banners with no sideways scroll. The browser check caught a real bug (error files must carry `'use client'` themselves), fixed before commit.
+**Not verified**: the palette and the admin 404 in a signed-in browser session (needs staff login); there's no ESLint config in `frontend/`, so lint was not run.
+**Rollback**: revert the commit; no data, API or config changes.
+
+---
+
 ## Round 1 — 2026-10-23 (branch `release/2.0`)
 
 ### 1. System assessment

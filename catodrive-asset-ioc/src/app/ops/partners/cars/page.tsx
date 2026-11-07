@@ -151,7 +151,7 @@ export default function AssetCarsPage() {
       {adding && <RecordOwner onDone={() => { setAdding(false); refresh(); }} />}
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Input className="sm:max-w-xs" placeholder="Search car, plate or owner" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search cars" />
+        <Input type="search" className="sm:max-w-xs" placeholder="Search car, plate or owner" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search cars" />
         <Select wrapperClassName="sm:w-64" value={partner} onChange={(e) => setPartner(e.target.value)} aria-label="Owner">
           <option value="">All owners</option>
           {owners.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
