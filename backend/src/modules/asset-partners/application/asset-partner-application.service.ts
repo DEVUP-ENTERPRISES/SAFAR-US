@@ -21,7 +21,8 @@ import { randomId } from '../../../shared/utils/uuid';
 import { assetPartnerProfileService, publicProfile, type PartnerIdentity } from './asset-partner-profile.service';
 import { assetPartnerOfferService, type OfferState } from './asset-partner-offer.service';
 import { explainRejection } from '../domain/rejection-reasons';
-import { OWNERSHIP_PAPERS, SEASON_MAX_SHORT_MONTHS, SEASON_YEAR_MONTHS, TITLE_REFUSAL, seasonMonthsAllowed } from '../domain/application-rules';
+import { CHANGE_ITEMS, OWNERSHIP_PAPERS, SEASON_MAX_SHORT_MONTHS, SEASON_YEAR_MONTHS, TITLE_REFUSAL, seasonMonthsAllowed, type ChangeKey } from '../domain/application-rules';
+import { mergeRequested, reusedPhotos, sectionValue, snapshot, stillToChange } from './asset-partner-changes';
 import { DocumentModel } from '../../documents/infrastructure/document.model';
 import type { RejectionReason } from '../infrastructure/asset-partner-application.model';
 import type { PartnerProfile } from '../infrastructure/asset-partner.model';
@@ -168,10 +169,27 @@ export class AssetPartnerApplicationService {
   /** Sends an application back after CatoDrive asked for changes. */
   async resubmit(userId: string, id: string, dto: PortalApplicationDto): Promise<AssetPartnerApplicationDoc> {
     const user = await this.verifiedUser(userId);
-    await this.checkRules(dto);
+    const app = await AssetPartnerApplicationModel.findOne({ _id: id, submittedByUserId: userId, status: 'changes_requested' }).lean<AssetPartnerApplicationDoc>();
+    if (!app) throw new NotFoundError('Application');
+    // A targeted request takes only the asked-for items; the rest of the application stays as reviewed.
+    const keys = (app.changeRequest?.items ?? []).map((i) => i.key) as ChangeKey[];
+    const merged = keys.length ? mergeRequested(app, dto, keys) : dto;
+    await this.checkRules(merged);
+    const reused = reusedPhotos(merged.photos);
+    if (reused) throw new ValidationError(reused);
+    const fields = fieldsFrom(merged);
+
+    let resubmission: AssetPartnerApplicationDoc['resubmission'];
+    if (keys.length) {
+      const after = Object.fromEntries(keys.filter((k) => !k.startsWith('paper:')).map((k) => [k, sectionValue(fields as never, k)]));
+      const missing = await stillToChange(app, after, keys);
+      if (missing.length) throw new ValidationError(`Still to change: ${missing.join(', ')}.`);
+      resubmission = { at: new Date(), changed: keys, before: app.changeRequest!.before };
+    }
+
     const doc = await AssetPartnerApplicationModel.findOneAndUpdate(
       { _id: id, submittedByUserId: userId, status: 'changes_requested' },
-      { $set: { ...fieldsFrom(dto), email: user.email, status: 'submitted' } },
+      { $set: { ...fields, email: user.email, status: 'submitted', ...(resubmission ? { resubmission } : {}) }, $unset: { changeRequest: 1 } },
       { new: true },
     ).lean<AssetPartnerApplicationDoc>();
     if (!doc) throw new NotFoundError('Application');
@@ -216,7 +234,8 @@ export class AssetPartnerApplicationService {
 
   // Product rules the form also shows, checked here because the form is not the only way in.
   private async checkRules(dto: PortalApplicationDto): Promise<void> {
-    if (dto.titleStatus !== 'clean') throw new ValidationError(TITLE_REFUSAL[dto.titleStatus]);
+    // Applications from before the title question have no answer; a new one always does.
+    if (dto.titleStatus && dto.titleStatus !== 'clean') throw new ValidationError(TITLE_REFUSAL[dto.titleStatus]);
     if (dto.availability !== 'seasonal') return;
     const min = (await platformConfigService.get()).assetPartner.minSeasonMonths;
     if (!seasonMonthsAllowed(dto.seasonMonths, min)) {
@@ -257,6 +276,8 @@ export class AssetPartnerApplicationService {
     extra: { kind: ApplicationKind; partnerId?: string; email: string },
   ): Promise<AssetPartnerApplicationDoc> {
     await this.checkRules(dto);
+    const reused = reusedPhotos(dto.photos);
+    if (reused) throw new ValidationError(reused);
 
     let reference = generateReference();
     if (await AssetPartnerApplicationModel.exists({ reference })) reference = generateReference();
@@ -474,14 +495,26 @@ export class AssetPartnerApplicationService {
     notes?: string,
     rejection?: RejectionInput,
     joiningFeeCents?: number,
+    changes?: { key: ChangeKey; note?: string }[],
   ): Promise<AssetPartnerApplicationDoc> {
     const app = await AssetPartnerApplicationModel.findById(id);
     if (!app) throw new NotFoundError('Application');
     if (app.status === 'approved' || app.status === 'rejected') {
       throw new ConflictError(`Application already ${app.status}`, 'ALREADY_DECIDED');
     }
-    if (decision !== 'approved' && !notes?.trim()) {
-      throw new ValidationError('Add a note for the applicant');
+    const items = decision === 'changes_requested' ? [...new Map((changes ?? []).map((c) => [c.key, c])).values()] : [];
+    if (decision !== 'approved' && !notes?.trim() && !items.length) {
+      throw new ValidationError(decision === 'changes_requested' ? 'Add a note for the applicant, or pick what needs changing' : 'Add a note for the applicant');
+    }
+    if (items.length) {
+      const current = app.toObject() as AssetPartnerApplicationDoc;
+      app.changeRequest = {
+        items: items.map((i) => ({ key: i.key, label: CHANGE_ITEMS[i.key], note: i.note?.trim() || undefined })),
+        note: notes?.trim() || undefined,
+        requestedAt: new Date(),
+        requestedBy: reviewerId,
+        before: await snapshot(current, items.map((i) => i.key)),
+      };
     }
     if (decision === 'rejected') {
       const reasons = Array.from(new Set(rejection?.reasons ?? []));
@@ -541,7 +574,15 @@ export class AssetPartnerApplicationService {
       approved: vehicle
         ? { title: `Your ${car} is approved`, body: 'We’ll contact you to schedule the inspection and get it listed.' }
         : { title: 'You’re approved as a CatoDrive Asset Partner', body: 'Sign your agreement and add your payout details to open your dashboard.' },
-      changes_requested: { title: 'Your application needs a few changes', body: notes ?? '' },
+      changes_requested: {
+        title: 'Your application needs a few changes',
+        body: [
+          notes ?? '',
+          app.changeRequest?.items.length
+            ? `Please update: ${app.changeRequest.items.map((i) => `${CHANGE_ITEMS[i.key as ChangeKey] ?? i.key}${i.note ? ` (${i.note})` : ''}`).join('; ')}. Only these need changing.`
+            : '',
+        ].filter(Boolean).join(' '),
+      },
       rejected: {
         title: vehicle ? `We can’t take your ${car} right now` : 'We can’t approve your application right now',
         body: [

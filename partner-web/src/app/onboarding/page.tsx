@@ -266,7 +266,7 @@ function GettingStarted() {
         <ApplicationForm mode="partner" initial={data.stage === 'rejected' ? app : undefined} draftKey="cd-partner-application" onSubmit={(input) => assetPartnerApi.submitApplication(input).then(sent)} />
       )}
       {data.stage === 'changes' && app && (
-        <ApplicationForm mode="partner" initial={app} reviewNote={app.reviewNotes} draftKey={`cd-partner-application-${app._id}`} submitLabel="Send again"
+        <ApplicationForm mode="partner" initial={app} reviewNote={app.reviewNotes} changeRequest={app.changeRequest} draftKey={`cd-partner-application-${app._id}`} submitLabel="Send again"
           onSubmit={(input) => assetPartnerApi.resubmitApplication(app._id, input).then(sent)} />
       )}
       {data.stage === 'review' && <InReview data={data} />}

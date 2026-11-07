@@ -30,3 +30,21 @@ export const OWNERSHIP_PAPERS: Record<Ownership, { label: string; hint: string }
   financed: { label: 'Loan statement', hint: 'A recent loan statement or payoff letter showing the lender and the car' },
   leased: { label: 'Lease agreement and permission', hint: 'Your lease plus the leasing company’s written OK to rent the car out' },
 };
+
+// What ops can send back for correction; the partner redoes only these.
+export const CHANGE_ITEMS = {
+  'photo:Front': 'Front photo',
+  'photo:Rear': 'Rear photo',
+  'photo:Odometer': 'Odometer photo',
+  'photo:Interior': 'Interior photo',
+  details: 'Car details (VIN, year, make, model, mileage, plate)',
+  ownership: 'Ownership and title',
+  condition: 'Accident history',
+  insurance: 'Insurance details',
+  availability: 'Availability',
+  contact: 'Name, phone and address',
+  'paper:title': 'Ownership papers',
+  'paper:insurance': 'Insurance declarations page',
+} as const;
+export type ChangeKey = keyof typeof CHANGE_ITEMS;
+export const CHANGE_KEYS = Object.keys(CHANGE_ITEMS) as ChangeKey[];

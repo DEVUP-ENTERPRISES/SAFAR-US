@@ -35,7 +35,7 @@ export interface CreateAssetPartnerApplicationInput {
   accident: 'yes' | 'no';
   accidentDetail?: string;
   hasMaintenanceRecords?: 'yes' | 'no';
-  photos: { url: string; key?: string; label?: string }[];
+  photos: { url: string; key?: string; label?: string; sha256?: string }[];
   insurance?: {
     carrier?: string;
     policyNumber?: string;
@@ -250,6 +250,8 @@ export interface PartnerApplication {
   createdAt: string;
   reviewedAt?: string;
   reviewNotes?: string;
+  /** What CatoDrive asked to be redone; only these items are open when it is sent again. */
+  changeRequest?: { items: { key: string; label: string; note?: string }[]; note?: string; requestedAt: string };
   hostVerified?: boolean;
   kind?: 'partner' | 'vehicle';
 }
@@ -268,7 +270,7 @@ export interface PartnerApplicationDetail extends PartnerApplication {
   accidentDetail?: string;
   smokeFree?: boolean;
   petFree?: boolean;
-  photos: { url: string; key?: string; label?: string }[];
+  photos: { url: string; key?: string; label?: string; sha256?: string }[];
   insurance?: { carrier?: string; policyNumber?: string; coverageType?: 'full' | 'liability' | 'unsure'; policyExpiry?: string };
   notes?: string;
   signature: string;

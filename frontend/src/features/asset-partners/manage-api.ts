@@ -125,8 +125,10 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     summary: () => api.get<ProgrammeSummary>(`${base}/asset-partners/summary`),
     applications: (q: Q = {}) => api.get<any[]>(`${base}/asset-partner-applications`, q),
     application: (id: string) => api.get<any>(`${base}/asset-partner-applications/${id}`),
-    reviewApplication: (id: string, decision: ReviewDecision, notes?: string, rejection?: { reasons: string[]; improvements?: string; reapplyAfterDays?: number }, joiningFeeCents?: number) =>
-      api.post(`${base}/asset-partner-applications/${id}/review`, { decision, notes, rejection, joiningFeeCents }),
+    reviewApplication: (id: string, decision: ReviewDecision, notes?: string, rejection?: { reasons: string[]; improvements?: string; reapplyAfterDays?: number }, joiningFeeCents?: number, changes?: { key: string; note?: string }[]) =>
+      api.post(`${base}/asset-partner-applications/${id}/review`, { decision, notes, rejection, joiningFeeCents, changes }),
+    /** The items ops can send back for correction, with their plain names. */
+    changeItems: () => api.get<{ key: string; label: string }[]>(`${base}/asset-partner-applications/change-items`),
     /** The admin default for the one-time partner fee, to start the approval form from. */
     joiningFeeDefault: () => api.get<{ amountCents: number }>(`${base}/asset-partner-fee/default`),
     setJoiningFee: (partnerId: string, amountCents: number) => api.patch(`${base}/asset-partners/${partnerId}/joining-fee`, { amountCents }),

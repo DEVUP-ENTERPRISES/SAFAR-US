@@ -4,6 +4,7 @@ import { assetPartnerApplicationService } from '../application/asset-partner-app
 import { reviewApplicationSchema } from '../dto/asset-partner-application.schemas';
 import { explainRejection } from '../domain/rejection-reasons';
 import { REJECTION_REASONS } from '../infrastructure/asset-partner-application.model';
+import { CHANGE_ITEMS, CHANGE_KEYS } from '../domain/application-rules';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
@@ -37,6 +38,15 @@ router.get(
   }),
 );
 
+/** What ops can send back for correction, with the names the partner will read. */
+router.get(
+  '/asset-partner-applications/change-items',
+  authorize('admin:read'),
+  asyncHandler(async (_req, res) => {
+    sendSuccess(res, CHANGE_KEYS.map((key) => ({ key, label: CHANGE_ITEMS[key] })));
+  }),
+);
+
 router.get(
   '/asset-partner-applications/:id',
   authorize('admin:read'),
@@ -59,6 +69,7 @@ router.post(
       req.body.notes,
       req.body.rejection,
       req.body.joiningFeeCents,
+      req.body.changes,
     );
     sendSuccess(res, app);
   }),
