@@ -6,6 +6,8 @@ import { ThemeProvider } from 'next-themes';
 import { tokenStore } from '@/lib/api/token-store';
 import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { ToastProvider, useToast } from '@/components/ui/toast';
+import { ConnectionBanner } from '@/components/layout/connection-banner';
+import { safeMessage } from '@/lib/utils/safe-message';
 import { ApiError, isTransientError } from '@/lib/api/types';
 import { useSessionBootstrap } from '@/features/auth/hooks';
 import { usePushRegistration } from '@/features/push/use-push';
@@ -64,12 +66,11 @@ function createQueryClient(notify: (t: { tone: 'error'; title: string; descripti
         // A validation failure carries a per-field `details` list. Showing only
         // `message` collapsed every one of them into "Validation failed", which
         // tells the user nothing about what to fix.
-        let message =
-          error instanceof ApiError
-            ? error.message
-            : error instanceof Error
-              ? error.message
-              : 'Something went wrong.';
+        if (error instanceof ApiError && error.status === 0) {
+          notify({ tone: 'error', title: "Couldn't save changes", description: 'Your work is safe. Check your connection and try again.' });
+          return;
+        }
+        let message = error instanceof ApiError ? error.message : safeMessage(error instanceof Error ? error.message : undefined);
         if (error instanceof ApiError && error.details?.length) {
           message = error.details
             .map((d) => (d.field ? `${d.field}: ${d.issue}` : d.issue))
@@ -94,6 +95,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ConfirmProvider>
             <AuthBootstrap>{children}</AuthBootstrap>
+            <ConnectionBanner />
           </ConfirmProvider>
         </ThemeProvider>
       </QueryProvider>

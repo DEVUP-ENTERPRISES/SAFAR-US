@@ -134,20 +134,25 @@ describe('getting started on the partner portal', () => {
     expect(pdf.pdf.subarray(0, 4).toString()).toBe('%PDF');
     expect(pdf.filename).toMatch(/^CatoDrive-Asset-Partner-Agreement-Jordan-Ramirez-CD-ENV-[A-Z0-9]{4}-[A-Z0-9]{4}.pdf$/);
 
+    // Signing opens the dashboard; the papers list rides along so the portal can ask for them.
     const docsStep = await assetPartnerApplicationService.onboarding(userId);
-    expect(docsStep.stage).toBe('documents');
+    expect(docsStep.stage).toBe('ready');
     expect(docsStep.documents?.map((d) => d.category)).toEqual(['w9', 'kyc', 'title', 'insurance', 'registration']);
-    await expect(assetPartnerService.requirePortalReady(userId)).rejects.toThrow('Finish getting started');
+    await expect(assetPartnerService.requirePortalReady(userId)).resolves.toBeTruthy();
+    const partnerId = (await assetPartnerService.getByUserId(userId))!._id;
+    await expect(assetPartnerService.transition(partnerId, 'active')).rejects.toThrow('Tax form');
 
     for (const category of ['w9', 'kyc', 'title', 'insurance', 'registration']) {
       await DocumentModel.create({ ownerId: userId, category, url: `https://cdn.example.com/${category}.pdf` });
     }
-    expect((await assetPartnerApplicationService.onboarding(userId)).stage).toBe('ready');
-    await expect(assetPartnerService.requirePortalReady(userId)).resolves.toBeTruthy();
+    expect((await assetPartnerApplicationService.onboarding(userId)).documents?.every((d) => d.uploaded)).toBe(true);
 
-    // A paper CatoDrive sends back locks the dashboard again until it is replaced.
+    // A paper CatoDrive sends back keeps the car off the road until it is replaced, without locking the dashboard.
     await DocumentModel.updateOne({ ownerId: userId, category: 'w9' }, { $set: { verification: { status: 'rejected', reason: 'Unsigned' } } });
-    expect((await assetPartnerApplicationService.onboarding(userId)).stage).toBe('documents');
+    expect((await assetPartnerApplicationService.onboarding(userId)).stage).toBe('ready');
+    await expect(assetPartnerService.transition(partnerId, 'active')).rejects.toThrow('papers are in');
+    await DocumentModel.create({ ownerId: userId, category: 'w9', url: 'https://cdn.example.com/w9-signed.pdf' });
+    expect((await assetPartnerService.transition(partnerId, 'active')).status).toBe('active');
 
     // A later version never rewrites what was signed.
     await assetPartnerAgreementService.publish(OPS, { ...AGREEMENT, body: `${AGREEMENT.body} Third.` });

@@ -342,7 +342,7 @@ export class AssetPartnerApplicationService {
         const { payoutMethod } = await assetPartnerService.termsFor(partner);
         return { ...base, stage, partner: summary, payoutMethod };
       }
-      return { ...base, stage, partner: summary };
+      return { ...base, stage, partner: summary, documents: await assetPartnerService.documentChecklist(partner) };
     }
 
     if (!base.emailVerified) return { ...base, stage: 'verify_email' };

@@ -3,8 +3,9 @@
 import { useCallback, useState, type ComponentType } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Search } from 'lucide-react';
 import { NavSheet } from '@/components/layout/nav-sheet';
+import { CommandPalette, PaletteShortcut, openCommandPalette } from '@/components/layout/command-palette';
 import { cn } from '@/lib/utils/cn';
 
 export interface PanelNavItem {
@@ -113,6 +114,17 @@ export function PanelSidebar({
           {subtitle && <p className="truncate text-xs font-medium text-muted-foreground/80">{subtitle}</p>}
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={openCommandPalette}
+        aria-keyshortcuts="Control+K Meta+K"
+        className="mb-5 flex w-full items-center gap-2 rounded-sm border border-border bg-subtle px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Search className="h-4 w-4 shrink-0" aria-hidden />
+        <span className="flex-1 text-start">Go to a page</span>
+        <PaletteShortcut className="rounded-sm border border-border bg-card px-1.5 font-sans text-xs font-semibold" />
+      </button>
 
       {groups.map((g) => (
         <div key={g.name} className="mb-4">
@@ -280,6 +292,7 @@ export function PanelSidebar({
   return (
     <>
       {desktopSidebar}
+      <CommandPalette items={items} icons={icons} fallbackIcon={FallbackIcon} />
       {showMobileNav && mobileNav}
       {showMobileNav && overflow && (
         <NavSheet open={moreOpen} onClose={closeMore} title={title} items={items} icons={icons} fallbackIcon={FallbackIcon} isActive={isActive} />

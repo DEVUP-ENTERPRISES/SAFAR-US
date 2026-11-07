@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle, Clock, MessageSquare, FileWarning, CarFront, Bell, Check, ChevronRight,
 } from 'lucide-react';
@@ -15,6 +15,7 @@ import { Tabs } from '@/components/ui/rows';
 import { cn } from '@/lib/utils/cn';
 import { hostApi, type HostActionItem } from '~/features/host/api';
 import { notificationsApi } from '@/features/notifications/api';
+import { useMarkNotificationsRead } from '@/features/notifications/use-mark-read';
 import { useConversations } from '@/features/messaging/hooks';
 import { useInquiryInbox } from '@/features/messaging/inquiry-hooks';
 
@@ -38,7 +39,6 @@ function until(iso: string): { text: string; urgent: boolean; passed: boolean } 
 }
 
 function HostInbox() {
-  const qc = useQueryClient();
   const [tab, setTab] = useState<'actions' | 'messages' | 'inquiries' | 'alerts'>('actions');
 
   const inbox = useQuery({ queryKey: ['host-inbox'], queryFn: () => hostApi.inboxActions(), refetchInterval: 60_000 });
@@ -50,10 +50,7 @@ function HostInbox() {
     enabled: tab === 'alerts',
   });
 
-  const markRead = useMutation({
-    mutationFn: (ids: string[]) => notificationsApi.markRead(ids),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
-  });
+  const markRead = useMarkNotificationsRead();
 
   const items = inbox.data?.items ?? [];
   const atRisk = inbox.data?.atRiskTotal ?? 0;
