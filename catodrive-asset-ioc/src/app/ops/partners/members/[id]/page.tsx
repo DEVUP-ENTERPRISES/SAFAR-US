@@ -22,6 +22,7 @@ import { PartnerEnvelopes } from '~/features/partners/partner-envelopes';
 import { TermsHistory } from '~/features/partners/terms-history';
 import { PartnerLifecycleCard } from '~/features/partners/partner-lifecycle-card';
 import { JoiningFeeCard } from '~/features/partners/joining-fee-card';
+import { PartnerCarsCard } from '~/features/partners/partner-cars-card';
 import { ApiError } from '@/lib/api/types';
 import { safeMessage } from '@/lib/utils/safe-message';
 import { api } from '@/lib/api/client';
@@ -386,40 +387,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
       <TermsHistory partnerId={id} />
 
-      {/* Their cars — ops had no way to see these from the partner record. */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
-            Vehicles {data.vehicles?.length ? `· ${data.vehicles.length}` : ''}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2.5 text-sm">
-          {data.vehicles?.length ? (
-            data.vehicles.map((v: any) => (
-              <div
-                key={v._id}
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2.5 last:border-0 last:pb-0"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium">
-                    {v.year} {v.make} {v.model}
-                    {v.trim ? ` ${v.trim}` : ''}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {v.plate ? `Plate ${v.plate}` : 'No plate on file'}
-                    {v.vin ? ` · VIN ${v.vin}` : ''}
-                  </p>
-                </div>
-                <Badge tone={v.status === 'listed' ? 'success' : 'muted'}>{v.status}</Badge>
-              </div>
-            ))
-          ) : (
-            <p className="text-muted-foreground">
-              No vehicles onboarded yet — added once the car is photographed and inspected.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      <PartnerCarsCard partnerId={id} cars={data.vehicles ?? []} active={['onboarding', 'active'].includes(partner.status)} />
 
       {/* What they actually submitted. Absent for a partner ops added directly. */}
       <Card>

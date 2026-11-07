@@ -113,6 +113,13 @@ export interface PartnerRepair {
 }
 
 /** Managing the Asset Partner programme; the operations panel calls it under /ioc, the admin console under /admin. */
+export interface AddCarResult {
+  vin: string;
+  status: 'added' | 'already' | 'failed';
+  vehicleId?: string;
+  reason?: string;
+}
+
 export function partnerManageApi(base: '/ioc' | '/admin') {
   return {
     summary: () => api.get<ProgrammeSummary>(`${base}/asset-partners/summary`),
@@ -160,6 +167,8 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     cars: (period?: string) => api.get<PortfolioCar[]>(`${base}/asset-management/cars`, period ? { period } : {}),
     unassignedCars: () => api.get<{ vehicleId: string; label: string; plate?: string; status: string }[]>(`${base}/asset-management/unassigned-cars`),
     assignCar: (vehicleId: string, partnerId: string) => api.post(`${base}/asset-management/cars/${vehicleId}/assign`, { partnerId }),
+    addPartnerCars: (partnerId: string, input: { rows: { vin: string; plate?: string }[]; address?: string }) => api.post<AddCarResult[]>(`${base}/asset-partners/${partnerId}/cars`, input),
+    unlinkCar: (vehicleId: string, reason: string) => api.post(`${base}/asset-management/cars/${vehicleId}/unlink`, { reason }),
     returnCar: (vehicleId: string) => api.post(`${base}/asset-management/cars/${vehicleId}/end`, {}),
     repairs: (approval?: RepairApproval) => api.get<PartnerRepair[]>(`${base}/asset-partner-repairs`, approval ? { approval } : {}),
     scheduleRepair: (input: { vehicleId: string; type: RepairType; scheduledFor: string; costCents?: number; notes?: string; damageIncident?: boolean }) =>

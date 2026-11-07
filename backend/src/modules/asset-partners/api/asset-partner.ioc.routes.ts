@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { z } from 'zod';
 import { assetPartnerApplicationAdminRoutes } from './asset-partner-application.admin.routes';
 import { assetPartnerAdminRoutes } from './asset-partner.admin.routes';
 import { assetPartnerAgreementService, AGREEMENT_PLACEHOLDERS } from '../application/asset-partner-agreement.service';
 import { assetPartnerService, PARTNER_DOCS } from '../application/asset-partner.service';
-import { assetPartnerCarService } from '../application/asset-partner-car.service';
+import { assetPartnerCarService, MAX_CARS_PER_BATCH } from '../application/asset-partner-car.service';
 import { assetPartnerPayoutService } from '../application/asset-partner-payout.service';
 import { assetPartnerIntakeService } from '../application/asset-partner-intake.service';
 import { assetPartnerPortfolioService } from '../application/asset-partner-portfolio.service';
@@ -386,6 +386,34 @@ router.post(
   asyncHandler(async (req, res) => {
     await assetPartnerCarService.assign(req.principal!.userId, req.params.vehicleId, req.body.partnerId);
     sendSuccess(res, { assigned: true });
+  }),
+);
+
+const operator = (req: Request) => ({ userId: req.principal!.userId, roles: req.principal!.roles ?? [], ip: req.ip, userAgent: req.get('user-agent') });
+
+/** Ops adds one or many of a partner's cars to the fleet by VIN. */
+router.post(
+  '/asset-partners/:id/cars',
+  authorize('host:manage'),
+  validate({
+    body: z.object({
+      address: z.string().trim().max(300).optional(),
+      rows: z.array(z.object({ vin: z.string().trim().min(1).max(20), plate: z.string().trim().max(20).optional() })).min(1).max(MAX_CARS_PER_BATCH),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerCarService.addCars(operator(req), req.params.id, req.body));
+  }),
+);
+
+/** Undo a car put on the wrong partner, before it has any booking with them. */
+router.post(
+  '/asset-management/cars/:vehicleId/unlink',
+  authorize('host:manage'),
+  validate({ body: z.object({ reason: z.string().trim().min(3).max(300) }) }),
+  asyncHandler(async (req, res) => {
+    await assetPartnerCarService.unlink(operator(req), req.params.vehicleId, req.body.reason);
+    sendSuccess(res, { unlinked: true });
   }),
 );
 
