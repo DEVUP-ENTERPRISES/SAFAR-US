@@ -63,7 +63,7 @@ async function publishDocs() {
 async function approved(): Promise<{ userId: string; partner: AssetPartnerDoc }> {
   const userId = await account();
   const app = await assetPartnerApplicationService.createForAccount(userId, dto(), {});
-  await assetPartnerApplicationService.review(app._id, OPS, 'approved');
+  await assetPartnerApplicationService.review(app._id, OPS, 'approved', undefined, undefined, 0); // fee waived: these tests are about the lifecycle
   return { userId, partner: (await assetPartnerService.getByUserId(userId))! };
 }
 

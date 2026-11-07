@@ -159,6 +159,8 @@ export class PlatformConfigService {
       assetPartner: {
         managementFeeBps: 2000,
         minSeasonMonths: 2,
+        joiningFeeEnabled: true,
+        registrationPlatformFeeCents: 499,
         insuranceMonthlyCents: 13_700,
         detailingMonthlyCents: 5_000,
         deductibleCapCents: 100_000,

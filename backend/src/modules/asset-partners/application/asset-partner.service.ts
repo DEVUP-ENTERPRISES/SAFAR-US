@@ -17,9 +17,10 @@ import { assetPartnerTermsService, TERM_FIELDS } from './asset-partner-terms.ser
 import { assetPartnerProfileService } from './asset-partner-profile.service';
 import { assetPartnerOfferService } from './asset-partner-offer.service';
 import { OWNERSHIP_PAPERS, type Ownership } from '../domain/application-rules';
+import { feeDue } from './asset-partner-fee.service';
 
 export type PartnerDocCategory = 'w9' | 'kyc' | 'title' | 'insurance' | 'registration';
-export type PortalStage = 'profile' | 'identity' | 'agreement' | 'agreement_expired' | 'documents' | 'payout' | 'ready';
+export type PortalStage = 'profile' | 'identity' | 'fee' | 'agreement' | 'agreement_expired' | 'documents' | 'payout' | 'ready';
 
 /** What the agreement's onboarding checklist asks every new partner to send. */
 export const PARTNER_DOCS: { category: PartnerDocCategory; label: string; hint: string }[] = [
@@ -243,6 +244,7 @@ export class AssetPartnerService {
       if (!assetPartnerProfileService.isComplete(partner)) return 'profile';
       const identity = await assetPartnerProfileService.identity(partner);
       if (identity.required && !assetPartnerProfileService.isIdentityDone(identity)) return 'identity';
+      if (feeDue(partner)) return 'fee';
       return 'agreement';
     }
     if ((await this.documentChecklist(partner)).some((d) => !d.uploaded)) return 'documents';

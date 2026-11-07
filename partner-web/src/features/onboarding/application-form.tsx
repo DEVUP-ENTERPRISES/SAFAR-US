@@ -26,7 +26,7 @@ type PartnerType = 'individual' | 'business' | 'fleet';
 type Ownership = 'owned' | 'financed' | 'leased';
 type Coverage = 'full' | 'liability' | 'unsure';
 type Availability = 'fulltime' | 'seasonal';
-type Photo = { url: string; key?: string };
+type Photo = { url: string; key?: string; sha256?: string };
 type PaperSlot = 'title' | 'insurance';
 
 interface Draft {
@@ -68,6 +68,42 @@ const OWNERSHIP_PAPERS: Record<Ownership, { label: string; hint: string }> = {
 const SEASON_MAX_SHORT = 6;
 const SEASON_YEAR = 12;
 
+const STEP_ITEMS: Record<Step, string[]> = {
+  you: ['contact'],
+  car: ['details', 'ownership', 'paper:title', 'photo:Front', 'photo:Rear', 'photo:Odometer', 'photo:Interior'],
+  condition: ['condition', 'insurance', 'paper:insurance'],
+  confirm: ['availability'],
+};
+const ITEM_FIELDS: Record<string, (keyof Draft)[]> = {
+  contact: ['fullName', 'phone', 'partnerType', 'businessName', 'address', 'city', 'state', 'zip'],
+  details: ['vin', 'year', 'make', 'model', 'trim', 'mileage', 'plate'],
+  ownership: ['ownership', 'lienholder', 'titleStatus'],
+  condition: ['accident', 'accidentDetail'],
+  insurance: ['carrier', 'policyNumber', 'policyExpiry', 'coverage'],
+  availability: ['availability', 'seasonMonths'],
+};
+
+/** Whether the partner has actually redone one requested item. */
+function itemDone(key: string, d: Draft, before: Draft): boolean {
+  if (key.startsWith('photo:')) {
+    const now = d.photos[key.slice(6)];
+    const was = before.photos[key.slice(6)];
+    return !!now && now.url !== was?.url && (!now.sha256 || now.sha256 !== was?.sha256);
+  }
+  if (key.startsWith('paper:')) return !!d.papers[key.slice(6) as PaperSlot];
+  const fields = ITEM_FIELDS[key] ?? [];
+  return fields.some((f) => JSON.stringify(d[f]) !== JSON.stringify(before[f]));
+}
+
+async function fingerprint(file: File): Promise<string | undefined> {
+  try {
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return undefined;
+  }
+}
+
 const STEPS = { you: 'About you', car: 'Your car', condition: 'Condition & insurance', confirm: 'Confirm' } as const;
 type Step = keyof typeof STEPS;
 
@@ -83,7 +119,7 @@ function fromApplication(a: PartnerApplicationDetail, withCar: boolean): Draft {
     ...person,
     vin: a.vehicle.vin, year: a.vehicle.year, make: a.vehicle.make, model: a.vehicle.model, trim: a.vehicle.trim ?? '',
     mileage: String(a.vehicle.mileage), plate: a.vehicle.plate, ownership: a.ownership, titleStatus: a.titleStatus ?? '', lienholder: a.lienholder ?? '',
-    photos: Object.fromEntries(a.photos.map((p) => [p.label ?? 'Photo', { url: p.url, key: p.key }])),
+    photos: Object.fromEntries(a.photos.map((p) => [p.label ?? 'Photo', { url: p.url, key: p.key, sha256: p.sha256 }])),
     accident: yn(a.hadAccident), accidentDetail: a.accidentDetail ?? '',
     carrier: a.insurance?.carrier ?? '', policyNumber: a.insurance?.policyNumber ?? '', coverage: a.insurance?.coverageType ?? '',
     policyExpiry: a.insurance?.policyExpiry?.slice(0, 10) ?? '',
@@ -105,7 +141,7 @@ function toInput(d: Draft): PortalApplicationInput {
     lienholder: d.ownership === 'owned' ? undefined : opt(d.lienholder),
     accident: d.accident as 'yes' | 'no',
     accidentDetail: d.accident === 'yes' ? opt(d.accidentDetail) : undefined,
-    photos: Object.entries(d.photos).map(([label, p]) => ({ url: p.url, key: p.key, label })),
+    photos: Object.entries(d.photos).map(([label, p]) => ({ url: p.url, key: p.key, label, sha256: p.sha256 })),
     insurance: d.carrier.trim() || d.policyNumber.trim() || d.coverage || d.policyExpiry
       ? { carrier: opt(d.carrier), policyNumber: opt(d.policyNumber), coverageType: d.coverage || undefined, policyExpiry: d.policyExpiry || undefined }
       : undefined,
@@ -120,10 +156,10 @@ function toInput(d: Draft): PortalApplicationInput {
   };
 }
 
-function errorsFor(step: Step, d: Draft): Record<string, string> {
+function errorsFor(step: Step, d: Draft, show: (key: string) => boolean = () => true): Record<string, string> {
   const e: Record<string, string> = {};
   const need = (k: keyof Draft, msg = 'Required') => { if (!String(d[k] ?? '').trim()) e[k] = msg; };
-  if (step === 'you') {
+  if (step === 'you' && show('contact')) {
     need('fullName'); need('partnerType', 'Choose one');
     if (d.phone.replace(/\D/g, '').length < 10) e.phone = 'Enter a valid phone number';
     if (d.partnerType && d.partnerType !== 'individual') need('businessName');
@@ -131,24 +167,30 @@ function errorsFor(step: Step, d: Draft): Record<string, string> {
     if (!/^\d{5}(-\d{4})?$/.test(d.zip.trim())) e.zip = 'Enter a 5-digit ZIP';
   }
   if (step === 'car') {
-    if (!/^[A-HJ-NPR-Z0-9]{17}$/i.test(d.vin.trim())) e.vin = 'Enter the 17-character VIN';
-    if (!/^\d{4}$/.test(d.year.trim())) e.year = 'Enter a 4-digit year';
-    need('make'); need('model'); need('plate');
-    const miles = Number(d.mileage);
-    if (!d.mileage.trim() || !Number.isInteger(miles) || miles < 0 || miles > 500_000) e.mileage = 'Enter the mileage';
-    need('ownership', 'Choose one');
-    if (d.ownership && d.ownership !== 'owned') need('lienholder', 'Who holds the loan or lease?');
-    need('titleStatus', 'Choose one');
-    if (d.titleStatus && d.titleStatus !== 'clean') e.titleStatus = 'We can only accept cars with a clean title.';
-    for (const p of PHOTOS) if (p.required && !d.photos[p.slot]) e[`photo-${p.slot}`] = 'Add this photo';
+    if (show('details')) {
+      if (!/^[A-HJ-NPR-Z0-9]{17}$/i.test(d.vin.trim())) e.vin = 'Enter the 17-character VIN';
+      if (!/^\d{4}$/.test(d.year.trim())) e.year = 'Enter a 4-digit year';
+      need('make'); need('model'); need('plate');
+      const miles = Number(d.mileage);
+      if (!d.mileage.trim() || !Number.isInteger(miles) || miles < 0 || miles > 500_000) e.mileage = 'Enter the mileage';
+    }
+    if (show('ownership')) {
+      need('ownership', 'Choose one');
+      if (d.ownership && d.ownership !== 'owned') need('lienholder', 'Who holds the loan or lease?');
+      need('titleStatus', 'Choose one');
+      if (d.titleStatus && d.titleStatus !== 'clean') e.titleStatus = 'We can only accept cars with a clean title.';
+    }
+    for (const p of PHOTOS) if (show(`photo:${p.slot}`) && p.required && !d.photos[p.slot]) e[`photo-${p.slot}`] = 'Add this photo';
   }
-  if (step === 'condition') {
+  if (step === 'condition' && show('condition')) {
     need('accident', 'Choose one');
     if (d.accident === 'yes') need('accidentDetail', 'Tell us briefly what happened');
   }
   if (step === 'confirm') {
-    need('availability', 'Choose one');
-    if (d.availability === 'seasonal') need('seasonMonths', 'Choose how long');
+    if (show('availability')) {
+      need('availability', 'Choose one');
+      if (d.availability === 'seasonal') need('seasonMonths', 'Choose how long');
+    }
     if (!d.confirmed) e.confirmed = 'Please confirm to continue';
   }
   return e;
@@ -175,14 +217,22 @@ export interface ApplicationFormProps {
   initial?: PartnerApplicationDetail;
   /** CatoDrive's note when it sent the application back. */
   reviewNote?: string;
+  /** The exact items CatoDrive asked to redo; everything else stays locked. */
+  changeRequest?: PartnerApplicationDetail['changeRequest'];
   draftKey: string;
   submitLabel?: string;
   onSubmit: (input: PortalApplicationInput) => Promise<unknown>;
 }
 
-export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLabel = 'Send for review', onSubmit }: ApplicationFormProps) {
+export function ApplicationForm({ mode, initial, reviewNote, changeRequest, draftKey, submitLabel = 'Send for review', onSubmit }: ApplicationFormProps) {
+  const requested = changeRequest?.items ?? [];
+  const only = requested.length ? new Set(requested.map((i) => i.key)) : null;
+  const show = (key: string) => !only || only.has(key);
   // Another car skips "About you" when we already have their details from an earlier application.
-  const steps: Step[] = mode === 'vehicle' && initial ? ['car', 'condition', 'confirm'] : ['you', 'car', 'condition', 'confirm'];
+  const allSteps: Step[] = mode === 'vehicle' && initial && !only?.has('contact') ? ['car', 'condition', 'confirm'] : ['you', 'car', 'condition', 'confirm'];
+  // A targeted request opens only the steps holding what was asked for.
+  const steps: Step[] = only ? allSteps.filter((st) => st === 'confirm' || STEP_ITEMS[st].some((k) => only.has(k))) : allSteps;
+  const [before] = useState<Draft>(() => (initial ? fromApplication(initial, true) : BLANK));
   const [d, setD] = useState<Draft>(() => {
     const seeded = initial ? fromApplication(initial, mode === 'partner' || !!reviewNote) : BLANK;
     try {
@@ -247,11 +297,19 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
 
   const addPhoto = async (slot: string, file?: File) => {
     if (!file) return;
-    setUploading((u) => ({ ...u, [slot]: true }));
     setErrors((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => k !== `photo-${slot}`)));
+    const sha256 = await fingerprint(file);
+    if (sha256) {
+      const clash = Object.entries(d.photos).find(([other, ph]) => other !== slot && ph.sha256 === sha256);
+      if (clash) return setErrors((prev) => ({ ...prev, [`photo-${slot}`]: `This is the same picture as the ${clash[0].toLowerCase()} photo` }));
+      if (only?.has(`photo:${slot}`) && before.photos[slot]?.sha256 === sha256) {
+        return setErrors((prev) => ({ ...prev, [`photo-${slot}`]: 'This looks like the same photo as before. Please take a new one.' }));
+      }
+    }
+    setUploading((u) => ({ ...u, [slot]: true }));
     try {
       const [up] = await uploadFiles('vehicle_photo', [file]);
-      setD((prev) => ({ ...prev, photos: { ...prev.photos, [slot]: { url: up.url, key: up.key } } }));
+      setD((prev) => ({ ...prev, photos: { ...prev.photos, [slot]: { url: up.url, key: up.key, sha256 } } }));
     } catch (e) {
       setErrors((prev) => ({ ...prev, [`photo-${slot}`]: e instanceof Error && e.message.includes('JPG') ? 'Use a JPG, PNG or WebP photo' : 'That photo didn’t upload. Try again.' }));
     } finally {
@@ -260,7 +318,11 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
   };
 
   const next = async () => {
-    const e = errorsFor(step, d);
+    const e = errorsFor(step, d, show);
+    if (only && step === 'confirm') {
+      const left = requested.filter((i) => !itemDone(i.key, d, before));
+      if (left.length) e.confirmed = `Still to change: ${left.map((i) => i.label).join(', ')}`;
+    }
     setErrors(e);
     if (Object.keys(e).length) return;
     if (stepIdx < steps.length - 1) {
@@ -278,6 +340,21 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const openSlots = PHOTOS.filter((ph) => show(`photo:${ph.slot}`)).map((ph) => ph.slot);
+  const addSeveral = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const targets = openSlots.filter((slot) => (only ? !itemDone(`photo:${slot}`, d, before) : !d.photos[slot]));
+    const seen = new Set<string>();
+    const distinct: File[] = [];
+    for (const file of Array.from(files)) {
+      const hash = await fingerprint(file);
+      if (hash && seen.has(hash)) continue;
+      if (hash) seen.add(hash);
+      distinct.push(file);
+    }
+    for (const [i, file] of distinct.slice(0, targets.length).entries()) await addPhoto(targets[i], file);
   };
 
   // Optional now; saved straight to the partner's documents so the post-approval checklist already counts it.
@@ -309,7 +386,25 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
 
   return (
     <div ref={top} className="scroll-mt-24 space-y-5">
-      {reviewNote && (
+      {only && (
+        <div className="space-y-3 rounded-lg border border-warning/40 bg-warning/5 p-4 text-sm">
+          <p className="font-semibold">CatoDrive asked you to change {requested.length === 1 ? 'one thing' : `${requested.length} things`}</p>
+          {changeRequest?.note && <p className="text-muted-foreground">{changeRequest.note}</p>}
+          <ul className="space-y-1.5">
+            {requested.map((i) => {
+              const ok = itemDone(i.key, d, before);
+              return (
+                <li key={i.key} className="flex items-start gap-2">
+                  {ok ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />}
+                  <span><span className="font-medium">{i.label}</span>{i.note ? <span className="text-muted-foreground">: {i.note}</span> : null}</span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="text-xs text-muted-foreground">Everything else stays as you sent it.</p>
+        </div>
+      )}
+      {reviewNote && !only && (
         <div className="flex gap-3 rounded-lg border border-warning/40 bg-warning/5 p-4 text-sm">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <div><p className="font-semibold">What CatoDrive needs you to change</p><p className="mt-1 text-muted-foreground">{reviewNote}</p></div>
@@ -355,7 +450,8 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
 
           {step === 'car' && (
             <>
-              <Section title="Your car" hint="Type the VIN and we fill in the rest. It’s on the driver-side dashboard and your registration." />
+              <Section title="Your car" hint={only ? 'Only the items CatoDrive asked about are open.' : 'Type the VIN and we fill in the rest. It’s on the driver-side dashboard and your registration.'} />
+              {show('details') && (<>
               <Field label="VIN" htmlFor="vin" error={errors.vin}>
                 <div className="flex gap-2">
                   <Input id="vin" className="font-mono uppercase" maxLength={17} autoCapitalize="characters" spellCheck={false} value={d.vin}
@@ -384,6 +480,8 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
                 <Field label="Mileage" htmlFor="mileage" error={errors.mileage}><Input id="mileage" inputMode="numeric" value={d.mileage} onChange={(e) => set('mileage', e.target.value.replace(/\D/g, ''))} /></Field>
                 <Field label="License plate" htmlFor="plate" error={errors.plate}><Input id="plate" className="uppercase" maxLength={20} value={d.plate} onChange={(e) => set('plate', e.target.value)} /></Field>
               </div>
+              </>)}
+              {show('ownership') && (<>
               <Field label="The car is" error={errors.ownership}>
                 <Choice value={d.ownership} onChange={(v) => set('ownership', v)} options={[{ value: 'owned', label: 'Paid off' }, { value: 'financed', label: 'Financed' }, { value: 'leased', label: 'Leased' }]} />
               </Field>
@@ -393,55 +491,80 @@ export function ApplicationForm({ mode, initial, reviewNote, draftKey, submitLab
               <Field label="Title status" error={errors.titleStatus} hint="As printed on the title. Only clean titles can join.">
                 <Choice value={d.titleStatus} onChange={(v) => set('titleStatus', v)} options={TITLES} />
               </Field>
-              {d.ownership && (
+              </>)}
+              {d.ownership && show('paper:title') && (
                 <PaperUpload slot="title" {...OWNERSHIP_PAPERS[d.ownership]} fileName={d.papers.title} uploading={!!uploading['paper-title']} error={errors['paper-title']} onPick={(f) => void addPaper('title', f)} />
               )}
+              {openSlots.length > 0 && (
               <div>
-                <p className="text-sm font-medium">Photos</p>
-                <p className="text-xs text-muted-foreground">Front, back and odometer are needed now; we take full photos at the inspection.</p>
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium">Photos</p>
+                    <p className="text-xs text-muted-foreground">{only ? 'Take a new photo for each one asked about.' : 'Front, back and odometer are needed now; we take full photos at the inspection.'}</p>
+                  </div>
+                  {openSlots.length > 1 && (
+                    <label className={cn('inline-flex cursor-pointer items-center gap-2 rounded-sm border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent/40 focus-within:ring-2 focus-within:ring-ring', busy && 'pointer-events-none opacity-60')}>
+                      <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={(e) => { void addSeveral(e.target.files); e.target.value = ''; }} />
+                      <Camera className="h-4 w-4" /> Add several
+                    </label>
+                  )}
+                </div>
                 <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {PHOTOS.map((p) => (
+                  {PHOTOS.filter((p) => show(`photo:${p.slot}`)).map((p) => (
                     <PhotoSlot key={p.slot} label={p.slot} hint={p.hint} required={p.required} photo={d.photos[p.slot]} uploading={!!uploading[p.slot]} error={errors[`photo-${p.slot}`]}
                       onPick={(file) => void addPhoto(p.slot, file)}
                       onRemove={() => setD((prev) => ({ ...prev, photos: Object.fromEntries(Object.entries(prev.photos).filter(([k]) => k !== p.slot)) }))} />
                   ))}
                 </div>
               </div>
+              )}
             </>
           )}
 
           {step === 'condition' && (
             <>
               <Section title="Condition & insurance" hint="Every car is inspected before it goes live, whatever the answers here." />
+              {show('condition') && (<>
               <Field label="Any accidents?" error={errors.accident}><Choice value={d.accident} onChange={(v) => set('accident', v)} options={YES_NO} /></Field>
               {d.accident === 'yes' && (
                 <Field label="What happened?" htmlFor="accidentDetail" error={errors.accidentDetail}><Textarea id="accidentDetail" rows={3} maxLength={600} value={d.accidentDetail} onChange={(e) => set('accidentDetail', e.target.value)} /></Field>
               )}
+              </>)}
+              {!only && (
               <p className="flex items-start gap-2 rounded-lg bg-subtle p-3 text-sm">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <span>Every CatoDrive car is smoke-free and pet-free. Guests agree to this in our rental terms, and we handle it if they break it.</span>
               </p>
-              <div className="space-y-4 border-t border-border pt-5">
+              )}
+              {(show('insurance') || show('paper:insurance')) && (
+              <div className={cn('space-y-4', !only && 'border-t border-border pt-5')}>
                 <div>
                   <p className="text-sm font-medium">Your insurance <span className="font-normal text-muted-foreground">(optional now)</span></p>
                   <p className="text-xs text-muted-foreground">Skip it if it isn’t handy. We’ll ask for it again in your dashboard before the car goes live.</p>
                 </div>
+                {show('insurance') && (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Policy number" htmlFor="policyNumber"><Input id="policyNumber" value={d.policyNumber} maxLength={60} onChange={(e) => set('policyNumber', e.target.value)} /></Field>
                   <Field label="Insurance company" htmlFor="carrier"><Input id="carrier" value={d.carrier} maxLength={80} onChange={(e) => set('carrier', e.target.value)} /></Field>
                 </div>
+                )}
+                {show('paper:insurance') && (
                 <PaperUpload slot="insurance" label="Declarations page" hint="The page of your policy showing the policy number and dates" fileName={d.papers.insurance} uploading={!!uploading['paper-insurance']} error={errors['paper-insurance']} onPick={(f) => void addPaper('insurance', f)} />
+                )}
               </div>
+              )}
             </>
           )}
 
           {step === 'confirm' && (
             <>
               <Section title="Confirm and send" />
+              {show('availability') && (
               <Field label="When can the car be with us?" error={errors.availability}>
                 <Choice value={d.availability} onChange={(v) => set('availability', v)} options={[{ value: 'fulltime', label: 'Full time' }, { value: 'seasonal', label: 'Seasonal' }]} />
               </Field>
-              {d.availability === 'seasonal' && (
+              )}
+              {show('availability') && d.availability === 'seasonal' && (
                 <Field label="For how long?" error={errors.seasonMonths} hint={`From ${minSeason} to ${SEASON_MAX_SHORT} months, or a full year.`}>
                   <Choice value={d.seasonMonths} onChange={(v) => set('seasonMonths', v)} options={seasonOptions} />
                 </Field>

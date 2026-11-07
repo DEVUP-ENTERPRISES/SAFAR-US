@@ -7,6 +7,8 @@ import type {
   CreateIntentInput,
   IntentResult,
   IntentRisk,
+  CreateCheckoutInput,
+  CheckoutState,
 } from '../domain/payment-gateway';
 
 /**
@@ -173,6 +175,39 @@ export class StripeGateway implements PaymentGateway {
   }
 
   /** Verify + parse a Stripe webhook (raw body + signature). */
+  async createCheckout(input: CreateCheckoutInput): Promise<{ sessionId: string; url: string }> {
+    const session = await this.stripe.checkout.sessions.create(
+      {
+        mode: 'payment',
+        line_items: input.lines.map((l) => ({ quantity: 1, price_data: { currency: input.currency.toLowerCase(), unit_amount: l.amountCents, product_data: { name: l.name } } })),
+        customer_email: input.customerEmail,
+        success_url: input.successUrl,
+        cancel_url: input.cancelUrl,
+        metadata: input.metadata,
+        payment_intent_data: { metadata: input.metadata, description: input.description },
+      },
+      { idempotencyKey: input.idempotencyKey },
+    );
+    if (!session.url) throw new ExternalServiceError('Stripe did not return a payment page');
+    return { sessionId: session.id, url: session.url };
+  }
+
+  async retrieveCheckout(sessionId: string): Promise<CheckoutState> {
+    const s = await this.stripe.checkout.sessions.retrieve(sessionId);
+    const intentId = typeof s.payment_intent === 'string' ? s.payment_intent : s.payment_intent?.id;
+    return {
+      status: (s.status ?? 'open') as CheckoutState['status'],
+      paid: s.payment_status === 'paid',
+      ...(intentId ? { intentId } : {}),
+      amountTotal: s.amount_total ?? 0,
+      metadata: (s.metadata ?? {}) as Record<string, string>,
+    };
+  }
+
+  async expireCheckout(sessionId: string): Promise<void> {
+    await this.stripe.checkout.sessions.expire(sessionId);
+  }
+
   constructEvent(rawBody: Buffer, signature: string): Stripe.Event {
     if (!config.stripe.webhookSecret) throw new ExternalServiceError('Stripe webhook secret not configured');
     return this.stripe.webhooks.constructEvent(rawBody, signature, config.stripe.webhookSecret);

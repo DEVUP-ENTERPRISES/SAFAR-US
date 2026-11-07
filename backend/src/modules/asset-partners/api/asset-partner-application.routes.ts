@@ -25,6 +25,7 @@ import { notificationService } from '../../notifications/application/notificatio
 import { assetPartnerNoticeService } from '../application/asset-partner-notice.service';
 import { assetPartnerReportsService } from '../application/asset-partner-reports.service';
 import { assetPartnerSigningCode } from '../application/asset-partner-signing-code';
+import { assetPartnerFeeService } from '../application/asset-partner-fee.service';
 import { NOTICE_TYPES } from '../infrastructure/asset-partner-notice.model';
 import { resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
 
@@ -91,6 +92,17 @@ router.post(
     if (!partner) throw new ForbiddenError('Not an Asset Partner');
     res.set('Cache-Control', 'private, no-store');
     sendSuccess(res, await assetPartnerSigningCode.send(partner));
+  }),
+);
+
+// Opens Stripe's hosted page for the one-time fee; the same page is returned until it is paid or expires.
+router.post(
+  '/asset-partners/me/joining-fee/checkout',
+  authenticate,
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await assetPartnerFeeService.checkout(req.principal!.userId));
   }),
 );
 

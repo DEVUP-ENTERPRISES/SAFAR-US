@@ -113,13 +113,26 @@ export interface PartnerRepair {
 }
 
 /** Managing the Asset Partner programme; the operations panel calls it under /ioc, the admin console under /admin. */
+export interface AddCarResult {
+  vin: string;
+  status: 'added' | 'already' | 'failed';
+  vehicleId?: string;
+  reason?: string;
+}
+
 export function partnerManageApi(base: '/ioc' | '/admin') {
   return {
     summary: () => api.get<ProgrammeSummary>(`${base}/asset-partners/summary`),
     applications: (q: Q = {}) => api.get<any[]>(`${base}/asset-partner-applications`, q),
     application: (id: string) => api.get<any>(`${base}/asset-partner-applications/${id}`),
-    reviewApplication: (id: string, decision: ReviewDecision, notes?: string, rejection?: { reasons: string[]; improvements?: string; reapplyAfterDays?: number }) =>
-      api.post(`${base}/asset-partner-applications/${id}/review`, { decision, notes, rejection }),
+    reviewApplication: (id: string, decision: ReviewDecision, notes?: string, rejection?: { reasons: string[]; improvements?: string; reapplyAfterDays?: number }, joiningFeeCents?: number, changes?: { key: string; note?: string }[]) =>
+      api.post(`${base}/asset-partner-applications/${id}/review`, { decision, notes, rejection, joiningFeeCents, changes }),
+    /** The items ops can send back for correction, with their plain names. */
+    changeItems: () => api.get<{ key: string; label: string }[]>(`${base}/asset-partner-applications/change-items`),
+    /** Whether registration fees are on, and the platform fee added to each. */
+    joiningFeeSettings: () => api.get<{ enabled: boolean; platformFeeCents: number }>(`${base}/asset-partner-fee/default`),
+    setJoiningFee: (partnerId: string, amountCents: number) => api.patch(`${base}/asset-partners/${partnerId}/joining-fee`, { amountCents }),
+    refundJoiningFee: (partnerId: string, reason: string) => api.post(`${base}/asset-partners/${partnerId}/joining-fee/refund`, { reason }),
     rejectionReasons: () => api.get<{ code: string; label: string; why: string; improve: string }[]>(`${base}/asset-partner-applications/rejection-reasons`),
     partners: (q: Q = {}) => api.get<any[]>(`${base}/asset-partners`, q),
     addPartner: (input: { email: string; fullName: string; businessName?: string; phone?: string; partnerType: 'individual' | 'business' | 'fleet'; notify?: boolean }) =>
@@ -156,6 +169,8 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     cars: (period?: string) => api.get<PortfolioCar[]>(`${base}/asset-management/cars`, period ? { period } : {}),
     unassignedCars: () => api.get<{ vehicleId: string; label: string; plate?: string; status: string }[]>(`${base}/asset-management/unassigned-cars`),
     assignCar: (vehicleId: string, partnerId: string) => api.post(`${base}/asset-management/cars/${vehicleId}/assign`, { partnerId }),
+    addPartnerCars: (partnerId: string, input: { rows: { vin: string; plate?: string }[]; address?: string }) => api.post<AddCarResult[]>(`${base}/asset-partners/${partnerId}/cars`, input),
+    unlinkCar: (vehicleId: string, reason: string) => api.post(`${base}/asset-management/cars/${vehicleId}/unlink`, { reason }),
     returnCar: (vehicleId: string) => api.post(`${base}/asset-management/cars/${vehicleId}/end`, {}),
     repairs: (approval?: RepairApproval) => api.get<PartnerRepair[]>(`${base}/asset-partner-repairs`, approval ? { approval } : {}),
     scheduleRepair: (input: { vehicleId: string; type: RepairType; scheduledFor: string; costCents?: number; notes?: string; damageIncident?: boolean }) =>

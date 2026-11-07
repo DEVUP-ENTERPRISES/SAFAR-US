@@ -1,6 +1,6 @@
 import { REJECTION_REASONS } from '../infrastructure/asset-partner-application.model';
 import { z } from 'zod';
-import { REQUIRED_PHOTOS, TITLE_STATUSES } from '../domain/application-rules';
+import { CHANGE_KEYS, REQUIRED_PHOTOS, TITLE_STATUSES, type ChangeKey } from '../domain/application-rules';
 
 const yn = z.enum(['yes', 'no']);
 
@@ -43,7 +43,7 @@ export const createApplicationSchema = z.object({
   accidentDetail: z.string().trim().max(600).optional(),
   hasMaintenanceRecords: yn.optional(),
   photos: z
-    .array(z.object({ url: z.string().url(), key: z.string().optional(), label: z.string().max(30).optional() }))
+    .array(z.object({ url: z.string().url(), key: z.string().optional(), label: z.string().max(30).optional(), sha256: z.string().regex(/^[a-f0-9]{64}$/).optional() }))
     .max(12)
     .refine((ps) => REQUIRED_PHOTOS.every((label) => ps.some((p) => p.label === label)), { message: 'Add the front, back and odometer photos' }),
 
@@ -98,6 +98,10 @@ export const signAgreementSchema = z.object({
 export const reviewApplicationSchema = z.object({
   decision: z.enum(['approved', 'changes_requested', 'rejected']),
   notes: z.string().trim().max(1000).optional(),
+  // Targeted changes: the partner redoes only these items.
+  changes: z.array(z.object({ key: z.enum(CHANGE_KEYS as [ChangeKey, ...ChangeKey[]]), note: z.string().trim().max(300).optional() })).max(CHANGE_KEYS.length).optional(),
+  // What this partner pays to join, set by ops at approval; 0 waives it, absent uses the admin default.
+  joiningFeeCents: z.number().int().min(0).max(500_000).optional(),
   rejection: z
     .object({
       reasons: z.array(z.enum(REJECTION_REASONS)).min(1).max(REJECTION_REASONS.length),

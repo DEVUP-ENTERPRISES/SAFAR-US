@@ -23,13 +23,14 @@ import { SignDocuments } from '~/features/onboarding/sign-documents';
 import { UploadDocuments } from '~/features/onboarding/upload-documents';
 import { ProfileForm } from '~/features/onboarding/profile-form';
 import { IdentityStep } from '~/features/onboarding/identity-step';
+import { FeeStep } from '~/features/onboarding/fee-step';
 
 const TRACK: { label: string; stages: OnboardingStage[] }[] = [
   { label: 'Email', stages: ['verify_email'] },
   { label: 'Application', stages: ['apply', 'changes', 'rejected'] },
   { label: 'Review', stages: ['review'] },
   { label: 'You & ID', stages: ['profile', 'identity'] },
-  { label: 'Agreement', stages: ['agreement', 'agreement_expired'] },
+  { label: 'Agreement', stages: ['fee', 'agreement', 'agreement_expired'] },
   { label: 'Papers', stages: ['documents', 'payout'] },
 ];
 
@@ -265,13 +266,14 @@ function GettingStarted() {
         <ApplicationForm mode="partner" initial={data.stage === 'rejected' ? app : undefined} draftKey="cd-partner-application" onSubmit={(input) => assetPartnerApi.submitApplication(input).then(sent)} />
       )}
       {data.stage === 'changes' && app && (
-        <ApplicationForm mode="partner" initial={app} reviewNote={app.reviewNotes} draftKey={`cd-partner-application-${app._id}`} submitLabel="Send again"
+        <ApplicationForm mode="partner" initial={app} reviewNote={app.reviewNotes} changeRequest={app.changeRequest} draftKey={`cd-partner-application-${app._id}`} submitLabel="Send again"
           onSubmit={(input) => assetPartnerApi.resubmitApplication(app._id, input).then(sent)} />
       )}
       {data.stage === 'review' && <InReview data={data} />}
       {data.stage === 'rejected' && !reapply && <Declined data={data} onReapply={() => setReapply(true)} />}
       {data.stage === 'profile' && <ProfileForm initial={data.profile} ownPhone={data.profile?.ownPhone} onSaved={() => void refresh()} />}
       {data.stage === 'identity' && <IdentityStep state={data.identity?.state ?? 'not_started'} reason={data.identity?.reason} onChange={refresh} />}
+      {data.stage === 'fee' && data.fee && <FeeStep fee={data.fee} onPaid={() => void refresh()} />}
       {data.stage === 'agreement_expired' && <OfferExpired data={data} onDone={() => void refresh()} />}
       {data.stage === 'agreement' && (
         <>

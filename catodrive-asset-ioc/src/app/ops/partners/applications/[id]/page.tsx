@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ErrorState } from '@/components/ui/states';
@@ -20,6 +21,7 @@ import type { ApplicationStatus } from '@/features/asset-partners/api';
 import { formatDate, formatDateTime } from '@/lib/utils/format';
 import { safeMessage } from '@/lib/utils/safe-message';
 import { ApiError } from '@/lib/api/types';
+import { cn } from '@/lib/utils/cn';
 import { ListingCard } from '~/features/partners/listing-card';
 
 const manage = partnerManageApi('/ioc');
@@ -43,16 +45,29 @@ interface ApplicationDetail {
   signature: string; signedAt: string;
   ip?: string; userAgent?: string;
   reviewedBy?: string; reviewedAt?: string; reviewNotes?: string; hostVerified?: boolean;
+  changeRequest?: { items: { key: string; label?: string; note?: string }[]; note?: string; requestedAt: string };
+  resubmission?: { at: string; changed: string[]; before: Record<string, unknown> };
   createdAt: string;
 }
 
 // The slots the partner form asks for, in shooting order; anything else they sent follows.
 const PHOTO_SLOTS = [
   { label: 'Front', required: true },
+  { label: 'Rear', required: true },
   { label: 'Odometer', required: true },
-  { label: 'Rear', required: false },
   { label: 'Interior', required: false },
 ];
+const FIELD_NAMES: Record<string, string> = {
+  vin: 'VIN', year: 'Year', make: 'Make', model: 'Model', trim: 'Trim', mileage: 'Mileage', plate: 'Plate', ownership: 'Car is', lienholder: 'Lender',
+  titleStatus: 'Title', hadAccident: 'Accidents', accidentDetail: 'What happened', carrier: 'Insurer', policyNumber: 'Policy number', coverageType: 'Coverage',
+  policyExpiry: 'Policy ends', availability: 'Available', seasonMonths: 'Months', fullName: 'Name', businessName: 'Business', partnerType: 'Joining as',
+  phone: 'Phone', address: 'Address', city: 'City', state: 'State', zip: 'ZIP',
+};
+// How a field item looked before the partner changed it, in one plain line.
+const describe = (v: unknown) =>
+  v && typeof v === 'object'
+    ? Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== undefined && x !== null && x !== '').map(([k, x]) => `${FIELD_NAMES[k] ?? k}: ${typeof x === 'boolean' ? (x ? 'Yes' : 'No') : String(x)}`).join(' · ') || 'Nothing given'
+    : 'Nothing given';
 const PARTNER_TYPE: Record<string, string> = { individual: 'Individual', business: 'Business', fleet: 'Fleet' };
 const OWNERSHIP: Record<string, string> = { owned: 'Owned outright', financed: 'Financed', leased: 'Leased' };
 const COVERAGE: Record<string, string> = { full: 'Full coverage', liability: 'Liability only', unsure: 'Not sure' };
@@ -71,8 +86,8 @@ export default function ApplicationDetailPage() {
   });
 
   const review = useMutation({
-    mutationFn: ({ decision, notes, rejection }: { decision: ReviewDecision; notes?: string; rejection?: { reasons: string[]; improvements?: string; reapplyAfterDays?: number } }) =>
-      manage.reviewApplication(id, decision, notes, rejection),
+    mutationFn: ({ decision, notes, rejection, joiningFeeCents, changes }: { decision: ReviewDecision; notes?: string; rejection?: { reasons: string[]; improvements?: string; reapplyAfterDays?: number }; joiningFeeCents?: number; changes?: { key: string; note?: string }[] }) =>
+      manage.reviewApplication(id, decision, notes, rejection, joiningFeeCents, changes),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['asset-partner-application', id] });
       qc.invalidateQueries({ queryKey: ['ioc-partner-applications'] });
@@ -82,9 +97,16 @@ export default function ApplicationDetailPage() {
   });
 
   const [declining, setDeclining] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const catalogue = useQuery({ queryKey: ['ioc-change-items'], queryFn: () => manage.changeItems(), staleTime: Infinity });
+  const labelOf = (key: string) => catalogue.data?.find((c) => c.key === key)?.label ?? key;
 
   const decide = async (decision: ReviewDecision) => {
     if (decision === 'rejected') return setDeclining(true);
+    // A new partner's approval also sets their one-time fee.
+    if (decision === 'approved' && a?.kind !== 'vehicle') return setApproving(true);
+    if (decision === 'changes_requested') return setAsking(true);
     const vehicle = a?.kind === 'vehicle';
     const copy: Record<ReviewDecision, { title: string; description: string; label: string }> = {
       approved: vehicle
@@ -116,6 +138,8 @@ export default function ApplicationDetailPage() {
 
   const decided = a.status === 'approved' || a.status === 'rejected';
   const byLabel = new Map(a.photos.map((p) => [p.label ?? '', p]));
+  // Highlight only what the latest resubmission changed, once it is back with ops.
+  const changedKeys = new Set(a.status !== 'changes_requested' ? a.resubmission?.changed ?? [] : []);
   const extraPhotos = a.photos.filter((p) => !PHOTO_SLOTS.some((s) => s.label === p.label));
   const missingRequired = PHOTO_SLOTS.filter((s) => s.required && !byLabel.has(s.label)).length;
   const car = `${a.vehicle.year} ${a.vehicle.make} ${a.vehicle.model}${a.vehicle.trim ? ` ${a.vehicle.trim}` : ''}`;
@@ -157,6 +181,35 @@ export default function ApplicationDetailPage() {
       )}
       {a.status === 'approved' && <ListingCard applicationId={a._id} vehicleId={a.vehicleId} />}
 
+      {a.status === 'changes_requested' && a.changeRequest?.items.length ? (
+        <Card className="border-warning/40 bg-warning/5">
+          <CardContent className="space-y-2 py-4 text-sm">
+            <p className="font-semibold">Waiting for the partner to change:</p>
+            <ul className="list-inside list-disc space-y-1">
+              {a.changeRequest.items.map((i) => <li key={i.key}>{i.label ?? labelOf(i.key)}{i.note ? <span className="text-muted-foreground"> · {i.note}</span> : null}</li>)}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {a.resubmission && a.status !== 'changes_requested' && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardHeader className="pb-2"><CardTitle className="text-base">Sent again {formatDateTime(a.resubmission.at)}</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p className="text-muted-foreground">Only these were changed; everything else is as you reviewed it before. Changed items are highlighted below.</p>
+            <ul className="space-y-1.5">
+              {a.resubmission.changed.map((k) => (
+                <li key={k} className="min-w-0">
+                  <span className="font-medium">{labelOf(k)}</span>
+                  {!k.startsWith('photo:') && !k.startsWith('paper:') && <span className="block break-words text-xs text-muted-foreground">Before: {describe(a.resubmission!.before[k])}</span>}
+                  {k.startsWith('paper:') && <span className="block text-xs text-muted-foreground">A new file was uploaded; check it on the partner’s documents.</span>}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-3">
           <CardTitle className="flex items-center gap-2 text-base"><Camera className="h-5 w-5 text-primary" aria-hidden />Photos</CardTitle>
@@ -166,7 +219,11 @@ export default function ApplicationDetailPage() {
         </CardHeader>
         <CardContent>
           <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {PHOTO_SLOTS.map((s) => <PhotoTile key={s.label} label={s.label} url={byLabel.get(s.label)?.url} required={s.required} />)}
+            {PHOTO_SLOTS.map((s) => {
+              const changed = changedKeys.has(`photo:${s.label}`);
+              const was = changed ? (a.resubmission?.before[`photo:${s.label}`] as { url?: string } | null)?.url : undefined;
+              return <PhotoTile key={s.label} label={s.label} url={byLabel.get(s.label)?.url} required={s.required} changed={changed} beforeUrl={was} />;
+            })}
             {extraPhotos.map((p, i) => <PhotoTile key={`x${i}`} label={p.label || `Photo ${i + 1}`} url={p.url} />)}
           </ul>
           <p className="mt-3 text-xs text-muted-foreground">Click a photo to open it full size.</p>
@@ -174,7 +231,7 @@ export default function ApplicationDetailPage() {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Section title="Partner">
+        <Section title="Partner" changed={changedKeys.has('contact')}>
           <Row label="Joining as" value={PARTNER_TYPE[a.partnerType] ?? a.partnerType} />
           {a.businessName && <Row label="Business" value={a.businessName} />}
           <Row label="Email" value={a.email} />
@@ -183,7 +240,7 @@ export default function ApplicationDetailPage() {
           {a.referral && <Row label="Heard about us" value={a.referral} />}
         </Section>
 
-        <Section title="Car">
+        <Section title="Car" changed={changedKeys.has('details')}>
           <Row label="Car" value={car} />
           <Row label="Mileage" value={`${a.vehicle.mileage.toLocaleString('en-US')} mi`} />
           <Row label="VIN" value={a.vehicle.vin} mono />
@@ -191,7 +248,7 @@ export default function ApplicationDetailPage() {
           {(a.vehicle.exteriorColor || a.vehicle.interiorColor) && <Row label="Colour" value={[a.vehicle.exteriorColor, a.vehicle.interiorColor].filter(Boolean).join(' / ')} />}
         </Section>
 
-        <Section title="Ownership">
+        <Section title="Ownership" changed={changedKeys.has('ownership')}>
           <Row label="The car is" value={OWNERSHIP[a.ownership] ?? a.ownership} />
           {a.titleStatus && <Row label="Title" value={a.titleStatus === 'clean' ? 'Clean' : a.titleStatus} tone={a.titleStatus === 'clean' ? undefined : 'warning'} />}
           {a.lienholder && <Row label="Lienholder" value={a.lienholder} />}
@@ -199,7 +256,7 @@ export default function ApplicationDetailPage() {
           {a.estimatedMarketValue && <Row label="Estimated value" value={a.estimatedMarketValue} />}
         </Section>
 
-        <Section title="Condition">
+        <Section title="Condition" changed={changedKeys.has('condition')}>
           <Row label="Accidents" value={a.hadAccident ? 'Yes' : 'No'} tone={a.hadAccident ? 'warning' : undefined} />
           {a.hadAccident && <Row label="What happened" value={a.accidentDetail || 'No detail given'} />}
           {a.smokeFree !== undefined && <Row label="Smoke-free" value={yesNo(a.smokeFree)} tone={a.smokeFree ? undefined : 'warning'} />}
@@ -207,7 +264,7 @@ export default function ApplicationDetailPage() {
           {a.hasMaintenanceRecords !== undefined && <Row label="Service records" value={yesNo(a.hasMaintenanceRecords)} />}
         </Section>
 
-        <Section title="Insurance">
+        <Section title="Insurance" changed={changedKeys.has('insurance')}>
           {!a.insurance?.policyNumber && <Row label="Policy" value="Skipped; asked for under Documents after approval" tone="warning" />}
           {a.insurance?.carrier && <Row label="Company" value={a.insurance.carrier} />}
           {a.insurance?.policyNumber && <Row label="Policy number" value={a.insurance.policyNumber} mono />}
@@ -215,7 +272,7 @@ export default function ApplicationDetailPage() {
           {a.insurance?.policyExpiry && <Row label="Policy ends" value={formatDate(a.insurance.policyExpiry)} />}
         </Section>
 
-        <Section title="Availability">
+        <Section title="Availability" changed={changedKeys.has('availability')}>
           <Row label="Car available" value={`${AVAILABILITY[a.availability] ?? a.availability}${a.availability === 'seasonal' && a.seasonMonths ? `, ${a.seasonMonths} months` : ''}`} />
           {a.preferredZone && <Row label="Preferred area" value={a.preferredZone} />}
           {a.targetStartDate && <Row label="Can start" value={formatDate(a.targetStartDate)} />}
@@ -250,7 +307,30 @@ export default function ApplicationDetailPage() {
         />
       )}
 
-      {!decided && !declining && (
+      {!decided && asking && (
+        <ChangesPanel
+          items={(catalogue.data ?? []).filter((i) => a.kind !== 'vehicle' || i.key !== 'contact')}
+          loading={catalogue.isLoading}
+          failed={catalogue.isError}
+          retry={() => void catalogue.refetch()}
+          busy={review.isPending}
+          error={review.isError ? (review.error instanceof ApiError ? review.error.message : 'That didn’t go through.') : undefined}
+          onCancel={() => setAsking(false)}
+          onSubmit={(input) => review.mutate({ decision: 'changes_requested', notes: input.note || undefined, changes: input.changes }, { onSuccess: () => setAsking(false) })}
+        />
+      )}
+
+      {!decided && approving && (
+        <ApprovePanel
+          name={a.fullName}
+          busy={review.isPending}
+          error={review.isError ? (review.error instanceof ApiError ? review.error.message : 'That didn’t go through.') : undefined}
+          onCancel={() => setApproving(false)}
+          onSubmit={(input) => review.mutate({ decision: 'approved', notes: input.note || undefined, joiningFeeCents: input.feeCents }, { onSuccess: () => setApproving(false) })}
+        />
+      )}
+
+      {!decided && !declining && !approving && !asking && (
         <div className="sticky bottom-4 z-10 flex flex-col gap-2 rounded-lg border border-border bg-card p-3 shadow-lg sm:flex-row sm:justify-end">
           <Button variant="outline" className="text-destructive hover:text-destructive" disabled={review.isPending} onClick={() => void decide('rejected')}>
             <XCircle className="h-4 w-4" aria-hidden /> Reject
@@ -270,9 +350,9 @@ export default function ApplicationDetailPage() {
   );
 }
 
-function PhotoTile({ label, url, required }: { label: string; url?: string; required?: boolean }) {
+function PhotoTile({ label, url, required, changed, beforeUrl }: { label: string; url?: string; required?: boolean; changed?: boolean; beforeUrl?: string }) {
   return (
-    <li className="min-w-0">
+    <li className={cn('min-w-0', changed && 'rounded-sm ring-2 ring-primary ring-offset-2 ring-offset-background')}>
       {url ? (
         <a href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-sm border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -284,15 +364,19 @@ function PhotoTile({ label, url, required }: { label: string; url?: string; requ
           {required ? 'Required, not sent' : 'Not sent'}
         </div>
       )}
-      <p className="mt-1.5 text-xs font-semibold">{label}</p>
+      <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+        {label}
+        {changed && <Badge>Changed</Badge>}
+        {beforeUrl && <a href={beforeUrl} target="_blank" rel="noopener noreferrer" className="font-normal text-primary underline-offset-2 hover:underline">See before</a>}
+      </p>
     </li>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, changed, children }: { title: string; changed?: boolean; children: React.ReactNode }) {
   return (
-    <Card className="min-w-0">
-      <CardHeader className="pb-3"><CardTitle className="text-base">{title}</CardTitle></CardHeader>
+    <Card className={cn('min-w-0', changed && 'border-primary ring-1 ring-primary')}>
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3"><CardTitle className="text-base">{title}</CardTitle>{changed && <Badge>Changed</Badge>}</CardHeader>
       <CardContent className="space-y-2.5">{children}</CardContent>
     </Card>
   );
@@ -317,6 +401,111 @@ function Check2({ ok, label }: { ok?: boolean; label: string }) {
 }
 
 /** Declining: the reasons and advice the applicant will read, and when they may apply again. */
+function ChangesPanel({ items, loading, failed, retry, busy, error, onCancel, onSubmit }: {
+  items: { key: string; label: string }[]; loading: boolean; failed: boolean; retry: () => void; busy: boolean; error?: string;
+  onCancel: () => void; onSubmit: (input: { note: string; changes: { key: string; note?: string }[] }) => void;
+}) {
+  const [picked, setPicked] = useState<Record<string, string>>({});
+  const [note, setNote] = useState('');
+  const keys = Object.keys(picked);
+  const toggle = (key: string, on: boolean) => setPicked((p) => {
+    const next = { ...p };
+    if (on) next[key] = '';
+    else delete next[key];
+    return next;
+  });
+  return (
+    <Card className="border-warning/40">
+      <CardHeader><CardTitle className="text-base">Ask for changes</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">Tick exactly what needs redoing. The partner sees only these, can’t send it back until each one is changed, and you’ll see what changed.</p>
+        {loading ? (
+          <Skeleton className="h-40 w-full" />
+        ) : failed ? (
+          <ErrorState message="We couldn’t load the list." retry={retry} />
+        ) : (
+          <fieldset className="space-y-2">
+            <legend className="mb-2 text-label font-semibold">What needs changing</legend>
+            {items.map((i) => (
+              <div key={i.key} className="rounded-lg border border-border p-3">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" className="h-4 w-4 accent-primary" checked={i.key in picked} onChange={(e) => toggle(i.key, e.target.checked)} />
+                  <span className="font-medium">{i.label}</span>
+                </label>
+                {i.key in picked && (
+                  <Input className="mt-2" placeholder="What’s wrong (optional), e.g. too dark, plate not visible" maxLength={300} aria-label={`Note for ${i.label}`}
+                    value={picked[i.key]} onChange={(e) => setPicked((p) => ({ ...p, [i.key]: e.target.value }))} />
+                )}
+              </div>
+            ))}
+          </fieldset>
+        )}
+        <Field label="Note for the applicant (optional)" htmlFor="chg-note"><Textarea id="chg-note" rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button variant="ghost" onClick={onCancel}>Back</Button>
+          <Button disabled={!keys.length} loading={busy} onClick={() => onSubmit({ note: note.trim(), changes: keys.map((k) => ({ key: k, note: picked[k].trim() || undefined })) })}>
+            <MessageSquareWarning className="h-4 w-4" aria-hidden /> Send back {keys.length ? `(${keys.length})` : ''}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ApprovePanel({ name, busy, error, onCancel, onSubmit }: { name: string; busy: boolean; error?: string; onCancel: () => void; onSubmit: (input: { feeCents: number; note: string }) => void }) {
+  const settings = useQuery({ queryKey: ['ioc-fee-settings'], queryFn: () => manage.joiningFeeSettings(), staleTime: 60_000 });
+  const [amount, setAmount] = useState('');
+  const [waive, setWaive] = useState(false);
+  const [note, setNote] = useState('');
+  const feesOn = settings.data?.enabled !== false;
+  const platform = settings.data?.platformFeeCents ?? 0;
+  const cents = waive || !feesOn ? 0 : Math.round(Number(amount) * 100);
+  const valid = !feesOn || waive || (amount.trim() !== '' && Number.isFinite(cents) && cents > 0 && cents <= 500_000);
+  const total = cents > 0 ? cents + platform : 0;
+  const usd = (c: number) => `$${(c / 100).toLocaleString('en-US', { minimumFractionDigits: c % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
+  return (
+    <Card className="border-primary/30">
+      <CardHeader><CardTitle className="text-base">Approve {name}</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">They become an Asset Partner. After the ID check they pay this one-time registration, then sign and add payout details. It covers every car they place.</p>
+        {settings.isLoading ? (
+          <Skeleton className="h-16 w-full" />
+        ) : settings.isError ? (
+          <ErrorState message="We couldn’t load the fee settings." retry={() => void settings.refetch()} />
+        ) : !feesOn ? (
+          <p className="rounded-lg bg-subtle p-3 text-sm">Registration fees are switched off in Partner Terms, so this partner pays nothing.</p>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[12rem_1fr] sm:items-end">
+              <Field label="Registration fee for this partner (USD)" htmlFor="fee">
+                <Input id="fee" type="number" inputMode="decimal" min="1" max="5000" step="0.01" placeholder="e.g. 350" disabled={waive} value={waive ? '' : amount} onChange={(e) => setAmount(e.target.value)} className="tabular-nums" />
+              </Field>
+              <label className="flex items-center gap-2 pb-2 text-sm">
+                <input type="checkbox" className="h-4 w-4 accent-primary" checked={waive} onChange={(e) => setWaive(e.target.checked)} />
+                No fee for this partner
+              </label>
+            </div>
+            {cents > 0 && (
+              <p className="rounded-lg bg-subtle p-3 text-sm tabular-nums">
+                {usd(cents)} registration{platform > 0 ? ` + ${usd(platform)} platform fee` : ''} = <span className="font-semibold">{usd(total)}</span> paid by the partner
+              </p>
+            )}
+          </div>
+        )}
+        <Field label="Note (optional)" htmlFor="apr-note"><Textarea id="apr-note" rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button variant="ghost" onClick={onCancel}>Back</Button>
+          <Button disabled={!valid || settings.isLoading} loading={busy} onClick={() => onSubmit({ feeCents: cents, note: note.trim() })}>
+            <CheckCircle2 className="h-4 w-4" aria-hidden /> {total > 0 ? `Approve, partner pays ${usd(total)}` : 'Approve, no fee'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DeclinePanel({ busy, error, onCancel, onSubmit }: { busy: boolean; error?: string; onCancel: () => void; onSubmit: (input: { reasons: string[]; note: string; improvements?: string; reapplyAfterDays?: number }) => void }) {
   const reasons = useQuery({ queryKey: ['ioc-rejection-reasons'], queryFn: () => manage.rejectionReasons(), staleTime: Infinity });
   const [picked, setPicked] = useState<string[]>([]);

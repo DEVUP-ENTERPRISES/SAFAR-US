@@ -37,6 +37,7 @@ function AddCar() {
       mode="vehicle"
       initial={latest}
       reviewNote={editing?.reviewNotes}
+      changeRequest={editing?.changeRequest}
       draftKey={editing ? `cd-partner-car-${editing._id}` : 'cd-partner-car'}
       submitLabel={editing ? 'Send again' : 'Send for review'}
       onSubmit={(input) => (editing ? assetPartnerApi.resubmitApplication(editing._id, input) : assetPartnerApi.submitApplication(input)).then(done)}

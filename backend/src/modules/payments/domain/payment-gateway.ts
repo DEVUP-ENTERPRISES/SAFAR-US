@@ -39,6 +39,27 @@ export interface IntentRisk {
   addressCheck?: 'pass' | 'fail' | 'unavailable' | 'unchecked';
 }
 
+/** A one-off payment on Stripe's hosted page, for charges outside a booking (e.g. the Asset Partner fee). */
+export interface CreateCheckoutInput {
+  /** Each line shows separately on the payment page. */
+  lines: { name: string; amountCents: number }[];
+  currency: string;
+  description: string;
+  customerEmail?: string;
+  successUrl: string;
+  cancelUrl: string;
+  idempotencyKey: string;
+  metadata: Record<string, string>;
+}
+
+export interface CheckoutState {
+  status: 'open' | 'complete' | 'expired';
+  paid: boolean;
+  intentId?: string;
+  amountTotal: number;
+  metadata: Record<string, string>;
+}
+
 export interface PaymentGateway {
   createIntent(input: CreateIntentInput): Promise<IntentResult>;
     /** `amountCents` captures less than was authorised (deposit settlement). */
@@ -51,4 +72,8 @@ export interface PaymentGateway {
   confirmIntent(intentId: string, input: { customerId: string; paymentMethodId: string }): Promise<IntentResult>;
   /** Radar's verdict + card-check results on the charge behind an intent, for feeding future risk decisions. */
   getIntentRisk(intentId: string): Promise<IntentRisk | null>;
+  createCheckout(input: CreateCheckoutInput): Promise<{ sessionId: string; url: string }>;
+  retrieveCheckout(sessionId: string): Promise<CheckoutState>;
+  /** Closes an unpaid hosted page so it can no longer be paid. */
+  expireCheckout(sessionId: string): Promise<void>;
 }
