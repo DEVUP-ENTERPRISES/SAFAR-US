@@ -129,8 +129,8 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
       api.post(`${base}/asset-partner-applications/${id}/review`, { decision, notes, rejection, joiningFeeCents, changes }),
     /** The items ops can send back for correction, with their plain names. */
     changeItems: () => api.get<{ key: string; label: string }[]>(`${base}/asset-partner-applications/change-items`),
-    /** The admin default for the one-time partner fee, to start the approval form from. */
-    joiningFeeDefault: () => api.get<{ amountCents: number }>(`${base}/asset-partner-fee/default`),
+    /** Whether registration fees are on, and the platform fee added to each. */
+    joiningFeeSettings: () => api.get<{ enabled: boolean; platformFeeCents: number }>(`${base}/asset-partner-fee/default`),
     setJoiningFee: (partnerId: string, amountCents: number) => api.patch(`${base}/asset-partners/${partnerId}/joining-fee`, { amountCents }),
     refundJoiningFee: (partnerId: string, reason: string) => api.post(`${base}/asset-partners/${partnerId}/joining-fee/refund`, { reason }),
     rejectionReasons: () => api.get<{ code: string; label: string; why: string; improve: string }[]>(`${base}/asset-partner-applications/rejection-reasons`),

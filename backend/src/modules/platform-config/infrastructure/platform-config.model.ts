@@ -81,9 +81,10 @@ export interface PlatformConfigDoc {
     managementFeeBps: number;
     /** Shortest seasonal commitment accepted, in months; seasons run up to six months or a full year. */
     minSeasonMonths: number;
-    /** One-time Asset Partner fee, charged after the ID check; ops can change or waive it per partner when approving. */
+    /** One-time registration fee, charged after the ID check; ops enters each partner's amount when approving. */
     joiningFeeEnabled: boolean;
-    joiningFeeCents: number;
+    /** Added on top of every registration fee; separate from the guest booking service fee. */
+    registrationPlatformFeeCents: number;
     /** Roamly fleet insurance, per vehicle per month, in minor units. */
     insuranceMonthlyCents: number;
     /** Professional detailing, per vehicle per month, in minor units. */
@@ -737,7 +738,7 @@ const schema = new Schema<PlatformConfigDoc>(
       managementFeeBps: { type: Number, default: 2000 }, // 20%
       minSeasonMonths: { type: Number, default: 2 },
       joiningFeeEnabled: { type: Boolean, default: true },
-      joiningFeeCents: { type: Number, default: 35_000 },
+      registrationPlatformFeeCents: { type: Number, default: 499 },
       insuranceMonthlyCents: { type: Number, default: 13_700 }, // $137 Roamly
       detailingMonthlyCents: { type: Number, default: 5_000 }, // $50
       deductibleCapCents: { type: Number, default: 100_000 }, // $1,000 cap

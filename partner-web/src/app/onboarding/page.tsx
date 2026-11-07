@@ -273,7 +273,7 @@ function GettingStarted() {
       {data.stage === 'rejected' && !reapply && <Declined data={data} onReapply={() => setReapply(true)} />}
       {data.stage === 'profile' && <ProfileForm initial={data.profile} ownPhone={data.profile?.ownPhone} onSaved={() => void refresh()} />}
       {data.stage === 'identity' && <IdentityStep state={data.identity?.state ?? 'not_started'} reason={data.identity?.reason} onChange={refresh} />}
-      {data.stage === 'fee' && data.fee && <FeeStep amountCents={data.fee.amountCents} onPaid={() => void refresh()} />}
+      {data.stage === 'fee' && data.fee && <FeeStep fee={data.fee} onPaid={() => void refresh()} />}
       {data.stage === 'agreement_expired' && <OfferExpired data={data} onDone={() => void refresh()} />}
       {data.stage === 'agreement' && (
         <>

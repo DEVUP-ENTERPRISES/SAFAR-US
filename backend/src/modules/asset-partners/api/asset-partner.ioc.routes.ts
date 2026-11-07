@@ -462,7 +462,7 @@ router.get(
   '/asset-partner-fee/default',
   authorize('admin:read'),
   asyncHandler(async (_req, res) => {
-    sendSuccess(res, { amountCents: await assetPartnerFeeService.defaultCents() });
+    sendSuccess(res, await assetPartnerFeeService.settings());
   }),
 );
 

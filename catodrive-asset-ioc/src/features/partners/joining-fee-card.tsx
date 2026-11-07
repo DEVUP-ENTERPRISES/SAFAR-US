@@ -18,6 +18,7 @@ const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { min
 
 export interface JoiningFee {
   amountCents: number;
+  platformFeeCents?: number;
   currency: string;
   setAt?: string;
   paidAt?: string;
@@ -66,14 +67,20 @@ export function JoiningFeeCard({ partnerId, fee, signed }: { partnerId: string; 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle className="text-base">Asset Partner fee</CardTitle>
+        <CardTitle className="text-base">Registration fee</CardTitle>
         <Badge tone={status === 'paid' ? 'success' : status === 'due' ? 'warning' : 'muted'}>
           {status === 'none' ? 'Not charged' : status === 'due' ? 'Waiting for payment' : status === 'paid' ? 'Paid' : status === 'waived' ? 'Waived' : 'Refunded'}
         </Badge>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
         {status === 'none' && <p className="text-muted-foreground">No fee was set for this partner{signed ? '; they joined before the fee or were added directly.' : '.'}</p>}
-        {status === 'due' && <p>Owes <span className="font-semibold tabular-nums">{money(fee!.amountCents)}</span>. They pay right after their ID check, before signing.</p>}
+        {status === 'due' && (
+          <p>
+            Owes <span className="font-semibold tabular-nums">{money(fee!.amountCents + (fee!.platformFeeCents ?? 0))}</span>
+            {(fee!.platformFeeCents ?? 0) > 0 && <span className="text-muted-foreground tabular-nums"> ({money(fee!.amountCents)} registration + {money(fee!.platformFeeCents!)} platform fee)</span>}
+            . They pay right after their ID check, before signing.
+          </p>
+        )}
         {status === 'waived' && <p className="text-muted-foreground">Waived{fee?.setAt ? ` on ${formatDateTime(fee.setAt)}` : ''}.</p>}
         {(status === 'paid' || status === 'refunded') && (
           <p>Paid <span className="font-semibold tabular-nums">{money(fee!.paidCents ?? fee!.amountCents)}</span> on {formatDateTime(fee!.paidAt!)}.</p>
@@ -88,7 +95,7 @@ export function JoiningFeeCard({ partnerId, fee, signed }: { partnerId: string; 
         )}
         {canChange && editing && (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <Field label="Fee (USD)" htmlFor="fee-amount" hint="0 waives it. An open payment page is closed and a new one made.">
+            <Field label="Registration fee (USD)" htmlFor="fee-amount" hint="0 waives it. The platform fee is added on top. An open payment page is closed and a new one made.">
               <Input id="fee-amount" type="number" inputMode="decimal" min="0" max="5000" value={amount} onChange={(e) => setAmount(e.target.value)} className="tabular-nums sm:w-40" />
             </Field>
             <div className="flex gap-2">

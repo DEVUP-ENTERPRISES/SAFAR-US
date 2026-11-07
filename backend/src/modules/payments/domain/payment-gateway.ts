@@ -41,7 +41,8 @@ export interface IntentRisk {
 
 /** A one-off payment on Stripe's hosted page, for charges outside a booking (e.g. the Asset Partner fee). */
 export interface CreateCheckoutInput {
-  amountCents: number;
+  /** Each line shows separately on the payment page. */
+  lines: { name: string; amountCents: number }[];
   currency: string;
   description: string;
   customerEmail?: string;

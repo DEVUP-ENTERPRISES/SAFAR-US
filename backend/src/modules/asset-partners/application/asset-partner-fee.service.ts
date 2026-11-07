@@ -18,6 +18,8 @@ export type FeeStatus = 'none' | 'due' | 'paid' | 'waived' | 'refunded';
 export interface FeeView {
   status: FeeStatus;
   amountCents: number;
+  platformFeeCents: number;
+  totalCents: number;
   currency: string;
   setAt?: Date;
   paidAt?: Date;
@@ -34,10 +36,15 @@ export function feeDue(p: Pick<AssetPartnerDoc, 'joiningFee'>): boolean {
   return !!f && f.amountCents > 0 && !f.paidAt;
 }
 
+/** What the partner pays: the registration fee plus the platform fee, nothing when waived. */
+export function feeTotal(f: Pick<JoiningFee, 'amountCents' | 'platformFeeCents'>): number {
+  return f.amountCents > 0 ? f.amountCents + (f.platformFeeCents ?? 0) : 0;
+}
+
 export function feeView(f?: JoiningFee): FeeView {
-  if (!f) return { status: 'none', amountCents: 0, currency: CURRENCY };
+  if (!f) return { status: 'none', amountCents: 0, platformFeeCents: 0, totalCents: 0, currency: CURRENCY };
   const status: FeeStatus = f.refundedAt ? 'refunded' : f.paidAt ? 'paid' : f.amountCents > 0 ? 'due' : 'waived';
-  return { status, amountCents: f.amountCents, currency: f.currency, setAt: f.setAt, paidAt: f.paidAt, paidCents: f.paidCents, refundedAt: f.refundedAt, refundReason: f.refundReason };
+  return { status, amountCents: f.amountCents, platformFeeCents: f.platformFeeCents ?? 0, totalCents: feeTotal(f), currency: f.currency, setAt: f.setAt, paidAt: f.paidAt, paidCents: f.paidCents, refundedAt: f.refundedAt, refundReason: f.refundReason };
 }
 
 async function partnerOrThrow(id: string): Promise<AssetPartnerDoc> {
@@ -47,16 +54,25 @@ async function partnerOrThrow(id: string): Promise<AssetPartnerDoc> {
 }
 
 export const assetPartnerFeeService = {
-  async defaultCents(): Promise<number> {
+  /** Whether registration fees are on, and the platform fee added to each. */
+  async settings(): Promise<{ enabled: boolean; platformFeeCents: number }> {
     const ap = (await platformConfigService.get()).assetPartner;
-    return ap.joiningFeeEnabled ? ap.joiningFeeCents : 0;
+    return { enabled: ap.joiningFeeEnabled !== false, platformFeeCents: ap.registrationPlatformFeeCents ?? 0 };
+  },
+
+  /** Ops must state each new partner's registration fee when approving (0 waives it), unless fees are switched off. */
+  async requireAtApproval(amountCents: number | undefined): Promise<void> {
+    if ((await this.settings()).enabled && amountCents === undefined) {
+      throw new ValidationError('Enter the registration fee for this partner, or 0 to waive it');
+    }
   },
 
   /** Sets the fee as ops approves; a partner who already paid or signed is left alone. */
   async setAtApproval(partnerId: string, amountCents: number | undefined, by: string): Promise<void> {
     const p = await partnerOrThrow(partnerId);
     if (p.joiningFee?.paidAt || signed(p)) return;
-    await this.setAmount(partnerId, amountCents ?? (await this.defaultCents()), by);
+    if (!(await this.settings()).enabled) return;
+    await this.setAmount(partnerId, amountCents ?? 0, by);
   },
 
   /** Ops changes or waives (0) the fee before it is paid; any open payment page is closed first. */
@@ -70,10 +86,11 @@ export const assetPartnerFeeService = {
       if (p.joiningFee?.paidAt) throw new ConflictError('This partner has just paid the fee.', 'FEE_PAID');
       if (p.joiningFee?.sessionId) await paymentGateway.expireCheckout(p.joiningFee.sessionId);
     }
+    const platformFeeCents = amountCents > 0 ? (await this.settings()).platformFeeCents : 0;
     const updated = await AssetPartnerModel.findOneAndUpdate(
       { _id: partnerId, 'joiningFee.paidAt': { $exists: false } },
       {
-        $set: { 'joiningFee.amountCents': amountCents, 'joiningFee.currency': CURRENCY, 'joiningFee.setBy': by, 'joiningFee.setAt': new Date() },
+        $set: { 'joiningFee.amountCents': amountCents, 'joiningFee.platformFeeCents': platformFeeCents, 'joiningFee.currency': CURRENCY, 'joiningFee.setBy': by, 'joiningFee.setAt': new Date() },
         $unset: { 'joiningFee.sessionId': 1, 'joiningFee.sessionUrl': 1 },
         $inc: { 'joiningFee.attempt': 1 },
       },
@@ -97,9 +114,12 @@ export const assetPartnerFeeService = {
     const base = config.notifications.partnerWebUrl || config.notifications.webUrl;
     // The same attempt always maps to the same Stripe page, so a double click cannot open two.
     const session = await paymentGateway.createCheckout({
-      amountCents: fee.amountCents,
+      lines: [
+        { name: 'CatoDrive Asset Partner registration fee (one-time)', amountCents: fee.amountCents },
+        ...((fee.platformFeeCents ?? 0) > 0 ? [{ name: 'Platform fee', amountCents: fee.platformFeeCents! }] : []),
+      ],
       currency: fee.currency,
-      description: 'CatoDrive Asset Partner fee (one-time)',
+      description: 'CatoDrive Asset Partner registration',
       customerEmail: user?.email ?? p.email,
       successUrl: `${base}/onboarding?fee=paid`,
       cancelUrl: `${base}/onboarding?fee=cancelled`,
@@ -174,7 +194,7 @@ export const assetPartnerFeeService = {
         userId: updated.userId,
         templateKey: 'asset_partner.joining_fee_paid',
         title: 'Payment received',
-        body: `We’ve received your ${dollars(state.amountTotal)} Asset Partner fee on ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}. It’s a one-time fee and covers every car you place with CatoDrive. Next, sign your agreement.`,
+        body: `We’ve received your ${dollars(state.amountTotal)} registration payment on ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}. It’s one-time and covers every car you place with CatoDrive. Next, sign your agreement.`,
         deepLink: '/onboarding',
         actionLabel: 'Continue',
         data: { partnerId },

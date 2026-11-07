@@ -11,7 +11,7 @@ import { ApiError } from '@/lib/api/types';
 const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
 
 /** The one-time Asset Partner fee, paid on Stripe's own page between the ID check and signing. */
-export function FeeStep({ amountCents, onPaid }: { amountCents: number; onPaid: () => void }) {
+export function FeeStep({ fee, onPaid }: { fee: { amountCents: number; platformFeeCents: number; totalCents: number }; onPaid: () => void }) {
   const [back, setBack] = useState<string | null>(null);
   useEffect(() => setBack(new URLSearchParams(window.location.search).get('fee')), []);
   const [problem, setProblem] = useState<string>();
@@ -49,15 +49,16 @@ export function FeeStep({ amountCents, onPaid }: { amountCents: number; onPaid: 
         <div className="flex items-start gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><CreditCard className="h-5 w-5" /></span>
           <div className="min-w-0">
-            <h2 className="text-xl font-bold">Asset Partner fee</h2>
-            <p className="text-sm text-muted-foreground">A one-time fee to join. It covers every car you place with CatoDrive, now and later.</p>
+            <h2 className="text-xl font-bold">Registration fee</h2>
+            <p className="text-sm text-muted-foreground">A one-time payment to join. It covers every car you place with CatoDrive, now and later.</p>
           </div>
         </div>
 
-        <div className="flex items-baseline justify-between rounded-lg bg-subtle p-4">
-          <span className="text-sm text-muted-foreground">To pay once</span>
-          <span className="text-2xl font-bold tabular-nums">{money(amountCents)}</span>
-        </div>
+        <dl className="space-y-2 rounded-lg bg-subtle p-4 text-sm">
+          <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Registration fee</dt><dd className="tabular-nums">{money(fee.amountCents)}</dd></div>
+          {fee.platformFeeCents > 0 && <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Platform fee</dt><dd className="tabular-nums">{money(fee.platformFeeCents)}</dd></div>}
+          <div className="flex items-baseline justify-between gap-4 border-t border-border pt-2"><dt className="font-semibold">Total, paid once</dt><dd className="text-2xl font-bold tabular-nums">{money(fee.totalCents)}</dd></div>
+        </dl>
 
         {back === 'paid' ? (
           <div className="flex items-start gap-3 rounded-lg bg-muted/50 p-4 text-sm" role="status">
@@ -71,7 +72,7 @@ export function FeeStep({ amountCents, onPaid }: { amountCents: number; onPaid: 
               <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-success" /> Card, Apple Pay or Google Pay on Stripe’s secure page.</li>
               <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-success" /> We email you a receipt, then you sign your agreement.</li>
             </ul>
-            <Button className="w-full sm:w-auto" loading={pay.isPending} onClick={() => pay.mutate()}>Pay {money(amountCents)}</Button>
+            <Button className="w-full sm:w-auto" loading={pay.isPending} onClick={() => pay.mutate()}>Pay {money(fee.totalCents)}</Button>
           </>
         )}
 

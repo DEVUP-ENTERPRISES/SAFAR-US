@@ -37,7 +37,7 @@ const dto = {
 } as PortalApplicationDto;
 
 /** An approved partner who has given an emergency contact and passed the ID check. */
-async function partnerAtFee(feeCents?: number): Promise<{ userId: string; partner: AssetPartnerDoc }> {
+async function partnerAtFee(feeCents = 35_000): Promise<{ userId: string; partner: AssetPartnerDoc }> {
   const user = await UserModel.create({ email: 'jordan@example.com', roles: ['guest'], emailVerified: true });
   const userId = String(user._id);
   const app = await assetPartnerApplicationService.createForAccount(userId, dto, {});
@@ -53,15 +53,21 @@ const payOpenPage = (sessionId: string, intentId = `pi_${sessionId}`) => {
 };
 
 describe('Asset Partner fee', () => {
-  it('uses the admin default at approval and comes right after the ID check', async () => {
-    const { userId, partner } = await partnerAtFee();
-    expect(feeView(partner.joiningFee)).toMatchObject({ status: 'due', amountCents: 35_000 });
-    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'fee', fee: { amountCents: 35_000, currency: 'USD' } });
+  it('charges the amount ops entered plus the platform fee, right after the ID check', async () => {
+    const { userId, partner } = await partnerAtFee(42_000);
+    expect(feeView(partner.joiningFee)).toMatchObject({ status: 'due', amountCents: 42_000, platformFeeCents: 499, totalCents: 42_499 });
+    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'fee', fee: { amountCents: 42_000, platformFeeCents: 499, totalCents: 42_499, currency: 'USD' } });
   });
 
-  it('skips the step when ops waives the fee at approval', async () => {
+  it('needs ops to enter the registration fee when approving a new partner', async () => {
+    const user = await UserModel.create({ email: 'sam@example.com', roles: ['guest'], emailVerified: true });
+    const app = await assetPartnerApplicationService.createForAccount(String(user._id), dto, {});
+    await expect(assetPartnerApplicationService.review(app._id, OPS, 'approved')).rejects.toThrow('Enter the registration fee');
+  });
+
+  it('skips the step, and the platform fee, when ops waives the fee at approval', async () => {
     const { userId, partner } = await partnerAtFee(0);
-    expect(feeView(partner.joiningFee).status).toBe('waived');
+    expect(feeView(partner.joiningFee)).toMatchObject({ status: 'waived', totalCents: 0 });
     expect((await assetPartnerApplicationService.onboarding(userId)).stage).toBe('agreement');
   });
 
@@ -87,7 +93,7 @@ describe('Asset Partner fee', () => {
     await runStripeEvent({ id: 'evt_1', type: 'checkout.session.completed', data: { object: { id: sessionId, metadata: { kind: 'asset_partner_fee', partnerId: partner._id } } } });
 
     const after = (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!;
-    expect(feeView(after.joiningFee)).toMatchObject({ status: 'paid', paidCents: 35_000 });
+    expect(feeView(after.joiningFee)).toMatchObject({ status: 'paid', paidCents: 35_499 });
     expect(await LedgerModel.countDocuments({ refType: 'asset_partner_fee' })).toBe(2);
     expect(await assetPartnerFeeService.checkout(userId)).toEqual({ paid: true });
   });
@@ -114,8 +120,8 @@ describe('Asset Partner fee', () => {
     payOpenPage(sessionId, 'pi_first');
     await assetPartnerFeeService.onCheckoutCompleted(sessionId);
     const refund = jest.spyOn(gateway, 'refund');
-    await assetPartnerFeeService.recordPaid(partner._id, { status: 'complete', paid: true, intentId: 'pi_second', amountTotal: 35_000, metadata: {} });
-    expect(refund).toHaveBeenCalledWith('pi_second', { amount: 35_000, currency: 'USD' }, 'apfee_dup_pi_second');
+    await assetPartnerFeeService.recordPaid(partner._id, { status: 'complete', paid: true, intentId: 'pi_second', amountTotal: 35_499, metadata: {} });
+    expect(refund).toHaveBeenCalledWith('pi_second', { amount: 35_499, currency: 'USD' }, 'apfee_dup_pi_second');
   });
 
   it('gives a fresh page after the old one expires', async () => {

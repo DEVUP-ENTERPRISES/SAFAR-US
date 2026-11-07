@@ -179,7 +179,7 @@ export class StripeGateway implements PaymentGateway {
     const session = await this.stripe.checkout.sessions.create(
       {
         mode: 'payment',
-        line_items: [{ quantity: 1, price_data: { currency: input.currency.toLowerCase(), unit_amount: input.amountCents, product_data: { name: input.description } } }],
+        line_items: input.lines.map((l) => ({ quantity: 1, price_data: { currency: input.currency.toLowerCase(), unit_amount: l.amountCents, product_data: { name: l.name } } })),
         customer_email: input.customerEmail,
         success_url: input.successUrl,
         cancel_url: input.cancelUrl,

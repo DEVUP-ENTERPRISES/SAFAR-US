@@ -27,7 +27,7 @@ import { DocumentModel } from '../../documents/infrastructure/document.model';
 import type { RejectionReason } from '../infrastructure/asset-partner-application.model';
 import type { PartnerProfile } from '../infrastructure/asset-partner.model';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
-import { assetPartnerFeeService } from './asset-partner-fee.service';
+import { assetPartnerFeeService, feeTotal } from './asset-partner-fee.service';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /** "CD-AP-482913" — server-generated, never client-supplied. */
@@ -101,7 +101,7 @@ export interface PartnerOnboarding {
   profile?: PartnerProfile & { ownPhone?: string };
   identity?: Pick<PartnerIdentity, 'state' | 'reason'>;
   offer?: OfferState | null;
-  fee?: { amountCents: number; currency: string };
+  fee?: { amountCents: number; platformFeeCents: number; totalCents: number; currency: string };
   rejection?: { reasons: { code: RejectionReason; label: string; why: string; improve: string }[]; improvements?: string; reapplyAfter?: Date; canReapply: boolean };
 }
 
@@ -328,7 +328,8 @@ export class AssetPartnerApplicationService {
         return { ...base, stage, partner: summary, offer, identity: { state: identity.state, reason: identity.reason } };
       }
       if (stage === 'fee') {
-        return { ...base, stage, partner: summary, offer, fee: { amountCents: partner.joiningFee!.amountCents, currency: partner.joiningFee!.currency } };
+        const f = partner.joiningFee!;
+        return { ...base, stage, partner: summary, offer, fee: { amountCents: f.amountCents, platformFeeCents: f.platformFeeCents ?? 0, totalCents: feeTotal(f), currency: f.currency } };
       }
       if (stage === 'agreement') {
         const docs = await assetPartnerAgreementService.forPartner(partner);
@@ -530,6 +531,7 @@ export class AssetPartnerApplicationService {
     let hostVerified = app.hostVerified ?? false;
     // Only a new partner is enrolled; another car from an existing partner goes to inspection and listing by ops.
     if (decision === 'approved' && (app.kind ?? 'partner') === 'partner') {
+      await assetPartnerFeeService.requireAtApproval(joiningFeeCents);
       const { partner, accountCreated } = await assetPartnerService.enrolByEmail({
         email: app.email,
         fullName: app.fullName,

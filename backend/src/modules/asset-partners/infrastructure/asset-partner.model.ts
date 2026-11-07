@@ -123,7 +123,10 @@ export interface PartnerTermsOverride {
 }
 
 export interface JoiningFee {
+  /** The registration fee ops entered for this partner. */
   amountCents: number;
+  /** The platform fee added on top, fixed when the amount was set. */
+  platformFeeCents?: number;
   currency: string;
   setBy?: string;
   setAt?: Date;
@@ -227,6 +230,7 @@ const schema = new Schema<AssetPartnerDoc>(
       type: new Schema(
         {
           amountCents: { type: Number, required: true, min: 0 },
+          platformFeeCents: { type: Number, min: 0 },
           currency: { type: String, default: 'USD' },
           setBy: String,
           setAt: Date,

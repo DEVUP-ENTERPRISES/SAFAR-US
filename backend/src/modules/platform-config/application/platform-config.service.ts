@@ -160,7 +160,7 @@ export class PlatformConfigService {
         managementFeeBps: 2000,
         minSeasonMonths: 2,
         joiningFeeEnabled: true,
-        joiningFeeCents: 35_000,
+        registrationPlatformFeeCents: 499,
         insuranceMonthlyCents: 13_700,
         detailingMonthlyCents: 5_000,
         deductibleCapCents: 100_000,

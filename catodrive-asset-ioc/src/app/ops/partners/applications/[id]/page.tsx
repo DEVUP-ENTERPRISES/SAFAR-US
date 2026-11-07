@@ -454,39 +454,51 @@ function ChangesPanel({ items, loading, failed, retry, busy, error, onCancel, on
 }
 
 function ApprovePanel({ name, busy, error, onCancel, onSubmit }: { name: string; busy: boolean; error?: string; onCancel: () => void; onSubmit: (input: { feeCents: number; note: string }) => void }) {
-  const fallback = useQuery({ queryKey: ['ioc-fee-default'], queryFn: () => manage.joiningFeeDefault(), staleTime: 60_000 });
-  const [amount, setAmount] = useState<string>();
+  const settings = useQuery({ queryKey: ['ioc-fee-settings'], queryFn: () => manage.joiningFeeSettings(), staleTime: 60_000 });
+  const [amount, setAmount] = useState('');
   const [waive, setWaive] = useState(false);
   const [note, setNote] = useState('');
-  const shown = amount ?? (fallback.data ? String(fallback.data.amountCents / 100) : '');
-  const cents = waive ? 0 : Math.round(Number(shown) * 100);
-  const valid = waive || (shown.trim() !== '' && Number.isFinite(cents) && cents >= 0 && cents <= 500_000);
+  const feesOn = settings.data?.enabled !== false;
+  const platform = settings.data?.platformFeeCents ?? 0;
+  const cents = waive || !feesOn ? 0 : Math.round(Number(amount) * 100);
+  const valid = !feesOn || waive || (amount.trim() !== '' && Number.isFinite(cents) && cents > 0 && cents <= 500_000);
+  const total = cents > 0 ? cents + platform : 0;
+  const usd = (c: number) => `$${(c / 100).toLocaleString('en-US', { minimumFractionDigits: c % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
   return (
     <Card className="border-primary/30">
       <CardHeader><CardTitle className="text-base">Approve {name}</CardTitle></CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">They become an Asset Partner. After the ID check they pay this one-time fee, then sign and add payout details. It covers every car they place.</p>
-        {fallback.isLoading ? (
+        <p className="text-sm text-muted-foreground">They become an Asset Partner. After the ID check they pay this one-time registration, then sign and add payout details. It covers every car they place.</p>
+        {settings.isLoading ? (
           <Skeleton className="h-16 w-full" />
-        ) : fallback.isError ? (
-          <ErrorState message="We couldn’t load the usual fee." retry={() => void fallback.refetch()} />
+        ) : settings.isError ? (
+          <ErrorState message="We couldn’t load the fee settings." retry={() => void settings.refetch()} />
+        ) : !feesOn ? (
+          <p className="rounded-lg bg-subtle p-3 text-sm">Registration fees are switched off in Partner Terms, so this partner pays nothing.</p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[12rem_1fr] sm:items-end">
-            <Field label="Asset Partner fee (USD)" htmlFor="fee" hint="Starts from the default in Partner Terms.">
-              <Input id="fee" type="number" inputMode="decimal" min="0" max="5000" step="1" disabled={waive} value={waive ? '0' : shown} onChange={(e) => setAmount(e.target.value)} className="tabular-nums" />
-            </Field>
-            <label className="flex items-center gap-2 pb-2 text-sm">
-              <input type="checkbox" className="h-4 w-4 accent-primary" checked={waive} onChange={(e) => setWaive(e.target.checked)} />
-              Waive the fee for this partner
-            </label>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[12rem_1fr] sm:items-end">
+              <Field label="Registration fee for this partner (USD)" htmlFor="fee">
+                <Input id="fee" type="number" inputMode="decimal" min="1" max="5000" step="0.01" placeholder="e.g. 350" disabled={waive} value={waive ? '' : amount} onChange={(e) => setAmount(e.target.value)} className="tabular-nums" />
+              </Field>
+              <label className="flex items-center gap-2 pb-2 text-sm">
+                <input type="checkbox" className="h-4 w-4 accent-primary" checked={waive} onChange={(e) => setWaive(e.target.checked)} />
+                No fee for this partner
+              </label>
+            </div>
+            {cents > 0 && (
+              <p className="rounded-lg bg-subtle p-3 text-sm tabular-nums">
+                {usd(cents)} registration{platform > 0 ? ` + ${usd(platform)} platform fee` : ''} = <span className="font-semibold">{usd(total)}</span> paid by the partner
+              </p>
+            )}
           </div>
         )}
         <Field label="Note (optional)" htmlFor="apr-note"><Textarea id="apr-note" rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button variant="ghost" onClick={onCancel}>Back</Button>
-          <Button disabled={!valid || fallback.isLoading} loading={busy} onClick={() => onSubmit({ feeCents: cents, note: note.trim() })}>
-            <CheckCircle2 className="h-4 w-4" aria-hidden /> {cents > 0 ? `Approve, fee ${(cents / 100).toLocaleString('en-US')}` : 'Approve, no fee'}
+          <Button disabled={!valid || settings.isLoading} loading={busy} onClick={() => onSubmit({ feeCents: cents, note: note.trim() })}>
+            <CheckCircle2 className="h-4 w-4" aria-hidden /> {total > 0 ? `Approve, partner pays ${usd(total)}` : 'Approve, no fee'}
           </Button>
         </div>
       </CardContent>

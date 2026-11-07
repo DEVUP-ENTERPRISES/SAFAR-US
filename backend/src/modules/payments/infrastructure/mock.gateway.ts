@@ -60,7 +60,7 @@ export class MockGateway implements PaymentGateway {
     if (known) return { sessionId: known, url: `https://checkout.mock/${known}` };
     const sessionId = `cs_mock_${randomId()}`;
     this.checkoutKeys.set(input.idempotencyKey, sessionId);
-    this.checkouts.set(sessionId, { status: 'open', paid: false, amountTotal: input.amountCents, metadata: input.metadata });
+    this.checkouts.set(sessionId, { status: 'open', paid: false, amountTotal: input.lines.reduce((s, l) => s + l.amountCents, 0), metadata: input.metadata });
     return { sessionId, url: `https://checkout.mock/${sessionId}` };
   }
 

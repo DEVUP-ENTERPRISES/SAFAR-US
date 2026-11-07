@@ -263,22 +263,22 @@ export default function AdminAssetPartnerTermsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Asset Partner fee</CardTitle>
+            <CardTitle>Registration fee</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <label className="flex items-start gap-3 text-sm sm:col-span-2">
               <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" checked={ap.joiningFeeEnabled !== false} onChange={(e) => set((d) => { d.assetPartner.joiningFeeEnabled = e.target.checked; })} />
-              <span><span className="font-medium">Charge new partners a one-time fee</span><span className="block text-muted-foreground">Paid on Stripe right after the ID check, before signing. Covers every car they place. Ops can change or waive it for each partner when approving.</span></span>
+              <span><span className="font-medium">Charge new partners a one-time registration fee</span><span className="block text-muted-foreground">Ops enters each partner’s amount when approving (or none). Paid on Stripe right after the ID check, before signing, and covers every car they place.</span></span>
             </label>
-            <Field label="Default fee" hint="What ops sees when approving a new partner.">
+            <Field label="Partner platform fee" hint="Added on top of every registration fee. Separate from the guest booking service fee.">
               <Input
                 type="number"
-                step="1"
+                step="0.01"
                 min="0"
-                max="5000"
+                max="500"
                 disabled={ap.joiningFeeEnabled === false}
-                value={toDollars(ap.joiningFeeCents ?? 35_000)}
-                onChange={(e) => set((d) => { d.assetPartner.joiningFeeCents = Math.min(500_000, Math.max(0, toCents(e.target.value))); })}
+                value={toDollars(ap.registrationPlatformFeeCents ?? 499)}
+                onChange={(e) => set((d) => { d.assetPartner.registrationPlatformFeeCents = Math.min(50_000, Math.max(0, toCents(e.target.value))); })}
               />
             </Field>
           </CardContent>
