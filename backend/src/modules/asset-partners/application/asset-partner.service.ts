@@ -236,7 +236,7 @@ export class AssetPartnerService {
     return AssetPartnerModel.findOne({ userId }).lean<AssetPartnerDoc>();
   }
 
-  /** Where an enrolled partner is in getting started; anything but 'ready' keeps the full portal locked. */
+  /** Where an enrolled partner is in getting started; anything but 'ready' keeps the full portal locked. Papers don't lock it: they gate going live instead. */
   async portalStage(partner: AssetPartnerDoc): Promise<PortalStage> {
     if (!partner.agreementRequired) return 'ready';
     if (!partner.agreement?.signedAt || !partner.nda?.signedAt) {
@@ -247,7 +247,6 @@ export class AssetPartnerService {
       if (feeDue(partner)) return 'fee';
       return 'agreement';
     }
-    if ((await this.documentChecklist(partner)).some((d) => !d.uploaded)) return 'documents';
     const { payoutMethod } = await this.termsFor(partner);
     const paid = payoutMethod === 'zelle' ? partner.payoutDetails?.zelleHandle : partner.payoutDetails?.mailingAddress;
     return paid?.trim() ? 'ready' : 'payout';
@@ -338,6 +337,11 @@ export class AssetPartnerService {
         `An Asset Partner cannot go from ${partner.status} to ${to}`,
         'INVALID_STATE',
       );
+    }
+
+    if (to === 'active' && partner.agreementRequired) {
+      const missing = (await this.documentChecklist(partner)).filter((d) => !d.uploaded).map((d) => d.label);
+      if (missing.length) throw new ConflictError(`The car can't go live until these papers are in: ${missing.join(', ')}.`, 'PAPERS_MISSING');
     }
 
     const patch: Record<string, unknown> = { status: to };

@@ -38,7 +38,7 @@ export function UploadDocuments({ documents, onChange }: { documents: Onboarding
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold">Upload your papers</h2>
-            <p className="text-sm text-muted-foreground">PDF or a clear photo. Your dashboard opens once all five are in; CatoDrive checks each before your car goes live.</p>
+            <p className="text-sm text-muted-foreground">PDF or a clear photo. Your car goes live once all five are in and CatoDrive has checked them.</p>
           </div>
           <Badge tone={done === documents.length ? 'success' : 'warning'}>{done}/{documents.length} uploaded</Badge>
         </div>

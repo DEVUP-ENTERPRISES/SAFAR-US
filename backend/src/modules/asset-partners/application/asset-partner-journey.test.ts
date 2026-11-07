@@ -127,13 +127,14 @@ describe('one Asset Partner, from sign-up to returning their car', () => {
     const signed = await assetPartnerAgreementService.sign(paid, signInput(agreement.version, nda.version), { ip: '203.0.113.9' });
     expect(signed.agreement).toMatchObject({ version: agreement.version, signedName: 'Jordan Ramirez' });
 
-    // Papers, then the dashboard opens.
-    expect(await stage(userId)).toBe('documents');
-    await expect(assetPartnerService.requirePortalReady(userId)).rejects.toThrow('Finish getting started');
-    const checklist = (await assetPartnerApplicationService.onboarding(userId)).documents!.map((d) => d.category);
-    for (const category of checklist) await DocumentModel.create({ ownerId: userId, category, url: `https://cdn.example.com/${category}.pdf` });
+    // The dashboard opens right after signing; papers are uploaded from there.
     expect(await stage(userId)).toBe('ready');
     await expect(assetPartnerService.requirePortalReady(userId)).resolves.toBeTruthy();
+    const checklist = (await assetPartnerApplicationService.onboarding(userId)).documents!;
+    expect(checklist.some((d) => !d.uploaded)).toBe(true);
+    await expect(assetPartnerService.transition(paid._id, 'active')).rejects.toThrow("can't go live until these papers are in");
+    for (const d of checklist) await DocumentModel.create({ ownerId: userId, category: d.category, url: `https://cdn.example.com/${d.category}.pdf` });
+    expect((await assetPartnerApplicationService.onboarding(userId)).documents!.every((d) => d.uploaded)).toBe(true);
 
     // Ops lists the car on the fleet and marks the partner active.
     const listing = await assetPartnerCarService.createListing(app._id, OPS, { address: '2400 Aviation Dr, DFW Airport, TX' });

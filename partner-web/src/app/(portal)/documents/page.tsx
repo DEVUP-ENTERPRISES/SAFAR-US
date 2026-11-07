@@ -19,6 +19,8 @@ import { documentsApi, type PartnerDocument } from '@/features/documents/api';
 import { ApiError } from '@/lib/api/types';
 import { SignedCopies } from '~/components/portal/signed-copies';
 import { IntakeReports } from '~/components/portal/intake-reports';
+import { UploadDocuments } from '~/features/onboarding/upload-documents';
+import { assetPartnerApi } from '@/features/asset-partners/api';
 import { DOC_CATEGORY_LABEL, EXPIRY_WARNING_DAYS, PARTNER_DOC_CATEGORIES, daysUntil, type PartnerDocCategory } from '@/features/asset-partners/status';
 import { safeMessage } from '@/lib/utils/safe-message';
 
@@ -51,6 +53,13 @@ export default function PartnerDocumentsPage() {
     queryFn: () => documentsApi.list(),
   });
 
+  const onboarding = useQuery({ queryKey: ['partner-onboarding'], queryFn: () => assetPartnerApi.onboarding() });
+  const papers = onboarding.data?.documents ?? [];
+  const papersDone = () => {
+    void qc.invalidateQueries({ queryKey: ['partner-onboarding'] });
+    void qc.invalidateQueries({ queryKey: ['partner-documents'] });
+  };
+
   const upload = useMutation({
     mutationFn: async (file: File) => {
       const [uploaded] = await uploadFiles(category, [file]);
@@ -62,7 +71,7 @@ export default function PartnerDocumentsPage() {
       });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['partner-documents'] });
+      papersDone();
       setExpiresAt('');
       if (fileRef.current) fileRef.current.value = '';
       toast({ tone: 'success', title: 'Document uploaded' });
@@ -102,6 +111,12 @@ export default function PartnerDocumentsPage() {
         title="Documents"
         description="Your signed agreements, and the papers for you and your cars."
       />
+
+      {papers.some((d) => !d.uploaded) && (
+        <div id="papers" className="scroll-mt-24">
+          <UploadDocuments documents={papers} onChange={papersDone} />
+        </div>
+      )}
 
       <SignedCopies />
       <IntakeReports />
