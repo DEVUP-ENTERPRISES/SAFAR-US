@@ -125,6 +125,13 @@ describe('unlinking a car added by mistake', () => {
     expect(await eventually(() => AuditLogModel.findOne({ action: 'asset_partner.car.unlinked' }).lean(), (d) => !!d)).toMatchObject({ reason: 'Wrong partner picked', resourceId: p._id });
   });
 
+  it('cannot unlink a car on someone else’s fleet', async () => {
+    const p = await partner();
+    const car = await fleetCar(vin(82), { hostId: 'other-host', assetPartnerId: p._id });
+    await expect(assetPartnerCarService.unlink(OP, car._id, 'Wrong partner')).rejects.toThrow('Car');
+    expect((await VehicleModel.findById(car._id).lean())?.assetPartnerId).toBe(p._id);
+  });
+
   it('refuses once the car has a booking with the partner', async () => {
     const p = await partner();
     const car = await fleetCar(vin(81), { assetPartnerId: p._id, assetPartnerSince: new Date(Date.now() - 86_400_000) });

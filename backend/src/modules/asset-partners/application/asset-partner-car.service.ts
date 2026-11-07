@@ -182,8 +182,11 @@ export const assetPartnerCarService = {
 
   /** Undoes a car put on the wrong partner, only before it has had any booking with them. */
   async unlink(op: Operator, vehicleId: string, reason: string): Promise<void> {
-    const car = await VehicleModel.findById(vehicleId).select('assetPartnerId assetPartnerSince').lean<{ assetPartnerId?: string; assetPartnerSince?: Date }>();
-    if (!car?.assetPartnerId) throw new ConflictError('This car isn’t a partner car.', 'NOT_PARTNER_VEHICLE');
+    const host = await hostService.requireHostForUser(op.userId);
+    // Only a car on this operator's own fleet can be unlinked.
+    const car = await VehicleModel.findOne({ _id: vehicleId, hostId: host._id, deletedAt: null }).select('assetPartnerId assetPartnerSince').lean<{ assetPartnerId?: string; assetPartnerSince?: Date }>();
+    if (!car) throw new NotFoundError('Car');
+    if (!car.assetPartnerId) throw new ConflictError('This car isn’t a partner car.', 'NOT_PARTNER_VEHICLE');
     const { BookingModel } = await import('../../bookings/infrastructure/booking.model');
     const since = car.assetPartnerSince ?? new Date(0);
     if (await BookingModel.exists({ vehicleId, createdAt: { $gte: since } })) {
