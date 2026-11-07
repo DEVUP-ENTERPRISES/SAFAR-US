@@ -30,7 +30,7 @@ export class ApiError extends Error {
   }
 }
 
-/** A failure that says nothing about whether the person is signed in: the server is unreachable, restarting or erroring. */
+/** A failure that says nothing about whether the person is signed in: unreachable, timed out, rate limited, restarting or erroring. */
 export function isTransientError(err: unknown): boolean {
-  return err instanceof ApiError ? err.status === 0 || err.status >= 500 : true;
+  return err instanceof ApiError ? err.status === 0 || err.status === 408 || err.status === 429 || err.status >= 500 : true;
 }
