@@ -24,6 +24,7 @@ import type { PersonSummary } from '@/features/people/types';
 import { ApiError } from '@/lib/api/types';
 import { formatDate, formatDateTime, formatMoney } from '@/lib/utils/format';
 import { CLAIM_TONE, CLAIM_TYPE } from '../../../features/claims/labels';
+import { adminPath } from '@/lib/admin-path';
 
 interface TripPhotoView { url: string; phase: 'pre' | 'post'; angle?: string; at: string; by: 'guest' | 'host' }
 interface ClaimCase {
@@ -183,7 +184,7 @@ export default function ClaimCasePage() {
 
   return (
     <div className="space-y-5">
-      <Link href="/claims" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> All claims</Link>
+      <Link href={adminPath('claims')} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> All claims</Link>
       <PageHeader
         eyebrow={`${CLAIM_TYPE[c.type] ?? c.type} claim · filed ${formatDate(c.createdAt)}`}
         title={c.amountClaimed != null ? `${formatMoney({ amount: c.amountClaimed, currency })} claimed` : 'No amount claimed'}
@@ -237,7 +238,7 @@ export default function ClaimCasePage() {
                 ) : (
                   <p className="text-muted-foreground">No deposit on this trip</p>
                 )}
-                <Link className="font-medium text-primary hover:underline" href={`/bookings/${c.booking.id}`}>Open booking {c.booking.code} →</Link>
+                <Link className="font-medium text-primary hover:underline" href={adminPath(`bookings/${c.booking.id}`)}>Open booking {c.booking.code} →</Link>
               </CardContent>
             </Card>
           )}

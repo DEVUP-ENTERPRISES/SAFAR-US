@@ -18,6 +18,7 @@ import { adminApi } from '@/features/admin/api';
 import Link from 'next/link';
 import { formatDate, formatDateTime } from '@/lib/utils/format';
 import { PageHeader } from '@/components/ui/page-header';
+import { adminPath } from '@/lib/admin-path';
 
 const PRIORITY_TONE: Record<string, 'destructive' | 'warning' | 'muted' | 'default'> = {
   urgent: 'destructive', high: 'warning', normal: 'default', low: 'muted',
@@ -205,8 +206,8 @@ function Requester({ t }: { t: any }) {
         {r.contact?.phone && <a className="text-primary hover:underline" href={`tel:${r.contact.phone}`}>{r.contact.phone}</a>}
         {r.memberSince && <span>Member since {formatDate(r.memberSince)}</span>}
         {r.trips && <span className="tabular-nums">{r.trips.completed} trip{r.trips.completed === 1 ? '' : 's'} completed</span>}
-        <Link className="text-primary hover:underline" href={`/users?q=${encodeURIComponent(r.contact?.email ?? r.id)}`}>Open account</Link>
-        {t.booking && <Link className="text-primary hover:underline" href={`/bookings/${t.booking.id}`}>Booking {t.booking.code}</Link>}
+        <Link className="text-primary hover:underline" href={adminPath(`users?q=${encodeURIComponent(r.contact?.email ?? r.id)}`)}>Open account</Link>
+        {t.booking && <Link className="text-primary hover:underline" href={adminPath(`bookings/${t.booking.id}`)}>Booking {t.booking.code}</Link>}
       </p>
     </div>
   );

@@ -11,6 +11,7 @@ import { PERSON_KIND_LABEL } from '@/features/people/types';
 import { formatDate, formatMoney } from '@/lib/utils/format';
 import { PageHeader } from '@/components/ui/page-header';
 import { CLAIM_TONE, CLAIM_TYPE } from '../../features/claims/labels';
+import { adminPath } from '@/lib/admin-path';
 
 
 interface Person { id: string; name: string; kind: keyof typeof PERSON_KIND_LABEL }
@@ -60,7 +61,7 @@ export default function AdminClaimsPage() {
         </div>
       ),
     },
-    { header: '', className: 'text-end', cell: (c) => <Link href={`/claims/${c._id}`} className="text-sm font-medium text-primary hover:underline">Open case →</Link> },
+    { header: '', className: 'text-end', cell: (c) => <Link href={adminPath(`claims/${c._id}`)} className="text-sm font-medium text-primary hover:underline">Open case →</Link> },
   ];
 
   return (
