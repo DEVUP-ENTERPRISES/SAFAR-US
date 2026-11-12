@@ -5,6 +5,7 @@ import { ledgerService } from '../../payments/application/ledger.service';
 import { Account } from '../../payments/domain/ledger.accounts';
 import type { CheckoutState } from '../../payments/domain/payment-gateway';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { draftTerms } from './asset-partner-terms.service';
 import { notificationService } from '../../notifications/application/notification.service';
 import { ConflictError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
@@ -46,6 +47,30 @@ export function feeParts(f: Pick<JoiningFee, 'amountCents' | 'platformFeeCents'>
   const total = feeTotal(f);
   const platformFeeCents = Math.min(f.platformFeeCents ?? 0, total);
   return { registrationCents: total - platformFeeCents, platformFeeCents };
+}
+
+export interface FeeLine {
+  key: 'gps' | 'detailing' | 'insurance' | 'registration';
+  label: string;
+  amountCents: number;
+  /** The usual price, shown struck through while the launch offer runs. */
+  regularCents?: number;
+}
+
+/** What the registration pays for, as the partner and Stripe see it; the platform fee stays inside the total. */
+export async function feeLines(p: Pick<AssetPartnerDoc, 'joiningFee' | 'terms'>): Promise<FeeLine[]> {
+  const total = p.joiningFee ? feeTotal(p.joiningFee) : 0;
+  if (total <= 0) return [];
+  const [t, cfg] = await Promise.all([draftTerms(p), platformConfigService.get()]);
+  const gps = total - t.detailingMonthlyCents - t.insuranceMonthlyCents;
+  if (gps <= 0) return [{ key: 'registration', label: 'Asset Partner registration', amountCents: total }];
+  const regular = cfg.assetPartner.gpsRegularCents ?? 0;
+  const lines: FeeLine[] = [
+    { key: 'gps', label: 'GPS tracker installation', amountCents: gps, ...(regular > gps ? { regularCents: regular } : {}) },
+    { key: 'detailing', label: 'Car wash subscription enrollment', amountCents: t.detailingMonthlyCents },
+    { key: 'insurance', label: 'Off-trip insurance enrollment', amountCents: t.insuranceMonthlyCents },
+  ];
+  return lines.filter((l) => l.amountCents > 0);
 }
 
 export function feeView(f?: JoiningFee): FeeView {
@@ -117,18 +142,15 @@ export const assetPartnerFeeService = {
     if (!feeDue(p)) return { paid: !!p.joiningFee?.paidAt };
     const fee = p.joiningFee!;
     if (fee.sessionId && fee.sessionUrl) return { url: fee.sessionUrl, paid: false };
-    const parts = feeParts(fee);
+    const lines = await feeLines(p);
 
     const user = await UserModel.findById(userId).select('email').lean<{ email?: string }>();
     const base = config.notifications.partnerWebUrl || config.notifications.webUrl;
     // The same attempt always maps to the same Stripe page, so a double click cannot open two.
     const session = await paymentGateway.createCheckout({
-      lines: [
-        { name: 'CatoDrive Asset Partner registration fee (one-time, non-refundable)', amountCents: parts.registrationCents },
-        ...(parts.platformFeeCents > 0 ? [{ name: 'Platform fee', amountCents: parts.platformFeeCents }] : []),
-      ],
+      lines: lines.map((l) => ({ name: l.regularCents ? `${l.label} (launch offer)` : l.label, amountCents: l.amountCents })),
       currency: fee.currency,
-      description: 'CatoDrive Asset Partner registration',
+      description: 'CatoDrive Asset Partner registration (one-time, non-refundable)',
       customerEmail: user?.email ?? p.email,
       successUrl: `${base}/onboarding?fee=paid`,
       cancelUrl: `${base}/onboarding?fee=cancelled`,

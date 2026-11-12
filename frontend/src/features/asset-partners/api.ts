@@ -213,7 +213,7 @@ export interface PartnerOnboarding {
   email?: string;
   emailVerified: boolean;
   /** What is owed at the fee step. */
-  fee?: { amountCents: number; platformFeeCents: number; totalCents: number; currency: string };
+  fee?: { totalCents: number; currency: string; lines: { key: 'gps' | 'detailing' | 'insurance' | 'registration'; label: string; amountCents: number; regularCents?: number }[] };
   application?: PartnerApplicationDetail;
   partner?: { displayName: string; status: PartnerStatus };
   agreement?: SignableDocument | null;

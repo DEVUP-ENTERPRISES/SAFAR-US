@@ -11,7 +11,9 @@ import { ApiError } from '@/lib/api/types';
 const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
 
 /** The one-time Asset Partner fee, paid on Stripe's own page between the ID check and signing. */
-export function FeeStep({ fee, onPaid }: { fee: { amountCents: number; platformFeeCents: number; totalCents: number }; onPaid: () => void }) {
+type FeeLine = { key: string; label: string; amountCents: number; regularCents?: number };
+
+export function FeeStep({ fee, onPaid }: { fee: { totalCents: number; lines: FeeLine[] }; onPaid: () => void }) {
   const [back, setBack] = useState<string | null>(null);
   useEffect(() => setBack(new URLSearchParams(window.location.search).get('fee')), []);
   const [problem, setProblem] = useState<string>();
@@ -49,15 +51,27 @@ export function FeeStep({ fee, onPaid }: { fee: { amountCents: number; platformF
         <div className="flex items-start gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><CreditCard className="h-5 w-5" /></span>
           <div className="min-w-0">
-            <h2 className="text-xl font-bold">Registration fee</h2>
-            <p className="text-sm text-muted-foreground">A one-time, non-refundable fee that covers every car you place with CatoDrive.</p>
+            <h2 className="text-xl font-bold">Your car, protected and ready</h2>
+            <p className="text-sm text-muted-foreground">One payment sets up everything your car needs to start earning.</p>
           </div>
         </div>
 
         <dl className="space-y-2 rounded-lg bg-subtle p-4 text-sm">
-          <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Registration fee</dt><dd className="tabular-nums">{money(fee.amountCents)}</dd></div>
-          {fee.platformFeeCents > 0 && <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Platform fee</dt><dd className="tabular-nums">{money(fee.platformFeeCents)}</dd></div>}
+          {fee.lines.map((l) => (
+            <div key={l.key} className="flex items-start justify-between gap-4">
+              <dt className="min-w-0">
+                <span className="font-medium">{l.label}</span>
+                {l.key === 'gps' && <span className="block text-xs text-muted-foreground">Live tracking for your car’s safety and protection</span>}
+                {l.regularCents && <span className="mt-1 inline-block rounded-full bg-success/10 px-2 py-0.5 text-xs font-semibold text-success">Launch price for our first 100 partners</span>}
+              </dt>
+              <dd className="shrink-0 text-end tabular-nums">
+                {l.regularCents && <span className="block text-xs text-muted-foreground line-through">{money(l.regularCents)}</span>}
+                <span className="font-medium">{money(l.amountCents)}</span>
+              </dd>
+            </div>
+          ))}
           <div className="flex items-baseline justify-between gap-4 border-t border-border pt-2"><dt className="font-semibold">Total, paid once</dt><dd className="text-2xl font-bold tabular-nums">{money(fee.totalCents)}</dd></div>
+          <p className="text-xs text-muted-foreground">One-time and non-refundable. Covers every car you place with CatoDrive.</p>
         </dl>
 
         {back === 'paid' ? (

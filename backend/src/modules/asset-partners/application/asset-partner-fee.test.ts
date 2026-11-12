@@ -56,7 +56,7 @@ describe('Asset Partner fee', () => {
   it('charges exactly the amount ops entered, platform fee included, right after the ID check', async () => {
     const { userId, partner } = await partnerAtFee(42_000);
     expect(feeView(partner.joiningFee)).toMatchObject({ status: 'due', amountCents: 41_501, platformFeeCents: 499, totalCents: 42_000 });
-    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'fee', fee: { amountCents: 41_501, platformFeeCents: 499, totalCents: 42_000, currency: 'USD' } });
+    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'fee', fee: { totalCents: 42_000, currency: 'USD', lines: [{ key: 'gps', amountCents: 23_300, regularCents: 32_500 }, { key: 'detailing', amountCents: 5_000 }, { key: 'insurance', amountCents: 13_700 }] } });
   });
 
   it('needs ops to enter the registration fee when approving a new partner', async () => {

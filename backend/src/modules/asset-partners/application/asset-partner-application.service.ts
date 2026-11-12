@@ -27,7 +27,7 @@ import { DocumentModel } from '../../documents/infrastructure/document.model';
 import type { RejectionReason } from '../infrastructure/asset-partner-application.model';
 import type { PartnerProfile } from '../infrastructure/asset-partner.model';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
-import { assetPartnerFeeService, feeParts, feeTotal } from './asset-partner-fee.service';
+import { assetPartnerFeeService, feeLines, feeTotal, type FeeLine } from './asset-partner-fee.service';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /** "CD-AP-482913" — server-generated, never client-supplied. */
@@ -101,7 +101,7 @@ export interface PartnerOnboarding {
   profile?: PartnerProfile & { ownPhone?: string };
   identity?: Pick<PartnerIdentity, 'state' | 'reason'>;
   offer?: OfferState | null;
-  fee?: { amountCents: number; platformFeeCents: number; totalCents: number; currency: string };
+  fee?: { totalCents: number; currency: string; lines: FeeLine[] };
   rejection?: { reasons: { code: RejectionReason; label: string; why: string; improve: string }[]; improvements?: string; reapplyAfter?: Date; canReapply: boolean };
 }
 
@@ -329,7 +329,7 @@ export class AssetPartnerApplicationService {
       }
       if (stage === 'fee') {
         const f = partner.joiningFee!;
-        return { ...base, stage, partner: summary, offer, fee: { amountCents: feeParts(f).registrationCents, platformFeeCents: feeParts(f).platformFeeCents, totalCents: feeTotal(f), currency: f.currency } };
+        return { ...base, stage, partner: summary, offer, fee: { totalCents: feeTotal(f), currency: f.currency, lines: await feeLines(partner) } };
       }
       if (stage === 'agreement') {
         const docs = await assetPartnerAgreementService.forPartner(partner);

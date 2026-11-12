@@ -99,7 +99,7 @@ describe('one Asset Partner, from sign-up to returning their car', () => {
     await assetPartnerProfileService.save(userId, { emergencyContacts: [{ name: 'Ana Ramirez', phone: '(214) 555-0199', relation: 'Sister' }], residency: 'citizen' });
     expect(await stage(userId)).toBe('identity');
     await KycModel.create({ userId, status: 'approved', provider: 'stripe', verifiedFirstName: 'Jordan', verifiedLastName: 'Ramirez' });
-    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'fee', fee: { amountCents: 34_501, platformFeeCents: 499, totalCents: 35_000 } });
+    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'fee', fee: { totalCents: 35_000, lines: [{ key: 'gps', label: 'GPS tracker installation', amountCents: 16_300, regularCents: 32_500 }, { key: 'detailing', amountCents: 5_000 }, { key: 'insurance', amountCents: 13_700 }] } });
 
     // Signing is locked until the fee is paid.
     const before = (await assetPartnerService.getByUserId(userId))!;

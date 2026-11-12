@@ -281,6 +281,17 @@ export default function AdminAssetPartnerTermsPage() {
                 onChange={(e) => set((d) => { d.assetPartner.registrationPlatformFeeCents = Math.min(50_000, Math.max(0, toCents(e.target.value))); })}
               />
             </Field>
+            <Field label="GPS tracker regular price" hint="Shown struck through on the partner’s fee breakdown, next to the launch price.">
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                max="5000"
+                disabled={ap.joiningFeeEnabled === false}
+                value={toDollars(ap.gpsRegularCents ?? 32_500)}
+                onChange={(e) => set((d) => { d.assetPartner.gpsRegularCents = Math.min(500_000, Math.max(0, toCents(e.target.value))); })}
+              />
+            </Field>
           </CardContent>
         </Card>
 

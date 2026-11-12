@@ -85,6 +85,8 @@ export interface PlatformConfigDoc {
     joiningFeeEnabled: boolean;
     /** Added on top of every registration fee; separate from the guest booking service fee. */
     registrationPlatformFeeCents: number;
+    /** Usual GPS tracker install price, shown struck through against the registration's GPS line. */
+    gpsRegularCents: number;
     /** Roamly fleet insurance, per vehicle per month, in minor units. */
     insuranceMonthlyCents: number;
     /** Professional detailing, per vehicle per month, in minor units. */
@@ -739,6 +741,7 @@ const schema = new Schema<PlatformConfigDoc>(
       minSeasonMonths: { type: Number, default: 2 },
       joiningFeeEnabled: { type: Boolean, default: true },
       registrationPlatformFeeCents: { type: Number, default: 499 },
+      gpsRegularCents: { type: Number, default: 32_500 },
       insuranceMonthlyCents: { type: Number, default: 13_700 }, // $137 Roamly
       detailingMonthlyCents: { type: Number, default: 5_000 }, // $50
       deductibleCapCents: { type: Number, default: 100_000 }, // $1,000 cap
