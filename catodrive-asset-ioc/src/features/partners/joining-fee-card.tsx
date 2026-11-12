@@ -76,8 +76,8 @@ export function JoiningFeeCard({ partnerId, fee, signed }: { partnerId: string; 
         {status === 'none' && <p className="text-muted-foreground">No fee was set for this partner{signed ? '; they joined before the fee or were added directly.' : '.'}</p>}
         {status === 'due' && (
           <p>
-            Owes <span className="font-semibold tabular-nums">{money(fee!.amountCents + (fee!.platformFeeCents ?? 0))}</span>
-            {(fee!.platformFeeCents ?? 0) > 0 && <span className="text-muted-foreground tabular-nums"> ({money(fee!.amountCents)} registration + {money(fee!.platformFeeCents!)} platform fee)</span>}
+            Owes <span className="font-semibold tabular-nums">{money(fee!.amountCents)}</span>
+            {(fee!.platformFeeCents ?? 0) > 0 && <span className="text-muted-foreground tabular-nums"> (includes {money(fee!.platformFeeCents!)} platform fee)</span>}
             . They pay right after their ID check, before signing.
           </p>
         )}
@@ -95,7 +95,7 @@ export function JoiningFeeCard({ partnerId, fee, signed }: { partnerId: string; 
         )}
         {canChange && editing && (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <Field label="Registration fee (USD)" htmlFor="fee-amount" hint="0 waives it. The platform fee is added on top. An open payment page is closed and a new one made.">
+            <Field label="Registration fee (USD)" htmlFor="fee-amount" hint="The full amount the partner pays, platform fee included. 0 waives it.">
               <Input id="fee-amount" type="number" inputMode="decimal" min="0" max="5000" value={amount} onChange={(e) => setAmount(e.target.value)} className="tabular-nums sm:w-40" />
             </Field>
             <div className="flex gap-2">

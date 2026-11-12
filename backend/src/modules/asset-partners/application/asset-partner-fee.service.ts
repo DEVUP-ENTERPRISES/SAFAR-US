@@ -36,15 +36,23 @@ export function feeDue(p: Pick<AssetPartnerDoc, 'joiningFee'>): boolean {
   return !!f && f.amountCents > 0 && !f.paidAt;
 }
 
-/** What the partner pays: the registration fee plus the platform fee, nothing when waived. */
+/** What the partner pays: exactly the amount ops set, nothing when waived. */
 export function feeTotal(f: Pick<JoiningFee, 'amountCents' | 'platformFeeCents'>): number {
-  return f.amountCents > 0 ? f.amountCents + (f.platformFeeCents ?? 0) : 0;
+  return f.amountCents > 0 ? f.amountCents : 0;
+}
+
+/** The total split into registration and the platform fee it includes. */
+export function feeParts(f: Pick<JoiningFee, 'amountCents' | 'platformFeeCents'>): { registrationCents: number; platformFeeCents: number } {
+  const total = feeTotal(f);
+  const platformFeeCents = Math.min(f.platformFeeCents ?? 0, total);
+  return { registrationCents: total - platformFeeCents, platformFeeCents };
 }
 
 export function feeView(f?: JoiningFee): FeeView {
   if (!f) return { status: 'none', amountCents: 0, platformFeeCents: 0, totalCents: 0, currency: CURRENCY };
   const status: FeeStatus = f.refundedAt ? 'refunded' : f.paidAt ? 'paid' : f.amountCents > 0 ? 'due' : 'waived';
-  return { status, amountCents: f.amountCents, platformFeeCents: f.platformFeeCents ?? 0, totalCents: feeTotal(f), currency: f.currency, setAt: f.setAt, paidAt: f.paidAt, paidCents: f.paidCents, refundedAt: f.refundedAt, refundReason: f.refundReason };
+  const parts = feeParts(f);
+  return { status, amountCents: parts.registrationCents, platformFeeCents: parts.platformFeeCents, totalCents: feeTotal(f), currency: f.currency, setAt: f.setAt, paidAt: f.paidAt, paidCents: f.paidCents, refundedAt: f.refundedAt, refundReason: f.refundReason };
 }
 
 async function partnerOrThrow(id: string): Promise<AssetPartnerDoc> {
@@ -86,7 +94,7 @@ export const assetPartnerFeeService = {
       if (p.joiningFee?.paidAt) throw new ConflictError('This partner has just paid the fee.', 'FEE_PAID');
       if (p.joiningFee?.sessionId) await paymentGateway.expireCheckout(p.joiningFee.sessionId);
     }
-    const platformFeeCents = amountCents > 0 ? (await this.settings()).platformFeeCents : 0;
+    const platformFeeCents = amountCents > 0 ? Math.min((await this.settings()).platformFeeCents, amountCents) : 0;
     const updated = await AssetPartnerModel.findOneAndUpdate(
       { _id: partnerId, 'joiningFee.paidAt': { $exists: false } },
       {
@@ -109,14 +117,15 @@ export const assetPartnerFeeService = {
     if (!feeDue(p)) return { paid: !!p.joiningFee?.paidAt };
     const fee = p.joiningFee!;
     if (fee.sessionId && fee.sessionUrl) return { url: fee.sessionUrl, paid: false };
+    const parts = feeParts(fee);
 
     const user = await UserModel.findById(userId).select('email').lean<{ email?: string }>();
     const base = config.notifications.partnerWebUrl || config.notifications.webUrl;
     // The same attempt always maps to the same Stripe page, so a double click cannot open two.
     const session = await paymentGateway.createCheckout({
       lines: [
-        { name: 'CatoDrive Asset Partner registration fee (one-time)', amountCents: fee.amountCents },
-        ...((fee.platformFeeCents ?? 0) > 0 ? [{ name: 'Platform fee', amountCents: fee.platformFeeCents! }] : []),
+        { name: 'CatoDrive Asset Partner registration fee (one-time, non-refundable)', amountCents: parts.registrationCents },
+        ...(parts.platformFeeCents > 0 ? [{ name: 'Platform fee', amountCents: parts.platformFeeCents }] : []),
       ],
       currency: fee.currency,
       description: 'CatoDrive Asset Partner registration',
@@ -194,7 +203,7 @@ export const assetPartnerFeeService = {
         userId: updated.userId,
         templateKey: 'asset_partner.joining_fee_paid',
         title: 'Payment received',
-        body: `We received your one-time ${dollars(state.amountTotal)} registration payment on ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}. It covers every car you place with CatoDrive. Next, sign your agreement.`,
+        body: `We received your one-time, non-refundable ${dollars(state.amountTotal)} registration payment on ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}. It covers every car you place with CatoDrive. Next, sign your agreement.`,
         deepLink: '/onboarding',
         actionLabel: 'Continue',
         data: { partnerId },

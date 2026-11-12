@@ -99,7 +99,7 @@ describe('one Asset Partner, from sign-up to returning their car', () => {
     await assetPartnerProfileService.save(userId, { emergencyContacts: [{ name: 'Ana Ramirez', phone: '(214) 555-0199', relation: 'Sister' }], residency: 'citizen' });
     expect(await stage(userId)).toBe('identity');
     await KycModel.create({ userId, status: 'approved', provider: 'stripe', verifiedFirstName: 'Jordan', verifiedLastName: 'Ramirez' });
-    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'fee', fee: { amountCents: 35_000, platformFeeCents: 499, totalCents: 35_499 } });
+    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'fee', fee: { amountCents: 34_501, platformFeeCents: 499, totalCents: 35_000 } });
 
     // Signing is locked until the fee is paid.
     const before = (await assetPartnerService.getByUserId(userId))!;
@@ -117,7 +117,7 @@ describe('one Asset Partner, from sign-up to returning their car', () => {
     gateway.checkouts.set(sessionId, { ...c, status: 'complete', paid: true, intentId: 'pi_journey' });
     expect(await stage(userId)).toBe('agreement');
     await runStripeEvent({ id: 'evt_journey', type: 'checkout.session.completed', data: { object: { id: sessionId, metadata: { kind: 'asset_partner_fee', partnerId: before._id } } } });
-    expect(feeView((await AssetPartnerModel.findById(before._id).lean<AssetPartnerDoc>())!.joiningFee)).toMatchObject({ status: 'paid', paidCents: 35_499 });
+    expect(feeView((await AssetPartnerModel.findById(before._id).lean<AssetPartnerDoc>())!.joiningFee)).toMatchObject({ status: 'paid', paidCents: 35_000 });
     expect(await LedgerModel.countDocuments({ refType: 'asset_partner_fee' })).toBe(2);
 
     // Sign the agreement and NDA once ops has published them.

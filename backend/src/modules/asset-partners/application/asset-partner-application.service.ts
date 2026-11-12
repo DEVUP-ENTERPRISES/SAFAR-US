@@ -27,7 +27,7 @@ import { DocumentModel } from '../../documents/infrastructure/document.model';
 import type { RejectionReason } from '../infrastructure/asset-partner-application.model';
 import type { PartnerProfile } from '../infrastructure/asset-partner.model';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
-import { assetPartnerFeeService, feeTotal } from './asset-partner-fee.service';
+import { assetPartnerFeeService, feeParts, feeTotal } from './asset-partner-fee.service';
 import { logger } from '../../../infrastructure/logging/logger';
 
 /** "CD-AP-482913" — server-generated, never client-supplied. */
@@ -329,7 +329,7 @@ export class AssetPartnerApplicationService {
       }
       if (stage === 'fee') {
         const f = partner.joiningFee!;
-        return { ...base, stage, partner: summary, offer, fee: { amountCents: f.amountCents, platformFeeCents: f.platformFeeCents ?? 0, totalCents: feeTotal(f), currency: f.currency } };
+        return { ...base, stage, partner: summary, offer, fee: { amountCents: feeParts(f).registrationCents, platformFeeCents: feeParts(f).platformFeeCents, totalCents: feeTotal(f), currency: f.currency } };
       }
       if (stage === 'agreement') {
         const docs = await assetPartnerAgreementService.forPartner(partner);

@@ -53,10 +53,10 @@ const payOpenPage = (sessionId: string, intentId = `pi_${sessionId}`) => {
 };
 
 describe('Asset Partner fee', () => {
-  it('charges the amount ops entered plus the platform fee, right after the ID check', async () => {
+  it('charges exactly the amount ops entered, platform fee included, right after the ID check', async () => {
     const { userId, partner } = await partnerAtFee(42_000);
-    expect(feeView(partner.joiningFee)).toMatchObject({ status: 'due', amountCents: 42_000, platformFeeCents: 499, totalCents: 42_499 });
-    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'fee', fee: { amountCents: 42_000, platformFeeCents: 499, totalCents: 42_499, currency: 'USD' } });
+    expect(feeView(partner.joiningFee)).toMatchObject({ status: 'due', amountCents: 41_501, platformFeeCents: 499, totalCents: 42_000 });
+    expect(await assetPartnerApplicationService.onboarding(userId)).toMatchObject({ stage: 'fee', fee: { amountCents: 41_501, platformFeeCents: 499, totalCents: 42_000, currency: 'USD' } });
   });
 
   it('needs ops to enter the registration fee when approving a new partner', async () => {
@@ -93,7 +93,7 @@ describe('Asset Partner fee', () => {
     await runStripeEvent({ id: 'evt_1', type: 'checkout.session.completed', data: { object: { id: sessionId, metadata: { kind: 'asset_partner_fee', partnerId: partner._id } } } });
 
     const after = (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!;
-    expect(feeView(after.joiningFee)).toMatchObject({ status: 'paid', paidCents: 35_499 });
+    expect(feeView(after.joiningFee)).toMatchObject({ status: 'paid', paidCents: 35_000 });
     expect(await LedgerModel.countDocuments({ refType: 'asset_partner_fee' })).toBe(2);
     expect(await assetPartnerFeeService.checkout(userId)).toEqual({ paid: true });
   });

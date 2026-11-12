@@ -270,7 +270,7 @@ export default function AdminAssetPartnerTermsPage() {
               <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" checked={ap.joiningFeeEnabled !== false} onChange={(e) => set((d) => { d.assetPartner.joiningFeeEnabled = e.target.checked; })} />
               <span><span className="font-medium">Charge new partners a one-time registration fee</span><span className="block text-muted-foreground">Ops enters each partner’s amount when approving (or none). Paid on Stripe right after the ID check, before signing, and covers every car they place.</span></span>
             </label>
-            <Field label="Partner platform fee" hint="Added on top of every registration fee. Separate from the guest booking service fee.">
+            <Field label="Partner platform fee" hint="Included in every registration fee, not added on top. Separate from the guest booking service fee.">
               <Input
                 type="number"
                 step="0.01"

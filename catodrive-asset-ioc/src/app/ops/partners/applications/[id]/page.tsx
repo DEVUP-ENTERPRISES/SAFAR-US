@@ -462,7 +462,6 @@ function ApprovePanel({ name, busy, error, onCancel, onSubmit }: { name: string;
   const platform = settings.data?.platformFeeCents ?? 0;
   const cents = waive || !feesOn ? 0 : Math.round(Number(amount) * 100);
   const valid = !feesOn || waive || (amount.trim() !== '' && Number.isFinite(cents) && cents > 0 && cents <= 500_000);
-  const total = cents > 0 ? cents + platform : 0;
   const usd = (c: number) => `$${(c / 100).toLocaleString('en-US', { minimumFractionDigits: c % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
   return (
     <Card className="border-primary/30">
@@ -478,7 +477,7 @@ function ApprovePanel({ name, busy, error, onCancel, onSubmit }: { name: string;
         ) : (
           <div className="space-y-3">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-[12rem_1fr] sm:items-end">
-              <Field label="Registration fee for this partner (USD)" htmlFor="fee">
+              <Field label="Total registration fee (USD)" htmlFor="fee">
                 <Input id="fee" type="number" inputMode="decimal" min="1" max="5000" step="0.01" placeholder="e.g. 350" disabled={waive} value={waive ? '' : amount} onChange={(e) => setAmount(e.target.value)} className="tabular-nums" />
               </Field>
               <label className="flex items-center gap-2 pb-2 text-sm">
@@ -488,7 +487,7 @@ function ApprovePanel({ name, busy, error, onCancel, onSubmit }: { name: string;
             </div>
             {cents > 0 && (
               <p className="rounded-lg bg-subtle p-3 text-sm tabular-nums">
-                {usd(cents)} registration{platform > 0 ? ` + ${usd(platform)} platform fee` : ''} = <span className="font-semibold">{usd(total)}</span> paid by the partner
+                The partner pays <span className="font-semibold">{usd(cents)}</span> once, non-refundable{platform > 0 && cents > platform ? `, including the ${usd(platform)} platform fee` : ''}.
               </p>
             )}
           </div>
@@ -498,7 +497,7 @@ function ApprovePanel({ name, busy, error, onCancel, onSubmit }: { name: string;
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button variant="ghost" onClick={onCancel}>Back</Button>
           <Button disabled={!valid || settings.isLoading} loading={busy} onClick={() => onSubmit({ feeCents: cents, note: note.trim() })}>
-            <CheckCircle2 className="h-4 w-4" aria-hidden /> {total > 0 ? `Approve, partner pays ${usd(total)}` : 'Approve, no fee'}
+            <CheckCircle2 className="h-4 w-4" aria-hidden /> {cents > 0 ? `Approve, partner pays ${usd(cents)}` : 'Approve, no fee'}
           </Button>
         </div>
       </CardContent>

@@ -50,7 +50,7 @@ export function FeeStep({ fee, onPaid }: { fee: { amountCents: number; platformF
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><CreditCard className="h-5 w-5" /></span>
           <div className="min-w-0">
             <h2 className="text-xl font-bold">Registration fee</h2>
-            <p className="text-sm text-muted-foreground">A one-time fee that covers every car you place with CatoDrive.</p>
+            <p className="text-sm text-muted-foreground">A one-time, non-refundable fee that covers every car you place with CatoDrive.</p>
           </div>
         </div>
 
