@@ -57,7 +57,7 @@ export function FeeStep({ fee, onPaid }: { fee: { totalCents: number; lines: Fee
         </div>
 
         <dl className="space-y-2 rounded-lg bg-subtle p-4 text-sm">
-          {fee.lines.map((l) => (
+          {(fee.lines ?? []).map((l) => (
             <div key={l.key} className="flex items-start justify-between gap-4">
               <dt className="min-w-0">
                 <span className="font-medium">{l.label}</span>
