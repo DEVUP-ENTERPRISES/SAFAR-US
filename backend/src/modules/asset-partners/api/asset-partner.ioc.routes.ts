@@ -201,7 +201,7 @@ router.post(
           priority: 'high',
           deepLink: '/asset-partners/documents',
           templateKey: 'account.asset_partner_document_rejected',
-          title: 'Please upload a document again',
+          title: 'Please re-upload a document',
           body: req.body.reason,
           data: { documentId: doc._id },
         })

@@ -17,7 +17,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { partnerManageApi, type PortfolioCar } from '@/features/asset-partners/manage-api';
 import { ApiError } from '@/lib/api/types';
-import { formatDate, formatMoney } from '@/lib/utils/format';
+import { formatDate, formatMoney, formatPlate } from '@/lib/utils/format';
 import { PartnersNav } from '~/features/partners/partners-nav';
 import { MonthSelect, monthOptions } from '~/features/partners/month-select';
 
@@ -55,7 +55,7 @@ function RecordOwner({ onDone }: { onDone: () => void }) {
         <Field label="Car">
           <Select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} disabled={cars.isLoading}>
             <option value="">{cars.data?.length === 0 ? 'Every fleet car already has an owner' : 'Pick a car'}</option>
-            {cars.data?.map((c) => <option key={c.vehicleId} value={c.vehicleId}>{c.label}{c.plate ? ` · ${c.plate}` : ''}</option>)}
+            {cars.data?.map((c) => <option key={c.vehicleId} value={c.vehicleId}>{c.label}{c.plate ? ` · ${formatPlate(c.plate)}` : ''}</option>)}
           </Select>
         </Field>
         <Field label="Owner">
@@ -87,7 +87,7 @@ function CarRow({ c, onReturn, returning }: { c: PortfolioCar; onReturn: () => v
           </p>
           <p className="text-xs text-muted-foreground">
             <Link href={`/ops/partners/members/${c.partnerId}`} className="font-medium text-foreground hover:underline">{c.partnerName}</Link>
-            {c.plate ? ` · ${c.plate}` : ''} · {usd(c.dailyPrice)}/day · fee {(c.managementFeeBps / 100).toFixed(c.managementFeeBps % 100 ? 1 : 0)}%{c.since ? ` · since ${formatDate(c.since)}` : ''}
+            {c.plate ? ` · ${formatPlate(c.plate)}` : ''} · {usd(c.dailyPrice)}/day · fee {(c.managementFeeBps / 100).toFixed(c.managementFeeBps % 100 ? 1 : 0)}%{c.since ? ` · since ${formatDate(c.since)}` : ''}
           </p>
         </div>
       </div>

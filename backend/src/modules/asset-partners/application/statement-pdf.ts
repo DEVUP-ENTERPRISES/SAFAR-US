@@ -93,7 +93,7 @@ export async function buildStatementPdf(input: { partnerName: string; statement:
     [usd(s.totals.gross), 'Gross revenue', 'Completed trips this month', NAVY],
     [usd(-s.totals.managementFee), feeLabel, 'Management commission', RED],
     [usd(net), 'Net before deductions', `${pct(10_000 - feeBps)} share`, GREEN],
-    [String(s.lines.length), 'Vehicles', 'In the programme this month', NAVY],
+    [String(s.lines.length), 'Vehicles', 'In the program this month', NAVY],
     [String(s.totals.trips), 'Total trips', 'Completed bookings', NAVY],
     [usd(s.totals.net), 'Final net to partner', 'After all deductions', GREEN],
   ];

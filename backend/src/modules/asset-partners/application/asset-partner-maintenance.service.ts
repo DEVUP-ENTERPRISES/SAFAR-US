@@ -66,7 +66,7 @@ export class AssetPartnerMaintenanceService {
           priority: 'high',
           templateKey: 'asset_partner.maintenance_approval',
           title: 'Maintenance needs your approval',
-          body: `A ${input.type} estimated at ${(cost / 100).toFixed(2)} on one of your vehicles is above your ${(terms.maintenanceApprovalCents / 100).toFixed(2)} approval line.`,
+          body: `A ${input.type} estimated at $${(cost / 100).toFixed(2)} on one of your cars is over your $${(terms.maintenanceApprovalCents / 100).toFixed(2)} approval limit.`,
           deepLink: '/asset-partners/maintenance',
           data: { maintenanceId: rec._id, vehicleId: input.vehicleId },
         })

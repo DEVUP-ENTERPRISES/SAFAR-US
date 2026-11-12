@@ -96,8 +96,8 @@ export const assetPartnerIntakeService = {
         priority: 'high',
         deepLink: '/asset-partners/documents',
         templateKey: 'account.asset_partner_intake_ready',
-        title: 'Please review your car’s intake report',
-        body: `CatoDrive recorded your ${input.vehicle.year} ${input.vehicle.make} ${input.vehicle.model}’s condition at intake. Review it by ${day(respondBy)}; after that it stands as written.`,
+        title: 'Review your car’s intake report',
+        body: `We recorded your ${input.vehicle.year} ${input.vehicle.make} ${input.vehicle.model}’s condition at intake. Review it by ${day(respondBy)}. After that, it’s final.`,
         data: { intakeId: doc._id },
       })
       .catch(() => undefined);

@@ -16,6 +16,7 @@ import { ApiError } from '@/lib/api/types';
 import { cn } from '@/lib/utils/cn';
 import { captainApi, ABILITY_LABELS, type CaptainDashboard, type CaptainJob } from '~/features/host/team-api';
 import { RunnerReturnJobs } from '~/features/partners/runner-return-jobs';
+import { formatPlate } from '@/lib/utils/format';
 
 const time = (d: string) => new Date(d).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 const day = (d: string) => new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -69,7 +70,7 @@ function JobCard({ job, can }: { job: CaptainJob; can: (a: string) => boolean })
               <span className="font-semibold tabular-nums">{time(job.at)}</span>
               <span className="text-xs text-muted-foreground">#{job.code}</span>
             </p>
-            <p className="mt-1 break-words font-medium">{job.vehicle?.label ?? 'Car'}{job.vehicle?.plate ? <span className="font-mono text-sm text-muted-foreground"> · {job.vehicle.plate}</span> : null}</p>
+            <p className="mt-1 break-words font-medium">{job.vehicle?.label ?? 'Car'}{job.vehicle?.plate ? <span className="font-mono text-sm text-muted-foreground"> · {formatPlate(job.vehicle.plate)}</span> : null}</p>
             <p className="text-sm text-muted-foreground">Guest: {job.guestName}</p>
           </div>
         </div>
@@ -127,7 +128,7 @@ function Cars({ data, can }: { data: CaptainDashboard; can: (a: string) => boole
                 {c.photo ? <img src={c.photo} alt="" className="h-full w-full object-cover" /> : <Car className="m-auto mt-3 h-5 w-5 text-muted-foreground" />}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{c.label}{c.plate ? <span className="font-mono text-sm text-muted-foreground"> · {c.plate}</span> : null}</p>
+                <p className="truncate font-medium">{c.label}{c.plate ? <span className="font-mono text-sm text-muted-foreground"> · {formatPlate(c.plate)}</span> : null}</p>
                 <p className="text-xs text-muted-foreground">
                   {c.outUntil ? `Out with a guest until ${day(c.outUntil)}, ${time(c.outUntil)}` : c.nextPickup ? `Free · next pickup ${day(c.nextPickup)}, ${time(c.nextPickup)}` : c.listed ? 'Free · no bookings this week' : 'Not taking bookings'}
                 </p>

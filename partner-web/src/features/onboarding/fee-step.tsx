@@ -50,7 +50,7 @@ export function FeeStep({ fee, onPaid }: { fee: { amountCents: number; platformF
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><CreditCard className="h-5 w-5" /></span>
           <div className="min-w-0">
             <h2 className="text-xl font-bold">Registration fee</h2>
-            <p className="text-sm text-muted-foreground">A one-time payment to join. It covers every car you place with CatoDrive, now and later.</p>
+            <p className="text-sm text-muted-foreground">A one-time fee that covers every car you place with CatoDrive.</p>
           </div>
         </div>
 
@@ -63,21 +63,21 @@ export function FeeStep({ fee, onPaid }: { fee: { amountCents: number; platformF
         {back === 'paid' ? (
           <div className="flex items-start gap-3 rounded-lg bg-muted/50 p-4 text-sm" role="status">
             <Clock className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-            <p>Confirming your payment with Stripe. This page moves on by itself in a few seconds.</p>
+            <p>Confirming your payment. This takes a few seconds.</p>
           </div>
         ) : (
           <>
-            {back === 'cancelled' && <p role="status" className="rounded-lg bg-warning/10 p-3 text-sm">The payment wasn’t completed and nothing was charged. You can try again.</p>}
+            {back === 'cancelled' && <p role="status" className="rounded-lg bg-warning/10 p-3 text-sm">Payment wasn’t completed. You weren’t charged.</p>}
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-success" /> Card, Apple Pay or Google Pay on Stripe’s secure page.</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-success" /> We email you a receipt, then you sign your agreement.</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-success" /> You’ll get a receipt by email.</li>
             </ul>
             <Button className="w-full sm:w-auto" loading={pay.isPending} onClick={() => pay.mutate()}>Pay {money(fee.totalCents)}</Button>
           </>
         )}
 
         {problem && <p role="alert" className="text-sm text-destructive">{problem}</p>}
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Lock className="h-3.5 w-3.5" /> Card details go to Stripe only; CatoDrive never sees them.</p>
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Lock className="h-3.5 w-3.5" /> Your card details go only to Stripe.</p>
       </CardContent>
     </Card>
   );

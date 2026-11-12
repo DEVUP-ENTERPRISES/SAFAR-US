@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/states';
 import { captainApi, ABILITY_LABELS } from '@/features/host/team-api';
-import { formatDate } from '@/lib/utils/format';
+import { formatDate, formatPlate } from '@/lib/utils/format';
 
 export default function CaptainQueuePage() {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -60,7 +60,7 @@ export default function CaptainQueuePage() {
                         {t.vehicle ? `${t.vehicle.year} ${t.vehicle.make} ${t.vehicle.model}` : 'Vehicle'}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {t.vehicle?.licensePlate ? `${t.vehicle.licensePlate} · ` : ''}
+                        {t.vehicle?.licensePlate ? `${formatPlate(t.vehicle.licensePlate)} · ` : ''}
                         {t.handover?.at ? `Handed over ${formatDate(t.handover.at)}` : 'Handover pending'}
                       </p>
                     </div>

@@ -129,7 +129,7 @@ export class AssetPartnerEnvelopeService {
   private async countersigner() {
     const c = (await platformConfigService.get()).assetPartner;
     const organisation = c.countersignerOrganisation || 'CatoDrive';
-    return { name: c.countersignerName || organisation, title: c.countersignerTitle || 'Authorised signatory', organisation };
+    return { name: c.countersignerName || organisation, title: c.countersignerTitle || 'Authorized signatory', organisation };
   }
 
   /**
@@ -201,7 +201,7 @@ export class AssetPartnerEnvelopeService {
         deepLink: '/asset-partners/dashboard',
         templateKey: 'account.asset_partner_signed_copy',
         title: 'Your signed documents',
-        body: `Envelope ${envelope.envelopeId} is complete. Your signed copies are in your partner portal under Documents, ready to download.`,
+        body: `Envelope ${envelope.envelopeId} is complete. Download your copies under Documents in your partner portal.`,
         data: { envelopeId: envelope.envelopeId },
       });
       await this.recordEvent(envelope.partnerId, envelope.purpose, 'copy_sent', ctx, { envelopeId: envelope.envelopeId });

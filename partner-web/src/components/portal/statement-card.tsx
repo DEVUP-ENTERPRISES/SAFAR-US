@@ -81,11 +81,9 @@ export function StatementCard({
           {statement.paid
             ? `Paid ${money(statement.paid.amount)} on ${formatDate(statement.paid.paidAt)} by ${statement.paid.method === 'zelle' ? 'Zelle' : 'check'} (ref ${statement.paid.reference}).`
             : t.net <= 0
-              ? 'No payout this month - the monthly costs were more than the earnings.'
+              ? 'No payout this month. Costs were higher than earnings.'
               : `${statement.final ? 'Due' : 'Payable'} ${formatDate(statement.payoutDate)} by ${statement.payoutMethod === 'zelle' ? 'Zelle' : 'check'}.`}{' '}
-          Insurance and
-          detailing are charged monthly per vehicle while it is in the programme, whether or not it
-          was booked.
+          Insurance and detailing are charged monthly per car, booked or not.
         </p>
         <DownloadStatement period={statement.period} />
       </CardContent>

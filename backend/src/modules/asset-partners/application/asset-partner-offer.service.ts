@@ -96,7 +96,7 @@ export const assetPartnerOfferService = {
         deepLink: '/asset-partners/dashboard',
         templateKey: 'account.asset_partner_offer_reissued',
         title: 'Your partner agreement is ready to sign again',
-        body: `Please sign by ${longDate(offer.expiresAt)}. Sign in to your partner portal to read and sign it.`,
+        body: `Please sign by ${longDate(offer.expiresAt)}.`,
         data: { partnerId },
       })
       .catch((err) => logger.warn({ err, partnerId }, 'offer reissue notice failed'));
@@ -132,8 +132,8 @@ export const assetPartnerOfferService = {
             priority: 'high',
             deepLink: '/asset-partners/dashboard',
             templateKey: 'account.asset_partner_offer_reminder',
-            title: 'Please sign your partner agreement',
-            body: `Your offer to sign ends on ${longDate(new Date(p.agreementOffer!.expiresAt))}. After that we’ll need to send it again.`,
+            title: 'Reminder: sign your partner agreement',
+            body: `Your offer expires ${longDate(new Date(p.agreementOffer!.expiresAt))}.`,
             data: { partnerId: p._id },
           })
           .catch(() => undefined);
@@ -151,8 +151,8 @@ export const assetPartnerOfferService = {
           priority: 'high',
           deepLink: '/asset-partners/dashboard',
           templateKey: 'account.asset_partner_offer_expired',
-          title: 'Your offer to sign has ended',
-          body: 'The time to sign your partner agreement has passed. Sign in and ask for a new copy, and we’ll send it to you.',
+          title: 'Your signing window has closed',
+          body: 'Sign in to request a new copy.',
           data: { partnerId: p._id },
         })
         .catch(() => undefined);

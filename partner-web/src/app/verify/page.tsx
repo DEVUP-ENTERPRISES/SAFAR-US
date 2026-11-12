@@ -51,7 +51,7 @@ export default function VerifyPage() {
             </Field>
             <Button type="submit" loading={byId.isPending} disabled={!id.trim() || busy}>Check</Button>
           </form>
-          <p id="envelope-id-hint" className="mt-2 text-xs text-muted-foreground">Printed at the foot of every page, e.g. CD-ENV-7K3M-92QX.</p>
+          <p id="envelope-id-hint" className="mt-2 text-xs text-muted-foreground">Printed at the bottom of every page, e.g., CD-ENV-7K3M-92QX.</p>
         </CardContent>
       </Card>
 
@@ -65,7 +65,7 @@ export default function VerifyPage() {
         </CardContent>
       </Card>
 
-      {failed && <p role="alert" className="text-sm text-destructive">We’re having trouble connecting right now. Please try again in a moment.</p>}
+      {failed && <p role="alert" className="text-sm text-destructive">We’re having trouble connecting. Try again in a moment.</p>}
 
       {result && (
         <Card className={result.valid ? 'border-success/40' : 'border-destructive/40'} aria-live="polite">

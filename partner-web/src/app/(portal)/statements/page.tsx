@@ -65,7 +65,7 @@ function YearSummary() {
               <StatTile label="Net earned" value={money(q.data.totals.net)} />
               <StatTile label={`Paid to you in ${year}`} value={money(q.data.paidInYear)} sub="What your 1099 reports" />
             </div>
-            <p className="text-xs text-muted-foreground">A month earned in December is usually paid in January, so the two can differ.</p>
+            <p className="text-xs text-muted-foreground">December earnings are usually paid in January, so these totals can differ.</p>
             <Button size="sm" variant="outline" loading={busy} onClick={() => void download()}><Download className="h-4 w-4" aria-hidden /> Download {year} summary (PDF)</Button>
           </>
         )}
@@ -121,7 +121,7 @@ export default function PartnerStatementsPage() {
       <PageHeader
         eyebrow="Asset Partners"
         title="Statements"
-        description="Every month, itemised - gross, management fee, insurance, detailing and your net."
+        description="Monthly breakdown: gross, management fee, insurance, detailing, and your net."
       />
 
       <div className="hide-scrollbar flex gap-2 overflow-x-auto">
@@ -133,7 +133,7 @@ export default function PartnerStatementsPage() {
       </div>
 
       {data.length === 0 ? (
-        <EmptyState title="No statements yet" description="Your first statement appears once your car completes a trip." />
+        <EmptyState title="No statements yet" description="Your first statement appears after your car’s first trip." />
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-3">

@@ -19,7 +19,7 @@ import { SectionLabel, RowGroup, Row } from '@/components/ui/rows';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { Textarea } from '@/components/ui/textarea';
-import { formatMoney, FUEL_LABEL, kmToMiles, perKmToPerMile } from '@/lib/utils/format';
+import { formatMoney, FUEL_LABEL, kmToMiles, perKmToPerMile, formatPlate } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
@@ -259,7 +259,7 @@ export default function ManageListingPage() {
               loading={update.isPending}
               onClick={() =>
                 update.mutate(
-                  { registrationNumber: plateDraft.trim() || undefined },
+                  { registrationNumber: formatPlate(plateDraft) || undefined },
                   { onSuccess: () => setEditingPlate(false) },
                 )
               }
@@ -275,7 +275,7 @@ export default function ManageListingPage() {
           </div>
         ) : (
           <p className="mt-1 text-sm text-muted-foreground">
-            <span className="font-mono">{v.registrationNumber ?? 'No plate'}</span> ·{' '}
+            <span className="font-mono">{v.registrationNumber ? formatPlate(v.registrationNumber) : 'No plate'}</span> ·{' '}
             <span className="capitalize">{v.category}</span>
             <button
               className="ms-2 inline-flex items-center gap-1 text-primary hover:underline"

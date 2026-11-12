@@ -73,7 +73,7 @@ export default function PartnerMaintenancePage() {
     const { ok, reason } = await confirm({
       title: `Decline this ${m.type}?`,
       description:
-        'The work won’t be carried out. If it affects whether the car can safely stay on the road, we’ll be in touch.',
+        'The work won’t be done. If it affects safety, we’ll contact you.',
       confirmLabel: 'Decline work',
       tone: 'destructive',
       reason: { label: 'Reason (optional)', placeholder: 'e.g. I’ll handle this myself' },
@@ -95,7 +95,7 @@ export default function PartnerMaintenancePage() {
       <div className="py-8">
         <EmptyState
           title="You’re not an Asset Partner yet"
-          description="Maintenance approvals open once you’re enrolled in the programme."
+          description="Maintenance approvals open once you’re enrolled."
         />
       </div>
     );
@@ -114,7 +114,7 @@ export default function PartnerMaintenancePage() {
       <PageHeader
         eyebrow="Asset Partners"
         title="Maintenance"
-        description="Routine work happens without interrupting you. Anything above your approval line comes here first."
+        description="We handle routine work. Anything over your approval limit needs your OK here."
       />
 
       <div className="hide-scrollbar flex gap-2 overflow-x-auto">
@@ -131,7 +131,7 @@ export default function PartnerMaintenancePage() {
           title={filter === 'pending' ? 'Nothing needs you' : 'Nothing here'}
           description={
             filter === 'pending'
-              ? 'When work costs more than your approval line, it waits for your decision here.'
+              ? 'Work over your approval limit waits here for your decision.'
               : 'No maintenance in this category yet.'
           }
         />

@@ -17,7 +17,7 @@ import { useToast } from '@/components/ui/toast';
 import { partnerManageApi } from '@/features/asset-partners/manage-api';
 import { NOTICE_TYPE_LABEL, type NoticeStatus, type PartnerNotice } from '@/features/asset-partners/api';
 import { ApiError } from '@/lib/api/types';
-import { formatDate, formatDateTime, formatMoney } from '@/lib/utils/format';
+import { formatDate, formatDateTime, formatMoney, formatPlate } from '@/lib/utils/format';
 import { PartnersNav } from '~/features/partners/partners-nav';
 
 const manage = partnerManageApi('/ioc');
@@ -58,7 +58,7 @@ function NoticeRow({ n }: { n: PartnerNotice }) {
               {n.guestCharge && <Badge tone={n.guestCharge === 'charged' ? 'success' : n.guestCharge === 'charge_failed' ? 'destructive' : 'default'}>{CHARGE[n.guestCharge] ?? n.guestCharge}</Badge>}
             </p>
             <p className="text-sm text-muted-foreground">
-              {n.partnerName} · {n.vehicle?.name}{n.vehicle?.plate ? ` (${n.vehicle.plate})` : ''} · {n.occurredAt ? formatDateTime(n.occurredAt) : formatDate(n.occurredDate)} · ref <span className="font-mono">{n.noticeRef}</span>
+              {n.partnerName} · {n.vehicle?.name}{n.vehicle?.plate ? ` (${formatPlate(n.vehicle.plate)})` : ''} · {n.occurredAt ? formatDateTime(n.occurredAt) : formatDate(n.occurredDate)} · ref <span className="font-mono">{n.noticeRef}</span>
             </p>
             <p className="text-sm">
               {n.paidByPartner ? 'Partner already paid the agency; refund on their statement.' : n.agencyPaid ? `CatoDrive paid the agency ${formatDate(n.agencyPaid.at)}.` : 'Agency not paid yet.'}

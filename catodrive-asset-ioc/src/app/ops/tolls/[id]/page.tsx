@@ -16,6 +16,7 @@ import { useMyVehicles } from '@/features/vehicles/hooks';
 import { hostTollsApi, agencyLabel, TOLL_CAR_STATUS as STATUS_LABEL } from '~/features/host/tolls-api';
 import { TollStatusPill } from '~/features/host/components/toll-status';
 import { ErrorState } from '@/components/ui/states';
+import { formatPlate } from '@/lib/utils/format';
 
 
 /** One linked toll account: who it belongs to, its login, and the cars tracked on it. */
@@ -144,7 +145,7 @@ export default function TollAccountPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-lg">{c.make} {c.model} {c.year}</p>
-                  <p className="font-mono text-sm font-semibold text-muted-foreground">{c.registrationNumber ?? 'No plate'}</p>
+                  <p className="font-mono text-sm font-semibold text-muted-foreground">{c.registrationNumber ? formatPlate(c.registrationNumber) : 'No plate'}</p>
                   <span className="mt-1 inline-flex rounded-md border border-success/40 px-2 py-0.5 text-sm text-success">{STATUS_LABEL[c.status] ?? c.status}</span>
                 </div>
               </div>

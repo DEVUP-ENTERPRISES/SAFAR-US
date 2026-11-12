@@ -96,8 +96,8 @@ export default function PartnerDashboardPage() {
         title="Your partner dashboard"
         description={
           isEarning
-            ? 'What your vehicles are earning, and when the money reaches you.'
-            : 'Where your application stands, and what happens next.'
+            ? 'Your earnings and payouts.'
+            : 'Your application status and next steps.'
         }
         actions={
           hasApplied || isPartner ? (
@@ -194,8 +194,8 @@ function Applied({
               <span className="flex min-w-0 items-center gap-3">
                 <Ticket className="h-5 w-5 shrink-0 text-primary" />
                 <span className="min-w-0">
-                  <span className="block font-semibold">Got a toll, parking or ticket letter?</span>
-                  <span className="block text-sm text-muted-foreground">Upload it the day it arrives. We match it to the trip and charge that guest.</span>
+                  <span className="block font-semibold">Got a toll, parking, or ticket notice?</span>
+                  <span className="block text-sm text-muted-foreground">Upload it the day it arrives. We’ll charge the guest.</span>
                 </span>
               </span>
               <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -292,7 +292,7 @@ function Applied({
           <CardContent className="flex flex-wrap items-center justify-between gap-3 py-5">
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Programme status
+                Program status
               </p>
               <p className="mt-1 truncate font-semibold">
                 {data.partner.displayName} ·{' '}

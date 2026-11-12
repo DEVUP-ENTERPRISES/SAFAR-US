@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/page-header';
 import { Select } from '@/components/ui/select';
-import { formatMoney } from '@/lib/utils/format';
+import { formatMoney, formatPlate } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import { useMyVehicles } from '@/features/vehicles/hooks';
 import { hostTripsApi } from '@/features/host/trips.api';
@@ -198,7 +198,7 @@ export default function HostListingsPage() {
                         <p className="mt-0.5 truncate text-sm text-muted-foreground">
                           <span className="capitalize">{v.category}</span>
                           {v.registrationNumber && (
-                            <> · <span className="font-mono">{v.registrationNumber}</span></>
+                            <> · <span className="font-mono">{formatPlate(v.registrationNumber)}</span></>
                           )}
                         </p>
                       </div>

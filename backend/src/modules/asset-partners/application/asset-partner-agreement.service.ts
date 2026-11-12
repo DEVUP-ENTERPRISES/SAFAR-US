@@ -30,7 +30,7 @@ export const AGREEMENT_PLACEHOLDERS: { key: string; label: string }[] = [
   { key: 'vehicle', label: 'Year / make / model / trim' },
   { key: 'vin', label: 'VIN' },
   { key: 'plate', label: 'Licence plate & state' },
-  { key: 'licence', label: 'Driver’s licence (state and last 4)' },
+  { key: 'licence', label: 'Driver’s license (state and last 4)' },
   { key: 'payout_method', label: 'Payout method' },
   { key: 'zelle_handle', label: 'Zelle phone or email' },
   { key: 'zelle_name', label: 'Name on Zelle' },
@@ -156,7 +156,7 @@ export class AssetPartnerAgreementService {
           deepLink: '/asset-partners/dashboard',
           templateKey: 'account.asset_partner_agreement_ready',
           title: 'Your partner agreement is ready to sign',
-          body: `Your CatoDrive Asset Partner agreement and NDA are ready. Sign in to read and sign them${offer ? ` by ${offer.expiresAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}` : ''}.`,
+          body: `Your Asset Partner agreement and NDA are ready to sign${offer ? ` by ${offer.expiresAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}` : ''}.`,
           data: { agreementVersion: agreement.version, ndaVersion: nda.version },
         })
         .catch((err) => logger.warn({ err, userId: p.userId }, 'agreement ready notice failed'));
@@ -227,7 +227,7 @@ export class AssetPartnerAgreementService {
     const typed = (input.licenceNumber ?? '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     const licence = typed || known.licence_last4;
     const state = (input.licenceState?.trim() || known.licence_state).toUpperCase();
-    if (licence.length < 4 || licence.length > 20 || !/^[A-Z]{2}$/.test(state)) throw new ValidationError('Enter your driver’s licence number and state');
+    if (licence.length < 4 || licence.length > 20 || !/^[A-Z]{2}$/.test(state)) throw new ValidationError('Enter your driver’s license number and state');
 
     const p = input.payout;
     if (p.method === 'zelle' && (tidy(p.zelleHandle).length < 5 || tidy(p.zelleName).length < 2)) throw new ValidationError('Enter the Zelle phone or email and the name on the account');

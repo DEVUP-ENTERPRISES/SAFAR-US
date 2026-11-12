@@ -24,7 +24,7 @@ export const assetPartnerAlertsService = {
     const who = await partnerUserFor(vehicleId);
     if (!who) return;
     await notificationService
-      .send({ userId: who.userId, priority: 'high', templateKey: 'account.asset_partner_car_live', title: `Your ${who.car} is live`, body: 'Guests can book it now. Your earnings show on your dashboard as trips complete.', deepLink: `/vehicles/${vehicleId}`, data: { vehicleId } })
+      .send({ userId: who.userId, priority: 'high', templateKey: 'account.asset_partner_car_live', title: `Your ${who.car} is live`, body: 'Guests can book it now. Earnings show on your dashboard after each trip.', deepLink: `/vehicles/${vehicleId}`, data: { vehicleId } })
       .catch((err) => logger.warn({ err: (err as Error).message, vehicleId }, 'car live message failed'));
   },
 
@@ -38,7 +38,7 @@ export const assetPartnerAlertsService = {
       priority: days <= 7 ? 'high' : 'normal',
       templateKey: 'account.asset_partner_document_expiring',
       title: `${who.car}: ${category} expires ${when}`,
-      body: `Upload the renewed ${category} in your partner portal before ${when}, or the car has to stop taking bookings until it’s renewed.`,
+      body: `Upload the renewed ${category} before ${when} to keep the car bookable.`,
       deepLink: '/documents',
       data: { vehicleId, category, days },
     });
@@ -59,7 +59,7 @@ export const assetPartnerAlertsService = {
           userId: p.userId,
           templateKey: 'account.asset_partner_statement_ready',
           title: `Your ${MONTH.format(new Date(`${period}-01T00:00:00Z`))} statement: ${usd(Math.max(0, s.totals.net))}`,
-          body: s.totals.net > 0 ? `${s.totals.trips} completed trip${s.totals.trips === 1 ? '' : 's'}. Paid on ${LONG_DATE.format(s.payoutDate)}.` : 'This month’s costs were more than its earnings, so there’s no payout. The full breakdown is on your statement.',
+          body: s.totals.net > 0 ? `${s.totals.trips} completed trip${s.totals.trips === 1 ? '' : 's'}. Paid on ${LONG_DATE.format(s.payoutDate)}.` : 'Costs were higher than earnings this month, so there’s no payout. See your statement for details.',
           deepLink: '/statements',
           data: { period },
         });

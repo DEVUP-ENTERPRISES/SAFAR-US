@@ -3,10 +3,10 @@ import { BadgeCheck, ClipboardList, FileSignature, Handshake, LayoutDashboard } 
 import { Logo } from '@/components/layout/logo';
 
 const STEPS = [
-  { icon: ClipboardList, text: 'Create your account and tell us about your car' },
-  { icon: BadgeCheck, text: 'CatoDrive reviews it and inspects the car' },
-  { icon: FileSignature, text: 'Sign your partner agreement online' },
-  { icon: LayoutDashboard, text: 'Track your car, earnings and payouts here' },
+  { icon: ClipboardList, text: 'Tell us about your car' },
+  { icon: BadgeCheck, text: 'We review and inspect it' },
+  { icon: FileSignature, text: 'Sign your agreement online' },
+  { icon: LayoutDashboard, text: 'Track earnings and payouts' },
 ];
 
 export default function EntryLayout({ children }: { children: ReactNode }) {

@@ -17,6 +17,7 @@ import { LocationSearch } from '@/features/maps/components/location-search';
 import { hostApi, type RowPreview, type ImportResult } from '~/features/host/api';
 import { WheelbaseImport } from '~/features/host/components/wheelbase-import';
 import { DEFAULT_IMPORT_ADDRESS, IMPORT_SAMPLE, importReadiness, parseImport, toImportRows } from '~/features/host/fleet-import';
+import { formatPlate } from '@/lib/utils/format';
 
 /**
  * Fleet import & bulk edit - one shared address for the whole batch (set
@@ -191,7 +192,7 @@ export default function ImportPage() {
                         <p className="text-xs text-muted-foreground">
                           {[p.bodyType, p.fuelType, p.transmission, p.seats && `${p.seats} seats`]
                             .filter(Boolean).join(' · ')}
-                          {row?.registrationNumber && ` · ${row.registrationNumber}`}
+                          {row?.registrationNumber && ` · ${formatPlate(row.registrationNumber)}`}
                           {row?.status && ` · ${row.status}`}
                         </p>
                       )}

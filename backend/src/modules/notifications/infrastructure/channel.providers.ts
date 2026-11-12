@@ -168,7 +168,7 @@ async function toContent(req: DeliveryRequest): Promise<EmailContent> {
 
 /** Emails for Asset Partners and city licence holders, recognised by their template. */
 export function isPartnerEmail(templateKey?: string): boolean {
-  return !!templateKey && (templateKey.startsWith('account.asset_partner') || templateKey.startsWith('asset_partner.'));
+  return !!templateKey && ['account.asset_partner', 'account.partner_', 'asset_partner.', 'partner.'].some((p) => templateKey.startsWith(p));
 }
 
 /** Terms, privacy and cancellation pages as set in admin; an email still sends if config can't be read. */

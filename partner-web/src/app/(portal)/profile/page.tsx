@@ -94,7 +94,7 @@ export default function PartnerProfilePage() {
         <PageHeader eyebrow="Asset Partners" title="Payout & profile" />
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            This opens once your application is approved and you’re enrolled in the programme.
+            This opens once your application is approved.
           </CardContent>
         </Card>
       </div>
@@ -109,7 +109,7 @@ export default function PartnerProfilePage() {
       <PageHeader
         eyebrow="Asset Partners"
         title="Payout & profile"
-        description="Where your monthly net goes, and the terms it’s calculated on."
+        description="Your payout method and terms."
       />
 
       {/* Contact - read-only here. Account-level identity is managed on the
@@ -139,7 +139,7 @@ export default function PartnerProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between gap-2 text-lg">
-              Programme terms
+              Program terms
               {terms.negotiated && <Badge tone="warning">Negotiated</Badge>}
             </CardTitle>
           </CardHeader>

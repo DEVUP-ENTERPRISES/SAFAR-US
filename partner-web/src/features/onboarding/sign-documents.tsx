@@ -106,7 +106,7 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-success/10 text-success"><Check className="h-5 w-5" /></span>
           <div>
             <h2 className="text-lg font-bold">You’re approved</h2>
-            <p className="text-sm text-muted-foreground">Your agreement and NDA are being prepared. We’ll email you as soon as they’re ready to sign.</p>
+            <p className="text-sm text-muted-foreground">We’re preparing your agreement and NDA. We’ll email you when they’re ready.</p>
           </div>
         </CardContent>
       </Card>
@@ -136,7 +136,7 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><FileSignature className="h-5 w-5" /></span>
           <div>
             <h2 className="text-lg font-bold">You’re approved. Sign your documents</h2>
-            <p className="text-sm text-muted-foreground">Read both to the end, add the details below, then sign once for both.</p>
+            <p className="text-sm text-muted-foreground">Read both, add your details, then sign once for both.</p>
           </div>
         </div>
 
@@ -154,12 +154,12 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
           <h3 className="font-semibold">Your details</h3>
           {fromId && !editLicence ? (
             <p className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-subtle p-3 text-sm">
-              <span>Driver’s licence: <span className="font-medium tabular-nums">{licenceState} •••• {fromId}</span> <span className="text-muted-foreground">(from your ID check)</span></span>
+              <span>Driver’s license: <span className="font-medium tabular-nums">{licenceState} •••• {fromId}</span> <span className="text-muted-foreground">(from your ID check)</span></span>
               <button type="button" className="text-sm font-medium text-primary hover:underline" onClick={() => setEditLicence(true)}>Change</button>
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
-              <Field label="Driver’s licence number" htmlFor="licence" hint="Only the last 4 digits are kept on the signed copy.">
+              <Field label="Driver’s license number" htmlFor="licence" hint="Only the last 4 digits are kept on the signed copy.">
                 <Input id="licence" autoComplete="off" value={licenceNumber} maxLength={30} onChange={(e) => setLicenceNumber(e.target.value)} />
               </Field>
               <Field label="State" htmlFor="licenceState">
@@ -205,7 +205,7 @@ export function SignDocuments({ data, onDone }: { data: PartnerOnboarding; onDon
 
         {sign.isError && <p role="alert" className="text-sm text-destructive">{sign.error instanceof ApiError ? sign.error.message : 'We couldn’t record your signature. Try again.'}</p>}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Lock className="h-3.5 w-3.5" /> We record your name, the email code, the time and your IP with the exact version you signed.</p>
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Lock className="h-3.5 w-3.5" /> We record your name, email code, time, and IP address with the version you signed.</p>
           <Button className="w-full sm:w-auto" disabled={!ready} loading={sign.isPending} onClick={() => sign.mutate()}>Sign both documents</Button>
         </div>
       </CardContent>

@@ -50,8 +50,8 @@ export class AssetPartnerAmendmentService {
         priority: 'high',
         deepLink: '/asset-partners/dashboard',
         templateKey: 'account.asset_partner_terms_change',
-        title: 'Please review a change to your terms',
-        body: 'CatoDrive has proposed new partner terms. Nothing changes until you review and sign them in your partner portal.',
+        title: 'Review a change to your terms',
+        body: 'We’ve proposed new partner terms. Nothing changes until you sign.',
         data: { versionId: version._id },
       })
       .catch((err) => logger.warn({ err, partnerId }, 'terms change notice failed'));

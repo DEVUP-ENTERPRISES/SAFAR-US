@@ -121,7 +121,7 @@ describe('getting started on the partner portal', () => {
     expect(view.nda?.version).toBe(nda.version);
 
     await expect(sign({ agreementVersion: a1.version, ndaVersion: nda.version })).rejects.toThrow('updated');
-    await expect(sign({ agreementVersion: a2.version, ndaVersion: nda.version, licenceState: 'Texas' })).rejects.toThrow('licence');
+    await expect(sign({ agreementVersion: a2.version, ndaVersion: nda.version, licenceState: 'Texas' })).rejects.toThrow('license');
 
     const signed = await sign({ agreementVersion: a2.version, ndaVersion: nda.version, signedName: '  Jordan   Ramirez ' });
     expect(signed.agreement).toMatchObject({ version: a2.version, signedName: 'Jordan Ramirez', ip: '203.0.113.9' });

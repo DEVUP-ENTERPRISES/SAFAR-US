@@ -43,7 +43,7 @@ export function IdentityStep({ state, reason, onChange }: { state: IdentityState
       if (r.outcome === 'completed') onChange();
       else if (r.outcome === 'stub') {
         if (isDev) setDevSession(true);
-        else setProblem('The ID check isn’t available right now. Please try again in a few minutes, or call us and we’ll check your ID in person.');
+        else setProblem('ID check is unavailable right now. Try again in a few minutes, or call us to verify in person.');
       }
     },
     onError: (e) => setProblem(e instanceof ApiError ? e.message : 'We couldn’t open the ID check. Please try again.'),
@@ -58,14 +58,14 @@ export function IdentityStep({ state, reason, onChange }: { state: IdentityState
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><IdCard className="h-5 w-5" /></span>
           <div className="min-w-0">
             <h2 className="text-xl font-bold">Verify your ID</h2>
-            <p className="text-sm text-muted-foreground">Take a photo of your driver’s licence or passport and a quick selfie. Stripe checks it in about a minute. We use it to confirm who is signing your agreement.</p>
+            <p className="text-sm text-muted-foreground">Take a photo of your driver’s license or passport, plus a quick selfie. It takes about a minute.</p>
           </div>
         </div>
 
         {state === 'pending' ? (
           <div className="flex items-start gap-3 rounded-lg bg-muted/50 p-4 text-sm" role="status">
             <Clock className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-            <p>Stripe is checking your ID. This page moves on by itself when it’s done. You can also close it and come back later.</p>
+            <p>Checking your ID. This page updates on its own, or you can come back later.</p>
           </div>
         ) : (
           <>

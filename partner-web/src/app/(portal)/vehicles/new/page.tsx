@@ -28,7 +28,7 @@ function AddCar() {
   const latest = editing ?? apps[0];
   const done = () => {
     void qc.invalidateQueries({ queryKey: ['asset-partner-dashboard'] });
-    toast({ tone: 'success', title: 'Car sent for review', description: 'We’ll contact you to arrange the inspection.' });
+    toast({ tone: 'success', title: 'Car sent for review', description: 'We’ll reach out to schedule the inspection.' });
     router.push('/vehicles');
   };
 
@@ -51,7 +51,7 @@ export default function AddCarPage() {
       <Link href="/vehicles" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Your vehicles
       </Link>
-      <PageHeader eyebrow="Asset Partners" title="Add another car" description="Tell us about the car. CatoDrive reviews it and inspects it before it goes live." />
+      <PageHeader eyebrow="Asset Partners" title="Add another car" description="We review and inspect every car before it goes live." />
       <Suspense>
         <AddCar />
       </Suspense>

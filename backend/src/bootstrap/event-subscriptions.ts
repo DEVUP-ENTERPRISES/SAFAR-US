@@ -247,7 +247,7 @@ export function registerEventSubscribers(): void {
         actionLabel: 'Add your car',
         templateKey: 'account.asset_partner_welcome',
         title: hi,
-        body: 'Thanks for joining as a CatoDrive Asset Partner. Next, tell us about your car. It takes about ten minutes, and you can save and finish later. We review it and get back to you by email.',
+        body: 'Thanks for joining CatoDrive as an Asset Partner. Next, tell us about your car. It takes about 10 minutes, and you can save and finish later.',
         data: { userId: p.userId },
       });
       return;

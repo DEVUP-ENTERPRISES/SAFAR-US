@@ -73,7 +73,7 @@ export default function PartnerVehiclesPage() {
       <PageHeader
         eyebrow="Asset Partners"
         title="Your vehicles"
-        description="Every car in the programme, and what each earned this month."
+        description="Your cars and what each earned this month."
         actions={
           <Link href="/vehicles/new">
             <Button variant="outline">Add another vehicle</Button>

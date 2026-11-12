@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/states';
 import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart } from '@/components/ui/charts';
-import { formatMoney, formatDate, formatDay } from '@/lib/utils/format';
+import { formatMoney, formatDate, formatDay, formatPlate } from '@/lib/utils/format';
 import { assetPartnerApi } from '@/features/asset-partners/api';
 
 /**
@@ -91,7 +91,7 @@ export default function PartnerVehicleDetailPage({
               <Badge tone={live ? 'success' : 'muted'}>
                 {live ? 'Live' : data.status.replace(/_/g, ' ')}
               </Badge>
-              {data.plate && <span className="font-mono text-xs text-muted-foreground">{data.plate}</span>}
+              {data.plate && <span className="font-mono text-xs text-muted-foreground">{formatPlate(data.plate)}</span>}
             </div>
             <h1 className="display mt-3 truncate text-2xl">
               {data.year} {data.make} {data.model}
@@ -101,7 +101,7 @@ export default function PartnerVehicleDetailPage({
               <p className="mt-1 break-all text-sm text-muted-foreground">VIN {data.vin}</p>
             )}
             <p className="mt-1 text-sm text-muted-foreground">
-              In the programme since {formatDate(data.createdAt)}
+              With CatoDrive since {formatDate(data.createdAt)}
             </p>
             <p className="mt-2 flex flex-wrap items-center gap-3 text-sm">
               {data.rating.count > 0 && (
@@ -136,7 +136,7 @@ export default function PartnerVehicleDetailPage({
         </CardHeader>
         <CardContent>
           {data.upcoming.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No trips booked right now. We keep the price and listing working to fill the calendar.</p>
+            <p className="text-sm text-muted-foreground">No upcoming trips. We’re adjusting price and listing to fill the calendar.</p>
           ) : (
             <ul className="space-y-3">
               {data.upcoming.map((t) => (
@@ -193,7 +193,7 @@ export default function PartnerVehicleDetailPage({
                     </span>
                   </div>
                 ))}
-                <p className="text-xs text-muted-foreground">We handle claims with the guest. If a repair is needed, your share is capped at your deductible per incident.</p>
+                <p className="text-xs text-muted-foreground">We handle claims with the guest. Your repair cost is capped at your deductible per incident.</p>
               </CardContent>
             </Card>
           )}

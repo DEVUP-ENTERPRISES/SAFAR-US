@@ -34,7 +34,7 @@ export default function SignUpPage() {
   return (
     <div>
       <h2 className="display text-3xl sm:text-4xl">Become a partner</h2>
-      <p className="mt-2 text-muted-foreground">Create your account. Next you’ll confirm your email and tell us about your car.</p>
+      <p className="mt-2 text-muted-foreground">Create your account.</p>
       <form onSubmit={handleSubmit((v) => signUp.mutate({ ...v, audience: 'asset_partner' }))} className="mt-8 space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="First name" htmlFor="firstName" error={formState.errors.firstName?.message}>
@@ -47,12 +47,12 @@ export default function SignUpPage() {
         <Field label="Email" htmlFor="email" error={formState.errors.email?.message}>
           <Input id="email" type="email" autoComplete="email" {...register('email')} />
         </Field>
-        <Field label="Password" htmlFor="password" hint="Use at least 8 characters." error={formState.errors.password?.message}>
+        <Field label="Password" htmlFor="password" hint="At least 8 characters." error={formState.errors.password?.message}>
           <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
         </Field>
         {signUp.isError && (
           <p role="alert" className="text-sm text-destructive">
-            {signUp.error instanceof ApiError ? signUp.error.message : 'We couldn’t create the account'}
+            {signUp.error instanceof ApiError ? signUp.error.message : 'We couldn’t create your account. Try again.'}
           </p>
         )}
         <Button type="submit" className="w-full" loading={signUp.isPending}>Create account</Button>

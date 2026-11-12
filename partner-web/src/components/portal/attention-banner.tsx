@@ -26,13 +26,13 @@ export function AttentionBanner() {
       {notice && (
         <Link href="/returns" className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 p-4 text-sm hover:bg-warning/15">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-          <span><span className="font-semibold">We’ve been trying to reach you.</span> Open Returns and press “I’m here” so we can keep looking after your car.</span>
+          <span><span className="font-semibold">We’ve been trying to reach you.</span> Open Returns and tap “I’m here.”</span>
         </Link>
       )}
       {noContact && (
         <Link href="/profile#emergency" className="flex items-start gap-3 rounded-lg border border-border bg-muted/50 p-4 text-sm hover:bg-muted">
           <Users className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <span><span className="font-semibold">Add an emergency contact.</span> We only call them if something happens to your car and we can’t reach you.</span>
+          <span><span className="font-semibold">Add an emergency contact.</span> We only call them if we can’t reach you.</span>
         </Link>
       )}
     </div>

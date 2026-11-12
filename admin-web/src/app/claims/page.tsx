@@ -8,7 +8,7 @@ import { Chip } from '@/components/ui/chip';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { useAdminList } from '@/features/admin/hooks/use-admin-list';
 import { PERSON_KIND_LABEL } from '@/features/people/types';
-import { formatDate, formatMoney } from '@/lib/utils/format';
+import { formatDate, formatMoney, formatPlate } from '@/lib/utils/format';
 import { PageHeader } from '@/components/ui/page-header';
 import { CLAIM_TONE, CLAIM_TYPE } from '../../features/claims/labels';
 import { adminPath } from '@/lib/admin-path';
@@ -42,7 +42,7 @@ export default function AdminClaimsPage() {
       cell: (c) =>
         c.booking ? (
           <div className="min-w-0 text-sm">
-            <p className="truncate">{c.vehicle?.name ?? 'Car'}{c.vehicle?.plate ? ` · ${c.vehicle.plate}` : ''}</p>
+            <p className="truncate">{c.vehicle?.name ?? 'Car'}{c.vehicle?.plate ? ` · ${formatPlate(c.vehicle.plate)}` : ''}</p>
             <p className="font-mono text-xs text-muted-foreground">{c.booking.code}</p>
           </div>
         ) : (

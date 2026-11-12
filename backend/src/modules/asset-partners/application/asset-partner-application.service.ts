@@ -254,8 +254,8 @@ export class AssetPartnerApplicationService {
     ].filter(Boolean);
     const car = `${doc.vehicle.year} ${doc.vehicle.make} ${doc.vehicle.model}`;
     const body = [
-      `We’ve got your application for the ${car} (reference ${doc.reference}). We’ll review it and email you with the next step.`,
-      later.length ? `Still to upload: ${later.join(' and ')}. You can add these from your dashboard any time; we need them before the car goes live.` : '',
+      `We received your application for the ${car} (ref. ${doc.reference}). We’ll email you after we review it.`,
+      later.length ? `Still needed before your car goes live: ${later.join(' and ')}. Upload anytime from your dashboard.` : '',
     ].filter(Boolean).join(' ');
     await notificationService
       .send({
@@ -263,7 +263,7 @@ export class AssetPartnerApplicationService {
         deepLink: '/asset-partners/dashboard',
         actionLabel: 'Open your dashboard',
         templateKey: 'account.asset_partner_application_received',
-        title: 'We’ve got your application',
+        title: 'We received your application',
         body,
         data: { applicationId: doc._id, reference: doc.reference },
       })
@@ -574,8 +574,8 @@ export class AssetPartnerApplicationService {
     const vehicle = (app.kind ?? 'partner') === 'vehicle';
     const copy: Record<ReviewDecision, { title: string; body: string }> = {
       approved: vehicle
-        ? { title: `Your ${car} is approved`, body: 'We’ll contact you to schedule the inspection and get it listed.' }
-        : { title: 'You’re approved as a CatoDrive Asset Partner', body: 'Sign your agreement and add your payout details to open your dashboard.' },
+        ? { title: `Your ${car} is approved`, body: 'We’ll reach out to schedule the inspection.' }
+        : { title: 'You’re approved as a CatoDrive Asset Partner', body: 'Next, sign your agreement and add your payout details.' },
       changes_requested: {
         title: 'Your application needs a few changes',
         body: [
@@ -591,7 +591,7 @@ export class AssetPartnerApplicationService {
           notes ?? '',
           app.rejection?.reasons?.length ? `Why: ${explainRejection(app.rejection.reasons).map((r) => r.label).join(', ')}.` : '',
           app.rejection?.reapplyAfter ? `You can apply again from ${longDate(new Date(app.rejection.reapplyAfter))}.` : 'You can apply again whenever you’re ready.',
-          'Sign in to see what would help.',
+          'Sign in for details.',
         ].filter(Boolean).join(' '),
       },
     };

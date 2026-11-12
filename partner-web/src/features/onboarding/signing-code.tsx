@@ -42,7 +42,7 @@ export function SigningCode({ value, onChange }: { value: string; onChange: (cod
     <div className="space-y-3 rounded-lg border border-border p-4">
       <p className="flex items-start gap-2 text-sm">
         <MailCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-        <span>To confirm it’s you signing, we email a 6-digit code to your account address. It’s recorded on the signing certificate.</span>
+        <span>We’ll email you a 6-digit code to confirm it’s you.</span>
       </p>
       {sentTo ? (
         <Field label={`Code sent to ${sentTo}`} htmlFor="signing-code" hint="It expires in 5 minutes.">

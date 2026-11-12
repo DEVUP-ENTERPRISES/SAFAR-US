@@ -151,7 +151,7 @@ export const assetPartnerContactConfirmService = {
           deepLink: '/profile#emergency',
           templateKey: 'account.asset_partner_contact_declined',
           title: `${contact.name.split(/\s+/)[0]} declined to be your contact`,
-          body: 'Please add someone else in your partner profile, so we can reach someone if we can’t reach you.',
+          body: 'Please add a different emergency contact in your profile.',
           data: { partnerId: partner._id },
         })
         .catch(() => undefined);

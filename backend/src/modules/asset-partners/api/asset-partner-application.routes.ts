@@ -121,7 +121,7 @@ router.post(
         deepLink: '/asset-partners/documents',
         templateKey: 'account.asset_partner_signed',
         title: 'Your signed agreement and NDA',
-        body: 'Thanks for signing. Your copies are on the Documents page of your partner portal whenever you need them.',
+        body: 'Thanks for signing. Your copies are under Documents in your partner portal.',
         data: { partnerId: partner._id },
       })
       .catch(() => undefined);

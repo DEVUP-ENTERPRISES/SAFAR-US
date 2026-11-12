@@ -25,7 +25,7 @@ export type PortalStage = 'profile' | 'identity' | 'fee' | 'agreement' | 'agreem
 /** What the agreement's onboarding checklist asks every new partner to send. */
 export const PARTNER_DOCS: { category: PartnerDocCategory; label: string; hint: string }[] = [
   { category: 'w9', label: 'Tax form', hint: 'IRS Form W-9, or W-8BEN if you are not a U.S. person' },
-  { category: 'kyc', label: 'Driver’s licence or ID', hint: 'A clear photo of the front' },
+  { category: 'kyc', label: 'Driver’s license or ID', hint: 'A clear photo of the front' },
   { category: 'title', label: 'Vehicle title or loan papers', hint: 'Financed: the loan statement with the lender’s details' },
   { category: 'insurance', label: 'Insurance declarations page', hint: 'Your current personal auto policy, showing the policy number and dates' },
   { category: 'registration', label: 'Registration and inspection', hint: 'Current Texas registration and state inspection' },
@@ -213,13 +213,10 @@ export class AssetPartnerService {
           userId,
           priority: 'high',
           deepLink: '/asset-partners/dashboard',
-          actionLabel: 'Open your partner portal',
+          actionLabel: 'Sign in',
           templateKey: 'account.partner_added',
-          title: `You're set up on ${'CatoDrive'}`,
-          body:
-            'Your Asset Partner account is ready. Sign in with this email address — ' +
-            'choose "email me a code", no password needed — to add your payout details ' +
-            'and track what your vehicles earn.',
+          title: 'Welcome to CatoDrive',
+          body: 'Your Asset Partner account is ready. Sign in with this email and we’ll send you a one-time code. No password needed.',
           data: { partnerId: partner._id },
         })
         .catch(() => undefined);

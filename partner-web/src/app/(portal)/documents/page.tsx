@@ -109,7 +109,7 @@ export default function PartnerDocumentsPage() {
       <PageHeader
         eyebrow="Asset Partners"
         title="Documents"
-        description="Your signed agreements, and the papers for you and your cars."
+        description="Your signed agreements and car documents."
       />
 
       {papers.some((d) => !d.uploaded) && (
@@ -155,7 +155,7 @@ export default function PartnerDocumentsPage() {
                 ))}
               </Select>
             </Field>
-            <Field label="Expires on" hint="Optional - we’ll remind you before it lapses.">
+            <Field label="Expires on" hint="Optional. We’ll remind you before it expires.">
               <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
             </Field>
           </div>
@@ -187,7 +187,7 @@ export default function PartnerDocumentsPage() {
             <EmptyState
               icon={<FileText className="h-8 w-8" />}
               title="Nothing uploaded yet"
-              description="Add your insurance policy and registration to keep the car road-legal."
+              description="Add your insurance and registration."
             />
           ) : (
             <div className="space-y-3">

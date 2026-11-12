@@ -62,3 +62,8 @@ export const perMileToPerKm = (cents: number) => Math.round(cents * 0.621371);
 export function monthShort(m: string): string {
   return ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(m.split('-')[1])] ?? m;
 }
+
+/** License plates read as one block, e.g. 'XXY 6878' shows as 'XXY6878'. */
+export function formatPlate(p?: string | null): string {
+  return (p ?? '').replace(/\s+/g, '').toUpperCase();
+}

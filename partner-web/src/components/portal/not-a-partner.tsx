@@ -16,8 +16,7 @@ export function NotAPartner() {
         <div>
           <p className="display text-xl">You’re not an Asset Partner yet</p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-            This part of the portal opens once your application is approved and you’re enrolled in
-            the programme.
+            This opens once your application is approved.
           </p>
         </div>
         <Link href="/onboarding">

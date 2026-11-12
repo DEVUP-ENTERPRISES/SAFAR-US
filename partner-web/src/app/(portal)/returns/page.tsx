@@ -55,7 +55,7 @@ function RequestForm({ earliest, noticeDays, busyCars, onSent }: { earliest: str
   if (cars.isLoading) return <Skeleton className="h-64 w-full rounded-lg" />;
   if (cars.isError) return <ErrorState message="We couldn’t load your cars." retry={() => void cars.refetch()} />;
   if (available.length === 0) {
-    return <EmptyState icon={<CarFront className="h-6 w-6" />} title="No cars to return" description="Every car you have with us already has a return in progress, or none are with CatoDrive right now." />;
+    return <EmptyState icon={<CarFront className="h-6 w-6" />} title="No cars to return" description="All your cars already have a return in progress, or none are with us." />;
   }
 
   return (
@@ -149,7 +149,7 @@ function ReturnCard({ r, onChange }: { r: PartnerReturn; onChange: () => void })
       </dl>
       {r.canRespond && (
         <div className="space-y-2 rounded-lg bg-warning/10 p-3 text-sm">
-          <p>We haven’t been able to reach you. Your car is still running and your earnings are held safely for you. Press the button to let us know you’re here, and we’ll release them.</p>
+          <p>We haven’t been able to reach you. Your car is still earning, and we’re holding your payouts. Tap below and we’ll release them.</p>
           <Button size="sm" loading={respond.isPending} onClick={() => respond.mutate()}>I’m here</Button>
         </div>
       )}
@@ -181,7 +181,7 @@ export default function PartnerReturnsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Returns" description="Ask for a car back and follow the handover." />
+      <PageHeader title="Returns" description="Request a car back and track the handoff." />
       {q.isLoading ? (
         <Skeleton className="h-64 w-full rounded-lg" />
       ) : q.isError || !q.data ? (
@@ -193,7 +193,7 @@ export default function PartnerReturnsPage() {
             <CardHeader><CardTitle>Your returns</CardTitle></CardHeader>
             <CardContent className="p-0">
               {q.data.exits.length === 0 ? (
-                <EmptyState icon={<CalendarCheck className="h-6 w-6" />} title="No returns yet" description="When you ask for a car back, you’ll follow it here." />
+                <EmptyState icon={<CalendarCheck className="h-6 w-6" />} title="No returns yet" description="Requested returns show up here." />
               ) : (
                 <ul className="divide-y divide-border">{q.data.exits.map((r) => <ReturnCard key={r._id} r={r} onChange={refresh} />)}</ul>
               )}

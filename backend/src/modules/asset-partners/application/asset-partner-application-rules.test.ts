@@ -130,6 +130,8 @@ describe('partner emails', () => {
   it('are told apart from guest emails by template', () => {
     expect(isPartnerEmail('account.asset_partner_welcome')).toBe(true);
     expect(isPartnerEmail('asset_partner.statement_ready')).toBe(true);
+    expect(isPartnerEmail('account.partner_added')).toBe(true);
+    expect(isPartnerEmail('partner.contact_confirm')).toBe(true);
     expect(isPartnerEmail('account.welcome')).toBe(false);
     expect(isPartnerEmail(undefined)).toBe(false);
   });

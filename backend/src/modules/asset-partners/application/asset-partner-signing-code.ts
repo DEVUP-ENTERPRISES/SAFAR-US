@@ -27,7 +27,7 @@ export const assetPartnerSigningCode = {
       target: { userId: partner.userId, email },
       templateKey: 'account.asset_partner_signing_code',
       title: `Your CatoDrive signing code: ${code}`,
-      body: `Enter ${code} to sign your documents. It expires in 5 minutes. If you didn’t ask for it, ignore this email and nothing is signed.`,
+      body: `Enter ${code} to sign your documents. It expires in 5 minutes. Didn’t request it? Ignore this email.`,
     });
     if (!res.ok) logger.error({ partnerId: partner._id, error: res.error }, 'signing code email failed');
     // Tests and local runs have no inbox; production never returns the code.

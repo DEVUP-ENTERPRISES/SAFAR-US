@@ -22,7 +22,7 @@ import { CaseFilePanel } from '@/features/ai/components/case-file-panel';
 import { adminApi } from '@/features/admin/api';
 import type { PersonSummary } from '@/features/people/types';
 import { ApiError } from '@/lib/api/types';
-import { formatDate, formatDateTime, formatMoney } from '@/lib/utils/format';
+import { formatDate, formatDateTime, formatMoney, formatPlate } from '@/lib/utils/format';
 import { CLAIM_TONE, CLAIM_TYPE } from '../../../features/claims/labels';
 import { adminPath } from '@/lib/admin-path';
 
@@ -230,7 +230,7 @@ export default function ClaimCasePage() {
               <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Car className="h-4 w-4" /> Trip</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
                 {c.vehicle?.photo && <img src={c.vehicle.photo} alt={c.vehicle.name ?? 'Car'} width={320} height={180} className="aspect-video w-full rounded-sm object-cover" />}
-                <p className="font-medium">{c.vehicle?.name ?? 'Car'}{c.vehicle?.plate ? ` · ${c.vehicle.plate}` : ''}</p>
+                <p className="font-medium">{c.vehicle?.name ?? 'Car'}{c.vehicle?.plate ? ` · ${formatPlate(c.vehicle.plate)}` : ''}</p>
                 <p className="text-muted-foreground">{formatDate(c.booking.start)} – {formatDate(c.booking.end)} · {c.booking.status.replace(/_/g, ' ')}</p>
                 {c.booking.total && <p>Trip total <span className="tabular-nums">{formatMoney(c.booking.total)}</span></p>}
                 {c.deposit ? (

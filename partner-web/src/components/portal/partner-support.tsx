@@ -10,7 +10,7 @@ export function PartnerSupport() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Questions about your vehicle?</CardTitle>
+        <CardTitle className="text-lg">Questions about your car?</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2">
         <a

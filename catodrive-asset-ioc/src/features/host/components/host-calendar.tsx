@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/states';
 import { cn } from '@/lib/utils/cn';
 import { useMyVehicles } from '@/features/vehicles/hooks';
 import { hostTripsApi, type HostTrip } from '~/features/host/trips.api';
+import { formatPlate } from '@/lib/utils/format';
 
 const DAYS = 14; // a fortnight fits on screen and covers the booking horizon
 
@@ -124,7 +125,7 @@ export function HostCalendar() {
                     <div className="min-w-0">
                       <p className="truncate text-xs font-semibold">{v.make} {v.model}</p>
                       <p className="truncate font-mono text-[10px] text-muted-foreground">
-                        {v.registrationNumber ?? '-'}
+                        {v.registrationNumber ? formatPlate(v.registrationNumber) : '-'}
                       </p>
                     </div>
                   </div>

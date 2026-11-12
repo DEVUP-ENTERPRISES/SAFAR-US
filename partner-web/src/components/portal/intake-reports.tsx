@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { assetPartnerApi, type IntakeReport, type IntakeStatus } from '@/features/asset-partners/api';
 import { ApiError } from '@/lib/api/types';
-import { formatDate } from '@/lib/utils/format';
+import { formatDate, formatPlate } from '@/lib/utils/format';
 import { saveFile } from '@/lib/utils/save-file';
 
 const STATUS: Record<IntakeStatus, { label: string; tone: 'warning' | 'success' | 'destructive' | 'muted' }> = {
@@ -46,7 +46,7 @@ function Review({ report, onDone }: { report: IntakeReport; onDone: () => void }
           ['Vehicle', [v.year, v.make, v.model, v.trim].filter(Boolean).join(' ')],
           ['Color', v.color || '-'],
           ['VIN', v.vin],
-          ['Plate', v.plate],
+          ['Plate', formatPlate(v.plate)],
           ['Odometer', `${report.odometer.toLocaleString('en-US')} miles`],
           ['Fuel / charge', FUEL[report.fuelLevel]],
           ['Intake date', formatDate(report.intakeDate)],

@@ -67,14 +67,14 @@ export default function TermsChangePage() {
     meta: { silentError: true },
     mutationFn: () => assetPartnerApi.declineAmendment(),
     onSuccess: () => {
-      toast({ tone: 'success', title: 'Declined', description: 'Your current terms continue. CatoDrive has been told.' });
+      toast({ tone: 'success', title: 'Declined', description: 'Your current terms stay in place. We’ve been notified.' });
       done();
     },
   });
 
   if (q.isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
   if (q.isError) return <ErrorState message="We couldn’t load the proposed change." retry={() => void q.refetch()} />;
-  if (!a) return <EmptyState title="Nothing to sign" description="There’s no change to your terms waiting for you." action={<Button variant="outline" onClick={() => router.push('/dashboard')}>Back to dashboard</Button>} />;
+  if (!a) return <EmptyState title="Nothing to sign" description="No pending changes to your terms." action={<Button variant="outline" onClick={() => router.push('/dashboard')}>Back to dashboard</Button>} />;
 
   const changed = Object.keys(a.to).filter((k) => a.from[k] !== a.to[k]);
   const canSign = read && agree && name.trim().length >= 2 && emailCode.length === 6;
@@ -138,7 +138,7 @@ export default function TermsChangePage() {
               disabled={sign.isPending}
               loading={decline.isPending}
               onClick={async () => {
-                const { ok } = await confirm({ title: 'Decline this change?', description: 'Your current terms continue and CatoDrive is told.', confirmLabel: 'Decline', tone: 'destructive' });
+                const { ok } = await confirm({ title: 'Decline this change?', description: 'Your current terms stay in place.', confirmLabel: 'Decline', tone: 'destructive' });
                 if (ok) decline.mutate();
               }}
             >

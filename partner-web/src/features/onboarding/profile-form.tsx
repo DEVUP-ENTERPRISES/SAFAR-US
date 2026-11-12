@@ -86,7 +86,7 @@ export function ProfileForm({ initial, ownPhone, submitLabel = 'Save and continu
   const submit = () => {
     setLocal(undefined);
     const own = digits(ownPhone ?? '').slice(-10);
-    if (contacts.some((c) => c.name.trim().length < 2 || digits(c.phone).length < 10 || c.relation.trim().length < 2)) return setLocal('Fill in each contact’s name, relation and phone number with area code.');
+    if (contacts.some((c) => c.name.trim().length < 2 || digits(c.phone).length < 10 || c.relation.trim().length < 2)) return setLocal('Enter each contact’s name, relationship, and phone number with area code.');
     if (own && contacts.some((c) => digits(c.phone).slice(-10) === own)) return setLocal('Your emergency contact needs a phone number other than your own.');
     if (!residency) return setLocal('Tell us your residency status.');
     if (residency === 'visa' && !visaExpiry) return setLocal('Enter the date your visa ends.');
@@ -102,7 +102,7 @@ export function ProfileForm({ initial, ownPhone, submitLabel = 'Save and continu
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Users className="h-5 w-5" /></span>
           <div className="min-w-0">
             <h2 className="text-xl font-bold">Who should we call if we can’t reach you?</h2>
-            <p className="text-sm text-muted-foreground">We only use these if something happens to your car and we can’t get hold of you. We never share them. Each person gets a text asking them to confirm.</p>
+            <p className="text-sm text-muted-foreground">Only used if we can’t reach you about your car. Never shared. Each contact gets a text to confirm.</p>
           </div>
         </div>
 
@@ -129,7 +129,7 @@ export function ProfileForm({ initial, ownPhone, submitLabel = 'Save and continu
         </section>
 
         <section className="space-y-3">
-          <Field label="Your residency status" htmlFor="residency" hint="If you’re on a visa, we’ll check in before it ends so your car is looked after if you have to travel.">
+          <Field label="Your residency status" htmlFor="residency" hint="If you’re on a visa, we’ll check in before it expires.">
             <Select id="residency" value={residency} onChange={(e) => setResidency(e.target.value as Residency)}>
               <option value="" disabled>Choose one</option>
               <option value="citizen">U.S. citizen</option>
@@ -158,7 +158,7 @@ export function ProfileForm({ initial, ownPhone, submitLabel = 'Save and continu
             <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" checked={hasRep} onChange={(e) => setHasRep(e.target.checked)} />
             <span>
               <span className="font-semibold">Name someone who can decide about your car for you</span>
-              <span className="block text-muted-foreground">Optional. If we can’t reach you for a long time, this person can take the car back or tell us what to do with it.</span>
+              <span className="block text-muted-foreground">Optional. If we can’t reach you for an extended time, this person decides what happens to your car.</span>
             </span>
           </label>
           {hasRep && <ConfirmStatus saved={initial?.representative} current={rep} slot={{ kind: 'representative' }} />}

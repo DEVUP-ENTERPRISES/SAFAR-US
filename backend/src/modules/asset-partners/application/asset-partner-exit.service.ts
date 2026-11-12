@@ -215,7 +215,7 @@ export class AssetPartnerExitService {
   async requestByPartner(userId: string, input: ExitRequestInput): Promise<AssetPartnerExitDoc> {
     const partner = await assetPartnerService.getByUserId(userId);
     if (!partner) throw new ForbiddenError('Not an Asset Partner');
-    if (partner.status === 'exited') throw new ConflictError('You have already left the programme.', 'PARTNER_EXITED');
+    if (partner.status === 'exited') throw new ConflictError('You’ve already left the program.', 'PARTNER_EXITED');
     const cfg = await this.cfg();
     const earliest = new Date(Date.now() + (cfg.exitNoticeDays ?? 30) * DAY);
     if (chicagoDay(input.preferredDate) < chicagoDay(earliest)) {
@@ -300,7 +300,7 @@ export class AssetPartnerExitService {
 
   async open(by: string, partnerId: string, input: OpsOpenInput): Promise<AssetPartnerExitDoc> {
     const partner = await assetPartnerService.getById(partnerId);
-    if (partner.status === 'exited') throw new ConflictError('This partner has already left the programme.', 'PARTNER_EXITED');
+    if (partner.status === 'exited') throw new ConflictError('This partner has already left the program.', 'PARTNER_EXITED');
     const cars = await this.activeCars(partnerId, input.vehicleIds);
     const now = new Date();
     const note = tidy(input.note) || undefined;

@@ -28,8 +28,8 @@ function SignIn() {
 
   return (
     <div>
-      <h2 className="display text-3xl sm:text-4xl">Asset Partner sign-in</h2>
-      <p className="mt-2 text-muted-foreground">Sign in to your partner account.</p>
+      <h2 className="display text-3xl sm:text-4xl">Partner sign in</h2>
+      <p className="mt-2 text-muted-foreground">Welcome back.</p>
       <form onSubmit={handleSubmit((v) => login.mutate(v))} className="mt-8 space-y-4">
         <Field label="Email" htmlFor="email" error={formState.errors.email?.message}>
           <Input id="email" type="email" autoComplete="username" {...register('email')} />
@@ -47,7 +47,7 @@ function SignIn() {
         )}
         {login.isError && !mfaRequired && (
           <p role="alert" className="text-sm text-destructive">
-            {login.error instanceof ApiError ? login.error.message : 'Sign-in failed'}
+            {login.error instanceof ApiError ? login.error.message : 'Couldn’t sign you in. Try again.'}
           </p>
         )}
         <Button type="submit" className="w-full" loading={login.isPending}>

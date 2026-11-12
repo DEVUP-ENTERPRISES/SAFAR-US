@@ -81,7 +81,7 @@ function VerifyEmail({ email, onDone }: { email?: string; onDone: () => void }) 
           </div>
         </div>
         {notSent && (
-          <p role="alert" className="text-sm text-destructive">We couldn’t send the code just now. Wait a few minutes, then press Send code again.</p>
+          <p role="alert" className="text-sm text-destructive">We couldn’t send the code. Wait a few minutes and try again.</p>
         )}
         {!send.isSuccess || notSent ? (
           <Button className="w-full sm:w-auto" loading={send.isPending} onClick={() => send.mutate()}>Send code</Button>
@@ -113,7 +113,7 @@ function InReview({ data }: { data: PartnerOnboarding }) {
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-warning/10 text-warning"><Clock className="h-5 w-5" /></span>
           <div>
             <h2 className="text-lg font-bold">We’re reviewing your application</h2>
-            <p className="text-sm text-muted-foreground">A partner manager will contact you to arrange the inspection. We’ll email you at every step.</p>
+            <p className="text-sm text-muted-foreground">A partner manager will reach out to schedule the inspection.</p>
           </div>
         </div>
         <dl className="grid grid-cols-1 gap-3 rounded-lg bg-muted/50 p-4 text-sm sm:grid-cols-3">
@@ -154,7 +154,7 @@ function OfferExpired({ data, onDone }: { data: PartnerOnboarding; onDone: () =>
           </div>
         </div>
         {asked ? (
-          <p className="rounded-lg bg-muted/50 p-3 text-sm" role="status">We’ve got your request. We’ll email you as soon as the new copy is ready.</p>
+          <p className="rounded-lg bg-muted/50 p-3 text-sm" role="status">Request received. We’ll email you when the new copy is ready.</p>
         ) : (
           <Button className="w-full sm:w-auto" loading={ask.isPending} onClick={() => ask.mutate()}>Ask for a new copy</Button>
         )}
@@ -174,7 +174,7 @@ function Declined({ data, onReapply }: { data: PartnerOnboarding; onReapply: () 
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive"><XCircle className="h-5 w-5" /></span>
           <div>
             <h2 className="text-xl font-bold">We couldn’t approve this application</h2>
-            <p className="text-sm text-muted-foreground">Here’s why, and what would help next time.</p>
+            <p className="text-sm text-muted-foreground">Here’s why, and what would help.</p>
           </div>
         </div>
         {r && r.reasons.length > 0 && (
@@ -257,7 +257,7 @@ function GettingStarted() {
     <div className="space-y-6">
       <header className="space-y-2">
         <h1 className="display text-3xl sm:text-4xl">{data.partner ? `Welcome, ${data.partner.displayName}` : 'Become a CatoDrive partner'}</h1>
-        <p className="text-muted-foreground">Finish these steps and your partner dashboard opens.</p>
+        <p className="text-muted-foreground">Please complete these steps.</p>
       </header>
       <Tracker stage={data.stage} />
 

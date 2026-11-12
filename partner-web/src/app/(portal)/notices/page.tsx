@@ -71,7 +71,7 @@ function UploadForm({ onDone }: { onDone: () => void }) {
   const submit = (ev: FormEvent) => {
     ev.preventDefault();
     if (!f.vehicleId) return setError('Pick the car on the notice.');
-    if (f.issuedBy.trim().length < 2) return setError('Who sent it? For example Harris County Toll Road Authority.');
+    if (f.issuedBy.trim().length < 2) return setError('Who sent it? For example, Harris County Toll Road Authority.');
     if (f.noticeRef.trim().length < 2) return setError('Enter the notice or invoice number.');
     if (!f.date || f.date > today()) return setError('Enter the date the toll or ticket happened, not the date of the letter.');
     if (!(Number(f.amount) > 0)) return setError('Enter the amount on the notice.');
@@ -84,7 +84,7 @@ function UploadForm({ onDone }: { onDone: () => void }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg"><Upload className="h-5 w-5 text-primary" aria-hidden /> Upload a notice</CardTitle>
-        <p className="text-sm text-muted-foreground">Upload it the day it arrives. We find the trip that had your car, charge that guest, and make sure the agency is paid before late fees build up.</p>
+        <p className="text-sm text-muted-foreground">Upload it the day it arrives. We’ll find the trip, charge the guest, and pay the agency before late fees.</p>
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} noValidate className="grid gap-4 sm:grid-cols-2">
@@ -115,7 +115,7 @@ function UploadForm({ onDone }: { onDone: () => void }) {
           </Field>
           <label className="flex items-start gap-3 rounded-sm border border-border p-3 text-sm sm:col-span-2">
             <input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" checked={f.paid} onChange={(e) => set('paid', e.target.checked)} />
-            <span><span className="font-medium">I already paid this</span><span className="block text-xs text-muted-foreground">We pay you back on your next statement once it’s checked. If you haven’t paid, don’t: CatoDrive pays the agency.</span></span>
+            <span><span className="font-medium">I already paid this</span><span className="block text-xs text-muted-foreground">Already paid? We’ll reimburse you on your next statement. If not, don’t pay. We will.</span></span>
           </label>
           <div className="flex justify-end sm:col-span-2"><Button type="submit" size="lg" loading={send.isPending}>Send notice</Button></div>
         </form>
@@ -138,9 +138,9 @@ export default function NoticesPage() {
 
   return (
     <div className="space-y-6 py-8">
-      <PageHeader eyebrow="Asset Partners" title="Tolls & tickets" description="Letters about tolls, parking, tickets or towing come to you because the car is registered in your name. Send them here and we deal with them." />
+      <PageHeader eyebrow="Asset Partners" title="Tolls & tickets" description="Toll, parking, ticket, and towing notices for your cars. Upload them here and we’ll handle them." />
 
-      {sent && <p role="status" className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/5 p-4 text-sm"><CheckCircle2 className="h-4 w-4 text-success" aria-hidden /> Got it. You can see where it stands below.</p>}
+      {sent && <p role="status" className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/5 p-4 text-sm"><CheckCircle2 className="h-4 w-4 text-success" aria-hidden /> Got it. Track its status below.</p>}
       <UploadForm onDone={() => setSent(true)} />
 
       <section className="space-y-3">

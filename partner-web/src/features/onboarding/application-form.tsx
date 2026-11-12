@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import { authApi } from '@/features/auth/api';
 import { ApiError } from '@/lib/api/types';
 import { cn } from '@/lib/utils/cn';
+import { formatPlate } from '@/lib/utils/format';
 
 type YN = 'yes' | 'no' | '';
 type PartnerType = 'individual' | 'business' | 'fleet';
@@ -135,7 +136,7 @@ function toInput(d: Draft): PortalApplicationInput {
     partnerType: d.partnerType as PartnerType,
     phone: d.phone,
     address: d.address.trim(), city: d.city.trim(), state: d.state, zip: d.zip.trim(),
-    vehicle: { year: d.year.trim(), make: d.make.trim(), model: d.model.trim(), trim: opt(d.trim), mileage: Number(d.mileage), vin: d.vin.trim().toUpperCase(), plate: d.plate.trim().toUpperCase() },
+    vehicle: { year: d.year.trim(), make: d.make.trim(), model: d.model.trim(), trim: opt(d.trim), mileage: Number(d.mileage), vin: d.vin.trim().toUpperCase(), plate: formatPlate(d.plate) },
     ownership: d.ownership as Ownership,
     titleStatus: d.titleStatus as TitleStatus,
     lienholder: d.ownership === 'owned' ? undefined : opt(d.lienholder),
@@ -450,7 +451,7 @@ export function ApplicationForm({ mode, initial, reviewNote, changeRequest, draf
 
           {step === 'car' && (
             <>
-              <Section title="Your car" hint={only ? 'Only the items CatoDrive asked about are open.' : 'Type the VIN and we fill in the rest. It’s on the driver-side dashboard and your registration.'} />
+              <Section title="Your car" hint={only ? 'Only the items we asked about can be edited.' : 'Enter the VIN and we’ll fill in the rest. It’s on the driver-side dashboard and your registration.'} />
               {show('details') && (<>
               <Field label="VIN" htmlFor="vin" error={errors.vin}>
                 <div className="flex gap-2">
@@ -468,7 +469,7 @@ export function ApplicationForm({ mode, initial, reviewNote, changeRequest, draf
                 <p className="flex items-center gap-2 rounded-xl bg-warning/10 px-3 py-2 text-sm"><AlertTriangle className="h-4 w-4 shrink-0 text-warning" /> This car is already with CatoDrive. If that’s a mistake, add a note on the last step.</p>
               )}
               {(vin.state === 'failed' || (vin.state === 'done' && !vin.result?.decoded)) && (
-                <p className="text-sm text-muted-foreground">We couldn’t read that VIN automatically. Fill in the details below.</p>
+                <p className="text-sm text-muted-foreground">We couldn’t read that VIN. Enter the details below.</p>
               )}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <Field label="Year" htmlFor="year" error={errors.year}><Input id="year" inputMode="numeric" maxLength={4} value={d.year} onChange={(e) => set('year', e.target.value)} /></Field>
@@ -488,7 +489,7 @@ export function ApplicationForm({ mode, initial, reviewNote, changeRequest, draf
               {d.ownership && d.ownership !== 'owned' && (
                 <Field label={d.ownership === 'leased' ? 'Leasing company' : 'Lender'} htmlFor="lienholder" error={errors.lienholder}><Input id="lienholder" value={d.lienholder} onChange={(e) => set('lienholder', e.target.value)} /></Field>
               )}
-              <Field label="Title status" error={errors.titleStatus} hint="As printed on the title. Only clean titles can join.">
+              <Field label="Title status" error={errors.titleStatus} hint="As shown on the title. Clean titles only.">
                 <Choice value={d.titleStatus} onChange={(v) => set('titleStatus', v)} options={TITLES} />
               </Field>
               </>)}
@@ -500,7 +501,7 @@ export function ApplicationForm({ mode, initial, reviewNote, changeRequest, draf
                 <div className="flex flex-wrap items-end justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium">Photos</p>
-                    <p className="text-xs text-muted-foreground">{only ? 'Take a new photo for each one asked about.' : 'Front, back and odometer are needed now; we take full photos at the inspection.'}</p>
+                    <p className="text-xs text-muted-foreground">{only ? 'Take a new photo for each one asked about.' : 'Front, back, and odometer for now. We take the rest at inspection.'}</p>
                   </div>
                   {openSlots.length > 1 && (
                     <label className={cn('inline-flex cursor-pointer items-center gap-2 rounded-sm border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent/40 focus-within:ring-2 focus-within:ring-ring', busy && 'pointer-events-none opacity-60')}>
@@ -523,7 +524,7 @@ export function ApplicationForm({ mode, initial, reviewNote, changeRequest, draf
 
           {step === 'condition' && (
             <>
-              <Section title="Condition & insurance" hint="Every car is inspected before it goes live, whatever the answers here." />
+              <Section title="Condition & insurance" hint="Every car is inspected before it goes live." />
               {show('condition') && (<>
               <Field label="Any accidents?" error={errors.accident}><Choice value={d.accident} onChange={(v) => set('accident', v)} options={YES_NO} /></Field>
               {d.accident === 'yes' && (
@@ -533,14 +534,14 @@ export function ApplicationForm({ mode, initial, reviewNote, changeRequest, draf
               {!only && (
               <p className="flex items-start gap-2 rounded-lg bg-subtle p-3 text-sm">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <span>Every CatoDrive car is smoke-free and pet-free. Guests agree to this in our rental terms, and we handle it if they break it.</span>
+                <span>Every CatoDrive car is smoke-free and pet-free. We handle it if a guest breaks the rule.</span>
               </p>
               )}
               {(show('insurance') || show('paper:insurance')) && (
               <div className={cn('space-y-4', !only && 'border-t border-border pt-5')}>
                 <div>
                   <p className="text-sm font-medium">Your insurance <span className="font-normal text-muted-foreground">(optional now)</span></p>
-                  <p className="text-xs text-muted-foreground">Skip it if it isn’t handy. We’ll ask for it again in your dashboard before the car goes live.</p>
+                  <p className="text-xs text-muted-foreground">Don’t have it handy? Skip it and upload it later from your dashboard.</p>
                 </div>
                 {show('insurance') && (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
