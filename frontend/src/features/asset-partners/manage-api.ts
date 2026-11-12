@@ -4,6 +4,31 @@ import type { FuelLevel, IntakeReport, NoticeStatus, PartnerNotice, SignatureEnv
 type Q = Record<string, string | number | boolean | undefined>;
 export type ReviewDecision = 'approved' | 'changes_requested' | 'rejected';
 
+export interface FeeReportRow {
+  partnerId: string;
+  name: string;
+  status: 'paid' | 'due' | 'waived' | 'refunded' | 'none';
+  totalCents: number;
+  platformFeeCents: number;
+  paidCents?: number;
+  setAt?: string;
+  paidAt?: string;
+  refundedAt?: string;
+}
+
+export interface FeeReport {
+  currency: string;
+  collectedCents: number;
+  platformFeeCents: number;
+  refundedCents: number;
+  dueCents: number;
+  paidCount: number;
+  dueCount: number;
+  waivedCount: number;
+  refundedCount: number;
+  rows: FeeReportRow[];
+}
+
 export interface ProgrammeSummary {
   applications: Partial<Record<'submitted' | 'under_review' | 'changes_requested' | 'approved' | 'rejected', number>>;
   partners: Partial<Record<'onboarding' | 'active' | 'suspended' | 'exited', number>>;
@@ -131,6 +156,7 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     changeItems: () => api.get<{ key: string; label: string }[]>(`${base}/asset-partner-applications/change-items`),
     /** Whether registration fees are on, and the platform fee added to each. */
     joiningFeeSettings: () => api.get<{ enabled: boolean; platformFeeCents: number }>(`${base}/asset-partner-fee/default`),
+    feeReport: () => api.get<FeeReport>(`${base}/asset-partner-fees`),
     setJoiningFee: (partnerId: string, amountCents: number) => api.patch(`${base}/asset-partners/${partnerId}/joining-fee`, { amountCents }),
     refundJoiningFee: (partnerId: string, reason: string) => api.post(`${base}/asset-partners/${partnerId}/joining-fee/refund`, { reason }),
     rejectionReasons: () => api.get<{ code: string; label: string; why: string; improve: string }[]>(`${base}/asset-partner-applications/rejection-reasons`),

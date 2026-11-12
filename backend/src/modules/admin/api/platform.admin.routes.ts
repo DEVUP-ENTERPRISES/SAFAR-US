@@ -7,6 +7,7 @@ import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
+import { assetPartnerFeeService } from '../../asset-partners/application/asset-partner-fee.service';
 
 const router = Router();
 
@@ -50,6 +51,16 @@ router.get(
   asyncHandler(async (req, res) => {
     const months = req.query.months ? Math.min(24, Math.max(1, Number(req.query.months))) : 6;
     sendSuccess(res, await financeReportService.report(months));
+  }),
+);
+
+// Asset Partner registration fees, kept apart from trip revenue.
+router.get(
+  '/asset-partner-fees',
+  authorize('analytics:read'),
+  asyncHandler(async (_req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await assetPartnerFeeService.report());
   }),
 );
 

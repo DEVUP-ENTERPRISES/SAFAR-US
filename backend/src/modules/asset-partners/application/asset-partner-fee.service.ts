@@ -256,4 +256,63 @@ export const assetPartnerFeeService = {
     }
     return feeView((updated ?? (await partnerOrThrow(partnerId))).joiningFee);
   },
+
+  /** Registration fee revenue for HQ and the operations panel: totals plus the latest fees, newest first. */
+  async report(limit = 50): Promise<FeeReport> {
+    const [totals] = await AssetPartnerModel.aggregate<Omit<FeeReport, 'currency' | 'rows'>>([
+      { $match: { joiningFee: { $exists: true } } },
+      {
+        $project: {
+          kept: { $and: [{ $gt: ['$joiningFee.paidAt', null] }, { $not: [{ $gt: ['$joiningFee.refundedAt', null] }] }] },
+          refunded: { $gt: ['$joiningFee.refundedAt', null] },
+          due: { $and: [{ $gt: ['$joiningFee.amountCents', 0] }, { $not: [{ $gt: ['$joiningFee.paidAt', null] }] }] },
+          waived: { $lte: ['$joiningFee.amountCents', 0] },
+          charged: { $ifNull: ['$joiningFee.paidCents', '$joiningFee.amountCents'] },
+          platform: { $ifNull: ['$joiningFee.platformFeeCents', 0] },
+          amount: '$joiningFee.amountCents',
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          collectedCents: { $sum: { $cond: ['$kept', '$charged', 0] } },
+          platformFeeCents: { $sum: { $cond: ['$kept', { $min: ['$platform', '$charged'] }, 0] } },
+          refundedCents: { $sum: { $cond: ['$refunded', '$charged', 0] } },
+          dueCents: { $sum: { $cond: ['$due', '$amount', 0] } },
+          paidCount: { $sum: { $cond: ['$kept', 1, 0] } },
+          dueCount: { $sum: { $cond: ['$due', 1, 0] } },
+          waivedCount: { $sum: { $cond: ['$waived', 1, 0] } },
+          refundedCount: { $sum: { $cond: ['$refunded', 1, 0] } },
+        },
+      },
+    ]).exec();
+    const docs = await AssetPartnerModel.find({ joiningFee: { $exists: true } })
+      .sort({ 'joiningFee.paidAt': -1, 'joiningFee.setAt': -1 })
+      .limit(Math.min(Math.max(limit, 1), 100))
+      .select('displayName businessName joiningFee')
+      .lean<Pick<AssetPartnerDoc, '_id' | 'displayName' | 'businessName' | 'joiningFee'>[]>();
+    const t = totals ?? { collectedCents: 0, platformFeeCents: 0, refundedCents: 0, dueCents: 0, paidCount: 0, dueCount: 0, waivedCount: 0, refundedCount: 0 };
+    return {
+      currency: CURRENCY,
+      collectedCents: t.collectedCents, platformFeeCents: t.platformFeeCents, refundedCents: t.refundedCents, dueCents: t.dueCents,
+      paidCount: t.paidCount, dueCount: t.dueCount, waivedCount: t.waivedCount, refundedCount: t.refundedCount,
+      rows: docs.map((d) => {
+        const v = feeView(d.joiningFee);
+        return { partnerId: d._id, name: d.businessName || d.displayName, status: v.status, totalCents: v.totalCents, platformFeeCents: v.platformFeeCents, paidCents: v.paidCents, setAt: v.setAt, paidAt: v.paidAt, refundedAt: v.refundedAt };
+      }),
+    };
+  },
 };
+
+export interface FeeReport {
+  currency: string;
+  collectedCents: number;
+  platformFeeCents: number;
+  refundedCents: number;
+  dueCents: number;
+  paidCount: number;
+  dueCount: number;
+  waivedCount: number;
+  refundedCount: number;
+  rows: { partnerId: string; name: string; status: FeeStatus; totalCents: number; platformFeeCents: number; paidCents?: number; setAt?: Date; paidAt?: Date; refundedAt?: Date }[];
+}

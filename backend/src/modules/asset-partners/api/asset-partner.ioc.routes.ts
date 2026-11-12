@@ -459,6 +459,15 @@ router.post(
 );
 
 router.get(
+  '/asset-partner-fees',
+  authorize('admin:read'),
+  asyncHandler(async (_req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await assetPartnerFeeService.report());
+  }),
+);
+
+router.get(
   '/asset-partner-fee/default',
   authorize('admin:read'),
   asyncHandler(async (_req, res) => {

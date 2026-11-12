@@ -123,9 +123,9 @@ export interface PartnerTermsOverride {
 }
 
 export interface JoiningFee {
-  /** The registration fee ops entered for this partner. */
+  /** The full registration fee ops entered for this partner, platform fee included. */
   amountCents: number;
-  /** The platform fee added on top, fixed when the amount was set. */
+  /** The platform fee portion included in amountCents, fixed when the amount was set. */
   platformFeeCents?: number;
   currency: string;
   setBy?: string;

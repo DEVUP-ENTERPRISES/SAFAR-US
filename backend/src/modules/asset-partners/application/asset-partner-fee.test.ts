@@ -152,4 +152,19 @@ describe('Asset Partner fee', () => {
     expect(feeView(partner.joiningFee).status).toBe('none');
     await expect(assetPartnerFeeService.refund(partner._id, OPS, 'nothing')).rejects.toThrow('no paid fee');
   });
+  it('reports registration fee revenue apart from trips: collected, platform part, waiting, refunded, waived', async () => {
+    const make = async (email: string) => (await assetPartnerService.enrolByEmail({ email, fullName: email.split('@')[0], partnerType: 'individual' })).partner._id;
+    const [paid, due, refunded, waived] = await Promise.all([make('a@example.com'), make('b@example.com'), make('c@example.com'), make('d@example.com')]);
+    await assetPartnerFeeService.setAmount(paid, 35_000, OPS);
+    await assetPartnerFeeService.setAmount(due, 20_000, OPS);
+    await assetPartnerFeeService.setAmount(refunded, 30_000, OPS);
+    await assetPartnerFeeService.setAmount(waived, 0, OPS);
+    await AssetPartnerModel.updateOne({ _id: paid }, { $set: { 'joiningFee.paidAt': new Date(), 'joiningFee.paidCents': 35_000 } });
+    await AssetPartnerModel.updateOne({ _id: refunded }, { $set: { 'joiningFee.paidAt': new Date(), 'joiningFee.paidCents': 30_000, 'joiningFee.refundedAt': new Date() } });
+
+    const r = await assetPartnerFeeService.report();
+    expect(r).toMatchObject({ collectedCents: 35_000, platformFeeCents: 499, dueCents: 20_000, refundedCents: 30_000, paidCount: 1, dueCount: 1, refundedCount: 1, waivedCount: 1 });
+    expect(r.rows).toHaveLength(4);
+    expect(r.rows.find((x) => x.partnerId === paid)).toMatchObject({ status: 'paid', totalCents: 35_000, platformFeeCents: 499 });
+  });
 });

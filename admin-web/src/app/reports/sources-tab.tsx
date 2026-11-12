@@ -9,6 +9,7 @@ import { TabIntro } from '@/features/admin/components/page-tabs';
 import { Donut } from '@/components/ui/charts';
 import { formatMoney } from '@/lib/utils/format';
 import { adminApi } from '@/features/admin/api';
+import { PartnerFeeReport } from '@/features/asset-partners/fee-report';
 
 const ICON: Record<string, typeof Car> = {
   'Host (self-serve)': Car,
@@ -81,6 +82,8 @@ export function RevenueBySourcePage() {
           )}
         </CardContent>
       </Card>
+
+      <PartnerFeeReport base="/admin" />
     </div>
   );
 }
