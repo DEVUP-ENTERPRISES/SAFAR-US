@@ -102,6 +102,7 @@ router.put(
           joiningFeeEnabled: z.boolean().optional(),
           registrationPlatformFeeCents: z.number().int().min(0).max(50_000).optional(),
           gpsRegularCents: z.number().int().min(0).max(500_000).optional(),
+          registrationPayLaterEnabled: z.boolean().optional(),
           insuranceMonthlyCents: z.number().int().min(0).optional(),
           detailingMonthlyCents: z.number().int().min(0).optional(),
           deductibleCapCents: z.number().int().min(0).optional(),

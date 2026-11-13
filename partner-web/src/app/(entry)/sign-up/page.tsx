@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { useRegister } from '@/features/auth/hooks';
 import { ApiError } from '@/lib/api/types';
+import { CONTACT } from '@/features/contact/content';
 
 const schema = z.object({
   firstName: z.string().trim().min(1, 'Required'),
@@ -59,6 +60,9 @@ export default function SignUpPage() {
       </form>
       <p className="mt-6 text-sm text-muted-foreground">
         Already a partner? <Link href="/sign-in" className="font-bold text-primary hover:underline">Sign in</Link>
+      </p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Questions? Call or text <a href={CONTACT.assetPartnerHotlineHref} className="font-semibold text-primary hover:underline">{CONTACT.assetPartnerHotlineDisplay}</a>
       </p>
     </div>
   );

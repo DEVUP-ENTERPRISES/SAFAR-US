@@ -49,7 +49,7 @@ const ROUND_TERMS = [
 
 const TRACTION = [
   { value: 100, prefix: "", suffix: "+", label: "Vehicles managed" },
-  { value: 716, prefix: "$", suffix: "K+", label: "2026 YTD revenue" },
+  { value: 900, prefix: "$", suffix: "K+", label: "2026 YTD revenue" },
   {
     value: 3626,
     prefix: "",
@@ -67,7 +67,7 @@ const TRACTION = [
 const GROWTH = [
   { year: "2023", value: 1574, display: "$1,574", target: false },
   { year: "2025", value: 307000, display: "$307K", target: false },
-  { year: "YTD ’26", value: 716755, display: "$716K+", target: false },
+  { year: "YTD ’26", value: 900_627, display: "$900K+", target: false },
   { year: "Target", value: 1_200_000, display: "$1.2M", target: true },
 ] as const;
 
@@ -101,7 +101,7 @@ const FUNDS = [
 ] as const;
 
 const FIN_STATS = [
-  { value: "$716,755", label: "2026 YTD revenue", sub: "Verified" },
+  { value: "$900,627", label: "2026 YTD revenue", sub: "Verified" },
   { value: "$1.2M+", label: "Full-year projection", sub: "Q4 2026 target" },
   { value: "$78,734", label: "Confirmed pipeline", sub: "Upcoming bookings" },
   {
@@ -202,7 +202,7 @@ const FAQ_ITEMS = [
 ] as const;
 
 const YEAR_START = Date.UTC(2026, 0, 1);
-const YTD_ANCHOR = 716_755;
+const YTD_ANCHOR = 900_627;
 
 export default function InvestorsPage() {
   return (
@@ -229,7 +229,7 @@ export default function InvestorsPage() {
           <Reveal delay={160}>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70 sm:mt-7 sm:text-xl">
               {BRAND} is bootstrapped, profitable, and operating - 100+ vehicles
-              at DFW International and Love Field, $716K+ earned in 2026 with $0
+              at DFW International and Love Field, $900K+ earned in 2026 with $0
               outside capital. We’re raising a{" "}
               <span className="font-semibold text-white">$504,000 SAFE</span>{" "}
               (Late Seed) at a{" "}
@@ -339,7 +339,7 @@ export default function InvestorsPage() {
             <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
               {BRAND} is a bootstrapped, profitable fleet-management company
               operating 100 vehicles at DFW International and Love Field -
-              $716,755 earned in 2026 with zero outside capital. Four years of
+              $900,627 earned in 2026 with zero outside capital. Four years of
               operations. Institutional-grade fleet management, All-Star Host
               status, 3,626 trips completed.
             </p>
@@ -408,7 +408,7 @@ export default function InvestorsPage() {
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Step 03 · Financial performance</SectionEyebrow>
             <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">
-              $716K earned in 2026 · $1.2M full-year target.
+              $900K earned in 2026 · $1.2M full-year target.
             </h2>
           </Reveal>
 
@@ -643,7 +643,7 @@ export default function InvestorsPage() {
 /* ── Pieces ─────────────────────────────────────────────────────────── */
 
 /**
- * A revenue figure that visibly climbs - computed as the stated $716,755 2026
+ * A revenue figure that visibly climbs - computed as the stated $900,627 2026
  * YTD figure plus a rate derived from elapsed time since Jan 1, 2026, i.e. an
  * ILLUSTRATIVE run-rate, not a live feed of real bookings. The caption is not
  * decorative - a fundraising page cannot imply a capability it doesn't have.
@@ -695,7 +695,7 @@ function LiveTicker() {
       </p>
       <p className="mt-3 text-xs leading-relaxed text-white/50">
         Illustrative - calculated from {BRAND}’s verified 2026 year-to-date
-        revenue ($716,755), extrapolated at a constant run-rate since January 1,
+        revenue ($900,627), extrapolated at a constant run-rate since January 1,
         2026.
       </p>
     </div>

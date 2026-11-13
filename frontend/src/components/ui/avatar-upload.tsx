@@ -1,6 +1,6 @@
 'use client';
 
-import { IMAGE_ACCEPT } from '@/lib/upload-formats';
+import { IMAGE_ACCEPT, PHOTO_FORMATS, PHOTO_TYPES } from '@/lib/upload-formats';
 import { useState } from 'react';
 import { Camera, Loader2, Trash2 } from 'lucide-react';
 import { hostApi } from '@/features/host/api';
@@ -52,8 +52,8 @@ export function AvatarUpload({
     if (!file) return;
     // Reject early with a useful message rather than letting S3 refuse the
     // signature for a content type it was never signed for.
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      notify({ tone: 'error', title: 'Unsupported image', description: 'Use a JPG, PNG or WebP.' });
+    if (!PHOTO_TYPES.includes(file.type)) {
+      notify({ tone: 'error', title: 'Unsupported image', description: `Use a ${PHOTO_FORMATS}.` });
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
@@ -126,7 +126,7 @@ export function AvatarUpload({
           {optional && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">Optional</span>}
         </p>
         <p className="text-xs text-muted-foreground">
-          {hint ?? 'A clear photo of your face helps guests trust you. JPG, PNG or WebP, up to 8 MB.'}
+          {hint ?? `A clear photo of your face helps guests trust you. ${PHOTO_FORMATS}, up to 8 MB.`}
         </p>
         {url && !disabled && (
           <button

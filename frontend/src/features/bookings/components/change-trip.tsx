@@ -20,6 +20,7 @@ import { useMoveTrip, useRequestException, useShiftPickup, useSwitchCar } from '
 import { CANCEL_REASON_LABEL, EXCEPTION_REASON_LABEL } from '../status';
 import type { Booking, CancelReasonCode, ChangeOptions, ExceptionReasonCode } from '../types';
 import { safeMessage } from '@/lib/utils/safe-message';
+import { PHOTO_ACCEPT } from '@/lib/upload-formats';
 
 const errorText = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
 const toLocalInput = (iso: string) => {
@@ -371,7 +372,7 @@ export function ExceptionForm({
           <Textarea id="ex-note" rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
         <Field label={proofRequired ? 'Proof' : 'Proof (optional)'} htmlFor="ex-files" hint="Airline email, weather alert or doctor’s note. PDF, JPG or PNG, up to 5 files." error={tooMany ? 'Add up to 5 files.' : undefined}>
-          <Input id="ex-files" type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
+          <Input id="ex-files" type="file" multiple accept={`application/pdf,${PHOTO_ACCEPT}`} onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
         </Field>
         {(uploadError || request.isError) && <p role="alert" className="text-sm text-destructive">{uploadError ?? errorText(request.error, 'We couldn’t send your request. Try again.')}</p>}
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

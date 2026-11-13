@@ -16,6 +16,7 @@ type Row = FeeReportRow & { _id: string };
 
 const STATUS: Record<FeeReportRow['status'], { label: string; tone: 'success' | 'warning' | 'muted' | 'destructive' }> = {
   paid: { label: 'Paid', tone: 'success' },
+  deferred: { label: 'From earnings', tone: 'success' },
   due: { label: 'Waiting', tone: 'warning' },
   waived: { label: 'Waived', tone: 'muted' },
   refunded: { label: 'Refunded', tone: 'destructive' },
@@ -31,7 +32,9 @@ export function PartnerFeeReport({ base, partnerHref }: { base: '/admin' | '/ioc
   const columns: Column<Row>[] = [
     { header: 'Partner', cell: (r) => (partnerHref ? <Link href={partnerHref(r.partnerId)} className="font-medium text-primary hover:underline">{r.name}</Link> : <span className="font-medium">{r.name}</span>), sortValue: (r) => r.name },
     { header: 'Status', cell: (r) => <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].label}</Badge>, sortValue: (r) => r.status },
-    { header: 'Amount', numeric: true, cell: (r) => (r.totalCents > 0 ? usd(r.paidCents ?? r.totalCents) : '—'), sortValue: (r) => r.paidCents ?? r.totalCents },
+    { header: 'Amount', numeric: true, cell: (r) => (r.totalCents > 0 ? usd(r.totalCents) : '—'), sortValue: (r) => r.totalCents },
+    { header: 'Paid now', numeric: true, hideOnMobile: true, cell: (r) => (r.paidCents ? usd(r.paidCents) : '—') },
+    { header: 'From earnings', numeric: true, hideOnMobile: true, cell: (r) => (r.deferredCents ? usd(r.deferredCents) : '—') },
     { header: 'Platform fee', numeric: true, hideOnMobile: true, cell: (r) => (r.platformFeeCents > 0 ? usd(r.platformFeeCents) : '—') },
     { header: 'Date', cell: (r) => { const d = r.refundedAt ?? r.paidAt ?? r.setAt; return d ? formatDate(d) : '—'; }, sortValue: (r) => r.refundedAt ?? r.paidAt ?? r.setAt ?? '' },
   ];
@@ -50,7 +53,7 @@ export function PartnerFeeReport({ base, partnerHref }: { base: '/admin' | '/ioc
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatTile label="Collected" value={usd(q.data.collectedCents)} sub={`${q.data.paidCount} paid`} tone="primary" />
           <StatTile label="Platform fee in that" value={usd(q.data.platformFeeCents)} />
-          <StatTile label="Waiting to be paid" value={usd(q.data.dueCents)} sub={`${q.data.dueCount} partner${q.data.dueCount === 1 ? '' : 's'}`} />
+          <StatTile label="Coming from earnings" value={usd(q.data.fromEarningsCents ?? 0)} sub={`${q.data.deferredCount ?? 0} partner${q.data.deferredCount === 1 ? '' : 's'} · ${usd(q.data.dueCents)} still to choose`} />
           <StatTile label="Refunded" value={usd(q.data.refundedCents)} sub={`${q.data.refundedCount} refund${q.data.refundedCount === 1 ? '' : 's'}${q.data.waivedCount ? ` · ${q.data.waivedCount} waived` : ''}`} />
         </div>
       )}

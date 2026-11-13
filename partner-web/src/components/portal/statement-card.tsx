@@ -62,6 +62,7 @@ export function StatementCard({
         <StatementRow label="Professional detailing" value={`−${money(t.detailing)}`} muted />
         {t.repairs > 0 && <StatementRow label="Repairs" value={`−${money(t.repairs)}`} muted />}
         {t.noticeRefunds > 0 && <StatementRow label="Tolls and tickets you paid, refunded" value={`+${money(t.noticeRefunds)}`} />}
+        {(t.registrationFee ?? 0) > 0 && <StatementRow label="Registration fee, from earnings" value={`-${money(t.registrationFee!)}`} />}
         <div className="border-t border-border pt-2.5">
           <StatementRow label="Your net" value={money(t.net)} strong />
         </div>

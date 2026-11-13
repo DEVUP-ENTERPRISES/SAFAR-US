@@ -115,6 +115,7 @@ export async function buildStatementPdf(input: { partnerName: string; statement:
   if (s.totals.detailing) rows.push(['Less: Car wash and detailing', -s.totals.detailing, false]);
   if (s.totals.repairs) rows.push(['Less: Repairs', -s.totals.repairs, false]);
   if (s.totals.noticeRefunds) rows.push(['Plus: Tolls and tickets you paid, refunded', s.totals.noticeRefunds, false]);
+  if (s.totals.registrationFee) rows.push(['Less: Registration fee, from earnings', -s.totals.registrationFee, false]);
   rows.push(['Net to partner after operating costs', s.totals.net, true]);
   text('Net to partner after operating costs', M, y, 11, bold, NAVY);
   y -= 8;

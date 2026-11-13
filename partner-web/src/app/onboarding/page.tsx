@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarClock, Check, Clock, Mail, XCircle } from 'lucide-react';
+import { CalendarClock, Check, Clock, Mail, Phone, XCircle } from 'lucide-react';
 import { AuthGuard } from '@/components/layout/auth-guard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import { eligibilityApi } from '@/features/account/eligibility-api';
 import { assetPartnerApi, type OnboardingStage, type PartnerOnboarding } from '@/features/asset-partners/api';
 import { ApiError } from '@/lib/api/types';
 import { formatDate } from '@/lib/utils/format';
+import { CONTACT } from '@/features/contact/content';
 import { cn } from '@/lib/utils/cn';
 import { ApplicationForm } from '~/features/onboarding/application-form';
 import { SignDocuments } from '~/features/onboarding/sign-documents';
@@ -258,6 +259,9 @@ function GettingStarted() {
       <header className="space-y-2">
         <h1 className="display text-3xl sm:text-4xl">{data.partner ? `Welcome, ${data.partner.displayName}` : 'Become a CatoDrive partner'}</h1>
         <p className="text-muted-foreground">Please complete these steps.</p>
+        <p className="text-sm text-muted-foreground">
+          Questions? Call or text <a href={CONTACT.assetPartnerHotlineHref} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"><Phone className="h-3.5 w-3.5" aria-hidden />{CONTACT.assetPartnerHotlineDisplay}</a>
+        </p>
       </header>
       <Tracker stage={data.stage} />
 

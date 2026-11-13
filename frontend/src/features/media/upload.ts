@@ -1,4 +1,5 @@
 import { api } from '@/lib/api/client';
+import { PHOTO_FORMATS, PHOTO_TYPES } from '@/lib/upload-formats';
 
 /** Must match the backend storage.gateway UploadCategory list exactly. */
 export type UploadCategory =
@@ -21,7 +22,7 @@ export interface UploadTarget {
   publicUrl: string;
 }
 
-const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED = PHOTO_TYPES;
 // Papers can be PDFs; photos-only surfaces never ask for these categories.
 const DOC_CATEGORIES: UploadCategory[] = ['registration', 'insurance', 'kyc', 'claim', 'w9', 'title', 'notice', 'partner_exit'];
 
@@ -45,7 +46,7 @@ export async function uploadFiles(
 
   for (const f of files) {
     if (!ALLOWED.includes(f.type) && !(f.type === 'application/pdf' && DOC_CATEGORIES.includes(category))) {
-      throw new Error(DOC_CATEGORIES.includes(category) ? `${f.name}: use a PDF, JPG, PNG or WebP file.` : `${f.name}: use a JPG, PNG or WebP image.`);
+      throw new Error(DOC_CATEGORIES.includes(category) ? `${f.name}: use a PDF or a ${PHOTO_FORMATS} file.` : `${f.name}: use a ${PHOTO_FORMATS} image.`);
     }
     if (f.size <= 0) {
       throw new Error(`${f.name}: the file is empty.`);

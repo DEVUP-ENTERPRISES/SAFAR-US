@@ -87,6 +87,8 @@ export interface PlatformConfigDoc {
     registrationPlatformFeeCents: number;
     /** Usual GPS tracker install price, shown struck through against the registration's GPS line. */
     gpsRegularCents: number;
+    /** Lets a partner pay the registration from their car's first earnings, in full or after the platform fee. */
+    registrationPayLaterEnabled: boolean;
     /** Roamly fleet insurance, per vehicle per month, in minor units. */
     insuranceMonthlyCents: number;
     /** Professional detailing, per vehicle per month, in minor units. */
@@ -742,6 +744,7 @@ const schema = new Schema<PlatformConfigDoc>(
       joiningFeeEnabled: { type: Boolean, default: true },
       registrationPlatformFeeCents: { type: Number, default: 499 },
       gpsRegularCents: { type: Number, default: 32_500 },
+      registrationPayLaterEnabled: { type: Boolean, default: true },
       insuranceMonthlyCents: { type: Number, default: 13_700 }, // $137 Roamly
       detailingMonthlyCents: { type: Number, default: 5_000 }, // $50
       deductibleCapCents: { type: Number, default: 100_000 }, // $1,000 cap

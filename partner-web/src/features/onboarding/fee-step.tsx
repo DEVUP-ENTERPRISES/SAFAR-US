@@ -12,8 +12,19 @@ const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { min
 
 /** The one-time Asset Partner fee, paid on Stripe's own page between the ID check and signing. */
 type FeeLine = { key: string; label: string; amountCents: number; regularCents?: number };
+type Plan = 'now' | 'later' | 'platform_now';
+type FeeOption = { plan: Plan; todayCents: number; fromEarningsCents: number };
 
-export function FeeStep({ fee, onPaid }: { fee: { totalCents: number; lines: FeeLine[] }; onPaid: () => void }) {
+const OPTION_TEXT: Record<Plan, (o: FeeOption) => { title: string; detail: string }> = {
+  now: (o) => ({ title: `Pay ${money(o.todayCents)} now`, detail: 'Done in one step. Your full earnings are yours from day one.' }),
+  later: (o) => ({ title: 'Pay later from your car’s first earnings', detail: `Nothing today. ${money(o.fromEarningsCents)} comes out of your first payouts.` }),
+  platform_now: (o) => ({ title: `Pay ${money(o.todayCents)} now, the rest later`, detail: `${money(o.fromEarningsCents)} comes out of your first payouts.` }),
+};
+
+export function FeeStep({ fee, onPaid }: { fee: { totalCents: number; lines: FeeLine[]; options?: FeeOption[] }; onPaid: () => void }) {
+  const options = fee.options?.length ? fee.options : [{ plan: 'now' as const, todayCents: fee.totalCents, fromEarningsCents: 0 }];
+  const [plan, setPlan] = useState<Plan>('now');
+  const chosen = options.find((o) => o.plan === plan) ?? options[0];
   const [back, setBack] = useState<string | null>(null);
   useEffect(() => setBack(new URLSearchParams(window.location.search).get('fee')), []);
   const [problem, setProblem] = useState<string>();
@@ -36,8 +47,14 @@ export function FeeStep({ fee, onPaid }: { fee: { totalCents: number; lines: Fee
 
   const pay = useMutation({
     meta: { silentError: true },
-    mutationFn: () => assetPartnerApi.joiningFeeCheckout(),
-    onSuccess: (r) => {
+    mutationFn: async () => {
+      if (chosen.plan === 'later') {
+        await assetPartnerApi.joiningFeeFromEarnings();
+        return { paid: true };
+      }
+      return assetPartnerApi.joiningFeeCheckout(chosen.plan);
+    },
+    onSuccess: (r: { url?: string; paid: boolean }) => {
       if (r.paid) onPaid();
       else if (r.url) window.location.assign(r.url);
       else setProblem('We couldn’t open the payment page. Please try again.');
@@ -70,7 +87,7 @@ export function FeeStep({ fee, onPaid }: { fee: { totalCents: number; lines: Fee
               </dd>
             </div>
           ))}
-          <div className="flex items-baseline justify-between gap-4 border-t border-border pt-2"><dt className="font-semibold">Total, paid once</dt><dd className="text-2xl font-bold tabular-nums">{money(fee.totalCents)}</dd></div>
+          <div className="flex items-baseline justify-between gap-4 border-t border-border pt-2"><dt className="font-semibold">Total</dt><dd className="text-2xl font-bold tabular-nums">{money(fee.totalCents)}</dd></div>
           <p className="text-xs text-muted-foreground">One-time and non-refundable. Covers every car you place with CatoDrive.</p>
         </dl>
 
@@ -82,11 +99,32 @@ export function FeeStep({ fee, onPaid }: { fee: { totalCents: number; lines: Fee
         ) : (
           <>
             {back === 'cancelled' && <p role="status" className="rounded-lg bg-warning/10 p-3 text-sm">Payment wasn’t completed. You weren’t charged.</p>}
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-success" /> Card, Apple Pay or Google Pay on Stripe’s secure page.</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-success" /> You’ll get a receipt by email.</li>
-            </ul>
-            <Button className="w-full sm:w-auto" loading={pay.isPending} onClick={() => pay.mutate()}>Pay {money(fee.totalCents)}</Button>
+            {options.length > 1 && (
+              <fieldset className="space-y-2">
+                <legend className="pb-1 text-sm font-semibold">How would you like to pay?</legend>
+                {options.map((o) => {
+                  const t = OPTION_TEXT[o.plan](o);
+                  return (
+                    <label key={o.plan} className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition-colors ${plan === o.plan ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}`}>
+                      <input type="radio" name="fee-plan" value={o.plan} checked={plan === o.plan} onChange={() => setPlan(o.plan)} className="mt-1 h-4 w-4 accent-primary" />
+                      <span className="min-w-0">
+                        <span className="block font-semibold">{t.title}</span>
+                        <span className="block text-muted-foreground">{t.detail}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </fieldset>
+            )}
+            {chosen.todayCents > 0 && (
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-success" /> Card, Apple Pay or Google Pay on Stripe’s secure page.</li>
+                <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-success" /> You’ll get a receipt by email.</li>
+              </ul>
+            )}
+            <Button className="w-full sm:w-auto" loading={pay.isPending} onClick={() => pay.mutate()}>
+              {chosen.todayCents > 0 ? `Pay ${money(chosen.todayCents)}` : 'Continue, pay from earnings'}
+            </Button>
           </>
         )}
 

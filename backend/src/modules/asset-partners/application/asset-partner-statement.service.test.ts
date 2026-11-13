@@ -230,3 +230,41 @@ describe('asset partner statement', () => {
     expect(current.final).toBe(false);
   });
 });
+
+describe('registration fee paid from earnings', () => {
+  async function tripIn(vehicleId: string, month: number, gross: number) {
+    await BookingModel.create({
+      code: `T-${Math.random().toString(36).slice(2, 8)}`, guestId: 'guest-1', hostId: 'host-1', vehicleId, status: 'completed',
+      period: { start: new Date(Date.UTC(2026, month, 10)), end: new Date(Date.UTC(2026, month, 12)) },
+      priceBreakdown: { days: 2, subtotal: { amount: gross, currency: 'USD' }, total: { amount: gross, currency: 'USD' }, currency: 'USD' },
+    });
+  }
+
+  it('takes it from the first positive months, earliest first, never from a losing month', async () => {
+    const partner = await enrolPartner();
+    await addVehicle(partner._id, 'veh-1');
+    await AssetPartnerModel.updateOne({ _id: partner._id }, { $set: { joiningFee: { amountCents: 35_000, platformFeeCents: 499, currency: 'USD', attempt: 1, plan: 'later', deferredCents: 35_000, deferredAt: new Date(Date.UTC(2026, 6, 1)) } } });
+    await tripIn('veh-1', 7, 50_000); // Aug: 50,000 - 10,000 fee - 13,700 - 5,000 = 21,300
+    await tripIn('veh-1', 8, 50_000); // Sep: 21,300 again
+    const p = (await AssetPartnerModel.findById(partner._id).lean())!;
+
+    const jul = await assetPartnerStatementService.statement(p as never, '2026-07');
+    const aug = await assetPartnerStatementService.statement(p as never, '2026-08');
+    const sep = await assetPartnerStatementService.statement(p as never, '2026-09');
+    const oct = await assetPartnerStatementService.statement(p as never, '2026-10');
+
+    expect(jul.totals).toMatchObject({ registrationFee: 0, net: -18_700 });
+    expect(aug.totals).toMatchObject({ registrationFee: 21_300, net: 0 });
+    expect(sep.totals).toMatchObject({ registrationFee: 13_700, net: 7_600 });
+    expect(oct.totals.registrationFee).toBe(0);
+  });
+
+  it('takes nothing once the fee is refunded or was paid in full', async () => {
+    const partner = await enrolPartner();
+    await addVehicle(partner._id, 'veh-1');
+    await AssetPartnerModel.updateOne({ _id: partner._id }, { $set: { joiningFee: { amountCents: 35_000, currency: 'USD', attempt: 1, paidAt: new Date(), paidCents: 35_000 } } });
+    await tripIn('veh-1', 7, 50_000);
+    const p = (await AssetPartnerModel.findById(partner._id).lean())!;
+    expect((await assetPartnerStatementService.statement(p as never, '2026-08')).totals).toMatchObject({ registrationFee: 0, net: 21_300 });
+  });
+});

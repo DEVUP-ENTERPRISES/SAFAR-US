@@ -20,6 +20,7 @@ import { ApiError } from '@/lib/api/types';
 import { formatDate } from '@/lib/utils/format';
 import { saveFile } from '@/lib/utils/save-file';
 import { safeMessage } from '@/lib/utils/safe-message';
+import { PHOTO_ACCEPT } from '@/lib/upload-formats';
 
 const manage = partnerManageApi('/ioc');
 
@@ -159,7 +160,7 @@ export function IntakeReports({ partnerId, applications }: { partnerId: string; 
                   </div>
                 ))}
                 <label className="grid h-20 w-24 cursor-pointer place-items-center rounded-lg border-2 border-dashed border-border text-muted-foreground hover:bg-accent/40">
-                  <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={uploading} onChange={(e) => { void addPhotos(e.target.files); e.target.value = ''; }} />
+                  <input type="file" multiple accept={PHOTO_ACCEPT} className="sr-only" disabled={uploading} onChange={(e) => { void addPhotos(e.target.files); e.target.value = ''; }} />
                   {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
                 </label>
               </div>

@@ -292,6 +292,10 @@ export default function AdminAssetPartnerTermsPage() {
                 onChange={(e) => set((d) => { d.assetPartner.gpsRegularCents = Math.min(500_000, Math.max(0, toCents(e.target.value))); })}
               />
             </Field>
+            <label className="flex items-start gap-3 text-sm">
+              <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" disabled={ap.joiningFeeEnabled === false} checked={ap.registrationPayLaterEnabled !== false} onChange={(e) => set((d) => { d.assetPartner.registrationPayLaterEnabled = e.target.checked; })} />
+              <span><span className="font-medium">Let partners pay from their car’s first earnings</span><span className="block text-muted-foreground">Adds two choices at payment: pay everything later, or pay the platform fee now and the rest later. The rest comes out of their first positive statements.</span></span>
+            </label>
           </CardContent>
         </Card>
 

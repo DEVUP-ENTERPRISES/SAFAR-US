@@ -453,6 +453,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               <Row label="Detailing" value={`−${money(statement.data.totals.detailing)}`} />
               {statement.data.totals.repairs > 0 && <Row label="Repairs" value={`−${money(statement.data.totals.repairs)}`} />}
               {statement.data.totals.noticeRefunds > 0 && <Row label="Tolls and tickets refunded" value={`+${money(statement.data.totals.noticeRefunds)}`} />}
+              {(statement.data.totals.registrationFee ?? 0) > 0 && <Row label="Registration fee, from earnings" value={`-${money(statement.data.totals.registrationFee!)}`} />}
               <div className="border-t border-border pt-2.5">
                 <Row label="Partner net" value={money(statement.data.totals.net)} strong />
               </div>

@@ -25,6 +25,9 @@ export interface JoiningFee {
   paidCents?: number;
   refundedAt?: string;
   refundReason?: string;
+  plan?: 'now' | 'later' | 'platform_now';
+  deferredCents?: number;
+  deferredAt?: string;
 }
 
 /** The partner's one-time fee: what is owed, when it was paid, and the only changes ops can make at each point. */
@@ -48,8 +51,8 @@ export function JoiningFeeCard({ partnerId, fee, signed }: { partnerId: string; 
     onError: fail,
   });
 
-  const status = !fee ? 'none' : fee.refundedAt ? 'refunded' : fee.paidAt ? 'paid' : fee.amountCents > 0 ? 'due' : 'waived';
-  const canChange = (status === 'due' || status === 'waived' || status === 'none') && !signed;
+  const status = !fee ? 'none' : fee.refundedAt ? 'refunded' : (fee.deferredCents ?? 0) > 0 ? 'deferred' : fee.paidAt ? 'paid' : fee.amountCents > 0 ? 'due' : 'waived';
+  const canChange = (status === 'due' || status === 'waived' || status === 'none' || (status === 'deferred' && !fee?.paidAt)) && !signed;
   const cents = Math.round(Number(amount) * 100);
   const valid = amount.trim() !== '' && Number.isFinite(cents) && cents >= 0 && cents <= 500_000;
 
@@ -68,8 +71,8 @@ export function JoiningFeeCard({ partnerId, fee, signed }: { partnerId: string; 
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <CardTitle className="text-base">Registration fee</CardTitle>
-        <Badge tone={status === 'paid' ? 'success' : status === 'due' ? 'warning' : 'muted'}>
-          {status === 'none' ? 'Not charged' : status === 'due' ? 'Waiting for payment' : status === 'paid' ? 'Paid' : status === 'waived' ? 'Waived' : 'Refunded'}
+        <Badge tone={status === 'paid' || status === 'deferred' ? 'success' : status === 'due' ? 'warning' : 'muted'}>
+          {status === 'none' ? 'Not charged' : status === 'due' ? 'Waiting for payment' : status === 'paid' ? 'Paid' : status === 'deferred' ? 'From earnings' : status === 'waived' ? 'Waived' : 'Refunded'}
         </Badge>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
@@ -79,6 +82,12 @@ export function JoiningFeeCard({ partnerId, fee, signed }: { partnerId: string; 
             Owes <span className="font-semibold tabular-nums">{money(fee!.amountCents)}</span>
             {(fee!.platformFeeCents ?? 0) > 0 && <span className="text-muted-foreground tabular-nums"> (includes {money(fee!.platformFeeCents!)} platform fee)</span>}
             . They pay right after their ID check, before signing.
+          </p>
+        )}
+        {status === 'deferred' && (
+          <p>
+            {fee!.paidAt ? <>Paid <span className="font-semibold tabular-nums">{money(fee!.paidCents ?? 0)}</span> now; </> : 'Chose to pay from earnings: '}
+            <span className="font-semibold tabular-nums">{money(fee!.deferredCents!)}</span> comes out of their first positive statements.
           </p>
         )}
         {status === 'waived' && <p className="text-muted-foreground">Waived{fee?.setAt ? ` on ${formatDateTime(fee.setAt)}` : ''}.</p>}

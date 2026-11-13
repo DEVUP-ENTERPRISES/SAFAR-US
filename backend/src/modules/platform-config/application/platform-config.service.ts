@@ -162,6 +162,7 @@ export class PlatformConfigService {
         joiningFeeEnabled: true,
         registrationPlatformFeeCents: 499,
         gpsRegularCents: 32_500,
+        registrationPayLaterEnabled: true,
         insuranceMonthlyCents: 13_700,
         detailingMonthlyCents: 5_000,
         deductibleCapCents: 100_000,

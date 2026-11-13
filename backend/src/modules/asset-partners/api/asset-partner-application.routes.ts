@@ -100,9 +100,21 @@ router.post(
   '/asset-partners/me/joining-fee/checkout',
   authenticate,
   authLimiter,
+  validate({ body: z.object({ plan: z.enum(['now', 'platform_now']).default('now') }).default({ plan: 'now' }) }),
   asyncHandler(async (req, res) => {
     res.set('Cache-Control', 'private, no-store');
-    sendSuccess(res, await assetPartnerFeeService.checkout(req.principal!.userId));
+    sendSuccess(res, await assetPartnerFeeService.checkout(req.principal!.userId, req.body.plan));
+  }),
+);
+
+// The partner pays the whole registration from their car's first earnings; nothing is charged now.
+router.post(
+  '/asset-partners/me/joining-fee/pay-from-earnings',
+  authenticate,
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await assetPartnerFeeService.payFromEarnings(req.principal!.userId));
   }),
 );
 

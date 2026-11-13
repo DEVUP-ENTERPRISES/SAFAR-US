@@ -1,6 +1,6 @@
 'use client';
 
-import { IMAGE_ACCEPT } from '@/lib/upload-formats';
+import { IMAGE_ACCEPT, PHOTO_FORMATS } from '@/lib/upload-formats';
 import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FolderLock, Upload, ShieldCheck, AlertTriangle, FileText } from 'lucide-react';
@@ -171,7 +171,7 @@ export default function PartnerDocumentsPage() {
             disabled={upload.isPending}
           />
           <p className="text-xs text-muted-foreground">
-            JPG, PNG or WebP, up to 12 MB. Photograph the whole page so the dates are readable.
+            {PHOTO_FORMATS}, up to 12 MB. Photograph the whole page so the dates are readable.
           </p>
         </CardContent>
       </Card>

@@ -213,7 +213,7 @@ export interface PartnerOnboarding {
   email?: string;
   emailVerified: boolean;
   /** What is owed at the fee step. */
-  fee?: { totalCents: number; currency: string; lines: { key: 'gps' | 'detailing' | 'insurance' | 'registration'; label: string; amountCents: number; regularCents?: number }[] };
+  fee?: { totalCents: number; currency: string; lines: { key: 'gps' | 'detailing' | 'insurance' | 'registration'; label: string; amountCents: number; regularCents?: number }[]; options?: { plan: 'now' | 'later' | 'platform_now'; todayCents: number; fromEarningsCents: number }[] };
   application?: PartnerApplicationDetail;
   partner?: { displayName: string; status: PartnerStatus };
   agreement?: SignableDocument | null;
@@ -339,6 +339,8 @@ export interface PartnerStatement {
     repairs: number;
     /** Tolls and tickets the partner paid that CatoDrive accepted, paid back here. */
     noticeRefunds: number;
+    /** Registration fee the partner chose to pay from earnings, taken this month. */
+    registrationFee?: number;
     net: number;
   };
   payoutDate: string;
@@ -446,7 +448,7 @@ export interface NoticeUploadInput {
 export interface PartnerYearSummary {
   year: number;
   months: { period: string; trips: number; gross: number; net: number }[];
-  totals: { trips: number; gross: number; managementFee: number; insurance: number; detailing: number; repairs: number; noticeRefunds: number; net: number };
+  totals: { trips: number; gross: number; managementFee: number; insurance: number; detailing: number; repairs: number; noticeRefunds: number; registrationFee?: number; net: number };
   paidInYear: number;
 }
 
@@ -507,7 +509,8 @@ export const assetPartnerApi = {
   resubmitApplication: (id: string, input: PortalApplicationInput) => api.patch<PartnerApplicationDetail>(`/asset-partners/me/applications/${id}`, input),
   signDocuments: (input: SignDocumentsInput) => api.post('/asset-partners/me/agreement', input),
   /** Stripe's hosted page for the one-time fee; `paid` when it has already gone through. */
-  joiningFeeCheckout: () => api.post<{ url?: string; paid: boolean }>('/asset-partners/me/joining-fee/checkout'),
+  joiningFeeCheckout: (plan: 'now' | 'platform_now' = 'now') => api.post<{ url?: string; paid: boolean }>('/asset-partners/me/joining-fee/checkout', { plan }),
+  joiningFeeFromEarnings: () => api.post('/asset-partners/me/joining-fee/pay-from-earnings'),
   requestNewOffer: () => api.post<AgreementOfferState | null>('/asset-partners/me/agreement/reissue-request'),
   profile: () => api.get<{ profile: PartnerProfile | null; ownPhone?: string; identity: { state: IdentityState; required: boolean; reason?: string } }>('/asset-partners/me/profile'),
   saveProfile: (input: PartnerProfileInput) => api.put<PartnerProfile>('/asset-partners/me/profile', input),

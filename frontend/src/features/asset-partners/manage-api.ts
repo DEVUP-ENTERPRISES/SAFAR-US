@@ -7,10 +7,11 @@ export type ReviewDecision = 'approved' | 'changes_requested' | 'rejected';
 export interface FeeReportRow {
   partnerId: string;
   name: string;
-  status: 'paid' | 'due' | 'waived' | 'refunded' | 'none';
+  status: 'paid' | 'deferred' | 'due' | 'waived' | 'refunded' | 'none';
   totalCents: number;
   platformFeeCents: number;
   paidCents?: number;
+  deferredCents?: number;
   setAt?: string;
   paidAt?: string;
   refundedAt?: string;
@@ -26,6 +27,8 @@ export interface FeeReport {
   dueCount: number;
   waivedCount: number;
   refundedCount: number;
+  fromEarningsCents?: number;
+  deferredCount?: number;
   rows: FeeReportRow[];
 }
 

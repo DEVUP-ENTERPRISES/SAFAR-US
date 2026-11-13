@@ -27,6 +27,7 @@ import { DocumentModel } from '../../documents/infrastructure/document.model';
 import type { RejectionReason } from '../infrastructure/asset-partner-application.model';
 import type { PartnerProfile } from '../infrastructure/asset-partner.model';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import type { FeePlan } from '../infrastructure/asset-partner.model';
 import { assetPartnerFeeService, feeLines, feeTotal, type FeeLine } from './asset-partner-fee.service';
 import { logger } from '../../../infrastructure/logging/logger';
 
@@ -101,7 +102,7 @@ export interface PartnerOnboarding {
   profile?: PartnerProfile & { ownPhone?: string };
   identity?: Pick<PartnerIdentity, 'state' | 'reason'>;
   offer?: OfferState | null;
-  fee?: { totalCents: number; currency: string; lines: FeeLine[] };
+  fee?: { totalCents: number; currency: string; lines: FeeLine[]; options: { plan: FeePlan; todayCents: number; fromEarningsCents: number }[] };
   rejection?: { reasons: { code: RejectionReason; label: string; why: string; improve: string }[]; improvements?: string; reapplyAfter?: Date; canReapply: boolean };
 }
 
@@ -329,7 +330,7 @@ export class AssetPartnerApplicationService {
       }
       if (stage === 'fee') {
         const f = partner.joiningFee!;
-        return { ...base, stage, partner: summary, offer, fee: { totalCents: feeTotal(f), currency: f.currency, lines: await feeLines(partner) } };
+        return { ...base, stage, partner: summary, offer, fee: { totalCents: feeTotal(f), currency: f.currency, lines: await feeLines(partner), options: await assetPartnerFeeService.options(partner) } };
       }
       if (stage === 'agreement') {
         const docs = await assetPartnerAgreementService.forPartner(partner);

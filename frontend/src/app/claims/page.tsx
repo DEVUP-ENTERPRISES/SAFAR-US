@@ -21,6 +21,7 @@ import { useMyBookings } from '@/features/bookings/queries';
 import { uploadFiles } from '@/features/media/upload';
 import { ApiError } from '@/lib/api/types';
 import { CLAIM_LIST_TONE } from '@/features/claims/status';
+import { PHOTO_ACCEPT } from '@/lib/upload-formats';
 
 
 function Claims() {
@@ -89,7 +90,7 @@ function Claims() {
             <Field label="What happened" htmlFor="claim-desc" className="sm:col-span-2"><Textarea id="claim-desc" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} maxLength={2000} /></Field>
             <Field label="Amount you’re claiming (optional, USD)" htmlFor="claim-amount"><Input id="claim-amount" type="number" inputMode="decimal" min={0} step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
             <Field label={form.type === 'damage' ? 'Photos (at least one)' : 'Photos or papers (optional)'} htmlFor="claim-files" hint="JPG, PNG or PDF. Up to 20.">
-              <input id="claim-files" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" disabled={uploading} onChange={(e) => { void addFiles(e.target.files); e.target.value = ''; }} className="block w-full text-sm file:me-3 file:rounded-sm file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm" />
+              <input id="claim-files" type="file" multiple accept={`${PHOTO_ACCEPT},application/pdf`} disabled={uploading} onChange={(e) => { void addFiles(e.target.files); e.target.value = ''; }} className="block w-full text-sm file:me-3 file:rounded-sm file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm" />
             </Field>
             {(files.length > 0 || uploading || uploadError) && (
               <div className="sm:col-span-2 text-sm">

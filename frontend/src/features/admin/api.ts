@@ -79,6 +79,7 @@ export interface PlatformConfig {
     joiningFeeEnabled?: boolean;
     registrationPlatformFeeCents?: number;
     gpsRegularCents?: number;
+    registrationPayLaterEnabled?: boolean;
     exitSeparateApprover?: boolean;
   };
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };

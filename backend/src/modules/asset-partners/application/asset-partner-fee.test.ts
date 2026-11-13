@@ -152,6 +152,47 @@ describe('Asset Partner fee', () => {
     expect(feeView(partner.joiningFee).status).toBe('none');
     await expect(assetPartnerFeeService.refund(partner._id, OPS, 'nothing')).rejects.toThrow('no paid fee');
   });
+  it('offers pay now, pay later from earnings, and platform fee now with the rest from earnings', async () => {
+    const { userId } = await partnerAtFee(35_000);
+    const ob = await assetPartnerApplicationService.onboarding(userId);
+    expect(ob.fee?.options).toEqual([
+      { plan: 'now', todayCents: 35_000, fromEarningsCents: 0 },
+      { plan: 'later', todayCents: 0, fromEarningsCents: 35_000 },
+      { plan: 'platform_now', todayCents: 499, fromEarningsCents: 34_501 },
+    ]);
+  });
+
+  it('pay later charges nothing and lets the partner go on to sign', async () => {
+    const { userId, partner } = await partnerAtFee(35_000);
+    await assetPartnerFeeService.payFromEarnings(userId);
+    const after = (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!;
+    expect(feeView(after.joiningFee)).toMatchObject({ status: 'deferred', plan: 'later', deferredCents: 35_000 });
+    expect(after.joiningFee!.paidAt).toBeUndefined();
+    expect((await assetPartnerApplicationService.onboarding(userId)).stage).toBe('agreement');
+    expect(await LedgerModel.countDocuments({ refType: 'asset_partner_fee' })).toBe(0);
+  });
+
+  it('platform fee now charges only that on Stripe and leaves the rest for earnings', async () => {
+    const { userId, partner } = await partnerAtFee(35_000);
+    await assetPartnerFeeService.checkout(userId, 'platform_now');
+    const sessionId = (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!.joiningFee!.sessionId!;
+    payOpenPage(sessionId);
+    await assetPartnerFeeService.onCheckoutCompleted(sessionId);
+    const after = (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!;
+    expect(feeView(after.joiningFee)).toMatchObject({ status: 'deferred', plan: 'platform_now', paidCents: 499, deferredCents: 34_501 });
+    expect((await assetPartnerApplicationService.onboarding(userId)).stage).toBe('agreement');
+  });
+
+  it('switching from one way to pay to another closes the first payment page', async () => {
+    const { userId, partner } = await partnerAtFee(35_000);
+    await assetPartnerFeeService.checkout(userId, 'now');
+    const first = (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!.joiningFee!.sessionId!;
+    await assetPartnerFeeService.checkout(userId, 'platform_now');
+    const second = (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!.joiningFee!.sessionId!;
+    expect(second).not.toBe(first);
+    expect((await gateway.retrieveCheckout(first)).status).toBe('expired');
+  });
+
   it('reports registration fee revenue apart from trips: collected, platform part, waiting, refunded, waived', async () => {
     const make = async (email: string) => (await assetPartnerService.enrolByEmail({ email, fullName: email.split('@')[0], partnerType: 'individual' })).partner._id;
     const [paid, due, refunded, waived] = await Promise.all([make('a@example.com'), make('b@example.com'), make('c@example.com'), make('d@example.com')]);

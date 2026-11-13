@@ -58,6 +58,8 @@ export interface PartnerStatement {
     repairs: number;
     /** Tolls and tickets the partner paid that CatoDrive accepted, paid back here. */
     noticeRefunds: number;
+    /** Registration fee the partner chose to pay from earnings, taken from this month's net. */
+    registrationFee: number;
     net: number;
   };
   /** When this month's net is scheduled to reach the partner. */
@@ -81,6 +83,13 @@ export function currentPeriod(now = new Date()): string {
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
+function nextPeriod(period: string): string {
+  const [y, m] = period.split('-').map(Number);
+  return currentPeriod(new Date(Date.UTC(y, m, 1)));
+}
+
+type StatementCache = Map<string, Promise<PartnerStatement>>;
+
 export class AssetPartnerStatementService {
   /**
    * One month's statement for one partner.
@@ -91,7 +100,36 @@ export class AssetPartnerStatementService {
    * $137 and $50, which is exactly what the partner's paper statement shows —
    * hiding them would make a negative month look like a break-even one.
    */
-  async statement(partner: AssetPartnerDoc, period = currentPeriod()): Promise<PartnerStatement> {
+  async statement(partner: AssetPartnerDoc, period = currentPeriod(), cache: StatementCache = new Map()): Promise<PartnerStatement> {
+    const base = await this.base(partner, period, cache);
+    const take = await this.registrationTaken(partner, period, cache);
+    if (!take) return base;
+    return { ...base, totals: { ...base.totals, registrationFee: take, net: base.totals.net - take } };
+  }
+
+  private base(partner: AssetPartnerDoc, period: string, cache: StatementCache): Promise<PartnerStatement> {
+    if (!cache.has(period)) cache.set(period, this.compute(partner, period));
+    return cache.get(period)!;
+  }
+
+  /** The deferred registration fee comes out of the first months with a positive net, earliest first, until it is covered. */
+  private async registrationTaken(partner: AssetPartnerDoc, period: string, cache: StatementCache): Promise<number> {
+    const f = partner.joiningFee;
+    const owed = f?.refundedAt ? 0 : (f?.deferredCents ?? 0);
+    if (owed <= 0 || !f?.deferredAt) return 0;
+    const first = currentPeriod(new Date(f.deferredAt));
+    if (period < first) return 0;
+    let remaining = owed;
+    for (let p = first; p <= period; p = nextPeriod(p)) {
+      const take = Math.min(remaining, Math.max(0, (await this.base(partner, p, cache)).totals.net));
+      if (p === period) return take;
+      remaining -= take;
+      if (remaining <= 0) return 0;
+    }
+    return 0;
+  }
+
+  private async compute(partner: AssetPartnerDoc, period: string): Promise<PartnerStatement> {
     const { start, end } = monthBounds(period);
     // Fixed monthly charges follow the terms at the start of the month; each trip's fee follows the rate on the day it ended.
     const [terms, rateAt] = await Promise.all([
@@ -189,6 +227,7 @@ export class AssetPartnerStatementService {
         detailing: sum((l) => l.detailing),
         repairs: sum((l) => l.repairs),
         noticeRefunds: refunds.amount,
+        registrationFee: 0,
         net: sum((l) => l.net) + refunds.amount,
       },
       payoutDate,
@@ -207,7 +246,8 @@ export class AssetPartnerStatementService {
     const periods = Array.from({ length: months }, (_, i) =>
       currentPeriod(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1))),
     );
-    return Promise.all(periods.map((p) => this.statement(partner, p)));
+    const cache: StatementCache = new Map();
+    return Promise.all(periods.map((p) => this.statement(partner, p, cache)));
   }
 }
 

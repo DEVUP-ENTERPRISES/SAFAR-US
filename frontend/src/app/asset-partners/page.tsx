@@ -58,7 +58,7 @@ const TIERS = [
 const GROWTH = [
   { year: '2023', value: '$1,574' },
   { year: '2025', value: '$307K' },
-  { year: '2026', value: '$405K+' },
+  { year: '2026', value: '$900K+' },
 ] as const;
 
 const REQUIREMENTS = [
@@ -303,7 +303,7 @@ export default function AssetPartnersPage() {
                   ))}
                 </div>
                 <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
-                  <span className="font-semibold text-foreground">$405K+ earned in 2026</span> across 100 managed
+                  <span className="font-semibold text-foreground">$900K+ earned in 2026</span> across 100 managed
                   vehicles, with $0 outside capital. The airport market is strong and proven.
                 </p>
               </div>

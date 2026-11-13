@@ -16,6 +16,7 @@ import { assetPartnerApi, NOTICE_TYPE_LABEL, type NoticeType, type PartnerNotice
 import { uploadFiles } from '@/features/media/upload';
 import { ApiError } from '@/lib/api/types';
 import { formatDate, formatMoney } from '@/lib/utils/format';
+import { PHOTO_ACCEPT } from '@/lib/upload-formats';
 
 const usd = (cents: number) => formatMoney({ amount: cents, currency: 'USD' });
 const today = () => new Date().toISOString().slice(0, 10);
@@ -111,7 +112,7 @@ function UploadForm({ onDone }: { onDone: () => void }) {
               <Camera className="h-5 w-5 text-primary" aria-hidden />
               <span>{files.length ? files.map((x) => x.name).join(', ') : 'Take a photo or choose a file (front and back if it has two sides)'}</span>
             </label>
-            <input id="n-file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" capture="environment" multiple className="sr-only" onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 5))} />
+            <input id="n-file" type="file" accept={`${PHOTO_ACCEPT},application/pdf`} capture="environment" multiple className="sr-only" onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 5))} />
           </Field>
           <label className="flex items-start gap-3 rounded-sm border border-border p-3 text-sm sm:col-span-2">
             <input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" checked={f.paid} onChange={(e) => set('paid', e.target.checked)} />

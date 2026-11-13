@@ -12,6 +12,7 @@ import { uploadFiles } from '@/features/media/upload';
 import { FUEL_LABEL, type CarPatch, type FuelLevel, type HandoverInput, type ManualChecklistKey, type ReturnCar } from '@/features/asset-partners/returns-api';
 import { ApiError } from '@/lib/api/types';
 import { cn } from '@/lib/utils/cn';
+import { PHOTO_ACCEPT } from '@/lib/upload-formats';
 
 const failMessage = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : e instanceof Error && e.message.includes(':') ? e.message : fallback);
 
@@ -125,7 +126,7 @@ export function CarChecklist({ car, editable, photoMin, onPatch }: { car: Return
           <p className="text-label font-semibold">Return photos <span className="font-normal text-muted-foreground tabular-nums">({car.photos.length} of {photoMin} needed)</span></p>
           {editable && (
             <>
-              <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => { void upload(e.target.files); e.target.value = ''; }} />
+              <input ref={fileInput} type="file" accept={PHOTO_ACCEPT} capture="environment" multiple className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => { void upload(e.target.files); e.target.value = ''; }} />
               <Button size="sm" variant="outline" disabled={!!busy} onClick={() => fileInput.current?.click()}>
                 {busy === 'photos' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />} Add photos
               </Button>

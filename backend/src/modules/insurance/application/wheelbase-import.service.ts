@@ -12,7 +12,7 @@ import { wheelbaseInsuranceService, sameCar, linkFrom } from './wheelbase-insura
 
 const MAX_PHOTOS = 12;
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
-const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 
 type Car = Pick<VehicleDoc, '_id' | 'make' | 'model' | 'year' | 'status' | 'photos' | 'features' | 'listing' | 'wheelbase' | 'location'>;
 

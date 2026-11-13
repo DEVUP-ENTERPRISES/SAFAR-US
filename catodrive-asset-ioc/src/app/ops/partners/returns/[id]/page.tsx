@@ -24,6 +24,7 @@ import { ApiError } from '@/lib/api/types';
 import { formatDate, formatDateTime } from '@/lib/utils/format';
 import { PartnersNav } from '~/features/partners/partners-nav';
 import { CarChecklist, HandoverForm } from '~/features/partners/return-checklist';
+import { PHOTO_ACCEPT } from '@/lib/upload-formats';
 
 const manage = returnsManageApi('/ioc');
 const fail = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
@@ -150,7 +151,7 @@ function Estate({ d, onChange }: { d: ReturnDetail; onChange: (x: ReturnDetail) 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <Field label="Paper" htmlFor="es-kind" className="sm:w-72"><Select id="es-kind" value={kind} onChange={(e) => setKind(e.target.value as keyof typeof DOC_KIND)}>{Object.entries(DOC_KIND).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></Field>
               <label className="inline-flex">
-                <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ''; }} />
+                <input type="file" accept={`application/pdf,${PHOTO_ACCEPT}`} className="sr-only" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ''; }} />
                 <span className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-sm border border-border px-4 text-sm font-medium hover:bg-accent">{uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />} Upload</span>
               </label>
             </div>

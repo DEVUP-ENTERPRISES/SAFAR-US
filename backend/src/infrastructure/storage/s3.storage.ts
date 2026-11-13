@@ -16,6 +16,9 @@ const EXT: Record<string, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
   'image/heic': 'heic',
+  'image/heif': 'heif',
+  'image/avif': 'avif',
+  'image/gif': 'gif',
   'application/pdf': 'pdf',
 };
 

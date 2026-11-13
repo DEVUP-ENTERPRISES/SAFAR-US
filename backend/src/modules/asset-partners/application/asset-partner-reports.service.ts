@@ -14,7 +14,7 @@ const monthName = (period: string) => MONTH.format(new Date(`${period}-01T00:00:
 export interface YearSummary {
   year: number;
   months: { period: string; trips: number; gross: number; net: number }[];
-  totals: { trips: number; gross: number; managementFee: number; insurance: number; detailing: number; repairs: number; noticeRefunds: number; net: number };
+  totals: { trips: number; gross: number; managementFee: number; insurance: number; detailing: number; repairs: number; noticeRefunds: number; registrationFee: number; net: number };
   /** Money actually sent in the calendar year, which is what a 1099 reports. */
   paidInYear: number;
 }
@@ -70,6 +70,7 @@ export const assetPartnerReportsService = {
         detailing: sum((s) => s.totals.detailing),
         repairs: sum((s) => s.totals.repairs),
         noticeRefunds: sum((s) => s.totals.noticeRefunds),
+        registrationFee: sum((s) => s.totals.registrationFee ?? 0),
         net: sum((s) => s.totals.net),
       },
       paidInYear: paid.reduce((a, p) => a + p.amount, 0),
@@ -88,6 +89,7 @@ export const assetPartnerReportsService = {
       `Detailing: -${usd(t.detailing)}`,
       `Repairs: -${usd(t.repairs)}`,
       `Tolls and tickets refunded: ${usd(t.noticeRefunds)}`,
+      ...(t.registrationFee ? [`Registration fee from earnings: -${usd(t.registrationFee)}`] : []),
       `Net earned: ${usd(t.net)}`,
       '',
       `Paid to you in ${year}: ${usd(y.paidInYear)}`,

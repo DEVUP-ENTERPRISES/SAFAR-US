@@ -140,7 +140,15 @@ export interface JoiningFee {
   refundedAt?: Date;
   refundedBy?: string;
   refundReason?: string;
+  /** How the partner chose to pay: all now, all from earnings, or the platform fee now and the rest from earnings. */
+  plan?: FeePlan;
+  /** The part taken from the partner's first positive statements, earliest month first. */
+  deferredCents?: number;
+  /** When the partner chose to pay from earnings; recovery starts with this month's statement. */
+  deferredAt?: Date;
 }
+
+export type FeePlan = 'now' | 'later' | 'platform_now';
 
 export interface AssetPartnerDoc {
   _id: string;
@@ -243,6 +251,9 @@ const schema = new Schema<AssetPartnerDoc>(
           refundedAt: Date,
           refundedBy: String,
           refundReason: String,
+          plan: { type: String, enum: ['now', 'later', 'platform_now'] },
+          deferredCents: { type: Number, min: 0 },
+          deferredAt: Date,
         },
         { _id: false },
       ),

@@ -14,7 +14,7 @@ import { uploadFiles } from '@/features/media/upload';
 import { assetPartnerApi, type PartnerApplicationDetail, type PortalApplicationInput, type TitleStatus, type VinLookup } from '@/features/asset-partners/api';
 import { documentsApi } from '@/features/documents/api';
 import { usePlatformConfig } from '@/features/platform/config';
-import { DOC_ACCEPT } from '@/lib/upload-formats';
+import { DOC_ACCEPT, PHOTO_ACCEPT, PHOTO_FORMATS } from '@/lib/upload-formats';
 import { US_STATES } from '@/lib/data/us-states';
 import { useQuery } from '@tanstack/react-query';
 import { authApi } from '@/features/auth/api';
@@ -312,7 +312,7 @@ export function ApplicationForm({ mode, initial, reviewNote, changeRequest, draf
       const [up] = await uploadFiles('vehicle_photo', [file]);
       setD((prev) => ({ ...prev, photos: { ...prev.photos, [slot]: { url: up.url, key: up.key, sha256 } } }));
     } catch (e) {
-      setErrors((prev) => ({ ...prev, [`photo-${slot}`]: e instanceof Error && e.message.includes('JPG') ? 'Use a JPG, PNG or WebP photo' : 'That photo didn’t upload. Try again.' }));
+      setErrors((prev) => ({ ...prev, [`photo-${slot}`]: e instanceof Error && e.message.includes('JPG') ? `Use a ${PHOTO_FORMATS} photo` : 'That photo didn’t upload. Try again.' }));
     } finally {
       setUploading((u) => ({ ...u, [slot]: false }));
     }
@@ -505,7 +505,7 @@ export function ApplicationForm({ mode, initial, reviewNote, changeRequest, draf
                   </div>
                   {openSlots.length > 1 && (
                     <label className={cn('inline-flex cursor-pointer items-center gap-2 rounded-sm border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent/40 focus-within:ring-2 focus-within:ring-ring', busy && 'pointer-events-none opacity-60')}>
-                      <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={(e) => { void addSeveral(e.target.files); e.target.value = ''; }} />
+                      <input type="file" multiple accept={PHOTO_ACCEPT} className="sr-only" disabled={busy} onChange={(e) => { void addSeveral(e.target.files); e.target.value = ''; }} />
                       <Camera className="h-4 w-4" /> Add several
                     </label>
                   )}
@@ -658,7 +658,7 @@ function PhotoSlot({ label, hint, required, photo, uploading, error, onPick, onR
         ) : (
           <label className="flex h-full cursor-pointer flex-col items-center justify-center gap-1 p-2 text-center hover:bg-accent/40">
             {/* Listing the image types makes iPhones send a JPEG instead of HEIC. */}
-            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={uploading} onChange={(e) => { onPick(e.target.files?.[0]); e.target.value = ''; }} />
+            <input type="file" accept={PHOTO_ACCEPT} className="sr-only" disabled={uploading} onChange={(e) => { onPick(e.target.files?.[0]); e.target.value = ''; }} />
             {uploading ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <Camera className="h-5 w-5 text-muted-foreground" />}
             <span className="text-xs text-muted-foreground">{uploading ? 'Uploading…' : hint}</span>
           </label>
