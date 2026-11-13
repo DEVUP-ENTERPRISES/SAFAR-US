@@ -69,6 +69,8 @@ export const createApplicationSchema = z.object({
   acknowledgedTerms: z.literal(true, { error: 'Required' }),
   signature: z.string().trim().min(2).max(120),
   signDate: z.coerce.date(),
+  /** Shared only when the applicant ticks the box; used to check the address is real. */
+  submittedFrom: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180), accuracyM: z.number().min(0).max(100_000).optional() }).optional(),
 });
 
 export type CreateApplicationDto = z.infer<typeof createApplicationSchema>;

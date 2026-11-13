@@ -9,6 +9,12 @@ import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
+import { applicationsCsv } from '../application/asset-partner-application-export';
+
+const sendCsv = (res: import('express').Response, name: string, csv: string) => {
+  res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${name}"`, 'Cache-Control': 'private, no-store' });
+  res.send(csv);
+};
 
 const router = Router();
 
@@ -44,6 +50,26 @@ router.get(
   authorize('admin:read'),
   asyncHandler(async (_req, res) => {
     sendSuccess(res, CHANGE_KEYS.map((key) => ({ key, label: CHANGE_ITEMS[key] })));
+  }),
+);
+
+/** Every application matching the list filters, as a spreadsheet for the team. */
+router.get(
+  '/asset-partner-applications/export.csv',
+  authorize('admin:read'),
+  validate({ query: z.object({ status: z.enum(['submitted', 'under_review', 'changes_requested', 'approved', 'rejected']).optional(), kind: z.enum(['partner', 'vehicle']).optional() }) }),
+  asyncHandler(async (req, res) => {
+    const rows = await assetPartnerApplicationService.exportRows(req.query as { status?: string; kind?: string });
+    sendCsv(res, `asset-partner-applications-${new Date().toISOString().slice(0, 10)}.csv`, applicationsCsv(rows));
+  }),
+);
+
+router.get(
+  '/asset-partner-applications/:id/export.csv',
+  authorize('admin:read'),
+  asyncHandler(async (req, res) => {
+    const [app] = await assetPartnerApplicationService.exportRows({ id: req.params.id });
+    sendCsv(res, `application-${app.reference}.csv`, applicationsCsv([app]));
   }),
 );
 

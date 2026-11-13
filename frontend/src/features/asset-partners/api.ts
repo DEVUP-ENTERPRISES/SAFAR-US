@@ -51,6 +51,8 @@ export interface CreateAssetPartnerApplicationInput {
   acknowledgedTerms: boolean;
   signature: string;
   signDate: string;
+  /** Device location, only when the applicant agrees to share it. */
+  submittedFrom?: { lat: number; lng: number; accuracyM?: number };
 }
 
 export type ApplicationStatus = 'submitted' | 'under_review' | 'changes_requested' | 'approved' | 'rejected';

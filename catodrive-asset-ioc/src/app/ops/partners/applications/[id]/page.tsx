@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Check, CheckCircle2, ImageOff, Mail, MessageSquareWarning, Phone, ShieldCheck, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Camera, Check, CheckCircle2, ExternalLink, ImageOff, Mail, MapPin, MessageSquareWarning, Phone, ShieldCheck, X, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,8 @@ import { safeMessage } from '@/lib/utils/safe-message';
 import { ApiError } from '@/lib/api/types';
 import { cn } from '@/lib/utils/cn';
 import { ListingCard } from '~/features/partners/listing-card';
+import { LocationMap } from '@/features/maps/components/location-map';
+import { DownloadButton } from '~/features/partners/download-button';
 
 const manage = partnerManageApi('/ioc');
 
@@ -47,7 +49,42 @@ interface ApplicationDetail {
   reviewedBy?: string; reviewedAt?: string; reviewNotes?: string; hostVerified?: boolean;
   changeRequest?: { items: { key: string; label?: string; note?: string }[]; note?: string; requestedAt: string };
   resubmission?: { at: string; changed: string[]; before: Record<string, unknown> };
+  geo?: { lat?: number; lng?: number; formatted?: string; matched: boolean; checkedAt: string };
+  submittedFrom?: { lat: number; lng: number; accuracyM?: number; at: string };
+  submittedFromMiles?: number;
   createdAt: string;
+}
+
+const mapsLink = (q: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+
+/** The typed address on a real map, and how far away the applicant was when they applied. */
+function AddressCheck({ a }: { a: ApplicationDetail }) {
+  const typed = `${a.address}, ${a.city}, ${a.state} ${a.zip}`;
+  const found = a.geo?.matched && a.geo.lat != null && a.geo.lng != null;
+  const miles = a.submittedFromMiles;
+  return (
+    <Card>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+        <CardTitle className="flex items-center gap-2 text-base"><MapPin className="h-4 w-4 text-primary" aria-hidden /> Address check</CardTitle>
+        {!a.geo?.checkedAt ? <Badge tone="muted">Not checked yet</Badge> : found ? <Badge tone="success">Found on the map</Badge> : <Badge tone="warning">Couldn’t find this address</Badge>}
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <p><span className="font-medium">{typed}</span>{found && a.geo?.formatted && a.geo.formatted !== typed && <span className="block text-muted-foreground">Map: {a.geo.formatted}</span>}</p>
+        {found && <LocationMap lat={a.geo!.lat!} lng={a.geo!.lng!} label={a.fullName} zoom={14} className="h-56 w-full overflow-hidden rounded-lg" />}
+        {miles !== undefined ? (
+          <p className="rounded-lg bg-subtle p-3">
+            Applied from <span className="font-semibold tabular-nums">{miles < 1 ? 'less than a mile' : `${miles.toLocaleString('en-US')} miles`}</span> away{a.submittedFrom?.accuracyM ? <span className="text-muted-foreground"> (device accurate to about {Math.round(a.submittedFrom.accuracyM).toLocaleString('en-US')} m)</span> : null}.
+          </p>
+        ) : (
+          <p className="text-muted-foreground">{a.submittedFrom ? 'The address couldn’t be placed, so the distance is unknown.' : 'They didn’t share their location when applying.'}</p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <a href={mapsLink(typed)} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-2 rounded-sm border border-border px-3 font-medium hover:bg-accent"><ExternalLink className="h-4 w-4" aria-hidden />Open in Google Maps</a>
+          {a.submittedFrom && <a href={mapsLink(`${a.submittedFrom.lat},${a.submittedFrom.lng}`)} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-2 rounded-sm border border-border px-3 font-medium hover:bg-accent"><ExternalLink className="h-4 w-4" aria-hidden />Where they applied from</a>}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 // The slots the partner form asks for, in shooting order; anything else they sent follows.
@@ -160,11 +197,14 @@ export default function ApplicationDetailPage() {
             <a href={`tel:${a.phone}`} className="inline-flex h-9 items-center gap-2 rounded-sm border border-border px-3 text-sm font-medium hover:bg-accent"><Phone className="h-4 w-4" aria-hidden />{a.phone}</a>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {a.kind === 'vehicle' && <Badge>Extra car</Badge>}
           <Badge tone={APPLICATION_STATUS[a.status].tone}>{APPLICATION_STATUS[a.status].label}</Badge>
+          <DownloadButton onClick={() => manage.exportApplication(a._id)} label="Download" />
         </div>
       </header>
+
+      <AddressCheck a={a} />
 
       {a.status === 'approved' && (
         <Card className="border-success/40 bg-success/5">

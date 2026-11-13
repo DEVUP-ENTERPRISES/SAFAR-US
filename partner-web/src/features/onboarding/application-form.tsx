@@ -128,6 +128,18 @@ function fromApplication(a: PartnerApplicationDetail, withCar: boolean): Draft {
   };
 }
 
+/** The device's position when the applicant agreed to share it; nothing if they decline or it takes too long, so it never holds up the form. */
+function currentPosition(): Promise<PortalApplicationInput['submittedFrom']> {
+  return new Promise((resolve) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return resolve(undefined);
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, accuracyM: Math.round(p.coords.accuracy) }),
+      () => resolve(undefined),
+      { enableHighAccuracy: true, timeout: 8_000, maximumAge: 60_000 },
+    );
+  });
+}
+
 function toInput(d: Draft): PortalApplicationInput {
   const opt = (v: string) => v.trim() || undefined;
   return {
@@ -318,6 +330,8 @@ export function ApplicationForm({ mode, initial, reviewNote, changeRequest, draf
     }
   };
 
+  const [shareLocation, setShareLocation] = useState(false);
+
   const next = async () => {
     const e = errorsFor(step, d, show);
     if (only && step === 'confirm') {
@@ -334,7 +348,7 @@ export function ApplicationForm({ mode, initial, reviewNote, changeRequest, draf
     setSubmitting(true);
     setSubmitError('');
     try {
-      await onSubmit(toInput(d));
+      await onSubmit({ ...toInput(d), ...(shareLocation ? { submittedFrom: await currentPosition() } : {}) });
       try { localStorage.removeItem(draftKey); } catch { /* storage unavailable */ }
     } catch (err) {
       setSubmitError(err instanceof ApiError ? err.message : 'We couldn’t send it. Please try again.');
@@ -585,6 +599,12 @@ export function ApplicationForm({ mode, initial, reviewNote, changeRequest, draf
                 <span>I confirm these details are accurate, I can place this car with CatoDrive, and I agree to a physical inspection before it goes live.</span>
               </label>
               {errors.confirmed && <p className="text-xs text-destructive">{errors.confirmed}</p>}
+              {mode === 'partner' && !only && (
+                <label className="flex cursor-pointer gap-3 rounded-lg border border-border p-4 text-sm">
+                  <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-primary" checked={shareLocation} onChange={(e) => setShareLocation(e.target.checked)} />
+                  <span>Share my current location to help confirm my address <span className="text-muted-foreground">(optional, used only for this review)</span></span>
+                </label>
+              )}
               {submitError && <p role="alert" className="text-sm text-destructive">{submitError}</p>}
             </>
           )}

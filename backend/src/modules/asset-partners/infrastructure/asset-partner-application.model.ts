@@ -144,6 +144,10 @@ export interface AssetPartnerApplicationDoc {
    *  a host. False/absent means ops still needs to follow up once the
    *  applicant creates an account. */
   hostVerified?: boolean;
+  /** The typed address as found on the map; matched false when the lookup found nothing. */
+  geo?: { lat?: number; lng?: number; formatted?: string; matched: boolean; checkedAt: Date };
+  /** Where the applicant's device was when they applied, only when they agreed to share it. */
+  submittedFrom?: { lat: number; lng: number; accuracyM?: number; at: Date };
 
   createdAt: Date;
   updatedAt: Date;
@@ -227,6 +231,8 @@ const schema = new Schema<AssetPartnerApplicationDoc>(
       default: undefined,
     },
     hostVerified: Boolean,
+    geo: { type: new Schema({ lat: Number, lng: Number, formatted: String, matched: Boolean, checkedAt: Date }, { _id: false }), default: undefined },
+    submittedFrom: { type: new Schema({ lat: Number, lng: Number, accuracyM: Number, at: Date }, { _id: false }), default: undefined },
     changeRequest: {
       type: new Schema(
         {

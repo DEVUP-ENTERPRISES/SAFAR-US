@@ -31,6 +31,7 @@ import type { FeePlan } from '../infrastructure/asset-partner.model';
 import { assetPartnerFeeService, feeLines, feeTotal, type FeeLine } from './asset-partner-fee.service';
 import { logger } from '../../../infrastructure/logging/logger';
 import { alertLeadership, opsLink } from './asset-partner-leadership-alert';
+import { locateApplication, submittedFromMiles } from './asset-partner-application-export';
 
 /** "CD-AP-482913" — server-generated, never client-supplied. */
 function generateReference(): string {
@@ -69,6 +70,7 @@ function fieldsFrom(dto: PortalApplicationDto) {
     preferredZone: dto.preferredZone,
     targetStartDate: dto.targetStartDate,
     notes: dto.notes,
+    ...(dto.submittedFrom ? { submittedFrom: { ...dto.submittedFrom, at: new Date() } } : {}),
     acknowledgedAccurate: dto.acknowledgedAccurate,
     acknowledgedInspection: dto.acknowledgedInspection,
     acknowledgedTerms: dto.acknowledgedTerms,
@@ -189,13 +191,16 @@ export class AssetPartnerApplicationService {
       resubmission = { at: new Date(), changed: keys, before: app.changeRequest!.before };
     }
 
+    // A changed address has to be found on the map again.
+    const moved = (['address', 'city', 'state', 'zip'] as const).some((k) => fields[k] !== app[k]);
     const doc = await AssetPartnerApplicationModel.findOneAndUpdate(
       { _id: id, submittedByUserId: userId, status: 'changes_requested' },
-      { $set: { ...fields, email: user.email, status: 'submitted', ...(resubmission ? { resubmission } : {}) }, $unset: { changeRequest: 1 } },
+      { $set: { ...fields, email: user.email, status: 'submitted', ...(resubmission ? { resubmission } : {}) }, $unset: { changeRequest: 1, ...(moved ? { geo: 1 } : {}) } },
       { new: true },
     ).lean<AssetPartnerApplicationDoc>();
     if (!doc) throw new NotFoundError('Application');
     logger.info({ reference: doc.reference }, 'Asset Partner application resubmitted');
+    if (moved) void locateApplication(doc);
     return doc;
   }
 
@@ -298,6 +303,7 @@ export class AssetPartnerApplicationService {
     const saved = doc.toObject() as AssetPartnerApplicationDoc;
     // Never blocks the submission: a failed email is only logged.
     await this.confirmReceived(saved).catch((err) => logger.warn({ err, reference }, 'application received notice failed'));
+    void locateApplication(saved);
     const v = saved.vehicle;
     void alertLeadership(`New Asset Partner application: ${saved.fullName}`, [
       `${saved.fullName} applied to place a ${v.year} ${v.make} ${v.model} with CatoDrive (ref. ${reference}).`,
@@ -477,10 +483,21 @@ export class AssetPartnerApplicationService {
     return { items, total };
   }
 
-  async adminOne(id: string): Promise<AssetPartnerApplicationDoc> {
+  async adminOne(id: string): Promise<AssetPartnerApplicationDoc & { submittedFromMiles?: number }> {
     const doc = await AssetPartnerApplicationModel.findById(id).lean<AssetPartnerApplicationDoc>();
     if (!doc) throw new NotFoundError('Application');
-    return doc;
+    // Applications from before the map check get it the first time someone opens them.
+    if (!doc.geo?.checkedAt) doc.geo = await locateApplication(doc);
+    return { ...doc, submittedFromMiles: submittedFromMiles(doc) };
+  }
+
+  /** Applications for a spreadsheet: one by id, or every one matching the list filters (newest first, capped). */
+  async exportRows(q: { id?: string; status?: string; kind?: string }): Promise<AssetPartnerApplicationDoc[]> {
+    if (q.id) return [await this.adminOne(q.id)];
+    const filter: Record<string, unknown> = {};
+    if (q.status) filter.status = q.status;
+    if (q.kind) filter.kind = q.kind === 'partner' ? { $in: ['partner', null] } : q.kind;
+    return AssetPartnerApplicationModel.find(filter).sort({ createdAt: -1 }).limit(2000).lean<AssetPartnerApplicationDoc[]>();
   }
 
   /**

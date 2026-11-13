@@ -9,6 +9,9 @@ process.env.NODE_ENV = 'test';
 process.env.SMTP_HOST = '';
 process.env.EMAIL_API_URL = '';
 process.env.EMAIL_API_KEY = '';
+// Same for paid map lookups: tests use the built-in stub.
+process.env.MAPBOX_TOKEN = '';
+process.env.GOOGLE_MAPS_API_KEY = '';
 process.env.MONGO_URI = process.env.MONGO_TEST_URI ?? 'mongodb://127.0.0.1:27017/cato_test';
 process.env.REDIS_URL = 'redis://127.0.0.1:6379';
 process.env.JWT_ACCESS_SECRET = 'test_access_secret_0123456789abcdef';

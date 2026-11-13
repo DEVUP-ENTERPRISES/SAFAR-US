@@ -173,6 +173,11 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     summary: () => api.get<ProgrammeSummary>(`${base}/asset-partners/summary`),
     applications: (q: Q = {}) => api.get<any[]>(`${base}/asset-partner-applications`, q),
     application: (id: string) => api.get<any>(`${base}/asset-partner-applications/${id}`),
+    exportApplications: (q: { status?: string; kind?: string } = {}) => {
+      const qs = new URLSearchParams(Object.entries(q).filter((e): e is [string, string] => !!e[1])).toString();
+      return api.download(`${base}/asset-partner-applications/export.csv${qs ? `?${qs}` : ''}`);
+    },
+    exportApplication: (id: string) => api.download(`${base}/asset-partner-applications/${id}/export.csv`),
     reviewApplication: (id: string, decision: ReviewDecision, notes?: string, rejection?: { reasons: string[]; improvements?: string; reapplyAfterDays?: number }, joiningFeeCents?: number, changes?: { key: string; note?: string }[]) =>
       api.post(`${base}/asset-partner-applications/${id}/review`, { decision, notes, rejection, joiningFeeCents, changes }),
     /** The items ops can send back for correction, with their plain names. */

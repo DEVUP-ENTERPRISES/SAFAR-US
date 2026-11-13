@@ -14,6 +14,7 @@ import { APPLICATION_STATUS } from '@/features/asset-partners/status';
 import type { ApplicationStatus } from '@/features/asset-partners/api';
 import { formatDate } from '@/lib/utils/format';
 import { PartnersNav } from '~/features/partners/partners-nav';
+import { DownloadButton } from '~/features/partners/download-button';
 
 const manage = partnerManageApi('/ioc');
 
@@ -77,7 +78,7 @@ export default function PartnerApplicationsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader eyebrow="Asset management" title="Applications" description="New partners and extra cars waiting for a decision. Approving a new partner asks them to sign the agreement before their dashboard opens." />
+      <PageHeader eyebrow="Asset management" title="Applications" description="New partners and extra cars waiting for a decision. Approving a new partner asks them to sign the agreement before their dashboard opens." actions={<DownloadButton label="Download for the team" onClick={() => manage.exportApplications({ status: status || undefined, kind: kind || undefined })} />} />
       <PartnersNav />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
