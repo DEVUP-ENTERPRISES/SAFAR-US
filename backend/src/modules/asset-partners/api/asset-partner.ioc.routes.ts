@@ -28,6 +28,7 @@ import { NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { assetPartnerFeeService } from '../application/asset-partner-fee.service';
+import { assetPartnerHelpService } from '../application/asset-partner-help.service';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 
@@ -455,6 +456,45 @@ router.post(
   asyncHandler(async (req, res) => {
     await assetPartnerProfileService.overrideIdentity(req.params.id, req.principal!.userId, req.body.reason);
     sendSuccess(res, { confirmed: true });
+  }),
+);
+
+/** Partner chats and meeting requests from the partner site. */
+router.get(
+  '/partner-chats',
+  authorize('admin:read'),
+  validate({ query: z.object({ open: z.enum(['true', 'false']).optional(), limit: z.coerce.number().int().min(1).max(50).optional(), skip: z.coerce.number().int().min(0).optional() }) }),
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    const q = req.query as { open?: string; limit?: number; skip?: number };
+    const r = await assetPartnerHelpService.list({ open: q.open !== 'false', limit: q.limit, skip: q.skip });
+    sendSuccess(res, r.items, 200, { total: r.total });
+  }),
+);
+
+router.get(
+  '/partner-chats/:id',
+  authorize('admin:read'),
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await assetPartnerHelpService.get(req.params.id));
+  }),
+);
+
+router.post(
+  '/partner-chats/:id/messages',
+  authorize('admin:read'),
+  validate({ body: z.object({ body: z.string().trim().min(1).max(2000) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerHelpService.reply(req.principal!.userId, req.params.id, req.body.body));
+  }),
+);
+
+router.post(
+  '/partner-chats/:id/resolve',
+  authorize('admin:read'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await assetPartnerHelpService.resolve(req.params.id));
   }),
 );
 

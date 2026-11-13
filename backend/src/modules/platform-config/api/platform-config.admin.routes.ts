@@ -103,6 +103,8 @@ router.put(
           registrationPlatformFeeCents: z.number().int().min(0).max(50_000).optional(),
           gpsRegularCents: z.number().int().min(0).max(500_000).optional(),
           registrationPayLaterEnabled: z.boolean().optional(),
+          onboardingAlertEmails: z.array(z.string().trim().toLowerCase().email()).max(10).optional(),
+          partnerMeetingUrl: z.union([z.literal(''), z.string().trim().url().max(300).refine((u) => u.startsWith('https://'), 'Use an https:// link')]).optional(),
           insuranceMonthlyCents: z.number().int().min(0).optional(),
           detailingMonthlyCents: z.number().int().min(0).optional(),
           deductibleCapCents: z.number().int().min(0).optional(),

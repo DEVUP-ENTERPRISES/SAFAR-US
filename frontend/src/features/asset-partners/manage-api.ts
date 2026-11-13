@@ -4,6 +4,26 @@ import type { FuelLevel, IntakeReport, NoticeStatus, PartnerNotice, SignatureEnv
 type Q = Record<string, string | number | boolean | undefined>;
 export type ReviewDecision = 'approved' | 'changes_requested' | 'rejected';
 
+export interface PartnerChat {
+  _id: string;
+  subject: string;
+  status: string;
+  updatedAt?: string;
+  requester: { id: string; name: string };
+  partnerId?: string;
+  lastMessage?: { body: string; fromPartner: boolean; at: string };
+}
+
+export interface PartnerChatThread {
+  _id: string;
+  subject: string;
+  status: string;
+  createdAt: string;
+  requester: { id: string; name: string; email?: string; phone?: string };
+  partnerId?: string;
+  messages: { body: string; at: string; internal: boolean; author: { name: string; fromCustomer: boolean } }[];
+}
+
 export interface FeeReportRow {
   partnerId: string;
   name: string;
@@ -160,6 +180,10 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     /** Whether registration fees are on, and the platform fee added to each. */
     joiningFeeSettings: () => api.get<{ enabled: boolean; platformFeeCents: number }>(`${base}/asset-partner-fee/default`),
     feeReport: () => api.get<FeeReport>(`${base}/asset-partner-fees`),
+    partnerChats: (q: { open?: boolean; limit?: number; skip?: number } = {}) => api.get<PartnerChat[]>(`${base}/partner-chats`, { ...q, open: q.open === false ? 'false' : 'true' }),
+    partnerChat: (id: string) => api.get<PartnerChatThread>(`${base}/partner-chats/${id}`),
+    replyPartnerChat: (id: string, body: string) => api.post<PartnerChatThread>(`${base}/partner-chats/${id}/messages`, { body }),
+    resolvePartnerChat: (id: string) => api.post<PartnerChatThread>(`${base}/partner-chats/${id}/resolve`),
     setJoiningFee: (partnerId: string, amountCents: number) => api.patch(`${base}/asset-partners/${partnerId}/joining-fee`, { amountCents }),
     refundJoiningFee: (partnerId: string, reason: string) => api.post(`${base}/asset-partners/${partnerId}/joining-fee/refund`, { reason }),
     rejectionReasons: () => api.get<{ code: string; label: string; why: string; improve: string }[]>(`${base}/asset-partner-applications/rejection-reasons`),

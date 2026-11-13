@@ -30,6 +30,7 @@ import { platformConfigService } from '../../platform-config/application/platfor
 import type { FeePlan } from '../infrastructure/asset-partner.model';
 import { assetPartnerFeeService, feeLines, feeTotal, type FeeLine } from './asset-partner-fee.service';
 import { logger } from '../../../infrastructure/logging/logger';
+import { alertLeadership, opsLink } from './asset-partner-leadership-alert';
 
 /** "CD-AP-482913" — server-generated, never client-supplied. */
 function generateReference(): string {
@@ -297,6 +298,12 @@ export class AssetPartnerApplicationService {
     const saved = doc.toObject() as AssetPartnerApplicationDoc;
     // Never blocks the submission: a failed email is only logged.
     await this.confirmReceived(saved).catch((err) => logger.warn({ err, reference }, 'application received notice failed'));
+    const v = saved.vehicle;
+    void alertLeadership(`New Asset Partner application: ${saved.fullName}`, [
+      `${saved.fullName} applied to place a ${v.year} ${v.make} ${v.model} with CatoDrive (ref. ${reference}).`,
+      [saved.email, saved.phone].filter(Boolean).join(' · '),
+      [saved.city, saved.state].filter(Boolean).join(', '),
+    ], opsLink(`/ops/partners/applications/${saved._id}`));
     return saved;
   }
 

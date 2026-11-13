@@ -89,6 +89,10 @@ export interface PlatformConfigDoc {
     gpsRegularCents: number;
     /** Lets a partner pay the registration from their car's first earnings, in full or after the platform fee. */
     registrationPayLaterEnabled: boolean;
+    /** Online booking page (e.g. Calendly) partners use to schedule a meeting; empty means they request one in the portal. */
+    partnerMeetingUrl: string;
+    /** Leadership emailed when a partner applies and when they sign. */
+    onboardingAlertEmails: string[];
     /** Roamly fleet insurance, per vehicle per month, in minor units. */
     insuranceMonthlyCents: number;
     /** Professional detailing, per vehicle per month, in minor units. */
@@ -745,6 +749,8 @@ const schema = new Schema<PlatformConfigDoc>(
       registrationPlatformFeeCents: { type: Number, default: 499 },
       gpsRegularCents: { type: Number, default: 32_500 },
       registrationPayLaterEnabled: { type: Boolean, default: true },
+      partnerMeetingUrl: { type: String, default: '' },
+      onboardingAlertEmails: { type: [String], default: ['ceo@catodrive.com', 'cmo@catodrive.com'] },
       insuranceMonthlyCents: { type: Number, default: 13_700 }, // $137 Roamly
       detailingMonthlyCents: { type: Number, default: 5_000 }, // $50
       deductibleCapCents: { type: Number, default: 100_000 }, // $1,000 cap

@@ -17,6 +17,7 @@ import { SignatureEnvelopeModel } from '../infrastructure/signature-envelope.mod
 import { KycModel } from '../../kyc/infrastructure/kyc.model';
 import type { ResolvedTermsSnapshot } from '../infrastructure/asset-partner-terms.model';
 import { feeDue } from './asset-partner-fee.service';
+import { alertLeadership, opsLink } from './asset-partner-leadership-alert';
 
 const hashOf = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
 
@@ -284,6 +285,10 @@ export class AssetPartnerAgreementService {
     if (doc) {
       await assetPartnerTermsService.writeBaseline(doc, terms, now, envelope.envelopeId);
       void assetPartnerEnvelopeService.sendCopy(envelope, ctx);
+      void alertLeadership(`Asset Partner signed: ${doc.displayName}`, [
+        `${doc.displayName} signed the Asset Partner Agreement and NDA (envelope ${envelope.envelopeId}).`,
+        doc.email ?? '',
+      ], opsLink(`/ops/partners/members/${doc._id}`));
     }
     return doc ?? (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!;
   }

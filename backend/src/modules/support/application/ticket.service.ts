@@ -3,6 +3,25 @@ import { NotFoundError, ForbiddenError, ConflictError } from '../../../core/erro
 import { realtimeEmitter } from '../../../realtime/emitter';
 import { notificationService } from '../../notifications/application/notification.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { UserModel } from '../../users/infrastructure/user.model';
+import { HOUSE_FLEET_ROLE } from '../../../shared/constants/rbac';
+import { logger } from '../../../infrastructure/logging/logger';
+import { config } from '../../../config';
+
+const PARTNER_HELP = 'asset_partner';
+
+/** Partner chats go to the partner team in the operations panel; a failed alert never blocks the partner's message. */
+async function alertPartnerTeam(ticket: Pick<TicketDoc, '_id' | 'subject'>, body: string, isNew: boolean): Promise<void> {
+  try {
+    const team = await UserModel.find({ roles: HOUSE_FLEET_ROLE, status: 'active' }).select('_id').lean<{ _id: string }[]>();
+    await Promise.all(team.map((u) => notificationService.send({
+      userId: u._id, priority: 'high', templateKey: 'asset_partner.help_message', ...(config.notifications.iocWebUrl ? { deepLink: `${config.notifications.iocWebUrl}/ops/partners/chats?open=${ticket._id}` } : {}),
+      title: isNew ? `New partner ${ticket.subject.toLowerCase().startsWith('meeting') ? 'meeting request' : 'chat'}` : 'A partner replied', body: body.slice(0, 120), data: { ticketId: ticket._id },
+    }).catch(() => undefined)));
+  } catch (err) {
+    logger.warn({ err, ticketId: ticket._id }, 'partner help alert failed');
+  }
+}
 
 // SLA targets come from PlatformConfig — support leads retune them, not devs.
 
@@ -24,6 +43,7 @@ export class TicketService {
       slaDueAt: new Date(Date.now() + slaHours * 3_600_000),
       messages: [{ authorId: userId, body: input.body, internal: false, at: new Date() }],
     });
+    if (ticket.category === PARTNER_HELP) void alertPartnerTeam(ticket, input.body, true);
     return ticket.toObject();
   }
 
@@ -63,6 +83,7 @@ export class TicketService {
     );
 
     // Live push + notification to the counterpart (agent↔requester chat).
+    if (!internal && !opts.isAgent && ticket.category === PARTNER_HELP) void alertPartnerTeam(ticket, body, false);
     if (!internal) {
       realtimeEmitter.toUser(ticket.userId, 'ticket:message', { ticketId, from: opts.isAgent ? 'agent' : 'you' });
       if (opts.isAgent) {

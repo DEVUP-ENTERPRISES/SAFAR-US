@@ -296,6 +296,12 @@ export default function AdminAssetPartnerTermsPage() {
               <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" disabled={ap.joiningFeeEnabled === false} checked={ap.registrationPayLaterEnabled !== false} onChange={(e) => set((d) => { d.assetPartner.registrationPayLaterEnabled = e.target.checked; })} />
               <span><span className="font-medium">Let partners pay from their car’s first earnings</span><span className="block text-muted-foreground">Adds two choices at payment: pay the registration later, or pay only the platform fee now and the registration later. The registration comes out of their first positive statements.</span></span>
             </label>
+            <Field label="Meeting booking link (optional)" hint="An https:// link to your booking page, e.g. Calendly. Leave empty and partners request a time in the portal instead; requests arrive in Partners > Chats.">
+              <Input type="url" inputMode="url" placeholder="https://calendly.com/…" value={ap.partnerMeetingUrl ?? ''} onChange={(e) => set((d) => { d.assetPartner.partnerMeetingUrl = e.target.value.trim(); })} />
+            </Field>
+            <Field label="Email leadership about new partners" hint="Comma-separated. Each address gets an email when a partner applies and when they sign.">
+              <EmailListInput value={ap.onboardingAlertEmails ?? ['ceo@catodrive.com', 'cmo@catodrive.com']} onChange={(list) => set((d) => { d.assetPartner.onboardingAlertEmails = list; })} />
+            </Field>
           </CardContent>
         </Card>
 
@@ -397,5 +403,19 @@ function Row({
         {value}
       </td>
     </tr>
+  );
+}
+
+/** Comma-separated emails typed freely; the list is saved when the box loses focus. */
+function EmailListInput({ value, onChange }: { value: string[]; onChange: (list: string[]) => void }) {
+  const [text, setText] = useState(value.join(', '));
+  return (
+    <Input
+      type="text"
+      inputMode="email"
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => onChange(text.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean))}
+    />
   );
 }

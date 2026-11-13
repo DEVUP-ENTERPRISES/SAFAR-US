@@ -80,6 +80,8 @@ export interface PlatformConfig {
     registrationPlatformFeeCents?: number;
     gpsRegularCents?: number;
     registrationPayLaterEnabled?: boolean;
+    partnerMeetingUrl?: string;
+    onboardingAlertEmails?: string[];
     exitSeparateApprover?: boolean;
   };
   payout: { holdHours: number; instantFeeBps: number; instantFeeMinCents: number };

@@ -63,5 +63,6 @@ const schema = new Schema<TicketDoc>(
 schema.index({ status: 1, priority: 1, slaDueAt: 1 });
 schema.index({ assignedTo: 1, status: 1 });
 schema.index({ userId: 1, createdAt: -1 });
+schema.index({ category: 1, status: 1, updatedAt: -1 });
 
 export const TicketModel = model<TicketDoc>('Ticket', schema);

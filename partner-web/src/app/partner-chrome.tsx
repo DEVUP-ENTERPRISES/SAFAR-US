@@ -12,6 +12,7 @@ import { PageTransition } from '@/components/layout/page-transition';
 import { useAuthStore } from '@/features/auth/store';
 import { useLogout } from '@/features/auth/hooks';
 import { goToSite } from '@/lib/sites';
+import { PartnerHelp } from '~/components/portal/partner-help';
 
 const BARE = ['/sign-in', '/sign-up', '/forgot-password', '/handoff'];
 
@@ -22,7 +23,12 @@ export function PartnerChrome({ children }: { children: ReactNode }) {
   const logout = useLogout();
 
   if (BARE.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
-    return <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6">{children}</main>;
+    return (
+      <>
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6">{children}</main>
+        <PartnerHelp />
+      </>
+    );
   }
 
   return (
@@ -56,6 +62,7 @@ export function PartnerChrome({ children }: { children: ReactNode }) {
         <SiteNotice />
         <PageTransition>{children}</PageTransition>
       </main>
+      <PartnerHelp />
     </>
   );
 }

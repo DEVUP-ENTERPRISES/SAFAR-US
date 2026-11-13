@@ -5,6 +5,10 @@
  * keeps the production guards off. None of these reach a real service.
  */
 process.env.NODE_ENV = 'test';
+// Blank wins over the local .env (dotenv never overrides), so no test can send a real email or text.
+process.env.SMTP_HOST = '';
+process.env.EMAIL_API_URL = '';
+process.env.EMAIL_API_KEY = '';
 process.env.MONGO_URI = process.env.MONGO_TEST_URI ?? 'mongodb://127.0.0.1:27017/cato_test';
 process.env.REDIS_URL = 'redis://127.0.0.1:6379';
 process.env.JWT_ACCESS_SECRET = 'test_access_secret_0123456789abcdef';
