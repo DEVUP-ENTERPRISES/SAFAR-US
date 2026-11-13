@@ -294,7 +294,7 @@ export default function AdminAssetPartnerTermsPage() {
             </Field>
             <label className="flex items-start gap-3 text-sm">
               <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" disabled={ap.joiningFeeEnabled === false} checked={ap.registrationPayLaterEnabled !== false} onChange={(e) => set((d) => { d.assetPartner.registrationPayLaterEnabled = e.target.checked; })} />
-              <span><span className="font-medium">Let partners pay from their car’s first earnings</span><span className="block text-muted-foreground">Adds two choices at payment: pay everything later, or pay the platform fee now and the rest later. The rest comes out of their first positive statements.</span></span>
+              <span><span className="font-medium">Let partners pay from their car’s first earnings</span><span className="block text-muted-foreground">Adds two choices at payment: pay the registration later, or pay only the platform fee now and the registration later. The registration comes out of their first positive statements.</span></span>
             </label>
           </CardContent>
         </Card>

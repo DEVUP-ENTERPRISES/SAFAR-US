@@ -107,7 +107,8 @@ export const assetPartnerFeeService = {
     return [
       now,
       { plan: 'later', todayCents: 0, fromEarningsCents: total },
-      ...(platform > 0 && platform < total ? [{ plan: 'platform_now' as const, todayCents: platform, fromEarningsCents: total - platform }] : []),
+      // The platform fee is its own charge here: paid today, with the full registration still coming from earnings.
+      ...(platform > 0 ? [{ plan: 'platform_now' as const, todayCents: platform, fromEarningsCents: total }] : []),
     ];
   },
 
@@ -189,7 +190,7 @@ export const assetPartnerFeeService = {
     }
     const lines = plan === 'now'
       ? (await feeLines(p)).map((l) => ({ name: l.regularCents ? `${l.label} (launch offer)` : l.label, amountCents: l.amountCents }))
-      : [{ name: 'Processing fee (the rest comes from your car’s first earnings)', amountCents: option.todayCents }];
+      : [{ name: 'Platform fee (registration comes from your car’s first earnings)', amountCents: option.todayCents }];
 
     const user = await UserModel.findById(userId).select('email').lean<{ email?: string }>();
     const base = config.notifications.partnerWebUrl || config.notifications.webUrl;
@@ -241,8 +242,8 @@ export const assetPartnerFeeService = {
     const now = new Date();
     const before = await AssetPartnerModel.findById(partnerId).select('joiningFee').lean<AssetPartnerDoc>();
     const total = before?.joiningFee ? feeTotal(before.joiningFee) : 0;
-    // Paying less than the total only happens on the platform-fee-now page; the rest comes from earnings.
-    const rest = state.metadata.plan === 'platform_now' || before?.joiningFee?.plan === 'platform_now' ? Math.max(0, total - state.amountTotal) : 0;
+    // The platform-fee-now page takes only the platform fee; the whole registration then comes from earnings.
+    const rest = state.metadata.plan === 'platform_now' || before?.joiningFee?.plan === 'platform_now' ? total : 0;
     const updated = await AssetPartnerModel.findOneAndUpdate(
       { _id: partnerId, 'joiningFee.paidAt': { $exists: false } },
       {
@@ -283,7 +284,7 @@ export const assetPartnerFeeService = {
         templateKey: 'asset_partner.joining_fee_paid',
         title: 'Payment received',
         body: rest > 0
-          ? `We received your ${dollars(state.amountTotal)} payment on ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}. The remaining ${dollars(rest)} comes from your car’s first earnings. Next, sign your agreement.`
+          ? `We received your ${dollars(state.amountTotal)} platform fee on ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}. Your ${dollars(rest)} registration comes from your car’s first earnings. Next, sign your agreement.`
           : `We received your one-time, non-refundable ${dollars(state.amountTotal)} registration payment on ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' })}. It covers every car you place with CatoDrive. Next, sign your agreement.`,
         deepLink: '/onboarding',
         actionLabel: 'Continue',

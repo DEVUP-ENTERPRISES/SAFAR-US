@@ -152,13 +152,13 @@ describe('Asset Partner fee', () => {
     expect(feeView(partner.joiningFee).status).toBe('none');
     await expect(assetPartnerFeeService.refund(partner._id, OPS, 'nothing')).rejects.toThrow('no paid fee');
   });
-  it('offers pay now, pay later from earnings, and platform fee now with the rest from earnings', async () => {
+  it('offers pay now, pay later from earnings, and the platform fee now with the registration from earnings', async () => {
     const { userId } = await partnerAtFee(35_000);
     const ob = await assetPartnerApplicationService.onboarding(userId);
     expect(ob.fee?.options).toEqual([
       { plan: 'now', todayCents: 35_000, fromEarningsCents: 0 },
       { plan: 'later', todayCents: 0, fromEarningsCents: 35_000 },
-      { plan: 'platform_now', todayCents: 499, fromEarningsCents: 34_501 },
+      { plan: 'platform_now', todayCents: 499, fromEarningsCents: 35_000 },
     ]);
   });
 
@@ -172,14 +172,14 @@ describe('Asset Partner fee', () => {
     expect(await LedgerModel.countDocuments({ refType: 'asset_partner_fee' })).toBe(0);
   });
 
-  it('platform fee now charges only that on Stripe and leaves the rest for earnings', async () => {
+  it('platform fee now charges only the platform fee and leaves the whole registration for earnings', async () => {
     const { userId, partner } = await partnerAtFee(35_000);
     await assetPartnerFeeService.checkout(userId, 'platform_now');
     const sessionId = (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!.joiningFee!.sessionId!;
     payOpenPage(sessionId);
     await assetPartnerFeeService.onCheckoutCompleted(sessionId);
     const after = (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!;
-    expect(feeView(after.joiningFee)).toMatchObject({ status: 'deferred', plan: 'platform_now', paidCents: 499, deferredCents: 34_501 });
+    expect(feeView(after.joiningFee)).toMatchObject({ status: 'deferred', plan: 'platform_now', paidCents: 499, deferredCents: 35_000 });
     expect((await assetPartnerApplicationService.onboarding(userId)).stage).toBe('agreement');
   });
 

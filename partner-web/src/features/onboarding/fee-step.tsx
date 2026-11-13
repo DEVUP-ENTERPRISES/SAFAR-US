@@ -18,7 +18,7 @@ type FeeOption = { plan: Plan; todayCents: number; fromEarningsCents: number };
 const OPTION_TEXT: Record<Plan, (o: FeeOption) => { title: string; detail: string }> = {
   now: (o) => ({ title: `Pay ${money(o.todayCents)} now`, detail: 'Done in one step. Your full earnings are yours from day one.' }),
   later: (o) => ({ title: 'Pay later from your car’s first earnings', detail: `Nothing today. ${money(o.fromEarningsCents)} comes out of your first payouts.` }),
-  platform_now: (o) => ({ title: `Pay ${money(o.todayCents)} now, the rest later`, detail: `${money(o.fromEarningsCents)} comes out of your first payouts.` }),
+  platform_now: (o) => ({ title: `Pay only the ${money(o.todayCents)} platform fee now`, detail: `Your ${money(o.fromEarningsCents)} registration comes out of your first payouts.` }),
 };
 
 export function FeeStep({ fee, onPaid }: { fee: { totalCents: number; lines: FeeLine[]; options?: FeeOption[] }; onPaid: () => void }) {
