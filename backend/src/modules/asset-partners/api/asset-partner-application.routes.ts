@@ -26,6 +26,7 @@ import { assetPartnerNoticeService } from '../application/asset-partner-notice.s
 import { assetPartnerReportsService } from '../application/asset-partner-reports.service';
 import { assetPartnerSigningCode } from '../application/asset-partner-signing-code';
 import { assetPartnerFeeService } from '../application/asset-partner-fee.service';
+import { vehiclePauseService } from '../../vehicles/application/vehicle-pause.service';
 import { NOTICE_TYPES } from '../infrastructure/asset-partner-notice.model';
 import { resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
 
@@ -544,6 +545,37 @@ router.get(
   requirePartnerReady,
   asyncHandler(async (req, res) => {
     sendSuccess(res, await assetPartnerPortalService.vehicleDetail(req.principal!.userId, req.params.id));
+  }),
+);
+
+const dayKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a date');
+
+router.get(
+  '/asset-partners/vehicles/:id/pause',
+  authenticate,
+  requirePartnerReady,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await vehiclePauseService.partnerLatest(req.principal!.userId, req.params.id));
+  }),
+);
+
+/** Ask for a car to be off CatoDrive for some dates; the operations team reviews it. */
+router.post(
+  '/asset-partners/vehicles/:id/pause',
+  authenticate,
+  requirePartnerReady,
+  validate({ body: z.object({ reason: z.string().trim().min(3).max(500), fromDay: dayKey, backOnDay: dayKey }).strict() }),
+  asyncHandler(async (req, res) => {
+    sendCreated(res, await vehiclePauseService.request(req.principal!.userId, req.params.id, req.body));
+  }),
+);
+
+router.post(
+  '/asset-partners/pauses/:id/cancel',
+  authenticate,
+  requirePartnerReady,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await vehiclePauseService.cancel(req.principal!.userId, req.params.id));
   }),
 );
 

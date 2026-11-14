@@ -29,6 +29,7 @@ import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { assetPartnerFeeService } from '../application/asset-partner-fee.service';
 import { assetPartnerHelpService } from '../application/asset-partner-help.service';
+import { vehiclePauseService } from '../../vehicles/application/vehicle-pause.service';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 
@@ -456,6 +457,36 @@ router.post(
   asyncHandler(async (req, res) => {
     await assetPartnerProfileService.overrideIdentity(req.params.id, req.principal!.userId, req.body.reason);
     sendSuccess(res, { confirmed: true });
+  }),
+);
+
+/** Car pauses: partner requests to review, and pauses in place. */
+router.get(
+  '/car-pauses',
+  authorize('admin:read'),
+  validate({ query: z.object({ status: z.enum(['pending', 'open', 'closed']).optional(), limit: z.coerce.number().int().min(1).max(50).optional(), skip: z.coerce.number().int().min(0).optional() }) }),
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    const q = req.query as { status?: 'pending' | 'open' | 'closed'; limit?: number; skip?: number };
+    const r = await vehiclePauseService.list(q);
+    sendSuccess(res, r.items, 200, { total: r.total });
+  }),
+);
+
+router.post(
+  '/car-pauses/:id/approve',
+  authorize('host:manage'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await vehiclePauseService.approve(req.principal!.userId, req.params.id));
+  }),
+);
+
+router.post(
+  '/car-pauses/:id/decline',
+  authorize('host:manage'),
+  validate({ body: z.object({ reason: z.string().trim().min(3).max(500) }).strict() }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await vehiclePauseService.decline(req.principal!.userId, req.params.id, req.body.reason));
   }),
 );
 

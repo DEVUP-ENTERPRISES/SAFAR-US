@@ -316,6 +316,28 @@ export class AvailabilityService implements IAvailabilityContract {
     await AvailabilityModel.deleteMany({ vehicleId, dayKey: { $in: keys }, state: 'blocked' });
   }
 
+  /** Bookings and live checkout holds on any of these days. */
+  async bookingsOn(vehicleId: string, days: string[]): Promise<string[]> {
+    const rows = await AvailabilityModel.find(
+      { vehicleId, dayKey: { $in: days }, $or: [{ state: 'booked' }, { state: 'held', holdExpiresAt: { $gt: new Date() } }] },
+      { bookingId: 1, holdId: 1 },
+    ).lean<{ bookingId?: string; holdId?: string }[]>();
+    return [...new Set(rows.map((r) => r.bookingId ?? r.holdId ?? ''))];
+  }
+
+  /** Blocks whole calendar days for a pause; days already taken stay as they are. */
+  async blockForPause(vehicleId: string, days: string[], pauseId: string): Promise<void> {
+    if (!days.length) return;
+    await AvailabilityModel.bulkWrite(
+      days.map((dayKey) => ({ updateOne: { filter: { vehicleId, dayKey }, update: { $setOnInsert: { vehicleId, dayKey, state: 'blocked', pauseId } }, upsert: true } })),
+      { ordered: false },
+    );
+  }
+
+  async unblockPause(pauseId: string): Promise<void> {
+    await AvailabilityModel.deleteMany({ pauseId, state: 'blocked' });
+  }
+
   /** Calendar view for a month/range: returns occupied days with their state. */
   async getCalendar(
     vehicleId: string,

@@ -603,7 +603,7 @@ export class VehicleService implements IVehicleContract {
       action === 'approve'
         ? { status: 'listed', verificationStatus: 'verified' }
         : action === 'suspend'
-          ? { status: 'paused' }
+          ? { status: 'paused', $unset: { pauseId: 1 } }
           : { status: 'draft', verificationStatus: 'rejected' };
     await VehicleModel.updateOne({ _id: vehicleId }, update);
     if (action === 'approve') await partnerCarLive(vehicleId);

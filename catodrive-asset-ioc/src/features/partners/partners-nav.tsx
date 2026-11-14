@@ -8,6 +8,7 @@ const TABS = [
   { href: '/ops/partners', label: 'Overview' },
   { href: '/ops/partners/cars', label: 'Cars' },
   { href: '/ops/partners/repairs', label: 'Repairs' },
+  { href: '/ops/partners/pauses', label: 'Pauses' },
   { href: '/ops/partners/notices', label: 'Tolls & tickets' },
   { href: '/ops/partners/applications', label: 'Applications' },
   { href: '/ops/partners/chats', label: 'Chats' },

@@ -32,6 +32,7 @@ import { FeaturePicker } from '~/features/vehicles/components/feature-picker';
 import { ColorPicker } from '~/features/vehicles/components/color-picker';
 import { DeliveryLocationsEditor } from '~/features/vehicles/components/delivery-locations-editor';
 import { VehicleHistory } from '~/features/vehicles/components/vehicle-history';
+import { PauseControl } from '~/features/vehicles/components/pause-control';
 import type { DeliveryLocation } from '@/features/vehicles/types';
 import { detailsForm, detailsPatch, fmtRange, groupRanges, listingStatusText, tripPrefsForm, tripPrefsPatch, type DetailsForm, type TripPrefsForm } from '~/features/vehicles/listing-form';
 import { safeMessage } from '@/lib/utils/safe-message';
@@ -595,6 +596,7 @@ export default function ManageListingPage() {
           }
         />
       </RowGroup>
+      <PauseControl vehicleId={id} status={v.status} onChanged={() => { invalidate(); invalidateAvail(); }} />
 
       {/* Destructive actions live apart from everyday edits. */}
       <SectionLabel>Danger zone</SectionLabel>

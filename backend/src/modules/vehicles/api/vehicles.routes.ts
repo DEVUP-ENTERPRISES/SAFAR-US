@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { vehicleService, MIN_LISTING_PHOTOS } from '../application/vehicle.service';
 import { vehicleInsightsService } from '../application/vehicle-insights.service';
+import { vehiclePauseService } from '../application/vehicle-pause.service';
 import { pricingPreviewService } from '../application/pricing-preview.service';
 import { visitorTrackingService } from '../../analytics/application/visitor-tracking.service';
 import { fleetImportService } from '../application/fleet-import.service';
@@ -163,6 +164,40 @@ router.patch(
   }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await vehicleService.hostSetStatus(req.principal!.userId, req.params.id, req.body));
+  }),
+);
+
+const dayKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a date');
+
+/** The car's pause in place or waiting, else its latest one. */
+router.get(
+  '/:id/pause',
+  authenticate,
+  authorize('vehicle:update:own'),
+  asyncHandler(async (req, res) => {
+    await vehicleService.assertOwnerById(req.principal!.userId, req.params.id);
+    sendSuccess(res, await vehiclePauseService.latest(req.params.id));
+  }),
+);
+
+/** Takes a live car offline now, optionally until a return date. */
+router.post(
+  '/:id/pause',
+  authenticate,
+  authorize('vehicle:update:own'),
+  validate({ body: z.object({ reason: z.string().trim().min(3).max(500), backOnDay: dayKey.optional() }).strict() }),
+  asyncHandler(async (req, res) => {
+    sendCreated(res, await vehiclePauseService.pauseNow(req.principal!.userId, req.params.id, req.body));
+  }),
+);
+
+/** Brings a paused car back now, or calls off a pause that hasn't started. */
+router.post(
+  '/:id/resume',
+  authenticate,
+  authorize('vehicle:update:own'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await vehiclePauseService.resume(req.principal!.userId, req.params.id));
   }),
 );
 

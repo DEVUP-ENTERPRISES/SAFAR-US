@@ -19,6 +19,7 @@ import { tollService } from '../modules/tolls/application/toll.service';
 import { returnWatchService } from '../modules/trips/application/return-watch.service';
 import { assetPartnerOfferService } from '../modules/asset-partners/application/asset-partner-offer.service';
 import { assetPartnerAlertsService } from '../modules/asset-partners/application/asset-partner-alerts.service';
+import { vehiclePauseService } from '../modules/vehicles/application/vehicle-pause.service';
 
 const QUEUE = 'cato-maintenance';
 const MIN = 60_000;
@@ -97,6 +98,15 @@ const JOBS: JobDef[] = [
       const r = await documentComplianceService.sweep();
       if (r.paused || r.restored || warned.warned30 || warned.warned7) logger.info({ ...r, ...warned }, 'document compliance sweep');
       return { ...r, ...warned };
+    },
+  },
+  {
+    name: 'car-pauses',
+    everyMs: 5 * MIN,
+    run: async () => {
+      const r = await vehiclePauseService.sweep();
+      if (r.started || r.ended) logger.info(r, 'car pauses started or ended');
+      return r;
     },
   },
   {

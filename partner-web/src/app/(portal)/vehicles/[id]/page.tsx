@@ -13,6 +13,7 @@ import { StatTile } from '@/components/ui/stat-tile';
 import { BarChart } from '@/components/ui/charts';
 import { formatMoney, formatDate, formatDay, formatPlate } from '@/lib/utils/format';
 import { assetPartnerApi } from '@/features/asset-partners/api';
+import { PauseCard } from '~/features/vehicles/pause-card';
 
 /**
  * One car: what it earns, what it has been doing, and what has been done to it.
@@ -149,6 +150,8 @@ export default function PartnerVehicleDetailPage({
           )}
         </CardContent>
       </Card>
+
+      <PauseCard vehicleId={id} status={data.status} />
 
       {data.photos.length > 1 && (
         <Card>

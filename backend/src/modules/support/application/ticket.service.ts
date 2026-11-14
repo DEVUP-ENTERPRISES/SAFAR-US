@@ -3,25 +3,16 @@ import { NotFoundError, ForbiddenError, ConflictError } from '../../../core/erro
 import { realtimeEmitter } from '../../../realtime/emitter';
 import { notificationService } from '../../notifications/application/notification.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
-import { UserModel } from '../../users/infrastructure/user.model';
-import { HOUSE_FLEET_ROLE } from '../../../shared/constants/rbac';
-import { logger } from '../../../infrastructure/logging/logger';
-import { config } from '../../../config';
+import { notifyHouseFleet } from '../../notifications/application/notify-house-fleet';
 
 const PARTNER_HELP = 'asset_partner';
 
 /** Partner chats go to the partner team in the operations panel; a failed alert never blocks the partner's message. */
-async function alertPartnerTeam(ticket: Pick<TicketDoc, '_id' | 'subject'>, body: string, isNew: boolean): Promise<void> {
-  try {
-    const team = await UserModel.find({ roles: HOUSE_FLEET_ROLE, status: 'active' }).select('_id').lean<{ _id: string }[]>();
-    await Promise.all(team.map((u) => notificationService.send({
-      userId: u._id, priority: 'high', templateKey: 'asset_partner.help_message', ...(config.notifications.iocWebUrl ? { deepLink: `${config.notifications.iocWebUrl}/ops/partners/chats?open=${ticket._id}` } : {}),
-      title: isNew ? `New partner ${ticket.subject.toLowerCase().startsWith('meeting') ? 'meeting request' : 'chat'}` : 'A partner replied', body: body.slice(0, 120), data: { ticketId: ticket._id },
-    }).catch(() => undefined)));
-  } catch (err) {
-    logger.warn({ err, ticketId: ticket._id }, 'partner help alert failed');
-  }
-}
+const alertPartnerTeam = (ticket: Pick<TicketDoc, '_id' | 'subject'>, body: string, isNew: boolean) =>
+  notifyHouseFleet({
+    templateKey: 'asset_partner.help_message', path: `/ops/partners/chats?open=${ticket._id}`, data: { ticketId: ticket._id }, body: body.slice(0, 120),
+    title: isNew ? `New partner ${ticket.subject.toLowerCase().startsWith('meeting') ? 'meeting request' : 'chat'}` : 'A partner replied',
+  });
 
 // SLA targets come from PlatformConfig — support leads retune them, not devs.
 

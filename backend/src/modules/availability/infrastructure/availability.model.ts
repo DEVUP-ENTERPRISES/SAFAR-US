@@ -15,6 +15,8 @@ export interface AvailabilityDoc {
   holdId?: string;
   bookingId?: string;
   holdExpiresAt?: Date;
+  /** Set on days blocked by a car pause, so ending it frees only its own days. */
+  pauseId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,12 +30,14 @@ const schema = new Schema<AvailabilityDoc>(
     holdId: String,
     bookingId: String,
     holdExpiresAt: Date,
+    pauseId: String,
   },
   { timestamps: true, _id: false },
 );
 
 schema.index({ vehicleId: 1, dayKey: 1 }, { unique: true });
 schema.index({ state: 1, holdExpiresAt: 1 });
+schema.index({ pauseId: 1 }, { sparse: true });
 
 /*
  * Garbage-collect abandoned holds.
