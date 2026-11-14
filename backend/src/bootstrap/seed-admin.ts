@@ -1,22 +1,19 @@
-import { hashPassword } from '../modules/auth/application/password';
+import { hashPassword, verifyPassword } from '../modules/auth/application/password';
+import { attemptGuard } from '../modules/auth/application/attempt-guard';
+import { sessionStore } from '../modules/auth/infrastructure/session.store';
 import { config } from '../config';
 import { logger } from '../infrastructure/logging/logger';
 import { UserModel } from '../modules/users/infrastructure/user.model';
 import { ROLES } from '../shared/constants/rbac';
 
-/**
- * Ensures the main super-admin (from ADMIN_EMAIL/ADMIN_PASSWORD) exists on boot.
- * Idempotent: creates the account if missing, always guarantees the
- * super_admin role and an active status. Password is only set on creation
- * (so an admin who later changes it isn't reset every restart).
- */
+// The main admin's password lives only in ADMIN_PASSWORD; there is no reset by email for this account.
 export async function seedAdmin(): Promise<void> {
   if (!config.admin.enabled) {
     logger.warn('ADMIN_EMAIL/ADMIN_PASSWORD not set — skipping admin seed');
     return;
   }
   const email = config.admin.email!.toLowerCase();
-  const existing = await UserModel.findOne({ email }).lean();
+  const existing = await UserModel.findOne({ email }).select('+passwordHash').lean();
 
   if (!existing) {
     const passwordHash = await hashPassword(config.admin.password!);
@@ -32,10 +29,15 @@ export async function seedAdmin(): Promise<void> {
     });
     logger.info({ email }, '👑 Main admin created (super_admin)');
   } else {
-    await UserModel.updateOne(
-      { _id: existing._id },
-      { $addToSet: { roles: ROLES.SUPER_ADMIN }, $set: { status: 'active' } },
-    );
+    const matches = !!existing.passwordHash && (await verifyPassword(existing.passwordHash, config.admin.password!)).valid;
+    const set: Record<string, unknown> = { status: 'active', emailVerified: true };
+    if (!matches) set.passwordHash = await hashPassword(config.admin.password!);
+    await UserModel.updateOne({ _id: existing._id }, { $addToSet: { roles: ROLES.SUPER_ADMIN }, $set: set });
+    if (!matches) {
+      await sessionStore.revokeAllForUser(String(existing._id));
+      await attemptGuard.unlock('login', email);
+      logger.info({ email }, '👑 Main admin password set from ADMIN_PASSWORD; old sessions signed out');
+    }
     logger.info({ email }, '👑 Main admin verified (super_admin ensured)');
   }
 }

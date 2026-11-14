@@ -37,4 +37,8 @@ export const attemptGuard = {
   async clear(scope: string, id: string): Promise<void> {
     await kv().del(failKey(scope, id));
   },
+
+  async unlock(scope: string, id: string): Promise<void> {
+    await Promise.all([kv().del(failKey(scope, id)), kv().del(lockKey(scope, id)), kv().del(levelKey(scope, id))]);
+  },
 };

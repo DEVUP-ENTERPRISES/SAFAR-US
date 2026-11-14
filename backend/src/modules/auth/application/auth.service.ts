@@ -18,6 +18,9 @@ import { platformConfigService } from '../../platform-config/application/platfor
 import type { RegisterDto, LoginDto } from '../dto/auth.schemas';
 import { socialAuthService } from './social-auth.service';
 
+// The main admin's password comes only from ADMIN_PASSWORD, so it never gets an email reset.
+const isEnvAdmin = (email: string): boolean => config.admin.enabled && email.trim().toLowerCase() === config.admin.email!.toLowerCase();
+
 let dummyHashPromise: Promise<string> | undefined;
 const dummyHash = (): Promise<string> => (dummyHashPromise ??= hashPassword('not-a-real-password'));
 
@@ -202,7 +205,7 @@ export class AuthService {
   async requestPasswordReset(email: string): Promise<{ sent: boolean; devCode?: string }> {
     const user = await userRepository.findByEmail(email, true);
     // Only issue for a real, active account that actually has a password.
-    if (user && user.status === 'active' && user.passwordHash) {
+    if (user && user.status === 'active' && user.passwordHash && !isEnvAdmin(email)) {
       const code = await otpService.request('password_reset', email);
       const res = await channelProviders.email.send({
         target: { userId: user._id, email },
@@ -232,7 +235,7 @@ export class AuthService {
     // Throws on a bad/expired code (attempt-capped inside otpService).
     await otpService.verify('password_reset', email, code);
     const user = await userRepository.findByEmail(email, true);
-    if (!user || user.status !== 'active') {
+    if (!user || user.status !== 'active' || isEnvAdmin(email)) {
       throw new UnauthorizedError('This reset link is no longer valid.');
     }
     await this.assertMfa(user, mfaToken);
