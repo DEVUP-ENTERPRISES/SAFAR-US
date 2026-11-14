@@ -105,6 +105,8 @@ export interface HostTrip {
       licenceValidThroughTrip: boolean | null;
     };
   };
+  /** Extra drivers who passed the ID check; only they and the guest may drive. */
+  drivers: string[];
 
   mileage: {
     /** 0 = unlimited. */
@@ -408,6 +410,7 @@ export class HostTripsService {
           tripCount: cMap.get(b.guestId) ?? 0,
           verification,
         },
+        drivers: (b.additionalDrivers ?? []).map((d) => d.name),
 
         mileage: {
           includedKm: perDayKm * days, // 0 stays 0 = unlimited

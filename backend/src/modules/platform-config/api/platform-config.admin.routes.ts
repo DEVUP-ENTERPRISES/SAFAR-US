@@ -428,6 +428,10 @@ router.put(
           priceLockMinutes: z.number().min(1).max(120).optional(),
           guestBookingsEnabled: z.boolean().optional(),
           guestBookingsPausedMessage: z.string().trim().min(5).max(300).optional(),
+          additionalDriversEnabled: z.boolean().optional(),
+          additionalDriverFeeCents: z.number().int().min(0).max(10_000).optional(),
+          maxAdditionalDrivers: z.number().int().min(1).max(8).optional(),
+          additionalDriverDeadlineHours: z.number().int().min(0).max(168).optional(),
         })
         .optional(),
       search: z

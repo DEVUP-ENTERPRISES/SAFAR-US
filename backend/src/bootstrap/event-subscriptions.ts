@@ -769,6 +769,10 @@ export function registerEventSubscribers(): void {
   });
 
   eventBus.subscribe(EVENTS.BOOKING_CANCELLED, async (e) => {
+    const { bookingDriverService } = await import('../modules/bookings/application/booking-driver.service');
+    await bookingDriverService.onBookingCancelled((e.payload as { bookingId: string }).bookingId);
+  });
+  eventBus.subscribe(EVENTS.BOOKING_CANCELLED, async (e) => {
     const p = e.payload as {
       bookingId: string; guestId: string; hostId: string; cancelledBy?: string;
       refund: { amount: number; currency?: string };
@@ -972,6 +976,10 @@ export function registerEventSubscribers(): void {
     }
   };
   eventBus.subscribe(EVENTS.KYC_APPROVED, releaseHeldBookings);
+  eventBus.subscribe(EVENTS.KYC_APPROVED, async (e) => {
+    const { bookingDriverService } = await import('../modules/bookings/application/booking-driver.service');
+    await bookingDriverService.onIdentityApproved((e.payload as { userId: string }).userId);
+  });
   eventBus.subscribe(EVENTS.VERIFICATION_CHECK_PASSED, releaseHeldBookings);
   eventBus.subscribe(EVENTS.CONTACT_VERIFIED, releaseHeldBookings);
 

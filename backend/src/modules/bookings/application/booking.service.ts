@@ -2929,38 +2929,6 @@ export class BookingService {
     };
   }
 
-  /**
-   * Add an approved driver to the trip. Only the guest can, and only before the
-   * trip ends — a driver added after the fact wouldn't have been covered.
-   * Capped so the field can't be used to store arbitrary data.
-   */
-  async addDriver(
-    userId: string,
-    bookingId: string,
-    driver: { name: string; licenseNumber?: string },
-  ): Promise<BookingDoc> {
-    const booking = await this.getDoc(bookingId);
-    if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can add drivers');
-    if (['completed', 'cancelled'].includes(booking.status)) {
-      throw new ConflictError('Cannot add drivers to a finished trip', 'INVALID_STATE');
-    }
-    if ((booking.additionalDrivers?.length ?? 0) >= 5) {
-      throw new ConflictError('Maximum of 5 additional drivers', 'TOO_MANY_DRIVERS');
-    }
-    await BookingModel.updateOne(
-      { _id: bookingId },
-      { $push: { additionalDrivers: { ...driver, addedAt: new Date() } } },
-    );
-    return toPublicBooking(await this.getDoc(bookingId));
-  }
-
-  async removeDriver(userId: string, bookingId: string, name: string): Promise<BookingDoc> {
-    const booking = await this.getDoc(bookingId);
-    if (booking.guestId !== userId) throw new ForbiddenError('Only the guest can remove drivers');
-    await BookingModel.updateOne({ _id: bookingId }, { $pull: { additionalDrivers: { name } } });
-    return toPublicBooking(await this.getDoc(bookingId));
-  }
-
   private async transition(
     booking: BookingDoc,
     to: BookingStatus,

@@ -316,6 +316,10 @@ export class PlatformConfigService {
         priceLockMinutes: 10,
         guestBookingsEnabled: false,
         guestBookingsPausedMessage: 'We’re not taking new bookings right now. Please check back soon.',
+        additionalDriversEnabled: false,
+        additionalDriverFeeCents: 1500,
+        maxAdditionalDrivers: 2,
+        additionalDriverDeadlineHours: 24,
         ...(doc.booking ?? {}),
       },
       search: {

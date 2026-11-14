@@ -45,6 +45,8 @@ export interface HostTrip {
     };
   };
   mileage: { includedKm: number; overageFeePerKm: number; drivenKm?: number };
+  /** Extra drivers who passed the ID check; absent from an older backend. */
+  drivers?: string[];
   licenseConfirmed: boolean;
   pickupVerified: boolean;
   returnAwaitingConfirmation?: boolean;

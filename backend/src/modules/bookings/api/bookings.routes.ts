@@ -13,6 +13,7 @@ import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import { quoteSchema, createBookingSchema, cancelSchema, extendSchema, shiftPickupSchema, moveDatesSchema, switchCarSchema, exceptionSchema } from '../dto/booking.schemas';
 import { tripChangeService } from '../application/trip-change.service';
+import { bookingDriverService } from '../application/booking-driver.service';
 import { listProtectionPlans } from '../../pricing/domain/protection-plans';
 import { approachService } from '../../trips/application/approach.service';
 import { trackingNoticeService } from '../../trips/application/tracking-notice.service';
@@ -436,29 +437,50 @@ router.post(
   }),
 );
 
-/** Add an approved additional driver to the trip (must be before it ends). */
+/** Extra drivers on the trip, with the fee and whether more can be added. */
+router.get(
+  '/:id/drivers',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await bookingDriverService.list(req.principal!.userId, req.params.id));
+  }),
+);
+
+/** Invite a driver by email; they pass the same ID check before the fee is charged. */
 router.post(
   '/:id/drivers',
   authenticate,
-  validate({
-    body: z.object({ name: z.string().min(2).max(80), licenseNumber: z.string().max(40).optional() }),
-  }),
+  lookupLimiter,
+  validate({ body: z.object({ name: z.string().trim().min(2).max(80), email: z.string().trim().email().max(254), phone: z.string().trim().max(20).optional() }).strict() }),
   asyncHandler(async (req, res) => {
-    const booking = await bookingService.addDriver(req.principal!.userId, req.params.id, req.body);
-    sendSuccess(res, booking);
+    sendCreated(res, await bookingDriverService.invite(req.principal!.userId, req.params.id, req.body));
+  }),
+);
+
+router.post(
+  '/:id/drivers/:driverId/resend',
+  authenticate,
+  lookupLimiter,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingDriverService.resend(req.principal!.userId, req.params.id, req.params.driverId));
+  }),
+);
+
+router.post(
+  '/:id/drivers/:driverId/pay',
+  authenticate,
+  cardLimiter,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await bookingDriverService.retryPayment(req.principal!.userId, req.params.id, req.params.driverId));
   }),
 );
 
 router.delete(
-  '/:id/drivers/:name',
+  '/:id/drivers/:driverId',
   authenticate,
   asyncHandler(async (req, res) => {
-    const booking = await bookingService.removeDriver(
-      req.principal!.userId,
-      req.params.id,
-      decodeURIComponent(req.params.name),
-    );
-    sendSuccess(res, booking);
+    sendSuccess(res, await bookingDriverService.remove(req.principal!.userId, req.params.id, req.params.driverId));
   }),
 );
 

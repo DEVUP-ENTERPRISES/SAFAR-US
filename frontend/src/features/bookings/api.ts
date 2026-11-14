@@ -110,10 +110,6 @@ export const bookingApi = {
   shortenPreview: (id: string, newEnd: string) =>
     api.get<ShortenPreview>(`/bookings/${id}/shorten-preview`, { newEnd }),
   shorten: (id: string, newEnd: string) => api.post<Booking>(`/bookings/${id}/shorten`, { newEnd }),
-  addDriver: (id: string, name: string, licenseNumber?: string) =>
-    api.post<Booking>(`/bookings/${id}/drivers`, { name, licenseNumber: licenseNumber || undefined }),
-  removeDriver: (id: string, name: string) =>
-    api.raw<Booking>(`/bookings/${id}/drivers/${encodeURIComponent(name)}`, { method: 'DELETE' }).then((r) => r.data),
 
   /** Replacement cars after a host cancellation, each priced net of the guarantee. */
   rebookingOptions: (id: string) => api.get<RebookingOptions>(`/bookings/${id}/rebooking-options`),

@@ -175,6 +175,10 @@ export interface PlatformConfig {
     priceLockMinutes: number;
     /** Master switch for new guest bookings. */
     guestBookingsEnabled?: boolean;
+    additionalDriversEnabled?: boolean;
+    additionalDriverFeeCents?: number;
+    maxAdditionalDrivers?: number;
+    additionalDriverDeadlineHours?: number;
     guestBookingsPausedMessage?: string;
   };
   rewards: { pointValueCents: number; pointsPerDollar: number };

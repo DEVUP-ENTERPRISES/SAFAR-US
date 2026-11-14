@@ -354,6 +354,13 @@ export default function HostTripDetailPage() {
               subtitle={t.licenseConfirmed ? '✓ Checked against the guest’s verified ID' : 'Checked automatically from the guest’s verified ID when the trip starts'}
               value={t.licenseConfirmed ? '✓' : undefined}
             />
+            {t.drivers?.length ? (
+              <Row
+                icon={<IdCard className="h-5 w-5" />}
+                title="Approved extra drivers"
+                subtitle={`${t.drivers.join(', ')}. Only they and the guest may drive. Check their licence at pickup too.`}
+              />
+            ) : null}
             <Row
               icon={<Camera className="h-5 w-5" />}
               title={`Trip photos (${t.photoCount})`}

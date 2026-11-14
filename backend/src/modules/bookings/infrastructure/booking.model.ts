@@ -141,7 +141,7 @@ export interface BookingDoc {
    * trip so they're covered by the protection plan; they cannot pick up or drop
    * off the car (only the primary guest can), matching Turo's rule.
    */
-  additionalDrivers?: { name: string; licenseNumber?: string; addedAt: Date }[];
+  additionalDrivers?: { name: string; licenseNumber?: string; driverId?: string; addedAt: Date }[];
   status: BookingStatus;
   statusHistory: { from: BookingStatus | null; to: BookingStatus; at: Date; by: string; reason?: string }[];
   /** Post-trip incidental charges (fuel, cleaning, late return, tolls…). */
@@ -341,7 +341,7 @@ const schema = new Schema<BookingDoc>(
       default: undefined,
     },
     additionalDrivers: {
-      type: [{ _id: false, name: String, licenseNumber: String, addedAt: Date }],
+      type: [{ _id: false, name: String, licenseNumber: String, driverId: String, addedAt: Date }],
       default: [],
     },
     status: { type: String, required: true },

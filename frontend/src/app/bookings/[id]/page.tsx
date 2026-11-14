@@ -29,6 +29,7 @@ import { DepositStatus } from '@/features/payments/deposit-status';
 import { IncidentalCharges } from '@/features/bookings/components/incidental-charges';
 import { PickupCode } from '@/features/bookings/components/pickup-code';
 import { ExtendTrip } from '@/features/bookings/components/extend-trip';
+import { DriverManager } from '@/features/bookings/components/driver-manager';
 import { ExtensionHistory } from '@/features/bookings/components/extension-history';
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
 import { TripDocuments } from '@/features/trips/components/trip-documents';
@@ -311,6 +312,8 @@ function BookingDetail({ id }: { id: string }) {
               currency={b.priceBreakdown?.currency ?? 'USD'}
             />
           )}
+
+          <DriverManager bookingId={id} />
 
           {/* Only the details the summary above does not already carry. */}
           {!!(b.delivery?.address || b.additionalDrivers?.length) && (

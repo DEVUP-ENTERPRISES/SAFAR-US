@@ -34,6 +34,36 @@ export function RulesTab({ draft, set }: TabProps) {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Additional drivers</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Guests invite a driver by email. The driver signs in and passes the same licence, selfie and age check as the guest.
+            The fee is charged to the guest&apos;s card only after the driver is approved, and refunded if the driver is removed before pickup.
+            Turn this on only once your insurance covers extra drivers.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="flex items-center gap-2 self-start pt-2 text-sm font-medium sm:col-span-2 lg:col-span-4">
+            <input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.booking.additionalDriversEnabled === true}
+              onChange={(e) => set((d) => { d.booking.additionalDriversEnabled = e.target.checked; })} />
+            Guests can add extra drivers
+          </label>
+          <Field label="Fee per driver ($)" hint="Flat, per trip.">
+            <Input type="number" step="0.01" min="0" max="100" value={toDollars(draft.booking.additionalDriverFeeCents ?? 1500)}
+              onChange={(e) => set((d) => { d.booking.additionalDriverFeeCents = Math.min(10_000, Math.max(0, toCents(e.target.value))); })} />
+          </Field>
+          <Field label="Most drivers per trip" hint="Not shown to guests.">
+            <Input type="number" min="1" max="8" value={draft.booking.maxAdditionalDrivers ?? 2}
+              onChange={(e) => set((d) => { d.booking.maxAdditionalDrivers = Math.min(8, Math.max(1, Math.round(Number(e.target.value) || 1))); })} />
+          </Field>
+          <Field label="Add by (hours before pickup)" hint="E.g. 24 or 48.">
+            <Input type="number" min="0" max="168" value={draft.booking.additionalDriverDeadlineHours ?? 24}
+              onChange={(e) => set((d) => { d.booking.additionalDriverDeadlineHours = Math.min(168, Math.max(0, Math.round(Number(e.target.value) || 0))); })} />
+          </Field>
+        </CardContent>
+      </Card>
+
       <Card className={draft.siteNotice?.enabled ? 'border-primary/40' : undefined}>
         <CardHeader>
           <CardTitle>Notice on every page</CardTitle>

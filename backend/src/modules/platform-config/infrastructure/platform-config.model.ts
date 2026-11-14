@@ -609,6 +609,13 @@ export interface PlatformConfigDoc {
     guestBookingsEnabled: boolean;
     /** Shown to guests where the booking box would be while bookings are off. */
     guestBookingsPausedMessage: string;
+    /** Guests may invite extra drivers who pass the same ID check; off until insurance covers them. */
+    additionalDriversEnabled: boolean;
+    /** Flat fee per approved extra driver, charged to the main guest's card once the driver is approved. */
+    additionalDriverFeeCents: number;
+    maxAdditionalDrivers: number;
+    /** Extra drivers must be added at least this many hours before pickup. */
+    additionalDriverDeadlineHours: number;
   };
   /**
    * Search ranking weights. What the marketplace chooses to surface is a
@@ -1017,6 +1024,10 @@ const schema = new Schema<PlatformConfigDoc>(
       priceLockMinutes: { type: Number, default: 10 },
       guestBookingsEnabled: { type: Boolean, default: false },
       guestBookingsPausedMessage: { type: String, default: 'We’re not taking new bookings right now. Please check back soon.' },
+      additionalDriversEnabled: { type: Boolean, default: false },
+      additionalDriverFeeCents: { type: Number, default: 1500 },
+      maxAdditionalDrivers: { type: Number, default: 2 },
+      additionalDriverDeadlineHours: { type: Number, default: 24 },
     },
     search: {
       ranking: {

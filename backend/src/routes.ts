@@ -1,3 +1,4 @@
+import { driverInviteRoutes } from './modules/bookings/api/driver-invite.routes';
 import { Router } from 'express';
 import { systemRoutes } from './modules/system/system.routes';
 import { securityRoutes } from './modules/ops/api/security.routes';
@@ -67,6 +68,7 @@ export function buildApiRouter(): Router {
   api.use('/vehicles', vehiclesRoutes);
   api.use('/search', searchRoutes);
   api.use('/bookings', bookingsRoutes);
+  api.use('/driver-invites', driverInviteRoutes);
   api.use('/trips', tripsRoutes);
   api.use('/wallet', walletRoutes);
   api.use('/subscriptions', subscriptionsRoutes);

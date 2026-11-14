@@ -20,6 +20,7 @@ import { returnWatchService } from '../modules/trips/application/return-watch.se
 import { assetPartnerOfferService } from '../modules/asset-partners/application/asset-partner-offer.service';
 import { assetPartnerAlertsService } from '../modules/asset-partners/application/asset-partner-alerts.service';
 import { vehiclePauseService } from '../modules/vehicles/application/vehicle-pause.service';
+import { bookingDriverService } from '../modules/bookings/application/booking-driver.service';
 
 const QUEUE = 'cato-maintenance';
 const MIN = 60_000;
@@ -108,6 +109,11 @@ const JOBS: JobDef[] = [
       if (r.started || r.ended) logger.info(r, 'car pauses started or ended');
       return r;
     },
+  },
+  {
+    name: 'expire-driver-invites',
+    everyMs: 15 * MIN,
+    run: async () => ({ expired: await bookingDriverService.sweep() }),
   },
   {
     name: 'maintenance-reminders',
