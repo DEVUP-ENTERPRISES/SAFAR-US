@@ -151,7 +151,7 @@ function AcceptInner() {
             {needsSignIn && (
               <p className="rounded-xl bg-muted/50 px-3 py-2.5 text-sm text-muted-foreground">
                 You already have an account with this email. Sign in first, then come back to this link to accept.{' '}
-                <Link href={`/login?next=${encodeURIComponent(`/host/accept-invite?token=${token}`)}`} className="font-semibold text-primary underline">
+                <Link href={`/host/login?as=captain&next=${encodeURIComponent(`/host/accept-invite?token=${token}`)}`} className="font-semibold text-primary underline">
                   Sign in
                 </Link>
               </p>
