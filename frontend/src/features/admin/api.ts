@@ -79,6 +79,7 @@ export interface PlatformConfig {
     joiningFeeEnabled?: boolean;
     registrationPlatformFeeCents?: number;
     gpsRegularCents?: number;
+    form1099ThresholdCents?: number;
     registrationPayLaterEnabled?: boolean;
     partnerMeetingUrl?: string;
     onboardingAlertEmails?: string[];

@@ -292,6 +292,15 @@ export default function AdminAssetPartnerTermsPage() {
                 onChange={(e) => set((d) => { d.assetPartner.gpsRegularCents = Math.min(500_000, Math.max(0, toCents(e.target.value))); })}
               />
             </Field>
+            <Field label="1099 reporting amount" hint="A partner paid at least this in a calendar year is marked “Needs a 1099” in the yearly tax file. Check the current IRS amount with your accountant each year.">
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={toDollars(ap.form1099ThresholdCents ?? 200_000)}
+                onChange={(e) => set((d) => { d.assetPartner.form1099ThresholdCents = Math.min(10_000_000, Math.max(0, toCents(e.target.value))); })}
+              />
+            </Field>
             <label className="flex items-start gap-3 text-sm">
               <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" disabled={ap.joiningFeeEnabled === false} checked={ap.registrationPayLaterEnabled !== false} onChange={(e) => set((d) => { d.assetPartner.registrationPayLaterEnabled = e.target.checked; })} />
               <span><span className="font-medium">Let partners pay from their car’s first earnings</span><span className="block text-muted-foreground">Adds two choices at payment: pay the registration later, or pay only the platform fee now and the registration later. The registration comes out of their first positive statements.</span></span>

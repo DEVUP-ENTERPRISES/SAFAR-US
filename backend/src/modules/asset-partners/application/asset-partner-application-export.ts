@@ -1,6 +1,7 @@
 import { AssetPartnerApplicationModel, type AssetPartnerApplicationDoc } from '../infrastructure/asset-partner-application.model';
 import { mapsProvider } from '../../maps/infrastructure/maps.provider';
 import { logger } from '../../../infrastructure/logging/logger';
+import { toCsv } from '../../../shared/utils/csv';
 
 export const addressLine = (a: Pick<AssetPartnerApplicationDoc, 'address' | 'city' | 'state' | 'zip'>) => `${a.address}, ${a.city}, ${a.state} ${a.zip}`;
 export const mapsLink = (q: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
@@ -66,16 +67,7 @@ const COLUMNS: [string, (a: AssetPartnerApplicationDoc) => unknown][] = [
   ['Review notes', (a) => a.reviewNotes],
 ];
 
-// A leading = + - @ would run as a formula in Excel; a leading quote keeps it as text.
-const cell = (v: unknown): string => {
-  if (v === undefined || v === null) return '';
-  let s = String(v);
-  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-
 /** Applications as a spreadsheet file Excel, Google Sheets and Numbers open with a double click. */
 export function applicationsCsv(apps: AssetPartnerApplicationDoc[]): string {
-  const rows = [COLUMNS.map(([h]) => h), ...apps.map((a) => COLUMNS.map(([, get]) => get(a)))];
-  return `﻿${rows.map((r) => r.map(cell).join(',')).join('\r\n')}\r\n`;
+  return toCsv([COLUMNS.map(([h]) => h), ...apps.map((a) => COLUMNS.map(([, get]) => get(a)))]);
 }

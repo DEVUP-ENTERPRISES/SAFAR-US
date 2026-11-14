@@ -87,6 +87,8 @@ export interface PlatformConfigDoc {
     registrationPlatformFeeCents: number;
     /** Usual GPS tracker install price, shown struck through against the registration's GPS line. */
     gpsRegularCents: number;
+    /** A partner paid at least this in a calendar year is flagged as needing a 1099 in the yearly tax file. */
+    form1099ThresholdCents: number;
     /** Lets a partner pay the registration from their car's first earnings, in full or after the platform fee. */
     registrationPayLaterEnabled: boolean;
     /** Online booking page (e.g. Calendly) partners use to schedule a meeting; empty means they request one in the portal. */
@@ -748,6 +750,7 @@ const schema = new Schema<PlatformConfigDoc>(
       joiningFeeEnabled: { type: Boolean, default: true },
       registrationPlatformFeeCents: { type: Number, default: 499 },
       gpsRegularCents: { type: Number, default: 32_500 },
+      form1099ThresholdCents: { type: Number, default: 200_000 },
       registrationPayLaterEnabled: { type: Boolean, default: true },
       partnerMeetingUrl: { type: String, default: '' },
       onboardingAlertEmails: { type: [String], default: ['ceo@catodrive.com', 'cmo@catodrive.com'] },

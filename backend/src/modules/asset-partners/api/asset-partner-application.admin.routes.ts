@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { sendCsv } from '../../../shared/utils/csv';
 import { z } from 'zod';
 import { assetPartnerApplicationService } from '../application/asset-partner-application.service';
 import { reviewApplicationSchema } from '../dto/asset-partner-application.schemas';
@@ -10,11 +11,6 @@ import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
 import { applicationsCsv } from '../application/asset-partner-application-export';
-
-const sendCsv = (res: import('express').Response, name: string, csv: string) => {
-  res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${name}"`, 'Cache-Control': 'private, no-store' });
-  res.send(csv);
-};
 
 const router = Router();
 

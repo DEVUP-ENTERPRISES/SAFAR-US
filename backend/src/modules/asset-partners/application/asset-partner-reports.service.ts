@@ -1,4 +1,4 @@
-import type { AssetPartnerDoc } from '../infrastructure/asset-partner.model';
+import { AssetPartnerModel, type AssetPartnerDoc } from '../infrastructure/asset-partner.model';
 import { AssetPartnerPayoutModel } from '../infrastructure/asset-partner-payout.model';
 import { assetPartnerStatementService, currentPeriod, type PartnerStatement } from './asset-partner-statement.service';
 import { buildTextPdf } from './text-pdf';
@@ -6,6 +6,9 @@ import { buildStatementPdf, type LedgerVehicle } from './statement-pdf';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { ValidationError } from '../../../core/errors/app-error';
+import { AssetPartnerApplicationModel } from '../infrastructure/asset-partner-application.model';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { toCsv } from '../../../shared/utils/csv';
 
 const usd = (cents: number) => `${cents < 0 ? '-' : ''}$${(Math.abs(cents) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const MONTH = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -19,7 +22,68 @@ export interface YearSummary {
   paidInYear: number;
 }
 
+export interface TaxYearRow {
+  partnerId: string;
+  name: string;
+  legalName?: string;
+  businessName?: string;
+  partnerType: string;
+  email?: string;
+  phone?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  payoutMethod?: string;
+  payouts: number;
+  /** Minor units actually sent in the calendar year. */
+  paidCents: number;
+  needs1099: boolean;
+}
+
+const dollars = (cents: number) => (cents / 100).toFixed(2);
+
 export const assetPartnerReportsService = {
+  /** Every partner paid in a calendar year, with what was sent and whether it reaches the 1099 amount set in admin. */
+  async taxYear(year: number): Promise<{ year: number; thresholdCents: number; rows: TaxYearRow[] }> {
+    const now = new Date();
+    if (!Number.isInteger(year) || year < 2024 || year > now.getUTCFullYear()) throw new ValidationError('Pick a year that has started.');
+    const [paid, cfg] = await Promise.all([
+      AssetPartnerPayoutModel.aggregate<{ _id: string; cents: number; count: number }>([
+        { $match: { paidAt: { $gte: new Date(Date.UTC(year, 0, 1)), $lt: new Date(Date.UTC(year + 1, 0, 1)) } } },
+        { $group: { _id: '$partnerId', cents: { $sum: '$amount' }, count: { $sum: 1 } } },
+      ]),
+      platformConfigService.get(),
+    ]);
+    const threshold = cfg.assetPartner.form1099ThresholdCents ?? 0;
+    const partners = await AssetPartnerModel.find({ _id: { $in: paid.map((p) => p._id) } })
+      .select('displayName businessName partnerType email phone applicationId payoutDetails terms.payoutMethod')
+      .lean<AssetPartnerDoc[]>();
+    const apps = await AssetPartnerApplicationModel.find({ _id: { $in: partners.map((p) => p.applicationId).filter(Boolean) } })
+      .select('fullName address city state zip')
+      .lean<{ _id: string; fullName: string; address: string; city: string; state: string; zip: string }[]>();
+    const partnerById = new Map(partners.map((p) => [p._id, p]));
+    const appById = new Map(apps.map((a) => [a._id, a]));
+    const rows = paid.map((t): TaxYearRow => {
+      const p = partnerById.get(t._id);
+      const a = p?.applicationId ? appById.get(p.applicationId) : undefined;
+      return {
+        partnerId: t._id, name: p?.displayName ?? 'Removed partner', legalName: a?.fullName, businessName: p?.businessName, partnerType: p?.partnerType ?? '',
+        email: p?.email, phone: p?.phone, street: a?.address, city: a?.city, state: a?.state, zip: a?.zip,
+        payoutMethod: p?.payoutDetails?.method ?? p?.terms?.payoutMethod, payouts: t.count, paidCents: t.cents, needs1099: t.cents >= threshold,
+      };
+    });
+    rows.sort((x, y) => y.paidCents - x.paidCents || x.name.localeCompare(y.name));
+    return { year, thresholdCents: threshold, rows };
+  },
+
+  async taxYearCsv(year: number): Promise<{ csv: string; filename: string }> {
+    const { rows } = await this.taxYear(year);
+    const head = ['Partner', 'Legal name', 'Business', 'Type', 'Email', 'Phone', 'Street', 'City', 'State', 'ZIP', 'Paid by', 'Payouts', `Paid in ${year} (USD)`, 'Needs a 1099'];
+    const body = rows.map((r) => [r.name, r.legalName, r.businessName, r.partnerType, r.email, r.phone, r.street, r.city, r.state, r.zip, r.payoutMethod, r.payouts, dollars(r.paidCents), r.needs1099 ? 'Yes' : 'No']);
+    return { csv: toCsv([head, ...body]), filename: `catodrive-partner-1099-${year}.csv` };
+  },
+
   async statementPdf(partner: AssetPartnerDoc, period: string): Promise<{ pdf: Buffer; filename: string }> {
     if (!/^\d{4}-\d{2}$/.test(period) || period > currentPeriod()) throw new ValidationError('Pick a month that has started.');
     const s = await assetPartnerStatementService.statement(partner, period);

@@ -11,6 +11,7 @@ import { assetPartnerNoticeService } from '../application/asset-partner-notice.s
 import { assetPartnerReportsService } from '../application/asset-partner-reports.service';
 import { AssetPartnerModel, type AssetPartnerDoc } from '../infrastructure/asset-partner.model';
 import { NotFoundError } from '../../../core/errors/app-error';
+import { sendCsv } from '../../../shared/utils/csv';
 
 const router = Router();
 
@@ -19,6 +20,29 @@ const router = Router();
  * a filter on the hosts list. A partner has a lifecycle and commercial terms
  * a host does not, and ops needs to act on both.
  */
+
+const taxYear = validate({ params: z.object({ year: z.coerce.number().int().min(2024).max(2100) }) });
+
+/** Every partner paid in a calendar year, for 1099 filing. */
+router.get(
+  '/asset-partner-tax/:year',
+  authorize('admin:read'),
+  taxYear,
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    sendSuccess(res, await assetPartnerReportsService.taxYear(Number(req.params.year)));
+  }),
+);
+
+router.get(
+  '/asset-partner-tax/:year/export.csv',
+  authorize('admin:read'),
+  taxYear,
+  asyncHandler(async (req, res) => {
+    const { csv, filename } = await assetPartnerReportsService.taxYearCsv(Number(req.params.year));
+    sendCsv(res, filename, csv);
+  }),
+);
 
 /**
  * Add a partner directly, without an application.

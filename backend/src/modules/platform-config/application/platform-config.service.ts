@@ -162,6 +162,7 @@ export class PlatformConfigService {
         joiningFeeEnabled: true,
         registrationPlatformFeeCents: 499,
         gpsRegularCents: 32_500,
+        form1099ThresholdCents: 200_000,
         registrationPayLaterEnabled: true,
         partnerMeetingUrl: '',
         onboardingAlertEmails: ['ceo@catodrive.com', 'cmo@catodrive.com'],

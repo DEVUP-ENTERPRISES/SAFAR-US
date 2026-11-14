@@ -4,6 +4,29 @@ import type { FuelLevel, IntakeReport, NoticeStatus, PartnerNotice, SignatureEnv
 type Q = Record<string, string | number | boolean | undefined>;
 export type ReviewDecision = 'approved' | 'changes_requested' | 'rejected';
 
+export interface TaxYearRow {
+  partnerId: string;
+  name: string;
+  legalName?: string;
+  businessName?: string;
+  partnerType: string;
+  email?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  payoutMethod?: string;
+  payouts: number;
+  paidCents: number;
+  needs1099: boolean;
+}
+
+export interface TaxYear {
+  year: number;
+  thresholdCents: number;
+  rows: TaxYearRow[];
+}
+
 export interface PartnerChat {
   _id: string;
   subject: string;
@@ -185,6 +208,8 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     /** Whether registration fees are on, and the platform fee added to each. */
     joiningFeeSettings: () => api.get<{ enabled: boolean; platformFeeCents: number }>(`${base}/asset-partner-fee/default`),
     feeReport: () => api.get<FeeReport>(`${base}/asset-partner-fees`),
+    taxYear: (year: number) => api.get<TaxYear>(`${base}/asset-partner-tax/${year}`),
+    exportTaxYear: (year: number) => api.download(`${base}/asset-partner-tax/${year}/export.csv`),
     partnerChats: (q: { open?: boolean; limit?: number; skip?: number } = {}) => api.get<PartnerChat[]>(`${base}/partner-chats`, { ...q, open: q.open === false ? 'false' : 'true' }),
     partnerChat: (id: string) => api.get<PartnerChatThread>(`${base}/partner-chats/${id}`),
     replyPartnerChat: (id: string, body: string) => api.post<PartnerChatThread>(`${base}/partner-chats/${id}/messages`, { body }),

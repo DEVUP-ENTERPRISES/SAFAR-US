@@ -20,6 +20,7 @@ import { ApiError } from '@/lib/api/types';
 import { formatDate, formatMoney } from '@/lib/utils/format';
 import { PartnersNav } from '~/features/partners/partners-nav';
 import { MonthSelect, monthOptions } from '~/features/partners/month-select';
+import { TaxFileCard } from '~/features/partners/tax-file-card';
 
 const manage = partnerManageApi('/ioc');
 const usd = (amount: number) => formatMoney({ amount, currency: 'USD' });
@@ -127,6 +128,7 @@ export default function PartnerPayoutsPage() {
           )}
         </>
       )}
+      <TaxFileCard />
     </div>
   );
 }
