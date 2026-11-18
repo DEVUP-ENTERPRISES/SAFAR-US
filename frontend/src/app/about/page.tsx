@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, TractionStats, AudienceSection, BRAND } from '@/features/marketing/sections';
+import { EXAMPLES_PERIOD, OWNER_NET_RANGE } from '@/features/legal/claims';
+import { DisclosureNote } from '@/features/legal/disclosure-note';
 
 /**
  * About CatoDrive - the brand story, the traction, and the owner economics.
@@ -23,24 +25,24 @@ import { SectionEyebrow, TractionStats, AudienceSection, BRAND } from '@/feature
  */
 
 const PILLARS = [
-  { n: '01', icon: PlaneTakeoff, title: 'Free Terminal Valet', body: 'Car delivered straight to your terminal at DFW International and Love Field. Returned the same way. No shuttles. No satellite lots. Ever.' },
-  { n: '02', icon: Car, title: 'Exact Car, Guaranteed', body: 'Book the precise vehicle you want. Real photos, real car. No bait-and-switch. Every vehicle SOP-maintained, spotless, and road-ready.' },
-  { n: '03', icon: Banknote, title: 'Owners Net $1,066–$1,878/mo', body: 'Most of every booking goes to you. After maintenance (~$100–200/mo), the average owner nets over $1,000/month per vehicle. The car pays for itself in 36–40 months.' },
-  { n: '04', icon: Settings2, title: 'Full Fleet Management', body: 'Owners do nothing. We list, price, deliver, clean, and service - a 24/7 operations team based in DFW. Your only job is cashing the check.' },
+  { n: '01', icon: PlaneTakeoff, title: 'Airport Delivery', body: 'Your car meets you at DFW International and Love Field where airport rules allow, with exact pickup instructions for your trip. No shuttles. No satellite lots.' },
+  { n: '02', icon: Car, title: 'The Exact Car You Book', body: 'Book the precise vehicle you want. Real photos, real car. No bait-and-switch. Every vehicle SOP-maintained, spotless, and road-ready.' },
+  { n: '03', icon: Banknote, title: `Example Owner Net ${OWNER_NET_RANGE}/mo`, body: `Most of every booking goes to the owner. Example cars netted ${OWNER_NET_RANGE} a month in ${EXAMPLES_PERIOD} after our fee, insurance and detailing. Results vary and aren’t guaranteed.` },
+  { n: '04', icon: Settings2, title: 'Full Fleet Management', body: 'We list, price, deliver, clean, and service - a 24/7 operations team based in DFW. Owners approve larger repairs.' },
 ] as const;
 
 const STEPS = [
   { n: '01', icon: Car, title: 'List the Car You Own', body: 'You already own an eligible vehicle - no purchase required. We take it from there.', tag: 'Use the car you already own' },
   { n: '02', icon: Camera, title: `${BRAND} Lists It`, body: 'We photograph it, list it, and price it dynamically. You do nothing.', tag: '$0 additional effort from you' },
   { n: '03', icon: ClipboardCheck, title: 'Guest Books Online', body: 'A vetted traveler books online. We screen every trip. You’re never involved.', tag: 'Full vetting on every reservation' },
-  { n: '04', icon: Settings2, title: 'We Manage Everything', body: 'Valet pickup, terminal delivery, cleaning, maintenance coordination - full white-glove service.', tag: '100% of operations handled' },
-  { n: '05', icon: Wallet, title: 'You Get Paid', body: 'Your share of every booking hits your account monthly. No invoices. No chasing.', tag: 'Net $1,066–$1,878 / month' },
+  { n: '04', icon: Settings2, title: 'We Manage Everything', body: 'Delivery and collection, airport handoffs where permitted, cleaning and maintenance coordination - full white-glove service.', tag: 'Day-to-day operations handled' },
+  { n: '05', icon: Wallet, title: 'You Get Paid', body: 'Your share of every booking hits your account monthly. No invoices. No chasing.', tag: `${EXAMPLES_PERIOD} examples: net ${OWNER_NET_RANGE} / month` },
 ] as const;
 
 const RISKS = [
-  { scenario: 'Renter damages the vehicle', detail: '$750K liability + collision coverage per trip. The owner does not pay and never files directly.', owner: 'CatoDrive' as const },
-  { scenario: 'The car sits empty', detail: 'We manage pricing, listing optimization and the booking pipeline 24/7. Your exposure is zero.', owner: 'CatoDrive' as const },
-  { scenario: 'Routine maintenance', detail: 'The owner’s only cost: ~$100–200/month for oil, tires and washes - offset many times over by net income.', owner: 'Owner' as const },
+  { scenario: 'Renter damages the vehicle', detail: '$750K liability and collision coverage per trip, subject to the policy’s terms and exclusions. The owner never files directly, and their share of any damage is capped at $1,000 per incident under the partner agreement.', owner: 'CatoDrive' as const },
+  { scenario: 'The car sits empty', detail: 'We manage pricing, listing and the booking pipeline 24/7 to keep it booked. A car that isn’t booked earns nothing that month.', owner: 'Owner' as const },
+  { scenario: 'Routine maintenance', detail: 'Usually about $100–200 a month for oil, tires and washes, paid by the owner.', owner: 'Owner' as const },
   { scenario: 'Guest no-show or late return', detail: 'Our operations team handles all guest issues, rescheduling and late-fee recovery.', owner: 'CatoDrive' as const },
 ] as const;
 
@@ -64,9 +66,10 @@ export default function AboutPage() {
           <Reveal delay={160}>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70 sm:mt-7 sm:text-xl">
               Every rental company makes you take a shuttle bus to a satellite lot. {BRAND} delivers your
-              car <span className="font-semibold text-white">curbside at the terminal</span> - DFW and Love Field.
+              car <span className="font-semibold text-white">at the airport</span> - DFW and Love Field.
               Keys in hand.
             </p>
+            <DisclosureNote ids={['airport']} onDark className="mt-4 max-w-2xl" />
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-8 flex flex-wrap gap-4 sm:mt-10">
@@ -116,8 +119,8 @@ export default function AboutPage() {
               <span className="text-primary">Passive income for owners.</span>
             </h2>
             <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:mt-5 sm:text-lg">
-              {BRAND} built what Enterprise, Hertz and Avis never would - actual terminal delivery at both DFW
-              airports - and turned it into a passive-income engine for vehicle owners.
+              {BRAND} built what Enterprise, Hertz and Avis never would - delivery at both Dallas airports - and
+              turned it into an income source for vehicle owners.
             </p>
           </Reveal>
           <div className="mt-12 grid gap-4 sm:grid-cols-2">
@@ -127,6 +130,7 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </div>
+          <DisclosureNote ids={['earnings', 'airport']} className="mt-4" />
         </section>
 
         {/* ── HOW IT WORKS ───────────────────────────────────────────── */}
@@ -181,6 +185,7 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </div>
+          <DisclosureNote ids={['insurance']} className="mt-4" />
         </section>
 
         {/* ── CLOSING CTA (image background) ─────────────────────────── */}
@@ -200,7 +205,7 @@ export default function AboutPage() {
                 Your car could be earning next month.
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-base text-white/75 sm:text-lg">
-                List the vehicle you already own, or book a car delivered to your terminal. Either way, {BRAND} does the work.
+                List the vehicle you already own, or book a car delivered at the airport. Either way, {BRAND} does the work.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-3">
                 <Link href="/asset-partners" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-95 sm:h-14 sm:px-7 sm:text-base">

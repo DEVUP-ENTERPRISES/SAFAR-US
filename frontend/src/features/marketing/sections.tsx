@@ -7,6 +7,8 @@ import { ArrowRight, TrendingUp, Briefcase, Building2, Users } from 'lucide-reac
 import { Reveal } from '@/components/ui/reveal';
 import { config } from '@/lib/config';
 import { useFacets } from '@/features/vehicles/hooks';
+import { CLAIMS, EXAMPLES_PERIOD, OWNER_NET_RANGE, asOfDate, claimNote } from '@/features/legal/claims';
+import { DisclosureNote } from '@/features/legal/disclosure-note';
 
 /**
  * Shared CatoDrive marketing sections, so the homepage and the About page show
@@ -27,11 +29,11 @@ export function SectionEyebrow({ children }: { children: React.ReactNode }) {
 /* ── Traction / social-proof stats ─────────────────────────────────────── */
 
 const STATS = [
-  { prefix: '$', value: 766143, suffix: '+', decimals: 0, label: 'Fleet Revenue', comma: true },
-  { prefix: '', value: 4.96, suffix: '★', decimals: 2, label: 'Rating', sub: '2,053 reviews' },
-  { prefix: '', value: 100, suffix: '+', decimals: 0, label: 'Vehicles Managed' },
-  { prefix: '', value: 5100, suffix: '+', decimals: 0, label: 'Trips Completed', comma: true },
-] as const;
+  { prefix: '$', value: CLAIMS.revenue2026.value, suffix: '', decimals: 0, label: '2026 Revenue', comma: true, sub: claimNote(CLAIMS.revenue2026) },
+  { prefix: '', value: CLAIMS.rating.value, suffix: '★', decimals: 2, label: 'Rating', sub: `2,053 reviews on Turo, as of ${asOfDate(CLAIMS.rating)}` },
+  { prefix: '', value: CLAIMS.fleet.value, suffix: '+', decimals: 0, label: 'Vehicles Managed', sub: claimNote(CLAIMS.fleet) },
+  { prefix: '', value: CLAIMS.trips.value, suffix: '+', decimals: 0, label: 'Trips Completed', comma: true, sub: claimNote(CLAIMS.trips) },
+];
 
 /**
  * Business track-record figures.
@@ -65,7 +67,7 @@ export function TractionStats({
       <Reveal className="mx-auto max-w-2xl text-center">
         <SectionEyebrow>Proven traction · Zero outside capital</SectionEyebrow>
         <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">{heading}</h2>
-        <p className="mt-4 text-base text-muted-foreground sm:text-lg">Real figures from a real fleet - 100% bootstrapped.</p>
+        <p className="mt-4 text-base text-muted-foreground sm:text-lg">Figures from our own fleet records - 100% bootstrapped.</p>
       </Reveal>
       <div className={`mt-12 grid gap-8 sm:grid-cols-2 ${stats.length === 4 ? 'lg:grid-cols-4 lg:gap-8' : 'lg:grid-cols-2 max-w-4xl mx-auto lg:gap-16'}`}>
         {stats.map((s, i) => (
@@ -74,6 +76,7 @@ export function TractionStats({
           </Reveal>
         ))}
       </div>
+      <DisclosureNote ids={['statistics', 'reviews']} className="mx-auto mt-6 max-w-3xl text-center" />
     </section>
   );
 }
@@ -84,7 +87,7 @@ function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label,
   return (
     <div className="group relative flex min-w-0 flex-col items-center sm:items-start text-center sm:text-left py-6 transition-transform duration-500 hover:-translate-y-1">
       <div className="pointer-events-none absolute -left-4 top-0 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-opacity duration-500 group-hover:bg-primary/10" />
-      {/* Sized to the column on wide screens so a long figure ($766,143+) never runs into the next one. */}
+      {/* Sized to the column on wide screens so a long figure never runs into the next one. */}
       <p className="numeric max-w-full whitespace-nowrap text-4xl font-extrabold tracking-tight text-primary sm:text-5xl lg:text-[clamp(2rem,2.9vw,2.85rem)] drop-">
         {prefix}
         <CountUp value={value} decimals={decimals} comma={comma} />
@@ -106,8 +109,8 @@ function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label,
 const AUDIENCES = [
   // Was pointed at /host - the self-serve flow, not this program. A visitor
   // clicking "Become a partner" landed on the wrong pitch entirely.
-  { icon: TrendingUp, image: '/newsections/asset_partners.webp', title: 'Asset Partners', body: 'List a vehicle you already own. Net $1,066–$1,878/month - we run everything, you get paid.', href: '/asset-partners', cta: 'Become a partner' },
-  { icon: Briefcase, image: '/newsections/business_travels.webp', title: 'Business Travelers', body: 'Car delivered to your terminal at DFW or Love Field, 5–15% below market rate. Paperless end-to-end. Zero friction.', href: '/search', cta: 'Book a car' },
+  { icon: TrendingUp, image: '/newsections/asset_partners.webp', title: 'Asset Partners', body: `List a vehicle you already own. Example cars netted ${OWNER_NET_RANGE}/month in ${EXAMPLES_PERIOD} - we run everything, you get paid.`, href: '/asset-partners', cta: 'Become a partner' },
+  { icon: Briefcase, image: '/newsections/business_travels.webp', title: 'Business Travelers', body: 'Car delivered at DFW or Love Field where airport rules allow. Paperless end-to-end. Zero friction.', href: '/search', cta: 'Book a car' },
   { icon: Building2, image: '/newsections/corporate_accounts.webp', title: 'Corporate Accounts', body: 'B2B fleet accounts for enterprises and staffing agencies, auto-repair loaner programs, and white-glove SUV delivery to private terminals.', href: '/corporate', cta: 'Talk to us' },
   { icon: Users, image: '/newsections/enterprise_volume.webp', title: 'Enterprise & Volume', body: 'Volume pricing, dedicated account management, consolidated billing, and priority terminal delivery for regular DFW travel.', href: '/corporate', cta: 'Corporate portal' },
 ] as const;
@@ -128,6 +131,7 @@ export function AudienceSection({ heading = 'Two sides of one platform.' }: { he
           </Reveal>
         ))}
       </div>
+      <DisclosureNote ids={['earnings', 'airport']} className="mt-4" />
     </section>
   );
 }

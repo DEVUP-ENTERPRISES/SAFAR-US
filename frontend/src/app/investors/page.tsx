@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -21,6 +21,9 @@ import {
 } from "lucide-react";
 import { Reveal } from "@/components/ui/reveal";
 import { SectionEyebrow, CountUp, BRAND } from "@/features/marketing/sections";
+import { CLAIMS, asOfDate, claimNote } from "@/features/legal/claims";
+import { DISCLOSURE } from "@/features/legal/disclosures";
+import { DisclosureNote } from "@/features/legal/disclosure-note";
 
 /**
  * Investor Relations - built entirely in CatoDrive's own design system (hero-mesh,
@@ -28,11 +31,6 @@ import { SectionEyebrow, CountUp, BRAND } from "@/features/marketing/sections";
  * and stat-card language as /asset-partners and /about) - not a skin ported
  * from the supplied copy. Same brand as the rest of the site: this is
  * CatoDrive's fundraising page, not a separate product.
- *
- * The centerpiece is a revenue figure that visibly climbs while an investor
- * watches - labeled honestly as an illustrative YTD-pace calculation (see
- * LiveTicker), because a page asking for $21K+ checks can't afford to imply a
- * live-data capability that doesn't exist.
  *
  * All figures are business-supplied. "Request the Full Deck" is a mailto:
  * to CatoDrive's Investor Relations contact for now - swap to the
@@ -48,34 +46,35 @@ const ROUND_TERMS = [
 ] as const;
 
 const TRACTION = [
-  { value: 100, prefix: "", suffix: "+", label: "Vehicles managed" },
-  { value: 900, prefix: "$", suffix: "K+", label: "2026 YTD revenue" },
+  { value: CLAIMS.fleet.value, prefix: "", suffix: "+", label: "Vehicles managed", note: claimNote(CLAIMS.fleet) },
+  { value: CLAIMS.revenue2026.value, prefix: "$", suffix: "", comma: true, label: "2026 revenue to date", note: claimNote(CLAIMS.revenue2026) },
   {
-    value: 3626,
+    value: CLAIMS.trips.value,
     prefix: "",
     suffix: "+",
     comma: true,
-    label: "Completed trips · 4.9★ All-Star Host",
+    label: `Completed trips · ${CLAIMS.rating.display} on Turo`,
+    note: claimNote(CLAIMS.trips),
   },
-  { value: 0, prefix: "$", suffix: "", label: "Outside capital raised" },
-] as const;
+  { value: 0, prefix: "$", suffix: "", label: "Outside capital raised", note: undefined },
+];
 
 // Short labels on purpose: at 4 columns on a ~390px phone, each bar has
 // roughly 60px to work with once page/card padding and gaps are subtracted -
 // "2026 target" doesn't fit there, "Target" does. The surrounding heading and
 // copy already establish "2026", so nothing is lost.
 const GROWTH = [
-  { year: "2023", value: 1574, display: "$1,574", target: false },
-  { year: "2025", value: 307000, display: "$307K", target: false },
-  { year: "YTD ’26", value: 900_627, display: "$900,627", target: false },
-  { year: "Target", value: 1_200_000, display: "$1.2M", target: true },
+  { year: "2023", value: CLAIMS.revenue2023.value, display: CLAIMS.revenue2023.display, target: false },
+  { year: "2025", value: CLAIMS.revenue2025.value, display: CLAIMS.revenue2025.display, target: false },
+  { year: "YTD ’26", value: CLAIMS.revenue2026.value, display: CLAIMS.revenue2026.display, target: false },
+  { year: "Forecast", value: CLAIMS.target2026.value, display: CLAIMS.target2026.display, target: true },
 ] as const;
 
 const VISION = [
   {
     icon: Building2,
     title: "Corporate Clients",
-    body: "B2B fleet accounts for enterprises & staffing agencies. Guaranteed utilization, lower churn.",
+    body: "B2B fleet accounts for enterprises & staffing agencies. Steadier utilization, lower churn.",
   },
   {
     icon: Wrench,
@@ -101,20 +100,20 @@ const FUNDS = [
 ] as const;
 
 const FIN_STATS = [
-  { value: "$900,627", label: "2026 YTD revenue", sub: "Verified" },
-  { value: "$1.2M+", label: "Full-year projection", sub: "Q4 2026 target" },
-  { value: "$78,734", label: "Confirmed pipeline", sub: "Upcoming bookings" },
+  { value: CLAIMS.revenue2026.display, label: "2026 revenue to date", sub: claimNote(CLAIMS.revenue2026) },
+  { value: CLAIMS.target2026.display, label: "2026 full-year forecast", sub: "Management forecast, not earned revenue" },
+  { value: CLAIMS.pipeline.display, label: "Upcoming bookings", sub: `Scheduled as of ${asOfDate(CLAIMS.pipeline)}; not yet completed or earned` },
   {
-    value: "$10.08M",
+    value: CLAIMS.goal700.display,
     label: "700-vehicle revenue goal",
-    sub: "700 × $1,200/mo × 12",
+    sub: "Goal: 700 × $1,200/mo × 12, not a forecast",
   },
 ] as const;
 
 const TRAJECTORY = [
-  { value: "$307K", meta: "2025 · 72 vehicles" },
-  { value: "$1.2M", meta: "2026 · 100+ vehicles" },
-  { value: "$10.08M", meta: "700-vehicle target" },
+  { value: CLAIMS.revenue2025.display, meta: `2025 actual · ${CLAIMS.fleet2025.display} vehicles` },
+  { value: CLAIMS.target2026.display, meta: `2026 forecast · ${CLAIMS.fleet.display} vehicles` },
+  { value: CLAIMS.goal700.display, meta: "700-vehicle goal" },
 ] as const;
 
 const EXITS = [
@@ -201,8 +200,6 @@ const FAQ_ITEMS = [
   },
 ] as const;
 
-const YEAR_START = Date.UTC(2026, 0, 1);
-const YTD_ANCHOR = 900_627;
 
 export default function InvestorsPage() {
   return (
@@ -228,8 +225,8 @@ export default function InvestorsPage() {
           </Reveal>
           <Reveal delay={160}>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70 sm:mt-7 sm:text-xl">
-              {BRAND} is bootstrapped, profitable, and operating - 100+ vehicles
-              at DFW International and Love Field, $900,627 earned in 2026 with $0
+              {BRAND} is bootstrapped, profitable, and operating - {CLAIMS.fleet.display} vehicles
+              at DFW International and Love Field, {CLAIMS.revenue2026.display} earned in 2026 with $0
               outside capital. We’re raising a{" "}
               <span className="font-semibold text-white">$504,000 SAFE</span>{" "}
               (Late Seed) at a{" "}
@@ -262,7 +259,7 @@ export default function InvestorsPage() {
           </Reveal>
 
           <Reveal delay={300}>
-            <LiveTicker />
+            <RevenueCard />
           </Reveal>
         </div>
       </section>
@@ -296,6 +293,8 @@ export default function InvestorsPage() {
           </div>
         </section>
 
+        <DisclosureNote ids={["investment"]} className="-mt-8" />
+
         {/* ── TRACTION ─────────────────────────────────────────────────── */}
         <section id="traction" className="scroll-mt-24">
           <Reveal className="mx-auto max-w-2xl text-center">
@@ -323,10 +322,12 @@ export default function InvestorsPage() {
                   <p className="mt-3 text-sm font-medium text-foreground">
                     {s.label}
                   </p>
+                  {s.note && <p className="mt-1 text-xs text-muted-foreground">{s.note}</p>}
                 </div>
               </Reveal>
             ))}
           </div>
+          <DisclosureNote ids={["statistics"]} className="mt-4" />
         </section>
 
         {/* ── COMPANY OVERVIEW ─────────────────────────────────────────── */}
@@ -338,10 +339,10 @@ export default function InvestorsPage() {
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
               {BRAND} is a bootstrapped, profitable fleet-management company
-              operating 100 vehicles at DFW International and Love Field -
-              $900,627 earned in 2026 with zero outside capital. Four years of
+              operating {CLAIMS.fleet.display} vehicles at DFW International and Love Field -
+              {CLAIMS.revenue2026.display} earned in 2026 with zero outside capital. Four years of
               operations. Institutional-grade fleet management, All-Star Host
-              status, 3,626 trips completed.
+              status on Turo, {CLAIMS.trips.display} trips completed.
             </p>
           </Reveal>
 
@@ -360,7 +361,7 @@ export default function InvestorsPage() {
           <Reveal delay={160}>
             <p className="mt-6 text-lg text-muted-foreground">
               That’s <span className="font-bold text-primary">195× growth</span>{" "}
-              - built entirely on operating cash flow.
+              from 2023 to 2025 revenue - built entirely on operating cash flow.
             </p>
           </Reveal>
         </section>
@@ -408,7 +409,7 @@ export default function InvestorsPage() {
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Step 03 · Financial performance</SectionEyebrow>
             <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">
-              $900,627 earned in 2026 · $1.2M full-year target.
+              {CLAIMS.revenue2026.display} earned in 2026 · {CLAIMS.target2026.display} full-year forecast.
             </h2>
           </Reveal>
 
@@ -461,6 +462,8 @@ export default function InvestorsPage() {
             </div>
           </Reveal>
 
+          <DisclosureNote ids={["statistics", "forward-looking"]} className="mt-4" />
+
           {/* Use of funds */}
           <Reveal delay={100}>
             <div className="mt-12 rounded-lg border border-border bg-card p-7">
@@ -505,7 +508,10 @@ export default function InvestorsPage() {
           {/* Exit scenarios */}
           <div className="mt-12">
             <p className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
-              Illustrative 5-year exit scenarios at 3% equity
+              Hypothetical 5-year exit scenarios at 3% equity
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Assumes the full $504,000 round buys 3% of the company with no later dilution, and a sale at the revenue and multiple shown. Real outcomes depend on the executed SAFE, later rounds and the market.
             </p>
             <div className="mt-5 grid gap-4 sm:grid-cols-3">
               {EXITS.map((e, i) => (
@@ -528,9 +534,7 @@ export default function InvestorsPage() {
                 </Reveal>
               ))}
             </div>
-            <p className="mt-4 text-xs text-muted-foreground">
-              Forward-looking projections involve risk and are not guaranteed.
-            </p>
+            <DisclosureNote ids={["forward-looking", "investment"]} className="mt-4" />
           </div>
 
           {/* Investor rights */}
@@ -623,18 +627,15 @@ export default function InvestorsPage() {
         </section>
 
         {/* ── DISCLAIMER ──────────────────────────────────────────────── */}
-        <Reveal>
-          <p className="mx-auto max-w-3xl text-center text-xs leading-relaxed text-muted-foreground">
-            This page is for informational purposes only and does not constitute
-            an offer to sell, or a solicitation of an offer to buy, any
-            security, and may not be relied upon in connection with any offer or
-            sale of securities. Any offer will be made only by means of
-            definitive subscription documents to qualified investors. Past
-            performance is not indicative of future results; all revenue
-            figures, projections, and exit scenarios are illustrative,
-            forward-looking, and not guaranteed.
-          </p>
-        </Reveal>
+        <section aria-labelledby="investor-disclosures" className="mx-auto max-w-3xl space-y-4 rounded-lg border border-border bg-card p-6 text-sm leading-relaxed text-muted-foreground">
+          <h2 id="investor-disclosures" className="text-base font-semibold text-foreground">Important disclosures</h2>
+          {[DISCLOSURE.investment, DISCLOSURE["forward-looking"], DISCLOSURE.statistics].map((d) => (
+            <div key={d.id} className="space-y-2">
+              <h3 className="text-sm font-semibold text-foreground">{d.title}</h3>
+              {d.body.map((p) => <p key={p}>{p}</p>)}
+            </div>
+          ))}
+        </section>
       </div>
     </div>
   );
@@ -642,61 +643,17 @@ export default function InvestorsPage() {
 
 /* ── Pieces ─────────────────────────────────────────────────────────── */
 
-/**
- * A revenue figure that visibly climbs - computed as the stated $900,627 2026
- * YTD figure plus a rate derived from elapsed time since Jan 1, 2026, i.e. an
- * ILLUSTRATIVE run-rate, not a live feed of real bookings. The caption is not
- * decorative - a fundraising page cannot imply a capability it doesn't have.
- */
-function LiveTicker() {
-  const [value, setValue] = useState(YTD_ANCHOR);
-  const raf = useRef<number | undefined>(undefined);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const now = Date.now();
-    const elapsedMs = Math.max(now - YEAR_START, 1000);
-    const perMs = YTD_ANCHOR / elapsedMs;
-
-    const tick = () => {
-      const elapsed = Date.now() - YEAR_START;
-      setValue(YTD_ANCHOR + perMs * (elapsed - elapsedMs));
-      raf.current = requestAnimationFrame(tick);
-    };
-    raf.current = requestAnimationFrame(tick);
-    return () => {
-      if (raf.current) cancelAnimationFrame(raf.current);
-    };
-  }, []);
-
-  const formatted = value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-
+function RevenueCard() {
   return (
     <div className="mt-14 max-w-xl rounded-lg border border-white/15 bg-white/[0.06] p-7 backdrop-blur">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-[0.15em] text-white/60">
-          2026 Revenue Pace
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-success">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-70" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
-          </span>
-          Live pace
-        </span>
-      </div>
+      <span className="text-xs font-bold uppercase tracking-[0.15em] text-white/70">
+        2026 revenue to date
+      </span>
       <p className="numeric mt-2 text-[2.1rem] font-black leading-none tracking-tight text-white sm:text-5xl lg:text-6xl">
-        {formatted}
+        {CLAIMS.revenue2026.display}
       </p>
-      <p className="mt-3 text-xs leading-relaxed text-white/50">
-        Illustrative - calculated from {BRAND}’s verified 2026 year-to-date
-        revenue ($900,627), extrapolated at a constant run-rate since January 1,
-        2026.
+      <p className="mt-3 text-xs leading-relaxed text-white/75">
+        {claimNote(CLAIMS.revenue2026)}. The {CLAIMS.target2026.display} full-year figure is a management forecast, not earned revenue.
       </p>
     </div>
   );

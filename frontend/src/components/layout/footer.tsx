@@ -75,7 +75,7 @@ export function Footer() {
               <span className="display text-xl tracking-tight">{config.appName}</span>
             </div>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              Premium managed vehicles, delivered curbside at DFW and Love Field. Book in seconds, no rental counter.
+              Premium managed vehicles, delivered at DFW and Love Field. Book in seconds, no rental counter.
             </p>
           </div>
 
@@ -116,6 +116,12 @@ export function Footer() {
             </Link>
             <Link href="/insurance" className="transition-colors hover:text-foreground">
               Trust &amp; Safety
+            </Link>
+            <Link href="/legal/disclosures" className="transition-colors hover:text-foreground">
+              Disclosures
+            </Link>
+            <Link href="/legal" className="transition-colors hover:text-foreground">
+              Legal
             </Link>
             <span>United States (USD $)</span>
           </div>

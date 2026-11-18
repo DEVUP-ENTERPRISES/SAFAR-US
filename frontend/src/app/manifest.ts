@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'CatoDrive - Premium Car Rentals',
     short_name: 'CatoDrive',
     description:
-      'Book premium cars delivered to your terminal, or turn the car you own into income. Curbside at DFW and Love Field.',
+      'Book premium cars delivered at the airport, or turn the car you own into income. At DFW and Love Field.',
     start_url: '/',
     scope: '/',
     display: 'standalone',

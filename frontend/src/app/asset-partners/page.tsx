@@ -12,6 +12,8 @@ import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, CountUp, BRAND, TractionStats } from '@/features/marketing/sections';
 import { SiteLink } from '@/components/layout/site-link';
 import { CONTACT } from '@/features/contact/content';
+import { CLAIMS, EXAMPLES_PERIOD, OWNER_EXAMPLES, OWNER_NET_RANGE, claimNote, ownerBreakdown, usd } from '@/features/legal/claims';
+import { DisclosureNote } from '@/features/legal/disclosure-note';
 
 /**
  * Asset Partners - CatoDrive's primary acquisition page (v1 priority, per the
@@ -26,39 +28,35 @@ import { CONTACT } from '@/features/contact/content';
  */
 
 const STATS = [
-  { prefix: '$', value: 766143, suffix: '+', decimals: 0, label: 'Fleet Revenue', comma: true },
-  { prefix: '$1,029–$1,841', value: 0, suffix: '', decimals: 0, label: 'Net Monthly Per Vehicle', raw: true },
-  { prefix: '', value: 100, suffix: '+', decimals: 0, label: 'Vehicles Managed' },
-  { prefix: '', value: 5100, suffix: '+', decimals: 0, label: 'Trips Completed · 4.9★ All-Star Host', comma: true },
-] as const;
+  { prefix: '$', value: CLAIMS.revenue2026.value, suffix: '', decimals: 0, label: '2026 Revenue', comma: true, note: claimNote(CLAIMS.revenue2026) },
+  { prefix: OWNER_NET_RANGE, value: 0, suffix: '', decimals: 0, label: `Example net a month per car (${EXAMPLES_PERIOD})`, raw: true, note: 'Examples, not typical or guaranteed' },
+  { prefix: '', value: CLAIMS.fleet.value, suffix: '+', decimals: 0, label: 'Vehicles Managed', note: claimNote(CLAIMS.fleet) },
+  { prefix: '', value: CLAIMS.trips.value, suffix: '+', decimals: 0, label: `Trips Completed · ${CLAIMS.rating.display} on Turo`, comma: true, note: claimNote(CLAIMS.trips) },
+];
 
 const STEPS = [
   { n: '01', icon: Car, title: 'List the Car You Own', body: 'You already own an eligible vehicle - CatoDrive lists it, photographs it, and prices it dynamically. No purchase or financing required.' },
   { n: '02', icon: Camera, title: `${BRAND} Lists It`, body: 'We photograph, list, price dynamically, and manage your car. You do nothing. $0 additional effort.' },
   { n: '03', icon: ClipboardCheck, title: 'Guest Books Online', body: 'A vetted traveler books. CatoDrive screens every trip. You’re never involved.' },
-  { n: '04', icon: Settings2, title: 'We Manage Everything', body: 'Valet pickup, terminal delivery, cleaning, maintenance coordination. Full white-glove service.' },
-  { n: '05', icon: Wallet, title: 'You Get Paid', body: 'Your share of every booking hits your account monthly - check on the 5th or Zelle. No invoices. No chasing.', tag: 'Net $1,029–$1,841 / month' },
+  { n: '04', icon: Settings2, title: 'We Manage Everything', body: 'Delivery and collection, airport handoffs where permitted, cleaning and maintenance coordination. Full white-glove service.' },
+  { n: '05', icon: Wallet, title: 'You Get Paid', body: 'Your share of every booking hits your account monthly - check on the 5th or Zelle. No invoices. No chasing.', tag: `${EXAMPLES_PERIOD} examples: net ${OWNER_NET_RANGE} / month` },
 ] as const;
 
-const ECONOMICS: { label: string; value: string; muted?: boolean }[] = [
-  { label: 'Average daily rate', value: '$65–$120/day' },
-  { label: 'Target utilization (70–80%)', value: '~21–24 days/month' },
-  { label: 'Gross monthly revenue', value: '$1,365–$2,028' },
-  { label: 'Management fee (20%)', value: '−$273 to −$406', muted: true },
-  { label: 'Roamly fleet insurance', value: '−$137', muted: true },
-  { label: 'Professional detailing', value: '−$50', muted: true },
+const LOW = ownerBreakdown(OWNER_EXAMPLES[0].grossCents);
+const HIGH = ownerBreakdown(OWNER_EXAMPLES[OWNER_EXAMPLES.length - 1].grossCents);
+const ECONOMICS: { label: string; low: string; high: string; muted?: boolean }[] = [
+  { label: 'Gross monthly bookings', low: usd(LOW.grossCents), high: usd(HIGH.grossCents) },
+  { label: 'Management fee (20%)', low: `−${usd(LOW.feeCents)}`, high: `−${usd(HIGH.feeCents)}`, muted: true },
+  { label: 'Roamly fleet insurance', low: `−${usd(LOW.insuranceCents)}`, high: `−${usd(HIGH.insuranceCents)}`, muted: true },
+  { label: 'Professional detailing', low: `−${usd(LOW.detailingCents)}`, high: `−${usd(HIGH.detailingCents)}`, muted: true },
 ];
 
-const TIERS = [
-  { tier: 'Conservative', amount: '$1,029', vehicles: 'Kia Sportage, Buick Envista', tone: 'default' as const },
-  { tier: 'Mid-range', amount: '$1,400', vehicles: 'VW Tiguan, Jeep Grand Cherokee', tone: 'primary' as const },
-  { tier: 'Top performer', amount: '$1,841', vehicles: 'VW Atlas, Nissan Pathfinder', tone: 'success' as const },
-] as const;
+const TIERS = OWNER_EXAMPLES.map((e) => ({ tier: e.tier, vehicles: e.vehicles, tone: e.tone, amount: usd(ownerBreakdown(e.grossCents).netCents) }));
 
 const GROWTH = [
-  { year: '2023', value: '$1,574' },
-  { year: '2025', value: '$307K' },
-  { year: '2026', value: '$900,627' },
+  { year: '2023', value: CLAIMS.revenue2023.display },
+  { year: '2025', value: CLAIMS.revenue2025.display },
+  { year: '2026 to date', value: CLAIMS.revenue2026.display },
 ] as const;
 
 const REQUIREMENTS = [
@@ -71,7 +69,7 @@ const REQUIREMENTS = [
 
 const RISKS = [
   { scenario: 'Renter damages the vehicle', detail: 'Roamly commercial fleet insurance covers the vehicle during all non-trip periods in CatoDrive custody. Your deductible is capped at $1,000 per incident (Addendum No. 1) - CatoDrive absorbs any unrecovered deductible above that cap.', owner: 'CatoDrive' as const },
-  { scenario: 'The car sits empty', detail: 'We manage pricing, listing optimization and the booking pipeline 24/7. Your exposure is zero.', owner: 'CatoDrive' as const },
+  { scenario: 'The car sits empty', detail: 'We manage pricing, listing and the booking pipeline 24/7 to keep it booked. A car that isn’t booked earns nothing that month.', owner: 'Shared' as const },
   { scenario: 'Guest no-show or late return', detail: 'Our operations team handles all guest issues, rescheduling and late-fee recovery.', owner: 'CatoDrive' as const },
   { scenario: 'Routine maintenance', detail: 'Routine maintenance under $500 is handled without interrupting you. Anything above $500 requires your approval first.', owner: 'Shared' as const },
   { scenario: 'Regulatory / platform changes', detail: 'We monitor TOS, airport concession rules and P2P regulations proactively.', owner: 'CatoDrive' as const },
@@ -117,7 +115,7 @@ const PARTNER_ANSWERS = [
 
 const FAQ = [
   { q: 'What vehicles do you accept?', a: 'A 2018-or-newer model with a clean title, under 130,000 miles, no major body, structural or cosmetic damage, and it must be smoke-free, pet-free, with at least 4/32" of tread. AWD SUVs and crossovers with 5–7 seats, leather and Apple CarPlay are strongly preferred - that’s what performs best in the airport market. CatoDrive reserves the right to decline any vehicle that doesn’t meet these standards, which is what keeps quality consistent across every partner’s car.' },
-  { q: 'How much will I actually earn?', a: 'Based on the active fleet, partners net $1,029–$1,841 per vehicle per month after the management fee, insurance and detailing are deducted - roughly $65–$120/day at 70–80% utilization. Where a specific car lands in that range depends mostly on the model: conservative performers like a Kia Sportage sit around $1,029/mo, mid-range vehicles like a VW Tiguan around $1,400/mo, and top performers like a VW Atlas or Nissan Pathfinder around $1,841/mo. These are illustrative examples from the real fleet, not a guarantee.' },
+  { q: 'How much will I actually earn?', a: `In ${EXAMPLES_PERIOD}, example cars in our fleet netted ${OWNER_NET_RANGE} a month after the management fee, insurance and detailing, at ${CLAIMS.dailyRate.display} a day and ${CLAIMS.bookedDays.display} booked days a month. A conservative car like a Kia Sportage netted about ${TIERS[0].amount}, a VW Tiguan about ${TIERS[1].amount}, and a VW Atlas or Nissan Pathfinder about ${TIERS[2].amount}. These are examples, not typical results or a guarantee: your car can earn less, and the figures exclude financing, depreciation, taxes, repairs and downtime.` },
   { q: 'What does CatoDrive charge?', a: 'A 20% management fee on gross booking revenue - that covers listing, dynamic pricing, guest screening, valet delivery, cleaning coordination and 24/7 operations. Fleet insurance (Roamly) and professional detailing are itemized separately in your monthly statement.' },
   { q: 'What about insurance?', a: 'Every vehicle is covered by Roamly commercial fleet insurance for the entire time it’s in CatoDrive’s custody - not just during trips. If a renter causes damage, your out-of-pocket exposure is capped at $1,000 per incident; CatoDrive absorbs anything above that cap.' },
   { q: 'Do I need to buy a car to join?', a: 'No. The program is built for vehicles you already own. There’s no purchase or financing requirement to become an asset partner - your only ongoing responsibility is financing you may already carry on the car itself.' },
@@ -144,10 +142,11 @@ export default function AssetPartnersPage() {
           </Reveal>
           <Reveal delay={160}>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70 sm:mt-7 sm:text-xl">
-              {BRAND} asset partners net <span className="font-semibold text-white">$1,029–$1,841/month</span> per
-              vehicle. We handle 100% of operations - listing, pricing, valet delivery, cleaning, maintenance and
-              insurance. Your only job is cashing the check.
+              Example partner cars netted <span className="font-semibold text-white">{OWNER_NET_RANGE}/month</span> each
+              in {EXAMPLES_PERIOD}. We handle the operations - listing, pricing, delivery, cleaning, maintenance
+              coordination and insurance. You approve larger repairs.
             </p>
+            <DisclosureNote ids={['earnings']} onDark className="mt-4 max-w-2xl" />
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-8 flex flex-wrap gap-4 sm:mt-10">
@@ -179,10 +178,10 @@ export default function AssetPartnersPage() {
         {/* ── VERIFIED PERFORMANCE ───────────────────────────────────── */}
         <section id="numbers" className="scroll-mt-24">
           <Reveal className="mx-auto max-w-2xl text-center">
-            <SectionEyebrow>Verified performance</SectionEyebrow>
+            <SectionEyebrow>Track record</SectionEyebrow>
             <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">The numbers, unedited.</h2>
             <p className="mt-4 text-base text-muted-foreground sm:text-lg">
-              Real numbers from a real fleet - 4 years operating, All-Star Host, $0 outside capital.
+              Figures from our own fleet records - 4 years operating, All-Star Host on Turo, $0 outside capital.
             </p>
           </Reveal>
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -192,13 +191,14 @@ export default function AssetPartnersPage() {
               </Reveal>
             ))}
           </div>
+          <DisclosureNote ids={['statistics', 'earnings']} className="mt-4" />
         </section>
 
         {/* ── FIVE STEPS ─────────────────────────────────────────────── */}
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>How it works</SectionEyebrow>
-            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Five steps. Zero headaches. Income in 30 days.</h2>
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Five steps. Zero headaches. First payout in 30–45 days.</h2>
             <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:mt-5 sm:text-lg">
               Owner responsibility: vehicle financing only. {BRAND} handles 100% of operations from list to payout.
             </p>
@@ -216,28 +216,38 @@ export default function AssetPartnersPage() {
         <section>
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Step 01 · Owner economics</SectionEyebrow>
-            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Here’s exactly what stays in your pocket.</h2>
+            <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">How the money works, with real examples.</h2>
           </Reveal>
 
           <div className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_1fr]">
             <Reveal>
               <div className="overflow-hidden rounded-lg border border-border bg-card">
+                <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 border-b border-border px-6 py-3 text-xs font-semibold text-muted-foreground">
+                  <span>{EXAMPLES_PERIOD} example, per month</span>
+                  <span className="w-20 text-end">{OWNER_EXAMPLES[0].tier}</span>
+                  <span className="w-20 text-end">{OWNER_EXAMPLES[OWNER_EXAMPLES.length - 1].tier}</span>
+                </div>
                 <div className="divide-y divide-border px-6">
                   {ECONOMICS.map((e) => (
-                    <div key={e.label} className="flex items-center justify-between py-3.5 text-sm">
+                    <div key={e.label} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 py-3.5 text-sm">
                       <span className={e.muted ? 'text-muted-foreground' : 'font-medium text-foreground'}>{e.label}</span>
-                      <span className="numeric tabular-nums font-semibold text-foreground">{e.value}</span>
+                      <span className="numeric w-20 text-end tabular-nums font-semibold text-foreground">{e.low}</span>
+                      <span className="numeric w-20 text-end tabular-nums font-semibold text-foreground">{e.high}</span>
                     </div>
                   ))}
                 </div>
-                <div className="flex items-baseline justify-between bg-primary/[0.06] px-6 py-5">
-                  <span className="text-base font-black text-foreground">Net monthly to partner</span>
-                  <span className="numeric text-2xl font-black tabular-nums text-primary">$1,029–$1,841</span>
+                <div className="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-4 bg-primary/[0.06] px-6 py-5">
+                  <span className="text-base font-black text-foreground">Net to partner</span>
+                  <span className="numeric w-20 text-end text-xl font-black tabular-nums text-primary">{usd(LOW.netCents)}</span>
+                  <span className="numeric w-20 text-end text-xl font-black tabular-nums text-primary">{usd(HIGH.netCents)}</span>
                 </div>
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                Verified from the active fleet - earnings examples are illustrative only; no income guarantees.
-              </p>
+              <ul className="mt-3 list-disc space-y-1 ps-5 text-xs leading-relaxed text-muted-foreground">
+                <li>Assumes {CLAIMS.dailyRate.display} a day and {CLAIMS.bookedDays.display} booked days a month, as in our {EXAMPLES_PERIOD} fleet.</li>
+                <li>A one-time onboarding fee also applies, paid upfront or from the car’s first earnings.</li>
+                <li>Not included: financing, interest, depreciation, taxes, registration, unexpected repairs, tires, deductibles and downtime.</li>
+              </ul>
+              <DisclosureNote ids={['earnings', 'calculations']} className="mt-3" />
             </Reveal>
 
             <Reveal delay={100}>
@@ -256,7 +266,7 @@ export default function AssetPartnersPage() {
         {/* ── TOP PERFORMERS ─────────────────────────────────────────── */}
         <section>
           <Reveal className="max-w-3xl">
-            <SectionEyebrow>Step 02 · Top performers (2025)</SectionEyebrow>
+            <SectionEyebrow>Step 02 · Example cars ({EXAMPLES_PERIOD})</SectionEyebrow>
             <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">Real revenue from real vehicles.</h2>
           </Reveal>
 
@@ -266,15 +276,15 @@ export default function AssetPartnersPage() {
                 <ul className="space-y-3 text-sm text-foreground">
                   <li className="flex items-start gap-2.5">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-success" />
-                    <span><span className="font-semibold">VW Atlas / Nissan Pathfinder</span> - top performers, ~$1,841/mo net</span>
+                    <span><span className="font-semibold">VW Atlas / Nissan Pathfinder</span> - top performers, ~{TIERS[2].amount}/mo net</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                    <span><span className="font-semibold">VW Tiguan / Jeep Grand Cherokee</span> - mid-range, ~$1,400/mo net</span>
+                    <span><span className="font-semibold">VW Tiguan / Jeep Grand Cherokee</span> - mid-range, ~{TIERS[1].amount}/mo net</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground" />
-                    <span><span className="font-semibold">Kia Sportage / Buick Envista</span> - conservative, ~$1,029/mo net</span>
+                    <span><span className="font-semibold">Kia Sportage / Buick Envista</span> - conservative, ~{TIERS[0].amount}/mo net</span>
                   </li>
                 </ul>
                 <div className="mt-6 rounded-lg bg-primary/5 p-4 ring-1 ring-primary/15">
@@ -303,9 +313,10 @@ export default function AssetPartnersPage() {
                   ))}
                 </div>
                 <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
-                  <span className="font-semibold text-foreground">$900,627 earned in 2026</span> across 100 managed
-                  vehicles, with $0 outside capital. The airport market is strong and proven.
+                  <span className="font-semibold text-foreground">{CLAIMS.revenue2026.display} earned in 2026</span> across {CLAIMS.fleet.display} managed
+                  vehicles, with $0 outside capital.
                 </p>
+                <p className="mt-2 text-xs text-muted-foreground">{claimNote(CLAIMS.revenue2026)}.</p>
               </div>
             </Reveal>
           </div>
@@ -367,6 +378,7 @@ export default function AssetPartnersPage() {
               </Reveal>
             ))}
           </div>
+          <DisclosureNote ids={['insurance']} className="mt-4" />
         </section>
 
         {/* ── WHAT PARTNERS ASK ──────────────────────────────────────── */}
@@ -452,8 +464,8 @@ export default function AssetPartnersPage() {
 
 /* ── Pieces ─────────────────────────────────────────────────────────── */
 
-function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label, raw }: {
-  prefix?: string; value: number; suffix?: string; decimals?: number; comma?: boolean; label: string; raw?: boolean;
+function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label, raw, note }: {
+  prefix?: string; value: number; suffix?: string; decimals?: number; comma?: boolean; label: string; raw?: boolean; note?: string;
 }) {
   return (
     <div className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card p-5 transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 sm:p-6">
@@ -462,6 +474,7 @@ function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label,
         {raw ? prefix : <>{prefix}<CountUp value={value} decimals={decimals} comma={comma} />{suffix}</>}
       </p>
       <p className="mt-2 text-sm font-medium text-foreground sm:mt-3">{label}</p>
+      {note && <p className="mt-1 text-xs text-muted-foreground">{note}</p>}
     </div>
   );
 }

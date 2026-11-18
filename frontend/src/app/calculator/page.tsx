@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { vehicleApi } from '@/features/vehicles/api';
 import { usePlatformConfig } from '@/features/platform/config';
 import { SiteLink } from '@/components/layout/site-link';
+import { DisclosureNote } from '@/features/legal/disclosure-note';
 
 const money = (cents: number) =>
   `$${Math.round(cents / 100).toLocaleString('en-US')}`;
@@ -232,6 +233,7 @@ export default function CarculatorPage() {
                   keep rather than a cap.
                 </p>
                 <p>Not included: fuel, cleaning, maintenance, or your own insurance while the car is off-platform.</p>
+                <DisclosureNote ids={['calculations']} />
               </div>
             </CardContent>
           </Card>

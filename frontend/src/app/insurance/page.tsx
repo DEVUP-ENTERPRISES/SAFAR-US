@@ -5,6 +5,7 @@ import { ShieldCheck, Car, Clock, Scale, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
+import { DisclosureNote } from '@/features/legal/disclosure-note';
 import { usePlatformConfig, describeCancellation } from '@/features/platform/config';
 
 const money = (cents: number) => `$${(cents / 100).toFixed(0)}`;
@@ -27,6 +28,7 @@ export default function InsurancePage() {
         title="Protection & cover"
         description="What is covered, what it costs, and what happens when something goes wrong."
       />
+      <DisclosureNote ids={['insurance']} className="-mt-4" />
 
       {/* Tiers - priced from the same config checkout bills against. */}
       <section className="space-y-3">

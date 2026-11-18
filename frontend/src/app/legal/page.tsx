@@ -31,6 +31,21 @@ export default function LegalPage() {
         description="Terms, policies, and the agreements that apply when you book or host."
       />
 
+      <Link href="/legal/disclosures" className="block">
+        <Card className="transition-colors hover:border-primary/40">
+          <CardContent className="flex items-center justify-between gap-4 py-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
+                <p className="truncate font-semibold">Website disclosures</p>
+                <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">How to read our figures, examples, forecasts, insurance and airport descriptions.</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </Link>
+
       {articles.isError && !articles.data ? (
           <ErrorState message="We couldn’t load this page." retry={() => void articles.refetch()} />
         ) : articles.isLoading ? (

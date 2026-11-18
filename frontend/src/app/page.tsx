@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { VehicleCard } from '@/features/vehicles/components/vehicle-card';
 import { SearchBarFields } from '@/features/search/search-bar-fields';
 import { useTrending, useFacets } from '@/features/vehicles/hooks';
+import { DisclosureNote } from '@/features/legal/disclosure-note';
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 
@@ -57,8 +58,8 @@ const RESERVATION_TRUST = [
 const WHY_ITEMS = [
   {
     icon: MapPin,
-    title: 'Curbside at the terminal',
-    body: 'We deliver to DFW International and Love Field - no shuttle, no satellite lot, no queue.',
+    title: 'Delivered at the airport',
+    body: 'We deliver at DFW International and Love Field where airport rules allow - no shuttle, no satellite lot, no queue.',
   },
   {
     icon: ShieldCheck,
@@ -73,7 +74,7 @@ const WHY_ITEMS = [
   {
     icon: BadgeCheck,
     title: 'Up to $0 deductible',
-    body: 'Choose a protection plan at checkout. Our Premier plan covers you completely - zero out-of-pocket.',
+    body: 'Choose a protection plan at checkout. Our Premier plan has a $0 deductible, subject to its terms and exclusions.',
   },
 ] as const;
 
@@ -252,6 +253,7 @@ export default function HomePage() {
               </Reveal>
             ))}
           </div>
+          <DisclosureNote ids={['airport', 'insurance']} />
         </Reveal>
 
         {/* ── Reservation scroll section ───────────────────────────────── */}
@@ -262,7 +264,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-10">
             {[
               { icon: ShieldCheck, stat: 'Professionally Maintained', label: 'Every vehicle is owned, serviced, and detailed by our team before every trip.' },
-              { icon: BadgeCheck,  stat: 'Up to $0 Deductible',       label: 'Choose a protection plan at checkout. Our Premier plan leaves nothing to pay.' },
+              { icon: BadgeCheck,  stat: 'Up to $0 Deductible',       label: 'Choose a protection plan at checkout. Our Premier plan has a $0 deductible, subject to its terms.' },
               { icon: Zap,         stat: 'Instant Book',              label: 'Confirmed the moment you pay. No host approval required.' },
             ].map((t) => (
               <div key={t.stat} className="flex items-start gap-4">

@@ -29,6 +29,7 @@ import { useVehicle } from '@/features/vehicles/hooks';
 import { vehicleApi } from '@/features/vehicles/api';
 import { SimilarCars } from '@/features/vehicles/components/similar-cars';
 import { usePlatformConfig, describeCancellation, leadMinutes, bookingsOpen } from '@/features/platform/config';
+import { DisclosureNote } from '@/features/legal/disclosure-note';
 import { useRecentlyViewed } from '@/features/vehicles/recently-viewed';
 import { useQuote, useCreateBooking } from '@/features/bookings/hooks';
 import { bookingApi } from '@/features/bookings/api';
@@ -885,6 +886,7 @@ export default function VehicleDetailPage() {
                       )}
                       {picked.kind === 'airport' && (
                         <>
+                          <DisclosureNote ids={['airport']} />
                           <div className="grid grid-cols-2 gap-2">
                             <Input
                               value={flightNumber}
@@ -1178,6 +1180,7 @@ export default function VehicleDetailPage() {
               <p className="text-sm font-medium">{cancelTerms.title} cancellation</p>
               <p className="mt-0.5 text-[13px] text-muted-foreground">{cancelTerms.detail || 'Refunds follow the host’s cancellation policy.'}</p>
             </div>
+            <DisclosureNote ids={['pricing', 'insurance']} />
           </div>
         </div>
       </div>
