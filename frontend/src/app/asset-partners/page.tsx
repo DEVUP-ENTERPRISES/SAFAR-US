@@ -303,7 +303,7 @@ export default function AssetPartnersPage() {
                   ))}
                 </div>
                 <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
-                  <span className="font-semibold text-foreground">$900K+ earned in 2026</span> across 100 managed
+                  <span className="font-semibold text-foreground">$900,627 earned in 2026</span> across 100 managed
                   vehicles, with $0 outside capital. The airport market is strong and proven.
                 </p>
               </div>

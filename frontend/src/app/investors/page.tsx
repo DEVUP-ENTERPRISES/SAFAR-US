@@ -229,7 +229,7 @@ export default function InvestorsPage() {
           <Reveal delay={160}>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70 sm:mt-7 sm:text-xl">
               {BRAND} is bootstrapped, profitable, and operating - 100+ vehicles
-              at DFW International and Love Field, $900K+ earned in 2026 with $0
+              at DFW International and Love Field, $900,627 earned in 2026 with $0
               outside capital. We’re raising a{" "}
               <span className="font-semibold text-white">$504,000 SAFE</span>{" "}
               (Late Seed) at a{" "}
@@ -408,7 +408,7 @@ export default function InvestorsPage() {
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Step 03 · Financial performance</SectionEyebrow>
             <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">
-              $900K earned in 2026 · $1.2M full-year target.
+              $900,627 earned in 2026 · $1.2M full-year target.
             </h2>
           </Reveal>
 
