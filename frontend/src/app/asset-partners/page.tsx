@@ -58,7 +58,7 @@ const TIERS = [
 const GROWTH = [
   { year: '2023', value: '$1,574' },
   { year: '2025', value: '$307K' },
-  { year: '2026', value: '$900K+' },
+  { year: '2026', value: '$900,627' },
 ] as const;
 
 const REQUIREMENTS = [

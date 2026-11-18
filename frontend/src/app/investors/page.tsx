@@ -67,7 +67,7 @@ const TRACTION = [
 const GROWTH = [
   { year: "2023", value: 1574, display: "$1,574", target: false },
   { year: "2025", value: 307000, display: "$307K", target: false },
-  { year: "YTD ’26", value: 900_627, display: "$900K+", target: false },
+  { year: "YTD ’26", value: 900_627, display: "$900,627", target: false },
   { year: "Target", value: 1_200_000, display: "$1.2M", target: true },
 ] as const;
 
