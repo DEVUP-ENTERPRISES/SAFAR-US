@@ -21,9 +21,13 @@ const OPTION_TEXT: Record<Plan, (o: FeeOption) => { title: string; detail: strin
   platform_now: (o) => ({ title: `Pay only the ${money(o.todayCents)} platform fee now`, detail: `Your ${money(o.fromEarningsCents)} registration comes out of your first payouts.` }),
 };
 
+// Paying from earnings comes first and is pre-selected, so no partner is asked for money up front by default.
+const PLAN_ORDER: Plan[] = ['later', 'platform_now', 'now'];
+
 export function FeeStep({ fee, onPaid }: { fee: { totalCents: number; lines: FeeLine[]; options?: FeeOption[] }; onPaid: () => void }) {
-  const options = fee.options?.length ? fee.options : [{ plan: 'now' as const, todayCents: fee.totalCents, fromEarningsCents: 0 }];
-  const [plan, setPlan] = useState<Plan>('now');
+  const options = fee.options?.length ? [...fee.options].sort((a, b) => PLAN_ORDER.indexOf(a.plan) - PLAN_ORDER.indexOf(b.plan)) : [{ plan: 'now' as const, todayCents: fee.totalCents, fromEarningsCents: 0 }];
+  const payLater = options.some((o) => o.plan === 'later');
+  const [plan, setPlan] = useState<Plan>(payLater ? 'later' : 'now');
   const chosen = options.find((o) => o.plan === plan) ?? options[0];
   const [back, setBack] = useState<string | null>(null);
   useEffect(() => setBack(new URLSearchParams(window.location.search).get('fee')), []);
@@ -69,7 +73,9 @@ export function FeeStep({ fee, onPaid }: { fee: { totalCents: number; lines: Fee
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><CreditCard className="h-5 w-5" /></span>
           <div className="min-w-0">
             <h2 className="text-xl font-bold">Your car, protected and ready</h2>
-            <p className="text-sm text-muted-foreground">One payment sets up everything your car needs to start earning.</p>
+            <p className="text-sm text-muted-foreground">
+              Onboarding fees include off-trip insurance, telematics, car wash subscription, tolls, etc.{payLater ? ' and can be paid upfront or from the vehicle’s first earnings.' : ''}
+            </p>
           </div>
         </div>
 
