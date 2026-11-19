@@ -19,6 +19,7 @@ import { runStripeEvent } from '../../payments/application/stripe-event.handler'
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
 import type { MockGateway } from '../../payments/infrastructure/mock.gateway';
 import type { PortalApplicationDto } from '../dto/asset-partner-application.schemas';
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 
 beforeAll(connectTestDb);
 afterAll(disconnectTestDb);
@@ -37,6 +38,11 @@ const dto = {
 } as PortalApplicationDto;
 
 /** An approved partner who has given an emergency contact and passed the ID check. */
+async function platformNowOn(): Promise<void> {
+  const cfg = await platformConfigService.get();
+  await platformConfigService.update({ assetPartner: { ...cfg.assetPartner, registrationPlatformNowEnabled: true } }, 'test');
+}
+
 async function partnerAtFee(feeCents = 35_000): Promise<{ userId: string; partner: AssetPartnerDoc }> {
   const user = await UserModel.create({ email: 'jordan@example.com', roles: ['guest'], emailVerified: true });
   const userId = String(user._id);
@@ -152,7 +158,17 @@ describe('Asset Partner fee', () => {
     expect(feeView(partner.joiningFee).status).toBe('none');
     await expect(assetPartnerFeeService.refund(partner._id, OPS, 'nothing')).rejects.toThrow('no paid fee');
   });
-  it('offers pay now, pay later from earnings, and the platform fee now with the registration from earnings', async () => {
+  it('offers only pay now and pay later from earnings by default, and refuses platform fee now', async () => {
+    const { userId } = await partnerAtFee(35_000);
+    expect((await assetPartnerApplicationService.onboarding(userId)).fee?.options).toEqual([
+      { plan: 'now', todayCents: 35_000, fromEarningsCents: 0 },
+      { plan: 'later', todayCents: 0, fromEarningsCents: 35_000 },
+    ]);
+    await expect(assetPartnerFeeService.checkout(userId, 'platform_now')).rejects.toThrow('isn’t available');
+  });
+
+  it('adds the platform fee now choice when ops switch it on', async () => {
+    await platformNowOn();
     const { userId } = await partnerAtFee(35_000);
     const ob = await assetPartnerApplicationService.onboarding(userId);
     expect(ob.fee?.options).toEqual([
@@ -173,6 +189,7 @@ describe('Asset Partner fee', () => {
   });
 
   it('platform fee now charges only the platform fee and leaves the whole registration for earnings', async () => {
+    await platformNowOn();
     const { userId, partner } = await partnerAtFee(35_000);
     await assetPartnerFeeService.checkout(userId, 'platform_now');
     const sessionId = (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!.joiningFee!.sessionId!;
@@ -184,6 +201,7 @@ describe('Asset Partner fee', () => {
   });
 
   it('switching from one way to pay to another closes the first payment page', async () => {
+    await platformNowOn();
     const { userId, partner } = await partnerAtFee(35_000);
     await assetPartnerFeeService.checkout(userId, 'now');
     const first = (await AssetPartnerModel.findById(partner._id).lean<AssetPartnerDoc>())!.joiningFee!.sessionId!;

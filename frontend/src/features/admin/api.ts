@@ -81,6 +81,7 @@ export interface PlatformConfig {
     gpsRegularCents?: number;
     form1099ThresholdCents?: number;
     registrationPayLaterEnabled?: boolean;
+    registrationPlatformNowEnabled?: boolean;
     partnerMeetingUrl?: string;
     onboardingAlertEmails?: string[];
     exitSeparateApprover?: boolean;

@@ -164,6 +164,7 @@ export class PlatformConfigService {
         gpsRegularCents: 32_500,
         form1099ThresholdCents: 200_000,
         registrationPayLaterEnabled: true,
+        registrationPlatformNowEnabled: false,
         partnerMeetingUrl: '',
         onboardingAlertEmails: ['ceo@catodrive.com', 'cmo@catodrive.com'],
         insuranceMonthlyCents: 13_700,

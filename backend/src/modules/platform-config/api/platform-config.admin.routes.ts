@@ -104,6 +104,7 @@ router.put(
           gpsRegularCents: z.number().int().min(0).max(500_000).optional(),
           form1099ThresholdCents: z.number().int().min(0).max(10_000_000).optional(),
           registrationPayLaterEnabled: z.boolean().optional(),
+          registrationPlatformNowEnabled: z.boolean().optional(),
           onboardingAlertEmails: z.array(z.string().trim().toLowerCase().email()).max(10).optional(),
           partnerMeetingUrl: z.union([z.literal(''), z.string().trim().url().max(300).refine((u) => u.startsWith('https://'), 'Use an https:// link')]).optional(),
           insuranceMonthlyCents: z.number().int().min(0).optional(),

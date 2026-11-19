@@ -91,9 +91,9 @@ async function partnerOrThrow(id: string): Promise<AssetPartnerDoc> {
 
 export const assetPartnerFeeService = {
   /** Whether registration fees are on, the platform fee each includes, and whether partners may pay from earnings. */
-  async settings(): Promise<{ enabled: boolean; platformFeeCents: number; payLaterEnabled: boolean }> {
+  async settings(): Promise<{ enabled: boolean; platformFeeCents: number; payLaterEnabled: boolean; platformNowEnabled: boolean }> {
     const ap = (await platformConfigService.get()).assetPartner;
-    return { enabled: ap.joiningFeeEnabled !== false, platformFeeCents: ap.registrationPlatformFeeCents ?? 0, payLaterEnabled: ap.registrationPayLaterEnabled !== false };
+    return { enabled: ap.joiningFeeEnabled !== false, platformFeeCents: ap.registrationPlatformFeeCents ?? 0, payLaterEnabled: ap.registrationPayLaterEnabled !== false, platformNowEnabled: ap.registrationPlatformNowEnabled === true };
   },
 
   /** The ways this partner may pay, and what each takes today. */
@@ -103,7 +103,7 @@ export const assetPartnerFeeService = {
     if (total <= 0) return [];
     const now = { plan: 'now' as const, todayCents: total, fromEarningsCents: 0 };
     if (!(await this.settings()).payLaterEnabled) return [now];
-    const platform = feeParts(f!).platformFeeCents;
+    const platform = (await this.settings()).platformNowEnabled ? feeParts(f!).platformFeeCents : 0;
     return [
       now,
       { plan: 'later', todayCents: 0, fromEarningsCents: total },

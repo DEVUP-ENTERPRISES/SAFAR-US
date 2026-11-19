@@ -91,6 +91,8 @@ export interface PlatformConfigDoc {
     form1099ThresholdCents: number;
     /** Lets a partner pay the registration from their car's first earnings, in full or after the platform fee. */
     registrationPayLaterEnabled: boolean;
+    /** Also offers paying only the platform fee now, with the registration from first earnings. */
+    registrationPlatformNowEnabled: boolean;
     /** Online booking page (e.g. Calendly) partners use to schedule a meeting; empty means they request one in the portal. */
     partnerMeetingUrl: string;
     /** Leadership emailed when a partner applies and when they sign. */
@@ -759,6 +761,7 @@ const schema = new Schema<PlatformConfigDoc>(
       gpsRegularCents: { type: Number, default: 32_500 },
       form1099ThresholdCents: { type: Number, default: 200_000 },
       registrationPayLaterEnabled: { type: Boolean, default: true },
+      registrationPlatformNowEnabled: { type: Boolean, default: false },
       partnerMeetingUrl: { type: String, default: '' },
       onboardingAlertEmails: { type: [String], default: ['ceo@catodrive.com', 'cmo@catodrive.com'] },
       insuranceMonthlyCents: { type: Number, default: 13_700 }, // $137 Roamly

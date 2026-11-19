@@ -303,7 +303,11 @@ export default function AdminAssetPartnerTermsPage() {
             </Field>
             <label className="flex items-start gap-3 text-sm">
               <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" disabled={ap.joiningFeeEnabled === false} checked={ap.registrationPayLaterEnabled !== false} onChange={(e) => set((d) => { d.assetPartner.registrationPayLaterEnabled = e.target.checked; })} />
-              <span><span className="font-medium">Let partners pay from their car’s first earnings</span><span className="block text-muted-foreground">Adds two choices at payment: pay the registration later, or pay only the platform fee now and the registration later. The registration comes out of their first positive statements.</span></span>
+              <span><span className="font-medium">Let partners pay from their car’s first earnings</span><span className="block text-muted-foreground">Adds a choice at payment: pay nothing today, and the registration comes out of their first positive statements.</span></span>
+            </label>
+            <label className="flex items-start gap-3 text-sm">
+              <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" disabled={ap.joiningFeeEnabled === false || ap.registrationPayLaterEnabled === false} checked={ap.registrationPlatformNowEnabled === true} onChange={(e) => set((d) => { d.assetPartner.registrationPlatformNowEnabled = e.target.checked; })} />
+              <span><span className="font-medium">Also offer: pay only the platform fee now</span><span className="block text-muted-foreground">A third choice where the partner pays the platform fee today and the registration comes from first earnings. Off by default.</span></span>
             </label>
             <Field label="Meeting booking link (optional)" hint="An https:// link to your booking page, e.g. Calendly. Leave empty and partners request a time in the portal instead; requests arrive in Partners > Chats.">
               <Input type="url" inputMode="url" placeholder="https://calendly.com/…" value={ap.partnerMeetingUrl ?? ''} onChange={(e) => set((d) => { d.assetPartner.partnerMeetingUrl = e.target.value.trim(); })} />
