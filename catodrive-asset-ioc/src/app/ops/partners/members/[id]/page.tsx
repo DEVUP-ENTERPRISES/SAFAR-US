@@ -27,6 +27,7 @@ import { ApiError } from '@/lib/api/types';
 import { safeMessage } from '@/lib/utils/safe-message';
 import { api } from '@/lib/api/client';
 import { saveFile } from '@/lib/utils/save-file';
+import { TERM_LIMITS, cleanTermInput, parseTerm, termRangeText, type TermField } from '@/features/asset-partners/term-limits';
 
 /** The monthly partner report ops used to build by hand: pick the month, get the PDF to send. */
 function StatementDownload({ partnerId }: { partnerId: string }) {
@@ -93,6 +94,17 @@ const TONE: Record<string, 'default' | 'success' | 'warning' | 'destructive' | '
   exited: 'muted',
 };
 
+type TermsNow = Record<TermField, number>;
+const usdNow = (c: number) => `$${(c / 100).toLocaleString('en-US', { minimumFractionDigits: c % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
+const TERM_INPUTS: { field: TermField; label: string; now: (t: TermsNow) => string }[] = [
+  { field: 'managementFeeBps', label: 'Management fee %', now: (t) => `${t.managementFeeBps / 100}%` },
+  { field: 'insuranceMonthlyCents', label: 'Insurance / vehicle / mo ($)', now: (t) => usdNow(t.insuranceMonthlyCents) },
+  { field: 'detailingMonthlyCents', label: 'Detailing / vehicle / mo ($)', now: (t) => usdNow(t.detailingMonthlyCents) },
+  { field: 'deductibleCapCents', label: 'Deductible cap ($)', now: (t) => usdNow(t.deductibleCapCents) },
+  { field: 'maintenanceApprovalCents', label: 'Maintenance approval over ($)', now: (t) => usdNow(t.maintenanceApprovalCents) },
+  { field: 'payoutDayOfMonth', label: 'Payout day', now: (t) => `the ${t.payoutDayOfMonth}th` },
+];
+
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const qc = useQueryClient();
@@ -123,11 +135,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     mutationFn: (terms: Record<string, number | string | undefined>) =>
       manage.setTerms(id, terms),
     onSuccess: () => {
+      setDraft({});
       qc.invalidateQueries({ queryKey: ['admin-asset-partner', id] });
       qc.invalidateQueries({ queryKey: ['admin-asset-partner-statement', id] });
       toast({ tone: 'success', title: 'Terms updated — the next statement uses them' });
     },
-    onError: () => toast({ tone: 'error', title: 'Could not save terms' }),
+    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? safeMessage(e.message) : 'Could not save terms' }),
   });
 
   const proposeTerms = useMutation({
@@ -141,6 +154,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   });
 
   const [draft, setDraft] = useState<Record<string, string>>({});
+  const [termErrors, setTermErrors] = useState<Partial<Record<TermField, string>>>({});
 
   if (isLoading) return <Skeleton className="h-96 w-full" />;
   if (isError || !data) {
@@ -174,10 +188,18 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const signed = !!partner.agreement?.signedAt;
   const submitTerms = async () => {
     const out: Record<string, number | string | undefined> = {};
-    for (const [k, v] of Object.entries(draft)) {
-      if (v === '' || k === 'requestedFrom' || k === 'reason') continue;
-      out[k] = k === 'payoutMethod' ? v : Number(v);
+    const errors: Partial<Record<TermField, string>> = {};
+    for (const { field } of TERM_INPUTS) {
+      const r = parseTerm(field, draft[field] ?? '');
+      if (r.error) errors[field] = r.error;
+      else if (r.value !== undefined) out[field] = r.value;
     }
+    setTermErrors(errors);
+    if (Object.keys(errors).length) {
+      toast({ tone: 'error', title: 'Fix the highlighted fields' });
+      return;
+    }
+    if (draft.payoutMethod) out.payoutMethod = draft.payoutMethod;
     if (Object.keys(out).length === 0) {
       toast({ tone: 'error', title: 'Nothing to save' });
       return;
@@ -275,89 +297,25 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Field label="Management fee %" hint={`Now ${terms.managementFeeBps / 100}%`}>
-              <Input
-                type="number"
-                step="0.5"
-                placeholder={String(terms.managementFeeBps / 100)}
-                value={draft.managementFeeBps ?? ''}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    managementFeeBps: e.target.value === '' ? '' : String(Number(e.target.value) * 100),
-                  })
-                }
-              />
-            </Field>
-            <Field label="Insurance / vehicle / mo ($)" hint={`Now ${money(terms.insuranceMonthlyCents)}`}>
-              <Input
-                type="number"
-                placeholder={String(terms.insuranceMonthlyCents / 100)}
-                value={draft.insuranceMonthlyCents ?? ''}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    insuranceMonthlyCents:
-                      e.target.value === '' ? '' : String(Math.round(Number(e.target.value) * 100)),
-                  })
-                }
-              />
-            </Field>
-            <Field label="Detailing / vehicle / mo ($)" hint={`Now ${money(terms.detailingMonthlyCents)}`}>
-              <Input
-                type="number"
-                placeholder={String(terms.detailingMonthlyCents / 100)}
-                value={draft.detailingMonthlyCents ?? ''}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    detailingMonthlyCents:
-                      e.target.value === '' ? '' : String(Math.round(Number(e.target.value) * 100)),
-                  })
-                }
-              />
-            </Field>
-            <Field label="Deductible cap ($)" hint={`Now ${money(terms.deductibleCapCents)}`}>
-              <Input
-                type="number"
-                placeholder={String(terms.deductibleCapCents / 100)}
-                value={draft.deductibleCapCents ?? ''}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    deductibleCapCents:
-                      e.target.value === '' ? '' : String(Math.round(Number(e.target.value) * 100)),
-                  })
-                }
-              />
-            </Field>
-            <Field
-              label="Maintenance approval over ($)"
-              hint={`Now ${money(terms.maintenanceApprovalCents)}`}
-            >
-              <Input
-                type="number"
-                placeholder={String(terms.maintenanceApprovalCents / 100)}
-                value={draft.maintenanceApprovalCents ?? ''}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    maintenanceApprovalCents:
-                      e.target.value === '' ? '' : String(Math.round(Number(e.target.value) * 100)),
-                  })
-                }
-              />
-            </Field>
-            <Field label="Payout day" hint={`Now the ${terms.payoutDayOfMonth}th`}>
-              <Input
-                type="number"
-                min={1}
-                max={28}
-                placeholder={String(terms.payoutDayOfMonth)}
-                value={draft.payoutDayOfMonth ?? ''}
-                onChange={(e) => setDraft({ ...draft, payoutDayOfMonth: e.target.value })}
-              />
-            </Field>
+            {TERM_INPUTS.map(({ field, label, now }) => (
+              <Field key={field} label={label} hint={termErrors[field] ? undefined : `Now ${now(terms)} · allowed ${termRangeText(field)}`} error={termErrors[field]} htmlFor={`term-${field}`}>
+                <Input
+                  id={`term-${field}`}
+                  type="text"
+                  inputMode={TERM_LIMITS[field].unit === 'day' ? 'numeric' : 'decimal'}
+                  autoComplete="off"
+                  className="tabular-nums"
+                  placeholder={String(TERM_LIMITS[field].unit === 'day' ? terms[field] : terms[field] / 100)}
+                  value={draft[field] ?? ''}
+                  aria-invalid={!!termErrors[field]}
+                  onChange={(e) => {
+                    const v = cleanTermInput(field, e.target.value);
+                    setDraft({ ...draft, [field]: v });
+                    setTermErrors({ ...termErrors, [field]: parseTerm(field, v).error });
+                  }}
+                />
+              </Field>
+            ))}
             <Field label="Payout method" hint={`Now ${terms.payoutMethod}`}>
               <Select
                 value={draft.payoutMethod ?? ''}

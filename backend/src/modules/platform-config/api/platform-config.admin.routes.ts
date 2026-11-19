@@ -5,6 +5,7 @@ import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
+import { partnerTermsShape } from '../../asset-partners/dto/partner-terms.schemas';
 
 const semver = z.string().trim().regex(/^\d+\.\d+\.\d+$/, 'Use a version like 1.4.0');
 const storeUrl = z.union([z.literal(''), z.string().trim().url().max(300)]);
@@ -97,7 +98,6 @@ router.put(
       // three deductions — the other two are monthly per-vehicle costs.
       assetPartner: z
         .object({
-          managementFeeBps: bps.optional(),
           minSeasonMonths: z.number().int().min(1).max(6).optional(),
           joiningFeeEnabled: z.boolean().optional(),
           registrationPlatformFeeCents: z.number().int().min(0).max(50_000).optional(),
@@ -107,11 +107,7 @@ router.put(
           registrationPlatformNowEnabled: z.boolean().optional(),
           onboardingAlertEmails: z.array(z.string().trim().toLowerCase().email()).max(10).optional(),
           partnerMeetingUrl: z.union([z.literal(''), z.string().trim().url().max(300).refine((u) => u.startsWith('https://'), 'Use an https:// link')]).optional(),
-          insuranceMonthlyCents: z.number().int().min(0).optional(),
-          detailingMonthlyCents: z.number().int().min(0).optional(),
-          deductibleCapCents: z.number().int().min(0).optional(),
-          maintenanceApprovalCents: z.number().int().min(0).optional(),
-          payoutDayOfMonth: z.number().int().min(1).max(28).optional(),
+          ...partnerTermsShape,
           payoutMethod: z.enum(['check', 'zelle']).optional(),
           intakeObjectionDays: z.number().int().min(1).max(30).optional(),
           countersignerName: z.string().trim().max(120).optional(),

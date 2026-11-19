@@ -32,6 +32,7 @@ import { assetPartnerHelpService } from '../application/asset-partner-help.servi
 import { vehiclePauseService } from '../../vehicles/application/vehicle-pause.service';
 import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
+import { partnerTermsShape } from '../dto/partner-terms.schemas';
 
 const router = Router();
 
@@ -130,12 +131,7 @@ router.post(
   authorize('host:manage'),
   validate({
     body: z.object({
-      managementFeeBps: z.number().int().min(0).max(10_000).optional(),
-      insuranceMonthlyCents: z.number().int().min(0).optional(),
-      detailingMonthlyCents: z.number().int().min(0).optional(),
-      deductibleCapCents: z.number().int().min(0).optional(),
-      maintenanceApprovalCents: z.number().int().min(0).optional(),
-      payoutDayOfMonth: z.number().int().min(1).max(28).optional(),
+      ...partnerTermsShape,
       requestedFrom: z.string().datetime({ offset: true }).optional(),
       reason: z.string().trim().max(500).optional(),
     }),

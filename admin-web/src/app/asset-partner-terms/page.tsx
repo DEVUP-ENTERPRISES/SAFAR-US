@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ApiError } from '@/lib/api/types';
 import { adminApi, type PlatformConfig } from '@/features/admin/api';
+import { TERM_LIMITS, clampTerm, termRangeText } from '@/features/asset-partners/term-limits';
 
 /** cents <-> dollars, kept explicit so we never float-round money into the API. */
 const toDollars = (cents: number) => (cents / 100).toFixed(2);
@@ -127,14 +128,15 @@ export default function AdminAssetPartnerTermsPage() {
           <CardContent className="space-y-4">
             <Field
               label="Management fee"
-              hint="Percentage of gross booking revenue CatoDrive keeps. The published rate is 20%."
+              hint={`Percentage of gross booking revenue CatoDrive keeps. The published rate is 20%. Allowed ${termRangeText('managementFeeBps')}.`}
             >
               <Input
                 type="number"
                 step="0.01"
                 min="0"
+                max={TERM_LIMITS.managementFeeBps.max / 100}
                 value={toPct(ap.managementFeeBps)}
-                onChange={(e) => set((d) => { d.assetPartner.managementFeeBps = toBps(e.target.value); })}
+                onChange={(e) => set((d) => { d.assetPartner.managementFeeBps = clampTerm('managementFeeBps', toBps(e.target.value)); })}
               />
             </Field>
 
@@ -146,21 +148,23 @@ export default function AdminAssetPartnerTermsPage() {
                 type="number"
                 step="0.01"
                 min="0"
+                max={TERM_LIMITS.insuranceMonthlyCents.max / 100}
                 value={toDollars(ap.insuranceMonthlyCents)}
-                onChange={(e) => set((d) => { d.assetPartner.insuranceMonthlyCents = toCents(e.target.value); })}
+                onChange={(e) => set((d) => { d.assetPartner.insuranceMonthlyCents = clampTerm('insuranceMonthlyCents', toCents(e.target.value)); })}
               />
             </Field>
 
             <Field
               label="Professional detailing, per vehicle per month"
-              hint="Recurring, same basis as insurance above."
+              hint={`Recurring, same basis as insurance above. Allowed ${termRangeText('detailingMonthlyCents')}.`}
             >
               <Input
                 type="number"
                 step="0.01"
                 min="0"
+                max={TERM_LIMITS.detailingMonthlyCents.max / 100}
                 value={toDollars(ap.detailingMonthlyCents)}
-                onChange={(e) => set((d) => { d.assetPartner.detailingMonthlyCents = toCents(e.target.value); })}
+                onChange={(e) => set((d) => { d.assetPartner.detailingMonthlyCents = clampTerm('detailingMonthlyCents', toCents(e.target.value)); })}
               />
             </Field>
           </CardContent>
@@ -182,8 +186,9 @@ export default function AdminAssetPartnerTermsPage() {
                 type="number"
                 step="0.01"
                 min="0"
+                max={TERM_LIMITS.deductibleCapCents.max / 100}
                 value={toDollars(ap.deductibleCapCents)}
-                onChange={(e) => set((d) => { d.assetPartner.deductibleCapCents = toCents(e.target.value); })}
+                onChange={(e) => set((d) => { d.assetPartner.deductibleCapCents = clampTerm('deductibleCapCents', toCents(e.target.value)); })}
               />
             </Field>
 
@@ -195,8 +200,9 @@ export default function AdminAssetPartnerTermsPage() {
                 type="number"
                 step="0.01"
                 min="0"
+                max={TERM_LIMITS.maintenanceApprovalCents.max / 100}
                 value={toDollars(ap.maintenanceApprovalCents)}
-                onChange={(e) => set((d) => { d.assetPartner.maintenanceApprovalCents = toCents(e.target.value); })}
+                onChange={(e) => set((d) => { d.assetPartner.maintenanceApprovalCents = clampTerm('maintenanceApprovalCents', toCents(e.target.value)); })}
               />
             </Field>
           </CardContent>
@@ -220,7 +226,7 @@ export default function AdminAssetPartnerTermsPage() {
                 max="28"
                 value={String(ap.payoutDayOfMonth)}
                 onChange={(e) => set((d) => {
-                  d.assetPartner.payoutDayOfMonth = Math.min(28, Math.max(1, Number(e.target.value) || 1));
+                  d.assetPartner.payoutDayOfMonth = clampTerm('payoutDayOfMonth', Number(e.target.value) || 1);
                 })}
               />
             </Field>

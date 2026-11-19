@@ -12,6 +12,7 @@ import { assetPartnerReportsService } from '../application/asset-partner-reports
 import { AssetPartnerModel, type AssetPartnerDoc } from '../infrastructure/asset-partner.model';
 import { NotFoundError } from '../../../core/errors/app-error';
 import { sendCsv } from '../../../shared/utils/csv';
+import { partnerTermsShape } from '../dto/partner-terms.schemas';
 
 const router = Router();
 
@@ -154,13 +155,8 @@ router.patch(
   authorize('host:manage'),
   validate({
     body: z.object({
-      managementFeeBps: z.number().int().min(0).max(10_000).optional(),
-      insuranceMonthlyCents: z.number().int().min(0).optional(),
-      detailingMonthlyCents: z.number().int().min(0).optional(),
-      deductibleCapCents: z.number().int().min(0).optional(),
-      maintenanceApprovalCents: z.number().int().min(0).optional(),
+      ...partnerTermsShape,
       payoutMethod: z.enum(['check', 'zelle']).optional(),
-      payoutDayOfMonth: z.number().int().min(1).max(28).optional(),
     }),
   }),
   asyncHandler(async (req, res) => {
