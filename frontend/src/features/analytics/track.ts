@@ -1,4 +1,5 @@
 import { config } from '@/lib/config';
+import { analyticsAllowed } from '@/features/privacy/consent';
 
 const SESSION_KEY = 'cato_visitor_session';
 
@@ -28,7 +29,7 @@ function sessionId(): string {
  * by the time it's sent (which happens on every single-page-app navigation).
  */
 export function trackPageview(path: string): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !analyticsAllowed()) return;
 
   const params = new URLSearchParams(window.location.search);
   const body = JSON.stringify({

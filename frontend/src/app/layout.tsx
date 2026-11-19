@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import { Archivo, Instrument_Sans, IBM_Plex_Mono } from 'next/font/google';
 import '@/styles/globals.css';
 import { Providers } from './providers';
+import { ConsentProvider } from '@/features/privacy/consent';
+import { AdTags, CookieConsent } from '@/features/privacy/cookie-consent';
 import { AppChrome } from '@/components/layout/app-chrome';
 
 /*
@@ -130,7 +132,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Providers>
             {/* Consumer chrome for the marketplace; the admin console supplies
                 its own shell (see AppChrome). */}
-            <AppChrome>{children}</AppChrome>
+            <ConsentProvider>
+              <AppChrome>{children}</AppChrome>
+              <CookieConsent />
+              <AdTags />
+            </ConsentProvider>
           </Providers>
         </LenisProvider>
       </body>

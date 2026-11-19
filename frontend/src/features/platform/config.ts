@@ -43,6 +43,8 @@ export interface PlatformPublicConfig {
   };
   /** Stripe publishable key served at runtime; null when the platform has none. */
   stripe?: { publishableKey: string | null };
+  /** Ad and analytics tag IDs, loaded only with the visitor's consent; absent on an older backend. */
+  adTags?: { ga4Id: string; googleAdsId: string; metaPixelId: string; consentVersion: number };
   /** Absent on a backend that predates the handover gates. */
   handover?: {
     hostInspectionRequired: boolean;

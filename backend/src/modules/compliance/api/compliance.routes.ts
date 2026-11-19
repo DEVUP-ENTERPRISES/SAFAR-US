@@ -8,8 +8,33 @@ import { authorize } from '../../../shared/middleware/authorize';
 import { authLimiter } from '../../../shared/middleware/auth-rate-limit';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
+import { authenticateOptional } from '../../../shared/middleware/authenticate';
+import { ConsentRecordModel } from '../infrastructure/consent-record.model';
+import { uuid } from '../../../shared/utils/uuid';
 
 const router = Router();
+
+// Records a visitor's cookie choice. Global Privacy Control always wins: marketing is stored as off when the browser sends it.
+router.post(
+  '/privacy/consent',
+  authLimiter,
+  authenticateOptional,
+  validate({
+    body: z.object({
+      visitorId: z.string().uuid(),
+      analytics: z.boolean(),
+      marketing: z.boolean(),
+      gpc: z.boolean(),
+      version: z.number().int().min(1).max(1000),
+      source: z.enum(['banner', 'settings', 'gpc']),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    const b = req.body as { visitorId: string; analytics: boolean; marketing: boolean; gpc: boolean; version: number; source: 'banner' | 'settings' | 'gpc' };
+    const doc = await ConsentRecordModel.create({ _id: uuid(), ...b, marketing: b.gpc ? false : b.marketing, userId: req.principal?.userId });
+    sendSuccess(res, { recorded: true, marketing: doc.marketing, analytics: doc.analytics }, 201);
+  }),
+);
 
 /**
  * "Download my data" — the subject access request, self-service.

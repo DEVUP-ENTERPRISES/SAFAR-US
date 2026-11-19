@@ -23,12 +23,14 @@ export function securityHeaders({ apiUrl, dev = false } = {}) {
   const apple = 'https://appleid.cdn-apple.com https://appleid.apple.com';
   const mapbox = 'https://api.mapbox.com https://events.mapbox.com';
   const cloudflare = 'https://static.cloudflareinsights.com https://cloudflareinsights.com';
+  // Ad and analytics tags; the site loads them only after the visitor consents.
+  const ads = 'https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://*.doubleclick.net https://www.google.com https://connect.facebook.net https://www.facebook.com';
 
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${stripe} ${google} ${apple} ${mapbox} ${cloudflare}`,
-    `connect-src 'self' ${apiOrigin} ${apiWs} ${stripe} ${google} ${apple} ${mapbox} ${cloudflare} https://*.firebaseio.com https://*.firebaseapp.com https://*.amazonaws.com${dev ? ' https: ws: http://localhost:* http://127.0.0.1:*' : ''}`,
-    `frame-src ${stripe} https://accounts.google.com https://appleid.apple.com https://*.firebaseapp.com`,
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${stripe} ${google} ${apple} ${mapbox} ${cloudflare} ${ads}`,
+    `connect-src 'self' ${apiOrigin} ${apiWs} ${stripe} ${google} ${apple} ${mapbox} ${cloudflare} ${ads} https://*.firebaseio.com https://*.firebaseapp.com https://*.amazonaws.com${dev ? ' https: ws: http://localhost:* http://127.0.0.1:*' : ''}`,
+    `frame-src ${stripe} https://www.googletagmanager.com https://td.doubleclick.net https://accounts.google.com https://appleid.apple.com https://*.firebaseapp.com`,
     // Local development serves photos from the API over plain http (localhost:8080).
     `img-src 'self' data: blob: https:${dev ? ' http://localhost:* http://127.0.0.1:*' : ''}`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com ${mapbox}`,

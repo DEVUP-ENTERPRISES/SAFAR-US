@@ -67,6 +67,8 @@ router.get(
         cancellationUrl: cfg.legal.cancellationUrl,
         minAgeYears: cfg.legal.minAgeYears,
       },
+      // Public tag IDs; the site loads each only after the visitor's consent.
+      adTags: cfg.adTags,
     });
   }),
 );

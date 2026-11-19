@@ -47,6 +47,12 @@ Precise location is used only when you allow it: to stamp inspection photos with
 ## Cookies and analytics
 We use essential storage (sign-in session, preferences, booking drafts) and our own first-party analytics. Analytics resolves your IP address to a city, then keeps only a salted, non-reversible visitor hash, not the IP address, and page-view records are deleted after 90 days.
 
+- **Essential** storage runs the site (sign-in, security, payments, bookings) and is always on.
+- **Analytics**: our own first-party visit counts, plus Google Analytics if enabled. You can turn this off.
+- **Marketing and ads**: Google Ads and Meta Pixel cookies that measure our ads and show you CatoDrive ads on other sites. Under California and other US state laws this can be a "sale" or "sharing" of personal information for cross-context behavioral advertising. These load only after you allow them.
+
+We do not sell personal information for money. Use **Your Privacy Choices** or **Do Not Sell or Share My Personal Information** at the bottom of every page to change your choices at any time. If your browser sends a Global Privacy Control signal, we treat it as an opt-out of sale and sharing and keep marketing cookies off. We keep a record of each choice (what you allowed and when, without your IP address) for three years.
+
 ## How long we keep it
 We keep information only as long as needed for the purposes above and to meet legal, tax, accounting, fraud-prevention, claims and dispute needs. Payment and booking records are kept for financial and legal reasons. Page-view analytics are deleted after 90 days. Other retention periods: [RETENTION SCHEDULE TO BE CONFIRMED WITH COUNSEL].
 

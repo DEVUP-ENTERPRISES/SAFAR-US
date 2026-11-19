@@ -202,6 +202,7 @@ export interface PlatformConfig {
     minAgeYears: number;
   };
   contactVerification?: { requireEmail: boolean; requirePhone: boolean };
+  adTags?: { ga4Id: string; googleAdsId: string; metaPixelId: string; consentVersion: number };
   checkout?: { otherMethodsEnabled: boolean };
   deposit?: { enabled: boolean; minCents: number; maxCents: number; multiplierBps: number; autoReleaseHours: number; requiredAtHandover: boolean; selfServeWindowHours: number };
   verification: {

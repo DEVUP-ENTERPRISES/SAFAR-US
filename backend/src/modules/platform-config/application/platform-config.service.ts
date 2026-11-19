@@ -133,6 +133,13 @@ export class PlatformConfigService {
         minAgeYears: 21,
         ...(doc.legal ?? {}),
       },
+      adTags: {
+        ga4Id: '',
+        googleAdsId: '',
+        metaPixelId: '',
+        consentVersion: 1,
+        ...(doc.adTags ?? {}),
+      },
       contact: {
         notifyEmail: 'shoaib@catodrive.com',
         ...(doc.contact ?? {}),

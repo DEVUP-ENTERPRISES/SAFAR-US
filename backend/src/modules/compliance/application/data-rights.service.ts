@@ -14,6 +14,7 @@ import { otpService } from '../../auth/application/otp.service';
 import { channelProviders } from '../../notifications/infrastructure/channel.providers';
 import { config } from '../../../config';
 import { logger } from '../../../infrastructure/logging/logger';
+import { ConsentRecordModel } from '../infrastructure/consent-record.model';
 
 /**
  * Data subject rights.
@@ -77,7 +78,7 @@ export class DataRightsService {
 
     const host = await HostModel.findOne({ userId }).lean();
 
-    const [bookings, payments, kyc, reviews, notifications, riskEvents, devices, vehicles] =
+    const [bookings, payments, kyc, reviews, notifications, riskEvents, devices, vehicles, consents] =
       await Promise.all([
         BookingModel.find({ $or: [{ guestId: userId }, ...(host ? [{ hostId: host._id }] : [])] }).lean(),
         PaymentModel.find({ userId }).lean(),
@@ -87,6 +88,7 @@ export class DataRightsService {
         RiskEventModel.find({ userId }).lean(),
         DeviceModel.find({ userIds: userId }).lean(),
         host ? VehicleModel.find({ hostId: host._id }).lean() : Promise.resolve([]),
+        ConsentRecordModel.find({ userId }).sort({ createdAt: -1 }).limit(200).select('analytics marketing gpc version source createdAt -_id').lean(),
       ]);
 
     return {
@@ -106,6 +108,7 @@ export class DataRightsService {
         createdAt: user.createdAt,
       },
       hostProfile: host ?? null,
+      cookieChoices: consents,
       vehicles,
       bookings,
       // Card details are never held by TURA — the PSP tokenises them — so an

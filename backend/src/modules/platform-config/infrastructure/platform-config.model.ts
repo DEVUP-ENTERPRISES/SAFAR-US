@@ -316,6 +316,13 @@ export interface PlatformConfigDoc {
     cancellationUrl: string;
     minAgeYears: number;
   };
+  /** Marketing and ad tags; each loads only for visitors who allow that kind of cookie. Bump consentVersion to ask everyone again. */
+  adTags: {
+    ga4Id: string;
+    googleAdsId: string;
+    metaPixelId: string;
+    consentVersion: number;
+  };
   /** Where public-site lead forms (Contact, Asset Partner, Investor deck
    *  requests) notify staff — admin-editable so the destination can change
    *  without a deploy. Every inbound lead is also a durable, admin-visible
@@ -692,6 +699,12 @@ const schema = new Schema<PlatformConfigDoc>(
       privacyUrl: { type: String, default: '/legal' },
       cancellationUrl: { type: String, default: '/legal' },
       minAgeYears: { type: Number, default: 21 },
+    },
+    adTags: {
+      ga4Id: { type: String, default: '' },
+      googleAdsId: { type: String, default: '' },
+      metaPixelId: { type: String, default: '' },
+      consentVersion: { type: Number, default: 1 },
     },
     contact: {
       notifyEmail: { type: String, default: 'shoaib@catodrive.com' },

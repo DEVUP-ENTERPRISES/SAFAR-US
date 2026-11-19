@@ -74,6 +74,14 @@ router.put(
           minAgeYears: z.number().int().min(16).max(99).optional(),
         })
         .optional(),
+      adTags: z
+        .object({
+          ga4Id: z.union([z.literal(''), z.string().trim().regex(/^G-[A-Z0-9]{4,16}$/, 'A GA4 ID looks like G-ABC123')]).optional(),
+          googleAdsId: z.union([z.literal(''), z.string().trim().regex(/^AW-\d{6,14}$/, 'A Google Ads ID looks like AW-123456789')]).optional(),
+          metaPixelId: z.union([z.literal(''), z.string().trim().regex(/^\d{10,20}$/, 'A Meta Pixel ID is 10-20 digits')]).optional(),
+          consentVersion: z.number().int().min(1).max(1000).optional(),
+        })
+        .optional(),
       verification: z
         .object({
           identity: verificationPolicy,

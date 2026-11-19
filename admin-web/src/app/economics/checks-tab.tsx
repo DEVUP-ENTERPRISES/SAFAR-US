@@ -1,6 +1,6 @@
 'use client';
 
-import { Scale, IdCard, Car } from 'lucide-react';
+import { Scale, IdCard, Car, Megaphone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -8,6 +8,8 @@ import { Field } from '@/components/ui/field';
 import { TRIGGER_LABEL, VERIFICATION_META } from './shared';
 import type { TabProps } from './shared';
 import type { PlatformConfig } from '@/features/admin/api';
+
+const EMPTY_TRACKING = { ga4Id: '', googleAdsId: '', metaPixelId: '', consentVersion: 1 };
 
 export function ChecksTab({ draft, set }: TabProps) {
   return (
@@ -38,6 +40,34 @@ export function ChecksTab({ draft, set }: TabProps) {
           <Field label="Minimum age" hint="Gates account setup and booking.">
             <Input type="number" min={16} max={99} value={draft.legal.minAgeYears}
               onChange={(e) => set((d) => { d.legal.minAgeYears = Number(e.target.value); })} />
+          </Field>
+        </CardContent>
+      </Card>
+
+      {/* Marketing and ad tags, loaded only with consent */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Megaphone className="h-5 w-5 text-primary" /> Marketing &amp; ad tags</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Each tag loads only for visitors who allow it in the cookie choices. Visitors whose browser sends Global Privacy Control never get the ad tags. Leave a field empty to turn that tag off.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <Field label="Google Analytics 4 ID" hint="Loads with Analytics consent. Looks like G-ABC123.">
+            <Input value={draft.adTags?.ga4Id ?? ''} placeholder="G-…" maxLength={20}
+              onChange={(e) => set((d) => { d.adTags = { ...(d.adTags ?? EMPTY_TRACKING), ga4Id: e.target.value.trim().toUpperCase() }; })} />
+          </Field>
+          <Field label="Google Ads ID" hint="Loads with Marketing consent. Looks like AW-123456789.">
+            <Input value={draft.adTags?.googleAdsId ?? ''} placeholder="AW-…" maxLength={20}
+              onChange={(e) => set((d) => { d.adTags = { ...(d.adTags ?? EMPTY_TRACKING), googleAdsId: e.target.value.trim().toUpperCase() }; })} />
+          </Field>
+          <Field label="Meta Pixel ID" hint="Loads with Marketing consent. 10–20 digits.">
+            <Input value={draft.adTags?.metaPixelId ?? ''} inputMode="numeric" maxLength={20}
+              onChange={(e) => set((d) => { d.adTags = { ...(d.adTags ?? EMPTY_TRACKING), metaPixelId: e.target.value.replace(/\D/g, '') }; })} />
+          </Field>
+          <Field label="Consent version" hint="Raise by one after changing what you collect, so every visitor is asked again.">
+            <Input type="number" min={1} max={1000} value={draft.adTags?.consentVersion ?? 1}
+              onChange={(e) => set((d) => { d.adTags = { ...(d.adTags ?? EMPTY_TRACKING), consentVersion: Math.min(1000, Math.max(1, Math.round(Number(e.target.value)) || 1)) }; })} />
           </Field>
         </CardContent>
       </Card>

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { config } from '@/lib/config';
 import { siteForPath } from '@/lib/sites';
 import { SiteLink } from './site-link';
+import { DoNotSellLink, PrivacyChoicesLink } from '@/features/privacy/cookie-consent';
 
 // Host self-serve and Corporate links return when config.assetPartnersOnly is off.
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
@@ -117,12 +118,20 @@ export function Footer() {
             <Link href="/insurance" className="transition-colors hover:text-foreground">
               Trust &amp; Safety
             </Link>
+            <Link href="/terms" className="transition-colors hover:text-foreground">
+              Rental Agreement
+            </Link>
+            <Link href="/legal/asset-partner-agreement" className="transition-colors hover:text-foreground">
+              Asset Partner Agreement
+            </Link>
             <Link href="/legal/disclosures" className="transition-colors hover:text-foreground">
               Disclosures
             </Link>
             <Link href="/legal" className="transition-colors hover:text-foreground">
               Legal
             </Link>
+            <PrivacyChoicesLink className="transition-colors hover:text-foreground" />
+            <DoNotSellLink className="transition-colors hover:text-foreground" />
             <span>United States (USD $)</span>
           </div>
         </div>
