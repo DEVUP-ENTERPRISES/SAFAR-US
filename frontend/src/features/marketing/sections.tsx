@@ -7,7 +7,8 @@ import { ArrowRight, TrendingUp, Briefcase, Building2, Users } from 'lucide-reac
 import { Reveal } from '@/components/ui/reveal';
 import { config } from '@/lib/config';
 import { useFacets } from '@/features/vehicles/hooks';
-import { CLAIMS, EXAMPLES_PERIOD, OWNER_NET_RANGE, asOfDate, claimNote } from '@/features/legal/claims';
+import { EXAMPLES_PERIOD, OWNER_KEYS, asOfDate, claimNote, ownerNetRange } from '@/features/legal/claims';
+import { useSiteClaims, type ClaimKey, type SiteClaims } from '@/features/legal/api';
 import { DisclosureNote } from '@/features/legal/disclosure-note';
 
 /**
@@ -28,11 +29,13 @@ export function SectionEyebrow({ children }: { children: React.ReactNode }) {
 
 /* ── Traction / social-proof stats ─────────────────────────────────────── */
 
-const STATS = [
-  { prefix: '$', value: CLAIMS.revenue2026.value, suffix: '', decimals: 0, label: '2026 Revenue', comma: true, sub: claimNote(CLAIMS.revenue2026) },
-  { prefix: '', value: CLAIMS.rating.value, suffix: '★', decimals: 2, label: 'Rating', sub: `2,053 reviews on Turo, as of ${asOfDate(CLAIMS.rating)}` },
-  { prefix: '', value: CLAIMS.fleet.value, suffix: '+', decimals: 0, label: 'Vehicles Managed', sub: claimNote(CLAIMS.fleet) },
-  { prefix: '', value: CLAIMS.trips.value, suffix: '+', decimals: 0, label: 'Trips Completed', comma: true, sub: claimNote(CLAIMS.trips) },
+type Stat = { key?: ClaimKey; prefix: string; value: number; suffix: string; decimals: number; label: string; comma?: boolean; sub?: string };
+
+const statsFrom = (c: SiteClaims): Stat[] => [
+  { key: 'revenue2026', prefix: '$', value: c.revenue2026.value ?? 0, suffix: '', decimals: 0, label: '2026 Revenue', comma: true, sub: claimNote(c.revenue2026) },
+  { key: 'rating', prefix: '', value: c.rating.value ?? 0, suffix: '★', decimals: 2, label: 'Rating', sub: `${c.rating.label}, as of ${asOfDate(c.rating)}` },
+  { key: 'fleet', prefix: '', value: c.fleet.value ?? 0, suffix: '+', decimals: 0, label: 'Vehicles Managed', sub: claimNote(c.fleet) },
+  { key: 'trips', prefix: '', value: c.trips.value ?? 0, suffix: '+', decimals: 0, label: 'Trips Completed', comma: true, sub: claimNote(c.trips) },
 ];
 
 /**
@@ -51,14 +54,16 @@ export function TractionStats({
   excludeLive = false,
 }: { heading?: string; excludeLive?: boolean }) {
   const live = useFacets().data?.stats;
-  const liveReviews = !excludeLive && live && live.ratingCount > 0
+  const { c, has } = useSiteClaims();
+  const STATS = statsFrom(c).filter((s) => !s.key || has(s.key));
+  const liveReviews: Stat | null = !excludeLive && live && live.ratingCount > 0
     ? {
         prefix: '', value: live.ratingCount, suffix: '', decimals: 0, comma: true, label: `Reviews on ${BRAND}`,
         sub: live.ratingAvg != null ? `${live.ratingAvg.toFixed(2)}★ average, live` : undefined,
       }
     : null;
   // Live reviews take the revenue tile's place once there are any; until then the revenue figure stays.
-  const base = liveReviews ? [liveReviews, ...STATS.slice(1)] : STATS;
+  const base = liveReviews ? [liveReviews, ...STATS.filter((s) => s.key !== 'revenue2026')] : STATS;
   const stats = excludeLive
     ? base.filter((s) => s.label !== 'Rating' && s.label !== 'Trips Completed')
     : base;
@@ -109,14 +114,18 @@ function StatCard({ prefix = '', value, suffix = '', decimals = 0, comma, label,
 const AUDIENCES = [
   // Was pointed at /host - the self-serve flow, not this program. A visitor
   // clicking "Become a partner" landed on the wrong pitch entirely.
-  { icon: TrendingUp, image: '/newsections/asset_partners.webp', title: 'Asset Partners', body: `List a vehicle you already own. Example cars netted ${OWNER_NET_RANGE}/month in ${EXAMPLES_PERIOD} - we run everything, you get paid.`, href: '/asset-partners', cta: 'Become a partner' },
+  { icon: TrendingUp, image: '/newsections/asset_partners.webp', title: 'Asset Partners', body: 'List a vehicle you already own - we run everything, you get paid.', href: '/asset-partners', cta: 'Become a partner' },
   { icon: Briefcase, image: '/newsections/business_travels.webp', title: 'Business Travelers', body: 'Car delivered at DFW or Love Field where airport rules allow. Paperless end-to-end. Zero friction.', href: '/search', cta: 'Book a car' },
   { icon: Building2, image: '/newsections/corporate_accounts.webp', title: 'Corporate Accounts', body: 'B2B fleet accounts for enterprises and staffing agencies, auto-repair loaner programs, and white-glove SUV delivery to private terminals.', href: '/corporate', cta: 'Talk to us' },
   { icon: Users, image: '/newsections/enterprise_volume.webp', title: 'Enterprise & Volume', body: 'Volume pricing, dedicated account management, consolidated billing, and priority terminal delivery for regular DFW travel.', href: '/corporate', cta: 'Corporate portal' },
 ] as const;
 
 export function AudienceSection({ heading = 'Two sides of one platform.' }: { heading?: string }) {
-  const audiences = (config.assetPartnersOnly ? AUDIENCES.slice(0, 2) : AUDIENCES).filter((a) => config.corporate || a.href !== '/corporate');
+  const { c, has } = useSiteClaims();
+  const earnings = OWNER_KEYS.every((k) => has(k)) ? ` Example cars netted ${ownerNetRange(c)}/month in ${EXAMPLES_PERIOD}.` : '';
+  const audiences = (config.assetPartnersOnly ? AUDIENCES.slice(0, 2) : AUDIENCES)
+    .filter((a) => config.corporate || a.href !== '/corporate')
+    .map((a) => (a.href === '/asset-partners' ? { ...a, body: `${a.body}${earnings}` } : a));
   return (
     <section>
       <Reveal className="max-w-3xl">

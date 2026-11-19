@@ -4,6 +4,7 @@ import { contactInquiryService } from '../application/contact-inquiry.service';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { personSummary } from '../../people/application/person-summary.service';
 import { respondContactInquirySchema } from '../dto/contact-inquiry.schemas';
+import { CONTACT_INTERESTS } from '../infrastructure/contact-inquiry.model';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
@@ -17,7 +18,7 @@ router.get(
   validate({
     query: z.object({
       status: z.enum(['new', 'responded']).optional(),
-      interest: z.enum(['asset_partner', 'investor', 'corporate', 'general', 'other']).optional(),
+      interest: z.enum(CONTACT_INTERESTS).optional(),
       limit: z.coerce.number().int().min(1).max(50).optional(),
       skip: z.coerce.number().int().min(0).optional(),
     }),

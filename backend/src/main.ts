@@ -16,6 +16,8 @@ import { initRealtime } from './realtime';
 import { initJobs, closeJobs, startFallbackJobs } from './jobs';
 import { verifyChannels } from './modules/notifications/infrastructure/channel.providers';
 import { isRedisHealthy } from './infrastructure/cache/redis.client';
+import { websiteClaimService } from './modules/disclosures/application/website-claim.service';
+import { disclosureService } from './modules/disclosures/application/disclosure.service';
 
 /**
  * Composition root: connect backing services, start HTTP, wire graceful
@@ -80,6 +82,8 @@ async function bootstrap(): Promise<void> {
   await enforceSingleSuperAdmin();
   await seedHouseFleet();
   await seedLegal();
+  await websiteClaimService.seed().catch((err) => logger.warn({ err: (err as Error).message }, 'website claims seed failed'));
+  await disclosureService.seed().catch((err) => logger.warn({ err: (err as Error).message }, 'website disclosures seed failed'));
   registerEventSubscribers();
   // Every car carries the platform's daily mileage and cancellation policy; catches older cars or a missed change.
   void syncDailyMileage()

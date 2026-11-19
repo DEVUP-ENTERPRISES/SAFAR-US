@@ -21,6 +21,7 @@ import { assetPartnerOfferService } from '../modules/asset-partners/application/
 import { assetPartnerAlertsService } from '../modules/asset-partners/application/asset-partner-alerts.service';
 import { vehiclePauseService } from '../modules/vehicles/application/vehicle-pause.service';
 import { bookingDriverService } from '../modules/bookings/application/booking-driver.service';
+import { websiteClaimService } from '../modules/disclosures/application/website-claim.service';
 
 const QUEUE = 'cato-maintenance';
 const MIN = 60_000;
@@ -99,6 +100,15 @@ const JOBS: JobDef[] = [
       const r = await documentComplianceService.sweep();
       if (r.paused || r.restored || warned.warned30 || warned.warned7) logger.info({ ...r, ...warned }, 'document compliance sweep');
       return { ...r, ...warned };
+    },
+  },
+  {
+    name: 'website-claim-reviews',
+    everyMs: 24 * 60 * MIN,
+    run: async () => {
+      const n = await websiteClaimService.remindOverdue();
+      if (n) logger.info({ n }, 'website claims due for review');
+      return n;
     },
   },
   {

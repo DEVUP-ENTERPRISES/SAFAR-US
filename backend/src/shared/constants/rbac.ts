@@ -52,6 +52,8 @@ export const PERMISSIONS = {
   PAYOUT_MANAGE: 'payout:manage',
   /** Moderate guest & host reviews. */
   REVIEW_MODERATE: 'review:moderate',
+  /** Keep the website claims register: edit, add evidence, verify, suspend. Approval needs platform:manage. */
+  WEBSITE_CLAIMS: 'website:claims',
   ALL: '*',
 } as const;
 
@@ -73,6 +75,7 @@ export const ROLE_PERMISSIONS: Record<RoleName, string[]> = {
     P.BOOKING_READ_ANY,
     P.PAYOUT_MANAGE,
     P.CORPORATE_MANAGE,
+    P.WEBSITE_CLAIMS,
   ],
   [ROLES.OPS]: [
     P.ADMIN_READ,
@@ -85,6 +88,7 @@ export const ROLE_PERMISSIONS: Record<RoleName, string[]> = {
     P.CLAIM_MANAGE,
     P.BOOKING_READ_ANY,
     P.FLEET_MANAGE,
+    P.WEBSITE_CLAIMS,
   ],
   // Every staff permission but '*': staff accounts and the audit log stay with the main admin.
   [ROLES.ADMIN]: Object.values(P).filter((p) => !MEMBER_PERMISSIONS.has(p) && p !== P.ALL),

@@ -22,6 +22,7 @@ export const INTEREST_OPTIONS: { value: ContactInterest; label: string }[] = [
   { value: 'asset_partner', label: 'Listing my vehicle as an Asset Partner' },
   { value: 'investor', label: 'Investing in CatoDrive' },
   { value: 'corporate', label: 'A corporate account' },
+  { value: 'website_info', label: 'A question about information on our website' },
   { value: 'general', label: 'A general question' },
   { value: 'other', label: 'Something else' },
 ];

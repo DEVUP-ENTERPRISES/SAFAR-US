@@ -21,15 +21,18 @@ export const CLAIMS = {
   rating: { display: '4.96★', value: 4.96, label: 'Turo rating, 2,053 reviews, All-Star Host', asOf: '2026-09-12', kind: 'reported' },
   dailyRate: { display: '$65–$120', label: 'Daily rate range, 2025 fleet bookings', asOf: '2025-12-31', kind: 'example' },
   bookedDays: { display: '21–24', label: 'Booked days a month (70–80%) in the examples', asOf: '2025-12-31', kind: 'example' },
+  ownerConservative: { display: '$1,029 net', value: 152_000, label: 'Conservative example, monthly gross in cents', asOf: '2025-12-31', kind: 'example' },
+  ownerMid: { display: '$1,400 net', value: 198_375, label: 'Mid-range example, monthly gross in cents', asOf: '2025-12-31', kind: 'example' },
+  ownerTop: { display: '$1,841 net', value: 253_500, label: 'Top performer example, monthly gross in cents', asOf: '2025-12-31', kind: 'example' },
 } as const satisfies Record<string, Claim>;
 
 export const OWNER_COSTS = { managementFeePct: 20, insuranceCents: 13_700, detailingCents: 5_000 } as const;
 
-// Monthly gross per example car; the net is worked out below so the table and the headline can never disagree.
+// Monthly gross per example car comes from its claim; the net is worked out so the table and the headline can never disagree.
 export const OWNER_EXAMPLES = [
-  { tier: 'Conservative', vehicles: 'Kia Sportage, Buick Envista', grossCents: 152_000, tone: 'default' as const },
-  { tier: 'Mid-range', vehicles: 'VW Tiguan, Jeep Grand Cherokee', grossCents: 198_375, tone: 'primary' as const },
-  { tier: 'Top performer', vehicles: 'VW Atlas, Nissan Pathfinder', grossCents: 253_500, tone: 'success' as const },
+  { key: 'ownerConservative', tier: 'Conservative', vehicles: 'Kia Sportage, Buick Envista', tone: 'default' as const },
+  { key: 'ownerMid', tier: 'Mid-range', vehicles: 'VW Tiguan, Jeep Grand Cherokee', tone: 'primary' as const },
+  { key: 'ownerTop', tier: 'Top performer', vehicles: 'VW Atlas, Nissan Pathfinder', tone: 'success' as const },
 ] as const;
 
 export const EXAMPLES_PERIOD = '2025';
@@ -42,8 +45,16 @@ export function ownerBreakdown(grossCents: number) {
 
 export const usd = (cents: number) => `$${Math.round(cents / 100).toLocaleString('en-US')}`;
 
-const nets = OWNER_EXAMPLES.map((e) => ownerBreakdown(e.grossCents).netCents);
-export const OWNER_NET_RANGE = `${usd(Math.min(...nets))}–${usd(Math.max(...nets))}`;
+export function ownerTiers(c: Record<string, Claim>) {
+  return OWNER_EXAMPLES.map((e) => ({ ...e, ...ownerBreakdown(c[e.key]?.value ?? 0), amount: usd(ownerBreakdown(c[e.key]?.value ?? 0).netCents) }));
+}
+
+export function ownerNetRange(c: Record<string, Claim>): string {
+  const nets = ownerTiers(c).map((t) => t.netCents);
+  return `${usd(Math.min(...nets))}–${usd(Math.max(...nets))}`;
+}
+
+export const OWNER_KEYS = OWNER_EXAMPLES.map((e) => e.key);
 
 export function asOfDate(c: Claim): string {
   return new Date(`${c.asOf}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });

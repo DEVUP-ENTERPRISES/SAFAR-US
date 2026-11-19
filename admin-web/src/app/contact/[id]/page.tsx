@@ -20,7 +20,7 @@ interface Inquiry {
   fullName: string;
   email: string;
   phone?: string;
-  interest: 'asset_partner' | 'investor' | 'corporate' | 'general' | 'other';
+  interest: 'asset_partner' | 'investor' | 'corporate' | 'website_info' | 'general' | 'other';
   message: string;
   status: 'new' | 'responded';
   respondedBy?: string;
@@ -31,7 +31,7 @@ interface Inquiry {
 }
 
 const INTEREST_LABEL: Record<string, string> = {
-  asset_partner: 'Asset Partner', investor: 'Investor', corporate: 'Corporate', general: 'General', other: 'Other',
+  asset_partner: 'Asset Partner', investor: 'Investor', corporate: 'Corporate', website_info: 'Website information', general: 'General', other: 'Other',
 };
 
 export default function ContactInquiryDetailPage() {

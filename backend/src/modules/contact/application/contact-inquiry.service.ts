@@ -13,9 +13,24 @@ const INTEREST_LABEL: Record<string, string> = {
   asset_partner: 'Asset Partner',
   investor: 'Investor',
   corporate: 'Corporate Account',
+  website_info: 'Website information',
   general: 'General',
   other: 'Other',
 };
+
+// Acknowledgement wording from the CatoDrive compliance package, section 26.
+export function websiteInfoAck(name: string, contactEmail: string): string {
+  return [
+    `Hi ${name.split(' ')[0]},`,
+    'Thank you for bringing this matter to CatoDrive’s attention.',
+    'We take questions concerning the accuracy of our website information, financial statistics, service descriptions, and other published statements seriously.',
+    'We have referred your inquiry to the appropriate department for review. Our review may include examination of the relevant reporting period, underlying records, calculation methodology, and applicable company documentation.',
+    'If we identify an error or inconsistency, we will evaluate the appropriate corrective action.',
+    'If you have not already done so, please reply with the specific statement, webpage, or material your inquiry relates to so that we can direct the matter to the appropriate team.',
+    'Thank you for contacting CatoDrive.',
+    `CatoDrive Inc.\n${contactEmail}`,
+  ].join('\n\n');
+}
 
 export class ContactInquiryService {
   /**
@@ -51,6 +66,17 @@ export class ContactInquiryService {
           `${dto.phone ? `, ${dto.phone}` : ''}):\n\n${dto.message}\n\n— Reply directly to this address, or review it in the admin console.`,
       })
       .catch((err) => logger.warn({ err: (err as Error).message }, 'contact inquiry staff email failed'));
+
+    if (dto.interest === 'website_info') {
+      channelProviders.email
+        .send({
+          target: { userId: ctx.userId ?? 'guest', email: doc.email },
+          templateKey: 'contact.website_info_ack',
+          title: 'Acknowledgement of Website Information Inquiry',
+          body: websiteInfoAck(dto.fullName, contact.notifyEmail),
+        })
+        .catch((err) => logger.warn({ err: (err as Error).message }, 'website information acknowledgement failed'));
+    }
 
     logger.info({ id: doc._id, interest: dto.interest, email: dto.email }, '📬 New contact inquiry');
     return doc.toObject();

@@ -3,7 +3,8 @@
  * saved — even when no email provider is configured (the LoggingProvider
  * stand-in in test env) — and that the admin queue filters/responds correctly.
  */
-import { contactInquiryService } from './contact-inquiry.service';
+import { contactInquiryService, websiteInfoAck } from './contact-inquiry.service';
+import { channelProviders } from '../../notifications/infrastructure/channel.providers';
 import { ContactInquiryModel } from '../infrastructure/contact-inquiry.model';
 import { PlatformConfigModel } from '../../platform-config/infrastructure/platform-config.model';
 import { ConfigVersionModel } from '../../platform-config/infrastructure/config-version.model';
@@ -27,6 +28,16 @@ function baseDto(overrides: Partial<CreateContactInquiryDto> = {}): CreateContac
 }
 
 describe('contact inquiry', () => {
+  it('acknowledges a website information inquiry to the sender, using the compliance template', async () => {
+    const send = jest.spyOn(channelProviders.email, 'send');
+    await contactInquiryService.create(baseDto({ interest: 'website_info', message: 'Your trips number differs between pages.' }), {});
+    await new Promise((r) => setTimeout(r, 20));
+    const ack = send.mock.calls.find((c) => c[0].templateKey === 'contact.website_info_ack');
+    expect(ack?.[0]).toMatchObject({ target: { email: 'jordan@example.com' }, title: 'Acknowledgement of Website Information Inquiry' });
+    expect(websiteInfoAck('Jordan Ramirez', 'ops@example.com')).toContain('referred your inquiry to the appropriate department');
+    send.mockRestore();
+  });
+
   it('saves the lead even though no email provider is configured in test env', async () => {
     const doc = await contactInquiryService.create(baseDto(), {});
     expect(doc.status).toBe('new');

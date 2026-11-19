@@ -18,6 +18,11 @@ import { kbApi } from '@/features/kb/api';
  * in the `legal` category. Hardcoding the text here would mean a lawyer's edit
  * requires a release.
  */
+const STATIC_DOCS = [
+  { href: '/legal/disclosures', title: 'Website disclosures', summary: 'How to read our figures, examples, forecasts, insurance and airport descriptions.' },
+  { href: '/legal/asset-partner-agreement', title: 'Asset Partner Agreement', summary: 'The agreement Asset Partners sign, with our standard terms filled in.' },
+];
+
 export default function LegalPage() {
   const articles = useQuery({
     queryKey: ['kb-articles', 'legal'],
@@ -31,20 +36,22 @@ export default function LegalPage() {
         description="Terms, policies, and the agreements that apply when you book or host."
       />
 
-      <Link href="/legal/disclosures" className="block">
-        <Card className="transition-colors hover:border-primary/40">
-          <CardContent className="flex items-center justify-between gap-4 py-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
-              <div className="min-w-0">
-                <p className="truncate font-semibold">Website disclosures</p>
-                <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">How to read our figures, examples, forecasts, insurance and airport descriptions.</p>
+      {STATIC_DOCS.map((d) => (
+        <Link key={d.href} href={d.href} className="block">
+          <Card className="transition-colors hover:border-primary/40">
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{d.title}</p>
+                  <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{d.summary}</p>
+                </div>
               </div>
-            </div>
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </CardContent>
-        </Card>
-      </Link>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
+      ))}
 
       {articles.isError && !articles.data ? (
           <ErrorState message="We couldn’t load this page." retry={() => void articles.refetch()} />

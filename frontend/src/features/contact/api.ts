@@ -1,6 +1,6 @@
 import { api } from '@/lib/api/client';
 
-export type ContactInterest = 'asset_partner' | 'investor' | 'corporate' | 'general' | 'other';
+export type ContactInterest = 'asset_partner' | 'investor' | 'corporate' | 'website_info' | 'general' | 'other';
 
 export interface CreateContactInquiryInput {
   fullName: string;

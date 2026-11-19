@@ -61,6 +61,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { slug: 'reviews', path: A('reviews'), apiPath: '/admin/reviews', label: 'Reviews', group: 'Help & safety', permission: 'review:moderate' },
   { slug: 'failures', path: A('failures'), apiPath: '/admin/failures', label: 'Failed Actions', group: 'Help & safety', permission: 'admin:read' },
 
+  { slug: 'website-claims', path: A('website-claims'), apiPath: '/admin/website-claims', label: 'Website Claims', group: 'Control', permission: 'admin:read' },
+  { slug: 'website-disclosures', path: A('website-disclosures'), apiPath: '/admin/website-disclosures', label: 'Website Disclosures', group: 'Control', permission: 'admin:read' },
   { slug: 'feature-flags', path: A('feature-flags'), apiPath: '/admin/feature-flags', label: 'Feature Flags', group: 'Control', permission: 'admin:read' },
   { slug: 'staff', path: A('staff'), apiPath: '/admin/staff', label: 'Staff Accounts', group: 'Control', permission: '*' },
   { slug: 'audit', path: A('audit'), apiPath: '/admin/audit-logs', label: 'Audit Log', group: 'Control', permission: '*' },

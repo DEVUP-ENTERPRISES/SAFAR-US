@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 import { Reveal } from "@/components/ui/reveal";
 import { SectionEyebrow, CountUp, BRAND } from "@/features/marketing/sections";
-import { CLAIMS, asOfDate, claimNote } from "@/features/legal/claims";
+import { asOfDate, claimNote } from "@/features/legal/claims";
+import { useSiteClaims, type ClaimKey, type SiteClaims } from "@/features/legal/api";
 import { DISCLOSURE } from "@/features/legal/disclosures";
 import { DisclosureNote } from "@/features/legal/disclosure-note";
 
@@ -45,30 +46,27 @@ const ROUND_TERMS = [
   { value: "~3%", label: "Total equity offered" },
 ] as const;
 
-const TRACTION = [
-  { value: CLAIMS.fleet.value, prefix: "", suffix: "+", label: "Vehicles managed", note: claimNote(CLAIMS.fleet) },
-  { value: CLAIMS.revenue2026.value, prefix: "$", suffix: "", comma: true, label: "2026 revenue to date", note: claimNote(CLAIMS.revenue2026) },
-  {
-    value: CLAIMS.trips.value,
-    prefix: "",
-    suffix: "+",
-    comma: true,
-    label: `Completed trips · ${CLAIMS.rating.display} on Turo`,
-    note: claimNote(CLAIMS.trips),
-  },
-  { value: 0, prefix: "$", suffix: "", label: "Outside capital raised", note: undefined },
-];
+function tractionFor(c: SiteClaims) {
+  return [
+    { key: "fleet" as ClaimKey | null, value: c.fleet.value ?? 0, prefix: "", suffix: "+", comma: false, label: "Vehicles managed", note: claimNote(c.fleet) as string | undefined },
+    { key: "revenue2026" as ClaimKey | null, value: c.revenue2026.value ?? 0, prefix: "$", suffix: "", comma: true, label: "2026 revenue to date", note: claimNote(c.revenue2026) },
+    { key: "trips" as ClaimKey | null, value: c.trips.value ?? 0, prefix: "", suffix: "+", comma: true, label: `Completed trips · ${c.rating.display} on Turo`, note: claimNote(c.trips) },
+    { key: null, value: 0, prefix: "$", suffix: "", comma: false, label: "Outside capital raised", note: undefined },
+  ];
+}
 
 // Short labels on purpose: at 4 columns on a ~390px phone, each bar has
 // roughly 60px to work with once page/card padding and gaps are subtracted -
 // "2026 target" doesn't fit there, "Target" does. The surrounding heading and
 // copy already establish "2026", so nothing is lost.
-const GROWTH = [
-  { year: "2023", value: CLAIMS.revenue2023.value, display: CLAIMS.revenue2023.display, target: false },
-  { year: "2025", value: CLAIMS.revenue2025.value, display: CLAIMS.revenue2025.display, target: false },
-  { year: "YTD ’26", value: CLAIMS.revenue2026.value, display: CLAIMS.revenue2026.display, target: false },
-  { year: "Forecast", value: CLAIMS.target2026.value, display: CLAIMS.target2026.display, target: true },
-] as const;
+function growthFor(c: SiteClaims) {
+  return [
+    { key: "revenue2023" as ClaimKey, year: "2023", value: c.revenue2023.value ?? 0, display: c.revenue2023.display, target: false },
+    { key: "revenue2025" as ClaimKey, year: "2025", value: c.revenue2025.value ?? 0, display: c.revenue2025.display, target: false },
+    { key: "revenue2026" as ClaimKey, year: "YTD ’26", value: c.revenue2026.value ?? 0, display: c.revenue2026.display, target: false },
+    { key: "target2026" as ClaimKey, year: "Forecast", value: c.target2026.value ?? 0, display: c.target2026.display, target: true },
+  ];
+}
 
 const VISION = [
   {
@@ -99,22 +97,22 @@ const FUNDS = [
   { label: "Marketing & working capital", pct: 20 },
 ] as const;
 
-const FIN_STATS = [
-  { value: CLAIMS.revenue2026.display, label: "2026 revenue to date", sub: claimNote(CLAIMS.revenue2026) },
-  { value: CLAIMS.target2026.display, label: "2026 full-year forecast", sub: "Management forecast, not earned revenue" },
-  { value: CLAIMS.pipeline.display, label: "Upcoming bookings", sub: `Scheduled as of ${asOfDate(CLAIMS.pipeline)}; not yet completed or earned` },
-  {
-    value: CLAIMS.goal700.display,
-    label: "700-vehicle revenue goal",
-    sub: "Goal: 700 × $1,200/mo × 12, not a forecast",
-  },
-] as const;
+function finStatsFor(c: SiteClaims) {
+  return [
+    { key: "revenue2026" as ClaimKey, value: c.revenue2026.display, label: "2026 revenue to date", sub: claimNote(c.revenue2026) },
+    { key: "target2026" as ClaimKey, value: c.target2026.display, label: "2026 full-year forecast", sub: "Management forecast, not earned revenue" },
+    { key: "pipeline" as ClaimKey, value: c.pipeline.display, label: "Upcoming bookings", sub: `Scheduled as of ${asOfDate(c.pipeline)}; not yet completed or earned` },
+    { key: "goal700" as ClaimKey, value: c.goal700.display, label: "700-vehicle revenue goal", sub: "Goal: 700 × $1,200/mo × 12, not a forecast" },
+  ];
+}
 
-const TRAJECTORY = [
-  { value: CLAIMS.revenue2025.display, meta: `2025 actual · ${CLAIMS.fleet2025.display} vehicles` },
-  { value: CLAIMS.target2026.display, meta: `2026 forecast · ${CLAIMS.fleet.display} vehicles` },
-  { value: CLAIMS.goal700.display, meta: "700-vehicle goal" },
-] as const;
+function trajectoryFor(c: SiteClaims) {
+  return [
+    { key: "revenue2025" as ClaimKey, value: c.revenue2025.display, meta: `2025 actual · ${c.fleet2025.display} vehicles` },
+    { key: "target2026" as ClaimKey, value: c.target2026.display, meta: `2026 forecast · ${c.fleet.display} vehicles` },
+    { key: "goal700" as ClaimKey, value: c.goal700.display, meta: "700-vehicle goal" },
+  ];
+}
 
 const EXITS = [
   {
@@ -202,6 +200,13 @@ const FAQ_ITEMS = [
 
 
 export default function InvestorsPage() {
+  const { c, has } = useSiteClaims();
+  const TRACTION = tractionFor(c).filter((t) => !t.key || has(t.key));
+  const GROWTH = growthFor(c).filter((g) => has(g.key));
+  const FIN_STATS = finStatsFor(c).filter((f) => has(f.key));
+  const TRAJECTORY = trajectoryFor(c).filter((t) => has(t.key));
+  const fleet = has("fleet") ? ` ${c.fleet.display} vehicles` : "";
+  const earned = has("revenue2026") ? `${c.revenue2026.display} earned in 2026` : "";
   return (
     <div className="-mt-6">
       {/* Compliance strip */}
@@ -225,8 +230,8 @@ export default function InvestorsPage() {
           </Reveal>
           <Reveal delay={160}>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70 sm:mt-7 sm:text-xl">
-              {BRAND} is bootstrapped, profitable, and operating - {CLAIMS.fleet.display} vehicles
-              at DFW International and Love Field, {CLAIMS.revenue2026.display} earned in 2026 with $0
+              {BRAND} is bootstrapped, profitable, and operating -{fleet}
+              at DFW International and Love Field{earned ? `, ${earned}` : ""} with $0
               outside capital. We’re raising a{" "}
               <span className="font-semibold text-white">$504,000 SAFE</span>{" "}
               (Late Seed) at a{" "}
@@ -259,7 +264,7 @@ export default function InvestorsPage() {
           </Reveal>
 
           <Reveal delay={300}>
-            <RevenueCard />
+            {has("revenue2026") && <RevenueCard c={c} />}
           </Reveal>
         </div>
       </section>
@@ -339,10 +344,9 @@ export default function InvestorsPage() {
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
               {BRAND} is a bootstrapped, profitable fleet-management company
-              operating {CLAIMS.fleet.display} vehicles at DFW International and Love Field -
-              {CLAIMS.revenue2026.display} earned in 2026 with zero outside capital. Four years of
+              operating{fleet} at DFW International and Love Field{earned ? ` - ${earned}` : ""} with zero outside capital. Four years of
               operations. Institutional-grade fleet management, All-Star Host
-              status on Turo, {CLAIMS.trips.display} trips completed.
+              status on Turo{has("trips") ? `, ${c.trips.display} trips completed` : ""}.
             </p>
           </Reveal>
 
@@ -353,7 +357,7 @@ export default function InvestorsPage() {
                 style={{ height: 220 }}
               >
                 {GROWTH.map((g) => (
-                  <GrowthBar key={g.year} {...g} />
+                  <GrowthBar key={g.year} year={g.year} value={g.value} display={g.display} target={g.target} />
                 ))}
               </div>
             </div>
@@ -409,7 +413,7 @@ export default function InvestorsPage() {
           <Reveal className="max-w-3xl">
             <SectionEyebrow>Step 03 · Financial performance</SectionEyebrow>
             <h2 className="display mt-4 text-3xl sm:text-4xl lg:text-5xl">
-              {CLAIMS.revenue2026.display} earned in 2026 · {CLAIMS.target2026.display} full-year forecast.
+              {[earned, has("target2026") ? `${c.target2026.display} full-year forecast` : ""].filter(Boolean).join(" · ") || "Financial performance"}.
             </h2>
           </Reveal>
 
@@ -643,17 +647,17 @@ export default function InvestorsPage() {
 
 /* ── Pieces ─────────────────────────────────────────────────────────── */
 
-function RevenueCard() {
+function RevenueCard({ c }: { c: SiteClaims }) {
   return (
     <div className="mt-14 max-w-xl rounded-lg border border-white/15 bg-white/[0.06] p-7 backdrop-blur">
       <span className="text-xs font-bold uppercase tracking-[0.15em] text-white/70">
         2026 revenue to date
       </span>
       <p className="numeric mt-2 text-[2.1rem] font-black leading-none tracking-tight text-white sm:text-5xl lg:text-6xl">
-        {CLAIMS.revenue2026.display}
+        {c.revenue2026.display}
       </p>
       <p className="mt-3 text-xs leading-relaxed text-white/75">
-        {claimNote(CLAIMS.revenue2026)}. The {CLAIMS.target2026.display} full-year figure is a management forecast, not earned revenue.
+        {claimNote(c.revenue2026)}. The {c.target2026.display} full-year figure is a management forecast, not earned revenue.
       </p>
     </div>
   );

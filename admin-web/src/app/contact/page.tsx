@@ -18,7 +18,7 @@ interface Inquiry {
   _id: string;
   fullName: string;
   email: string;
-  interest: 'asset_partner' | 'investor' | 'corporate' | 'general' | 'other';
+  interest: 'asset_partner' | 'investor' | 'corporate' | 'website_info' | 'general' | 'other';
   message: string;
   status: 'new' | 'responded';
   createdAt: string;
@@ -31,6 +31,7 @@ const INTEREST_META: Record<Inquiry['interest'], { label: string; icon: typeof C
   asset_partner: { label: 'Asset Partner', icon: Car, tone: 'primary' },
   investor: { label: 'Investor', icon: TrendingUp, tone: 'success' },
   corporate: { label: 'Corporate', icon: Building2, tone: 'warning' },
+  website_info: { label: 'Website info', icon: HelpCircle, tone: 'warning' },
   general: { label: 'General', icon: HelpCircle, tone: 'muted' },
   other: { label: 'Other', icon: Layers, tone: 'muted' },
 };

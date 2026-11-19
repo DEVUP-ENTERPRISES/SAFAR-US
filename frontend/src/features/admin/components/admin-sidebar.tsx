@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, BadgeCheck, Car, CalendarCheck, ShieldAlert, LifeBuoy,
   ScanFace, Flag, ScrollText, LayoutGrid, Shield, Percent, SlidersHorizontal, TrendingUp, Star, Layers, Building2, Banknote, Route,
   Handshake, Receipt, PieChart, Radio, Gift, Umbrella, Milestone,
-  Landmark, Ticket, BookOpen, Mail, FileWarning, AlertTriangle, UserCog, Sparkles,
+  Landmark, Ticket, BookOpen, Mail, FileWarning, AlertTriangle, UserCog, Sparkles, ClipboardCheck, FileText,
 } from 'lucide-react';
 import { PanelSidebar, type PanelNavItem } from '@/components/layout/panel-sidebar';
 import { adminApi, type AdminNavItem } from '@/features/admin/api';
@@ -33,6 +33,8 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   surge: TrendingUp,
   memberships: Star,
   'feature-flags': Flag,
+  'website-claims': ClipboardCheck,
+  'website-disclosures': FileText,
   fleets: Layers,
   corporate: Building2,
   payouts: Banknote,

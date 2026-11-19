@@ -47,6 +47,7 @@ import { requireFleetOwner } from './shared/middleware/require-fleet-owner';
 import { authenticate } from './shared/middleware/authenticate';
 import { insurancePartnerRoutes } from './modules/insurance-partners/api/insurance-partner.routes';
 import { contactInquiryRoutes } from './modules/contact/api/contact-inquiry.routes';
+import { disclosuresRoutes } from './modules/disclosures/api/disclosures.routes';
 import { visitorTrackingRoutes } from './modules/analytics/api/visitor-tracking.routes';
 import { notFound } from './shared/middleware/not-found';
 
@@ -85,6 +86,7 @@ export function buildApiRouter(): Router {
   api.use('/ioc', authenticate, requireFleetOwner, assetPartnerIocRoutes);
   api.use('/', insurancePartnerRoutes);
   api.use('/', contactInquiryRoutes);
+  api.use('/', disclosuresRoutes);
   api.use('/', visitorTrackingRoutes);
   api.use('/saved-searches', savedSearchRoutes);
   api.use('/documents', documentsRoutes);

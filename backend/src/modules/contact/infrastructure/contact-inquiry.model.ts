@@ -8,7 +8,8 @@ import { uuid } from '../../../shared/utils/uuid';
  * general) is a durable, admin-visible record, not something that only ever
  * lives in an inbox. No login required.
  */
-export type ContactInterest = 'asset_partner' | 'investor' | 'corporate' | 'general' | 'other';
+export const CONTACT_INTERESTS = ['asset_partner', 'investor', 'corporate', 'website_info', 'general', 'other'] as const;
+export type ContactInterest = (typeof CONTACT_INTERESTS)[number];
 export type ContactStatus = 'new' | 'responded';
 
 export interface ContactInquiryDoc {
@@ -38,7 +39,7 @@ const schema = new Schema<ContactInquiryDoc>(
     fullName: { type: String, required: true },
     email: { type: String, required: true, lowercase: true, trim: true },
     phone: String,
-    interest: { type: String, required: true, enum: ['asset_partner', 'investor', 'corporate', 'general', 'other'] },
+    interest: { type: String, required: true, enum: CONTACT_INTERESTS },
     message: { type: String, required: true },
     status: { type: String, default: 'new', enum: ['new', 'responded'] },
 

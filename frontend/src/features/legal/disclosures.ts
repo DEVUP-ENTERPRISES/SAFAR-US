@@ -1,6 +1,4 @@
-import { CONTACT } from '@/features/contact/content';
-
-// Website disclosures from the CatoDrive Website Legal Compliance & Disclaimer Package (v1.0); git history is the version record.
+// Built-in copy of disclosures version 1, shown only if the API is unreachable; the live text is edited in admin.
 export const DISCLOSURES_VERSION = '1.0';
 export const DISCLOSURES_EFFECTIVE = 'November 18, 2026';
 
@@ -21,7 +19,7 @@ export const DISCLOSURES: Disclosure[] = [
       'Unless expressly stated otherwise, website content does not constitute a binding offer, guarantee, warranty, or contractual commitment.',
       'The terms of any rental, asset-management, asset-partner, or other transaction are governed by the applicable written agreement and transaction-specific disclosures.',
       'Nothing in this notice excludes or limits any right or remedy that cannot lawfully be excluded or limited under applicable law.',
-      `Questions concerning published website information may be directed to ${CONTACT.email}.`,
+      'Questions concerning published website information may be sent through our contact page by choosing “A question about information on our website”.',
     ],
   },
   {
@@ -149,7 +147,7 @@ export const DISCLOSURES: Disclosure[] = [
     body: [
       'CatoDrive may correct, update, or remove website information when the company identifies an error, inconsistency, outdated figure, or change in reporting methodology.',
       'Where appropriate, material corrections will identify the affected information, reporting period, and nature of the correction.',
-      `Questions concerning published company information may be directed to ${CONTACT.email}.`,
+      'Questions concerning published website information may be sent through our contact page by choosing “A question about information on our website”.',
       'Nothing in this notice limits rights or remedies available under applicable law.',
     ],
   },

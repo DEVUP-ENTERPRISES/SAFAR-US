@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import { Reveal } from '@/components/ui/reveal';
 import { SectionEyebrow, TractionStats, AudienceSection, BRAND } from '@/features/marketing/sections';
-import { EXAMPLES_PERIOD, OWNER_NET_RANGE } from '@/features/legal/claims';
+import { EXAMPLES_PERIOD, OWNER_KEYS, ownerNetRange } from '@/features/legal/claims';
+import { useSiteClaims } from '@/features/legal/api';
 import { DisclosureNote } from '@/features/legal/disclosure-note';
 
 /**
@@ -27,7 +28,7 @@ import { DisclosureNote } from '@/features/legal/disclosure-note';
 const PILLARS = [
   { n: '01', icon: PlaneTakeoff, title: 'Airport Delivery', body: 'Your car meets you at DFW International and Love Field where airport rules allow, with exact pickup instructions for your trip. No shuttles. No satellite lots.' },
   { n: '02', icon: Car, title: 'The Exact Car You Book', body: 'Book the precise vehicle you want. Real photos, real car. No bait-and-switch. Every vehicle SOP-maintained, spotless, and road-ready.' },
-  { n: '03', icon: Banknote, title: `Example Owner Net ${OWNER_NET_RANGE}/mo`, body: `Most of every booking goes to the owner. Example cars netted ${OWNER_NET_RANGE} a month in ${EXAMPLES_PERIOD} after our fee, insurance and detailing. Results vary and aren’t guaranteed.` },
+  { n: '03', icon: Banknote, title: 'Example Owner Net {NET}/mo', body: `Most of every booking goes to the owner. Example cars netted {NET} a month in ${EXAMPLES_PERIOD} after our fee, insurance and detailing. Results vary and aren’t guaranteed.` },
   { n: '04', icon: Settings2, title: 'Full Fleet Management', body: 'We list, price, deliver, clean, and service - a 24/7 operations team based in DFW. Owners approve larger repairs.' },
 ] as const;
 
@@ -36,7 +37,7 @@ const STEPS = [
   { n: '02', icon: Camera, title: `${BRAND} Lists It`, body: 'We photograph it, list it, and price it dynamically. You do nothing.', tag: '$0 additional effort from you' },
   { n: '03', icon: ClipboardCheck, title: 'Guest Books Online', body: 'A vetted traveler books online. We screen every trip. You’re never involved.', tag: 'Full vetting on every reservation' },
   { n: '04', icon: Settings2, title: 'We Manage Everything', body: 'Delivery and collection, airport handoffs where permitted, cleaning and maintenance coordination - full white-glove service.', tag: 'Day-to-day operations handled' },
-  { n: '05', icon: Wallet, title: 'You Get Paid', body: 'Your share of every booking hits your account monthly. No invoices. No chasing.', tag: `${EXAMPLES_PERIOD} examples: net ${OWNER_NET_RANGE} / month` },
+  { n: '05', icon: Wallet, title: 'You Get Paid', body: 'Your share of every booking hits your account monthly. No invoices. No chasing.', tag: `${EXAMPLES_PERIOD} examples: net {NET} / month` },
 ] as const;
 
 const RISKS = [
@@ -47,6 +48,14 @@ const RISKS = [
 ] as const;
 
 export default function AboutPage() {
+  const { c, has } = useSiteClaims();
+  const earningsOk = OWNER_KEYS.every((k) => has(k));
+  const net = ownerNetRange(c);
+  const fill = (t: string) => t.replaceAll('{NET}', net);
+  const pillars = PILLARS.map((p) => (p.n !== '03' ? p : earningsOk
+    ? { ...p, title: fill(p.title), body: fill(p.body) }
+    : { ...p, title: 'Owners Keep Most of Every Booking', body: 'Most of every booking goes to the owner after our fee, insurance and detailing. Results vary and aren’t guaranteed.' }));
+  const steps = STEPS.map((st) => ('tag' in st && st.tag.includes('{NET}') ? { ...st, tag: earningsOk ? fill(st.tag) : 'Paid monthly' } : st));
   return (
     <div className="-mt-6">
       {/* ── HERO ─────────────────────────────────────────────────────── */}
@@ -124,7 +133,7 @@ export default function AboutPage() {
             </p>
           </Reveal>
           <div className="mt-12 grid gap-4 sm:grid-cols-2">
-            {PILLARS.map((p, i) => (
+            {pillars.map((p, i) => (
               <Reveal key={p.n} delay={i * 80}>
                 <FrameCard {...p} />
               </Reveal>
@@ -143,9 +152,9 @@ export default function AboutPage() {
             </p>
           </Reveal>
           <ol className="mt-12 space-y-3">
-            {STEPS.map((s, i) => (
+            {steps.map((s, i) => (
               <Reveal key={s.n} as="li" delay={i * 70}>
-                <StepRow {...s} last={i === STEPS.length - 1} />
+                <StepRow {...s} last={i === steps.length - 1} />
               </Reveal>
             ))}
           </ol>

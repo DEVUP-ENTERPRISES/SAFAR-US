@@ -1,10 +1,11 @@
 import { z } from 'zod';
+import { CONTACT_INTERESTS } from '../infrastructure/contact-inquiry.model';
 
 export const createContactInquirySchema = z.object({
   fullName: z.string().trim().min(2).max(120),
   email: z.string().trim().email(),
   phone: z.string().trim().max(20).optional(),
-  interest: z.enum(['asset_partner', 'investor', 'corporate', 'general', 'other']),
+  interest: z.enum(CONTACT_INTERESTS),
   message: z.string().trim().min(5).max(2000),
 });
 

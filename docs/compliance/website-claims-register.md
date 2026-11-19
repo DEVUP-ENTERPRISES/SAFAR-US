@@ -1,8 +1,12 @@
 # Website claims register
 
-Source of truth in code: `frontend/src/features/legal/claims.ts` (numbers, dates, meaning) and `frontend/src/features/legal/disclosures.ts` (disclaimer text, version 1.0, effective Nov 18, 2026). Change a number there and every page updates. Git history is the version record.
+**The live register is in the admin console: Control → Website Claims.** It holds every claim below with its evidence, owner, status, review date and full history, and only approved figures reach the website (`GET /api/v1/website/claims`). A suspended figure disappears from the site automatically; text claims (insurance, airport, offering) email the team to remove the wording. `frontend/src/features/legal/claims.ts` is only the fallback the site uses if the API is unreachable.
 
-Status key: **Needs evidence** = the company must file the supporting record before the next review. **Filed** = record on file.
+Workflow (package Part VI): edit → add evidence → **Verify** (Finance/Ops, `website:claims`) → **Record legal review** for high-risk claims (admin, `platform:manage`) → **Approve** (admin) → monitored. Reviews fall due on the section 24 schedule (monthly for revenue, fleet, trips, rates; quarterly for owner examples, ratings, offering, exits; yearly for insurance and airport) and a daily job emails one digest of overdue claims, repeating weekly until handled.
+
+Disclosures (sections 6–17) are edited in **Control → Website Disclosures**; each publish is a new version and every version stays readable at `/legal/disclosures?version=N`.
+
+The table below is the initial register as seeded on Nov 18, 2026.
 
 | ID | Published wording | Pages | As of | Supporting record (PDF Part V) | Owner | Status |
 |---|---|---|---|---|---|---|
