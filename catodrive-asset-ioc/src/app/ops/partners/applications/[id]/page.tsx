@@ -500,6 +500,7 @@ function ApprovePanel({ name, busy, error, onCancel, onSubmit }: { name: string;
   const [note, setNote] = useState('');
   const feesOn = settings.data?.enabled !== false;
   const platform = settings.data?.platformFeeCents ?? 0;
+  const payLater = settings.data?.payLaterEnabled === true;
   const cents = waive || !feesOn ? 0 : Math.round(Number(amount) * 100);
   const valid = !feesOn || waive || (amount.trim() !== '' && Number.isFinite(cents) && cents > 0 && cents <= 500_000);
   const usd = (c: number) => `$${(c / 100).toLocaleString('en-US', { minimumFractionDigits: c % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
@@ -507,7 +508,7 @@ function ApprovePanel({ name, busy, error, onCancel, onSubmit }: { name: string;
     <Card className="border-primary/30">
       <CardHeader><CardTitle className="text-base">Approve {name}</CardTitle></CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">They become an Asset Partner. After the ID check they pay this one-time registration, then sign and add payout details. It covers every car they place.</p>
+        <p className="text-sm text-muted-foreground">They become an Asset Partner. After the ID check they choose how to pay this one-time registration, then sign and add payout details. It covers every car they place.</p>
         {settings.isLoading ? (
           <Skeleton className="h-16 w-full" />
         ) : settings.isError ? (
@@ -527,7 +528,8 @@ function ApprovePanel({ name, busy, error, onCancel, onSubmit }: { name: string;
             </div>
             {cents > 0 && (
               <p className="rounded-lg bg-subtle p-3 text-sm tabular-nums">
-                The partner pays <span className="font-semibold">{usd(cents)}</span> once, non-refundable{platform > 0 && cents > platform ? `, including the ${usd(platform)} platform fee` : ''}.
+                The partner pays <span className="font-semibold">{usd(cents)}</span> once, non-refundable{platform > 0 && cents > platform ? `, including the ${usd(platform)} platform fee` : ''}.{' '}
+                {payLater ? 'They choose: pay now by card, or nothing today and it comes out of their car’s first earnings.' : 'They pay by card before signing. Paying from first earnings is switched off in Partner Terms.'}
               </p>
             )}
           </div>
@@ -537,7 +539,7 @@ function ApprovePanel({ name, busy, error, onCancel, onSubmit }: { name: string;
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button variant="ghost" onClick={onCancel}>Back</Button>
           <Button disabled={!valid || settings.isLoading} loading={busy} onClick={() => onSubmit({ feeCents: cents, note: note.trim() })}>
-            <CheckCircle2 className="h-4 w-4" aria-hidden /> {cents > 0 ? `Approve, partner pays ${usd(cents)}` : 'Approve, no fee'}
+            <CheckCircle2 className="h-4 w-4" aria-hidden /> {cents > 0 ? `Approve, ${usd(cents)} fee` : 'Approve, no fee'}
           </Button>
         </div>
       </CardContent>

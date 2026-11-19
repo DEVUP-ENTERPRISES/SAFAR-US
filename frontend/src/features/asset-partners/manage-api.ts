@@ -206,7 +206,7 @@ export function partnerManageApi(base: '/ioc' | '/admin') {
     /** The items ops can send back for correction, with their plain names. */
     changeItems: () => api.get<{ key: string; label: string }[]>(`${base}/asset-partner-applications/change-items`),
     /** Whether registration fees are on, and the platform fee added to each. */
-    joiningFeeSettings: () => api.get<{ enabled: boolean; platformFeeCents: number }>(`${base}/asset-partner-fee/default`),
+    joiningFeeSettings: () => api.get<{ enabled: boolean; platformFeeCents: number; payLaterEnabled?: boolean }>(`${base}/asset-partner-fee/default`),
     feeReport: () => api.get<FeeReport>(`${base}/asset-partner-fees`),
     taxYear: (year: number) => api.get<TaxYear>(`${base}/asset-partner-tax/${year}`),
     exportTaxYear: (year: number) => api.download(`${base}/asset-partner-tax/${year}/export.csv`),
