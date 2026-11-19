@@ -36,6 +36,20 @@ async function setup() {
 }
 const car = () => VehicleModel.findById('veh-1').lean();
 
+// The partner notice is sent in the background so a slow notification never holds up the pause.
+async function eventually(check: () => void, ms = 2000): Promise<void> {
+  const until = Date.now() + ms;
+  for (;;) {
+    try {
+      check();
+      return;
+    } catch (err) {
+      if (Date.now() > until) throw err;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+  }
+}
+
 describe('pauseDays', () => {
   it('lists every day off, not the return day', () => {
     expect(pauseDays('2026-12-30', '2027-01-02')).toEqual(['2026-12-30', '2026-12-31', '2027-01-01']);
@@ -49,7 +63,7 @@ describe('operations pause', () => {
     const p = await vehiclePauseService.pauseNow(opsId, 'veh-1', { reason: 'Windshield repair' });
     expect(p.status).toBe('active');
     expect(await car()).toMatchObject({ status: 'paused', pauseId: p._id });
-    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ userId: 'partner-user', title: 'Your car is paused' }));
+    await eventually(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ userId: 'partner-user', title: 'Your car is paused' })));
 
     await expect(vehiclePauseService.pauseNow(opsId, 'veh-1', { reason: 'again' })).rejects.toThrow('Only a live car');
     await vehiclePauseService.resume(opsId, 'veh-1');
