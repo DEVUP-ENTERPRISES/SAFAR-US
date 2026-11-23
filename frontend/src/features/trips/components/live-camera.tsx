@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, Loader2, MapPinOff, RefreshCw, VideoOff, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AngleGuide, FrameCorners, hasOutline } from './angle-guide';
+import { ShotDiagram } from './shot-diagram';
 import { safeMessage } from '@/lib/utils/safe-message';
 
 /** What is burned into every photo and shown live in the viewfinder. */
@@ -252,8 +253,9 @@ export function LiveCamera({
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Take a photo">
-      <div className="flex items-center justify-between p-3 text-white">
-        <div className="min-w-0">
+      <div className="flex items-center justify-between gap-3 p-3 text-white">
+        {guide && <ShotDiagram angle={guide} className="h-14 w-16 shrink-0 rounded-md bg-white/10 p-1 text-white/80" />}
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">
             {isGeneric(stamp) ? stamp.detail : `${stamp.phase === 'pre' ? 'Pickup' : 'Return'} photo · ${stamp.angleLabel}`}
           </p>

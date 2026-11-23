@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Camera, Check, Clock, ShieldCheck } from 'lucide-react';
+import { Camera, Check, Clock, Lock, ShieldCheck, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,6 +13,7 @@ import { tripApi, type InspectionAngle, type PhotoPhase } from '@/features/trips
 import { useInspection } from '@/features/trips/hooks';
 import { LiveCamera, type CapturedShot } from './live-camera';
 import { ShotDiagram, ShotLegend } from './shot-diagram';
+import { AngleGuide, hasOutline } from './angle-guide';
 import { siteUrl } from '@/lib/sites';
 
 const GROUPS = [
@@ -42,6 +43,7 @@ export function InspectionPhotos({
   const qc = useQueryClient();
   const { data: state, isLoading } = useInspection(bookingId);
   const [angleId, setAngleId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const handled = useRef(0);
 
   const angles = state?.angles ?? [];
@@ -89,6 +91,9 @@ export function InspectionPhotos({
       qc.invalidateQueries({ queryKey: ['host-trip'] }),
     ]);
   };
+
+  const lockedLabel = win.open ? 'Limit reached' : win.reason === 'not_yet' ? `Opens ${formatDateTime(win.opensAt)}` : win.reason === 'no_trip' ? 'Opens once the trip starts' : 'Window closed';
+  const preview = angles.find((a) => a.id === previewId);
 
   const status = win.open
     ? win.closesAt && phase === 'pre' && state.tripId
@@ -156,12 +161,11 @@ export function InspectionPhotos({
                     <button
                       key={a.id}
                       type="button"
-                      disabled={!canAdd}
-                      onClick={() => setAngleId(a.id)}
+                      onClick={() => (canAdd ? setAngleId(a.id) : setPreviewId(a.id))}
+                      aria-label={canAdd ? `Take photo ${number}: ${a.label}` : `How to take photo ${number}: ${a.label}`}
                       className={cn(
-                        'flex flex-col rounded-lg border bg-card p-3 text-left transition-colors',
-                        done ? 'border-success/50' : 'border-border',
-                        canAdd ? 'hover:border-primary/50' : 'cursor-default',
+                        'flex flex-col rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        done ? 'border-success/50' : canAdd ? 'border-primary/40' : 'border-border',
                       )}
                     >
                       <div className="flex items-center justify-between">
@@ -192,6 +196,11 @@ export function InspectionPhotos({
                       {a.hint && <span className="mt-0.5 text-xs leading-snug text-muted-foreground">{a.hint}</span>}
                       {cover && <span className="mt-1 text-xs font-semibold text-success">{cover.role === 'host' ? 'Host' : 'Guest'} photo</span>}
                       {need === 0 && !shots.length && <span className="mt-1 text-xs font-semibold text-muted-foreground">Only if the car has marks</span>}
+                      {!done && (canAdd ? (
+                        <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary"><Camera className="h-3.5 w-3.5" aria-hidden /> Tap to take</span>
+                      ) : (
+                        <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"><Lock className="h-3.5 w-3.5" aria-hidden /> {lockedLabel}</span>
+                      ))}
                     </button>
                   );
                 })}
@@ -227,6 +236,17 @@ export function InspectionPhotos({
         )}
       </CardContent>
 
+      {preview && (
+        <ShotPreview
+          label={`${angles.indexOf(preview) + 1}. ${preview.label}`}
+          angle={preview.id}
+          hint={preview.hint}
+          photos={shotsOf(preview.id).map((p) => p.url)}
+          note={canShoot ? undefined : lockedLabel}
+          onClose={() => setPreviewId(null)}
+        />
+      )}
+
       {angle && (
         <LiveCamera
           stamp={{
@@ -245,5 +265,47 @@ export function InspectionPhotos({
         />
       )}
     </Card>
+  );
+}
+
+// Shown when a card can't be shot right now: how to frame it, where to stand, and any photo already taken.
+function ShotPreview({ label, angle, hint, photos, note, onClose }: { label: string; angle: string; hint?: string; photos: string[]; note?: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-ink/60 sm:items-center sm:p-4" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label={label} className="max-h-[92vh] w-full overflow-y-auto rounded-t-lg bg-card p-5 shadow-lg sm:max-w-lg sm:rounded-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-xl font-semibold">{label}</h3>
+          <button type="button" autoFocus aria-label="Close" onClick={onClose} className="rounded-sm p-1 text-muted-foreground hover:bg-muted"><X className="h-5 w-5" /></button>
+        </div>
+        {photos.length ? (
+          <div className="mt-4 grid gap-2">
+            {photos.map((u) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={u} src={u} alt={label} className="w-full rounded-lg object-contain" />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs font-semibold text-muted-foreground">Where to stand</p>
+              <ShotDiagram angle={angle} className="mt-2 aspect-[4/3] w-full text-muted-foreground" />
+            </div>
+            {hasOutline(angle) && (
+              <div className="rounded-lg border border-border bg-ink p-3">
+                <p className="text-xs font-semibold text-white/70">What the camera shows</p>
+                <AngleGuide angle={angle} className="mt-2 w-full text-white/70" />
+              </div>
+            )}
+          </div>
+        )}
+        {hint && <p className="mt-4 text-sm">{hint}</p>}
+        {note && <p className="mt-3 flex items-center gap-2 rounded-lg bg-muted/60 p-2.5 text-xs font-medium text-muted-foreground"><Lock className="h-4 w-4 shrink-0" /> {note}. You can take this photo in the app once it opens.</p>}
+      </div>
+    </div>
   );
 }
