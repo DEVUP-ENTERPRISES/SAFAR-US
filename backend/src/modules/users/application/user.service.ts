@@ -117,7 +117,7 @@ export class UserService {
     } catch (err) {
       // The phone number is unique across accounts.
       if ((err as { code?: number }).code === 11000) {
-        throw new ConflictError('That mobile number is already on another account.', 'PHONE_TAKEN');
+        throw new ConflictError('That mobile number is already on another CatoDrive account. Sign in to that account, or use a different number. If it’s yours and you can’t get in, contact support.', 'PHONE_TAKEN');
       }
       throw err;
     }
