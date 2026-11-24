@@ -38,8 +38,8 @@ const photo = (owner: string, angle = 'front'): PhotoInput => {
   const key = `trip_photo/2026/09/${owner}/${++seq}-abc.jpg`;
   return { url: `https://cdn.test/${key}`, key, angle, lat: 32.8, lng: -97, accuracyM: 8 };
 };
-const ANGLES = ['front', 'rear', 'interior', 'dashboard'];
-const takePhotos = (owner: string, n = 4) => tripService.addPhotos(owner, 'bk-1', 'pre', ANGLES.slice(0, n).map((a) => photo(owner, a)));
+const ANGLES = ['front', 'rear', 'driver_side', 'passenger_side', 'dashboard', 'vin_plate', 'seats_dash'];
+const takePhotos = (owner: string, n = ANGLES.length) => tripService.addPhotos(owner, 'bk-1', 'pre', ANGLES.slice(0, n).map((a) => photo(owner, a)));
 
 async function setConfig(handover: Record<string, unknown> = {}) {
   const real = await platformConfigService.get();

@@ -51,7 +51,10 @@ export function InspectionPhotos({
   const taken = useMemo(() => (state?.photos ?? []).filter((p) => p.phase === phase), [state?.photos, phase]);
   const shotsOf = (id: string) => taken.filter((p) => p.angle === id);
   const needOf = (a: InspectionAngle) => a.shots ?? 1;
-  const nextAngle = angles.find((a) => needOf(a) > 0 && shotsOf(a.id).length < needOf(a))?.id ?? null;
+  const required = new Set(state?.requiredAngles ?? []);
+  const open = (a: InspectionAngle) => needOf(a) > 0 && shotsOf(a.id).length < needOf(a);
+  // Required shots first, then the rest in walking order.
+  const nextAngle = (angles.find((a) => required.has(a.id) && open(a)) ?? angles.find(open))?.id ?? null;
   const canShoot = !!win?.open && taken.length < win.max;
 
   useEffect(() => {
@@ -193,7 +196,10 @@ export function InspectionPhotos({
                           </span>
                         )}
                       </div>
-                      <span className="text-[15px] font-bold leading-snug">{a.label}</span>
+                      <span className="flex flex-wrap items-center gap-1.5 text-[15px] font-bold leading-snug">
+                        {a.label}
+                        {required.has(a.id) && <span className="rounded-full bg-warning/15 px-1.5 py-0.5 text-xs font-bold text-warning">Required</span>}
+                      </span>
                       {a.hint && <span className="mt-0.5 text-xs leading-snug text-muted-foreground">{a.hint}</span>}
                       {cover && <span className="mt-1 text-xs font-semibold text-success">{cover.role === 'host' ? 'Host' : 'Guest'} photo{cover.locationMissing ? <span className="text-warning"> · no location</span> : null}</span>}
                       {need === 0 && !shots.length && <span className="mt-1 text-xs font-semibold text-muted-foreground">Only if the car has marks</span>}

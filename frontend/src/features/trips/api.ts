@@ -45,6 +45,8 @@ export interface InspectionState {
   plate?: string;
   role: 'guest' | 'host';
   requireLocation: boolean;
+  /** Angles that must each be photographed; absent on an older backend. */
+  requiredAngles?: string[];
   angles: InspectionAngle[];
   pre: PhaseState;
   post: PhaseState;

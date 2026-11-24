@@ -16,23 +16,23 @@ export type InspectionPhase = 'pre' | 'post';
  * served to clients so the list lives in one place. `shots` is how many photos a card takes; 0 means as many as needed.
  */
 export const INSPECTION_ANGLES = [
-  { id: 'front', label: 'Front', group: 'walkaround', shots: 1, hint: 'Bumper, grille, plate. Stand 3–4 m (10–13 ft) back.' },
+  { id: 'front', label: 'Front', group: 'walkaround', shots: 1, hint: 'Bumper, grille, number plate readable. Stand 3–4 m (10–13 ft) back.' },
   { id: 'front_left', label: 'Front left', group: 'walkaround', shots: 1, hint: '45° from the corner: bumper, fender, hood.' },
-  { id: 'driver_side', label: 'Driver side', group: 'walkaround', shots: 1, hint: 'Square-on, bumper to bumper, at door-handle height.' },
+  { id: 'driver_side', label: 'Driver side', group: 'walkaround', shots: 1, hint: 'Left side square-on, bumper to bumper, both tires in frame.' },
   { id: 'rear_left', label: 'Rear left', group: 'walkaround', shots: 1, hint: '45° from the corner: bumper, rear quarter panel.' },
-  { id: 'rear', label: 'Rear', group: 'walkaround', shots: 1, hint: 'Bumper, both taillights, plate readable.' },
+  { id: 'rear', label: 'Rear', group: 'walkaround', shots: 1, hint: 'Bumper, both taillights, number plate readable.' },
   { id: 'rear_right', label: 'Rear right', group: 'walkaround', shots: 1, hint: '45° from the corner: bumper, rear quarter panel.' },
-  { id: 'passenger_side', label: 'Passenger side', group: 'walkaround', shots: 1, hint: 'Square-on, bumper to bumper, at door-handle height.' },
+  { id: 'passenger_side', label: 'Passenger side', group: 'walkaround', shots: 1, hint: 'Right side square-on, bumper to bumper, both tires in frame.' },
   { id: 'front_right', label: 'Front right', group: 'walkaround', shots: 1, hint: '45° from the corner: bumper, fender, hood.' },
   { id: 'windshield', label: 'Windshield', group: 'outside', shots: 1, hint: 'Whole glass, then any chip or crack up close.' },
   { id: 'roof', label: 'Roof', group: 'outside', shots: 1, hint: 'From higher ground. Include hood and trunk lid.' },
   { id: 'wheels', label: 'Wheels ×4', group: 'outside', shots: 4, hint: 'Face-on: rim edge, sidewall and tread.' },
   { id: 'low_bumpers', label: 'Low bumpers ×2', group: 'outside', shots: 2, hint: 'Crouch: front lower lip and rear lower edge.' },
-  { id: 'seats_dash', label: 'Seats & dash', group: 'inside', shots: 1, hint: 'From the rear seat: seats, dash, wheel, console.' },
+  { id: 'seats_dash', label: 'Interior', group: 'inside', shots: 1, hint: 'From the rear seat: seats, dash, wheel, console.' },
   { id: 'rear_seats', label: 'Rear seats', group: 'inside', shots: 1, hint: 'Full bench, belts, floor and any stains.' },
   { id: 'trunk', label: 'Trunk', group: 'inside', shots: 1, hint: 'Lid open: floor, spare tire, jack.' },
   { id: 'dashboard', label: 'Odometer & fuel', group: 'inside', shots: 1, hint: 'Ignition on: miles, fuel level, warning lights.' },
-  { id: 'vin_plate', label: 'VIN & plate', group: 'id', shots: 1, hint: 'VIN at windshield base or door jamb, plus plate.' },
+  { id: 'vin_plate', label: 'VIN (windshield)', group: 'id', shots: 1, hint: 'Through the windshield, driver side: the VIN tag, readable.' },
   { id: 'damage', label: 'Damage close-up', group: 'id', shots: 0, hint: 'Wide shot, then close-up with a coin for scale.' },
 ] as const;
 
@@ -41,6 +41,15 @@ const ANGLE_IDS: string[] = [...INSPECTION_ANGLES.map((a) => a.id), 'interior'];
 const MINUTE_MS = 60_000;
 
 /** What a client may send about a photo; `at`, `byUserId` and `source` are never taken from it. */
+// Mandatory at pickup (host side) and return: front and rear with plate, both sides with tires, odometer and fuel, VIN, interior.
+export const REQUIRED_ANGLES = ['front', 'rear', 'driver_side', 'passenger_side', 'dashboard', 'vin_plate', 'seats_dash'] as const;
+
+// The required angles still without a counting photo in this phase, by label.
+export function missingAngles(photos: TripPhoto[], phase: InspectionPhase): string[] {
+  const have = new Set(photos.filter((p) => p.phase === phase).map((p) => p.angle));
+  return REQUIRED_ANGLES.filter((id) => !have.has(id)).map((id) => INSPECTION_ANGLES.find((a) => a.id === id)?.label ?? id);
+}
+
 export interface PhotoInput {
   url: string;
   key: string;
@@ -73,6 +82,7 @@ export interface InspectionState {
   plate?: string;
   role: 'guest' | 'host';
   requireLocation: boolean;
+  requiredAngles: string[];
   angles: typeof INSPECTION_ANGLES;
   pre: PhaseState;
   post: PhaseState;
@@ -137,6 +147,7 @@ export class InspectionService {
       plate: vehicle?.registrationNumber,
       role: booking.guestId === viewerId ? 'guest' : 'host',
       requireLocation: cfg.inspection.requireLocation,
+      requiredAngles: [...REQUIRED_ANGLES],
       angles: INSPECTION_ANGLES,
       pre: this.phaseState('pre', booking, trip, cfg.inspection, photos, now),
       post: this.phaseState('post', booking, trip, cfg.inspection, photos, now),
@@ -266,6 +277,11 @@ export class InspectionService {
         `Inspect the car and take at least ${cfg.minPrePhotos} live photos before the pickup code and trip start (you have ${s.taken}).`,
         'HOST_INSPECTION_REQUIRED',
       );
+    }
+    const photos = (await this.allPhotos(booking._id, null)).filter((p) => p.byUserId !== booking.guestId);
+    const missing = missingAngles(photos, 'pre');
+    if (missing.length) {
+      throw new ConflictError(`Before the trip starts, also photograph: ${missing.join(', ')}.`, 'REQUIRED_PHOTOS_MISSING');
     }
   }
 

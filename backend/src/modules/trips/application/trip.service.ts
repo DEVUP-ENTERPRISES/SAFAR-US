@@ -13,7 +13,7 @@ import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { logger } from '../../../infrastructure/logging/logger';
 import { milesToKm } from '../../../shared/utils/distance';
-import { inspectionService, type InspectionPhase, type InspectionState, type PhotoInput } from './inspection.service';
+import { inspectionService, missingAngles, type InspectionPhase, type InspectionState, type PhotoInput } from './inspection.service';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { eligibilityService } from '../../bookings/application/eligibility.service';
 import { wheelbaseInsuranceService } from '../../insurance/application/wheelbase-insurance.service';
@@ -145,13 +145,18 @@ export class TripService {
     // deposit and any damage claim are judged against; letting a trip close
     // without them means a later dispute has no evidence either way. The guest
     // is prompted to take them on the trip screen before this button enables.
+    const inspectionCfg = (await platformConfigService.get()).inspection;
     const returnPhotos = (trip.photos ?? []).filter((p) => p.phase === 'post').length;
-    const minReturnPhotos = (await platformConfigService.get()).inspection.minReturnPhotos;
+    const minReturnPhotos = inspectionCfg.minReturnPhotos;
     if (returnPhotos < minReturnPhotos) {
       throw new ConflictError(
         `Add at least ${minReturnPhotos} return photos before ending the trip (you have ${returnPhotos}).`,
         'RETURN_PHOTOS_REQUIRED',
       );
+    }
+    const missingReturn = minReturnPhotos > 0 ? missingAngles(trip.photos ?? [], 'post') : [];
+    if (missingReturn.length) {
+      throw new ConflictError(`Before ending the trip, also photograph: ${missingReturn.join(', ')}.`, 'REQUIRED_PHOTOS_MISSING');
     }
 
     const distanceKm = this.distanceFor(trip, ret.odometerEnd);
