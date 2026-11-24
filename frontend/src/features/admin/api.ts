@@ -500,6 +500,7 @@ export const adminApi = {
   // corporate, general) lands here so ops sees who's reaching out in one place.
   contactInquiries: (q: Q = {}) => api.get<any[]>('/admin/contact-inquiries', q),
   contactInquiryCounts: () => api.get<Record<string, number>>('/admin/contact-inquiries/counts'),
+  tripEvidence: (bookingId: string) => api.download(`/admin/bookings/${bookingId}/evidence.pdf`),
   waiveDeposit: (bookingId: string, reason: string) => api.post<{ waived: true; released: boolean }>(`/admin/bookings/${bookingId}/deposit-waiver`, { reason }),
   unwaiveDeposit: (bookingId: string) => api.delete<{ waived: false }>(`/admin/bookings/${bookingId}/deposit-waiver`),
   releaseDeposit: (bookingId: string, reason: string) => api.post<{ released: boolean }>(`/payments/deposits/${bookingId}/release`, { reason }),

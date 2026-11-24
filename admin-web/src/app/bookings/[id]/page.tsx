@@ -19,6 +19,7 @@ import { adminApi, type AdminBookingOverview } from '@/features/admin/api';
 import { ApiError } from '@/lib/api/types';
 import { formatDate, formatDateRange, formatDateTime, formatMoney, formatDay } from '@/lib/utils/format';
 import { adminPath } from '@/lib/admin-path';
+import { saveFile } from '@/lib/utils/save-file';
 
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong. Please try again.');
 
@@ -156,6 +157,22 @@ function PaymentsCard({ o }: { o: AdminBookingOverview }) {
           </li>
         ))}
       </ul>
+    </Section>
+  );
+}
+
+function EvidenceCard({ bookingId }: { bookingId: string }) {
+  const toast = useToast();
+  const dl = useMutation({
+    meta: { silentError: true },
+    mutationFn: () => adminApi.tripEvidence(bookingId),
+    onSuccess: ({ blob, filename }) => saveFile(blob, filename ?? 'trip-evidence.pdf'),
+    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? (e.status === 403 ? 'Your role can’t download evidence files.' : e.message) : 'The file couldn’t be built. Try again.' }),
+  });
+  return (
+    <Section icon={<Receipt className="h-4 w-4 text-primary" aria-hidden />} title="Trip evidence file">
+      <p className="text-sm text-muted-foreground">One PDF for an insurer or adjuster: driver and ID check, car, every timestamp and reading, extensions, charges, claims, and all pickup and return photos with time, GPS and fingerprint. Each download is logged.</p>
+      <Button size="sm" className="mt-3" loading={dl.isPending} onClick={() => dl.mutate()}>Download evidence PDF</Button>
     </Section>
   );
 }
@@ -318,6 +335,7 @@ export default function AdminBookingDetailPage() {
             <MoneyCard o={o} />
             <PaymentsCard o={o} />
           </div>
+          <EvidenceCard bookingId={o.booking.id} />
           <HistoryCard o={o} />
         </div>
 

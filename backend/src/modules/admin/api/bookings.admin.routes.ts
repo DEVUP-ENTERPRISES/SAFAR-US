@@ -13,6 +13,8 @@ import { tripChangeService } from '../../bookings/application/trip-change.servic
 import { storageGateway } from '../../../infrastructure/storage/storage.provider';
 import { NotFoundError } from '../../../core/errors/app-error';
 import { depositService } from '../../payments/application/deposit.service';
+import { tripEvidenceService } from '../../trips/application/trip-evidence.service';
+import { auditService } from '../../audit/application/audit.service';
 
 const router = Router();
 
@@ -87,6 +89,18 @@ router.get(
     noStore(res);
     const p = req.principal!.permissions;
     sendSuccess(res, await adminBookingOverviewService.overview(req.params.id, p.includes('*') || p.includes('kyc:review')));
+  }),
+);
+
+/** One PDF with everything about a trip for an insurer or adjuster; each download is audit-logged because it holds personal data. */
+router.get(
+  '/bookings/:id/evidence.pdf',
+  authorize('claim:manage'),
+  asyncHandler(async (req, res) => {
+    const { pdf, filename, sha256 } = await tripEvidenceService.build(req.params.id, req.principal!.userId);
+    void auditService.record({ actorId: req.principal!.userId, actorRoles: req.principal!.roles, action: 'trip_evidence.download', resourceType: 'booking', resourceId: req.params.id, after: { sha256 }, status: 200 });
+    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${filename}"`, 'Cache-Control': 'private, no-store', 'X-Content-SHA256': sha256 });
+    res.send(pdf);
   }),
 );
 
