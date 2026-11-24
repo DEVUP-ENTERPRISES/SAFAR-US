@@ -475,7 +475,8 @@ export const adminApi = {
 
   users: (q: Q = {}) => api.get<any[]>('/admin/users', q),
   user: (id: string) => api.get<any>(`/admin/users/${id}`),
-  setUserStatus: (id: string, status: string) => api.post(`/admin/users/${id}/status`, { status }),
+  setUserStatus: (id: string, status: string, reason: string, blockIdentity = false) =>
+    api.post<{ status: string; cancelledBookings: string[]; flaggedBookings: string[]; inProgress: string[]; carsUnlisted: number; identityBlocked: string[] }>(`/admin/users/${id}/status`, { status, reason, blockIdentity }),
 
   hosts: (q: Q = {}) => api.get<any[]>('/admin/hosts', q),
   setHostVerification: (id: string, status: string) =>

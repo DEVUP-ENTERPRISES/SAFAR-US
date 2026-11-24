@@ -8,6 +8,7 @@ import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
 import { NotFoundError } from '../../../core/errors/app-error';
+import { accountActionService } from '../../users/application/account-action.service';
 
 const router = Router();
 
@@ -50,12 +51,9 @@ router.get(
 router.post(
   '/users/:id/status',
   authorize('user:manage'),
-  validate({ body: z.object({ status: z.enum(['active', 'suspended', 'banned']) }) }),
+  validate({ body: z.object({ status: z.enum(['active', 'restricted', 'under_review', 'suspended', 'banned']), reason: z.string().trim().min(5).max(500), blockIdentity: z.boolean().optional() }) }),
   asyncHandler(async (req, res) => {
-    const user = await userRepository.findById(req.params.id);
-    if (!user) throw new NotFoundError('User');
-    await userRepository.setStatus(req.params.id, req.body.status);
-    sendSuccess(res, { id: req.params.id, status: req.body.status });
+    sendSuccess(res, { id: req.params.id, ...(await accountActionService.apply(req.params.id, req.body.status, req.body.reason, req.principal!.userId, { blockIdentity: req.body.blockIdentity })) });
   }),
 );
 

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Chip } from '@/components/ui/chip';
 import { useConfirm } from '@/components/ui/confirm-dialog';
+import { useToast } from '@/components/ui/toast';
+import { ApiError } from '@/lib/api/types';
 import Link from 'next/link';
 import { DataTable, type Column } from '@/features/admin/components/data-table';
 import { adminApi } from '@/features/admin/api';
@@ -22,6 +24,7 @@ const STATUS_TONE: Record<string, 'success' | 'warning' | 'destructive' | 'muted
 export default function AdminUsersPage() {
   const qc = useQueryClient();
   const confirm = useConfirm();
+  const toast = useToast();
   const [q, setQ] = useState(() => (typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('q') ?? ''));
   const [status, setStatus] = useState('');
 
@@ -29,51 +32,67 @@ export default function AdminUsersPage() {
   const list = useAdminList<any>('/admin/users', { q: search || undefined, status: status || undefined });
 
   const setUserStatus = useMutation({
-    mutationFn: ({ id, s }: { id: string; s: string }) => adminApi.setUserStatus(id, s),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-list', '/admin/users'] }),
+    meta: { silentError: true },
+    mutationFn: ({ id, s, reason }: { id: string; s: string; reason: string }) => adminApi.setUserStatus(id, s, reason, s === 'banned'),
+    onSuccess: (r) => {
+      void qc.invalidateQueries({ queryKey: ['admin-list', '/admin/users'] });
+      const parts = [
+        r.cancelledBookings.length ? `${r.cancelledBookings.length} upcoming booking(s) cancelled with a full refund` : '',
+        r.flaggedBookings.length ? `${r.flaggedBookings.length} booking(s) sent to ops to check` : '',
+        r.inProgress.length ? `${r.inProgress.length} trip(s) still in progress` : '',
+        r.carsUnlisted ? `${r.carsUnlisted} car(s) unlisted` : '',
+        r.identityBlocked.length ? `Blocked from returning: ${r.identityBlocked.join(', ')}` : '',
+      ].filter(Boolean);
+      toast({ tone: 'success', title: `Account set to ${r.status.replace('_', ' ')}`, description: parts.join('. ') || undefined });
+    },
+    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? e.message : 'That didn’t go through. Try again.' }),
   });
 
   const busy = (id: string) => setUserStatus.isPending && setUserStatus.variables?.id === id;
   const label = (u: any) => u.email ?? u.phone ?? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() ?? u._id;
 
   const suspend = async (u: any) => {
-    const { ok } = await confirm({
+    const { ok, reason } = await confirm({
       title: 'Suspend this user?',
       description: (
         <>
-          <strong>{label(u)}</strong> will be signed out and blocked from booking until reactivated.
-          This is reversible.
+          <strong>{label(u)}</strong> will be signed out and can’t book or collect a car until reactivated.
+          Their upcoming bookings go to ops to check and any cars they list are unlisted. This is reversible.
         </>
       ),
       confirmLabel: 'Suspend',
       tone: 'destructive',
+      reason: { label: 'Reason (recorded, the person is told it’s for safety or policy)', placeholder: 'e.g. Reported reckless driving on trip TURA-…', required: true },
     });
-    if (ok) setUserStatus.mutate({ id: u._id, s: 'suspended' });
+    if (ok) setUserStatus.mutate({ id: u._id, s: 'suspended', reason });
   };
 
   const ban = async (u: any) => {
-    const { ok } = await confirm({
+    const { ok, reason } = await confirm({
       title: 'Permanently ban this user?',
       description: (
         <>
-          <strong>{label(u)}</strong> will be permanently banned from the platform. Use suspension
-          instead if this may be temporary.
+          <strong>{label(u)}</strong> will be permanently banned. Upcoming bookings are cancelled with a full refund,
+          their cars are unlisted, and their email, phone, licence and devices are blocked so they can’t sign up again.
+          Use suspension instead if this may be temporary.
         </>
       ),
       confirmLabel: 'Ban user',
       tone: 'destructive',
       requireText: 'BAN',
+      reason: { label: 'Reason (recorded)', placeholder: 'e.g. Fraudulent identity; licence belongs to someone else', required: true },
     });
-    if (ok) setUserStatus.mutate({ id: u._id, s: 'banned' });
+    if (ok) setUserStatus.mutate({ id: u._id, s: 'banned', reason });
   };
 
   const activate = async (u: any) => {
-    const { ok } = await confirm({
+    const { ok, reason } = await confirm({
       title: 'Reactivate this user?',
-      description: <>Restores full access for <strong>{label(u)}</strong>.</>,
+      description: <>Restores full access for <strong>{label(u)}</strong>. Unlisted cars stay unlisted until relisted, and a ban’s identity block stays until removed from the deny list.</>,
       confirmLabel: 'Activate',
+      reason: { label: 'Reason (recorded)', placeholder: 'e.g. Review finished, no issue found', required: true },
     });
-    if (ok) setUserStatus.mutate({ id: u._id, s: 'active' });
+    if (ok) setUserStatus.mutate({ id: u._id, s: 'active', reason });
   };
 
   const columns: Column<any>[] = [

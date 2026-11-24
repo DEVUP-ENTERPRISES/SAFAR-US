@@ -176,6 +176,7 @@ export class RiskService {
         userId: { $ne: input.userId },
       });
       if (dupes > 0) add('duplicate_licence', `Licence on ${dupes} other account(s)`);
+      if (await DenyEntryModel.exists({ type: 'licence', valueHash: `kyc:${kyc.licenceNumberHash}` })) add('blacklisted', 'Licence belongs to a banned account');
     }
     if (kyc?.status === 'rejected') add('identity_rejected_before');
 
@@ -274,6 +275,15 @@ export class RiskService {
     await DenyEntryModel.updateOne(
       { type, valueHash: hashValue(value) },
       { $setOnInsert: { type, valueHash: hashValue(value), reason, addedBy } },
+      { upsert: true },
+    );
+  }
+
+  // A licence is only ever stored as the KYC hash, so a banned licence is matched on that hash, not re-hashed.
+  async denyLicenceHash(licenceNumberHash: string, reason: string, addedBy: string): Promise<void> {
+    await DenyEntryModel.updateOne(
+      { type: 'licence', valueHash: `kyc:${licenceNumberHash}` },
+      { $setOnInsert: { type: 'licence', valueHash: `kyc:${licenceNumberHash}`, reason, addedBy } },
       { upsert: true },
     );
   }

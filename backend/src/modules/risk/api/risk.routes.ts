@@ -8,6 +8,7 @@ import { authenticate } from '../../../shared/middleware/authenticate';
 import { authorize } from '../../../shared/middleware/authorize';
 import { validate } from '../../../shared/middleware/validate';
 import { sendSuccess } from '../../../shared/http/api-response';
+import { accountActionService } from '../../users/application/account-action.service';
 
 const router = Router();
 
@@ -102,14 +103,16 @@ router.post(
     body: z.object({
       status: z.enum(['active', 'restricted', 'under_review', 'suspended', 'banned', 'closed']),
       reason: z.string().min(5).max(500),
+      blockIdentity: z.boolean().optional(),
     }),
   }),
   asyncHandler(async (req, res) => {
-    await userRepository.setStatus(req.params.userId, req.body.status, {
-      reason: req.body.reason,
-      by: req.principal!.userId,
-    });
-    sendSuccess(res, { status: req.body.status });
+    if (req.body.status === 'closed') {
+      await userRepository.setStatus(req.params.userId, 'closed', { reason: req.body.reason, by: req.principal!.userId });
+      sendSuccess(res, { status: 'closed' });
+      return;
+    }
+    sendSuccess(res, await accountActionService.apply(req.params.userId, req.body.status, req.body.reason, req.principal!.userId, { blockIdentity: req.body.blockIdentity }));
   }),
 );
 
