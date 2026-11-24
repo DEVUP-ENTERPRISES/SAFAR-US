@@ -16,6 +16,7 @@ jest.mock('./payment-method.service', () => ({
 import { depositService } from './deposit.service';
 import { paymentMethodService } from './payment-method.service';
 import { PaymentModel } from '../infrastructure/payment.model';
+import { BookingModel } from '../../bookings/infrastructure/booking.model';
 import { connectTestDb, clearTestDb, disconnectTestDb } from '../../../testing/mongo';
 
 beforeAll(connectTestDb);
@@ -59,5 +60,30 @@ describe('deposit placed by the guest', () => {
     expect(await depositService.release('b1', 'booking cancelled')).toBe(true);
     expect(cancel).toHaveBeenCalledWith('pi_dep');
     expect((await PaymentModel.findOne({ bookingId: 'b1', type: 'deposit' }).lean())?.status).toBe('cancelled');
+  });
+});
+
+describe('no deposit for one booking', () => {
+  const booking = () => BookingModel.create({
+    _id: 'b1', code: 'CD-1', guestId: 'g1', hostId: 'h1', vehicleId: 'v1', status: 'paid',
+    period: { start: new Date(Date.now() + 48 * HOUR), end: new Date(Date.now() + 96 * HOUR) },
+    priceBreakdown: { days: 2, currency: 'USD', total: { amount: 1, currency: 'USD' } },
+    cancellationPolicy: 'flexible',
+  });
+
+  it('needs no deposit once staff waive it, releases a hold already placed, and can be undone', async () => {
+    await booking();
+    await depositService.selfServe(input(48));
+    expect(await depositService.waive('b1', 'admin-1', 'CatoDrive staff booking')).toEqual({ waived: true, released: true });
+    expect((await BookingModel.findById('b1').lean())?.depositWaiver).toMatchObject({ by: 'admin-1', reason: 'CatoDrive staff booking' });
+    expect(await depositService.selfServe(input(48))).toMatchObject({ status: 'not_needed', amount: { amount: 0 } });
+    expect(await depositService.amountFor(6000, 'USD', 'g1', 'b1')).toEqual({ amount: 0, currency: 'USD' });
+
+    await depositService.unwaive('b1', 'admin-1');
+    expect((await depositService.amountFor(6000, 'USD', 'g1', 'b1')).amount).toBe(25_000);
+  });
+
+  it('refuses a booking that does not exist', async () => {
+    await expect(depositService.waive('nope', 'admin-1', 'test')).rejects.toThrow();
   });
 });

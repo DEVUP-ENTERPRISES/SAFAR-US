@@ -180,6 +180,8 @@ export interface BookingDoc {
   /** The host side verified the pickup code (set before the trip exists). */
   pickupVerifiedAt?: Date;
   pickupVerifiedBy?: string;
+  /** Staff set this booking to need no security deposit (e.g. CatoDrive's own trips). */
+  depositWaiver?: { by: string; at: Date; reason: string };
   /** Wrong code entries since the code was issued; locks at handover.maxCodeAttempts. */
   pickupCodeAttempts?: number;
   /** Why this booking is held at pending_verification, for the guest's UI. */
@@ -385,6 +387,7 @@ const schema = new Schema<BookingDoc>(
     pickupCodeHash: String,
     pickupVerifiedAt: Date,
     pickupVerifiedBy: String,
+    depositWaiver: { by: String, at: Date, reason: String },
     pickupCodeAttempts: { type: Number, default: 0 },
     verificationBlockers: { type: [String], default: [] },
     holdId: String,

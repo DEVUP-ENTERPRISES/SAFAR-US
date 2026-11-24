@@ -64,7 +64,7 @@ export interface TimelineStep {
 }
 
 export interface HostHandover {
-  inspection: { taken: number; required: number; open: boolean; opensAt: string | null };
+  inspection: { taken: number; required: number; missing?: string[]; open: boolean; opensAt: string | null };
   guestVerified: boolean;
   licenceValidThroughTrip: boolean | null;
   licenceConfirmed: boolean;

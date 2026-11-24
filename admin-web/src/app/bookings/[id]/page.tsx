@@ -92,6 +92,26 @@ function PaymentsCard({ o }: { o: AdminBookingOverview }) {
     },
     onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? (e.status === 403 ? 'Your role can’t release deposits.' : e.message) : 'That didn’t go through. Try again.' }),
   });
+  const waiver = o.booking.depositWaiver;
+  const finished = ['completed', 'cancelled', 'cancelled_guest', 'cancelled_host', 'cancelled_system', 'declined', 'expired'].includes(o.booking.status);
+  const waive = useMutation({
+    meta: { silentError: true },
+    mutationFn: async (reason: string | null): Promise<{ waived: boolean; released?: boolean }> => (reason === null ? adminApi.unwaiveDeposit(o.booking.id) : adminApi.waiveDeposit(o.booking.id, reason)),
+    onSuccess: (r) => {
+      toast({ tone: 'success', title: r.waived ? 'No deposit for this booking' : 'Deposit needed again', description: r.waived && r.released ? 'The hold already placed was released.' : undefined });
+      void qc.invalidateQueries();
+    },
+    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? (e.status === 403 ? 'Your role can’t change deposits.' : e.message) : 'That didn’t go through. Try again.' }),
+  });
+  const onWaive = async () => {
+    const { ok, reason } = await confirm({
+      title: 'No deposit for this booking?',
+      description: 'The trip can start without a security deposit, and any hold already placed is released. Damage or extra charges then go to the guest’s card directly.',
+      confirmLabel: 'Set to no deposit',
+      reason: { label: 'Reason (recorded)', placeholder: 'e.g. CatoDrive staff booking', required: true },
+    });
+    if (ok) waive.mutate(reason);
+  };
   const onRelease = async () => {
     const { ok, reason } = await confirm({
       title: 'Release the deposit now?',
@@ -101,9 +121,22 @@ function PaymentsCard({ o }: { o: AdminBookingOverview }) {
     });
     if (ok) release.mutate(reason);
   };
-  if (!o.payments.length) return null;
   return (
     <Section icon={<CreditCard className="h-4 w-4 text-primary" aria-hidden />} title="Payments">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-subtle p-2.5 text-sm">
+        {waiver ? (
+          <>
+            <span className="min-w-0"><span className="font-medium">No deposit for this booking</span><span className="block text-xs text-muted-foreground">{waiver.reason} · {formatDateTime(waiver.at)}</span></span>
+            {!finished && <Button size="sm" variant="ghost" loading={waive.isPending} onClick={() => waive.mutate(null)}>Require deposit</Button>}
+          </>
+        ) : (
+          <>
+            <span className="text-muted-foreground">Security deposit applies</span>
+            {!finished && <Button size="sm" variant="outline" loading={waive.isPending} onClick={() => void onWaive()}>No deposit</Button>}
+          </>
+        )}
+      </div>
+      {!o.payments.length && <p className="text-sm text-muted-foreground">No payments yet.</p>}
       <ul className="divide-y divide-border">
         {o.payments.map((pay) => (
           <li key={pay.id} className="flex flex-wrap items-start justify-between gap-2 py-2.5 text-sm">

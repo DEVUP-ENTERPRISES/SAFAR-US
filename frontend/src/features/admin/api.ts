@@ -499,6 +499,8 @@ export const adminApi = {
   // corporate, general) lands here so ops sees who's reaching out in one place.
   contactInquiries: (q: Q = {}) => api.get<any[]>('/admin/contact-inquiries', q),
   contactInquiryCounts: () => api.get<Record<string, number>>('/admin/contact-inquiries/counts'),
+  waiveDeposit: (bookingId: string, reason: string) => api.post<{ waived: true; released: boolean }>(`/admin/bookings/${bookingId}/deposit-waiver`, { reason }),
+  unwaiveDeposit: (bookingId: string) => api.delete<{ waived: false }>(`/admin/bookings/${bookingId}/deposit-waiver`),
   releaseDeposit: (bookingId: string, reason: string) => api.post<{ released: boolean }>(`/payments/deposits/${bookingId}/release`, { reason }),
   contactInquiry: (id: string) => api.get<any>(`/admin/contact-inquiries/${id}`),
   respondContactInquiry: (id: string, notes?: string) =>
@@ -774,6 +776,7 @@ export interface AdminBookingOverview {
   booking: {
     id: string; code: string; status: string; period: { start: string; end: string }; total?: { amount: number; currency: string };
     createdAt?: string; pickupVerifiedAt?: string;
+    depositWaiver?: { by: string; at: string; reason: string } | null;
     identityCheck: { result: 'match' | 'mismatch'; at: string; by: string; note?: string; clearedAt?: string } | null;
     instantBook: boolean;
     cancellationPolicy?: string;

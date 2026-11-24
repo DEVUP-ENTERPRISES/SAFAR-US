@@ -34,8 +34,9 @@ export class DepositService {
    * meaningful deterrence, and a ceiling so an expensive one does not
    * authorise someone's entire credit limit.
    */
-  async amountFor(dailyPrice: number, currency: string, guestId?: string): Promise<Money> {
+  async amountFor(dailyPrice: number, currency: string, guestId?: string, bookingId?: string): Promise<Money> {
     const cfg = await platformConfigService.get();
+    if (bookingId && (await BookingModel.exists({ _id: bookingId, 'depositWaiver.at': { $exists: true } }))) return { amount: 0, currency };
     const scaled = Math.round((dailyPrice * cfg.deposit.multiplierBps) / 10000);
     let amount = Math.min(Math.max(scaled, cfg.deposit.minCents), cfg.deposit.maxCents);
 
@@ -88,12 +89,12 @@ export class DepositService {
       };
     }
 
-    const amount = await this.amountFor(input.dailyPrice, input.currency, input.userId);
+    const amount = await this.amountFor(input.dailyPrice, input.currency, input.userId, input.bookingId);
 
-    // A waived deposit (top-tier guest) holds nothing — there is no
+    // A waived deposit (top-tier guest or staff waiver) holds nothing — there is no
     // authorisation to place, and nothing to release later.
     if (amount.amount <= 0) {
-      logger.info({ bookingId: input.bookingId, userId: input.userId }, 'deposit waived by trust tier');
+      logger.info({ bookingId: input.bookingId, userId: input.userId }, 'deposit waived');
       return { placed: false, amount };
     }
 
@@ -166,7 +167,7 @@ export class DepositService {
       return { status: 'needs_payment', clientSecret: intent.clientSecret, amount: { amount: existing.amount, currency: existing.currency } };
     }
 
-    const amount = await this.amountFor(input.dailyPrice, input.currency, input.userId);
+    const amount = await this.amountFor(input.dailyPrice, input.currency, input.userId, input.bookingId);
     if (!cfg.deposit.enabled || amount.amount <= 0) return { status: 'not_needed', amount };
     const opensAt = new Date(input.tripStart.getTime() - cfg.deposit.selfServeWindowHours * 3_600_000);
     if (Date.now() < opensAt.getTime()) return { status: 'too_early', amount, opensAt };
@@ -204,6 +205,22 @@ export class DepositService {
     }
     if (doc) logger.info({ bookingId: doc.bookingId, amount: doc.amount }, 'deposit held (placed by the guest)');
     return true;
+  }
+
+  /** Staff set a booking to need no deposit; any hold already placed is released. Undo by removing the waiver. */
+  async waive(bookingId: string, staffId: string, reason: string): Promise<{ waived: true; released: boolean }> {
+    const r = await BookingModel.updateOne({ _id: bookingId }, { $set: { depositWaiver: { by: staffId, at: new Date(), reason } } });
+    if (!r.matchedCount) throw new NotFoundError('Booking');
+    const released = await this.release(bookingId, `No deposit for this booking: ${reason}`);
+    logger.info({ bookingId, staffId, released }, 'deposit waived by staff');
+    return { waived: true, released };
+  }
+
+  async unwaive(bookingId: string, staffId: string): Promise<{ waived: false }> {
+    const r = await BookingModel.updateOne({ _id: bookingId }, { $unset: { depositWaiver: 1 } });
+    if (!r.matchedCount) throw new NotFoundError('Booking');
+    logger.info({ bookingId, staffId }, 'deposit waiver removed');
+    return { waived: false };
   }
 
   async release(bookingId: string, reason = 'Trip completed with no claim'): Promise<boolean> {

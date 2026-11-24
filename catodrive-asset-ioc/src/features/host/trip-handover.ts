@@ -10,6 +10,8 @@ export const START_ERRORS: Record<string, { text: string; step?: string }> = {
   LICENCE_EXPIRES_DURING_TRIP: { text: 'The guest’s licence expires before the trip ends, so they cannot drive it. Contact support.' },
   PICKUP_CODE_REQUIRED: { text: 'Enter the guest’s pickup code before starting the trip.', step: 'handover-code' },
   ODOMETER_REQUIRED: { text: 'Enter the starting odometer reading.', step: 'handover-odo' },
+  REQUIRED_PHOTOS_MISSING: { text: 'Some required pickup photos are missing: front, rear, both sides, odometer and fuel, VIN and interior.', step: 'handover-inspect' },
+  DEPOSIT_REQUIRED: { text: 'The security deposit isn’t held yet. Ask the guest to place it from their booking page, or an admin can set this booking to no deposit.' },
 };
 
 export const TRIP_FINISHED = ['completed', 'cancelled', 'cancelled_guest', 'cancelled_host', 'cancelled_system', 'declined', 'expired'];
@@ -39,7 +41,8 @@ export function handoverGates(
   const inspectRequired = hv?.requirements?.hostInspectionRequired ?? cfgHandover?.hostInspectionRequired ?? false;
   const codeRequired = hv?.requirements?.pickupCodeRequired ?? cfgHandover?.pickupCodeRequired ?? false;
   const insp = hv?.inspection;
-  const inspectDone = !inspectRequired || (insp ? insp.taken >= insp.required : (t.photoCount ?? 0) > 0);
+  const missing = insp?.missing ?? [];
+  const inspectDone = !inspectRequired || (insp ? insp.taken >= insp.required && missing.length === 0 : (t.photoCount ?? 0) > 0);
   const guestVerified = hv ? hv.guestVerified : (t.guest.verification?.verified ?? true);
   const licenceExpired = (hv?.licenceValidThroughTrip ?? t.guest.verification?.licenceValidThroughTrip) === false;
   const verifyDone = guestVerified && !licenceExpired;
@@ -51,7 +54,7 @@ export function handoverGates(
   const blocker = canStart
     ? null
     : !inspectDone
-      ? 'Take the pickup photos to continue.'
+      ? (missing.length ? `Still needed: ${missing.join(', ')}.` : 'Take the pickup photos to continue.')
       : !verifyDone
         ? (licenceExpired ? 'The guest’s licence expires before the trip ends. Contact support.' : 'The guest hasn’t finished ID verification yet. Ask them to complete it in the app.')
         : !codeDone

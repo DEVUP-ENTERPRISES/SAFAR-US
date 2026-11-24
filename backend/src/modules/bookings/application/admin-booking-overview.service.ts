@@ -40,7 +40,7 @@ export const adminBookingOverviewService = {
     return {
       booking: {
         id: b._id, code: b.code, status: b.status, period: b.period, total: b.priceBreakdown?.total,
-        createdAt: (b as { createdAt?: Date }).createdAt, pickupVerifiedAt: b.pickupVerifiedAt,
+        createdAt: (b as { createdAt?: Date }).createdAt, pickupVerifiedAt: b.pickupVerifiedAt, depositWaiver: b.depositWaiver ?? null,
         identityCheck: b.identityCheck ?? null,
         instantBook: !!b.instantBook,
         cancellationPolicy: b.cancellationPolicy,

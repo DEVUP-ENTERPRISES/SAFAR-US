@@ -12,6 +12,7 @@ import { viewerOf, noStore } from '../../../shared/http/viewer';
 import { tripChangeService } from '../../bookings/application/trip-change.service';
 import { storageGateway } from '../../../infrastructure/storage/storage.provider';
 import { NotFoundError } from '../../../core/errors/app-error';
+import { depositService } from '../../payments/application/deposit.service';
 
 const router = Router();
 
@@ -86,6 +87,24 @@ router.get(
     noStore(res);
     const p = req.principal!.permissions;
     sendSuccess(res, await adminBookingOverviewService.overview(req.params.id, p.includes('*') || p.includes('kyc:review')));
+  }),
+);
+
+/** No security deposit for this booking (e.g. CatoDrive's own trips); a hold already placed is released. */
+router.post(
+  '/bookings/:id/deposit-waiver',
+  authorize('claim:manage'),
+  validate({ body: z.object({ reason: z.string().trim().min(3).max(300) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await depositService.waive(req.params.id, req.principal!.userId, req.body.reason));
+  }),
+);
+
+router.delete(
+  '/bookings/:id/deposit-waiver',
+  authorize('claim:manage'),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await depositService.unwaive(req.params.id, req.principal!.userId));
   }),
 );
 

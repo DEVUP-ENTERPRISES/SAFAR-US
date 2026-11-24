@@ -98,7 +98,7 @@ router.get(
     };
     if (!deposit || deposit.status === 'pending') {
       const vehicle = await vehicleService.getForBooking(booking.vehicleId);
-      const estimate = await depositService.amountFor(vehicle.dailyPrice, booking.priceBreakdown.total.currency, booking.guestId);
+      const estimate = await depositService.amountFor(vehicle.dailyPrice, booking.priceBreakdown.total.currency, booking.guestId, booking._id);
       sendSuccess(res, { held: false, status: deposit?.status ?? 'none', amount: estimate, ...plan });
       return;
     }

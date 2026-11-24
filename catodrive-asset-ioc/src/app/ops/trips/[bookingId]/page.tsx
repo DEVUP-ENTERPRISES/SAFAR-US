@@ -547,7 +547,7 @@ export default function HostTripDetailPage() {
                 n={1}
                 title="Inspect the car"
                 status={sInspect}
-                summary={insp ? `${insp.taken}${insp.required > 0 ? ` / ${insp.required}` : ''} photos` : undefined}
+                summary={insp ? `${insp.taken}${insp.required > 0 ? ` / ${insp.required}` : ''} photos${insp.missing?.length ? ` · still need ${insp.missing.join(', ')}` : ''}` : undefined}
               >
                 <InspectionPhotos bookingId={t.bookingId} phase="pre" />
               </HandoverStep>

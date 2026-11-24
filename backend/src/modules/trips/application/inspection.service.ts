@@ -256,9 +256,9 @@ export class InspectionService {
     photos: TripPhoto[],
     cfg: Awaited<ReturnType<typeof platformConfigService.get>>['inspection'],
     now = Date.now(),
-  ): { taken: number; required: number; open: boolean; opensAt: Date; closesAt: Date | null } {
+  ): { taken: number; required: number; missing: string[]; open: boolean; opensAt: Date; closesAt: Date | null } {
     const s = this.phaseState('pre', booking, trip, cfg, photos, now);
-    return { taken: this.hostPrePhotoCount(photos, booking.guestId), required: cfg.minPrePhotos, open: s.open, opensAt: s.opensAt, closesAt: s.closesAt };
+    return { taken: this.hostPrePhotoCount(photos, booking.guestId), required: cfg.minPrePhotos, missing: missingAngles(photos.filter((p) => p.byUserId !== booking.guestId), 'pre'), open: s.open, opensAt: s.opensAt, closesAt: s.closesAt };
   }
 
   /**
