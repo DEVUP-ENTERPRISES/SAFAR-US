@@ -48,7 +48,10 @@ export function InspectionPhotos({
 
   const angles = state?.angles ?? [];
   const win = state?.[phase];
-  const taken = useMemo(() => (state?.photos ?? []).filter((p) => p.phase === phase), [state?.photos, phase]);
+  const allTaken = useMemo(() => (state?.photos ?? []).filter((p) => p.phase === phase), [state?.photos, phase]);
+  // Each side shoots its own set: the guest's photos never tick off the host's cards, or the other way round.
+  const taken = useMemo(() => allTaken.filter((p) => !p.role || p.role === state?.role), [allTaken, state?.role]);
+  const otherSide = allTaken.length - taken.length;
   const shotsOf = (id: string) => taken.filter((p) => p.angle === id);
   const needOf = (a: InspectionAngle) => a.shots ?? 1;
   const required = new Set(state?.requiredAngles ?? []);
@@ -132,6 +135,11 @@ export function InspectionPhotos({
         <p className="text-xs text-muted-foreground">
           {phase === 'pre' ? 'Take them before you drive off.' : 'Take them as you return the car.'} Photos are taken live, stamped with the time and place, and can’t be changed afterwards.
         </p>
+        {otherSide > 0 && (
+          <p className="text-xs text-muted-foreground">
+            The {state.role === 'host' ? 'guest' : 'host'} also took {otherSide} photo{otherSide === 1 ? '' : 's'}. Yours are counted separately.
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-5">
         {status && (

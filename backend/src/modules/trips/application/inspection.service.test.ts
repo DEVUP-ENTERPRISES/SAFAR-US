@@ -158,6 +158,15 @@ describe('per-photo rules', () => {
     await tripService.addPhotos(GUEST, 'bk-1', 'pre', [photo(), photo()]);
     await expect(tripService.addPhotos(GUEST, 'bk-1', 'pre', [photo()])).rejects.toMatchObject({ code: 'PHOTO_LIMIT' });
   });
+
+  it('counts the cap per side, so a guest who took many photos never blocks the host', async () => {
+    const real = await platformConfigService.get();
+    jest.spyOn(platformConfigService, 'get').mockResolvedValue({ ...real, inspection: { ...real.inspection, maxPhotosPerPhase: 2 } });
+    await tripService.addPhotos(GUEST, 'bk-1', 'pre', [photo(), photo()]);
+    const booking = (await BookingModel.findById('bk-1').lean())!;
+    await inspectionService.add(booking as never, 'host-user', 'pre', [photo({ key: key('host-user') }), photo({ key: key('host-user') })]);
+    expect(inspectionService.hostPrePhotoCount((await inspectionService.state(booking as never, 'host-user')).photos, GUEST)).toBe(2);
+  });
 });
 
 describe('start gate and hand-over to the trip', () => {

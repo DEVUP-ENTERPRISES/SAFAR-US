@@ -169,7 +169,10 @@ export class InspectionService {
       if (state.reason === 'no_trip') throw new ConflictError('Return photos can be taken once the trip has started.', 'PHOTO_WINDOW_CLOSED');
       throw new ConflictError(`The ${phase === 'pre' ? 'pickup' : 'return'} photo window is closed.`, 'PHOTO_WINDOW_CLOSED');
     }
-    if (state.taken + inputs.length > cfg.maxPhotosPerPhase) {
+    // The cap is per side: a guest who took many photos must never use up the host's allowance (or the other way round).
+    const guestSide = userId === booking.guestId;
+    const mine = existing.filter((p) => p.phase === phase && (p.byUserId === booking.guestId) === guestSide).length;
+    if (mine + inputs.length > cfg.maxPhotosPerPhase) {
       throw new ConflictError(`At most ${cfg.maxPhotosPerPhase} ${phase === 'pre' ? 'pickup' : 'return'} photos are allowed.`, 'PHOTO_LIMIT');
     }
 
