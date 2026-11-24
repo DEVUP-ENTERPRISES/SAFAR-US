@@ -137,6 +137,14 @@ describe('per-photo rules', () => {
     await expect(tripService.addPhotos(GUEST, 'bk-1', 'pre', [photo({ lat: 0, lng: 0 })])).rejects.toMatchObject({ code: 'PHOTO_LOCATION_REQUIRED' });
   });
 
+  it('takes the photo anyway when the guest chose to go on without location, and flags it', async () => {
+    await tripService.addPhotos(GUEST, 'bk-1', 'pre', [photo({ lat: undefined, lng: undefined, noLocation: true })]);
+    const state = await tripService.inspection(GUEST, 'bk-1');
+    expect(state.photos).toHaveLength(1);
+    expect(state.photos[0]).toMatchObject({ locationMissing: true });
+    expect(state.photos[0].lat).toBeUndefined();
+  });
+
   it('rejects a photo taken too far from the car when a radius is set', async () => {
     const real = await platformConfigService.get();
     jest.spyOn(platformConfigService, 'get').mockResolvedValue({ ...real, inspection: { ...real.inspection, maxDistanceMeters: 200 } });

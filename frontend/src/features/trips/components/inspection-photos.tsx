@@ -82,6 +82,7 @@ export function InspectionPhotos({
         accuracyM: shot.accuracyM,
         capturedAtClient: shot.capturedAt.toISOString(),
         sha256: shot.sha256,
+        ...(shot.noLocation ? { noLocation: true as const } : {}),
       },
     ]);
     setAngleId(null);
@@ -194,7 +195,7 @@ export function InspectionPhotos({
                       </div>
                       <span className="text-[15px] font-bold leading-snug">{a.label}</span>
                       {a.hint && <span className="mt-0.5 text-xs leading-snug text-muted-foreground">{a.hint}</span>}
-                      {cover && <span className="mt-1 text-xs font-semibold text-success">{cover.role === 'host' ? 'Host' : 'Guest'} photo</span>}
+                      {cover && <span className="mt-1 text-xs font-semibold text-success">{cover.role === 'host' ? 'Host' : 'Guest'} photo{cover.locationMissing ? <span className="text-warning"> · no location</span> : null}</span>}
                       {need === 0 && !shots.length && <span className="mt-1 text-xs font-semibold text-muted-foreground">Only if the car has marks</span>}
                       {!done && (canAdd ? (
                         <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary"><Camera className="h-3.5 w-3.5" aria-hidden /> Tap to take</span>

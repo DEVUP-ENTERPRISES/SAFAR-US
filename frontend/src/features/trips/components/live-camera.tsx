@@ -34,6 +34,8 @@ export interface CapturedShot {
   accuracyM?: number;
   capturedAt: Date;
   sha256?: string;
+  /** Taken after the person chose to go on without location. */
+  noLocation?: true;
 }
 
 interface Fix {
@@ -128,6 +130,15 @@ export function LiveCamera({
   const [shot, setShot] = useState<{ data: CapturedShot; previewUrl: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [waitedLong, setWaitedLong] = useState(false);
+  const [skipLocation, setSkipLocation] = useState(false);
+
+  // After 12 seconds without a fix the person may go on without location; the photo is flagged instead of blocked.
+  useEffect(() => {
+    if (fix) return;
+    const t = setTimeout(() => setWaitedLong(true), 12_000);
+    return () => clearTimeout(t);
+  }, [fix]);
 
   // Camera stream, started once and always released.
   useEffect(() => {
@@ -206,7 +217,7 @@ export function LiveCamera({
 
   useEffect(() => () => { if (shot) URL.revokeObjectURL(shot.previewUrl); }, [shot]);
 
-  const locationOk = !requireLocation || !!fix;
+  const locationOk = !requireLocation || !!fix || skipLocation;
 
   const capture = useCallback(() => {
     const canvas = canvasRef.current;
@@ -220,7 +231,7 @@ export function LiveCamera({
           blob,
           capturedAt,
           sha256: await sha256Hex(blob),
-          ...(at ? { lat: at.lat, lng: at.lng, accuracyM: at.accuracyM } : {}),
+          ...(at ? { lat: at.lat, lng: at.lng, accuracyM: at.accuracyM } : { noLocation: true as const }),
         };
         setUploadError(null);
         setShot({ data, previewUrl: URL.createObjectURL(blob) });
@@ -292,12 +303,20 @@ export function LiveCamera({
           </div>
 
           <div className="space-y-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-center text-white">
-            {!shot && requireLocation && !fix && (
-              <p className="flex items-center justify-center gap-2 text-sm text-amber-300">
-                <MapPinOff className="h-4 w-4" />
-                {geoBlocked ? 'Location is blocked. Allow location for this site to take photos.' : 'Waiting for your location…'}
-              </p>
+            {!shot && requireLocation && !fix && !skipLocation && (
+              <div className="space-y-2">
+                <p className="flex items-center justify-center gap-2 text-sm text-amber-300">
+                  <MapPinOff className="h-4 w-4" />
+                  {geoBlocked ? 'Location is blocked for this site. Allow it in your browser settings for the best evidence.' : 'Waiting for your location…'}
+                </p>
+                {(geoBlocked || waitedLong) && (
+                  <button type="button" onClick={() => setSkipLocation(true)} className="text-sm font-semibold text-white underline underline-offset-2">
+                    Take photos without location
+                  </button>
+                )}
+              </div>
             )}
+            {!shot && skipLocation && !fix && <p className="text-xs text-white/70">Photos are stamped “Location not available” and still carry the exact time.</p>}
             {uploadError && <p className="text-sm text-red-300">{uploadError}</p>}
 
             {!shot ? (

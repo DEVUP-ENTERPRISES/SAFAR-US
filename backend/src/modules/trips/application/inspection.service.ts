@@ -50,6 +50,8 @@ export interface PhotoInput {
   accuracyM?: number;
   capturedAtClient?: string;
   sha256?: string;
+  // The person chose to continue with location off.
+  noLocation?: true;
 }
 
 export interface PhaseState {
@@ -172,7 +174,8 @@ export class InspectionService {
       this.checkKey(p, userId, seen);
       if (!ANGLE_IDS.includes(p.angle)) throw new ValidationError('Unknown photo angle');
       const hasFix = this.validFix(p.lat, p.lng);
-      if (cfg.requireLocation && !hasFix) throw new ConflictError('A location fix is required to take condition photos.', 'PHOTO_LOCATION_REQUIRED');
+      // A guest with location off still gets the photo taken (never block a trip); it is flagged for staff instead.
+      if (cfg.requireLocation && !hasFix && !p.noLocation) throw new ConflictError('A location fix is required to take condition photos.', 'PHOTO_LOCATION_REQUIRED');
       if (hasFix && cfg.maxDistanceMeters > 0 && spot) {
         const meters = haversineKm(spot, { lat: p.lat!, lng: p.lng! }) * 1000;
         if (meters > cfg.maxDistanceMeters) {
@@ -190,6 +193,7 @@ export class InspectionService {
         ...(p.capturedAtClient ? { capturedAtClient: new Date(p.capturedAtClient) } : {}),
         ...(p.sha256 ? { sha256: p.sha256 } : {}),
         source: 'camera',
+        ...(!hasFix ? { locationMissing: true } : {}),
       });
     }
 

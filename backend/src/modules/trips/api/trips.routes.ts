@@ -98,6 +98,7 @@ const photoSchema = z
     accuracyM: z.number().min(0).max(100000).optional(),
     capturedAtClient: z.string().datetime().optional(),
     sha256: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    noLocation: z.literal(true).optional(),
   })
   .strict();
 const photosBody = z.object({ phase: z.enum(['pre', 'post']), photos: z.array(photoSchema).min(1).max(10) }).strict();

@@ -18,6 +18,8 @@ export interface TripPhoto {
   capturedAtClient?: Date;
   sha256?: string;
   source?: 'camera';
+  /** Taken with the phone's location off; time stamp and hash still prove when and that it is unchanged. */
+  locationMissing?: boolean;
 }
 
 const photoFields = {
@@ -33,6 +35,7 @@ const photoFields = {
   capturedAtClient: Date,
   sha256: String,
   source: { type: String, enum: ['camera'] },
+  locationMissing: Boolean,
 };
 
 export interface TripDoc {

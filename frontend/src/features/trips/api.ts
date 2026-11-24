@@ -14,6 +14,8 @@ export interface TripPhoto {
   lng?: number;
   accuracyM?: number;
   role?: 'guest' | 'host';
+  /** Taken with the phone's location off. */
+  locationMissing?: boolean;
 }
 
 export interface PhaseState {
@@ -59,6 +61,7 @@ export interface PhotoMeta {
   accuracyM?: number;
   capturedAtClient?: string;
   sha256?: string;
+  noLocation?: true;
 }
 
 export interface Trip {
