@@ -499,6 +499,7 @@ export const adminApi = {
   // corporate, general) lands here so ops sees who's reaching out in one place.
   contactInquiries: (q: Q = {}) => api.get<any[]>('/admin/contact-inquiries', q),
   contactInquiryCounts: () => api.get<Record<string, number>>('/admin/contact-inquiries/counts'),
+  releaseDeposit: (bookingId: string, reason: string) => api.post<{ released: boolean }>(`/payments/deposits/${bookingId}/release`, { reason }),
   contactInquiry: (id: string) => api.get<any>(`/admin/contact-inquiries/${id}`),
   respondContactInquiry: (id: string, notes?: string) =>
     api.post(`/admin/contact-inquiries/${id}/respond`, { notes }),

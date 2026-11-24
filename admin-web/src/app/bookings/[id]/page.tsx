@@ -80,6 +80,27 @@ function MoneyCard({ o }: { o: AdminBookingOverview }) {
 }
 
 function PaymentsCard({ o }: { o: AdminBookingOverview }) {
+  const qc = useQueryClient();
+  const confirm = useConfirm();
+  const toast = useToast();
+  const release = useMutation({
+    meta: { silentError: true },
+    mutationFn: (reason: string) => adminApi.releaseDeposit(o.booking.id, reason),
+    onSuccess: (r) => {
+      toast(r.released ? { tone: 'success', title: 'Deposit released', description: 'The hold is cancelled; the guest’s bank frees it in a few days.' } : { tone: 'error', title: 'Nothing to release', description: 'The deposit was already released or taken.' });
+      void qc.invalidateQueries();
+    },
+    onError: (e) => toast({ tone: 'error', title: e instanceof ApiError ? (e.status === 403 ? 'Your role can’t release deposits.' : e.message) : 'That didn’t go through. Try again.' }),
+  });
+  const onRelease = async () => {
+    const { ok, reason } = await confirm({
+      title: 'Release the deposit now?',
+      description: 'This cancels the hold on the guest’s card straight away instead of waiting for the automatic release. It can’t be undone, so any damage or extra charge can no longer come from the deposit.',
+      confirmLabel: 'Release deposit',
+      reason: { label: 'Reason (recorded)', placeholder: 'e.g. Returned clean, released after 1 day', required: true },
+    });
+    if (ok) release.mutate(reason);
+  };
   if (!o.payments.length) return null;
   return (
     <Section icon={<CreditCard className="h-4 w-4 text-primary" aria-hidden />} title="Payments">
@@ -95,6 +116,9 @@ function PaymentsCard({ o }: { o: AdminBookingOverview }) {
               {pay.refunded > 0 && <p className="text-xs text-muted-foreground tabular-nums">{formatMoney({ amount: pay.refunded, currency: pay.currency })} refunded</p>}
               {pay.wallet > 0 && <p className="text-xs text-muted-foreground tabular-nums">{formatMoney({ amount: pay.wallet, currency: pay.currency })} from wallet</p>}
               <Badge tone={PAYMENT_TONE[pay.status] ?? 'muted'}>{pay.status.replace(/_/g, ' ')}</Badge>
+              {pay.type === 'deposit' && pay.status === 'authorized' && (
+                <Button size="sm" variant="outline" className="mt-2" loading={release.isPending} onClick={() => void onRelease()}>Release now</Button>
+              )}
             </div>
           </li>
         ))}
