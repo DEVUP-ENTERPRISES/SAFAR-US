@@ -140,6 +140,7 @@ router.put(
         .object({
           earlyBirdMinDaysAhead: z.number().int().min(0).max(365).optional(),
           lastMinuteMaxHoursAhead: z.number().int().min(0).max(720).optional(),
+          maxHostDiscountBps: z.number().int().min(0).max(9500).optional(),
         })
         .optional(),
       cancellation: z
@@ -246,6 +247,7 @@ router.put(
         })
         .optional(),
       reviews: z.object({ blindWindowDays: z.number().int().min(1).max(90).optional() }).optional(),
+      hostStaff: z.object({ inviteValidDays: z.number().int().min(1).max(60).optional() }).optional(),
       violations: z
         .object({
           reportingWindowDays: z.number().int().min(1).max(730).optional(),

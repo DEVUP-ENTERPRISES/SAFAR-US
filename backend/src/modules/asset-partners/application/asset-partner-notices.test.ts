@@ -6,6 +6,7 @@ import { assetPartnerStatementService } from './asset-partner-statement.service'
 import { assetPartnerService } from './asset-partner.service';
 import { AssetPartnerNoticeModel } from '../infrastructure/asset-partner-notice.model';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
+import { TripModel } from '../../trips/infrastructure/trip.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { MaintenanceModel } from '../../maintenance/infrastructure/maintenance.model';
 import { UserModel } from '../../users/infrastructure/user.model';
@@ -61,6 +62,8 @@ async function trip(id: string, start: string, end: string, status = 'completed'
     priceBreakdown: { currency: 'USD', subtotal: { amount: 30_000, currency: 'USD' } },
     deletedAt: null,
   });
+  // A guest is only charged for time they really had the car, so the trip records its handover and return.
+  await TripModel.collection.insertOne({ _id: `trip-${id}` as never, bookingId: id, vehicleId: 'car-1', guestId: `guest-${id}`, hostId: 'fleet-host', status: 'completed', handover: { at: new Date(start) }, return: { at: new Date(end) } });
 }
 
 const notice = (over: Partial<NoticeInput> = {}): NoticeInput => ({

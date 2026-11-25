@@ -224,7 +224,7 @@ export class VehiclePauseService {
     }
     await availabilityService.unblockPause(p._id);
     const back = await VehicleModel.updateOne(
-      { _id: p.vehicleId, status: 'paused', pauseId: p._id, recallHold: { $ne: true }, complianceHold: { $ne: true }, verificationStatus: 'verified' },
+      { _id: p.vehicleId, status: 'paused', pauseId: p._id, recallHold: { $ne: true }, complianceHold: { $ne: true }, staffHold: { $ne: true }, verificationStatus: 'verified' },
       { $set: { status: 'listed' }, $unset: { pauseId: 1 } },
     );
     let endNote: string | undefined;

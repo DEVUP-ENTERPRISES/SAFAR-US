@@ -8,6 +8,9 @@ import { Account } from '../../payments/domain/ledger.accounts';
 import { hostService } from '../../hosts/application/host.service';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
+import { TripModel } from '../../trips/infrastructure/trip.model';
+import { keyOf, resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
+import { storageGateway } from '../../../infrastructure/storage/storage.provider';
 
 export interface ReportViolationInput {
   bookingId: string;
@@ -69,12 +72,18 @@ export class ViolationService {
 
     const cfg = (await platformConfigService.get()).violations;
 
-    // Inside the trip: a guest is answerable for the car only while they had it.
+    // A guest answers only for the time they really had the car: from handover to return, late return included.
+    const trip = await TripModel.findOne({ bookingId: booking._id })
+      .select('handover.at return.at')
+      .lean<{ handover?: { at?: Date }; return?: { at?: Date } } | null>();
+    if (!trip?.handover?.at) {
+      throw new ConflictError('This guest never picked up the car on this booking, so they can’t be charged for a citation.', 'NO_HANDOVER');
+    }
     const occurred = new Date(input.occurredAt).getTime();
-    const start = new Date(booking.period.start).getTime();
-    const end = new Date(booking.period.end).getTime();
+    const start = new Date(trip.handover.at).getTime();
+    const end = trip.return?.at ? new Date(trip.return.at).getTime() : Math.max(Date.now(), new Date(booking.period.end).getTime());
     if (occurred < start || occurred > end) {
-      throw new ValidationError('The offence date falls outside this trip');
+      throw new ValidationError('The offence date falls outside the time the guest had the car');
     }
 
     // Citations take weeks to arrive, so this window is long — but not open-ended.
@@ -92,12 +101,17 @@ export class ViolationService {
       );
     }
     if (input.amount <= 0) throw new ValidationError('The citation amount must be above zero');
+    // A host attaches their own uploaded copy of the notice; partner notices arrive already checked.
+    const evidence = opts.hostOnly
+      ? input.evidence.map((e) => ({ ...e, url: resolveOwnedUpload({ url: e.url }, reporterId, 'claim').url }))
+      : input.evidence;
 
     let doc: ViolationDoc;
     try {
       doc = (
         await ViolationModel.create({
           ...input,
+          evidence,
           guestId: booking.guestId,
           hostId: booking.hostId,
           adminFee: cfg.adminFeeCents,
@@ -132,6 +146,17 @@ export class ViolationService {
   }
 
   /** The guest's side. Charging is held until staff rule on it. */
+  /** A short-lived link to one evidence file, for the trip's guest, its host, or staff. */
+  async evidenceLink(principal: { userId: string; permissions: string[] }, violationId: string, index: number): Promise<{ url: string }> {
+    const v = await this.getDoc(violationId);
+    const host = await hostService.getByUserId(principal.userId).catch(() => null);
+    const staff = principal.permissions.includes('*') || principal.permissions.includes('claim:manage');
+    if (v.guestId !== principal.userId && host?._id !== v.hostId && !staff) throw new ForbiddenError('Not your citation');
+    const key = keyOf({ url: v.evidence?.[index]?.url });
+    if (!key) throw new NotFoundError('Evidence');
+    return { url: await storageGateway.createDownloadUrl(key) };
+  }
+
   async dispute(userId: string, violationId: string, reason: string): Promise<ViolationDoc> {
     const v = await this.getDoc(violationId);
     if (v.guestId !== userId) throw new ForbiddenError('Not your citation');

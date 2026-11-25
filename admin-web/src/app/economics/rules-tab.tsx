@@ -353,7 +353,31 @@ export function RulesTab({ draft, set }: TabProps) {
       </Card>
         </>
       {draft.tripChanges && <TripChangesCard draft={draft} set={set} />}
+      <HostLimitsCard draft={draft} set={set} />
     </>
+  );
+}
+
+/** Limits on what hosts can set themselves. */
+function HostLimitsCard({ draft, set }: TabProps) {
+  if (!draft.pricing || !draft.hostStaff) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Host limits</CardTitle>
+        <p className="mt-1 text-sm text-muted-foreground">Guard rails on settings hosts control.</p>
+      </CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-2">
+        <Field label="Most a host can discount (%)" hint="Trip-length, early-bird or last-minute and promo discounts combined. Coupons and membership come on top.">
+          <Input type="number" min={0} max={95} value={toPct(draft.pricing.maxHostDiscountBps)}
+            onChange={(e) => set((d) => { d.pricing!.maxHostDiscountBps = toBps(e.target.value); })} />
+        </Field>
+        <Field label="Team invite link works for (days)" hint="After this the host sends a fresh invite.">
+          <Input type="number" min={1} max={60} value={draft.hostStaff.inviteValidDays}
+            onChange={(e) => set((d) => { d.hostStaff!.inviteValidDays = Number(e.target.value); })} />
+        </Field>
+      </CardContent>
+    </Card>
   );
 }
 

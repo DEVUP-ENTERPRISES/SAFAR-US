@@ -155,6 +155,8 @@ export interface PlatformConfigDoc {
     earlyBirdMinDaysAhead: number;
     /** A trip starting within this many hours counts as last-minute. */
     lastMinuteMaxHoursAhead: number;
+    /** Ceiling on a host's own discounts combined (length, early-bird or last-minute, promo), so a car is never priced near zero. */
+    maxHostDiscountBps: number;
   };
   /** Refund rules per host cancellation policy — full refund if the guest
    *  cancels at least `fullBeforeHours` before start, else `partialBps` of total. */
@@ -219,6 +221,11 @@ export interface PlatformConfigDoc {
    * the window closes, so every review is an opinion of the trip rather than a
    * reply to a review.
    */
+  /** Host team (Captain) invites. */
+  hostStaff: {
+    /** Days an invite link works; a resend issues a fresh one. */
+    inviteValidDays: number;
+  };
   reviews: {
     /** Days each party has to write before the other's is released anyway. */
     blindWindowDays: number;
@@ -807,6 +814,7 @@ const schema = new Schema<PlatformConfigDoc>(
     pricing: {
       earlyBirdMinDaysAhead: { type: Number, default: 30 },
       lastMinuteMaxHoursAhead: { type: Number, default: 48 },
+      maxHostDiscountBps: { type: Number, default: 8000 },
     },
     cancellation: {
       flexible: { fullBeforeHours: { type: Number, default: 24 }, partialBps: { type: Number, default: 5000 } },
@@ -832,6 +840,9 @@ const schema = new Schema<PlatformConfigDoc>(
     },
     reviews: {
       blindWindowDays: { type: Number, default: 14 },
+    },
+    hostStaff: {
+      inviteValidDays: { type: Number, default: 7 },
     },
     violations: {
       reportingWindowDays: { type: Number, default: 90 },

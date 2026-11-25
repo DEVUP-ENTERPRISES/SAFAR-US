@@ -196,7 +196,7 @@ export class PlatformConfigService {
       },
       serviceFee: { bps: 0, maxCents: 0, flatCents: 250, ...(doc.serviceFee ?? {}) },
       tax: { bps: 0, ...(doc.tax ?? {}) },
-      pricing: { earlyBirdMinDaysAhead: 30, lastMinuteMaxHoursAhead: 48, ...(doc.pricing ?? {}) },
+      pricing: { earlyBirdMinDaysAhead: 30, lastMinuteMaxHoursAhead: 48, maxHostDiscountBps: 8000, ...(doc.pricing ?? {}) },
       cancellation: {
         flexible: { fullBeforeHours: 24, partialBps: 5000, ...(doc.cancellation?.flexible ?? {}) },
         moderate: { fullBeforeHours: 48, partialBps: 5000, ...(doc.cancellation?.moderate ?? {}) },
@@ -231,6 +231,7 @@ export class PlatformConfigService {
         ...(doc.violations ?? {}),
       },
       reviews: { blindWindowDays: 14, ...(doc.reviews ?? {}) },
+      hostStaff: { inviteValidDays: 7, ...(doc.hostStaff ?? {}) },
       claims: { filingWindowHours: 72, requireEvidence: true, respondWindowHours: 72, ...(doc.claims ?? {}) },
       rebookingProtection: {
         enabled: true,

@@ -3,7 +3,7 @@ import { parseKey } from './storage.gateway';
 import { storageGateway } from './storage.provider';
 
 /** The storage key a client refers to: sent directly, or recovered from a URL (CDN path or /media/view?key=). */
-function keyOf(ref: { key?: string; url?: string }): string | undefined {
+export function keyOf(ref: { key?: string; url?: string }): string | undefined {
   if (ref.key) return ref.key;
   if (!ref.url) return undefined;
   try {

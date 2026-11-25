@@ -299,6 +299,7 @@ export class AvailabilityService implements IAvailabilityContract {
   /** Host blocks a range (maintenance / personal use / blackout dates); start and end are the picked dates. */
   async block(vehicleId: string, start: Date, end: Date): Promise<void> {
     const keys = dayKeys(start, end);
+    if (!keys.length) return;
     await AvailabilityModel.bulkWrite(
       keys.map((dayKey) => ({
         updateOne: {
@@ -310,10 +311,10 @@ export class AvailabilityService implements IAvailabilityContract {
     );
   }
 
-  /** Host unblocks a range (only removes host blocks, never booked days). */
+  /** Host unblocks a range: only their own blocks, never booked days or a scheduled pause. */
   async unblock(vehicleId: string, start: Date, end: Date): Promise<void> {
     const keys = dayKeys(start, end);
-    await AvailabilityModel.deleteMany({ vehicleId, dayKey: { $in: keys }, state: 'blocked' });
+    await AvailabilityModel.deleteMany({ vehicleId, dayKey: { $in: keys }, state: 'blocked', pauseId: null });
   }
 
   /** Bookings and live checkout holds on any of these days. */

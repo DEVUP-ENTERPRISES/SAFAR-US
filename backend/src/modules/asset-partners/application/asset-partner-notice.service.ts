@@ -137,6 +137,16 @@ export class AssetPartnerNoticeService {
         await notifyOps('A partner notice arrived too late to charge', `${notice.issuedBy} notice ${notice.noticeRef}, ${usd(notice.amountCents)}, trip ${trip.code}.`, { noticeId: notice._id });
         return updated!;
       }
+      // The booked dates matched, but the guest did not have the car at that moment: a person decides.
+      if (err instanceof AppError && ['NO_HANDOVER', 'VALIDATION_ERROR'].includes(String((err as { code?: string }).code))) {
+        const updated = await AssetPartnerNoticeModel.findByIdAndUpdate(
+          notice._id,
+          { $set: { status: 'needs_review', reviewReason: 'no_trip', candidateBookingIds: [trip._id] }, $push: { timeline: { at: new Date(), by, event: 'needs_review', note: trip.code } } },
+          { new: true },
+        ).lean<AssetPartnerNoticeDoc>();
+        await notifyOps('A partner notice needs a decision', `${notice.issuedBy} notice ${notice.noticeRef}: trip ${trip.code} was booked then, but the guest did not have the car at that time.`, { noticeId: notice._id });
+        return updated!;
+      }
       throw err;
     }
   }

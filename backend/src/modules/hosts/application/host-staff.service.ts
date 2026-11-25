@@ -1,3 +1,4 @@
+import { platformConfigService } from '../../platform-config/application/platform-config.service';
 import { randomBytes } from 'crypto';
 import {
   HostStaffModel,
@@ -81,6 +82,14 @@ async function sendInviteEmail(staff: HostStaffDoc, host: Pick<HostDoc, 'userId'
 }
 
 /** The invite token is a bearer credential for the invitee only; it goes into the email and nowhere else. */
+// An old link must stop working on its own, not only when the host thinks to resend.
+async function assertInviteFresh(staff: { invitedAt?: Date }): Promise<void> {
+  const { hostStaff } = await platformConfigService.get();
+  if (!staff.invitedAt || Date.now() - new Date(staff.invitedAt).getTime() > hostStaff.inviteValidDays * 86_400_000) {
+    throw new ConflictError('This invite has expired. Ask the host to send a new one.', 'INVITE_EXPIRED');
+  }
+}
+
 function withoutToken<T extends { inviteToken?: string }>(staff: T): Omit<T, 'inviteToken'> {
   const rest: Partial<T> = { ...staff };
   delete rest.inviteToken;
@@ -161,6 +170,7 @@ export const hostStaffService = {
   async inviteePreview(token: string) {
     const staff = await HostStaffModel.findOne({ inviteToken: token, status: 'invited' }).lean<HostStaffDoc>();
     if (!staff) throw new NotFoundError('That invite link is no longer valid');
+    await assertInviteFresh(staff);
 
     const host = await HostModel.findOne({ _id: staff.hostId }).lean<HostDoc>();
     const user = await userRepository.findByEmail(staff.email);
@@ -186,6 +196,7 @@ export const hostStaffService = {
   async acceptInvite(token: string, password?: string, signedInUserId?: string): Promise<{ userId: string; created: boolean }> {
     const staff = await HostStaffModel.findOne({ inviteToken: token, status: 'invited' });
     if (!staff) throw new NotFoundError('That invite link is no longer valid');
+    await assertInviteFresh(staff);
 
     let user = await userRepository.findByEmail(staff.email);
     const created = !user;

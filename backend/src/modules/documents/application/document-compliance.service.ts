@@ -19,18 +19,32 @@ const MANDATORY = ['registration', 'insurance'] as const;
 export class DocumentComplianceService {
   /** Vehicle ids that currently have an expired mandatory document. */
   private async expiredVehicleIds(now = new Date()): Promise<Set<string>> {
-    const docs = await DocumentModel.find(
-      { category: { $in: MANDATORY as unknown as string[] }, expiresAt: { $lt: now }, deletedAt: null },
-      { vehicleId: 1, ownerId: 1 },
-    ).lean();
+    const candidates = await DocumentModel.distinct('vehicleId', {
+      category: { $in: MANDATORY as unknown as string[] },
+      expiresAt: { $lt: now },
+      deletedAt: null,
+    });
     const ids = new Set<string>();
-    for (const d of docs) {
-      if (d.vehicleId && (await this.isHostsOwnDoc(d.vehicleId, d.ownerId))) ids.add(d.vehicleId);
+    for (const vehicleId of candidates as string[]) {
+      if (vehicleId && (await this.isLapsed(vehicleId, now))) ids.add(vehicleId);
     }
     return ids;
   }
 
-  /** A document counts only when uploaded by the vehicle's own host, so a stranger cannot pause a rival's car. */
+  /** Lapsed only when, for a mandatory type, the host's own non-rejected papers exist and none of them is still valid; a renewal clears it. */
+  private async isLapsed(vehicleId: string, now = new Date()): Promise<boolean> {
+    const docs = await DocumentModel.find(
+      { vehicleId, category: { $in: MANDATORY as unknown as string[] }, deletedAt: null, 'verification.status': { $ne: 'rejected' } },
+      { category: 1, expiresAt: 1, ownerId: 1 },
+    ).lean<{ category: string; expiresAt?: Date; ownerId: string }[]>();
+    const own: typeof docs = [];
+    for (const d of docs) if (await this.isHostsOwnDoc(vehicleId, d.ownerId)) own.push(d);
+    return MANDATORY.some((category) => {
+      const ofType = own.filter((d) => d.category === category);
+      return ofType.length > 0 && !ofType.some((d) => !d.expiresAt || new Date(d.expiresAt) >= now);
+    });
+  }
+
   private async isHostsOwnDoc(vehicleId: string, ownerId: string): Promise<boolean> {
     const v = await VehicleModel.findOne({ _id: vehicleId }, { hostId: 1 }).lean();
     if (!v) return false;
@@ -40,14 +54,7 @@ export class DocumentComplianceService {
 
   /** Booking-time guard — belt-and-suspenders for the gap between sweeps. */
   async hasExpiredMandatoryDoc(vehicleId: string): Promise<boolean> {
-    const docs = await DocumentModel.find({
-      vehicleId,
-      category: { $in: MANDATORY as unknown as string[] },
-      expiresAt: { $lt: new Date() },
-      deletedAt: null,
-    }).lean();
-    for (const d of docs) if (await this.isHostsOwnDoc(vehicleId, d.ownerId)) return true;
-    return false;
+    return this.isLapsed(vehicleId);
   }
 
   private async notifyHost(hostId: string, vehicleId: string, kind: 'paused' | 'restored'): Promise<void> {
@@ -158,7 +165,7 @@ export class DocumentComplianceService {
 
     // Restore: a compliance-held car whose docs are all valid again. Only cars
     // this job paused (status 'paused' + flag) — never a host's own pause/delist.
-    const held = await VehicleModel.find({ complianceHold: true, status: 'paused' }, { hostId: 1 }).lean();
+    const held = await VehicleModel.find({ complianceHold: true, status: 'paused', staffHold: { $ne: true } }, { hostId: 1 }).lean();
     for (const v of held) {
       if (!expired.has(v._id)) {
         await VehicleModel.updateOne({ _id: v._id }, { status: 'listed', complianceHold: false });

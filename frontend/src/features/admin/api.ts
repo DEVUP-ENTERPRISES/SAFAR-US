@@ -49,6 +49,8 @@ export interface PlatformConfig {
   serviceFee: { bps: number; maxCents: number; flatCents: number };
   programs?: { rewardsEnabled: boolean; referralEnabled: boolean; membershipEnabled?: boolean };
   appRelease?: Record<'customer' | 'partner', AppRelease>;
+  pricing?: { earlyBirdMinDaysAhead: number; lastMinuteMaxHoursAhead: number; maxHostDiscountBps: number };
+  hostStaff?: { inviteValidDays: number };
   tax: { bps: number };
   /**
    * The Asset Partner agreement's figures. Separate from commission on

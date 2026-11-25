@@ -383,11 +383,14 @@ router.get(
   }),
 );
 
-const blockSchema = z.object({
-  start: z.coerce.date(),
-  end: z.coerce.date(),
-  action: z.enum(['block', 'unblock']).default('block'),
-});
+const blockSchema = z
+  .object({
+    start: z.coerce.date(),
+    end: z.coerce.date(),
+    action: z.enum(['block', 'unblock']).default('block'),
+  })
+  .refine((b) => b.end >= b.start, { message: 'The end date must be on or after the start', path: ['end'] })
+  .refine((b) => b.end.getTime() - b.start.getTime() <= 731 * 86_400_000, { message: 'Block up to two years at a time', path: ['end'] });
 
 router.put(
   '/:id/availability',

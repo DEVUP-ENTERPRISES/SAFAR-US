@@ -1,3 +1,4 @@
+import { resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
 import { HostModel, type HostDoc } from '../infrastructure/host.model';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { ConflictError, NotFoundError } from '../../../core/errors/app-error';
@@ -49,7 +50,20 @@ export class HostService {
       'bankingDetails',
     ];
     for (const k of keys) if (patch[k] !== undefined) allowed[k] = patch[k];
-    await HostModel.updateOne({ _id: host._id }, allowed);
+    // Merged field by field: replacing an object would drop what the form doesn't send, like the Stripe account that pays the host.
+    for (const group of ['bankingDetails', 'businessProfile', 'taxInfo'] as const) {
+      const value = patch[group] as Record<string, unknown> | undefined;
+      if (!value) continue;
+      delete allowed[group];
+      for (const [k, v] of Object.entries(value)) if (k !== 'stripeConnectedAccountId' && v !== undefined) allowed[`${group}.${k}`] = v;
+    }
+    // A public profile photo must be the host's own upload, never an outside image.
+    if (patch.avatarKey !== undefined || (patch.avatarUrl !== undefined && patch.avatarUrl !== host.avatarUrl)) {
+      const file = resolveOwnedUpload({ key: patch.avatarKey, url: patch.avatarUrl }, userId, 'avatar');
+      allowed.avatarUrl = file.url;
+      allowed.avatarKey = file.key;
+    }
+    await HostModel.updateOne({ _id: host._id }, { $set: allowed });
     return this.getById(host._id);
   }
 

@@ -37,7 +37,8 @@ router.get(
   '/insights',
   authenticate,
   asyncHandler(async (req, res) => {
-    const days = Math.min(365, Math.max(7, Number(req.query.days ?? 90)));
+    const asked = Number(req.query.days ?? 90);
+    const days = Math.min(365, Math.max(7, Number.isFinite(asked) ? Math.round(asked) : 90));
     sendSuccess(res, await earningsInsightsService.insights(req.principal!.userId, days));
   }),
 );

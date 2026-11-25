@@ -1,3 +1,4 @@
+import { resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
 import { ClaimModel, type ClaimDoc, type ClaimStatus } from '../infrastructure/claim.model';
 import { NotFoundError, ForbiddenError, ConflictError, ValidationError } from '../../../core/errors/app-error';
 import { approveBlockers } from './claim-case.service';
@@ -21,6 +22,11 @@ export interface CreateClaimInput {
   description: string;
   evidence?: { url: string; kind: 'image' | 'file'; note?: string }[];
   amountClaimed?: number;
+}
+
+/** Evidence is the person's own claim upload; the stored URL is rebuilt from its key so no outside link gets in. */
+function ownEvidence(userId: string, evidence: { url: string; kind: 'image' | 'file'; note?: string }[]) {
+  return evidence.map((e) => ({ url: resolveOwnedUpload({ url: e.url }, userId, 'claim').url, kind: e.kind, ...(e.note ? { note: e.note.slice(0, 500) } : {}), addedBy: userId }));
 }
 
 export class ClaimService {
@@ -55,7 +61,10 @@ export class ClaimService {
         const full = await bookingService.getDoc(input.bookingId);
         // Only the host side needs a baseline; a guest reporting damage is not billing anyone.
         if (full.guestId !== claimantId) await inspectionService.assertBaseline(full, 'damage');
-        const deadline = new Date(booking.period.end).getTime() + cfg.filingWindowHours * 3_600_000;
+        // Counted from when the car actually came back, so a late return doesn't eat the host's window.
+        const trip = await TripModel.findOne({ bookingId: input.bookingId }).select('return.at').lean<{ return?: { at?: Date } } | null>();
+        const endedAt = Math.max(new Date(booking.period.end).getTime(), trip?.return?.at ? new Date(trip.return.at).getTime() : 0);
+        const deadline = endedAt + cfg.filingWindowHours * 3_600_000;
         if (now.getTime() > deadline) {
           throw new ConflictError(
             `Damage must be reported within ${cfg.filingWindowHours}h of the trip ending. This trip is closed.`,
@@ -78,7 +87,7 @@ export class ClaimService {
       ...input,
       claimantId,
       respondentId,
-      evidence: (input.evidence ?? []).map((e) => ({ ...e, addedBy: claimantId })),
+      evidence: ownEvidence(claimantId, input.evidence ?? []),
       status: 'opened',
       timeline: [{ status: 'opened', at: now, by: claimantId, note: 'Claim filed' }],
     });
@@ -204,7 +213,7 @@ export class ClaimService {
     const claim = await this.getForUser(userId, claimId);
     await ClaimModel.updateOne(
       { _id: claim._id },
-      { $push: { evidence: { $each: evidence.map((e) => ({ ...e, addedBy: userId })) } } },
+      { $push: { evidence: { $each: ownEvidence(userId, evidence) } } },
     );
     return this.getDoc(claimId);
   }

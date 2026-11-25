@@ -18,7 +18,7 @@ beforeEach(async () => {
   const real = await platformConfigService.get();
   jest.spyOn(platformConfigService, 'get').mockResolvedValue({ ...real, insurance: { ...real.insurance, wheelbaseDealerId: '1' } });
   jest.spyOn(wheelbaseImportService, 'isAvailableTo').mockResolvedValue(true);
-  // Photo downloads fail here, so imported photos keep their Wheelbase address.
+  // Photo downloads fail here; listings only show our own files, so an uncopied photo is skipped.
   global.fetch = jest.fn().mockRejectedValue(new Error('offline')) as never;
 });
 
@@ -51,7 +51,7 @@ describe('import from Wheelbase', () => {
     const out = await wheelbaseImportService.run('user-1');
     expect(out[0]).toMatchObject({ outcome: 'updated', vehicleIds: ['b1', 'b2'] });
     const b1 = await VehicleModel.findById('b1').lean();
-    expect(b1!.photos.map((p) => p.url)).toEqual(['https://img.test/a.jpg', 'https://img.test/b.jpg']);
+    expect(b1!.photos).toEqual([]);
     expect(b1!.features).toEqual(['apple_carplay', 'backup_camera']);
     expect(b1!.listing.description).toBe('Family SUV');
     expect(b1!.wheelbase).toMatchObject({ rentalId: 10, insuranceState: 'approved' });

@@ -195,6 +195,8 @@ export interface VehicleDoc {
     promoDiscountBps: number;
   };
   purposes: string[];
+  /** Staff suspended the car; only staff can list it again, never the host's own relist. */
+  staffHold?: boolean;
   status: VehicleStatus;
   /**
    * Where the physical car is in its operational lifecycle (idle / on_trip /
@@ -384,6 +386,7 @@ const schema = new Schema<VehicleDoc>(
       downSince: Date,
     },
     complianceHold: { type: Boolean, default: false },
+    staffHold: { type: Boolean, default: false },
     recallHold: { type: Boolean, default: false },
     pauseId: String,
     recallNoticeCount: { type: Number },

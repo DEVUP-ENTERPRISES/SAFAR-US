@@ -114,6 +114,8 @@ export class PricingService implements IPricingContract {
     if (v.pricing.promoActive && v.pricing.promoDiscountBps > 0) {
       discount = addMoney(discount, applyBps(base, v.pricing.promoDiscountBps));
     }
+    const hostCap = applyBps(base, cfg.pricing.maxHostDiscountBps ?? 8000);
+    if (discount.amount > hostCap.amount) discount = hostCap;
 
     // ── Membership discount (CatoDrive Plus). Tracked separately so we can show the
     // guest exactly what their membership saved them on this trip.

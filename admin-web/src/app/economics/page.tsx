@@ -103,6 +103,8 @@ function Economics() {
         security: draft.security,
         ...(draft.programs ? { programs: draft.programs } : {}),
         ...(draft.appRelease ? { appRelease: draft.appRelease } : {}),
+        ...(draft.pricing ? { pricing: draft.pricing } : {}),
+        ...(draft.hostStaff ? { hostStaff: draft.hostStaff } : {}),
       });
     }
   };

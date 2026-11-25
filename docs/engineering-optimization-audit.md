@@ -6,6 +6,29 @@ Legend: **Implemented** · **Verified** (tests / builds / scans run) · **Measur
 
 ---
 
+## Host side, module by module — 2026-11-25
+
+Same method as the guest round: read each host module, then drive it through the real HTTP API (`backend/src/modules/hosts/host.scenarios.test.ts`, 48 scenarios). Payments mocked; nothing live touched.
+
+| # | Sev | Module | Finding (evidence) | Status |
+|---|---|---|---|---|
+| 1 | P0 | Hosts / payouts | Every host profile save sent `bankingDetails`, and the service replaced the whole object, wiping `stripeConnectedAccountId`. Any host who saved their profile lost their payout link. | Implemented + Verified (H1, H2): fields merged one by one, Stripe id never writable from the profile. Recovery: `accountIdOf` re-finds the account on Stripe by the `hostId` in its metadata on onboarding, status, dashboard and transfer, saves it back, caches a miss for 1 h. Not verified against live Stripe |
+| 2 | P1 | Documents | Once a car's insurance or registration lapsed it stayed paused forever: the check looked for ANY expired paper and old papers are never retired, so a renewal changed nothing. | Implemented + Verified (D2–D5): lapsed only when no current, non-rejected paper of that type is valid; one rule for the sweep and the booking gate |
+| 3 | P1 | Vehicles | Staff "suspend" set the same `paused` status a host uses, so the host could relist a car staff took down (also undid the suspend step of deplatforming). | Implemented + Verified (C6, C7, D5): `staffHold` flag; host relist, pause end, recall release and compliance restore all respect it; staff approve lifts it |
+| 4 | P1 | Violations | A citation could be filed on a booking where the guest never picked up the car (window checked against booked dates only); a ticket during a late return was refused. | Implemented + Verified (V2–V4): requires a handover; window is handover to actual return. Partner notices that miss go to ops review (`no_trip`) instead of failing |
+| 5 | P1 | Violations | Guests never saw the "See the notice" link: page read `evidenceUrl`, server stores `evidence[]`, and the file is private to whoever uploaded it. | Implemented + Verified (V7): `GET /violations/:id/evidence/:i` gives the guest, host or staff a short-lived link; page opens it |
+| 6 | P1 | Vehicles, claims, violations, host avatar | Listing photos, claim evidence, citation evidence and the public host photo accepted any URL (including `javascript:` and tracking images). | Implemented + Verified (C1–C4, V5, L1, H4, H5): only the person's own upload of the right category, URL rebuilt server-side; 40 photos max. Wheelbase import now skips a photo it cannot copy instead of linking the outside address |
+| 7 | P2 | Calendar | Host "unblock" deleted days held by a scheduled pause; end before start crashed (empty bulk write); unbounded ranges. | Implemented + Verified (K1–K6) |
+| 8 | P2 | Pricing | Host discounts could stack to 100% (car free, platform still pays daily insurance); no ceilings on daily price, cleaning fee, weekend multiplier; seasonal rules unbounded and unchecked. | Implemented + Verified (P1–P4): combined host discount capped by admin setting `pricing.maxHostDiscountBps` (default 80%, Admin > Economics > Rules > Host limits) |
+| 9 | P2 | Captains | Team invite links never expired. | Implemented + Verified (T1, T2): admin setting `hostStaff.inviteValidDays` (default 7) |
+| 10 | P2 | Claims | Filing window counted from the booked end, so a late return shortened the host's window. | Implemented (counts from actual return) |
+| 11 | P3 | Hosts | Business and tax details were replaced wholesale on save, dropping fields the form does not send. | Implemented + Verified (H3) |
+| 12 | P3 | Earnings | `?days=abc` produced NaN. | Implemented + Verified (H8) |
+
+Verified as already correct: maintenance, toll accounts, earnings and booking approval are scoped to the host's own records (B1–B3, T3, C5, K6, D6, V6).
+
+---
+
 ## Guest side, module by module — 2026-11-25
 
 Method: each guest module read end to end, then exercised through the real HTTP API (new harness `backend/src/testing/http.ts` starts the app on a random port with real sessions). 121 scenarios across 6 suites (`*.scenarios.test.ts`). Payments mocked; in-memory Mongo; nothing live touched.

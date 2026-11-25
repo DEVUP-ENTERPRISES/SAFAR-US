@@ -9,13 +9,13 @@ import { validate } from '../../../shared/middleware/validate';
 import { sendCreated, sendSuccess } from '../../../shared/http/api-response';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
-import { NotFoundError } from '../../../core/errors/app-error';
+import { NotFoundError, ValidationError } from '../../../core/errors/app-error';
 import { tripDocumentsService } from '../../trips/application/trip-documents.service';
 
 const router = Router();
 
 const createSchema = z.object({
-  vehicleId: z.string().optional(),
+  vehicleId: z.string().max(64).optional(),
   category: z.enum(['registration', 'insurance', 'pollution', 'fitness', 'kyc', 'claim', 'recall_receipt', 'w9', 'title']),
   // A server-issued upload key (or the URL it produced); the stored URL is always derived from the key.
   url: z.string().max(2048).optional(),
@@ -31,6 +31,12 @@ router.post(
     const userId = req.principal!.userId;
     // Only the car's own host may attach documents to it; anyone could otherwise expire a rival's insurance.
     if (req.body.vehicleId) await vehicleService.assertOwnerById(userId, req.body.vehicleId);
+    // A car's insurance or registration only counts with a future expiry date, or a dateless upload could unpause a lapsed car.
+    if (req.body.vehicleId && ['insurance', 'registration'].includes(req.body.category)) {
+      if (!req.body.expiresAt || new Date(req.body.expiresAt).getTime() <= Date.now()) {
+        throw new ValidationError('Add the expiry date shown on the document. It must be in the future.');
+      }
+    }
     const upload = resolveOwnedUpload(req.body, userId, req.body.category);
     const doc = await DocumentModel.create({ ...req.body, ownerId: userId, ...upload });
     if (doc.vehicleId) void tripDocumentsService.onUploaded(doc.vehicleId, doc.category).catch(() => undefined);
@@ -61,6 +67,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const doc = await DocumentModel.findOne({ _id: req.params.id });
     if (!doc) throw new NotFoundError('Document');
+    if (doc.deletedAt) throw new NotFoundError('Document');
     doc.verification = { status: 'verified', verifiedAt: new Date() };
     await doc.save();
 

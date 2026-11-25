@@ -77,7 +77,7 @@ export const createVehicleSchema = z.object({
     })
     .optional(),
   features: z.array(z.string()).default([]),
-  photos: z.array(photoSchema).default([]),
+  photos: z.array(photoSchema).max(40).default([]),
   addOns: z
     .array(z.object({
       code: z.string(),
@@ -111,10 +111,10 @@ export const createVehicleSchema = z.object({
     deliveryLocations: z.array(deliveryLocationSchema).max(25).optional(),
   }),
   pricing: z.object({
-    dailyPrice: z.number().int().positive(),
+    dailyPrice: z.number().int().positive().max(1_000_000),
     currency: z.string().length(3).default('USD'),
-    cleaningFee: z.number().int().min(0).default(0),
-    weekendMultiplierBps: z.number().int().min(10000).default(10000),
+    cleaningFee: z.number().int().min(0).max(50_000).default(0),
+    weekendMultiplierBps: z.number().int().min(10000).max(30000).default(10000),
     weeklyDiscountBps: z.number().int().min(0).max(9000).default(0),
     monthlyDiscountBps: z.number().int().min(0).max(9000).default(0),
     earlyBirdBps: z.number().int().min(0).max(5000).default(0),
@@ -208,9 +208,9 @@ export const updateVehicleSchema = z
   .partial();
 
 export const pricingSchema = z.object({
-  dailyPrice: z.number().int().positive().optional(),
-  cleaningFee: z.number().int().min(0).optional(),
-  weekendMultiplierBps: z.number().int().min(10000).optional(),
+  dailyPrice: z.number().int().positive().max(1_000_000).optional(),
+  cleaningFee: z.number().int().min(0).max(50_000).optional(),
+  weekendMultiplierBps: z.number().int().min(10000).max(30000).optional(),
   weeklyDiscountBps: z.number().int().min(0).max(9000).optional(),
   monthlyDiscountBps: z.number().int().min(0).max(9000).optional(),
   earlyBirdBps: z.number().int().min(0).max(5000).optional(),
@@ -220,17 +220,20 @@ export const pricingSchema = z.object({
   promoDiscountBps: z.number().int().min(0).max(9000).optional(),
   seasonalRules: z
     .array(
-      z.object({
-        label: z.string(),
-        start: z.string(),
-        end: z.string(),
-        multiplierBps: z.number().int().min(1000).max(30000),
-      }),
+      z
+        .object({
+          label: z.string().trim().min(1).max(60),
+          start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date like 2026-12-20'),
+          end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date like 2026-12-31'),
+          multiplierBps: z.number().int().min(1000).max(30000),
+        })
+        .refine((r) => r.end >= r.start, { message: 'The season must end on or after its start', path: ['end'] }),
     )
+    .max(24)
     .optional(),
 });
 
-export const photosSchema = z.object({ photos: z.array(photoSchema).min(1) });
+export const photosSchema = z.object({ photos: z.array(photoSchema).min(1).max(40) });
 
 export type CreateVehicleDto = z.infer<typeof createVehicleSchema>;
 export type PricingDto = z.infer<typeof pricingSchema>;

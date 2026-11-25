@@ -1,3 +1,4 @@
+import { kv } from '../../../infrastructure/cache/kv-store';
 import Stripe from 'stripe';
 import { HostModel } from '../../hosts/infrastructure/host.model';
 import { UserModel } from '../../users/infrastructure/user.model';
@@ -64,7 +65,7 @@ export class ConnectService {
     const host = await HostModel.findOne({ userId });
     if (!host) throw new NotFoundError('Host profile');
 
-    let accountId = host.bankingDetails?.stripeConnectedAccountId;
+    let accountId = await this.accountIdOf(host._id, host.bankingDetails?.stripeConnectedAccountId);
 
     try {
       if (!accountId) accountId = await this.createAccount(userId, host._id);
@@ -77,6 +78,37 @@ export class ConnectService {
         return this.link(await this.createAccount(userId, host._id), returnUrl, refreshUrl).catch((e) => this.fail(e));
       }
       return this.fail(err);
+    }
+  }
+
+  /**
+   * The host's connected account. A profile save used to wipe the stored id, so when it is missing
+   * the account is found again on Stripe by the hostId every account carries in its metadata.
+   */
+  private async accountIdOf(hostId: string, stored?: string): Promise<string | undefined> {
+    if (stored || !this.stripe) return stored;
+    const missKey = `connect:miss:${hostId}`;
+    if (await kv().get(missKey).catch(() => null)) return undefined;
+    try {
+      let found: string | undefined;
+      let seen = 0;
+      for await (const a of this.stripe.accounts.list({ limit: 100 })) {
+        if (a.metadata?.hostId === hostId) {
+          found = a.id;
+          break;
+        }
+        if (++seen >= 5000) break;
+      }
+      if (found) {
+        await HostModel.updateOne({ _id: hostId }, { $set: { 'bankingDetails.stripeConnectedAccountId': found } });
+        logger.info({ hostId, accountId: found }, 'Stripe Connect account re-linked from metadata');
+      } else {
+        await kv().set(missKey, '1', 3600).catch(() => undefined);
+      }
+      return found;
+    } catch (err) {
+      logger.warn({ hostId, err: (err as Error).message }, 'Stripe Connect account lookup failed');
+      return undefined;
     }
   }
 
@@ -100,6 +132,7 @@ export class ConnectService {
       });
     });
     await HostModel.updateOne({ _id: hostId }, { $set: { 'bankingDetails.stripeConnectedAccountId': account.id } });
+    await kv().del(`connect:miss:${hostId}`).catch(() => undefined);
     logger.info({ hostId, accountId: account.id }, 'Stripe Connect account created');
     return account.id;
   }
@@ -128,9 +161,10 @@ export class ConnectService {
    */
   async status(userId: string): Promise<ConnectStatus> {
     const host = await HostModel.findOne({ userId }).lean<{
+      _id: string;
       bankingDetails?: { stripeConnectedAccountId?: string };
     }>();
-    const accountId = host?.bankingDetails?.stripeConnectedAccountId;
+    const accountId = host ? await this.accountIdOf(host._id, host.bankingDetails?.stripeConnectedAccountId) : undefined;
     if (!this.stripe || !accountId) return NOT_CONNECTED;
 
     try {
@@ -157,9 +191,10 @@ export class ConnectService {
   async dashboardLink(userId: string): Promise<{ url: string }> {
     if (!this.stripe) throw new ExternalServiceError('Payouts are not configured');
     const host = await HostModel.findOne({ userId }).lean<{
+      _id: string;
       bankingDetails?: { stripeConnectedAccountId?: string };
     }>();
-    const accountId = host?.bankingDetails?.stripeConnectedAccountId;
+    const accountId = host ? await this.accountIdOf(host._id, host.bankingDetails?.stripeConnectedAccountId) : undefined;
     if (!accountId) throw new ConflictError('This host has no payout account yet', 'NOT_CONNECTED');
     // Only Express accounts have a login link; others sign in to Stripe directly.
     const link = await this.stripe.accounts.createLoginLink(accountId).catch(() => null);
@@ -183,7 +218,7 @@ export class ConnectService {
     const host = await HostModel.findById(hostId).lean<{
       bankingDetails?: { stripeConnectedAccountId?: string };
     }>();
-    const accountId = host?.bankingDetails?.stripeConnectedAccountId;
+    const accountId = host ? await this.accountIdOf(hostId, host.bankingDetails?.stripeConnectedAccountId) : undefined;
     if (!accountId) throw new ConflictError('This host has no payout account', 'NOT_CONNECTED');
 
     const account = await this.stripe.accounts.retrieve(accountId);

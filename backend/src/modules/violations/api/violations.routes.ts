@@ -25,9 +25,10 @@ router.post(
       citationRef: z.string().min(2).max(80),
       issuedBy: z.string().min(2).max(120),
       occurredAt: z.coerce.date(),
-      amount: z.number().int().positive(),
+      amount: z.number().int().positive().max(10_000_000),
       evidence: z
-        .array(z.object({ url: z.string().url(), kind: z.enum(['image', 'file']), note: z.string().max(200).optional() }))
+        .array(z.object({ url: z.string().max(1024), kind: z.enum(['image', 'file']), note: z.string().max(200).optional() }))
+        .max(10)
         .default([]),
     }),
   }),
@@ -56,6 +57,15 @@ router.get(
 );
 
 /** The guest's answer. Holds the charge until staff rule on it. */
+router.get(
+  '/:id/evidence/:index',
+  authenticate,
+  validate({ params: z.object({ id: z.string().min(1).max(64), index: z.coerce.number().int().min(0).max(9) }) }),
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await violationService.evidenceLink(req.principal!, req.params.id, Number(req.params.index)));
+  }),
+);
+
 router.post(
   '/:id/dispute',
   authenticate,

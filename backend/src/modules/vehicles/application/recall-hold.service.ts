@@ -68,7 +68,7 @@ export const recallHoldService = {
    */
   async releaseIfHeld(vehicleId: string): Promise<boolean> {
     const v = await VehicleModel.findOne(
-      { _id: vehicleId, recallHold: true, status: 'paused' },
+      { _id: vehicleId, recallHold: true, status: 'paused', staffHold: { $ne: true } },
       { _id: 1 },
     ).lean();
     if (!v) return false;

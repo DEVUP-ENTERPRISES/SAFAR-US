@@ -31,6 +31,20 @@ const money = (c: number, cur = 'USD') =>
 export function MyCitations() {
   const qc = useQueryClient();
   const toast = useToast();
+
+  // Open the tab on the tap so it isn't blocked as a pop-up, then point it at the short-lived link.
+  const openNotice = async (id: string) => {
+    const tab = window.open('', '_blank');
+    if (tab) tab.opener = null;
+    try {
+      const { url } = await violationsApi.evidence(id);
+      if (tab) tab.location.href = url;
+      else window.location.href = url;
+    } catch {
+      tab?.close();
+      toast({ tone: 'error', title: 'Couldn’t open the notice', description: 'Try again in a moment.' });
+    }
+  };
   const [disputing, setDisputing] = useState<string | null>(null);
   const [reason, setReason] = useState('');
 
@@ -96,15 +110,14 @@ export function MyCitations() {
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   <span className="numeric text-lg font-bold">{money(v.amount, v.currency)}</span>
                   {/* The notice itself - an assertion becomes evidence. */}
-                  {v.evidenceUrl && (
-                    <a
-                      href={v.evidenceUrl}
-                      target="_blank"
-                      rel="noreferrer"
+                  {!!v.evidence?.length && (
+                    <button
+                      type="button"
+                      onClick={() => void openNotice(v._id)}
                       className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                     >
                       See the notice <ExternalLink className="h-3 w-3" />
-                    </a>
+                    </button>
                   )}
                 </div>
               </div>

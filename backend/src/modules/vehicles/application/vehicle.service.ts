@@ -1,8 +1,9 @@
+import { resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
 import { VehicleModel, type VehicleDoc, type DeliveryLocation } from '../infrastructure/vehicle.model';
 import { uuid } from '../../../shared/utils/uuid';
 import { hostService } from '../../hosts/application/host.service';
 import { userRepository } from '../../users/infrastructure/user.repository';
-import { NotFoundError, ForbiddenError, ConflictError } from '../../../core/errors/app-error';
+import { NotFoundError, ForbiddenError, ConflictError, ValidationError } from '../../../core/errors/app-error';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import type {
@@ -120,6 +121,14 @@ async function partnerCarLive(vehicleId: string): Promise<void> {
   await assetPartnerAlertsService.carLive(vehicleId).catch(() => undefined);
 }
 
+const MAX_LISTING_PHOTOS = 40;
+
+/** Listing photos are public, so each must be the host's own upload; the stored URL is rebuilt from the key. */
+function ownPhotos(userId: string, photos: { url: string; key?: string; isCover?: boolean }[]) {
+  if (photos.length > MAX_LISTING_PHOTOS) throw new ValidationError(`A listing can have up to ${MAX_LISTING_PHOTOS} photos.`);
+  return photos.map((p) => ({ ...resolveOwnedUpload({ key: p.key, url: p.url }, userId, 'vehicle_photo'), ...(p.isCover ? { isCover: true } : {}) }));
+}
+
 export class VehicleService implements IVehicleContract {
   async create(userId: string, dto: CreateVehicleDto): Promise<VehicleDoc> {
     const host = await hostService.requireHostForUser(userId);
@@ -166,7 +175,7 @@ export class VehicleService implements IVehicleContract {
       registrationNumber: dto.registrationNumber,
       specs: dto.specs ?? {},
       features: dto.features,
-      photos: dto.photos,
+      photos: ownPhotos(userId, dto.photos ?? []),
       addOns: await (async () => {
         const pass = await tollPassAddOn();
         return [...offeredAddOns(dto.addOns), ...(pass ? [pass] : [])];
@@ -373,7 +382,8 @@ export class VehicleService implements IVehicleContract {
     const vehicle = await this.getById(vehicleId);
     await this.assertOwner(userId, vehicle);
     const existing = vehicle.photos ?? [];
-    const merged = [...existing, ...photos];
+    const merged = [...existing, ...ownPhotos(userId, photos)];
+    if (merged.length > MAX_LISTING_PHOTOS) throw new ValidationError(`A listing can have up to ${MAX_LISTING_PHOTOS} photos.`);
     if (!merged.some((p) => p.isCover) && merged[0]) merged[0].isCover = true;
     await VehicleModel.updateOne({ _id: vehicleId }, { photos: merged });
     return this.getById(vehicleId);
@@ -585,6 +595,9 @@ export class VehicleService implements IVehicleContract {
       if (vehicle.complianceHold) {
         throw new ConflictError('This car is held for an expired document — renew it to relist.', 'COMPLIANCE_HOLD');
       }
+      if (vehicle.staffHold) {
+        throw new ConflictError('Our team paused this car. Contact support to list it again.', 'STAFF_HOLD');
+      }
       const photos = vehicle.photos?.length ?? 0;
       if (photos < MIN_LISTING_PHOTOS) {
         throw new ConflictError(`Add at least ${MIN_LISTING_PHOTOS} photos before listing.`, 'PHOTOS_REQUIRED');
@@ -612,9 +625,9 @@ export class VehicleService implements IVehicleContract {
     await this.getById(vehicleId);
     const update =
       action === 'approve'
-        ? { status: 'listed', verificationStatus: 'verified' }
+        ? { status: 'listed', verificationStatus: 'verified', staffHold: false }
         : action === 'suspend'
-          ? { status: 'paused', $unset: { pauseId: 1 } }
+          ? { status: 'paused', staffHold: true, $unset: { pauseId: 1 } }
           : { status: 'draft', verificationStatus: 'rejected' };
     await VehicleModel.updateOne({ _id: vehicleId }, update);
     if (action === 'approve') await partnerCarLive(vehicleId);

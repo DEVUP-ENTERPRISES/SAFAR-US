@@ -17,7 +17,7 @@ const createSchema = z.object({
   description: z.string().min(5).max(2000),
   amountClaimed: z.number().int().min(0).optional(),
   evidence: z
-    .array(z.object({ url: z.string().url(), kind: z.enum(['image', 'file']), note: z.string().optional() }))
+    .array(z.object({ url: z.string().max(1024), kind: z.enum(['image', 'file']), note: z.string().max(500).optional() })).max(20)
     .default([]),
 });
 
@@ -67,7 +67,7 @@ router.post(
   validate({
     body: z.object({
       evidence: z
-        .array(z.object({ url: z.string().url(), kind: z.enum(['image', 'file']), note: z.string().optional() }))
+        .array(z.object({ url: z.string().max(1024), kind: z.enum(['image', 'file']), note: z.string().max(500).optional() })).max(20)
         .min(1),
     }),
   }),

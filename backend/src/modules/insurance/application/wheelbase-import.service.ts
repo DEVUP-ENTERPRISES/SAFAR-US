@@ -61,7 +61,7 @@ function fillsFor(car: Car, l: WheelbaseListing): string[] {
   return out;
 }
 
-/** Copies Wheelbase photos into CatoDrive storage; a photo that cannot be copied keeps its Wheelbase address. */
+/** Copies Wheelbase photos into CatoDrive storage; a photo that cannot be copied is skipped, since listings only show our own files. */
 async function copyPhotos(urls: string[], ownerId: string): Promise<{ url: string; key?: string; isCover: boolean }[]> {
   const out: { url: string; key?: string; isCover: boolean }[] = [];
   for (const [i, src] of urls.slice(0, MAX_PHOTOS).entries()) {
@@ -74,10 +74,9 @@ async function copyPhotos(urls: string[], ownerId: string): Promise<{ url: strin
       const [target] = await storageGateway.createUploadTargets({ ownerId, category: 'vehicle_photo', contentType: type, sizes: [body.byteLength] });
       const put = await fetch(target.uploadUrl, { method: 'PUT', body, headers: { 'Content-Type': type }, signal: AbortSignal.timeout(30_000) });
       if (!put.ok) throw new Error(`upload ${put.status}`);
-      out.push({ url: target.publicUrl, key: target.key, isCover: i === 0 });
+      out.push({ url: target.publicUrl, key: target.key, isCover: out.length === 0 });
     } catch (err) {
-      logger.warn({ err: (err as Error).message }, 'wheelbase photo copy failed; linking the original');
-      out.push({ url: src, isCover: i === 0 });
+      logger.warn({ err: (err as Error).message, index: i }, 'wheelbase photo copy failed; skipped');
     }
   }
   return out;
