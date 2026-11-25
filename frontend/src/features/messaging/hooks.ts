@@ -111,10 +111,16 @@ export function useMessages(bookingId: string, myUserId?: string) {
     ((counterpartReadAt != null && +new Date(counterpartReadAt) >= +new Date(lastMine.createdAt)) ||
       (lastMine.readBy ?? []).some((u) => u !== myUserId));
 
-  const send = (body: string, attachments: Attachment[] = []) => {
-    const socket = connectSocket();
-    socket.emit('chat:message', { bookingId, body, attachments }, () => undefined);
-  };
+  // Resolves false when the server refuses the message or never answers, so the screen can keep the text and say so.
+  const send = (body: string, attachments: Attachment[] = []): Promise<boolean> =>
+    new Promise((resolve) => {
+      const socket = connectSocket();
+      const timer = setTimeout(() => resolve(false), 8000);
+      socket.emit('chat:message', { bookingId, body, attachments }, (ok: boolean) => {
+        clearTimeout(timer);
+        resolve(ok !== false);
+      });
+    });
 
   return { messages: all, isLoading: query.isLoading, send, seenByCounterpart, lastMineId: lastMine?._id };
 }

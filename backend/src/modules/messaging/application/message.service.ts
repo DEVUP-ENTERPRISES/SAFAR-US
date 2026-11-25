@@ -5,7 +5,8 @@ import { hostService } from '../../hosts/application/host.service';
 import { HostModel } from '../../hosts/infrastructure/host.model';
 import { UserModel } from '../../users/infrastructure/user.model';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
-import { ForbiddenError, ValidationError } from '../../../core/errors/app-error';
+import { ForbiddenError } from '../../../core/errors/app-error';
+import { cleanMessage } from './attachments';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
 import { realtimeEmitter, RT } from '../../../realtime/emitter';
@@ -31,16 +32,14 @@ export class MessageService {
     body: string,
     attachments: Attachment[] = [],
   ): Promise<MessageDoc> {
-    if (!body.trim() && attachments.length === 0) {
-      throw new ValidationError('Message cannot be empty');
-    }
+    const clean = cleanMessage(senderId, body, attachments);
     const { booking, counterpartUserId } = await this.authorize(senderId, bookingId);
 
     const message = await MessageModel.create({
       bookingId: booking._id,
       senderId,
-      body: body.trim(),
-      attachments,
+      body: clean.body,
+      attachments: clean.attachments,
       readBy: [senderId],
     });
 
@@ -49,7 +48,7 @@ export class MessageService {
       messageId: message._id,
       senderId,
       recipientUserId: counterpartUserId,
-      preview: body.slice(0, 80),
+      preview: clean.body.slice(0, 80),
     });
 
     return message.toObject();
@@ -76,7 +75,8 @@ export class MessageService {
 
   async list(userId: string, bookingId: string): Promise<MessageDoc[]> {
     await this.authorize(userId, bookingId);
-    return MessageModel.find({ bookingId }).sort({ createdAt: 1 }).limit(200).lean<MessageDoc[]>();
+    const latest = await MessageModel.find({ bookingId }).sort({ createdAt: -1 }).limit(200).lean<MessageDoc[]>();
+    return latest.reverse();
   }
 
   async markRead(userId: string, bookingId: string): Promise<void> {
@@ -186,7 +186,8 @@ export class MessageService {
 
   /** Read-only thread for admin/support investigating a dispute (no participant gate). */
   async adminThread(bookingId: string): Promise<MessageDoc[]> {
-    return MessageModel.find({ bookingId }).sort({ createdAt: 1 }).limit(500).lean<MessageDoc[]>();
+    const latest = await MessageModel.find({ bookingId }).sort({ createdAt: -1 }).limit(500).lean<MessageDoc[]>();
+    return latest.reverse();
   }
 
   /** Public participant check for the realtime gateway (throws if not allowed). */

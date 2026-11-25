@@ -6,6 +6,30 @@ Legend: **Implemented** · **Verified** (tests / builds / scans run) · **Measur
 
 ---
 
+## Guest side, module by module — 2026-11-25
+
+Method: each guest module read end to end, then exercised through the real HTTP API (new harness `backend/src/testing/http.ts` starts the app on a random port with real sessions). 121 scenarios across 6 suites (`*.scenarios.test.ts`). Payments mocked; in-memory Mongo; nothing live touched.
+
+| # | Sev | Module | Finding (evidence) | Status |
+|---|---|---|---|---|
+| 1 | P1 | Messaging | Chat attachments accepted any URL, including `javascript:`, and the chat renders file attachments as a link, so a click ran script (stored XSS between guest and host). Socket path skipped validation entirely (no length cap). | Implemented + Verified (M6–M10, Q5): one gate `cleanMessage` for REST and socket; only the sender's own `message` upload, URL rebuilt server-side |
+| 2 | P1 | Users | Date of birth could be edited after the ID check confirmed it; insurance age falls back to the profile date, so an under-25 could lower their own surcharge. Profile and onboarding had separate DOB rules. | Implemented + Verified (P6–P8): one `assertAdultDob`, locked once `verifiedDob` exists, profile shows it read-only |
+| 3 | P1 | Vehicles | Any car (draft, unverified, suspended, banned host) was viewable by id. | Implemented + Verified (V2, V2b): off-market cars only for owner, staff, the host's Captains, and guests who booked it |
+| 4 | P2 | Messaging | Long chats returned the oldest 200 messages, so the newest disappeared after 200. Same in the admin thread (500). | Implemented + Verified (M11) |
+| 5 | P2 | Messaging | A host could open a pre-booking thread with any user id (unsolicited messages). | Implemented + Verified (Q2) |
+| 6 | P2 | Search | `instantBook=false` was read as true (`z.coerce.boolean`). | Implemented + Verified (S6) |
+| 7 | P2 | Search | Price/rating/newest sorts sorted only the nearest N cars in memory, so "cheapest" was not the cheapest. Now sorted in the database across the radius. | Implemented + Verified (S3, S4). Index note: `$geoWithin` + sort uses the 2dsphere index then sorts matches; fine at current catalog size, add a compound index only if profiling shows it |
+| 8 | P2 | Search | Result filter and filter-count filter were two copies; counts ignored delivery/features. One `matchFilter` now feeds both. | Implemented + Verified (S12) |
+| 9 | P2 | Reviews | No closing time on writing a review: after the blind window released one side, the other could read it and reply. | Implemented + Verified (R8) |
+| 10 | P3 | Reviews | Deleted reviews still counted in car/host ratings; list endpoints accepted a missing subject. | Implemented + Verified (R9, R10) |
+| 11 | P3 | Favorites | Any string saved as a favorite, unbounded list, off-market cars shown, order lost. | Implemented (200 cap, listed cars only, saved order) |
+| 12 | P3 | Search, chat UI | Impossible ranges (end before start, max price below min) now refused by the API; the website drops a half-typed max instead of erroring. Chat send now reports failure and keeps the text; 2,000-character counter. | Implemented, typechecked; not browser-tested |
+| 13 | P3 | Config | `ALLOW_TEST_STRIPE_IN_PRODUCTION` in `env.schema.ts` still uses `z.coerce.boolean`; unused (main.ts reads the raw string). | Deferred: dead field, safe to delete in a cleanup |
+
+Access sweep (verified): a stranger and an unrelated host were refused (403/404) on 18 guest booking routes and 6 trip routes, and the booking was unchanged afterwards.
+
+---
+
 ## UX patterns round — 2026-11-07 (admin, operations panel, partner portal)
 
 Checked the three panels against a 20-pattern SaaS UX list. Shared code lives in `frontend/src`, so each fix lands in all three.

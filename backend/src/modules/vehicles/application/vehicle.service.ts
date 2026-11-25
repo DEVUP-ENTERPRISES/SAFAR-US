@@ -219,13 +219,24 @@ export class VehicleService implements IVehicleContract {
   }
 
   /** The full document for the owning host; everyone else gets the public projection. */
-  async getForViewer(viewerId: string | undefined, vehicleId: string): Promise<VehicleDoc> {
+  async getForViewer(viewer: { userId: string; permissions: string[] } | undefined, vehicleId: string): Promise<VehicleDoc> {
     const v = await this.getById(vehicleId);
-    if (viewerId) {
-      const host = await hostService.getByUserId(viewerId);
+    if (viewer) {
+      const host = await hostService.getByUserId(viewer.userId);
       if (host && host._id === v.hostId) return v;
     }
-    return toPublicVehicle(v);
+    if (v.status === 'listed' && v.verificationStatus === 'verified') return toPublicVehicle(v);
+    // A car off the marketplace stays visible only to people with a reason: staff, its fleet's staff, and guests who booked it.
+    if (viewer && (await this.hasReasonToSee(viewer, v))) return toPublicVehicle(v);
+    throw new NotFoundError('Vehicle');
+  }
+
+  private async hasReasonToSee(viewer: { userId: string; permissions: string[] }, v: VehicleDoc): Promise<boolean> {
+    if (viewer.permissions.includes('*') || viewer.permissions.includes('admin:read')) return true;
+    const { BookingModel } = await import('../../bookings/infrastructure/booking.model');
+    if (await BookingModel.exists({ vehicleId: String(v._id), guestId: viewer.userId })) return true;
+    const { HostStaffModel } = await import('../../hosts/infrastructure/host-staff.model');
+    return !!(await HostStaffModel.exists({ userId: viewer.userId, hostId: v.hostId, status: 'active' }));
   }
 
   /** Batch resolve (avoids N+1 for favorites / recently-viewed hydration). */

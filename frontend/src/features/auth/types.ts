@@ -47,6 +47,7 @@ export interface Me {
   emergencyContacts: EmergencyContact[];
   emailVerified?: boolean;
   phoneVerified?: boolean;
+  dobLocked?: boolean;
   roles: string[];
   status: string;
 }

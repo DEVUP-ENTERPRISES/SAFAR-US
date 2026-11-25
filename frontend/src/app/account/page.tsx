@@ -134,7 +134,9 @@ function Account() {
             <Field label="First name"><Input className="h-12 rounded-xl text-base" value={profile.firstName} onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} /></Field>
             <Field label="Last name"><Input className="h-12 rounded-xl text-base" value={profile.lastName} onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} /></Field>
             <Field label="Phone"><PhoneInput value={profile.phone} onChange={(v) => setProfile((p) => ({ ...p, phone: v }))} /></Field>
-            <Field label="Date of birth"><Input className="h-12 rounded-xl text-base" type="date" value={profile.dateOfBirth} onChange={(e) => setProfile({ ...profile, dateOfBirth: e.target.value })} /></Field>
+            <Field label="Date of birth" hint={me.data.dobLocked ? 'From your verified ID. Contact support if it’s wrong.' : undefined}>
+              <Input className="h-12 rounded-xl text-base" type="date" value={profile.dateOfBirth} disabled={!!me.data.dobLocked} onChange={(e) => setProfile({ ...profile, dateOfBirth: e.target.value })} />
+            </Field>
             <Field label="Email"><Input className="h-12 rounded-xl text-base opacity-70" value={me.data.email ?? ''} disabled /></Field>
             <div className="flex items-end gap-4 h-full pt-6">
               <Button size="lg" className="rounded-xl w-full sm:w-auto font-bold" loading={saveProfile.isPending} onClick={() => saveProfile.mutate()}>Save profile</Button>

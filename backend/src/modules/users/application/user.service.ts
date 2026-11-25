@@ -8,6 +8,8 @@ import {
   type ProfileStatus,
 } from '../domain/profile-completion';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
+import { KycModel } from '../../kyc/infrastructure/kyc.model';
+import { resolveOwnedUpload } from '../../../infrastructure/storage/owned-upload';
 
 export interface OnboardingDto {
   firstName: string;
@@ -29,6 +31,20 @@ export interface ProfilePatch {
 }
 
 /** Customer self-service profile: identity, saved addresses, emergency contacts. */
+/** One rule for a birth date anywhere it is entered: it must parse and clear the minimum rental age. */
+function assertAdultDob(dob: string, minAgeYears: number): void {
+  const age = ageInYears(dob);
+  if (age == null) throw new AppError({ code: 'INVALID_DOB', message: 'Enter a valid date of birth.', httpStatus: 422 });
+  if (age < minAgeYears) throw new AppError({ code: 'UNDERAGE', message: `You must be at least ${minAgeYears} to use CatoDrive.`, httpStatus: 422 });
+}
+
+// Insurance age falls back to the profile date, so it can't be edited once an ID has confirmed one.
+async function assertDobEditable(userId: string): Promise<void> {
+  if (await KycModel.exists({ userId, verifiedDob: { $ne: null } })) {
+    throw new AppError({ code: 'DOB_LOCKED', message: 'Your date of birth comes from your verified ID. Contact support if it is wrong.', httpStatus: 409 });
+  }
+}
+
 export class UserService {
   async get(userId: string): Promise<UserDoc> {
     const user = await UserModel.findOne({ _id: userId, deletedAt: null }).lean<UserDoc>();
@@ -37,12 +53,20 @@ export class UserService {
   }
 
   async updateProfile(userId: string, patch: ProfilePatch): Promise<UserDoc> {
+    const current = await this.get(userId);
     const set: Record<string, unknown> = {};
     (['firstName', 'lastName', 'phone', 'avatarUrl', 'dateOfBirth', 'timezone'] as const).forEach((k) => {
       if (patch[k] !== undefined) set[k] = patch[k];
     });
     // A new number has not been proven; the old confirmation does not carry over.
-    if (patch.phone !== undefined && patch.phone !== (await this.get(userId)).phone) set.phoneVerified = false;
+    if (patch.phone !== undefined && patch.phone !== current.phone) set.phoneVerified = false;
+    if (patch.avatarUrl !== undefined && patch.avatarUrl !== current.avatarUrl) {
+      set.avatarUrl = resolveOwnedUpload({ url: patch.avatarUrl }, userId, 'avatar').url;
+    }
+    if (patch.dateOfBirth !== undefined && patch.dateOfBirth !== current.dateOfBirth) {
+      await assertDobEditable(userId);
+      assertAdultDob(patch.dateOfBirth, (await platformConfigService.get()).legal.minAgeYears);
+    }
     await UserModel.updateOne({ _id: userId }, set);
     return this.get(userId);
   }
@@ -68,15 +92,9 @@ export class UserService {
    */
   async completeOnboarding(userId: string, dto: OnboardingDto): Promise<{ user: UserDoc; profile: ProfileStatus }> {
     const config = await platformConfigService.get();
-    const age = ageInYears(dto.dateOfBirth);
-    if (age == null) throw new AppError({ code: 'INVALID_DOB', message: 'Enter a valid date of birth.', httpStatus: 422 });
-    if (age < config.legal.minAgeYears) {
-      throw new AppError({
-        code: 'UNDERAGE',
-        message: `You must be at least ${config.legal.minAgeYears} to use CatoDrive.`,
-        httpStatus: 422,
-      });
-    }
+    assertAdultDob(dto.dateOfBirth, config.legal.minAgeYears);
+    const before = await this.get(userId);
+    if (before.dateOfBirth && before.dateOfBirth !== dto.dateOfBirth) await assertDobEditable(userId);
 
     const address: Address = {
       id: randomId(),
@@ -105,8 +123,8 @@ export class UserService {
             lastName: dto.lastName,
             dateOfBirth: dto.dateOfBirth,
             phone: dto.phone,
-            ...(dto.phone !== (await this.get(userId)).phone ? { phoneVerified: false } : {}),
-            ...(dto.avatarUrl ? { avatarUrl: dto.avatarUrl } : {}),
+            ...(dto.phone !== before.phone ? { phoneVerified: false } : {}),
+            ...(dto.avatarUrl ? { avatarUrl: dto.avatarUrl === before.avatarUrl ? dto.avatarUrl : resolveOwnedUpload({ url: dto.avatarUrl }, userId, 'avatar').url } : {}),
             // Setup writes the primary/home address and the emergency contact.
             // Replacing keeps re-submits from stacking duplicate rows.
             addresses: [address],

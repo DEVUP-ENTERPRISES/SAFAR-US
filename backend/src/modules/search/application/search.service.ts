@@ -38,58 +38,20 @@ export interface SearchQuery {
  */
 export class SearchService {
   async searchVehicles(q: SearchQuery): Promise<VehicleDoc[]> {
-    const radiusMeters = (q.radiusKm ?? 25) * 1000;
     const limit = Math.min(q.limit ?? 24, 50);
-
-    const filter: Record<string, unknown> = {
-      status: 'listed',
-      verificationStatus: 'verified',
-      deletedAt: null,
-      location: {
-        $near: {
-          $geometry: { type: 'Point', coordinates: [q.lng, q.lat] },
-          $maxDistance: radiusMeters,
-        },
-      },
-    };
-    if (q.make) filter.make = new RegExp(`^${escapeRegex(q.make)}`, 'i');
-    if (q.bodyType) filter.bodyType = q.bodyType;
-    if (q.category) filter.category = q.category;
-    if (q.fuelType) filter.fuelType = q.fuelType;
-    if (q.transmission) filter.transmission = q.transmission;
-    if (q.seatsMin) filter.seats = { $gte: q.seatsMin };
-    if (q.yearMin || q.yearMax) {
-      const year: Record<string, number> = {};
-      if (q.yearMin) year.$gte = q.yearMin;
-      if (q.yearMax) year.$lte = q.yearMax;
-      filter.year = year;
-    }
-    if (q.instantBook !== undefined) filter['listing.instantBook'] = q.instantBook;
-    if (q.ratingMin) filter.ratingAvg = { $gte: q.ratingMin };
-    if (q.delivery) {
-      filter.$or = [
-        { 'listing.delivery.airport': true },
-        { 'listing.delivery.home': true },
-        { 'listing.delivery.hotel': true },
-        { 'listing.delivery.business': true },
-      ];
-    }
-    if (q.priceMin || q.priceMax) {
-      const price: Record<string, number> = {};
-      if (q.priceMin) price.$gte = q.priceMin;
-      if (q.priceMax) price.$lte = q.priceMax;
-      filter['pricing.dailyPrice'] = price;
-    }
-    if (q.features) {
-      const feats = q.features.split(',').map((f) => f.trim()).filter(Boolean);
-      if (feats.length) filter.features = { $all: feats };
-    }
-
-    // $near already sorts by distance (relevance). For explicit sorts we apply
-    // an in-memory sort after fetching (fine at this catalog size; a dedicated
-    // search engine handles this at scale).
+    const sort = q.sort ?? 'relevance';
     const fetchLimit = q.start && q.end ? limit * 3 : limit;
-    const candidates = await VehicleModel.find(filter).limit(fetchLimit).lean<VehicleDoc[]>();
+    // Nearest-first uses $near; any other order must sort the whole radius in the database, not just the nearest few.
+    const dbSort = DB_SORT[sort];
+    const filter = dbSort
+      ? { ...matchFilter(q), location: withinRadius(q) }
+      : {
+          ...matchFilter(q),
+          location: { $near: { $geometry: { type: 'Point', coordinates: [q.lng, q.lat] }, $maxDistance: (q.radiusKm ?? 25) * 1000 } },
+        };
+    const query = VehicleModel.find(filter).limit(fetchLimit);
+    if (dbSort) query.sort(dbSort);
+    const candidates = await query.lean<VehicleDoc[]>();
 
     let results = candidates;
     if (q.start && q.end) {
@@ -104,7 +66,6 @@ export class SearchService {
       results = candidates.filter((v) => free.has(v._id));
     }
 
-    const sort = q.sort ?? 'relevance';
     results = this.applySort(results, sort);
     // Superhost ranking boost (stable) — surfaces top hosts on the default views.
     if (['relevance', 'trending', 'rating'].includes(sort)) {
@@ -139,44 +100,8 @@ export class SearchService {
     delivery: number;
     priceRange: { min: number; max: number } | null;
   }> {
-    // $near is illegal inside an aggregation $match (it implies a sort), and
-    // counting has no use for distance ordering anyway — $geoWithin expresses
-    // "inside this radius" without one. Radians, per $centerSphere.
-    const EARTH_RADIUS_KM = 6378.1;
-    const radiusRadians = (q.radiusKm ?? 25) / EARTH_RADIUS_KM;
-
-    /** The filter for everything EXCEPT the named dimension. */
-    const build = (except?: keyof SearchQuery): Record<string, unknown> => {
-      const f: Record<string, unknown> = {
-        status: 'listed',
-        verificationStatus: 'verified',
-        deletedAt: null,
-        location: {
-          $geoWithin: { $centerSphere: [[q.lng, q.lat], radiusRadians] },
-        },
-      };
-      if (q.category && except !== 'category') f.category = q.category;
-      if (q.bodyType && except !== 'bodyType') f.bodyType = q.bodyType;
-      if (q.fuelType && except !== 'fuelType') f.fuelType = q.fuelType;
-      if (q.transmission && except !== 'transmission') f.transmission = q.transmission;
-      if (q.seatsMin && except !== 'seatsMin') f.seats = { $gte: q.seatsMin };
-      if (q.make && except !== 'make') f.make = new RegExp(`^${escapeRegex(q.make)}`, 'i');
-      if (q.instantBook !== undefined && except !== 'instantBook') f['listing.instantBook'] = q.instantBook;
-      if (q.ratingMin && except !== 'ratingMin') f.ratingAvg = { $gte: q.ratingMin };
-      if (q.yearMin || q.yearMax) {
-        const year: Record<string, number> = {};
-        if (q.yearMin) year.$gte = q.yearMin;
-        if (q.yearMax) year.$lte = q.yearMax;
-        if (except !== 'yearMin' && except !== 'yearMax') f.year = year;
-      }
-      if ((q.priceMin || q.priceMax) && except !== 'priceMin' && except !== 'priceMax') {
-        const price: Record<string, number> = {};
-        if (q.priceMin) price.$gte = q.priceMin;
-        if (q.priceMax) price.$lte = q.priceMax;
-        f['pricing.dailyPrice'] = price;
-      }
-      return f;
-    };
+    // Each dimension is counted with its own filter removed; everything else matches the result list exactly.
+    const build = (except?: keyof SearchQuery): Record<string, unknown> => ({ ...matchFilter(q, except), location: withinRadius(q) });
 
     const countBy = async (field: string, except: keyof SearchQuery): Promise<Record<string, number>> => {
       const rows = await VehicleModel.aggregate<{ _id: string | number; n: number }>([
@@ -201,15 +126,7 @@ export class SearchService {
           { $group: { _id: '$seats', n: { $sum: 1 } } },
         ]),
         VehicleModel.countDocuments({ ...build('instantBook'), 'listing.instantBook': true }),
-        VehicleModel.countDocuments({
-          ...build(),
-          $or: [
-            { 'listing.delivery.airport': true },
-            { 'listing.delivery.home': true },
-            { 'listing.delivery.hotel': true },
-            { 'listing.delivery.business': true },
-          ],
-        }),
+        VehicleModel.countDocuments({ ...build('delivery'), $or: DELIVERY_ANY }),
         VehicleModel.aggregate<{ min: number; max: number }>([
           { $match: build('priceMin') },
           { $group: { _id: null, min: { $min: '$pricing.dailyPrice' }, max: { $max: '$pricing.dailyPrice' } } },
@@ -406,6 +323,50 @@ export class SearchService {
         return arr; // relevance = geo distance from $near
     }
   }
+}
+
+const EARTH_RADIUS_KM = 6378.1;
+
+const DELIVERY_ANY = [
+  { 'listing.delivery.airport': true },
+  { 'listing.delivery.home': true },
+  { 'listing.delivery.hotel': true },
+  { 'listing.delivery.business': true },
+];
+
+const DB_SORT: Partial<Record<SortKey, Record<string, 1 | -1>>> = {
+  price_asc: { 'pricing.dailyPrice': 1, _id: 1 },
+  price_desc: { 'pricing.dailyPrice': -1, _id: 1 },
+  rating: { ratingAvg: -1, ratingCount: -1, _id: 1 },
+  trending: { totalTrips: -1, ratingCount: -1, _id: 1 },
+  newest: { createdAt: -1, _id: 1 },
+};
+
+function withinRadius(q: SearchQuery) {
+  return { $geoWithin: { $centerSphere: [[q.lng, q.lat], (q.radiusKm ?? 25) / EARTH_RADIUS_KM] } };
+}
+
+/** Every non-geo search filter, defined once so results and filter counts can never disagree. */
+export function matchFilter(q: SearchQuery, except?: keyof SearchQuery): Record<string, unknown> {
+  const f: Record<string, unknown> = { status: 'listed', verificationStatus: 'verified', deletedAt: null };
+  if (q.category && except !== 'category') f.category = q.category;
+  if (q.bodyType && except !== 'bodyType') f.bodyType = q.bodyType;
+  if (q.fuelType && except !== 'fuelType') f.fuelType = q.fuelType;
+  if (q.transmission && except !== 'transmission') f.transmission = q.transmission;
+  if (q.seatsMin && except !== 'seatsMin') f.seats = { $gte: q.seatsMin };
+  if (q.make && except !== 'make') f.make = new RegExp(`^${escapeRegex(q.make)}`, 'i');
+  if (q.instantBook !== undefined && except !== 'instantBook') f['listing.instantBook'] = q.instantBook;
+  if (q.ratingMin && except !== 'ratingMin') f.ratingAvg = { $gte: q.ratingMin };
+  if (q.delivery && except !== 'delivery') f.$or = DELIVERY_ANY;
+  if ((q.yearMin || q.yearMax) && except !== 'yearMin' && except !== 'yearMax') {
+    f.year = { ...(q.yearMin ? { $gte: q.yearMin } : {}), ...(q.yearMax ? { $lte: q.yearMax } : {}) };
+  }
+  if ((q.priceMin || q.priceMax) && except !== 'priceMin' && except !== 'priceMax') {
+    f['pricing.dailyPrice'] = { ...(q.priceMin ? { $gte: q.priceMin } : {}), ...(q.priceMax ? { $lte: q.priceMax } : {}) };
+  }
+  const feats = (q.features ?? '').split(',').map((x) => x.trim()).filter(Boolean).slice(0, 20);
+  if (feats.length && except !== 'features') f.features = { $all: feats };
+  return f;
 }
 
 function escapeRegex(s: string): string {

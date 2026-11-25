@@ -226,7 +226,7 @@ router.get(
   '/:id',
   authenticateOptional,
   asyncHandler(async (req, res) => {
-    sendSuccess(res, await vehicleService.getForViewer(req.principal?.userId, req.params.id));
+    sendSuccess(res, await vehicleService.getForViewer(req.principal, req.params.id));
   }),
 );
 

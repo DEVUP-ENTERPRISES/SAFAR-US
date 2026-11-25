@@ -12,7 +12,8 @@ const router = Router();
 const sendSchema = z.object({
   body: z.string().max(2000).default(''),
   attachments: z
-    .array(z.object({ url: z.string().url(), kind: z.enum(['image', 'file']), name: z.string().optional() }))
+    .array(z.object({ url: z.string().max(1024), kind: z.enum(['image', 'file']), name: z.string().max(120).optional() }))
+    .max(4)
     .default([]),
 });
 

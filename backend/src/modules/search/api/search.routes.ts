@@ -9,13 +9,16 @@ import { sendSuccess } from '../../../shared/http/api-response';
 
 const router = Router();
 
+// z.coerce.boolean() turns the string "false" into true.
+const flag = z.enum(['true', 'false', '1', '0']).transform((v) => v === 'true' || v === '1');
+
 const searchSchema = z.object({
   lng: z.coerce.number().min(-180).max(180),
   lat: z.coerce.number().min(-90).max(90),
   radiusKm: z.coerce.number().positive().max(500).optional(),
-  make: z.string().optional(),
-  bodyType: z.string().optional(),
-  category: z.string().optional(),
+  make: z.string().max(60).optional(),
+  bodyType: z.string().max(60).optional(),
+  category: z.string().max(60).optional(),
   fuelType: z.enum(['petrol', 'diesel', 'hybrid', 'ev']).optional(),
   transmission: z.enum(['manual', 'automatic']).optional(),
   seatsMin: z.coerce.number().int().positive().optional(),
@@ -23,15 +26,18 @@ const searchSchema = z.object({
   yearMax: z.coerce.number().int().min(1900).max(2100).optional(),
   priceMin: z.coerce.number().int().positive().optional(),
   priceMax: z.coerce.number().int().positive().optional(),
-  instantBook: z.coerce.boolean().optional(),
-  delivery: z.coerce.boolean().optional(),
+  instantBook: flag.optional(),
+  delivery: flag.optional(),
   ratingMin: z.coerce.number().min(0).max(5).optional(),
-  features: z.string().optional(),
+  features: z.string().max(600).optional(),
   start: z.coerce.date().optional(),
   end: z.coerce.date().optional(),
   sort: z.enum(['relevance', 'price_asc', 'price_desc', 'rating', 'trending', 'newest']).optional(),
   limit: z.coerce.number().int().positive().max(50).optional(),
-});
+})
+  .refine((q) => !q.start === !q.end, { message: 'Pick both a start and an end date', path: ['end'] })
+  .refine((q) => !q.start || !q.end || q.end > q.start, { message: 'The end must be after the start', path: ['end'] })
+  .refine((q) => !q.priceMin || !q.priceMax || q.priceMax >= q.priceMin, { message: 'Max price must be at least the min price', path: ['priceMax'] });
 
 /**
  * How many cars each filter option would return, given everything else the

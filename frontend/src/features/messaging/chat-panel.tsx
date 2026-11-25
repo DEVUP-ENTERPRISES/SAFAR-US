@@ -22,6 +22,8 @@ const QUICK_REPLIES = [
   'Sounds good',
 ];
 
+const MAX_MESSAGE = 2000;
+
 export function ChatPanel({ bookingId }: { bookingId: string }) {
   const me = useAuthStore((s) => s.user);
   const notify = useToast();
@@ -45,13 +47,19 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
     el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
   };
 
-  const submit = () => {
-    if (!text.trim()) return;
-    send(text.trim());
+  const failed = () => notify({ tone: 'error', title: 'Message not sent', description: 'Check your connection and try again.' });
+
+  const submit = async () => {
+    const body = text.trim();
+    if (!body) return;
     setText('');
     requestAnimationFrame(() => {
       if (taRef.current) taRef.current.style.height = 'auto';
     });
+    if (!(await send(body))) {
+      setText((now) => now || body);
+      failed();
+    }
   };
 
   const sendPhoto = async (files: FileList | null) => {
@@ -60,7 +68,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
     setUploading(true);
     try {
       const [uploaded] = await uploadFiles('message', [file]);
-      send('', [{ url: uploaded.url, kind: 'image' }]);
+      if (!(await send('', [{ url: uploaded.url, kind: 'image' }]))) failed();
     } catch (err) {
       notify({ tone: 'error', title: 'Couldn’t send photo', description: err instanceof Error ? safeMessage(err.message) : 'Try again.' });
     } finally {
@@ -157,7 +165,7 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
         {QUICK_REPLIES.map((q) => (
           <button
             key={q}
-            onClick={() => send(q)}
+            onClick={async () => { if (!(await send(q))) failed(); }}
             className="shrink-0 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
           >
             {q}
@@ -191,15 +199,20 @@ export function ChatPanel({ bookingId }: { bookingId: string }) {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                submit();
+                void submit();
               }
             }}
             placeholder="Message on CatoDrive…"
-            className="min-w-0 max-h-32 min-h-[2.25rem] flex-1 resize-none bg-transparent py-2 text-[14.5px] leading-snug outline-none placeholder:text-muted-foreground"
+            maxLength={MAX_MESSAGE}
+            aria-label="Message"
+            className="min-w-0 max-h-32 min-h-[2.25rem] flex-1 resize-none bg-transparent py-2 text-sm leading-snug outline-none placeholder:text-muted-foreground"
           />
+          {text.length > MAX_MESSAGE - 200 && (
+            <span className="shrink-0 self-center text-xs tabular-nums text-muted-foreground" aria-live="polite">{MAX_MESSAGE - text.length}</span>
+          )}
         </div>
         <button
-          onClick={submit}
+          onClick={() => void submit()}
           disabled={!text.trim()}
           aria-label="Send"
           className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-40"

@@ -44,8 +44,8 @@ describe('public vehicle projection', () => {
 
   it('serves the full document to the owning host and the projection to everyone else', async () => {
     await seed();
-    expect((await vehicleService.getForViewer('user-1', 'veh-1')).pickup?.accessCode).toBe('4417');
-    for (const viewer of [undefined, 'user-2']) {
+    expect((await vehicleService.getForViewer({ userId: 'user-1', permissions: [] }, 'veh-1')).pickup?.accessCode).toBe('4417');
+    for (const viewer of [undefined, { userId: 'user-2', permissions: [] }]) {
       const v = await vehicleService.getForViewer(viewer, 'veh-1');
       expect(JSON.stringify(v)).not.toMatch(/4417|ABC-123|1HGCM82633A004352|12 Oak St/);
     }

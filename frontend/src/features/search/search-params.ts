@@ -57,7 +57,9 @@ export function buildSearchParams(
   f: SearchFilters,
 ): SearchParams | null {
   if (!coords) return null;
-  const bothDates = !!(dates.startIso && dates.endIso);
+  const bothDates = !!(dates.startIso && dates.endIso) && Date.parse(dates.endIso!) > Date.parse(dates.startIso!);
+  const min = f.priceMin ? Number(f.priceMin) : 0;
+  const max = f.priceMax ? Number(f.priceMax) : 0;
   return {
     ...coords,
     radiusKm: 50,
@@ -70,8 +72,9 @@ export function buildSearchParams(
     instantBook: f.instantBook || undefined,
     delivery: f.delivery || undefined,
     seatsMin: f.seatsMin ? Number(f.seatsMin) : undefined,
-    priceMin: f.priceMin ? Number(f.priceMin) * 100 : undefined,
-    priceMax: f.priceMax ? Number(f.priceMax) * 100 : undefined,
+    priceMin: min > 0 ? min * 100 : undefined,
+    // A max below the min is still being typed; search on the min alone rather than fail.
+    priceMax: max > 0 && max >= min ? max * 100 : undefined,
     yearMin: f.yearMin ? Number(f.yearMin) : undefined,
     yearMax: f.yearMax ? Number(f.yearMax) : undefined,
     ratingMin: f.ratingMin || undefined,

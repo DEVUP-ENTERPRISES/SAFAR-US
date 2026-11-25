@@ -4,9 +4,10 @@ import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { hostService } from '../../hosts/application/host.service';
 import { HostModel } from '../../hosts/infrastructure/host.model';
 import { UserModel } from '../../users/infrastructure/user.model';
-import { ForbiddenError, NotFoundError, ValidationError } from '../../../core/errors/app-error';
+import { ForbiddenError, NotFoundError } from '../../../core/errors/app-error';
 import { emit } from '../../../shared/events/event-bus';
 import { EVENTS } from '../../../core/events/event-names';
+import { cleanMessage } from './attachments';
 
 export interface InquiryAttachment {
   url: string;
@@ -37,7 +38,7 @@ export class InquiryService {
     body: string,
     attachments: InquiryAttachment[] = [],
   ): Promise<InquiryMessageDoc> {
-    if (!body.trim() && attachments.length === 0) throw new ValidationError('Message cannot be empty');
+    const clean = cleanMessage(senderId, body, attachments);
     const vehicle = await VehicleModel.findById(vehicleId).lean();
     if (!vehicle) throw new NotFoundError('Vehicle');
     const host = await hostService.getById(vehicle.hostId);
@@ -48,7 +49,7 @@ export class InquiryService {
       throw new ForbiddenError('Use the reply endpoint to answer a guest inquiry');
     }
 
-    return this.write(vehicleId, vehicle.hostId, senderId, senderId, attachments, body);
+    return this.write(vehicleId, vehicle.hostId, senderId, senderId, clean.attachments, clean.body);
   }
 
   /** Host replies within a specific guest's thread on one of their cars. */
@@ -59,13 +60,16 @@ export class InquiryService {
     body: string,
     attachments: InquiryAttachment[] = [],
   ): Promise<InquiryMessageDoc> {
-    if (!body.trim() && attachments.length === 0) throw new ValidationError('Message cannot be empty');
+    const clean = cleanMessage(senderId, body, attachments);
     const vehicle = await VehicleModel.findById(vehicleId).lean();
     if (!vehicle) throw new NotFoundError('Vehicle');
     const host = await hostService.getById(vehicle.hostId);
     if (host.userId !== senderId) throw new ForbiddenError('Not the host of this vehicle');
+    // A host answers a guest who asked; they can't open a thread with any user id.
+    const asked = await InquiryMessageModel.exists({ vehicleId, guestId, senderId: guestId });
+    if (!asked) throw new ForbiddenError('This guest hasn’t asked about this car');
 
-    return this.write(vehicleId, vehicle.hostId, guestId, senderId, attachments, body);
+    return this.write(vehicleId, vehicle.hostId, guestId, senderId, clean.attachments, clean.body);
   }
 
   private async write(

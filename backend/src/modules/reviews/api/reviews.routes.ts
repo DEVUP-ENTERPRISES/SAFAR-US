@@ -12,7 +12,7 @@ const router = Router();
 const createSchema = z.object({
   bookingId: z.string().min(1),
   rating: z.number().int().min(1).max(5),
-  comment: z.string().max(1000).default(''),
+  comment: z.string().trim().max(1000).default(''),
 });
 
 router.post(
@@ -30,8 +30,11 @@ router.post(
   }),
 );
 
+const subjectQuery = z.object({ subjectId: z.string().min(1).max(64) });
+
 router.get(
   '/',
+  validate({ query: subjectQuery }),
   asyncHandler(async (req, res) => {
     const subjectId = req.query.subjectId as string;
     sendSuccess(res, await reviewService.listForSubject(subjectId));
@@ -41,6 +44,7 @@ router.get(
 /** Star-rating breakdown for a subject — powers the reviews histogram. */
 router.get(
   '/distribution',
+  validate({ query: subjectQuery }),
   asyncHandler(async (req, res) => {
     sendSuccess(res, await reviewService.distribution(req.query.subjectId as string));
   }),

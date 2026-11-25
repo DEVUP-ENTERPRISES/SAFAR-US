@@ -16,6 +16,13 @@ export class ReviewService {
       throw new ConflictError('You can only review completed trips', 'NOT_COMPLETED');
     }
 
+    // The window that releases a one-sided review also closes writing, so a late review can't answer a released one.
+    const { reviews: cfg } = await platformConfigService.get();
+    const doneAt = [...(booking.statusHistory ?? [])].reverse().find((h) => h.to === 'completed')?.at ?? booking.period.end;
+    if (Date.now() - new Date(doneAt).getTime() > cfg.blindWindowDays * 86_400_000) {
+      throw new ConflictError(`Reviews close ${cfg.blindWindowDays} days after the trip ends`, 'REVIEW_WINDOW_CLOSED');
+    }
+
     const host = await hostService.getByUserId(userId);
     const isGuest = booking.guestId === userId;
     const isHost = !!host && host._id === booking.hostId;
@@ -161,7 +168,7 @@ export class ReviewService {
 
   private async recomputeAggregates(vehicleId: string, hostId: string): Promise<void> {
     const [vehStats] = await ReviewModel.aggregate<{ avg: number; count: number }>([
-      { $match: { vehicleId, status: 'published' } },
+      { $match: { vehicleId, status: 'published', deletedAt: null } },
       { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
     ]);
     if (vehStats) {
@@ -171,7 +178,7 @@ export class ReviewService {
       );
     }
     const [hostStats] = await ReviewModel.aggregate<{ avg: number; count: number }>([
-      { $match: { hostId, status: 'published' } },
+      { $match: { hostId, status: 'published', deletedAt: null } },
       { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
     ]);
     if (hostStats) {
