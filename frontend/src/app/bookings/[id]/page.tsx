@@ -34,7 +34,7 @@ import { ExtensionHistory } from '@/features/bookings/components/extension-histo
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
 import { TripDocuments } from '@/features/trips/components/trip-documents';
 import { SwapOffer } from '@/features/bookings/components/swap-offer';
-import { TripProgress } from '@/features/bookings/components/trip-progress';
+import { TripCopilot } from '@/features/bookings/components/trip-copilot';
 import { ApiError } from '@/lib/api/types';
 import { pushConfigured } from '@/features/push/firebase';
 import { enablePush } from '@/features/push/use-push';
@@ -229,7 +229,7 @@ function BookingDetail({ id }: { id: string }) {
                 <Button variant="outline" size="sm">View listing</Button>
               </Link>
               {b.status === 'pending_payment' && (
-                <Button size="sm" loading={completePayment.isPending} onClick={() => completePayment.mutate(id)}>
+                <Button id="pay" size="sm" className="scroll-mt-20" loading={completePayment.isPending} onClick={() => completePayment.mutate(id)}>
                   Complete payment
                 </Button>
               )}
@@ -276,19 +276,15 @@ function BookingDetail({ id }: { id: string }) {
         </Card>
       )}
 
-      <TripProgress
-        status={String(b.status)}
-        pickupAt={b.period.start}
-        onVerify={() => router.push('/account/verify-identity')}
-      />
+      <TripCopilot bookingId={id} />
 
       {/* Time-critical and full width: this is the screen a guest is actually
           on in the half hour before pickup. Both hide themselves outside
           their window. */}
       <TrackingPanel bookingId={id} role="guest" />
       {b.status === 'in_progress' && <TripDocuments bookingId={id} />}
-      {['paid', 'confirmed', 'in_progress'].includes(String(b.status)) && <PickupCode bookingId={id} />}
-      {b.status === 'paid' && !b.tripId && <InspectionPhotos bookingId={id} phase="pre" />}
+      {['paid', 'confirmed', 'in_progress'].includes(String(b.status)) && <div id="pickup-code" className="scroll-mt-20"><PickupCode bookingId={id} /></div>}
+      {b.status === 'paid' && !b.tripId && <div id="photos" className="scroll-mt-20"><InspectionPhotos bookingId={id} phase="pre" /></div>}
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-3 lg:items-start">
         {/* ── Main column ──────────────────────────────────────────────── */}

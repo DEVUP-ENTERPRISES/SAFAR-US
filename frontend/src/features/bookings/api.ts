@@ -58,6 +58,17 @@ export interface ShortenPreview {
   newEnd: string;
 }
 
+/** What the guest should do next on a booking, worked out on the server. */
+export interface NextStep {
+  key: string;
+  tone: 'action' | 'waiting' | 'info' | 'warning' | 'success';
+  title: string;
+  body: string;
+  dueAt?: string;
+  action?: { label: string; href: string };
+  steps: { label: string; done: boolean; current: boolean }[];
+}
+
 export const bookingApi = {
   /**
    * Prices a trip. The token is sent when there is one (membership pricing and
@@ -78,6 +89,7 @@ export const bookingApi = {
   getById: (id: string) => api.get<Booking>(`/bookings/${id}`),
   /** The original receipt plus one per extension. */
   receipts: (id: string) => api.get<BookingReceipts>(`/bookings/${id}/receipts`),
+  nextStep: (id: string) => api.get<NextStep>(`/bookings/${id}/next-step`),
   confirm: (id: string) => api.post<Booking>(`/bookings/${id}/confirm`),
   decline: (id: string) => api.post<Booking>(`/bookings/${id}/decline`),
   /** Either side reports the other's no-show; the server decides who may and when. */

@@ -22,6 +22,7 @@ import { depositService } from '../../payments/application/deposit.service';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 
+import { nextStepService } from '../application/next-step.service';
 const router = Router();
 
 // Public: protection plans shown on the vehicle page and at checkout; with a car, insurance partners' plans for it are included.
@@ -143,6 +144,17 @@ router.get(
   asyncHandler(async (req, res) => {
     const booking = await bookingService.get(req.principal!, req.params.id);
     sendSuccess(res, booking);
+  }),
+);
+
+/** The guest's next step on this booking: one sentence, one button, one deadline. */
+router.get(
+  '/:id/next-step',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const b = await bookingService.getDoc(req.params.id);
+    if (b.guestId !== req.principal!.userId) throw new ForbiddenError('Not your booking');
+    sendSuccess(res, await nextStepService.forGuest(b, req.principal!.userId));
   }),
 );
 

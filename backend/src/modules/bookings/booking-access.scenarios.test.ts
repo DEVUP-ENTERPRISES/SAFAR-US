@@ -35,6 +35,7 @@ async function world(over: Record<string, unknown> = {}) {
 const ROUTE_LIST: [string, string, unknown?][] = [
   ['GET', ''],
   ['GET', '/receipts'],
+  ['GET', '/next-step'],
   ['GET', '/cancellation-preview'],
   ['GET', '/extension-preview?newEnd=2027-01-10T10:00:00Z'],
   ['POST', '/cancel', { reason: 'test' }],

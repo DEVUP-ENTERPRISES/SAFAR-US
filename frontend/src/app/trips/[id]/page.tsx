@@ -161,7 +161,7 @@ function TripDashboard() {
 
         {isCompleted && (
           <section>
-            <ReviewPrompt bookingId={trip.bookingId} role="guest" />
+            <div id="review" className="scroll-mt-20"><ReviewPrompt bookingId={trip.bookingId} role="guest" /></div>
           </section>
         )}
 
@@ -212,7 +212,7 @@ function TripDashboard() {
           </section>
 
           {(isActive || (trip.photos ?? []).some((p) => p.phase === 'post')) && (
-            <section>
+            <section id="return" className="scroll-mt-20">
               <h2 className="text-xl font-bold mb-4">Return condition</h2>
               <InspectionPhotos bookingId={trip.bookingId} phase="post" openSignal={captureSignal} />
               <DamageCheckCard bookingId={trip.bookingId} />
