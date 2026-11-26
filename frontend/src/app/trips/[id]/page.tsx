@@ -18,6 +18,7 @@ import { HandoverPanel } from '@/features/trips/components/handover-panel';
 import { TrackingPanel } from '@/features/trips/components/tracking-panel';
 import { IncidentButton } from '@/features/trips/components/incident-button';
 import { DamageReviewPanel } from '@/features/ai/components/damage-review-panel';
+import { DamageCheckCard } from '@/features/trips/components/damage-check-card';
 import { InspectionPhotos } from '@/features/trips/components/inspection-photos';
 import { TripDocuments } from '@/features/trips/components/trip-documents';
 import { ReviewPrompt } from '@/features/reviews/components/review-prompt';
@@ -214,6 +215,7 @@ function TripDashboard() {
             <section>
               <h2 className="text-xl font-bold mb-4">Return condition</h2>
               <InspectionPhotos bookingId={trip.bookingId} phase="post" openSignal={captureSignal} />
+              <DamageCheckCard bookingId={trip.bookingId} />
             </section>
           )}
         </div>

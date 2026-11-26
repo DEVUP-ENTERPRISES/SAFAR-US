@@ -112,6 +112,7 @@ export const tripApi = {
     api.post<{ updated: boolean }>(`/trips/${id}/location`, { lng, lat }),
   /** Keyed by booking, so pickup photos work before the trip exists. */
   inspection: (bookingId: string) => api.get<InspectionState>(`/trips/booking/${bookingId}/inspection`),
+  damageCheck: (bookingId: string) => api.get<DamageCheck>(`/trips/booking/${bookingId}/damage-check`),
   addPhotos: (bookingId: string, phase: PhotoPhase, photos: PhotoMeta[]) =>
     api.post<InspectionState>(`/trips/booking/${bookingId}/photos`, { phase, photos }),
   reportDamage: (id: string, description: string, photos: string[]) =>
@@ -160,3 +161,9 @@ export interface ApproachState {
   destination?: { lat: number; lng: number; label?: string } | null;
 }
 
+/** Return photos compared with pickup photos automatically; a finding means the host takes a look, never an automatic charge. */
+export interface DamageCheck {
+  status: 'unavailable' | 'waiting_photos' | 'checking' | 'clear' | 'host_review';
+  checkedAt?: string;
+  photosCompared?: { pre: number; post: number };
+}

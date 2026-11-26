@@ -17,6 +17,9 @@ import { guestIdentityCheckService } from '../application/guest-identity-check.s
 import { viewerOf, noStore } from '../../../shared/http/viewer';
 import { BookingModel } from '../../bookings/infrastructure/booking.model';
 
+import { TripModel } from '../infrastructure/trip.model';
+import { bookingService } from '../../bookings/application/booking.service';
+import { damageCheckService } from '../application/damage-check.service';
 const router = Router();
 
 /** Client-side rules the trip UI enforces — single source of truth. */
@@ -118,10 +121,24 @@ router.post(
   authenticate,
   validate({ body: photosBody }),
   asyncHandler(async (req, res) => {
-    sendSuccess(
-      res,
-      await tripService.addPhotos(req.principal!.userId, req.params.bookingId, req.body.phase, req.body.photos),
-    );
+    const out = await tripService.addPhotos(req.principal!.userId, req.params.bookingId, req.body.phase, req.body.photos);
+    // Return photos in: compare them with pickup in the background so the guest sees the result in a minute.
+    if (req.body.phase === 'post') {
+      const trip = await TripModel.findOne({ bookingId: req.params.bookingId }).select('_id').lean<{ _id: string }>();
+      if (trip) void damageCheckService.afterReturnPhotos(trip._id);
+    }
+    sendSuccess(res, out);
+  }),
+);
+
+/** The instant damage check on this booking's return photos, for the guest and the host side. */
+router.get(
+  '/booking/:bookingId/damage-check',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    await bookingService.get(req.principal!, req.params.bookingId);
+    const trip = await TripModel.findOne({ bookingId: req.params.bookingId }).select('_id').lean<{ _id: string }>();
+    sendSuccess(res, trip ? await damageCheckService.view(trip._id) : { status: 'unavailable' });
   }),
 );
 
