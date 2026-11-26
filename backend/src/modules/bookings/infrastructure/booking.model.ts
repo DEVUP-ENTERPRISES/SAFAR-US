@@ -243,8 +243,8 @@ export interface BookingDoc {
    * feature unreachable in exactly the window it was built for.
    */
   approach?: {
-    guest?: { onWayAt?: Date; arrivedAt?: Date; etaAt?: Date; etaNotifiedAt?: Date };
-    host?: { onWayAt?: Date; arrivedAt?: Date; etaAt?: Date; etaNotifiedAt?: Date };
+    guest?: { onWayAt?: Date; arrivedAt?: Date; etaAt?: Date; etaNotifiedAt?: Date; nearNotifiedAt?: Date; byUserId?: string };
+    host?: { onWayAt?: Date; arrivedAt?: Date; etaAt?: Date; etaNotifiedAt?: Date; nearNotifiedAt?: Date; byUserId?: string };
     /** Last known position of each party during the approach. */
     guestAt?: { lat: number; lng: number; at: Date };
     hostAt?: { lat: number; lng: number; at: Date };
@@ -504,8 +504,8 @@ const schema = new Schema<BookingDoc>(
       clearedBy: String,
     },
     approach: {
-      guest: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date },
-      host: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date },
+      guest: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date, nearNotifiedAt: Date, byUserId: String },
+      host: { onWayAt: Date, arrivedAt: Date, etaAt: Date, etaNotifiedAt: Date, nearNotifiedAt: Date, byUserId: String },
       guestAt: { lat: Number, lng: Number, at: Date },
       hostAt: { lat: Number, lng: Number, at: Date },
     },

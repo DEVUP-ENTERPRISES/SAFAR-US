@@ -354,7 +354,7 @@ function BookingDetail({ id }: { id: string }) {
           )}
 
           {canChat && (
-            <Card>
+            <Card id="chat" className="scroll-mt-20">
               <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><MessageSquare className="h-5 w-5 text-primary" /> Message your host</CardTitle></CardHeader>
               <CardContent><ChatPanel bookingId={id} /></CardContent>
             </Card>

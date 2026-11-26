@@ -151,5 +151,12 @@ export interface ApproachState {
   /** How to find the car once you are at the pin. Access code only reaches the
    *  guest, and only once they are on their way. */
   pickup?: { instructions?: string; spotPhotoUrl?: string; accessCode?: string } | null;
+  /** True when the car is brought to the guest. */
+  delivery?: boolean;
+  stage?: 'confirmed' | 'on_way' | 'arriving' | 'arrived' | 'handed_over';
+  /** Who is bringing the car; the phone reaches only the guest, only while it is coming. */
+  driver?: { name: string; avatarUrl?: string; phone?: string } | null;
+  car?: { title: string; plate?: string; color?: string; photoUrl?: string } | null;
+  destination?: { lat: number; lng: number; label?: string } | null;
 }
 

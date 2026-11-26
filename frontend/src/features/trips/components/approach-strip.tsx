@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
+import { connectSocket } from '@/lib/realtime/socket';
+import { DeliveryTracker } from '@/features/trips/components/delivery-tracker';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Car, CheckCircle2, KeyRound, MapPin, Send, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,9 +35,22 @@ export function ApproachStrip({ bookingId, role }: { bookingId: string; role: 'g
   const q = useQuery({
     queryKey: ['approach', bookingId],
     queryFn: () => tripApi.approach(bookingId),
-    refetchInterval: 45_000,
+    refetchInterval: 60_000,
     retry: false,
   });
+
+  // Set off, ETA moved, arrived: the server says so the moment it happens, instead of waiting for the next poll.
+  useEffect(() => {
+    const socket = connectSocket();
+    socket.emit('booking:join', bookingId, () => undefined);
+    const onUpdate = (e: { bookingId: string }) => {
+      if (e.bookingId === bookingId) void qc.invalidateQueries({ queryKey: ['approach', bookingId] });
+    };
+    socket.on('approach:update', onUpdate);
+    return () => {
+      socket.off('approach:update', onUpdate);
+    };
+  }, [bookingId, qc]);
 
   const onWay = useMutation({
     mutationFn: () => tripApi.onMyWay(bookingId),
@@ -47,6 +63,9 @@ export function ApproachStrip({ bookingId, role }: { bookingId: string; role: 'g
 
   if (q.isLoading) return <Skeleton className="h-32 w-full" />;
   if (q.isError || !q.data) return null;
+
+  // A delivered car is a delivery, not a meet-up: the guest gets the live tracker instead.
+  if (role === 'guest' && q.data.delivery) return <DeliveryTracker data={q.data} bookingId={bookingId} />;
 
   const mine: ApproachLeg = role === 'guest' ? q.data.guest : q.data.host;
   const theirs: ApproachLeg = role === 'guest' ? q.data.host : q.data.guest;

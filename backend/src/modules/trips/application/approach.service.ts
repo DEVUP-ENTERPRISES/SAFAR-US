@@ -7,6 +7,8 @@ import { hostService } from '../../hosts/application/host.service';
 import { notificationService } from '../../notifications/application/notification.service';
 import { NotFoundError, ForbiddenError } from '../../../core/errors/app-error';
 import { logger } from '../../../infrastructure/logging/logger';
+import { UserModel } from '../../users/infrastructure/user.model';
+import { realtimeEmitter, RT } from '../../../realtime/emitter';
 
 /**
  * The hour before a handover.
@@ -36,6 +38,9 @@ import { logger } from '../../../infrastructure/logging/logger';
 const SLIP_THRESHOLD_MINUTES = 8;
 /** Within this radius of the handover point, you have arrived. */
 const ARRIVAL_RADIUS_METRES = 120;
+/** "About two minutes away": whichever comes first, the ETA or the distance. */
+const NEAR_MINUTES = 3;
+const NEAR_METRES = 800;
 
 type Party = 'guest' | 'host';
 
@@ -43,6 +48,16 @@ export interface ApproachLeg {
   onWayAt?: Date;
   arrivedAt?: Date;
   etaAt?: Date;
+}
+
+/** Where the handover stands, as one word the screen can draw a progress line from. */
+export type ApproachStage = 'confirmed' | 'on_way' | 'arriving' | 'arrived' | 'handed_over';
+
+export interface ApproachDriver {
+  name: string;
+  avatarUrl?: string;
+  /** Only to the guest, only while the car is coming and before the keys change hands. */
+  phone?: string;
 }
 
 export interface ApproachState {
@@ -53,6 +68,33 @@ export interface ApproachState {
   hostAt?: { lat: number; lng: number; at: Date } | null;
   /** Where to find the car, for self-pickup. Null for delivery. */
   pickup?: { instructions?: string; spotPhotoUrl?: string; accessCode?: string } | null;
+  /** True when the car is brought to the guest rather than collected. */
+  delivery: boolean;
+  stage: ApproachStage;
+  /** Who is bringing the car, once someone on the host side has set off. */
+  driver?: ApproachDriver | null;
+  car?: { title: string; plate?: string; color?: string; photoUrl?: string } | null;
+  destination?: { lat: number; lng: number; label?: string } | null;
+}
+
+function stageOf(b: BookingDoc): ApproachStage {
+  if (b.tripId || b.status === 'in_progress' || b.status === 'completed') return 'handed_over';
+  const leg = b.approach?.host;
+  if (leg?.arrivedAt) return 'arrived';
+  if (leg?.nearNotifiedAt) return 'arriving';
+  if (leg?.onWayAt) return 'on_way';
+  return 'confirmed';
+}
+
+/** Tells everyone watching this booking that the approach changed; they refetch their own view of it. */
+function announce(bookingId: string): void {
+  if (realtimeEmitter.isReady()) realtimeEmitter.toBooking(bookingId, RT.APPROACH_UPDATE, { bookingId });
+}
+
+type Leg = NonNullable<NonNullable<BookingDoc['approach']>['host']>;
+/** Internal markers stay on the server. */
+function publicLeg(leg: Leg | undefined): ApproachLeg {
+  return { onWayAt: leg?.onWayAt, arrivedAt: leg?.arrivedAt, etaAt: leg?.etaAt };
 }
 
 /** Who to notify: the guest's user id, or the host document's owner (b.hostId is a host id, not a user id). */
@@ -83,8 +125,8 @@ export const approachService = {
     if (!(await partyOf(b, viewerId))) throw new ForbiddenError('Not your booking');
 
     const vehicle = await VehicleModel.findById(b.vehicleId)
-      .select('pickup')
-      .lean<{ pickup?: ApproachState['pickup'] }>();
+      .select('pickup make model year specs.color registrationNumber photos')
+      .lean<{ pickup?: ApproachState['pickup']; make?: string; model?: string; year?: number; specs?: { color?: string }; registrationNumber?: string; photos?: { url: string; isCover?: boolean }[] }>();
 
     // The access code is the one genuinely sensitive field: it opens a gate or
     // a lockbox. Only the guest gets it, and only once they are on their way —
@@ -94,12 +136,35 @@ export const approachService = {
     const isGuest = b.guestId === viewerId;
     if (pickup && (!isGuest || !b.approach?.guest?.onWayAt)) delete pickup.accessCode;
 
+    const stage = stageOf(b);
+    const driverId = b.approach?.host?.byUserId;
+    let driver: ApproachDriver | null = null;
+    if (driverId && stage !== 'handed_over') {
+      const u = await UserModel.findById(driverId).select('firstName avatarUrl phone').lean<{ firstName?: string; avatarUrl?: string; phone?: string }>();
+      if (u) driver = { name: u.firstName ?? 'Your driver', avatarUrl: u.avatarUrl, ...(isGuest && u.phone ? { phone: u.phone } : {}) };
+    }
+    const cover = vehicle?.photos?.find((p) => p.isCover) ?? vehicle?.photos?.[0];
+    const car = vehicle
+      ? {
+          title: [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' '),
+          // The plate is how a guest spots their car at the kerb, so it shows once it is on its way.
+          ...(stage !== 'confirmed' && vehicle.registrationNumber ? { plate: vehicle.registrationNumber.replace(/\s+/g, '') } : {}),
+          ...(vehicle.specs?.color ? { color: vehicle.specs.color } : {}),
+          ...(cover ? { photoUrl: cover.url } : {}),
+        }
+      : null;
+
     return {
-      guest: b.approach?.guest ?? {},
-      host: b.approach?.host ?? {},
+      guest: publicLeg(b.approach?.guest),
+      host: publicLeg(b.approach?.host),
       guestAt: b.approach?.guestAt ?? null,
       hostAt: b.approach?.hostAt ?? null,
       pickup,
+      delivery: !!b.delivery?.mode,
+      stage,
+      driver,
+      car,
+      destination: await handoverService.destinationFor(bookingId).catch(() => null),
     };
   },
 
@@ -115,8 +180,9 @@ export const approachService = {
 
     await BookingModel.updateOne(
       { _id: bookingId },
-      { $set: { [`approach.${party}.onWayAt`]: new Date() } },
+      { $set: { [`approach.${party}.onWayAt`]: new Date(), [`approach.${party}.byUserId`]: userId } },
     );
+    announce(bookingId);
 
     const notifyUserId = await counterpartOf(b, party);
     if (notifyUserId) await notificationService
@@ -169,6 +235,7 @@ export const approachService = {
         { _id: bookingId },
         { $set: { [`approach.${party}.arrivedAt`]: new Date() } },
       );
+      announce(bookingId);
       const arrivedNotifyId = await counterpartOf(b, party);
       if (arrivedNotifyId) await notificationService
         .send({
@@ -194,6 +261,32 @@ export const approachService = {
     }
 
     await BookingModel.updateOne({ _id: bookingId }, { $set: { [`approach.${party}.etaAt`]: etaAt } });
+    announce(bookingId);
+
+    // Almost there: once, the food-delivery "two minutes away" moment.
+    const near = (etaAt.getTime() - Date.now()) / 60_000 <= NEAR_MINUTES || metresBetween(pos, destination) <= NEAR_METRES;
+    if (near && !leg.nearNotifiedAt) {
+      const claimed = await BookingModel.updateOne(
+        { _id: bookingId, [`approach.${party}.nearNotifiedAt`]: { $exists: false } },
+        { $set: { [`approach.${party}.nearNotifiedAt`]: new Date() } },
+      );
+      const nearNotifyId = claimed.modifiedCount ? await counterpartOf(b, party) : null;
+      if (nearNotifyId) {
+        const mins = Math.max(1, Math.round((etaAt.getTime() - Date.now()) / 60_000));
+        await notificationService
+          .send({
+            userId: nearNotifyId,
+            priority: 'high',
+            templateKey: 'trip.approach.near',
+            title: party === 'host' ? `Your car is about ${mins} min away` : `Your guest is about ${mins} min away`,
+            body: party === 'host' ? 'Head out to meet it. Have your pickup code ready.' : 'They are almost at the pickup point.',
+            deepLink: party === 'host' ? guestLink(bookingId) : hostLink(bookingId),
+            data: { bookingId, party },
+          })
+          .catch(() => undefined);
+      }
+      announce(bookingId);
+    }
 
     const told = leg.etaNotifiedAt ? new Date(leg.etaNotifiedAt) : null;
 

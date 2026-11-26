@@ -42,4 +42,6 @@ export const RT = {
   CHAT_READ: 'chat:read',
   NOTIFICATION: 'notification',
   TRIP_ALERT: 'trip:alert',
+  /** Someone set off, an ETA moved or someone arrived: the page refetches the approach. */
+  APPROACH_UPDATE: 'approach:update',
 } as const;

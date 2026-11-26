@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils/cn';
 import { TripLiveMap } from '@/features/trips/components/trip-live-map';
 import { ApproachStrip } from '@/features/trips/components/approach-strip';
 import { useTrackingState } from '@/features/trips/hooks';
+import { useLocationStreaming } from '@/features/trips/location-streaming';
 import { handoverApi } from '@/features/ai/api';
 import { useQuery } from '@tanstack/react-query';
 
@@ -31,6 +32,8 @@ export function TrackingPanel({
   role: 'guest' | 'host';
 }) {
   const q = useTrackingState(bookingId);
+  // The host side's phone feeds the ETA, the "almost there" alert and arrival; the guest page streams its own.
+  useLocationStreaming(bookingId, role === 'host' && !!q.data?.trackingEnabled && q.data.broadcasters.includes('host'));
   // The handover point, so the map can pin the destination and frame both ends
   // rather than opening on a car with no context.
   const handover = useQuery({
