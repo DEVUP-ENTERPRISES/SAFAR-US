@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { FavoriteModel } from '../infrastructure/favorite.model';
+import { savedCarAlertsService } from '../application/saved-car-alerts.service';
 import { vehicleService } from '../../vehicles/application/vehicle.service';
 import { toPublicVehicle } from '../../vehicles/application/vehicle-public';
 import { asyncHandler } from '../../../shared/middleware/async-handler';
@@ -64,6 +65,33 @@ router.delete(
   asyncHandler(async (req, res) => {
     await FavoriteModel.deleteOne({ userId: req.principal!.userId, vehicleId: req.params.vehicleId });
     sendSuccess(res, { favorited: false });
+  }),
+);
+
+/** "Tell me if these dates open up" on a car that is taken for them. */
+router.post(
+  '/watch',
+  authenticate,
+  validate({ body: z.object({ vehicleId: z.string().min(1).max(64), start: z.coerce.date(), end: z.coerce.date() }) }),
+  asyncHandler(async (req, res) => {
+    sendCreated(res, await savedCarAlertsService.watch(req.principal!.userId, req.body.vehicleId, req.body.start, req.body.end));
+  }),
+);
+
+router.get(
+  '/watches',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    sendSuccess(res, await savedCarAlertsService.listWatches(req.principal!.userId));
+  }),
+);
+
+router.delete(
+  '/watches/:id',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    await savedCarAlertsService.unwatch(req.principal!.userId, req.params.id);
+    sendSuccess(res, { removed: true });
   }),
 );
 

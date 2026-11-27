@@ -103,6 +103,15 @@ const JOBS: JobDef[] = [
     },
   },
   {
+    name: 'date-watches',
+    everyMs: 10 * MIN,
+    // Frees that raise no event (a checkout hold lapsing) still reach the guest within minutes.
+    run: async () => {
+      const { savedCarAlertsService } = await import('../modules/favorites/application/saved-car-alerts.service');
+      return savedCarAlertsService.sweep();
+    },
+  },
+  {
     name: 'website-claim-reviews',
     everyMs: 24 * 60 * MIN,
     run: async () => {

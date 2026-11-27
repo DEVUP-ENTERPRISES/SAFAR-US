@@ -45,7 +45,8 @@ import { saveDraft, takeDraft } from '@/features/bookings/booking-draft';
 import { PhotoLightbox } from '@/features/vehicles/components/photo-lightbox';
 import { confirmCardPayment } from '@/features/payments/confirm-payment';
 import { PayNow } from '@/features/payments/pay-now';
-import { useSearchBar, keepFuture } from '@/features/search/search-store';
+import { useSearchBar, keepFuture, localStamp } from '@/features/search/search-store';
+import { WatchDatesButton } from '@/features/favorites/watch-dates-button';
 import { reviewsApi } from '@/features/reviews/api';
 import { bookingInput, canQuote as canQuoteChoices, type BookingChoices } from '@/features/bookings/booking-selection';
 
@@ -205,6 +206,18 @@ export default function VehicleDetailPage() {
       title: 'Picked up where you left off',
       description: 'Your dates and options are still here - check them and book.',
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // A "your dates opened up" alert links here with the dates, so the price is ready on arrival.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const s = q.get('start');
+    const e = q.get('end');
+    if (!s || !e || isNaN(Date.parse(s)) || isNaN(Date.parse(e))) return;
+    const kept = keepFuture(localStamp(new Date(s)), localStamp(new Date(e)), earliestPickup());
+    setStart(kept.start);
+    setEnd(kept.end);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -1019,6 +1032,9 @@ export default function VehicleDetailPage() {
 
             {quote.isError && !couponError && (
               <p className="text-sm text-destructive">{quote.error instanceof ApiError ? quote.error.message : 'Could not price this trip'}</p>
+            )}
+            {quote.isError && quote.error instanceof ApiError && quote.error.code === 'NOT_AVAILABLE' && start && end && (
+              <WatchDatesButton vehicleId={id} start={start} end={end} signedIn={status === 'authenticated'} />
             )}
             {quote.data && canQuote && (
               <div className={`space-y-1.5 rounded-lg border border-border p-3 text-sm transition-opacity ${quote.isPending ? 'opacity-60' : ''}`} aria-live="polite">

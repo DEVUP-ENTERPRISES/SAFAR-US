@@ -357,19 +357,11 @@ export class VehicleService implements IVehicleContract {
   ): Promise<VehicleDoc> {
     const vehicle = await this.getById(vehicleId);
     await this.assertOwner(userId, vehicle);
-    const oldPrice = vehicle.pricing.dailyPrice;
+    const before = { ...vehicle.pricing };
     const merged = { ...vehicle.pricing, ...patch };
     await VehicleModel.updateOne({ _id: vehicleId }, { pricing: merged });
-    // Price-drop alert for wishlisters.
-    if (typeof merged.dailyPrice === 'number' && merged.dailyPrice < oldPrice) {
-      emit(EVENTS.VEHICLE_PRICE_DROPPED, vehicleId, {
-        vehicleId,
-        oldPrice,
-        newPrice: merged.dailyPrice,
-        title: `${vehicle.make} ${vehicle.model}`,
-        currency: vehicle.pricing.currency,
-      });
-    }
+    // Saved-car alert; the subscriber decides whether the drop is big enough and who has not heard lately.
+    emit(EVENTS.VEHICLE_PRICE_DROPPED, vehicleId, { vehicleId, before, after: merged });
     return this.getById(vehicleId);
   }
 

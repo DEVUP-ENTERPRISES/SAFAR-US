@@ -23,6 +23,8 @@ export const EVENTS = {
   VEHICLE_LISTED: 'vehicle.listed',
   VEHICLE_VERIFIED: 'vehicle.verified',
   VEHICLE_PRICE_DROPPED: 'vehicle.price_dropped',
+  /** Calendar days on a car were released (cancellation, unblock, pause ended): someone may be waiting for them. */
+  AVAILABILITY_FREED: 'availability.freed',
   /** Operational lifecycle moved (idle→on_trip→…→idle). */
   VEHICLE_STATE_CHANGED: 'vehicle.state_changed',
   /** Car entered a state where it cannot take new bookings (maintenance/repair/

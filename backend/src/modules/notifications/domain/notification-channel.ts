@@ -9,7 +9,7 @@ export function categoryFor(templateKey: string): NotificationCategory {
   const k = templateKey.toLowerCase();
   if (k.includes('chat') || k.includes('message')) return 'messages';
   if (k.includes('payout') || k.includes('payment') || k.includes('refund') || k.includes('wallet') || k.includes('earning') || k.includes('incidental') || k.includes('receipt') || k.includes('tax')) return 'payments';
-  if (k.includes('promo') || k.includes('referral') || k.includes('reengage') || k.includes('offer') || k.includes('reward')) return 'promotions';
+  if (k.includes('wishlist') || k.includes('promo') || k.includes('referral') || k.includes('reengage') || k.includes('offer') || k.includes('reward')) return 'promotions';
   if (k.includes('review')) return 'reviews';
   if (k.includes('security') || k.includes('login') || k.includes('account') || k.includes('otp') || k.includes('verif')) return 'account';
   return 'trips'; // booking.* / trip.* / vehicle.* — the transactional default

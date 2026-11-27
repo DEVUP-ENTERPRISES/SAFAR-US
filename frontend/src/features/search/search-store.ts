@@ -41,7 +41,7 @@ export function toIso(date: string, time: string): string | undefined {
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
-const localStamp = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+export const localStamp = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 /** The first half-hour slot at or after `earliest`, as a local "YYYY-MM-DDTHH:mm". */
 export function nextSlot(earliest: Date): string {

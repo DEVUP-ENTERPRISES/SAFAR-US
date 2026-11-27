@@ -1,6 +1,11 @@
 import { VehicleModel } from '../../vehicles/infrastructure/vehicle.model';
 import { AvailabilityModel, type AvailabilityDoc } from '../infrastructure/availability.model';
 import { ConflictError } from '../../../core/errors/app-error';
+import { emit } from '../../../shared/events/event-bus';
+import { EVENTS } from '../../../core/events/event-names';
+
+// Someone may be watching these dates; the date-watch alert listens for this.
+const freed = (vehicleId: string) => emit(EVENTS.AVAILABILITY_FREED, vehicleId, { vehicleId });
 import { randomId } from '../../../shared/utils/uuid';
 import type { IAvailabilityContract } from '../../../core/contracts/availability.contract';
 import { platformConfigService } from '../../platform-config/application/platform-config.service';
@@ -282,7 +287,9 @@ export class AvailabilityService implements IAvailabilityContract {
   }
 
   async releaseBooking(bookingId: string): Promise<void> {
+    const row = await AvailabilityModel.findOne({ bookingId }, { vehicleId: 1 }).lean();
     await AvailabilityModel.deleteMany({ bookingId });
+    if (row) freed(String(row.vehicleId));
   }
 
   /**
@@ -294,6 +301,7 @@ export class AvailabilityService implements IAvailabilityContract {
     if (!row) return;
     const keys = await this.tripDayKeys(String(row.vehicleId), from, to);
     await AvailabilityModel.deleteMany({ bookingId, dayKey: { $in: keys } });
+    freed(String(row.vehicleId));
   }
 
   /** Host blocks a range (maintenance / personal use / blackout dates); start and end are the picked dates. */
@@ -314,7 +322,8 @@ export class AvailabilityService implements IAvailabilityContract {
   /** Host unblocks a range: only their own blocks, never booked days or a scheduled pause. */
   async unblock(vehicleId: string, start: Date, end: Date): Promise<void> {
     const keys = dayKeys(start, end);
-    await AvailabilityModel.deleteMany({ vehicleId, dayKey: { $in: keys }, state: 'blocked', pauseId: null });
+    const r = await AvailabilityModel.deleteMany({ vehicleId, dayKey: { $in: keys }, state: 'blocked', pauseId: null });
+    if (r.deletedCount) freed(vehicleId);
   }
 
   /** Bookings and live checkout holds on any of these days. */
@@ -336,7 +345,9 @@ export class AvailabilityService implements IAvailabilityContract {
   }
 
   async unblockPause(pauseId: string): Promise<void> {
+    const row = await AvailabilityModel.findOne({ pauseId }, { vehicleId: 1 }).lean();
     await AvailabilityModel.deleteMany({ pauseId, state: 'blocked' });
+    if (row) freed(String(row.vehicleId));
   }
 
   /** Calendar view for a month/range: returns occupied days with their state. */

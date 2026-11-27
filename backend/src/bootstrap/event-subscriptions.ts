@@ -1,3 +1,4 @@
+import { savedCarAlertsService } from '../modules/favorites/application/saved-car-alerts.service';
 import { eventBus } from '../shared/events/event-bus';
 import { EVENTS } from '../core/events/event-names';
 import { notificationService } from '../modules/notifications/application/notification.service';
@@ -8,7 +9,6 @@ import { rewardsService } from '../modules/rewards/application/rewards.service';
 import { referralService } from '../modules/referral/application/referral.service';
 import { bookingService } from '../modules/bookings/application/booking.service';
 import { vehicleService, syncDailyMileage } from '../modules/vehicles/application/vehicle.service';
-import { favoritesService } from '../modules/favorites/application/favorites.service';
 import { savedSearchService } from '../modules/saved-search/application/saved-search.service';
 import { messageService } from '../modules/messaging/application/message.service';
 import { vehicleLifecycleService } from '../modules/vehicles/application/vehicle-lifecycle.service';
@@ -918,35 +918,22 @@ export function registerEventSubscribers(): void {
 
   // Price-drop alert → notify everyone who wishlisted this car.
   eventBus.subscribe(EVENTS.VEHICLE_PRICE_DROPPED, async (e) => {
-    const p = e.payload as { vehicleId: string; oldPrice: number; newPrice: number; title: string; currency: string };
-    const wishlisters = await favoritesService.wishlistersOf(p.vehicleId);
-    const drop = ((p.oldPrice - p.newPrice) / 100).toFixed(0);
-    for (const userId of wishlisters) {
-      await notificationService.send({
-        userId,
-        templateKey: 'wishlist.price_drop',
-        title: 'Price drop on a saved car! 📉',
-        body: `${p.title} dropped by $${drop}/day — book before it's gone.`,
-        data: { vehicleId: p.vehicleId },
-      });
-      realtimeEmitter.toUser(userId, RT.NOTIFICATION, { kind: 'price_drop', vehicleId: p.vehicleId });
-    }
-    if (wishlisters.length) logger.info({ vehicleId: p.vehicleId, wishlisters: wishlisters.length }, '📉 price-drop alerts sent');
+    const p = e.payload as { vehicleId: string; before: { dailyPrice: number }; after: { dailyPrice: number } };
+    const sent = await savedCarAlertsService.onPriceChange(p.vehicleId, p.before, p.after);
+    if (sent) logger.info({ vehicleId: p.vehicleId, sent }, 'price-drop alerts sent');
+  });
+
+  // Dates freed on a car: tell anyone waiting for exactly those dates.
+  eventBus.subscribe(EVENTS.AVAILABILITY_FREED, async (e) => {
+    const p = e.payload as { vehicleId: string };
+    await savedCarAlertsService.checkWatches(p.vehicleId).catch((err) => logger.warn({ err: (err as Error).message }, 'date-watch check failed'));
   });
 
   // Back-in-stock: a saved car became listed/available again.
   eventBus.subscribe(EVENTS.VEHICLE_LISTED, async (e) => {
     const p = e.payload as { vehicleId: string };
-    const wishlisters = await favoritesService.wishlistersOf(p.vehicleId);
-    for (const userId of wishlisters) {
-      await notificationService.send({
-        userId,
-        templateKey: 'wishlist.available',
-        title: 'A saved car is now available! ✅',
-        body: 'One of your wishlisted cars is back and ready to book.',
-        data: { vehicleId: p.vehicleId },
-      });
-    }
+    await savedCarAlertsService.onListed(p.vehicleId);
+    await savedCarAlertsService.checkWatches(p.vehicleId).catch(() => undefined);
   });
 
   /**

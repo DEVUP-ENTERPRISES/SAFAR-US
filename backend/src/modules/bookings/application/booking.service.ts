@@ -155,6 +155,10 @@ export class BookingService {
   ): Promise<{ breakdown: PriceBreakdown; priceLock?: PriceLock }> {
     const { start, end } = this.parsePeriod(dto.start, dto.end);
     await this.assertBookableWindow(dto.vehicleId, start, end);
+    // Say so at the price, not at the final tap: the guest can pick other dates or ask to be told when these free up.
+    if (!(await availabilityService.isAvailable(dto.vehicleId, start, end))) {
+      throw new ConflictError('This car is already booked for those dates. Try other dates.', 'NOT_AVAILABLE');
+    }
     const breakdown = await pricingService.quote({
       vehicleId: dto.vehicleId,
       start,
